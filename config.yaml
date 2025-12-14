@@ -1,0 +1,21 @@
+# 通用批量处理配置
+batch_processing:
+  enabled: true
+  skip_existing: false  
+  # specific_trainings: []  # 注释掉此行，默认生成所有可用训练
+
+# 全局配置
+output_dir: "output"
+resource_base_dir: "resource"
+template_dir: "src/templates"
+static_dir: "src/static"
+
+# 默认训练配置（可选，仅当无法从文件夹名自动识别时使用）
+# 程序会自动从文件夹名称提取年份和季节，例如：
+#   - "2025-秋季" → year: 2025, season: "秋季"
+#   - "2025-夏季" → year: 2025, season: "夏季"
+# 标题和副标题始终从文档中自动提取
+default_training:
+  year: 2025  # 后备年份
+  season: "秋季"  # 后备季节
+  

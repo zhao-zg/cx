@@ -1,0 +1,2728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第7篇 - 纲目</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>夏季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025夏季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="7_dg.htm" class="nav-link active" title="大纲">大纲</a>
+    <a href="7_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="7_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="7_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="7_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第7篇 救恩的创始者（元帅）和先锋，领许多的儿子借着进入幔内并出到营外而进荣耀里去</h2>
+    
+    
+    <div class="hymn-number">EM 诗歌: s27, 414</div>
+    
+    
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：来二10~11，六19~20，十三13</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+            
+                
+                <div class="verse-line">来2:10	原来万有因祂而有，借祂而造的那位，为着要领许多的儿子进荣耀里去，就借着苦难成全他们救恩的创始者，这对祂本是合宜的。</div>
+                
+            
+                
+                <div class="verse-line">来2:11	因那圣别人的，和那些被圣别的，都是出于一；因这缘故，祂称他们为弟兄，并不以为耻，说，</div>
+                
+            
+                
+                <div class="verse-line">来6:19	我们有这盼望如同魂的锚，又牢靠又坚固，且通入幔内；</div>
+                
+            
+                
+                <div class="verse-line">来6:20	作先锋的耶稣，既照着麦基洗德的等次，成了永远的大祭司，就为我们进入幔内。</div>
+                
+            
+                
+                <div class="verse-line">来13:13	这样，我们也当出到营外就了祂去，忍受祂所受的凌辱。</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="outline-content">
+        
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹')">▶</button>
+                
+                壹　神永远的目标，是要领许多的儿子进荣耀里去：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-一">
+            <div class="section-level2">
+                
+                一　神为着自己的荣耀创造、塑造甚至造作我们；这荣耀是神的彰显，也就是彰显出来的神；我们对神最高的事奉，乃是在荣耀里彰显祂—赛四三7，林前六20，十31，林后三8~9、18，四1、5，出四十34。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛43:7	就是凡称为我名下的人，是我为自己的荣耀所创造、所塑造的，更是我所造作的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前6:20	因为你们是重价买来的。这样，就要在你们的身体上荣耀神。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前10:31	所以你们或吃、或喝、或作什么事，一切都要为荣耀神而行。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:8	何况那灵的职事，岂不更带着荣光？</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:9	若定罪的职事有荣光，那称义的职事，就越发充盈着荣光了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:18	但我们众人既然以没有帕子遮蔽的脸，好像镜子观看并返照主的荣光，就渐渐变化成为与祂同样的形像，从荣耀到荣耀，乃是从主灵变化成的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:1	因此，我们既照所蒙的怜悯，受了这职事，就不丧胆，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:5	因为我们不是传自己，乃是传基督耶稣为主，也传自己为耶稣的缘故，作你们的奴仆。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出40:34	当时，云彩遮盖会幕，耶和华的荣光充满了帐幕。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二">
+            <div class="section-level2">
+                
+                二　神永远的定旨，是要借着祂所救赎的人，团体地彰显祂自己—创一26，弗三16~17上、21。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">创1:26	神说，我们要按着我们的形像，照着我们的样式造人，使他们管理海里的鱼、空中的鸟、地上的牲畜、和全地、并地上所爬的一切爬物。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗3:16	愿祂照着祂荣耀的丰富，借着祂的灵，用大能使你们得以加强到里面的人里，</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗3:17上	使基督借着信，安家在你们心里，……</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗3:21	愿在召会中，并在基督耶稣里，荣耀归与祂，直到世世代代，永永远远。阿们。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-三">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-三')">▶</button>
+                
+                三　有神荣耀的新耶路撒冷，是神团体的彰显：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-三" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-三-1">
+            <div class="section-level3">
+                
+                1　神作为光，在作为灯的羔羊里面并借着羔羊照耀出来，至终透过整座城照耀出来，使城显出神自己的样子—启二一10~11、18、23，四3。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-三-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启21:10	我在灵里，天使带我到一座高大的山，将那由神那里从天而降的圣城耶路撒冷指给我看。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启21:11	城中有神的荣耀；城的光辉如同极贵的宝石，好像碧玉，明如水晶；</div>
+                    
+                    
+                    
+                    <div class="verse-line">启21:18	墙是用碧玉造的，城是纯金的，如同明净的玻璃。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启21:23	那城内不需要日月光照，因有神的荣耀光照，又有羔羊为城的灯。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启4:3	那位坐着的，显出来的样子好像碧玉和红宝石，又有虹围着宝座，显出来的样子好像绿宝石。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-三-2">
+            <div class="section-level3">
+                
+                2　我们看新耶路撒冷，就看见神的彰显—在灯里的光透过碧玉照耀出来。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-四')">▶</button>
+                
+                四　基督是我们进入荣耀之完满救恩的创始者（元帅）—来二3、10：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来2:3	我们若忽略了这么大的救恩，怎能逃罪？这救恩起先是主亲自讲的，后来听见的人给我们证实了；</div>
+                    
+                    
+                    
+                    <div class="verse-line">来2:10	原来万有因祂而有，借祂而造的那位，为着要领许多的儿子进荣耀里去，就借着苦难成全他们救恩的创始者，这对祂本是合宜的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-四" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-四-1">
+            <div class="section-level3">
+                
+                1　耶稣是神圣荣耀的种子，落在地里死了，并在复活里长起来，在荣耀里开花—约十二23~24，路二四26，林前十五36、43上。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约12:23	耶稣回答说，人子得荣耀的时候到了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约12:24	我实实在在地告诉你们，一粒麦子不落在地里死了，仍旧是一粒；若是死了，就结出许多子粒来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路24:26	基督受这些害，又进入祂的荣耀，岂不是应当的么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前15:36	愚昧的人，你所种的，若不死就不能生；</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前15:43上	在羞辱中所种的，在荣耀中复活；……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四-2">
+            <div class="section-level3">
+                
+                2　借着祂的生长，祂的全人，包括祂的人性和属人的性情，都被带进神荣耀的彰显里。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四-3">
+            <div class="section-level3">
+                
+                3　祂是在荣耀里的那人，就是在神彰显里的人，这人甚至就是神的彰显、神的荣耀—补充本诗歌二七首。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">补充本诗歌二七首</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-一">
+            <div class="section-level2">
+                
+                一　在荣耀里有一人，	祂的生命是为我。
+祂是完全圣洁，	自由且超脱，
+祂是全智、仁慈，	祂是何温柔！
+祂荣耀里的生命	乃是为着我。
+祂荣耀里的生命	乃是为着我。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二">
+            <div class="section-level2">
+                
+                二　在荣耀里有一人，	祂的生命是为我。
+在祂全无疾病，	祂毫无软弱，
+祂是刚强、有力，	且能往上浮！
+祂荣耀里的生命	乃是为着我。
+祂荣耀里的生命	乃是为着我。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-三">
+            <div class="section-level2">
+                
+                三　在荣耀里有一人，	祂的生命是为我。
+祂胜过了死亡，	拘禁全脱落，
+在复活里作王，	权柄手中握！
+祂荣耀里的生命	乃是为着我。
+祂荣耀里的生命	乃是为着我。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四">
+            <div class="section-level2">
+                
+                四　在荣耀里有一人，	祂的生命是为我。
+祂的平安长存，	不怕何风波，
+祂喜乐，发光辉，	盼望而等着，
+祂荣耀里的生命	从我里透过。
+祂荣耀里的生命	从我里透过。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五">
+            <div class="section-level2">
+                
+                五　基督为创始者、元帅、开拓者、先锋（来六20），已领先进入荣耀；现今我们这些跟从祂的人，正在同一条路上，也要被带进神为我们所命定同样的荣耀里（林前二7，帖前二12）。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-五" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来6:20	作先锋的耶稣，既照着麦基洗德的等次，成了永远的大祭司，就为我们进入幔内。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前2:7	我们讲的，乃是从前所隐藏，神奥秘中的智慧，就是神在万世以前，为使我们得荣耀所预定的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">帖前2:12	要叫你们行事为人，配得过那召你们进入祂自己的国和荣耀的神。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-六')">▶</button>
+                
+                六　救恩的创始者（元帅），就是在荣耀里的那人，是神荣耀的那人，乃是在我们里面荣耀的种子—西一27，约壹三9：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西1:27	神愿意叫他们知道，这奥秘的荣耀在外邦人中是何等的丰富，就是基督在你们里面成了荣耀的盼望；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹3:9	凡从神生的，就不犯罪，因为神的种子住在他里面；他也不能犯罪，因为他是从神生的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-六" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-六-1">
+            <div class="section-level3">
+                
+                1　我们的救主领先争战进入了荣耀；祂的一生乃是为着荣耀争战的过程—路十二49~50。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">路12:49	我来要把火丢在地上，若是已经着起来，那是我所愿意的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路12:50	我有当受的浸，还没有成就，我是何等的困迫！</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-2">
+            <div class="section-level3">
+                
+                2　在我们里面荣耀种子的长大，乃是个争战的过程。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-3">
+            <div class="section-level3">
+                
+                3　荣耀乃是神圣的元素从我们里面开花。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-4">
+            <div class="section-level3">
+                
+                4　我们所要进入的荣耀，乃是那已经撒在我们里面作为种子之神圣元素的荣耀—帖后一9。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">帖后1:9	在那日，当主来，在祂圣徒身上得荣耀，并在一切信的人身上显为希奇的时候（你们也在其中，因为你们信了我们对你们所作的见证），</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-七">
+            <div class="section-level2">
+                
+                七　我们是借着受苦的过程得拯救进入荣耀，就是神的彰显里；我们的一切苦难都在我们往锡安的大道上帮助我们，使我们变化，从荣耀到荣耀，使我们成为基督荣耀的新妇—来十32~35，林后四16~18，诗八四5~7，林后三18，罗八17~18、21。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-七')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-七" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来10:32	然而你们要回想往日，那时你们蒙了光照，就忍受了各样苦难中的大争战；</div>
+                    
+                    
+                    
+                    <div class="verse-line">来10:33	一面被辱骂，遭患难，成了给众人观看的一台戏；一面作了那些受如此对待之人的同伴。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来10:34	因为你们同情了那些被捆锁的人，并且你们的家业被抢夺，你们也欢喜接受，知道自己有更美长存的家业。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来10:35	所以不可丢弃你们的胆量；这胆量是会得大赏赐的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:16	所以我们不丧胆，反而我们外面的人虽然在毁坏，我们里面的人却日日在更新。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:17	因为我们这短暂轻微的苦楚，要极尽超越地为我们成就永远重大的荣耀。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:18	我们原不是顾念所见的，乃是顾念所不见的，因为所见的是暂时的，所不见的才是永远的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗84:5	因你有力量，心中想往锡安大道的，这人便为有福。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗84:6	他们经过流泪谷，叫这谷变为泉源之地；并有秋雨之福，盖满了这谷。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗84:7	他们行走，力上加力，各人到锡安朝见神。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:18	但我们众人既然以没有帕子遮蔽的脸，好像镜子观看并返照主的荣光，就渐渐变化成为与祂同样的形像，从荣耀到荣耀，乃是从主灵变化成的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:17	既是儿女，便是后嗣，就是神的后嗣，和基督同作后嗣，只要我们与祂一同受苦，好叫我们也与祂一同得荣耀。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:18	因为我算定今时的苦楚，不配与将来要显于我们的荣耀相比。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:21	指望着受造之物自己，也要从败坏的奴役得着释放，得享神儿女之荣耀的自由。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-八">
+            <div class="section-level2">
+                
+                八　作我们救恩创始者（元帅）的基督，借着作我们的大祭司，为我们祷告并将神供应到我们里面，尽祂的职责，领我们进入荣耀—来二16~18，七25，八2。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-八')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-八" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来2:16	诚然祂不是救援天使，乃是救援亚伯拉罕的后裔。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来2:17	所以祂凡事该与祂的弟兄一样，为要在关于神的事上，成为怜悯、忠信的大祭司，好为百姓的罪成就平息。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来2:18	因为祂既然在所受的苦上被试诱，就能帮助被试诱的人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来7:25	所以，那借着祂来到神面前的人，祂都能拯救到底；因为祂是长远活着，为他们代求。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来8:2	作了圣所，就是真帐幕的执事；这帐幕是主所支的，不是人所支的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-九">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-九')">▶</button>
+                
+                九　作救恩创始者（元帅）的基督，借着圣别，生机地拯救神许多的儿子，而领他们进入荣耀，就是神团体的彰显里；这神圣的圣别是由圣别人的那灵在我们灵里实施的—二10~11，弗一4~5，帖前五23，罗五10，十五16，弗五26：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-九')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-九" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来2:10	原来万有因祂而有，借祂而造的那位，为着要领许多的儿子进荣耀里去，就借着苦难成全他们救恩的创始者，这对祂本是合宜的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来2:11	因那圣别人的，和那些被圣别的，都是出于一；因这缘故，祂称他们为弟兄，并不以为耻，说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗1:4	就如祂在创立世界以前，在基督里拣选了我们，使我们在爱里，在祂面前，成为圣别、没有瑕疵；</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗1:5	按着祂意愿所喜悦的，预定了我们，借着耶稣基督得儿子的名分，归于祂自己，</div>
+                    
+                    
+                    
+                    <div class="verse-line">帖前5:23	且愿和平的神，亲自全然圣别你们，又愿你们的灵、与魂、与身子得蒙保守，在我们主耶稣基督来临的时候，得以完全，无可指摘。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗5:10	因为我们作仇敌的时候，且借着神儿子的死得与神和好，既已和好，就更要在祂的生命里得救了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗15:16	使我为外邦人作基督耶稣的仆役，作神福音勤奋的祭司，叫所献上的外邦人，在圣灵里得以圣别，可蒙悦纳。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗5:26	好圣化召会，借着话中之水的洗涤洁净召会，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-九" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-九-1">
+            <div class="section-level3">
+                
+                1　为着神圣儿子名分之神圣的圣别，乃是神圣经纶的中心，也是新约里启示的中心思想。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-九-2">
+            <div class="section-level3">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-九-2')">▶</button>
+                
+                2　神圣的圣别，在完成神圣的经纶上，是主持的线，为要神圣地使我们“子化”，成为神的儿子，在生命和性情上与神一样（但无分于祂的神格），作神的彰显：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-九-2" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-九-2-a">
+            <div class="section-level4">
+                
+                a　寻找的圣别，也就是初步的圣别，是为着叫我们悔改，把我们带回归神—彼前一2，路十五8~10、17~21。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-九-2-a')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-九-2-a" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼前1:2	就是照着父神的先见被拣选，借着那灵得圣别，以致顺从耶稣基督，并蒙祂血所洒的人：愿恩典与平安，繁增地归与你们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:8	或是一个妇人有十个银币，若失落一个，岂不点上灯，打扫屋子，细细地找，直到找着么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:9	找着了，就召齐朋友、邻舍，说，和我一同欢喜吧，因为我失落的那个银币已经找着了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:10	我告诉你们，一个罪人悔改，在神的使者面前，也是这样为他欢喜。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:17	他醒悟过来，就说，我父亲有多少的雇工，口粮有余，我倒在这里饿死么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:18	我要起来，到我父亲那里去，向他说，父亲，我犯罪得罪了天，并得罪了你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:19	我不配再称为你的儿子，把我当作一个雇工吧。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:20	于是起来往他父亲那里去。相离还远，他父亲看见，就动了慈心，跑去抱着他的颈项，热切地与他亲嘴。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:21	儿子说，父亲，我犯罪得罪了天，并得罪了你。我不配再称为你的儿子。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-九-2-b">
+            <div class="section-level4">
+                
+                b　救赎的圣别，也就是地位上的圣别，是借着基督的血，把我们从亚当里迁到基督里—来十三12。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-九-2-b')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-九-2-b" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来13:12	所以耶稣为要借自己的血圣别百姓，也就在城门外受苦。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-九-2-c">
+            <div class="section-level4">
+                
+                c　重生的圣别，也就是在性情上圣别的开始，从我们的灵更新我们，使我们这些罪人成为神的儿子—林后五17，约一12~13。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-九-2-c')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-九-2-c" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后5:17	因此，若有人在基督里，他就是新造；旧事已过，看哪，都变成新的了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约1:12	凡接受祂的，就是信入祂名的人，祂就赐他们权柄，成为神的儿女。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约1:13	这等人不是从血生的，不是从肉体的意思生的，也不是从人的意思生的，乃是从神生的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-九-2-d">
+            <div class="section-level4">
+                
+                d　更新的圣别，也就是在性情上圣别的继续，从我们的心思到我们魂的各部分，更新我们的魂，使我们的魂成为神新造的一部分—罗十二2中，弗四23，加六15。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-九-2-d')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-九-2-d" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗12:2中	……反要借着心思的更新而变化，……</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:23	而在你们心思的灵里得以更新，</div>
+                    
+                    
+                    
+                    <div class="verse-line">加6:15	受割礼不受割礼，都无关紧要，要紧的乃是作新造。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-九-2-e">
+            <div class="section-level4">
+                
+                e　变化的圣别，也就是日常的圣别，用基督的元素新陈代谢地把我们重新构成，使我们成为新的构成，作基督生机身体的一部分—林后四16，林前三12。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-九-2-e')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-九-2-e" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后4:16	所以我们不丧胆，反而我们外面的人虽然在毁坏，我们里面的人却日日在更新。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前3:12	然而，若有人用金、银、宝石，木、草、禾秸，在这根基上建造，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-九-2-f">
+            <div class="section-level4">
+                
+                f　模成的圣别，也就是成形的圣别，以荣耀之基督的形像使我们成形，使我们成为基督的彰显—罗八28~29，林后三18。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-九-2-f')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-九-2-f" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗8:28	还有，我们晓得万有都互相效力，叫爱神的人得益处，就是按祂旨意被召的人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:29	因为神所预知的人，祂也预定他们模成神儿子的形像，使祂儿子在许多弟兄中作长子。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:18	但我们众人既然以没有帕子遮蔽的脸，好像镜子观看并返照主的荣光，就渐渐变化成为与祂同样的形像，从荣耀到荣耀，乃是从主灵变化成的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-九-2-g">
+            <div class="section-level4">
+                
+                g　得荣的圣别，也就是终极完成的圣别，借着把我们的身体改变形状，而救赎我们的身体，使我们在荣耀里完满地成为基督的彰显—腓三21，罗八23。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-九-2-g')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-九-2-g" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓3:21	祂要按着祂那甚至能叫万有归服自己的动力，将我们这卑贱的身体改变形状，使之同形于祂荣耀的身体。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:23	不但如此，就是我们这有那灵作初熟果子的，也是自己里面叹息，热切等待儿子的名分，就是我们的身体得赎。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰')">▶</button>
+                
+                贰　希伯来书的目标，就是最终的结论，乃是我们要进入幔内，并出到营外—来六19~20，十三13，诗歌四一四首：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来6:19	我们有这盼望如同魂的锚，又牢靠又坚固，且通入幔内；</div>
+                    
+                    
+                    
+                    <div class="verse-line">来6:20	作先锋的耶稣，既照着麦基洗德的等次，成了永远的大祭司，就为我们进入幔内。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来13:13	这样，我们也当出到营外就了祂去，忍受祂所受的凌辱。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗歌四一四首</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-一">
+            <div class="section-level2">
+                
+                一　进入幔内，就必出到营外，	尝到天美，就必丢弃地爱；
+圣中之圣如果满足我心，		空中之空岂能欺骗我魂？
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二">
+            <div class="section-level2">
+                
+                二　进入幔内，就必出到营外，	天一同在，就必使地离开；
+天上荣耀如果吸引我灵，		地上福乐岂能霸占我情？
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三">
+            <div class="section-level2">
+                
+                三　进入幔内，瞻仰荣耀基督，	出到营外，跟随卑微耶稣；
+宝座、冠冕，如果将我鼓舞，	马槽、十架，岂能使我裹足？
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四">
+            <div class="section-level2">
+                
+                四　进入幔内，吸取复活大能，	出到营外，奔跑十架路程；
+我若看见祂在天上面容，		就必步武祂在地上脚踪。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-五">
+            <div class="section-level2">
+                
+                五　进入幔内，饱尝天上肥甘，	出到营外，忍受地上艰难；
+地上经历虽使我心酸痛，		天上交通却叫我灵赞颂。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-六">
+            <div class="section-level2">
+                
+                六　进入幔内，享受主的上好，	出到营外，供应人的需要；
+天上生命如果从我活出，		地上灵魂就必因我得福。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-七">
+            <div class="section-level2">
+                
+                七　进入幔内，直到幔子不存，	出到营外，直到营都灭尽；
+直到天地所有同归于一，		直到神、人永远不再分离。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-一">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-一')">▶</button>
+                
+                一　进入幔内，意即进入主已在其中，在荣耀里登宝座的至圣所；出到营外，意即脱离主曾从其中被人弃绝、驱逐的宗教：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-一" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-一-1">
+            <div class="section-level3">
+                
+                1　营表征属地又属人的宗教组织。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-一-2">
+            <div class="section-level3">
+                
+                2　一切宗教都是属人的组织，也是属地的范围，使人远离神的经纶。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-二')">▶</button>
+                
+                二　我们必须在我们的灵里，从经历说，那里是今天实际的至圣所；我们也必须出到宗教之外，那里是今天实际的营：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-二" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-二-1">
+            <div class="section-level3">
+                
+                1　我们越在灵里享受天上的基督，就越出到宗教的营外，跟随受苦的耶稣。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-2">
+            <div class="section-level3">
+                
+                2　我们越留在灵里接触这位在荣耀里天上的基督，就越出到宗教的营外，就了卑微的耶稣去，与祂一同受苦。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-3">
+            <div class="section-level3">
+                
+                3　真正新约的职事，带我们进入灵里，就是进入幔内，对基督有享受，并加强我们跟随耶稣出到营外，为着祂身体的缘故，交通于祂的受苦—林后十一2~3、23~33。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后11:2	我以神的妒忌，妒忌你们，因为我曾把你们许配一个丈夫，要将一个贞洁的童女献给基督。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后11:3	我只怕你们的心思或被败坏，失去那向着基督的单纯和纯洁，就像蛇用诡诈诱骗了夏娃一样。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后11:23	他们是基督的执事么？我疯狂地说，我更是！论劳苦，是更多的；论下监，是更多的；论鞭打，是过重的；论冒死，是屡次有的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后11:24	我给犹太人鞭打五次，每次四十，减去一下；</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后11:25	给棍打了三次，给石头打了一次，遇着船坏三次，在深海里过了一昼一夜；</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后11:26	屡次行远路，遭江河的危险、盗贼的危险、同族的危险、外邦人的危险、城里的危险、旷野的危险、海中的危险、假弟兄中的危险；</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后11:27	劳碌辛苦，论儆醒，是多次的；论饥渴、论不食，是多次的；论寒冷和赤身—</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后11:28	除了没有提起的事，还有为众召会的挂虑，天天压在我身上。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后11:29	有谁软弱，我不软弱？有谁绊跌，我不焦急？</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后11:30	我若必须夸口，就要夸我软弱的事。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后11:31	主耶稣的神与父，就是那当受颂赞直到永远的，知道我不说谎。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后11:32	在大马色，亚哩达王手下的提督，把守大马色人的城，要捉拿我，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后11:33	我就从窗户中，在筐子里给人从城墙上缒下去，逃脱了他的手。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-4">
+            <div class="section-level3">
+                
+                4　在幔内，我们有分于天上基督的职事，使我们得着装备，能将祂供应给营外干渴的灵。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-三')">▶</button>
+                
+                三　进入幔内就是进到我们的灵里；当我们转向我们的灵并操练我们的灵，我们就进入幔内—提前四7~8：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">提前4:7	只是要弃绝那世俗的言语，和老妇的虚构无稽之事，并要操练自己以至于敬虔。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前4:8	因为操练身体益处还少；唯独敬虔，凡事都有益处，有今生和来生的应许。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-三" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-三-1">
+            <div class="section-level3">
+                
+                1　我们必须借着将我们的灵如火挑旺起来、将我们的心思置于灵并辨明我们的灵与魂，而操练、运用并使用我们的灵—提后一6~7，罗八5~6，来四12。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">提后1:6	为这缘故，我提醒你，将那借我按手，在你里面神的恩赐，再如火挑旺起来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提后1:7	因为神赐给我们的，不是胆怯的灵，乃是能力、爱、并清明自守的灵。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:5	因为照着肉体的人，思念肉体的事；照着灵的人，思念那灵的事。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:6	因为心思置于肉体，就是死；心思置于灵，乃是生命平安。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来4:12	因为神的话是活的，是有功效的，比一切两刃的剑更锋利，能以刺入、甚至剖开魂与灵，骨节与骨髓，连心中的思念和主意都能辨明。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三-2">
+            <div class="section-level3">
+                
+                2　我们必须操练我们的灵，好进入幔内，直接接触天上的基督这位在荣耀里的人，观看祂，好被祂灌输并注入，使我们成为祂团体的复制品—林后三18。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后3:18	但我们众人既然以没有帕子遮蔽的脸，好像镜子观看并返照主的荣光，就渐渐变化成为与祂同样的形像，从荣耀到荣耀，乃是从主灵变化成的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三-3">
+            <div class="section-level3">
+                
+                3　在幔内就是在至圣所里，在这个范围里，我们有分于基督，并享受祂作隐藏的吗哪、发芽的杖和生命之律，结果带进神团体的彰显，以完成神永远的定旨—来九3~4。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来9:3	第二幔子后，还有一层帐幕，叫作至圣所，</div>
+                    
+                    
+                    
+                    <div class="verse-line">来9:4	有金香坛，和四面包金的约柜，柜里有盛吗哪的金罐、和亚伦发过芽的杖、并两块约版；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-四')">▶</button>
+                
+                四　以色列人拜了金牛犊后，摩西就迁到营外一个地方，凡求问主的，就出到那里与他相会，因为主的同在和说话都在那里—出三三7~11，参民十二6~8：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">出33:7	摩西将帐棚支搭在营外，离营一段距离，他称这帐棚为会幕。凡求问耶和华的，就出到营外的会幕那里去。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出33:8	当摩西出营到会幕去的时候，百姓就都起来，各人站在自己帐棚的门口，望着摩西，直等到他进了会幕。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出33:9	摩西进会幕的时候，云柱就降下来，停在会幕的门口，耶和华便与摩西说话。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出33:10	众百姓看见云柱立在会幕门口，就都起来，各人在自己帐棚的门口下拜。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出33:11	耶和华与摩西面对面说话，好像人与同伴说话一般。摩西回到营里去，但他的帮手，一个少年人，就是嫩的儿子约书亚，不离开会幕。</div>
+                    
+                    
+                    
+                    <div class="verse-line">民12:6	耶和华就说，你们且听我的话：你们中间若有申言者，我耶和华必在异象中使他认识我，我要在梦中与他说话。</div>
+                    
+                    
+                    
+                    <div class="verse-line">民12:7	我的仆人摩西不是这样；他在我全家是忠信的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">民12:8	我与他面对面说话，乃是明说，不用谜语，他也看见我耶和华的形像。你们毁谤我的仆人摩西，为何不惧怕呢？</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-四" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-四-1">
+            <div class="section-level3">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-四-1')">▶</button>
+                
+                1　我们需要受金牛犊偶像的原则所警戒，这偶像乃是神所救赎之人所作的，使他们成了拜偶像的营—林前十5~7，结十四3，约壹五21并注3第一段：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林前10:5	但他们大多数的人，神并不喜悦，因此他们倒毙在旷野。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前10:6	这些事都是我们的鉴戒，叫我们不作贪恋恶事的人，像他们那样贪恋。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前10:7	也不要作拜偶像的人，像他们有些人那样；如经上所记：“百姓坐下吃喝，起来玩耍。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">结14:3	人子啊，这些人已将他们的偶像接到心里，把陷他们于罪孽的绊脚石放在自己面前；我岂能丝毫被他们求问么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹5:21	孩子们，你们要保守自己，远避3偶像。</div>
+                    
+                    
+                    
+                    <div class="verse-line">注3第一段	指智慧派和塞林则派所带来异端的代替品，顶替了本书信和约翰福音所启示，也正是前节所提的真神。这里的偶像也指一切顶替真神的东西。我们这些真神的真儿女，应当儆醒、保守自己，远避这些异端的代替品，以及一切顶替我们那真实、实际之神的虚空之物；我们与这位神在生机上是一，并且祂对我们是永远的生命。这是年老的使徒对他所有孩子们警告的话，作他书信的结语。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-四-1" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-四-1-a">
+            <div class="section-level4">
+                
+                a　自我妆饰导致拜偶像—出三二1~3，三三5~6，创三五2~4，参出二八2，赛六十21。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-1-a')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-1-a" style="display: none;">
+                    
+                    
+                    <div class="verse-line">出32:1	百姓见摩西迟延不下山，就大家聚集到亚伦那里，对他说，起来，为我们造神像，可以在我们前面引路；因为领我们从埃及地上来的那人摩西，我们不知道他遭遇了什么事。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出32:2	亚伦对他们说，把你们妻子、儿子、女儿耳上的金环摘下，拿来给我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出32:3	众百姓就把他们耳上的金环摘下，拿来给亚伦。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出33:5	耶和华对摩西说，你告诉以色列人，耶和华说，你们是硬着颈项的百姓，我只要片时在你们中间同你们上去，必会灭绝你们。现在你们要把身上的妆饰脱下来，我好知道怎样待你们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出33:6	因此，以色列人从住何烈山以后，就把身上的妆饰摘除干净。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创35:2	雅各就对他家中的人，并一切与他同在的人说，你们要除掉你们中间的外邦神像，也要自洁，更换衣裳。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创35:3	我们要起来，上伯特利去，在那里我要筑一座坛给神，就是在我遭难的日子应允我的祷告，在我所行的路上与我同在的那位。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创35:4	他们就把手中的一切外邦神像和耳朵上的环子，交给雅各；雅各把这些都藏在示剑附近的橡树底下。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出28:2	你要给你哥哥亚伦作圣衣，为荣耀为华美。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛60:21	那时你的民都成为义人，永远得地为业，他们是我种的枝子，我手的工作，使我得荣美。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-1-b">
+            <div class="section-level4">
+                
+                b　拜偶像乃是撒但篡夺了神所赐给我们的，以致将其糟蹋；这是我们滥用神所赐给我们的，而不为着神的定旨使用神在物质和属灵上的赐与。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-1-c">
+            <div class="section-level4">
+                
+                c　拜偶像就是敬拜我们所享受的东西，就是敬拜享受、消遣和娱乐—出三二6、18~19，参诗三六8~9。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-1-c')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-1-c" style="display: none;">
+                    
+                    
+                    <div class="verse-line">出32:6	次日，百姓清早起来，献上燔祭，并带来平安祭，然后坐下吃喝，起来玩耍。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出32:18	但摩西说，这不是打胜仗呼喊的声音；也不是打败仗呼喊的声音；我所听见的，乃是歌唱的声音。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出32:19	摩西走近营前，就看见那牛犊，又看见人跳舞，便发烈怒，把两块版从手中扔出，在山下摔碎了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗36:8	他们必因你殿里的肥甘得以饱足，你也必叫他们喝你乐河的水。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗36:9	因为在你那里，有生命的源头；在你的光中，我们必得见光。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-1-d">
+            <div class="section-level4">
+                
+                d　拜偶像伴随着敬拜真神的装假—出三二4~6，王上十二26~30。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-1-d')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-1-d" style="display: none;">
+                    
+                    
+                    <div class="verse-line">出32:4	亚伦从他们手里接过来，铸了一只牛犊，是用雕刻的工具作成的。他们就说，以色列啊，这是领你从埃及地上来的神。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出32:5	亚伦看见，就在牛犊面前筑坛，并且宣告说，明日要向耶和华守节。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出32:6	次日，百姓清早起来，献上燔祭，并带来平安祭，然后坐下吃喝，起来玩耍。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王上12:26	耶罗波安心里说，现在这国要归大卫家了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王上12:27	这民若上去，在耶路撒冷耶和华的殿里献祭，他们的心必归向他们的主犹大王罗波安；他们必把我杀了，回到犹大王罗波安那里去。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王上12:28	耶罗波安王就筹划定妥，铸造了两只金牛犊，对众民说，以色列人哪，你们上耶路撒冷去，实在是难；看哪，这就是领你们出埃及地的神！</div>
+                    
+                    
+                    
+                    <div class="verse-line">王上12:29	他就把牛犊一只安在伯特利，一只放在但。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王上12:30	这事就成了罪，因为百姓远到但去拜那牛犊。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-1-e">
+            <div class="section-level4">
+                
+                e　拜偶像伴随着在敬拜上的搀杂—出三二4~6、21~24。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-1-e')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-1-e" style="display: none;">
+                    
+                    
+                    <div class="verse-line">出32:4	亚伦从他们手里接过来，铸了一只牛犊，是用雕刻的工具作成的。他们就说，以色列啊，这是领你从埃及地上来的神。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出32:5	亚伦看见，就在牛犊面前筑坛，并且宣告说，明日要向耶和华守节。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出32:6	次日，百姓清早起来，献上燔祭，并带来平安祭，然后坐下吃喝，起来玩耍。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出32:21	摩西对亚伦说，这百姓向你作了什么，你竟使他们陷在这样大的罪里？</div>
+                    
+                    
+                    
+                    <div class="verse-line">出32:22	亚伦说，求我主不要发烈怒。这百姓专于作恶，是你知道的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出32:23	他们对我说，你为我们造神像，可以在我们前面引路；因为领我们从埃及地上来的那人摩西，我们不知道他遭遇了什么事。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出32:24	所以我对他们说，凡有金环的，可以摘下来，他们就给了我。我把金环扔在火中，这牛犊便出来了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-2">
+            <div class="section-level3">
+                
+                2　摩西因为晓得主的同在不再在百姓中间，就把他的帐棚迁移，支搭在离营一段距离的地方；他的帐棚于是成了神的帐棚—三三7。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">出33:7	摩西将帐棚支搭在营外，离营一段距离，他称这帐棚为会幕。凡求问耶和华的，就出到营外的会幕那里去。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-3">
+            <div class="section-level3">
+                
+                3　营表征属宗教的人，他们按名是属主的，事实上却是拜偶像的，敬拜并寻求主自己以外的东西。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-4">
+            <div class="section-level3">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-四-4')">▶</button>
+                
+                4　摩西迁移他的帐棚，远离拜偶像的营之后，主与他面对面说话，好像人与同伴说话一般—11节：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">出33:11	耶和华与摩西面对面说话，好像人与同伴说话一般。摩西回到营里去，但他的帮手，一个少年人，就是嫩的儿子约书亚，不离开会幕。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-四-4" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-四-4-a">
+            <div class="section-level4">
+                
+                a　神与摩西是同伴、伙伴、同伙，同有一个事业，并在一个伟大事业中有共同的权益。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-4-b">
+            <div class="section-level4">
+                
+                b　因为摩西与神是亲密的，所以他是一个懂得神心、照着神心并能摸着神心的人—14节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-4-b')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-4-b" style="display: none;">
+                    
+                    
+                    <div class="verse-line">出33:14	耶和华说，我的同在必和你同去，我必使你得安息。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-4-c">
+            <div class="section-level4">
+                
+                c　我们需要进入幔内并出到拜偶像的营外，与主有最亲、最密的交通，使我们能成为与神有共同权益的人，能被神使用，执行祂在地上的事业。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.outline-page {
+    padding: 5px;
+}
+
+/* 字体大小控制 */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: #f0f4ff;
+    border: 1px solid #d0d7f0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #667eea;
+    cursor: pointer;
+}
+
+.font-btn:active {
+    background: #667eea;
+    color: #ffffff;
+    border-color: #667eea;
+}
+
+.outline-content {
+    margin-top: 20px;
+}
+
+.section-level1 {
+    font-weight: bold;
+    font-size: 17px;
+    margin: 20px 0 12px 0;
+    color: #2c3e50;
+    line-height: 1.8;
+}
+
+.section-level2 {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 16px 0 10px 15px;
+    color: #34495e;
+    line-height: 1.8;
+}
+
+.section-level3 {
+    font-size: 16px;
+    margin: 14px 0 8px 30px;
+    color: #4a5568;
+    line-height: 1.8;
+}
+
+.section-level4 {
+    font-size: 15px;
+    margin: 12px 0 8px 45px;
+    color: #718096;
+    line-height: 1.8;
+}
+
+.subsections {
+    margin-left: 0;
+    display: block;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 0.875em; /* 14px -> 0.875em */
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    margin-right: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-btn:active {
+    color: var(--brand-2);
+}
+
+.scripture-toggle-btn {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+    padding: 10px 12px;
+    margin: 8px 0 0 0;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.scripture-toggle-btn:active {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.scripture-content {
+    background: #f8f9fa;
+    border-left: 3px solid var(--brand-1);
+    padding: 10px 12px;
+    margin: 10px 0 10px 15px;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.8;
+}
+
+.verse-line {
+    margin-bottom: 8px;
+}
+
+.verse-line:last-child {
+    margin-bottom: 0;
+}
+
+.scripture-ref {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-left: 8px;
+}
+
+/* 章节级别经文样式 */
+.scripture-section {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.chapter-scripture-toggle {
+    margin-left: 10px;
+    font-size: 13px;
+    padding: 8px 14px;
+    min-height: 40px;
+}
+
+.chapter-scripture-content {
+    margin-top: 12px;
+    margin-left: 0;
+    background: white;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const hymnElem = document.querySelector('.hymn-number');
+            if (hymnElem) text += hymnElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const sections = document.querySelectorAll('.section-level1, .section-level2, .section-level3, .section-level4');
+            sections.forEach(s => {
+                const t = s.textContent.trim();
+                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+                    text += t + '。';
+                }
+            });
+            return text;
+        }
+    });
+});
+
+function toggleSection(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '▼';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '▶';
+    }
+}
+
+function toggleScripture(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '收起经文';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '展开经文';
+    }
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025夏季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

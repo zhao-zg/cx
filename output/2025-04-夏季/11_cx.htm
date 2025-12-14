@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第11篇 - 晨兴</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>夏季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025夏季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="11_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="11_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="11_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="11_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="11_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+    <h2 class="chapter-title">第11篇 永远生命的交通—在基督身体里生活的实际</h2>
+    
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container">
+        
+        <div class="day-page" data-page="0" style="display: block;">
+            <h3 class="day-title">周一</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">壹</span>
+                    <span class="outline-text">约翰的书信（特别是约翰一书）揭开永远生命交通的奥秘—约壹一3~4、6~7：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">交通乃是所有信徒里面永远生命的流，由新耶路撒冷里生命水的流所描绘；基督身体的实际，现实的召会生活，乃是主耶稣在我们里面的涌流，这涌流者必须在我们里面居首位—2~4节，启二二1，西一18下，参结四七1。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">交通乃是涌流的三一神—父是生命源，子是生命泉，灵是生命河；这涌流的结果带进永远生命的总和，就是新耶路撒冷—约四14下，启二二1~2。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">三</span>
+                    <span class="outline-text">交通乃是三一神—父、子、灵—将祂自己分赐到信徒里面，作他们唯一的分和福分，给他们享受，从今时直到永远—林前一9，林后十三14，民六22~27。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">四</span>
+                    <span class="outline-text">交通指明为着某一共同的目的，把个人的利益放在一边，并联于别人；因此，在神圣的交通里，就是放下我们个人的利益，联于使徒和三一神，为着完成神的定旨—徒二42，约壹一3。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">五</span>
+                    <span class="outline-text">交通来自教训；我们若教导错误或教导不同于使徒的教训，神经纶的教训，我们的教训就会产生宗派的、分裂的交通—徒二42，提前一3~6，六3~4，林后三8~9，五18。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">六</span>
+                    <span class="outline-text">约翰一书启示神圣交通的原则；约翰二书启示我们必须与那些否认基督的人没有交通（7~11）；约翰三书启示我们应当留在神家的一个交通里，照着与神相配的作法，给那些为着福音和话语的职事作客旅的人送行，并且在召会里不好为首（5~10）。</span>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">约壹一3	我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。</p>
+                
+                <p class="content-paragraph">启二二1	天使又指给我看在城内街道当中一道生命水的河，明亮如水晶，从神和羔羊的宝座流出来。</p>
+                
+                <p class="content-paragraph">“交通”一辞，原文意一同参与，共同分享。交通乃是永远生命的流出，并且实际上，就是所有已经接受并得着神圣生命之信徒里面永远生命的流。这是新耶路撒冷里生命水的流所描绘的（启二二1）。因此，所有的真信徒都在这交通里（徒二42）。这交通是凭我们重生之灵里的那灵而得继续的，因此称为“圣灵的交通”（林后十三14）和“〔我们〕灵的交通”（腓二1）。我们信徒乃是在这永远生命的交通里，有分于父与子所是并为我们所作的一切；这乃是我们借着那灵的交通，享受父的爱和子的恩。</p>
+                
+                <p class="content-paragraph">这样的交通首先是使徒在借着那灵享受父与子上所得的分，因此称为“使徒的交通”（徒二42），以及约壹一章三节“我们〔使徒〕的交通”，就是与父并与祂儿子耶稣基督的交通（约翰一书生命读经，五○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">交通乃是共同参与一件事。……因为神圣的生命是生机的、丰富的、行动的、活泼的，所以它有特殊的流出，有某种的结果。神圣生命的流出、结果，乃是生命的交通。</p>
+                
+                <p class="content-paragraph">神圣生命的交通在启示录二十二章一节有清楚的描绘。在这一节我们看见，在新耶路撒冷里，生命水的河从神和羔羊的宝座流出来。神和羔羊的宝座就是救赎的神—羔羊神的宝座。……创世记有创造的神，但启示录有救赎的神。从这位作源头的救赎之神，流出生命水的河。这生命水河的流通就是生命的交通。这就是说，交通乃是神圣的生命，从救赎的神里面向外涌流。按照启示录里的图画，新耶路撒冷里那一道河呈螺旋状往下流，直流到十二个城门。借此我们能看见，新耶路撒冷全城都得着这道活水的流的供应，也就是得着生命交通的供应。神圣生命的交通从神流出来，经过祂的子民，以达到基督身体的每一部分，这身体要完成于新耶路撒冷。</p>
+                
+                <p class="content-paragraph">神圣生命的交通，或神圣生命的流通，就是那灵的交通。林后十三章十四节说，“愿主耶稣基督的恩，神的爱，圣灵的交通，与你们众人同在。”在这里我们看见，神的爱是源头，基督的恩是流道，那灵的交通是这流道的流通。乃是这流把基督的恩和神的爱带给我们，作我们的享受。</p>
+                
+                <p class="content-paragraph">我们在神圣生命的交通里联于使徒和三一神，以完成神的定旨。约翰在约壹一章三节的话，指明为着某一共同的目的，把个人的利益放在一边，并联于别人。因此，与使徒有交通，在使徒的交通里，并在使徒的交通里与三一神有交通，乃是放下我们个人的利益，联于使徒和三一神，为着完成神的定旨（约翰一书生命读经，五○至五二、五八页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-page="1" style="display: none;">
+            <h3 class="day-title">周二</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">贰</span>
+                    <span class="outline-text">永远生命的交通，乃是在那灵的一里，在基督身体里生活的实际—林前十16~18，徒二42，弗四3：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">我们借着神圣的灵，圣灵，进入神圣交通垂直的一面；这一面的交通，是指我们因着爱三一神，而有与祂的交通—林后十三14，约壹一3、6，可十二30。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">我们借着人的灵，进入神圣交通平面的一面；这一面的交通，是指我们借着操练灵，彼此相爱，而有彼此之间的交通—腓二1，启一10，约壹一2~3、7，林前十六18，可十二31，罗十三8~10，加五13~15。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">三</span>
+                    <span class="outline-text">这一个神圣的交通乃是交织的交通—平面的交通交织着垂直的交通：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">使徒们起初的经历，乃是与父并与祂儿子耶稣基督垂直的交通，但是当使徒们将永远的生命传与别人时，他们就经历神圣交通平面的一面—约壹一2~3，参徒二42。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">我们与圣徒平面的交通，将我们带进与主垂直的交通；然后，我们与主垂直的交通，将我们带进与圣徒平面的交通。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">我们必须保持垂直与平面这两面神圣的交通，好在属灵上是健康的—参约壹一7、9。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">四</span>
+                    <span class="outline-text">在基督徒生活里，神圣的交通乃是一切：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">当交通没有了，神也消失了；神乃是作为交通而来—林后十三14，启二二1。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">在这神圣的交通里，神与我们交织在一起；这种交织就是神与人的调和，把神圣的成分带到我们属灵的所是里，使我们在生命里长大并变化—利二4~5。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">神圣的交通调和我们，调节我们，调整我们，使我们和谐，并将我们调在一起，成为一个身体—林前十16~18，十二24~25。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">约壹一6~7	我们若说我们与神有交通，却在黑暗里行，就是说谎话，不行真理了；但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。</p>
+                
+                <p class="content-paragraph">徒二42　　他们都坚定持续在使徒的教训和交通里……。</p>
+                
+                <p class="content-paragraph">神圣生命的交通有垂直的一面，也有平面的一面。垂直的一面是指我们与三一神的交通，平面的一面是指我们彼此之间的交通。</p>
+                
+                <p class="content-paragraph">这交通垂直的一面，是由第一班使徒们起首建立的。然后，使徒们将永远的生命传给罪人，好使他们能与使徒们有交通。在使徒们将永远的生命传给罪人以前，使徒们自己已经与父并与祂的儿子耶稣基督有垂直的交通了（约壹一3）。……当使徒们将永远的生命传给别人时，他们就经历神圣交通平面的一面（李常受文集一九九○年第一册，四三八页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">神圣交通的两面是密切相关的，所以，很难说先有那一面。如果你与主没有正确的关系，就很难与同作信徒的人有交通。同样，你若没有与同作信徒的人有正确的交通，就很难与主有交通。</p>
+                
+                <p class="content-paragraph">我们与周遭的人若没有正确的关系，就很难在垂直的一面与主有好的关系。原因是神圣的交通乃是唯一的交通。……我们许多人可能以为，每一天我们是照着垂直的一面开始这交通，接着才有平面的一面。然而，许多时候这不是我们的经历。因着我们大多数人都与配偶、家人或室友住在一起，所以我们的交通常常开始于平面的一面。我们若在晚上与妻子、丈夫或室友争吵，早上就很难开始与主有垂直的交通。我们必须维持垂直与平面两面的交通，才能在属灵上健康。</p>
+                
+                <p class="content-paragraph">我们的难处乃是没有交通的习惯，我们许多人不喜欢交通。我们必须领悟，当我们交通时，主就在其中。当我们离开了交通，或停止与同作信徒的人交通时，主就被关在外面。</p>
+                
+                <p class="content-paragraph">我们应当尽可能的，试着与同作信徒的人有交通。这神圣的交通不只改正我们，也塑造我们，甚至将我们重新构成。这交通将神圣的构成成分带到我们属灵的所是里，使我们这人里面有所改变。</p>
+                
+                <p class="content-paragraph">神圣的交通乃是活在基督身体里的实际。……在启示录二十二章二十节，主耶稣说，“我必快来！”但将近二千年过去，主仍没有回来。原因乃是信徒持个人主义，都是单独、有意见并且制造分裂的。……信徒好像脱缰野马，今天似乎没有什么能管制信徒；实际上，神圣的交通该管制信徒。</p>
+                
+                <p class="content-paragraph">有一件事能管制我们，那就是神圣的交通。我们在这交通里受限制。借着在这交通里受限制，基督的身体就蒙保守在一里，职事的工作就继续往前。我们若离开交通，一切就都完了。那使一切活着的乃是交通。我们若学习交通，就会得着许多益处，特别在主的工作上，更是如此（李常受文集一九九○年第一册，四三九至四四三页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-page="2" style="display: none;">
+            <h3 class="day-title">周三</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">贰</span>
+                    <span class="outline-text">永远生命的交通，乃是在那灵的一里，在基督身体里生活的实际—林前十16~18，徒二42，弗四3：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">我们借着神圣的灵，圣灵，进入神圣交通垂直的一面；这一面的交通，是指我们因着爱三一神，而有与祂的交通—林后十三14，约壹一3、6，可十二30。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">我们借着人的灵，进入神圣交通平面的一面；这一面的交通，是指我们借着操练灵，彼此相爱，而有彼此之间的交通—腓二1，启一10，约壹一2~3、7，林前十六18，可十二31，罗十三8~10，加五13~15。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">三</span>
+                    <span class="outline-text">这一个神圣的交通乃是交织的交通—平面的交通交织着垂直的交通：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">使徒们起初的经历，乃是与父并与祂儿子耶稣基督垂直的交通，但是当使徒们将永远的生命传与别人时，他们就经历神圣交通平面的一面—约壹一2~3，参徒二42。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">我们与圣徒平面的交通，将我们带进与主垂直的交通；然后，我们与主垂直的交通，将我们带进与圣徒平面的交通。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">我们必须保持垂直与平面这两面神圣的交通，好在属灵上是健康的—参约壹一7、9。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">四</span>
+                    <span class="outline-text">在基督徒生活里，神圣的交通乃是一切：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">当交通没有了，神也消失了；神乃是作为交通而来—林后十三14，启二二1。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">在这神圣的交通里，神与我们交织在一起；这种交织就是神与人的调和，把神圣的成分带到我们属灵的所是里，使我们在生命里长大并变化—利二4~5。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">神圣的交通调和我们，调节我们，调整我们，使我们和谐，并将我们调在一起，成为一个身体—林前十16~18，十二24~25。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">林后十三14	愿主耶稣基督的恩，神的爱，圣灵的交通，与你们众人同在。</p>
+                
+                <p class="content-paragraph">腓二1　　　	……若有什么灵的交通，若有什么慈心、怜恤。</p>
+                
+                <p class="content-paragraph">林前十16　　	……我们所擘开的饼，岂不是基督身体的交通么？</p>
+                
+                <p class="content-paragraph">那灵不是仅仅与交通有关，联于或调和于交通里。那灵本身就是交通，因为交通就是那灵的流。这就好比说，电流就是电的本身。电流就是流动的电。当电中止，电流也中止。同样的，林后十三章十四节所说“圣灵的交通”，就是那灵在运行。基督的恩典是我们所享受的基督自己，神的爱是我们所尝到的神自己，而那灵的交通就是那灵自己在我们里面运行。神圣的交通就是圣灵自己（李常受文集一九九○年第一册，四四五页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">我们需要借着人的灵，进入神圣交通平面的一面（腓二1，启一10）。我们若要彼此有真实平面的交通，就需要操练我们的灵。我们若操练我们的灵，就绝不会以世俗的方式谈话，也不会消极地说到圣徒或召会。……这种谈论在圣徒中间散布闲话和死亡。圣徒中间的这种接触，并不是……灵的交通。……在腓立比二章一至二节，……保罗的意思是说，“弟兄们，你们若与我有什么灵里的交通，你们的交通会成为我的鼓励和安慰。这样，你们就会使我的喜乐满足。”神圣交通的垂直与平面两面，关系非常密切。我们从经历中可以看见这点。有时，我们可能假借交通圣徒的近况为名，而谈论他们，但我们的谈话实际上是闲聊。之后我们通常不能祷告，因为我们祷告的灵被我们的闲话销灭了。但我们借着操练灵而有真正的交通时，我们会渴望祷告并接触主。这表明在垂直与平面两面的交通之间，关系何等密切。……如果两位弟兄操练他们的灵，有真正、正确、平面的交通，他们至终会被引进非常诚恳、真挚的代求里。当他们一同祷告时，神圣交通的两方面就交织在一起了。……这种交织的交通乃是真实的交通。</p>
+                
+                <p class="content-paragraph">这交织就是神与人的调和。所有的聚会都该是垂直与平面两面交织的交通。我们的婚姻生活也应该是交织的交通。夫妻不该单单彼此有交织，也该与主有交织。真实的基督徒婚姻应该是神圣的交通。我们一同配搭和工作，也该是神圣的交通。</p>
+                
+                <p class="content-paragraph">我们必须领悟，当交通没有了，神也消失了；神乃是作为交通而来。今天我们的聚会、我们的婚姻生活、同工之间的配搭以及众地方召会之间的交通是不正常的，因为我们缺少这交通。今天众地方召会之间不够有交通，众召会没有在交通中完全是一。</p>
+                
+                <p class="content-paragraph">神圣的交通乃是基督徒生活的一切。使徒保罗活在这交通中。当我们活在神圣的交通中，我们的基督徒生活就变得非常活泼、活跃，并且满了冲击力（李常受文集一九九○年第一册，四四七至四四九、四五一至四五二页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-page="3" style="display: none;">
+            <h3 class="day-title">周四</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">叁</span>
+                    <span class="outline-text">我们要留在神圣交通的享受里，就需要为着在我们天性里内住的罪，取用基督作我们的赎罪祭，并为着我们行为中的罪行，取用基督作我们的赎愆祭—约壹一8~9，三20~21，利四3，五6，约一29，罗八3，林后五21，彼前二24~25：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">罪是撒但邪恶的性情，他借着亚当的堕落，已经将他自己注射到人里面，如今成了不法的罪的性情，作为一个律，在堕落的人里面居住、行动并作工—罗五12、19上、21上，六14，七11、14、17~23，诗五一5，约壹三4，参帖后二3、7~8。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">取用基督作我们的赎罪祭，意思是我们的旧人被对付（罗六6），堕落之人性情里的罪被定罪（八3），撒但这罪的本身被废除（来二14），世界受审判，世界的王被赶出去（约十二31）：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">“世界的王”这辞里的“王”，含示权势或权力，以及争夺权力—路四5~8，参太二十20~21、24，约叁9。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">争夺权力是肉体、罪、撒但、世界和这世界的王所产生的结果—加五16~17、24~26。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">我们肉体里罪的律，是与神相争的自动能力、力量和动力；赎罪祭的律（条例）乃是我们所享受那是灵之基督的生命之律，使我们自动且自然地脱离罪的律—罗七23，八2，利六24~30，参七1~10。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">三</span>
+                    <span class="outline-text">我们有分于基督作我们的赎罪祭，是在于享受祂作我们的生命，就是那能担当别人之罪的生命，使我们能将基督这对付罪的生命，供应神的子民，而担当他们的难处，使他们蒙保守在那灵的一里—约壹五16，利十17。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">四</span>
+                    <span class="outline-text">借着我们与那是光的神（约壹一5，西一12）有真实、亲密、活泼、爱的交通，我们就看见自己是有罪的，而取用基督作我们的赎罪祭和赎愆祭：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">我们越爱主并享受祂，就越认识我们是多么邪恶—赛六5，路五8，罗七18。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">领悟我们有罪的性情，并取用基督作我们的赎罪祭，使我们受审判并被制伏，这样的领悟保守我们，使我们对自己毫无信心—腓三3，参出四6。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">约一29	次日，约翰看见耶稣向他走来，就说，看哪，神的羔羊，除去世人之罪的！</p>
+                
+                <p class="content-paragraph">罗八2~3　	因为生命之灵的律，在基督耶稣里已经释放了我，使我脱离了罪与死的律。律法因肉体而软弱，有所不能的，神，既在罪之肉体的样式里，并为着罪，差来了自己的儿子，就在肉体中定罪了罪。</p>
+                
+                <p class="content-paragraph">赎罪祭的功效不仅在于它对付罪的事实。它的结果远超于此。在赎罪祭中，那包含在基督肉体中堕落的人，旧人，也受了对付（罗六6）；那在堕落之人性情中的罪也被定了罪（八3）；撒但，罪的本身，也被废除（来二14）；世界受了审判；这世界的王也被赶出去（约十二31）。</p>
+                
+                <p class="content-paragraph">我们若看见这启示，就会看见以基督为我们的赎罪祭，不仅是认罪并对付罪的事。以基督为我们的赎罪祭，也是使我们的旧人、撒但、世界和争权受到对付。这些事既包括在赎罪祭里，以基督为我们的赎罪祭就不是简单的事（利未记生命读经，二○八至二○九页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">新约强调一个事实，就是基督是在肉体里被钉十字架，是在肉体里死的。祂是在神所定罪的肉体里死的。……主耶稣在肉体里被钉十字架的时候，神就在肉体中定罪了罪〔罗八3〕。罪不仅是一件事，乃是一个人位；这人位需要被定罪。借着主在十字架上的死，神就在肉体中定罪了罪。这就是说，当肉体被钉十字架时，肉体中的罪就被定罪了。</p>
+                
+                <p class="content-paragraph">罗马六章六节告诉我们，我们的旧人已经与基督同钉十字架。我们的旧人是在肉体里。因着基督是在肉体里被钉十字架，我们在肉体里的旧人，就与基督同钉十字架。</p>
+                
+                <p class="content-paragraph">借着基督的死，不仅罪被定罪，不仅旧人被钉死，魔鬼撒但也被废除了（来二14）。不仅如此，借着基督的十字架，世界也受了审判，世界的首领，世界的王也被赶出去了（约十二31）。……这就是说，借着基督在肉体里的死，一切消极的事物都受了对付。……每当我们接受基督作我们的赎罪祭，我们都需要有这样的领会。基督作了赎罪祭，意思就是肉体里的罪已经被定了罪，我们的旧人已经被钉十字架，撒但已经被废除，世界已经受了审判，世界的王已经被赶出去。</p>
+                
+                <p class="content-paragraph">我们向主悔改，接受祂作救主时，就蒙光照看见自己是邪恶的，且在神的定罪之下。我们越爱主，就越看见自己是邪恶的。信徒越祷告，就越觉得自己是何等的邪恶。至终我们了解，今天即使是追求主的基督徒，也不过是罪的总和。</p>
+                
+                <p class="content-paragraph">我们若看见自己有罪，并且认罪，会发现越认罪，就有越多的罪要认。……有一天，我深深感觉需要与主独处，于是到了一个隐密的地方，跪下来祷告，认自己的罪。我认罪认了很久。在这之前，我不晓得自己那么有罪，犯了那么多罪。我看见从我年少起所作的一切都是罪，我向主彻底地认罪。</p>
+                
+                <p class="content-paragraph">神就是光（约壹一5）。我们要与神有交通，就必须在光中行，如同神在光中。我们若这样行，就会看见我们有一样称为罪的东西（7~8）。……约壹一章所说的罪，不是小可的东西。罪就是神的仇敌撒但自己，也包括了撒但与神之间的争权。这争权包括了我们，我们也包括在其中（利未记生命读经，二○二至二○三、二一四至二一五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-page="4" style="display: none;">
+            <h3 class="day-title">周五</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-3">
+                    <span class="outline-level">3</span>
+                    <span class="outline-text">人是神所造的，目的是要彰显并代表神，不该为着神以外的东西，乃该绝对为着神；因此，凡我们出于自己所作的，无论是好或坏，都是为自己作的，既是为自己作而不是为神作的，在神眼中都是有罪的；罪乃是为着己—创一26，赛四三7，罗三23：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-2">
+                            <span class="outline-level">a</span>
+                            <span class="outline-text">为着自己而事奉主乃是罪；宣扬自己乃是罪—民十八1，王下五20~27，太七22~23，林后四5。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-2">
+                            <span class="outline-level">b</span>
+                            <span class="outline-text">我们行义，就如施舍、祷告、禁食，若是为着自己，好表现并炫耀自己，乃是罪—太六1~6。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-2">
+                            <span class="outline-level">c</span>
+                            <span class="outline-text">爱别人若是为着自己（为着我们的名声、地位、利益和骄傲），乃是罪；养育儿女若是为着我们自己和未来，乃是罪—路十四12~14，参林前七14。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-3">
+                    <span class="outline-level">4</span>
+                    <span class="outline-text">主使用我们的失败，给我们看见自己是多么可怕、丑陋并可憎，使我们弃绝一切出于己的，完全倚靠神—诗五一，路二二31~32，罗八28。</span>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">创一26　	神说，我们要按着我们的形像，照着我们的样式造人……。</p>
+                
+                <p class="content-paragraph">赛四三7	就是凡称为我名下的人，是我为自己的荣耀所创造、所塑造的，更是我所造作的。</p>
+                
+                <p class="content-paragraph">罗三23　	因为众人都犯了罪，亏缺了神的荣耀。</p>
+                
+                <p class="content-paragraph">神创造我们，是要我们为着祂，作祂的彰显和代表。祂创造我们并不是为着我们自己。但我们向祂独立而活。我们恨人，是向神独立；我们爱人，也是向神独立。这就是说，在神看来，我们的恨和我们的爱都是一样的。</p>
+                
+                <p class="content-paragraph">不仅如此，我们的恨与爱都不是出于我们的灵，而是出于我们的肉体，出于善恶知识树。善恶知识树表征撒但。我们不该认为只有行恶是出于撒但，行善就不是出于撒但。……我们必须知道，我们出于自己所作的，无论好坏，都是为自己作的；既是为自己作的，就是罪（利未记生命读经，二二○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">罪包括争权。我们爱人，可能是为着自己—为着自己的名声、地位、利益和骄傲。这种爱就是与神争权。我们需要祷告：“主，拯救我，叫我不为自己的骄傲、名声、升迁、利益、好处作什么。”这就是蒙拯救脱离与神的争权。当我们为自己的名声和升迁爱人时，就不是为着神。这种爱乃是出于撒但；这是在肉体里，并且就是罪。凡在肉体里的就是罪，凡在我们肉体里的罪就是撒但，凡撒但在肉体里所作的，就是争权。……我们对儿女的爱也可能是在肉体里。新约嘱咐我们要在主里养育我们的儿女。但我们可能是为着自己和将来而养育儿女。这就是罪。</p>
+                
+                <p class="content-paragraph">即使在召会生活中，我们行事也可能不是为神而是为己。我们可能作了很好的事，但深处隐藏的动机却是为着自己。……譬如，在作见证或祷告时，我们可能想要人人都对我们说“阿们”。我们可能献上一个高的、属灵的祷告，而我们这样作的目的是要得着“阿们”。……由此可见，甚至我们在祷告中，也与神争权。我们想要的是地位，不是神。</p>
+                
+                <p class="content-paragraph">因着我们作属灵的事时，可能有隐藏的动机，主耶稣曾说到一些人，表面上是为神作事，实际上是为着高举自己。所以，主说，“你们要小心，不可将你们的义行在人前，故意叫他们注视。”（太六1上）论到施舍，祂说，“不要让左手知道右手所作的。”（3）论到祷告，祂接着说，“你们祷告的时候，不可像那假冒为善的人，因为他们爱站在会堂里，并十字街口祷告，为要叫人看见。”（5上）论到禁食，祂说，“你们禁食的时候，不可面带愁容，像那假冒为善的人一样；他们把脸装得难看，为要叫人看出他们在禁食。”（16上）我们即使在行义、施舍、祷告、禁食时，也可能与神争权。在神眼中，行这些事为自己而不为神，乃是罪。</p>
+                
+                <p class="content-paragraph">以基督为赎罪祭是很深的。我们对赎罪祭的经历，完全与我们享受主耶稣作我们的燔祭有关。我们越爱主、越享受主，就越晓得自己是何等邪恶。有时，当我们爱主到极点，就会感觉没有地方隐藏自己。……当〔保罗〕寻求主的时候，他看见在自己里面没有善〔参罗七18〕（利未记生命读经，二二○至二二二页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-page="5" style="display: none;">
+            <h3 class="day-title">周六</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">五</span>
+                    <span class="outline-text">取用基督作赎愆祭的实际，乃是经历祂作救赎者、照耀者和掌权者，好在生命的交通里享受祂作生命的供应—约壹一1~二2，启二一21、23，二二1~2：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">我们取用基督作我们的赎愆祭时，需要彻底地认我们一切的罪和不洁，而有无亏和清洁的良心—徒二四16，提前一5、19，三9，提后一3，来九14，十22。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">我们若认自己的罪，神在祂的话上是信实的，必要赦免我们的罪，在祂的救赎上是公义的，必要洗净我们一切的不义；不仅如此，基督作我们的长兄，是与父同在的辩护者，要恢复我们与父中断的交通，使我们住在神圣交通的享受里—约壹一7、9，二1~2。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">神的儿子耶稣之血的洗净，解决了我们与神隔离的难处、我们良心里定罪的难处以及从撒但而来控告的难处，因而使我们过一种满有神同在的日常生活—诗一○三1~4、12~13，三二1~2，启十二10~11。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">4</span>
+                            <span class="outline-text">在神圣的光中认我们的罪，并取用基督作我们的赎愆祭，乃是我们喝基督作活水的路，使我们成为新耶路撒冷—约四14~18。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">5</span>
+                            <span class="outline-text">取用基督作我们的赎愆祭，得着罪的赦免，结果使我们敬畏神并爱神—诗一三○4，路七47~50。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">肆</span>
+                    <span class="outline-text">我们在神圣的交通中享受基督，就在属灵的生活中不断地经历一个循环，其中有四件要紧的事物，就是永远的生命、永远生命的交通、神圣的光以及神儿子耶稣的血；这样的循环，在神圣生命的成长上带我们向</span>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">约壹一9　	我们若认自己的罪，神是信实的，是公义的，必要赦免我们的罪，洗净我们一切的不义。</p>
+                
+                <p class="content-paragraph">二1　	我的孩子们，我将这些事写给你们，是要叫你们不犯罪。若有人犯罪，我们有一位与父同在的辩护者，就是那义者耶稣基督。</p>
+                
+                <p class="content-paragraph">在约壹一章一至七节，我们看见在我们属灵生活中有一个循环，由四件要紧的事物形成—永远的生命、永远生命的交通、神圣的光以及神儿子耶稣的血。……我们越多得着永远的生命，这生命所带给我们神圣生命的交通就越多。我们越多享受神圣生命的交通，所得着神圣的光就越多。我们越多得着神圣的光，就越有分于耶稣之血的洗净。这样的循环，在神圣生命的成长上带我们往前，直到我们生命成熟（约翰一书生命读经，八五至八六页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">每当我们在交通中，在神圣的光之下，感觉自己在某些事上，或对某些人有了过错，我们必须立刻向公义的父承认自己的罪。我们的父是预备好要赦免我们的。……我们一承认我们的罪，我们的父对我们就是信实、公义的神〔约壹一9〕。祂等着要赦免我们的罪，并洗去我们过犯的玷污。</p>
+                
+                <p class="content-paragraph">约翰在这里告诉他的孩子们，就是约翰一书的所有受信者，他写信的用意是要叫他们不犯罪〔二1〕。但若有人犯罪，我们有一位与父同在的辩护者，帮助者或律师，就是那义者耶稣基督。</p>
+                
+                <p class="content-paragraph">我们已经接受了神圣的生命，并且我们正在生命的交通里享受这生命。在这生命的交通里，我们接受神圣的光；在这神圣的光中，我们实行真理。但我们还需要关于那住在我们肉体里之罪的警告。对于内住的罪，我们需要谨慎、儆醒。</p>
+                
+                <p class="content-paragraph">每当我们犯了罪，我们需要向神认自己的罪。我们若认自己的罪，神在祂的话上是信实的，必要赦免我们的罪；神在祂的救赎上是公义的，必要洗净我们一切的不义〔一9〕。……但是二章一至二节指明，我们还需要一个人，一个与父同在的辩护者，照料我们的案件。我们自己没有能力处理案件，我们需要一位属天的律师。……神不仅预备了耶稣基督的血，为我们流出，使我们得蒙赦免并洗净；神也预备了基督作我们的辩护者。首先，主耶稣流血作我们的赎价；祂流血之后，又成了我们的辩护者，我们属天的律师，照料我们的案件。</p>
+                
+                <p class="content-paragraph">基督不单是与神同在，也是与父同在的辩护者，这事实指明主为我们所处理的案件，乃是家庭中的事，是我们父的儿女与父之间的案件。实际上，我们的辩护者就是我们的长兄，父的儿子。</p>
+                
+                <p class="content-paragraph">神圣的家庭充满了爱，但这家庭也充满了义，因此有规则，也有父的管教。……我们的父是有次有序的，祂的家应当远比人间的法庭有次序。但是我们这些父家里的儿女常常很顽皮。我们犯错，违反家规，得罪父。为这缘故，我们需要主，我们的长兄，作我们与父同在的辩护者。为我们流血的主耶稣，乃是那义者。祂不仅与父是对的，与我们也是对的。主是我们的帮助者（“辩护者”一辞，原文指被召到另一个人身边以帮助他的一位）。祂到我们身边来帮助我们，服事我们，照顾我们，并供应我们所需要的一切。我们需要洗净的血，因此，祂以自己的血供应我们，为要救赎并洗净我们。我们也需要人照料我们的案件，因此，祂现今是我们的辩护者，我们的帮助者（约翰一书生命读经，一五○、一四五至一四七页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const totalPages = 6;
+    if (totalPages === 0) return;
+    
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    const pagesContainer = document.querySelector('.pages-container');
+    
+    // 显示指定页面
+    function showPage(pageIndex) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach(page => page.style.display = 'none');
+        
+        // 显示目标页面
+        pages[pageIndex].style.display = 'block';
+        
+    
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 滚动到顶部
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（仅水平滑动）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    
+    pagesContainer.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    
+    pagesContainer.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const swipeThreshold = 80; // 增加最小滑动距离
+        const diffX = touchStartX - touchEndX;
+        const diffY = touchStartY - touchEndY;
+        
+        // 只有当水平滑动距离大于垂直滑动距离时才触发翻页
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > swipeThreshold) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 初始化第一页
+    showPage(0);
+})();
+
+// 朗读功能（共享脚本）
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page[style*="display: block"]') || document.querySelector('.day-page');
+            if (!activePage) return '';
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = item.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-paragraph');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-paragraph');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+});
+</script>
+
+<style>
+.morning-revival-page {
+    padding: 5px;
+    max-width: 820px;
+    margin: 0 auto;
+}
+
+/* 天导航栏 */
+.day-navigation {
+    display: flex;
+    gap: 8px;
+    margin: 15px 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.day-link {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 12px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.day-link:active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.day-link.active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+    font-weight: 700;
+}
+
+/* 分页容器 */
+.pages-container {
+    position: relative;
+    min-height: 400px;
+    touch-action: pan-y;
+}
+
+.day-page {
+    background: #fff;
+    padding: 0;
+}
+
+.day-section {
+    margin: 20px 0;
+    background: #fff;
+    padding: 0;
+}
+
+.day-title {
+    font-size: 17px;
+    font-weight: bold;
+    color: #2d3748;
+    margin: 16px 0 14px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+    line-height: 1.6;
+}
+
+/* 纲目样式 - 优化层级视觉差异 */
+.outline-section {
+    margin: 16px 0;
+    line-height: 2.0;
+}
+
+.outline-item {
+    margin: 8px 0;
+    color: #2d3748;
+    font-size: 16px;
+    line-height: 1.8;
+}
+
+/* Level 1: 大纲 (壹贰叁、I II III、A B C) - 最突出 */
+.outline-item.level-1 {
+    margin-top: 16px;
+    margin-bottom: 12px;
+    font-size: 1.0625em; /* 17px -> 1.0625em */
+    font-weight: 800;
+    color: var(--brand-1);
+    padding: 8px 0;
+    border-bottom: 2px solid rgba(var(--brand-1-rgb), 0.2);
+}
+
+.outline-item.level-1 > .outline-level {
+    font-size: 1.125em; /* 18px -> 1.125em */
+    font-weight: 800;
+    color: var(--brand-1);
+    background: var(--brand-soft-bg);
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-right: 8px;
+}
+
+.outline-item.level-1 > .outline-text {
+    color: var(--text);
+    font-weight: 700;
+}
+
+/* Level 2: 中纲 (一二三、a b c) - 中等突出 */
+.outline-item.level-2 {
+    padding-left: 1.8em;
+    font-size: 1em; /* 16px -> 1em */
+    margin-top: 8px;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.outline-item.level-2 > .outline-level {
+    font-weight: 700;
+    color: var(--brand-2);
+    background: rgba(var(--brand-2-rgb), 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+}
+
+.outline-item.level-2 > .outline-text {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* Level 3: 小纲 (1 2 3) - 普通样式 */
+.outline-item.level-3 {
+    padding-left: 3.2em;
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    margin-top: 4px;
+    margin-bottom: 3px;
+    font-weight: 500;
+}
+
+.outline-item.level-3 > .outline-level {
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 5px;
+}
+
+.outline-item.level-3 > .outline-text {
+    color: var(--text);
+    font-weight: 400;
+}
+
+.outline-children {
+    margin-left: 0;
+}
+
+.outline-level {
+    margin-right: 5px;
+}
+
+.outline-text {
+    color: #333;
+}
+
+@media (min-width: 768px) {
+    .outline-item {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
+    }
+
+    .outline-item.level-1 {
+        margin-top: 15px;
+        font-size: 1em; /* 16px -> 1em */
+    }
+
+    .outline-item.level-1 > .outline-level {
+        font-size: 1.0625em; /* 17px -> 1.0625em */
+    }
+}
+
+/* 内容分隔线 */
+.content-separator {
+    height: 1px;
+    background: #ddd;
+    margin: 20px 0;
+}
+
+/* 晨兴喂养和信息选读 */
+.feeding-section,
+.reading-section {
+    margin: 20px 0;
+}
+
+.feeding-section h4,
+.reading-section h4 {
+    font-size: 17px;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 16px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.content-paragraph {
+    margin: 14px 0;
+    text-indent: 2em;
+    line-height: 2.1;
+    color: #4a5568;
+    font-size: 16px;
+}
+
+/* 翻页控制 */
+.page-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0 15px 0;
+    padding: 10px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.prev-btn,
+.next-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 44px;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    color: #333;
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    cursor: pointer;
+    transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.prev-btn:active:not(:disabled),
+.next-btn:active:not(:disabled) {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.55);
+}
+
+.prev-btn:disabled,
+.next-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.page-indicator {
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    color: var(--text-muted);
+    font-weight: 800;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .morning-revival-page {
+        padding: 5px;
+    }
+    
+    .day-navigation {
+        gap: 5px;
+        padding: 8px;
+    }
+    
+    .day-link {
+        padding: 5px 10px;
+        font-size: 0.8125em; /* 13px -> 0.8125em */
+    }
+    
+    .day-title {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
+    }
+    
+    .outline-item,
+    .content-paragraph {
+        font-size: 0.875em; /* 14px -> 0.875em */
+        line-height: 1.8;
+    }
+    
+    .feeding-section h4,
+    .reading-section h4 {
+        font-size: 0.875em; /* 14px -> 0.875em */
+    }
+    
+    .page-controls {
+        padding: 10px;
+        margin: 20px 0 10px 0;
+    }
+    
+    .prev-btn,
+    .next-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .btn-text {
+        display: none;
+    }
+    
+    .page-indicator {
+        font-size: 13px;
+    }
+}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025夏季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

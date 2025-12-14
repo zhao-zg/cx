@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}第{{ chapter.number }}篇 - 经文{% endblock %}
+
+{% block content %}
+<div class="scripture-page">
+    <h2 class="chapter-title">{{ chapter.title }}</h2>
+    
+    {% if chapter.scripture %}
+    <div class="scripture-reference">
+        <h3>读经</h3>
+        <p>{{ chapter.scripture }}</p>
+    </div>
+    {% endif %}
+    
+    {% if chapter.scripture_verses %}
+    <div class="scripture-content">
+        <h3>经文内容</h3>
+        {% for verse in chapter.scripture_verses.split('\n') %}
+            {% if verse.strip() %}
+            <p class="verse-line">{{ verse }}</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="no-content">暂无经文内容</p>
+    {% endif %}
+</div>
+
+<style>
+.scripture-page {
+    padding: 20px 0;
+}
+
+.scripture-reference {
+    margin: 30px 0;
+    padding: 20px;
+    background: #f7f8ff;
+    border-left: 4px solid var(--brand-1);
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+
+.scripture-reference h3 {
+    font-size: 18px;
+    color: var(--brand-1);
+    margin-bottom: 10px;
+}
+
+.scripture-reference p {
+    font-size: 16px;
+    color: #333;
+    line-height: 1.8;
+}
+
+.scripture-content {
+    margin: 30px 0;
+    padding: 20px;
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+}
+
+.scripture-content h3 {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.verse-line {
+    font-size: 15px;
+    line-height: 2;
+    color: #444;
+    margin: 10px 0;
+    text-indent: 0;
+}
+
+.no-content {
+    color: #999;
+    text-align: center;
+    padding: 40px 0;
+}
+</style>
+{% endblock %}

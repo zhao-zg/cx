@@ -1,0 +1,1846 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第4篇 - 听抄</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>国　际 长老及负责弟兄训练</h1>
+            <div class="subtitle">总题：马太福音五至七章极重要的方面</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025秋季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="message-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="4_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="4_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="4_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="4_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="4_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+    <a href="4_zs.htm" class="nav-link" title="职事">职事</a>
+    
+</div>
+    
+    <h2 class="chapter-title">第4篇 怜悯人的人有福了，因为他们必蒙怜悯并领受怜悯</h2>
+    
+    
+    <div class="scripture">读经：太五7，罗九15上、16，弗二4，雅二13，来四16</div>
+    
+    
+    <div class="message-content">
+        
+        
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                壹　“‘我要向谁施怜悯，就向谁施怜悯；……’这样看来，这不在于那定意的，也不在于那奔跑的，只在于那施怜悯的神”—罗九15上、16：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我们的神是怜悯的神。许多时候我们讲到怜悯，但我不太确定这对我们有什么影响，我们实在需要考量这件事。我们是说怜悯，我们的神是怜悯的神，但我们常常也说我们在这里是因着神的怜悯，但让我们来考量一下神向着我们的怜悯。</p>
+                
+                <p class="message-text">怜悯是祂的属性中够得最远的，比祂的恩典和祂的爱够得更远，甚至临到我们这一班可怜光景的人。我们可能不领会，我们不明白不清楚，但事实是，我们是一班迫切需要祂的人，一班可怜的人，需要祂的怜悯。所以从一起头，从我们重生的那一天起，从我们进入召会生活时，在我们召生活往前时，甚至我们能坐在这样的聚会中，完全是神的怜悯。这不是我们作成的，不是我们头脑好，不是我们的力量，不是我们的忠信，是神的怜悯，为着神的怜悯赞美祂。祂说，“我要向谁施怜悯，就向谁施怜悯，不在于那定意的，也不在于那奔跑的，只在于那施怜悯的神。”</p>
+                
+                <p class="message-text">我要读到以弗所生命读经二十一篇的一段话，帮我们领会怜悯到底是什么。“爱的对象应该是在可爱的光景里，但怜悯的对象总是在可怜的光景里。因此，神的怜悯比祂的爱达到得更远。神爱我们，因为我们是祂拣选的对象；然而我们因着堕落变得极为可怜，甚至死在过犯并罪之中，所以我们需要神的怜悯。因着祂的大爱，神是富于怜悯的，把我们从可怜的地位，救到适合祂爱的光景。”怜悯是祂所是、祂属性中够得最远的。甚至，当我们在这个可怜的光景的时候，不适合祂的恩典和爱，就把我们救到适合祂爱的光景里，使我们能够蒙祂的恩典和爱。“当我们因过犯罪、死了的时候，神的怜悯竟然临到我们。我们不配从神得着什么，但我们在悲惨的光景中，神怜悯了我们。”我们不配从神得着任何事物，若是配得什么，就是祂的审判，祂的惩罚。但神怜悯我们，在我们悲惨的光景中救了我们。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                一　怜悯是神的属性中够得最远的，比祂的恩典和爱够得更远—太九13：
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　按我们天然的光景，我们离神太远，完全不配得祂的恩典；我们只适合接受祂的怜悯—弗二4。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">哦，弟兄们，这些点要帮助我们珍赏，甚至我们要敬拜、赞美我们的父。我们领会，哦，一切都在于祂的怜悯。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　我们的不信从给神的怜悯机会，神的怜悯就领我们得着救恩—罗十一32。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">所以，我们的不信从、我们的背叛其实给了神的怜悯机会，更多向我们启示祂自己。因着我们的不信从，在神的主宰里，神有机会显示、显明祂，借着我们的短缺显示祂的怜悯，我们要“阿利路亚”！为着神，我们要说“阿利路亚”！</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                二　我们的观念是：那定意的会得着他所定意要得着的，那奔跑的会得着他所追
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　求的—九16：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">这是我们的观念。我们的观念是在我们的基督徒生活，是我们的努力。我们当然也讲到保罗所说我们要奔跑赛程，但这件奔跑的事，奔跑本身不能成就任何事，但这个奔跑是在乎神的怜悯，也是神的怜悯使我们能奔跑。我们能奔跑唯一的原因是因为神向着我们的怜悯。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　若情形是这样，那么神的拣选就是照着我们的努力和劳苦了。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">不在于我们的努力，想要改良自己，作一个更好的弟兄，能够像我们在训练中所说，这些话我们听见的时候，可能我们的反应是，哦，我真需要改良自己。我回到我的召会，我在训练里听到我们要按着神牧养，我就自己里面发誓说，我要成为这样，成为圣徒的牧人。是的，我们应当渴望来牧养，但是我们需要领会，不是在于我们的奔跑，而是在于神的怜悯。所以我们要求主，借着你的怜悯，使我成为这样的牧人，使我能按着神牧养，不是天然的牧养。弟兄们，所以这样更多更多的，主将祂自己作到我们里面，使我们能成为国度的子民。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　反之，神的拣选是出于施怜悯的神；我们不需要定意或奔跑，因为神怜悯我们。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我们不需要定意或奔跑，因为神怜悯我们。这不是说我们只要被动，什么事也不作，而是神要借着这样的纲要帮助我们，将祂自己作到我们的心里，使我们领会不在于我们的定意和奔跑，而在于神的怜悯，这是我们的帮助。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                3　我们若认识神的怜悯，就不会信靠自己的努力，也不会因自己的失败而失望；我们可怜光景的盼望，是在于神的怜悯—弗二4。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">弟兄们，你觉得怎么样呢？你有没有感觉过自己实在是无望、可怜、苦恼的光景？我的失败太多了，为着主的怜悯感谢祂，我们不信靠自己，但我们也不因自己的失败而失望，我们的盼望在于神的怜悯。感谢主，让我们被消减，使一切都在于神的怜悯。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                三　我们若要在神新约的经纶里事奉神，就需要认识这完全是在于神主宰的怜悯—罗九15~16，来四16：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">弟兄们，在这一段我要读到出埃及记生命读经的二十一篇的一段话，李弟兄讲到神怜悯摩西，但对法老却没有同样的怜悯。李弟兄说，“在宇宙中有三件事是无可否认的：神的主宰权柄、神的怜悯和人的自由意志。神的主宰权柄和怜悯是神圣且永远的，它们是无始无终。反之，人的自由意志是神所造的。神创造人给人一个自由意志，表明祂的伟大。因祂是大的，祂不强迫我们拣选祂。反之祂给我们自由来自行选择。”“我们无法解释神怜悯谁，但是照着祂的旨意，神的怜悯临到了我们。……根据罗马九章十八节，神可以施怜悯，也可以叫人刚硬。摩西和法老的事例就是一个说明。摩西是神要怜悯的人，而法老是神要使他刚硬的人。”</p>
+                
+                <p class="message-text">弟兄们，我们可以作摩西，也可以当法老。回顾我们的一生，你就会领会有些我们很亲近的朋友，他们没有走这条路，他们没有献上自己跟从主。但我们却在这里，这是什么呢？不是因着我们，是因着神的怜悯。“在罗马九章十五节，保罗引用神给摩西的话说：‘我要怜悯谁，就怜悯谁，要恩待谁，就恩待谁。’这表明神向我们所施的怜悯全然是照着祂自己的旨意。”神在祂的主宰里，要向我们显明祂的怜悯。弟兄们，为着神的怜悯赞美祂。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　我们若认识神的主宰权柄，就会为着祂的怜悯感谢祂：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">这是起源于神的主宰权柄，我们无法解释，但在神的所是里，在祂的主宰权柄中，祂拣选了我们在这个时刻坐在这个会场中，祂拣选了我们要作祂国度的子民。我们要感谢主，是出于祂的怜悯，我们蒙了拣选。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　在神主宰的怜悯里，我们的心倾向于祂；因着祂给我们的怜悯，我们天天寻求祂—耶二九13，申四29，赛五五6。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我们早晨开始我们的一天，从花时间与祂同在开始，连这也是在于祂的怜悯。弟兄们，你是不是感谢，为着主的怜悯感谢祂呢？为着主的怜悯赞美祂？这到一个地步我们没有办法解释，超过我们的领会，我们只能敬拜神，为着神向着我们的怜悯，我们敬拜神。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                3　我们越看见与我们有关的每件事都在于神的怜悯，就越会在主面前背负我们的责任；然而，甚至我们乐意背负责任也是出于神的怜悯。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">当然，看见神的怜悯，这应该兴起我们，激动我们，叫我们说，“主啊，我将自己献给你，我愿意背负责任。无论你需要我作什么，需要我怎么合作，作你的国度子民。”甚至这样子的愿意也在于神的怜悯。为着神的怜悯，阿利路亚！</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                4　因着神的怜悯，我们对福音有反应而别人没有反应，我们接受关于基督是生命的话而别人拒绝接受，我们走主恢复的路而别人退后不走这条路。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">弟兄们，你看你个人的情形，你的一生，来领会这件事。当我们听见福音时我们有反应，别人却没有反应。我们进到召会生活里，初次遇见弟兄们，也许你是在召会生活里长大的儿童班，但是在某一个时间点你领会了。有些人在意生命，你怎么领会，你怎么会有这样的领悟，愿意走这个窄路，进窄门走狭路，愿意走在召会的路上呢？当我们要进到早上的电梯的时候，我们发现要挤进去，为什么你会愿意走这条路呢？神的怜悯。为什么我们走了这条路，别人没有走呢？我想起这些年日来许多认识的亲近的朋友，我在这里，他们却不在这里，为什么？完全不在于我的能力，我知道认识什么，这都是神的怜悯。走主恢复的路，别人却退后不走这条路，历年来我们也认识一些比我们更优秀的弟兄，更有功用，更有恩赐，但到了某一个时间点，他们反对这条路，他们反对主恢复的路；但我们还在这里。他们的心硬了，但我们却没有。怎么可能呢？为什么会这样呢？这里面的因素是什么？这是神的怜悯。为着神的怜悯，阿利路亚！我能见证，我信我们每个人都能见证，我们在这里的原因是因着神怜悯我们。</p>
+                
+                <p class="message-text">甚至我在想要进入多少细节，因为在我们可怜的光景中，祂的怜悯展示出来，当我想到我的历史、我的过去。我想，哇，真是有许多可怜的情形。但是我会在这里，站在这里，就是因着神的怜悯，不是因为能力、恩赐、力量、个人的意愿，都在于神的怜悯。我相信在这一个聚会之后，我们的生活会有什么样的结果呢，我们需要珍赏，需要意识到神的怜悯，我们能在主的恢复里直到世代的终结，在于主的怜悯。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                5　就着神的恢复来说，神向祂所要施怜悯的人施了怜悯。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我想起一些亲爱的弟兄们，他们与我们同在，我们经历了一些风暴，许多弟兄一同经历了这些事。你想想，弟兄们，我们曾经是同伴，我要说，其中一位弟兄比我更好，更有恩赐，他比我更早进入主的恢复，甚至把我带进主恢复里的弟兄。很遗憾地说，他如今也不在这条路上了，他退后了，他退后，他离开了主的恢复。那一位弟兄已经离世了，与主同在。他得了癌症，我去看他，他并不是里面觉得很苦，但是他和他的妻子决定不要继续走这条路。我去看他，他有他的原因，他有他的批评。但是我很难过，但是当他坐在客厅的沙发上奄奄一息，他的客厅有一个圣诞树，我非常遗憾，他没有在神的家中与圣徒们同在，死在这样可怜的情形里，我觉得这真是一个悲剧。这个弟兄对我是这么亲近，我觉得比我更好，但是那是他的光景。当我想起我才领会，为什么会有这样的差别，为什么不是我在那样的情形里，不是我坐在那个客厅里，我们可能是角色是对换的，这一切在于神主宰的怜悯。我只能这样说，这是神主宰的怜悯。</p>
+                
+                <p class="message-text">愿这激动我们起来敬拜神，前所未有地敬拜神，让我们知道甚至我们的往前，我们的未来，不是我们的过去，甚至我们的未来都在于祂的怜悯。愿我们将自己投在祂的怜悯中，将我们完全向祂敞开，“主啊，我何等需要你的怜悯来跑完这个赛程，行完我们的路程。”甚至我们的合作，我们合作要成为国度的子民，是的，有一面我们人的意愿，我们的心志是重要的，但另外一面这也完全是神怜悯的事。“主啊，愿我享受你怜悯的益处，愿你使我的意志柔软，不要像法老一样刚硬，心刚硬。愿主作在我们每一位身上。”</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                四　罗马九章所启示的原则乃是：一切皆在于神的怜悯—15~16节：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">当倪柝声弟兄的职事在一九四七年得到恢复时，他的第一篇信息就是神的怜悯。在倪弟兄的文集中，《倪柝声恢复职事过程中信息记录》的第一篇信息讲到，第四中点主要就是从这篇信息出来的。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　使徒保罗把这原则应用在以色列人身上，叫我们看见一切发生在以色列人身上的事，都是出于神的怜悯—16、23节。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　我们总得有一次看见神的怜悯，并且确定地碰见神的怜悯—弗二4，太九13：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">弟兄们你有看见神的怜悯了么？你碰见了神的怜悯么？我们该呐喊“阿利路亚”！为着神的怜悯，阿利路亚！这好比马可十章的瞎子，他是瞎眼的，但当主经过的时候，他说，“大卫的子孙，可怜我吧，可怜我吧，怜悯我吧。”我们就像这个瞎眼的，大卫的子孙，可怜我，保守我在你的恢复里，持守我在这个生命的路上。我们要对主说，“大卫的子孙，怜悯我，叫我能保守在主的恢复里，作你国度的子民。我们渴望你的怜悯会带我们一直地往前。”就像这个瞎子在这样迫切的情况，这就像是第一篇信息所说，我们的难处在于我们的自满。我们觉得我们已经在主的恢复里了，我们已经达到了，我们听见了这许多关于“享受基督作包罗万有的灵”这些美妙的事，我们听见“不再是我，乃是基督”这些美妙的事，但这些却没有深深地穿透我们，因为我们的自满，我们的自足；这是老底嘉的光景。我们知道了许多，但这些话到底对我们有多少影响，甚至“神的怜悯”这件事，这对我们有什么影响呢？有没有叫我们领会我们是在神怜悯的益处和帮助之下？我们需要总得有一次看见神的怜悯，确定地碰见神的怜悯，这会帮助我们忠信直到路终。</p>
+                
+                <p class="message-text">但我有负担，弟兄们，我们应该把这些话祷告回去，向主祷告回去，使我们的饥渴，属灵的饥渴能够在我们里面增加，我们里面的渴望，渴望主得着祂盼望得着我们的情形。在我们的基督徒生活、召会生活中的光景，我们的危险就是落到老底嘉的光景中。如同倪弟兄的话，我们总得有一次确定地碰见神的怜悯。</p>
+                
+                <p class="message-text">弟兄们，到了这一段，我要读李弟兄的文集，一九五九年第二册的一段话，这里讲到怜悯和恩典。恩典临及没有堕落、没有跌倒的人，就是恩典；恩典一旦临及跌倒的人，那就是怜悯。比方这里有一个人也许从来没有跌倒过，他需要神临及他，那个是恩典。可是现在这个人跌倒、堕落了，神的恩典临到他，就是怜悯。路加十五章里的小儿子若是没有作浪子，一直留在家里享受父亲的一切，那个叫恩典。但然而这个浪子跌倒了，在父亲眼前出过事，但父亲仍旧将他所有的给他享用，这个不叫恩典，乃是怜悯。我们享受神的一切是在于怜悯。</p>
+                
+                <p class="message-text">弟兄们，我们需要神的怜悯，我们能享受神是因着神的怜悯。愿我们操练，敞开我们里面的人，不在于我们外面的行为，而是这是一件里面的事，里面的实际，使我们能领悟并且享受神怜悯的益处，使我们也能够向人施怜悯，怜悯人，这应该是召会生活中的特征，主要的特征。这个召会生活应该是因着神的怜悯，所以怜悯应该成为召会中最主要的特征。</p>
+                
+                <p class="message-text">在路加十五章讲到我们和圣徒们的关系，虽然我们是在父的家中，但是有的时候我们可能要宣告我们的地位，然后流浪了，我们放荡，耗尽了父亲一切的产业。我们可能自己有这样的经验，甚至我们中间有一些的青年人，也可能是中年人，没有一个人是免疫的，是豁免的，我们流浪了、我们出去了、离家了，我们因着某些原因我们不满意召会生活，我们对主不高兴，我们的人生发生了一些事，可能发生了一些很遗憾的事，我们责怪主为什么会发生这样的事。或是有时候之前弟兄讲到我们被得罪，我们里面满了苦毒，于是人觉得我受够了，我不要留下来，我要出去。但我们的反应是什么呢？我们要想想父亲的反应是什么，何等甜美。</p>
+                
+                <p class="message-text">我想要读这里的几节经节来表达、来传递这里面的感觉，我们对于这样的圣徒应该有怎样的感觉。当儿子起身往远方去……他穷乏起来，甚至想吃猪的食物。他堕落到这样的光景里，他非常的迫切。他在这样可怜的光景，“他醒悟过来，就说，我父亲有多少的雇工，口粮有余，我倒在这里饿死么？我要起来，到我父亲那里，向他说，父亲，我犯罪得罪了天，并得罪了你。我不配再称为你的儿子，把我当作一个雇工吧。”（路十五17~19）我想这是我们一个普遍的感觉，觉得我不配，我们已经放弃了神，放弃了召会,我们离开了,我们里面满了定罪，我们觉得自己完全失败。我们是这样想的，我不配。“于是起来往他父亲那里去，相离还远，他父亲看见，就动了慈心，跑去抱着他的颈项，热切地与他亲嘴。儿子说，父亲，我犯罪得罪了天，并得罪了你。我不配再称为你的儿子。”（路十五20~21）我很喜欢下一节，“父亲却吩咐奴仆说。”他没有跟孩子解释任何事，他说，“快把那上好的袍子拿出来给他穿，把戒指戴在他手上，把鞋穿在他脚上，把那肥牛犊牵来宰了，让我们吃喝快乐。”（路十五22~23）这是父亲向我们的心，这是父亲向着所有圣徒的心，让我们吃喝快乐。我们后来知道大儿子不高兴，他听见父亲所作的，他说你这么高兴，你儿子和娼妓吞尽了一切你的产业，他一来了，你倒为他宰了肥牛犊，你只在意他不在意我。这一个孩子回家了，但是父亲说你这个弟兄是死而复活，失而又得，他回来了，这是父亲的心，他正在等待孩子回家。我们的父是有何等的怜悯。这样的感觉，这样的事实，神的怜悯，我们的生活，特别是我们的召会生活需要认识神的怜悯。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                五　“所以我们只管坦然无惧地来到施恩的宝座前，为要受怜悯，得恩典，作应时的帮助”—来四16：
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　神的怜悯和祂的恩典都是神爱的彰显。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　当我们在可怜的光景中，神的怜悯先临到我们，把我们带进一种光景，使神能以恩典厚待我们。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我实在很宝贝希伯来四章十六节，我们只管坦然无惧地来到施恩的宝座前，首先受怜悯，然后得恩典。怜悯是神属性中够得最远的，把我们带回，我们受牵引回到这个地位上，然后神的恩典就能够流向我们。当我们在可怜的光景中，神的怜悯先临到我们，把我们带到这种光景，使神能以恩典厚待我们。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                3　神的怜悯和恩典对我们总是便利的，然而我们需要运用灵，来到施恩的宝座前，才能受怜悯，得恩典—16节。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">神的怜悯和恩典对我们总是便利的，然而我们需要运用灵。弟兄们，我们需要操练运用灵来到施恩的宝座前，才能受怜悯，得恩典，作应时的帮助。应时的帮助是我们在各种的光景，任何时刻中所需要的恩典，作我们应时的帮助。我们需要运用灵才能来到施恩的宝座前，受怜悯，得恩典，作应时的帮助。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                六　父神已经在祂的主宰中怜悯了我们；因此，我们必须为着祂主宰的怜悯赞美、敬拜祂：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">好，我们刚刚唱了诗歌二十二首。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　“我今享受你的怜悯，永远不旧、永远新；每日早晨临到我身，犹如甘露施滋润。何等甜美、何等甜美，满心赞美你怜悯”—诗歌二十二首，第五节。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">弟兄们，你今天有没有尝到一点甜美的味道呢？怜悯的甜美在这里。愿我们都得以尝到，哦神，哦父，哦主啊，愿我们都尝到神的怜悯的甜美。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　“父，你怜悯并你恩惠、慈爱，我已得尝；你这怜悯带来你的同在，并你面光。因你怜悯，我今向你下拜，赞你怜悯，歌颂直到万代”—诗歌二十三首，第三节。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">直到新耶路撒冷，我们还要歌唱、敬拜神的怜悯，阿利路亚！</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                贰　“怜悯人的人有福了，因为他们必蒙怜悯”—太五7：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">弟兄们，在这篇的纲要中，这是很重要的。好，我要再读职事的话，这是国度子民的生活和原则。我们在这一次的训练中是讲到国度子民，怜悯比恩典更与子民有关联。当我们的光景这么低下的时候，我们所需要的是怜悯。比如说你把钱财给朋友是恩典，但是给乞丐乃是怜悯，因为乞丐不配得着这些。国度的子民的原则是在不是那些正确合适得着恩典的，而是那一班不配得恩典的人，对他们没有任何的要求。对人有要求，严格的对待，是与此相反的。因为神先以怜悯待我们，所以我们也要怜悯人。所以在这一段讲到，怜悯人的人有福了，神已经向祂的怜悯向我们显明，但我们要往前，也需要联于祂来怜悯人。我们对自己要公义，对别人要怜悯。弟兄们，在我们的召会，当我们回去的时候，回到各地，我们所经历的怜悯，我们所摸着的怜悯，愿我们在所有的弟兄姊妹中满了怜悯，弟兄姊妹在我们身上要摸着怜悯。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                一　义是将人所当得的给人；怜悯是将优于人所当得的给人。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                二　为着诸天的国，我们不仅需要是义的，还需要是怜悯人的。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                三　蒙怜悯是得着我们所不当得的。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                四　我们若怜悯别人，主就要怜悯我们（提后一16、18），特别要在祂的审判台前怜悯我们—雅二12~13。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                五　我们必须学习对自己公义，对别人怜悯。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我们常常是对别人公义，对自己怜悯。我们反了，我们相反了，甚至对自己怜悯，也没有使我们对别人有怜悯。我们必须对自己公义。这就是为什么我刚刚要先读六节，我们必须饥渴慕义，对自己，我们要与神是对的，是公义的，然后我们对人才能是怜悯。我们必须对别人怜悯，对自己公义才能对别人怜悯。我们常常是对别人公义，却对别人没有怜悯。</p>
+                
+                <p class="message-text">我想我们都能同意，我们也都知道某一些青年人的情形，在召会生活里，甚至是我们的儿女们，我们在公义上，满了公义，却缺少怜悯。愿我们对自己公义，对别人怜悯，这是召会生活的需要。弟兄们，因为世界强烈的影响，我们的青年人面临许多的挑战和试诱，负面的事物接踵而来，不停地攻击，我们是需要公义，但是我们更需要怜悯，唯有主能把我们带到这样子平衡的光景。我们在照顾青年人的时候，照顾我们的儿女的时候，又有公义，又有怜悯。目前世界的局势对我来说，我看见我们实在是在好像挪亚的时代。</p>
+                
+                <p class="message-text">在马太二十四章讲到挪亚的日子，人子要来的时候，好像挪亚的日子一样。在创世记六章，我们看见，哇，那是何等可怕的情况。在洪水要来之前，人在耶和华的眼前已经成了肉体，是神的仇敌。肉体是神最大的仇敌。在创世记六章，甚至说到神后悔造人，心中忧伤，后悔造人。在地上满了罪恶，满了暴力，满了强暴。那时有了拿非利人，就是肉体，不法的结合，邪恶的事已经不断地注入到人的心思里，心中终日所思念的尽都是恶。在这样肉体的情形里，全地满了强暴，满了杀害、凶杀，因为这是，真的是满了强暴的光景。所以在创世记六章就是我们现在所看见的，在每一面都完全相合。</p>
+                
+                <p class="message-text">我们的青年人，是这样地受教育，他们的同侪、他们的朋友都被影响，都是在这个方向，所以我们惊讶地发现，我们的青年人可能偏离了，他们走岔了，我们觉得怎么可能会这样呢？他们怎么会作出这样的事呢？弟兄们，我们其实不用那么惊讶，因为这样的光景，他们是在这个光景中长大，在他们身上有非常强的影响。然而我们的态度该是什么呢？我们何等需要怜悯。我们需要神的怜悯，怜悯的神保守我们的心，我们才不会用愤怒、用气愤来回应。我想说为什么你在召会生活中长大受培育，为什么你会这样呢？你在路加十五章没有看见父亲这样说，父亲满了怜悯，满了怜恤。弟兄们，我们今天是在对青年人最艰难的局势光景中，当我们想到这个事的时候，当我们说到对别人怜悯的时候，我们应该想到我们应该这样来照顾我们的青年人，无论如何我们都爱他们。当他们回来的时候，让我们欢喜快乐，吃喝快乐，宰杀肥牛犊，吃喝快乐。我盼望有许多的许多的青年人会回来，他们里面有好的储存，在他们里面存有许多主恢复美好的事物，愿主恢复许多。甚至一些比较年长的偏离的弟兄姊妹，他们偏离了，他们并不领悟自己是在所多玛的情形里。但愿我们起来代求，像亚伯拉罕一样起来代求，愿主宰的神恢复他们。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                叁　“愿恩典、怜悯、平安，从父神和我们的主基督耶稣归与你”—提后一2：
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                一　在保罗的书信里，只有提摩太前后书开头的问安说到神的怜悯。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                二　神的怜悯比神的恩典达到的更远。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                三　在召会堕落的光景中，神的怜悯是需要的。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">弟兄们，这总结了这里的感觉，在召会堕落的光景中，在世界堕落的情形里满了黑暗、满了死亡、满了腐败，各种各样的腐败的光景里，都可能影响召会，影响圣徒。哦，何等需要神的怜悯。这里的这种氛围，讲到圣徒们要领会他们有路加十五章的父神，他们有路加十五章，在召会中有路加十五章的那位父，虽然觉得自己不配得，但是对父来说，父是满了欢喜的，愿我们有这样子的感觉，在所有的众召会中有这样的氛围。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                四　这怜悯带进神丰富的恩典，够应对任何的堕落。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">所以当我们能够摸到这包罗万有全足的恩典，这个全足的恩典，我们需要怜悯。怜悯是开门让神的恩典能够进来。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                肆　“那不怜悯人的，也要受无怜悯的审判；怜悯原是向审判夸胜”—雅二13：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">同样的，我们对于圣徒、对于青年人的态度是审判呢？还是怜悯？不怜悯人的也要受无怜悯的审判。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                一　轻看贫穷的弟兄，就是无怜悯。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                二　凡这样轻看弟兄的，显在基督审判台前的时候，也必不蒙怜悯—罗十四10，林后五10：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我们作为父母、作为服事者，可能觉得我们能作的都作了，我们已经尽力了，他们的光景是他们自己的责任。我不知道你到底显示了多少怜悯，我们经历了多少怜悯？我们能在这里是不是因着怜悯，我们对人又显示了、展示了，对我们的下一代显出多少怜悯呢？弟兄们，我们需要经历怜悯，叫我们能够向人有怜悯，这个怜悯要成为召会生活的特征。这样轻看弟兄的，贫穷的弟兄，我要先察验自己。我发现自己，是的，我就像这样。轻看弟兄，我不喜欢的弟兄，我觉得贫穷的，也许那些离开的、转离的浪子，我们的态度、我们的感觉是轻视他们。我们说，看看他们，怎么会这样呢。我们的心，当我们看这些弟兄们时候是什么样的感觉呢？我们何等需要怜悯人，向人有怜悯，因为我们都要面见主。这里说，怜悯弟兄的，在审判台前也要受怜悯。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　我们来到主面前受审判的时候，祂也不会怜悯我们，因为我们不怜悯弟兄。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">这是非常严肃的。我们作为各地的长老负责弟兄，在这样的训练中，我们应该向主察看我们自己，我们对圣徒们的感觉，对他们的态度，特别是青年人，所有的圣徒，我们是在那里评断他们呢？是的，我们该知道他们有没有长进，有没有享受主，但我们的态度，我们对他们的感觉到底是什么？是怜悯呢，还是审判？</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　我们必须怜悯人，因为怜悯原是向审判夸胜。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">怜悯原是向审判夸胜。怜悯是超过审判的，我们是谁？我们能审判谁呢？不要审判人，免得我们受审判。当你想想自己，你的历史，主拯救你脱离了什么。哦，我们能在这里完全是因着怜悯，因着神向我们显示了怜悯。我们必须怜悯人，因为怜悯原是向审判夸胜。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                3　我们今天若怜悯弟兄，将来在主审判台前也要蒙主怜悯。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">这是对我们严肃的劝告的话。我们要敬畏主，与主是一。</p>
+                
+                <p class="message-text">第五大点，这里是总结的话。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                伍　我们要在主面前俯伏，为着祂的怜悯敬拜祂—诗一四五，赛六三9，约十10，罗三24，十一32，林后四1，弗二4~5：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">阿利路亚！为着怜悯的神，阿利路亚！在诗篇一百四十五篇，每一天我都要颂赞你的名，我要天天颂赞你，我要永永远远赞美你的名（2）。今天我们要赞美神的怜悯。我们越为着主的怜悯敬拜祂，就越被拔高。当我考虑这件事，我们看见国度子民的标准，要求要过这样的生活，活在国度的实际里，主说你们要完全，没有办法更高了，你的标准就是要完全，像你们的天父完全一样，无法更高了，所以标准谁能达到呢？谁能作到呢？</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                一　我们越为着主的怜悯敬拜祂，就越被拔高。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">换句话说我们要达到那一个标准，我们就要为着主的怜悯敬拜祂，赞美祂，感谢祂。我们要领会，是因着主的怜悯能使我们满足祂的需要，因为不是我们天然的人能作到，是我们里面的生命，基督在我们里面，认识神的怜悯，基督在我们里面使我们能过这样的生活。我们越为着主的怜悯敬拜祂，就越被拔高。我开始有一点的实行，为着主的怜悯敬拜祂。“主，为着你对我的怜悯，我赞美你，我敬拜你。”</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                二　神拣选我们、预定我们、呼召我们，并且把我们摆在祂的恢复里，这是何等的怜悯！
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">惊叹号！惊叹号！好，我们再读一次。神拣选我们、预定我们、呼召我们，并且把我们摆在祂的恢复里，这是何等的怜悯！阿们，阿们。我们所走的每一步都是因着神的怜悯。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                三　对于我们的将来，我们不信靠自己，我们乃是信靠祂，以及祂奇妙的怜悯。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">弟兄们，这要拯救我们脱离一切的挂虑。对于我们的健康，我们的工作，我们的将来，我们不信靠自己，乃是信靠神，及祂奇妙的怜悯。我们不信靠自己能作什么，甚至不是我们能多少合作，使我们能成为祂国度的子民，我们信靠祂的怜悯，我们将自己献给祂，好蒙怜悯。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                四　我们同主前行，并不在于我们的定意或奔跑，乃在于神的怜悯。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                五　神的怜悯行奇妙的事。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">弟兄们，我真希望这让我们有一点的饥渴，有一点的胃口，对神的怜悯。我们不仅得救了，也牧养我们进入神的家，神，主的恢复，我们在我们属人，神圣的历史里，我们能与主合作，让祂得着祂的国度。在国度里，祂有一班子民，在每一方面都与祂是一，是因着祂的怜悯，因着祂向我们所显的怜悯，因着祂的怜悯要弥漫、要遍及我们的生活，我们的召会生活，我们的基督徒生活，为着神的怜悯赞美祂。主啊，我们为着你的怜悯，赞美你！</p>
+                
+                <p class="message-text">好，弟兄们，我们信息就停在这里。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+    </div>
+</div>
+
+<style>
+.message-page {
+    padding: 0;
+}
+
+.scripture {
+    font-size: 15px;
+    color: #555;
+    margin: 0 0 20px 0;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #667eea;
+    line-height: 1.8;
+}
+
+.message-content {
+    margin-top: 20px;
+    line-height: 2;
+}
+
+/* 章节结构样式 */
+.section {
+    margin: 25px 0;
+}
+
+.section-level1 {
+    font-weight: 700;
+    font-size: 18px;
+    margin: 28px 0 18px 0;
+    padding: 14px 18px;
+    color: #1a202c;
+    line-height: 1.6;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf9 100%);
+    border-left: 5px solid #667eea;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.section-level2 {
+    font-weight: 700;
+    font-size: 17px;
+    margin: 22px 0 14px 0;
+    padding: 12px 16px 12px 24px;
+    color: #2d3748;
+    line-height: 1.6;
+    background: #f8f9ff;
+    border-left: 4px solid #7c8df0;
+    border-radius: 6px;
+}
+
+.section-level3 {
+    font-weight: 600;
+    font-size: 16px;
+    margin: 18px 0 12px 0;
+    padding: 10px 14px 10px 32px;
+    color: #374151;
+    line-height: 1.6;
+    background: #fafbff;
+    border-left: 3px solid #9ca9f0;
+    border-radius: 4px;
+}
+
+.section-level4 {
+    font-weight: 600;
+    font-size: 15px;
+    margin: 16px 0 10px 0;
+    padding: 8px 12px 8px 40px;
+    color: #4b5563;
+    line-height: 1.6;
+    background: #fcfcff;
+    border-left: 2px solid #b8c3f0;
+}
+
+.section-content {
+    margin: 12px 0 16px 0;
+    padding-left: 10px;
+}
+
+.subsections {
+    margin-left: 0;
+}
+
+.message-text {
+    text-indent: 2em;
+    margin: 16px 0;
+    font-size: 16px;
+    color: #374151;
+    line-height: 2;
+    text-align: justify;
+    padding: 8px 12px;
+}
+
+/* 移动端优化 */
+@media (max-width: 767px) {
+    .section-level1 {
+        font-size: 17px;
+        padding: 12px 14px;
+        margin: 24px 0 16px 0;
+    }
+    
+    .section-level2 {
+        font-size: 16px;
+        padding: 10px 12px 10px 20px;
+        margin: 20px 0 12px 0;
+    }
+    
+    .section-level3 {
+        font-size: 15px;
+        padding: 8px 10px 8px 24px;
+        margin: 16px 0 10px 0;
+    }
+    
+    .section-level4 {
+        font-size: 14px;
+        padding: 6px 8px 6px 28px;
+        margin: 14px 0 8px 0;
+    }
+    
+    .message-text {
+        font-size: 15px;
+        line-height: 1.9;
+        padding: 6px 8px;
+        margin: 14px 0;
+    }
+    
+    .section-content {
+        padding-left: 5px;
+    }
+}
+
+/* 平板优化 */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .section-level1 {
+        font-size: 18px;
+        padding: 13px 16px;
+    }
+    
+    .section-level2 {
+        font-size: 17px;
+        padding: 11px 14px 11px 22px;
+    }
+    
+    .section-level3 {
+        font-size: 16px;
+        padding: 9px 12px 9px 28px;
+    }
+    
+    .message-text {
+        font-size: 16px;
+        line-height: 2;
+    }
+}
+
+.no-content {
+    color: #999;
+    font-style: italic;
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 15px;
+}
+
+@media (min-width: 768px) {
+    .message-page {
+        padding: 10px 0;
+    }
+    
+    .message-content {
+        margin-top: 20px;
+    }
+    
+    .message-text {
+        margin: 15px 0;
+        font-size: 15px;
+        padding: 0;
+    }
+    
+    .no-content {
+        padding: 50px 20px;
+    }
+}
+
+@media (max-width: 768px) {
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const paragraphs = document.querySelectorAll('.message-text');
+            paragraphs.forEach(p => {
+                const t = p.textContent.trim();
+                if (t) text += t + '。';
+            });
+            return text;
+        }
+    });
+});
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025秋季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

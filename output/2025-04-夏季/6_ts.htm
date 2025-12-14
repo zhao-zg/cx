@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第6篇 - 详情</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>夏季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025夏季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="details-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="6_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="6_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="6_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="6_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="6_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第6篇 在三一神里的召会</h2>
+    
+    
+    <div class="scripture">读经：帖前一1、3~6、10，约壹一5，二27，四16，五11~12</div>
+    
+    
+    <div class="details-content">
+        
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　三一神乃是新约的架构
+            </div>
+            
+            
+            <div class="content-text">三一神乃是新约的架构（太十二28，二八19，约十五26，徒二33，罗八11，加四6，弗三16~17，四4~6，来九14，彼前一2，启一4~5）。这里引用的经节，是从马太福音到启示录。要抓住“三一神乃是新约的架构”这个思想，就需要读过整本新约。如果我们每天读十二章新约圣经，就能在一个月内，将新约从头到尾读完一遍。二十五年前，主带领我这样速读了一年，就使我对新约的启示有一个宽广的认识。对于一些章节，我们可以祷读，但速读能使我们有一个宽广的观点。当然各人都要考量自己的情形是否许可。其实一天读十二章新约并不难，早晨读四章，下午读四章，晚上读四章，合起来就是十二章。这样的速读，能叫我们领会，三一神乃是新约的架构。</div>
+            
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们借着经历并享受三一神，
+就得以认识祂
+            </div>
+            
+            
+            <div class="content-text">我们借着经历并享受三一神，就得以认识祂（约壹一5，二27，四16，五11~12）。我们要清楚，这里所说认识三一神的路，并不是借着道理。当然，我们需要新约客观的教训作为基础，但对三一神真正的认识，乃是借着主观的经历并享受祂。这就像是一对弟兄姊妹结了婚，告诉你他们婚姻生活的经历或享受，这是一回事；但你若真要知道婚姻生活的经历或享受是什么，你结婚就知道了，不需要别人来告诉你。所以，我们是借着经历并享受三一神，而得以认识祂。盼望我们每天清早能这样祷告：“主啊，今天我要经历并享受你。我要作一个敞开的器皿，来经历并享受你。”祂会引导并牧养我们，让我们在各样外在的光景和处境中来经历并享受祂。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　三一神不仅是我们信仰的对象；
+祂乃是住在我们里面，
+作我们的生命和生命的供应，给我们经历并享受
+            </div>
+            
+            
+            <div class="content-text">三一神不仅是我们信仰的对象；祂乃是住在我们里面，作我们的生命和生命的供应，给我们经历并享受（四13~15）。我们不能凭天然的人来经历或享受三一神，我们需要神的生命，神圣的生命，永远的生命，逐日浸透我们全人；这要带进生命的供应，使我们能以经历并享受。因此，每天我们都要将心转向主，运用我们的灵，全人向祂敞开。约翰十五章四节说，“你们要住在我里面，我也住在你们里面。”我们要告诉主说，“主啊，我向你今日的分赐和光照敞开。”这就使每一天都是我们生命长大的一天。盼望我们晚上就寝时，里面有一种感觉：我们里面神圣的生命同着基督自己，比今天早上起床时更加多。若我们每个人天天都这样简单、真诚地与主接触，将会有何等的果效！生命的事不是一蹴可几，乃是持续累积而成的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们需要借着内在地享受主观的神，
+而在经历上认识三一神
+            </div>
+            
+            
+            <div class="content-text">我们需要借着内在地享受主观的神，而在经历上认识三一神（约壹二27，四4）。我们能在经历上认识三一神，乃是借着内在地享受主观的神。主观的神乃是三一神在基督里，经过成为肉体、活在地上、钉死、复活、升天的过程，如今作为赐生命的灵，浸透我们全人。这就使我们能以享受主观的神，也就是经过过程并终极完成的三一神。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们若要认识三一神，
+就必须在生命这条线上，
+并在生命长大的过程里；
+我们越在生命里长大，就越关切神圣的三一
+            </div>
+            
+            
+            <div class="content-text">我们若要认识三一神，就必须在生命这条线上，并在生命长大的过程里；我们越在生命里长大，就越关切神圣的三一（二13~18）。在此，我对生命长大有一个积极的关切。主可以为我作见证，我不是审判或批评任何人，但我里面很有感觉，有深切、满了爱的关切，就是有些亲爱的圣徒，在已过的十年间没有任何生命的长大。我们属灵生命长大到什么程度，就能看出别人生命长进的程度；这不是理论。如果我们达到了灵命第三层，就能看出那些人还没有到达这个阶段。</div>
+            
+            <div class="content-text">一九七四年，我在底特律过着正常的召会生活。一位洛杉矶的弟兄打电话给我，令我惊讶的是，他很直接地告诉我，李弟兄希望我搬到加州全时间事奉，好配搭服事生命读经的编辑。这对我来说，是主在祂权柄中的带领。所以我搬到了加州，开始天天服事生命读经的编辑。我服事了二十四年，虽然没有经手每一篇信息，但多数是我作的。我愿意每一天在那里劳苦，但就如同保罗在新约引用旧约的经节，说，“牛踹谷的时候，不可笼住它的嘴。”（林前九9，提前五18，申二五4）我里面有个祷告：“主，我非常乐意能有分这样的服事，尽我的功用。我的心向你敞开，我的嘴要张开，不可笼住。”一年可以成就许多事；从那天起直到今天有五十一年，的确成就了许多事；为着生命的长大，最重要的就是接触三一神。</div>
+            
+            <div class="content-text">亲爱的圣徒们，我们该向主要，从今天到年底，使我们里面的生命每天正常地长大。年长的圣徒像我一样，不知道我们的旅程什么时候会结束。但主在祂的怜悯里，还给我们有机会（甚至是在我们人生旅程的终结前），能够天天接触三一神，留在祂的分赐之下，好叫我们在离世前能够达到成熟。这是我们行完旅程的方式。</div>
+            
+            <div class="content-text">我要强调这件事，我们越在生命里长大，就越关切神圣的三一。我们不是试图让自己关切神圣的三一，反而要将我们的全人敞开，让神圣的生命在我们里面长大，我们自然就会关切神圣的三一。关切神圣的三一，不是在外面试图要作什么，而是每天从早到晚，持续地在三一神里；这样我们也就能领会，三一神正在我们里面无限无量地涌流、浸透我们。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　当三一神成为我们的经历和享受时，
+祂不仅是那在宝座上宇宙般广大的一位，
+祂也是那在我们心里的一位
+            </div>
+            
+            
+            <div class="content-text">当三一神成为我们的经历和享受时，祂不仅是那在宝座上宇宙般广大的一位，祂也是那在我们心里的一位（启四2~3，五6，约壹三19~21）。在以弗所三章，保罗有一个祷告，求父借着祂的灵，用大能使我们得以加强到里面的人里，使基督借着信，安家在我们心里（16~17上）。基督能安家在我们心里，是在于神用大能使我们得以加强到我们调和的灵里。在每天的起头，我们都需要对主说，“主，我需要你的怜悯，没有你的怜悯我无法生活。这怜悯要开门叫恩典流进来。主，我向你要今天的一分恩典。”保罗祷告，要信徒得着加强，使基督能安家在他们的心里。这不仅是字句道理，乃是属灵的实际。基督不是仅仅在我们里面作客，祂乃是要安家在我们心里；祂要从我们的心思开始，扩展到情感，再扩展到意志，并且也扩展到我们灵的一部分─良心，如此祂就安家在我们心里的各部分。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们不是在宇宙的宽广里认识三一神，
+乃是在我们个人心的范围里认识祂
+            </div>
+            
+            
+            <div class="content-text">我们不是在宇宙的宽广里认识三一神，乃是在我们个人心的范围里认识祂（来八10~11）。每一天，我们里面该有一个全新的祷告：“主啊，求你带领并牧养圣徒们，使他们生命长大，也赐给他们负担为着生命长大而祷告。”我们需要领悟，主使我们得以加强到里面的人里，乃是在我们个人心的范围里；因此，我们每人都该与主有个人的关系。大约三十年前，我每天都在五点四十五分左右起床，起床后会运动、散步，并向主祷告。那时我向主说，“在我与你的交通中，你看得见我，我却看不见你，这样如何能与你有交通？求你带领我，我渴望与你有个人的关系。”在我深处有一个爱的关切，就是主恢复中的每一位圣徒，也都该与主有个人的关系。</div>
+            
+            <div class="content-text">我们要开始与主有个人的关系，有两种方式。第一，我们可以把这事带到主面前，向主说，“主啊，我不知道该作什么，也不知道怎么开始，但我渴望与你有个人的关系。”我们可以从这里开始，一直往前去。第二，你若不清楚该如何进行，可以与你所信托的年长圣徒有交通，听听他们的建议；也许可以考虑祷读整卷约翰一书，或是歌罗西书。各地召会都有晨兴圣言作为晨兴的材料，这是召会的带领，也是很健康的。但我们在许多情况下还有个人的需要，这一面也需要被顾到。我们需要让主在里面光照我们，好叫我们知道自己的需要。我们需要接受主直接的光照，并照着主给我们的感觉，受主引导来祷读某一卷书或某些经节。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　新约所关切的，是要我们认识
+那已经进到我们这人里面居住的三一神，
+认识那住在我们灵里，
+并渴望扩展到我们心的内里各部分的一位
+            </div>
+            
+            
+            <div class="content-text">新约所关切的，是要我们认识那已经进到我们这人里面居住的三一神，认识那住在我们灵里，并渴望扩展到我们心的内里各部分的一位（弗三14~17上，约壹三19~21）。我们要强调“安家”这个辞。基督渴望安家在我们心里，祂不是仅仅在我们里面“避暑度假”，乃是要住在其中，使我们的心成为祂的家。这件事的发生，需要我们全人前所未有地向祂敞开。我们可以告诉主：“你有自由进到我全人的最深处，甚至是我自己都不知道的部分，但你知道。我渴望我里面的每一部分都是敞开的，我要作个敞开的器皿，让你分赐进来。”主会欢喜地成就这事，这会使我们与主个人的关系得以发展。有时在我们与主的交通中，主会告诉我们，某件事不要告诉别人。有些事情，主希望我们在家聚会中分享，或申言为祂说话；但有些事情，只适合保留在我们与这位包罗万有的基督之间。我们都需要与主建立个人的关系。无论你多年长，现在开始都不会太迟；或者你才十八岁，现在开始也不会太早。这是极其重要的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　说到对三一神的认识，
+新约的路乃是个人的、细节的、经历的
+            </div>
+            
+            
+            <div class="content-text">说到对三一神的认识，新约的路乃是个人的、细节的、经历的（二20、27，来十16）。当主开始作一件事，祂是非常全面的，祂会注意所有细节，细致到了极点，因为祂知道其中的一切。当我们作为敞开的器皿来到祂面前，我们需要有智慧，在祂大能的宝血底下来接触祂这生命树，对主说，“主啊，我是敞开的器皿，你有自由细致地进入我全人的每一个部分。”至终，我们将没有一处不被主摸过；唯一剩下的，就是罗马八章十一节所提到的属人必死的身体。即便我们今天还有属罪与死的身体，基督复活生命的大能却要浸透我们全人。年长圣徒可能无法奔跑，不像已往那样行动自如，但随着年日加增，他们里面应当更多被复活的大能浸透，并能见证自己比过往更加成熟。我们都需要一直往前，直到行完我们的路程。我们的盼望乃是被提，好叫我们能够在祂来临的时候，与祂一同将祂的国度带到地上。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　这种认识三一神经历的路，是何其宝贵
+            </div>
+            
+            
+            <div class="content-text">这种认识三一神经历的路，是何其宝贵！这不是一种责任，乃是一段宝贵的学习经历，远超你我的想像。我们要以经历和享受的路来认识三一神，无论外在物质的光景如何，我们每个人，每一天都要对三一神有更多的经历和享受。</div>
+            
+            <div class="content-text">几年前，当我身体因剧痛被送到医院急诊室时，医师说处理这情形必须作心脏冠状动脉绕道手术。但我记得在预备进手术房时，我里面满有平安、喜乐和爱。我毫无惧怕，告诉身边的医师护士说，我们几个小时后见。在手术后的四十八小时，我非常的清醒，在我里面发生了许多事。主进到我的深处，摸着我里面的情形，告诉我说，我需要悔改。我让主有自由，让祂将十字架应用在我身上，接下来的经历就是爱。我为此敬拜父神，祂不是要惩罚或惩治我，而是要在祂的智慧里带领我成熟，为着身体的益处以及预备新妇。这指明无论外在情形如何，我们都要住在三一神里，让祂有自由进到我们里面，使我们能够以经历和享受的路来认识三一神，这是极其宝贵。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　新约和整本圣经一样，
+完全是以神圣三一为结构所组成的
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　整本新约都与三一神有关；
+神圣三一为着完成祂的经纶，作到人里面，
+作他们的享受、饮料、生命的泉源和光
+            </div>
+            
+            
+            <div class="content-text">新约和整本圣经一样，完全是以神圣三一为结构所组成的（太二八19，启一4~5，二二1~2）。整本新约都与三一神有关；三一神是新约的结构元素（弗三16，四4~6）。圣经陈明一幅图画，给我们看见神圣三一为着完成祂的经纶而有的行动（路十五3~32，弗二18）。圣经是照着一个管制原则写的，就是三一神作到祂所拣选并救赎的人里面，作他们的享受、饮料、生命的泉源和光（诗三六8~9）。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　在神话语中关于三一神的启示，
+乃是为着将神在祂的神圣三一里，
+分赐到祂所拣选并救赎的人里，作他们的经历和享受，
+使他们成为祂团体的彰显，直到永远
+            </div>
+            
+            
+            <div class="content-text">在神话语中关于三一神的启示，乃是为着将神在祂的神圣三一里，分赐到祂所拣选并救赎的人里，作他们的经历和享受，使他们成为祂团体的彰显，直到永远（弗一3~23，四16，启二一2、10~11）。这是主心头的愿望。在启示录二十一章，约翰说到新耶路撒冷：“我又看见圣城新耶路撒冷由神那里从天而降，预备好了，就如新妇妆饰整齐，等候丈夫。……一位〔天使〕来对我说，你来，我要将新妇，就是羔羊的妻，指给你看。我在灵里，天使带我到一座高大的山，将那由神那里从天而降的圣城耶路撒冷指给我看。”（2、9~10）新耶路撒冷乃是妻子。新耶路撒冷不是物质的，是包罗万有的基督与蒙拯救得成熟之圣徒的调和，成为一对夫妇。我们不是要前往新耶路撒冷，而是要成为新耶路撒冷。在今世就长大成熟的圣徒要有分于婚筵，其他人则要在国度显明时一千年的黑暗中，最终要达到成熟。所以，我们可以选择在今世达到成熟，或在来世才达到成熟。</div>
+            
+            <div class="content-text">我们都该这样决意并向主说，“主啊，愿你照着你的方式和时间，作唯有你才作得到的事，使我为着你的身体，此时此地就能长大成熟。”主会作成这事，因为祂需要祂身体上的肢体生命能够成熟。成千上万得蒙重生的真基督徒，因着他们没有接触到这时代的职事，而不在主的恢复里。当他们站在审判台前，主会告诉他们，照着他们的情形，现在无法进入国度。在路加十二章，主说，“唯有那不知道的，作了当受鞭打的事，必少受鞭打。”（48）那些人可以说他们不知道，但我们无可推诿。我们已看见圣经的启示和神的经纶，我们乃是在三一神里；当我们在审判台前见主时，我们不能说自己不知道。</div>
+            
+            <div class="content-text">一面来说，主将神圣的实际向我们启示，我们也喜乐与平安地领受了这一切，这是祝福；但另一面，我们需要对所学习的这一切负责。我宁可选择现在就学习在父神面前对祂说，“父啊，按照你的方式和时间，作唯有你才能作的，使我达到成熟，预备好被提。”我里面深深地渴望，听见这信息的每一位圣徒，都能成为预备好被提的圣徒。</div>
+            
+            <div class="content-text">在以色列的圣殿山上，有些事将要发生，也许是因着其他国家的攻击，或是某种原因，以色列人将得以重建圣殿。另外，在欧洲要有一个强人（敌基督）兴起，也许现在他已经是个青年人了。在要来的某一天，圣殿被毁，以色列与这欧洲的强人订下七年的盟约，这就是七十个七末了一个七的开始。我们要早早预备自己，达到成熟。你若在三一神里，三一神也绝对为着你。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　帖撒罗尼迦前书是写给“在父神和主耶稣
+基督里，帖撒罗尼迦人的召会”
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　在帖撒罗尼迦的召会，
+一面是属于帖撒罗尼迦人的，
+另一面是在父神和主耶稣基督里的
+            </div>
+            
+            
+            <div class="content-text">帖撒罗尼迦前书是写给“在父神和主耶稣基督里，帖撒罗尼迦人的召会”（一1）。在帖撒罗尼迦的召会，一面是属于帖撒罗尼迦人的，另一面是在父神和主耶稣基督里的。这样的召会是由父神所生，有祂的生命和性情，并在主耶稣基督一切的所是和所作里，与祂有生机的联结（约一12~13，林前一30，六17）。我们需要看见，召会是由那些在父神和主耶稣基督里的人所组成，他们有神的生命，并且与基督有生机的联结（约三15，十五1、5）。</div>
+            
+            <div class="content-text">关于父神，我要温柔地问你：这一周你与父有多少交通？有一些基督身体上的肢体积极正面地关心着这事。使徒约翰在约壹一章三节说，“我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。”在此，内住的基督有一种非常强烈、积极的感觉，盼望有更多神的儿女能认识何谓与父的交通。我们在主的筵席上，不该仅止于擘饼聚会，来吃饼喝杯、唱唱诗歌而已；反之，我们该在子的带领下敬拜父神，并向祂献上感谢，因为祂是一切正面事物的源头。</div>
+            
+            <div class="content-text">我们需要与子有交通，也需要从那灵得着生命的供应，但有时候主自己会告诉我们：“我要把你带到父那里，因为祂是源头。”我们要向父说，“我已经定意，只接受并实行父神纯全的旨意，我绝不接受你许可的旨意。我要你纯全的旨意。”盼望主恢复中的青年弟兄姊妹，都能向着父神有这样的决意，只接受父神纯全的旨意，并对祂说，“父啊，你是我独一的源头。”</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　当保罗说到在父神和主耶稣基督里的召会，
+事实上他的意思是说，召会是在三一神里
+            </div>
+            
+            
+            <div class="content-text">当保罗说到在父神和主耶稣基督里的召会，事实上他的意思是说，召会是在三一神里（帖前一1，林前一2，十二4~6）。“父神”和“主耶稣基督”这样的说法，都含示那灵；因此，帖前一章一节含示那灵是不言而喻的，我们可以说，召会是在三一神里的。父神、主耶稣基督和那灵，祂们虽有分别，却不分开，所以“父神”和“主耶稣基督”都含示那灵。</div>
+            
+            <div class="content-text">因为神圣三一的三者是不能分开的，所以每当我们有第一者父，我们也就有第二者子，也有第三者那灵（太十二28，罗八11，加四4~6）。父、子、灵是一位神，不是三位神；祂们虽有分别，却不分开（林后十三14）。这是很重要的真理。我们无法将子从父分开，也无法将父和子从灵分开，因为三者都是同时存在、互相内在的（约十四10~11）。就着祂们的永远同时并存而言，神格的三者彼此有别，但祂们的永远互相内在，却使祂们成为一。</div>
+            
+            <div class="content-text">在神圣的经纶里，神圣三一的三者在三个连续的时期里，分别作工且表显出来（弗一3~14）。父是计划、创始、发起者（3~6）。子成就父所计划、创始并发起的一切事（7~12）。那灵执行、应用父所计划并子所成就的（13~14）。拣选是出于父，拯救是出于子，分赐或繁殖是出于那灵（帖前一3~6、10）。子来时，祂是同着父凭着灵而来；子实化为那灵，那灵作为子同着父而来（约十四26，十五26）。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　召会在父神和主耶稣基督里，
+意思是说，召会乃是在经过过程的三一神里
+            </div>
+            
+            
+            <div class="content-text">召会在父神和主耶稣基督里，意思是说，召会乃是在经过过程的三一神里（太二八19，弗四4~6）。我们无法进入三一神的神格；乃是在神的经纶里，祂成了经过过程的三一神，使我们得以进入其中。</div>
+            
+            <div class="content-text">按照圣经，我们找不到召会只在神里这回事；反之，召会乃是在经过过程的三一神里（林后十三14）。相信许多圣徒，特别是那些成熟的年长圣徒能见证，当我们离开其他宗教团体，进到主的恢复，就知道这里就是主要我们所在的地方。然后我们领悟自己是在经过过程之三一神的指引下，进到了一个新的范围，在我们每天的生活中经过过程。在召会生活里，主开始光照我们，让我们想起自己曾作过某些得罪神或亏欠人的事，而要我们去对付并清理。然后我们第一次真诚地将自己奉献给主，愿意让主在我们里面有地位。主也带领我们在人生中经历这位经过过程之三一神，这个过程要年复一年地持续，也许达数十年之久。这是正常的生命经历。</div>
+            
+            <div class="content-text">现今，我们至少对经过过程的三一神，有某种程度的看见和领会，我们要向主说，“主啊，我向你的工作敞开，带我经过过程，我不要限制你的工作。”不要担心主要怎么作，因为主完全知道祂该作什么，该如何作，以及该什么时候作。要知道，神是神；我们要让祂作神，让祂作祂所要作的。</div>
+            
+            <div class="content-text">在创世记一章，神是没有经过过程的神，但在新约里，祂成了经过过程的三一神（约七37~39，腓一19）。“经过过程”是指三一神在神圣经纶里所经过的重要步骤─成为肉体、人性生活、钉十字架和复活。在钉十字架时，主完成了救赎，了结了旧造，废除了撒但和死（弗一7，罗六6，来二14）。在复活里，祂使新造有了新生的起头（林后五17）。如今祂乃是赐生命的灵，作经过过程之三一神的终极完成（林前十五45下，林后三17上）。</div>
+            
+            <div class="content-text">在经过过程之三一神里的召会，乃是在那成了赐生命之灵，同着父和子的一位里的召会（约十四20）。经过过程的三一神作为赐生命的灵，临到我们，接触我们，并在我们的经历中应用到我们身上（林前十五45下）。我相信这篇信息不会只是空说，而是一个开头，让经过过程的三一神无限量地运行在成千上万之圣徒的生命中，让经过过程的三一神临到我们，接触我们，并作为赐生命的灵在经历中应用到我们身上。父在子里，子如今乃是赐生命的灵，住在我们里面（约十四10~11、16~17、20）。当我们在父神和主耶稣基督里，我们就是在那灵里；因此，我们是在经过过程之三一神里的召会。</div>
+            
+            <div class="content-text">这篇信息把我们带到这一点，看见我们是在经过过程之三一神里的召会。虽然程度不同，但我们都有一种内里的领会：是的，我们是在各地的地方召会中，但我们开始明白，在召会中，就是在经过过程之三一神里面。我们若是在真正的地方召会中，就是在经过过程的三一神里面，经历祂多面多方地运行。</div>
+            
+            <div class="content-text">我们并不知道主什么时候会回来，我们需要新一代的弟兄们，成为领头弟兄，甚至成为长老，承接负担，有分于这职事，也需要有人成为全时间服事者；这一切都在于父的旨意。如旧约民数记所说，当以色列人要进美地时，因着他们不忠信，第一代除了约书亚和迦勒以外，全都倒毙在旷野（三二12）。年长的约书亚和迦勒，他们预备好要进入美地，据有包罗万有的基督。第二代是新的一代，吸取了包罗万有之基督一切的丰富，有分于属灵的争战，但他们仍然需要一些成熟、年长圣徒的陪伴，因为现今我们正要进入最后的争战。</div>
+            
+            <div class="content-text">二十多岁的弟兄姊妹要预备好。曾经有个身经百战的年长战士，训练身边十八到二十一岁的青年人作战。当争战进行时，这战士说，“我历经了许多战役。在你们经过训练之后，我们要一同上战场作战。不用担心！当我们着陆时，我会率先下直升机，到离开时我也会殿后。”当我们进入最后的争战时，这是年长圣徒和年轻人彼此之间的一幅美丽图画。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们若看见召会在三一神里的异象，
+这异象会支配我们的思想、活动以及我们整个的生活
+            </div>
+            
+            
+            <div class="content-text">我们若看见召会在三一神里的异象，这异象会支配我们的思想、活动以及我们整个的生活（箴二九18上，徒二六19）。在圣经里，异象是指特别的景象。好比去大峡谷，你会看见美妙的景象。但如果你只是看到一只虫，那就不是特别的景象。异象必定是非常特殊、特别的景象。</div>
+            
+            <div class="content-text">当我们看见异象，我们的想法、观念、态度、说话都会改变，我们会判若两人。我们若看见异象，我们的生活方式就会改变，我们全人会有内里的转变。异象使我们的生命满了意义和目的。异象激动我们，使我们有动力。异象也限制我们，管制我们。异象使我们有忍耐。异象会保守我们。从天上来的异象要管制我们、限制我们、控制我们、指引我们、保守我们、翻转我们。异象能保守我们在真正的一里。异象使我们有胆量往前。</div>
+            
+            <div class="content-text">异象是独特的看见。我们都听见了信息，这是很好的开始，盼望我们都受感能个人向主祷告：“主啊，我需要异象。”倪弟兄对看见异象很有负担，他盼望身旁的弟兄姊妹也看见他所看见的异象（参“倪柝声文集第二辑第十六册”，二八至三一页）。我们应该向主祷告：“主，我是你敞开的器皿，我需要看见异象。”我深深地关切每一位。你不该仅仅是听说并跟随别人所看见的，虽然我们都是这样开始的；你还需要有异象来管制你。将来可能会有仇敌的攻击，但我们所看见的异象能叫我们继续往前。异象会加强我们，使我们往前直到路终，直到在要来的国度里，与祂成为婚配，与祂一同作王一千年。（R. K.）</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.details-page {
+    padding: 5px;
+}
+
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 46px;
+    min-height: 46px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e8ecf9 100%);
+    border: 1.5px solid #d0d7f0;
+    border-radius: 23px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.font-btn:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+}
+
+.details-content {
+    margin-top: 15px;
+    line-height: 1.8;
+}
+
+.section {
+    margin-bottom: 18px;
+}
+
+.section-level1, .section-level2, .section-level3, .section-level4 {
+    font-weight: 600;
+    margin: 20px 0 12px 0;
+    line-height: 1.8;
+    color: #2d3748;
+}
+
+.section-level1 {
+    font-size: 18px;
+    color: #667eea;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+.section-level2 {
+    font-size: 17px;
+    padding-left: 10px;
+    border-left: 3px solid #667eea;
+}
+
+.section-level3 {
+    font-size: 16px;
+    padding-left: 16px;
+}
+
+.section-level4 {
+    font-size: 16px;
+    padding-left: 24px;
+    color: #4a5568;
+}
+
+.content-text {
+    margin: 14px 0;
+    padding-left: 14px;
+    color: #4a5568;
+    text-indent: 2em;
+    line-height: 2.1;
+    font-size: 16px;
+}
+
+@media (min-width: 768px) {
+    .details-page {
+        padding: 20px 0;
+    }
+    
+    .details-content {
+        margin-top: 30px;
+    }
+    
+    .section {
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .font-size-controls {
+        gap: 6px;
+        margin: 8px 0;
+    }
+    
+    .font-btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const contentTexts = document.querySelectorAll('.content-text');
+            contentTexts.forEach(p => {
+                const t = p.textContent.trim();
+                if (t) text += t + '。';
+            });
+            return text;
+        }
+    });
+});
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025夏季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

@@ -1,0 +1,3142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第9篇 - 纲目</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>夏季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025夏季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="9_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="9_cv.htm" class="nav-link active" title="纲目">纲目</a>
+    <a href="9_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="9_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="9_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第9篇 对基督无上宝贝的异象、经历、享受与彰显，为着真正的召会生活</h2>
+    
+    
+    <div class="hymn-number">EM 诗歌: s335, s405</div>
+    
+    
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：彼前一7、19，二4、6~7，三4，彼后一1、4</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+            
+                
+                <div class="verse-line">彼前1:7	叫你们信心所受的试验，比那经过火的试验仍会毁坏之金子的试验，更为宝贵，可以在耶稣基督显现的时候，显为可得称赞、荣耀和尊贵的；</div>
+                
+            
+                
+                <div class="verse-line">彼前1:19	乃是用基督的宝血，如同无瑕疵无玷污的羔羊之血。</div>
+                
+            
+                
+                <div class="verse-line">彼前2:4	你们来到祂这为人所弃绝，却为神所拣选所宝贵的活石跟前，</div>
+                
+            
+                
+                <div class="verse-line">彼前2:6	因为经上记着说，“看哪，我把所拣选所宝贵的房角石，安放在锡安，信靠祂的人，必不至于羞愧。”</div>
+                
+            
+                
+                <div class="verse-line">彼前2:7	所以祂在你们信的人是宝贵的，在那不信的人却是“匠人所弃的石头，已成了房角的头块石头”，</div>
+                
+            
+                
+                <div class="verse-line">彼前3:4	乃要重于那以温柔安静的灵为不朽坏之妆饰的心中隐藏的人，这在神面前是极有价值的。</div>
+                
+            
+                
+                <div class="verse-line">彼后1:1	耶稣基督的奴仆和使徒西门彼得，写信给那些因我们的神和救主，耶稣基督的义，与我们分得同样宝贵之信的人：</div>
+                
+            
+                
+                <div class="verse-line">彼后1:4	借这荣耀和美德，祂已将又宝贵又极大的应许赐给我们，叫你们既逃离世上从情欲来的败坏，就借着这些应许，得有分于神的性情。</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="outline-content">
+        
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹')">▼</button>
+                
+                壹　在基督里的信徒，该有价值观的改变—太二三16~26，撒上十六7，路十六15，九54~56，彼前三4，腓三7~8：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太23:16	瞎眼领路的，你们有祸了！你们说，凡指着殿起誓的，算不得什么；只是凡指着殿中金子起誓的，他就该谨守。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太23:17	愚拙瞎眼的人，哪个是更大的，是金子，还是叫金子成圣的殿？</div>
+                    
+                    
+                    
+                    <div class="verse-line">太23:18	你们又说，凡指着坛起誓的，算不得什么；只是凡指着坛上礼物起誓的，他就该谨守。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太23:19	瞎眼的人，哪个是更大的，是礼物，还是叫礼物成圣的坛？</div>
+                    
+                    
+                    
+                    <div class="verse-line">太23:20	所以指着坛起誓的，就是指着坛和坛上的一切起誓；</div>
+                    
+                    
+                    
+                    <div class="verse-line">太23:21	指着殿起誓的，就是指着殿和那住在殿中的起誓；</div>
+                    
+                    
+                    
+                    <div class="verse-line">太23:22	指着天起誓的，就是指着神的宝座，和那坐在其上的起誓。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太23:23	假冒为善的经学家和法利赛人，你们有祸了！因为你们将薄荷、芹菜、茴香，献上十分之一，却撇开律法上更重的事，就是正义、怜悯、信实；这些原是必须行的，那些也是不可撇开的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太23:24	瞎眼领路的，蠓虫你们就滤出来，骆驼你们倒吞下去。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太23:25	假冒为善的经学家和法利赛人，你们有祸了！因为你们洁净杯盘的外面，里面却盛满了勒索和放荡。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太23:26	瞎眼的法利赛人，你先洁净杯盘的里面，好叫外面也干净了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">撒上16:7	耶和华却对撒母耳说，不要看他的外貌和他身材高大，我不拣选他。因为要紧的不是人怎样看；人是看外貌，耶和华是看内心。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路16:15	耶稣对他们说，你们是在人面前自称为义的，但神知道你们的心；因为在人中间高贵的，在神面前却是可憎的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路9:54	祂的门徒雅各、约翰看见了，就说，主啊，你要我们吩咐火从天上降下来，烧灭他们么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">路9:55	耶稣却转身责备他们，说，你们的灵如何，你们并不知道。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路9:56	人子来不是要灭人的性命，乃是要救人的性命。他们遂往别的村庄去了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前3:4	乃要重于那以温柔安静的灵为不朽坏之妆饰的心中隐藏的人，这在神面前是极有价值的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓3:7	只是从前我以为对我是赢得的，这些，我因基督都已经看作亏损。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓3:8	不但如此，我也将万事看作亏损，因我以认识我主基督耶稣为至宝；我因祂已经亏损万事，看作粪土，为要赢得基督，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-一">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-一')">▼</button>
+                
+                一　信徒正确的价值观，可见于他们对基督和祂完满救恩以下各方面的估计和评价：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-一" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-一-1">
+            <div class="section-level3">
+                
+                1　对于主耶稣是为着召会建造之房角石的估价—诗一一八22，彼前二7。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗118:22	匠人所弃的石头，已成了房角的头块石头。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:7	所以祂在你们信的人是宝贵的，在那不信的人却是“匠人所弃的石头，已成了房角的头块石头”，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-一-2">
+            <div class="section-level3">
+                
+                2　对于主耶稣与他们亲人之间的估价—太十37~38，路十八26~30，彼前一1、17，二11上。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太10:37	爱父母过于爱我的，配不过我；爱儿女过于爱我的，配不过我；</div>
+                    
+                    
+                    
+                    <div class="verse-line">太10:38	不背起他的十字架，并跟从我的，也配不过我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路18:26	听见的人说，这样谁能得救？</div>
+                    
+                    
+                    
+                    <div class="verse-line">路18:27	耶稣说，在人所不能的事，在神却能。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路18:28	彼得说，看哪，我们已经撇下自己所有的，跟从了你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路18:29	耶稣说，我实在告诉你们，人为神的国，撇下房屋、或是妻子、弟兄、父母、儿女，</div>
+                    
+                    
+                    
+                    <div class="verse-line">路18:30	没有不在今世得许多倍，且要在来世得永远生命的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前1:1	耶稣基督的使徒彼得，写信给那分散在本都、加拉太、加帕多家、亚西亚、庇推尼的寄居者，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前1:17	你们既称那不偏待人，按各人行为审判的为父，就当在你们寄居的时日中，凭着敬畏行事为人；</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:11上	亲爱的，我劝你们作客旅和寄居的，要禁戒属肉体的私欲，……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-一-3">
+            <div class="section-level3">
+                
+                3　对于基督为义的珍宝与属地珍宝之间的估价—伯二二23~28，太十二18~21，赛四二1~4，彼前一18~20。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">伯22:23	你若归向全能者，就必得建立。你若使不义远离你的帐棚，</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯22:24	将你的金块丢在尘土里，将俄斐的金子丢在溪河石头之间，</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯22:25	全能者就必作你的金块，作你的宝银。</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯22:26	那时你要以全能者为喜乐，向神仰起脸来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯22:27	你祷告祂，祂就听你；你也要还你的愿。</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯22:28	你定意作何事，必然给你成就；亮光也必照耀你的路。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太12:18	“看哪，我的仆人，我所拣选，我所爱，我魂所喜悦的；我要将我的灵放在祂身上，祂必将公理宣布与外邦。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太12:19	祂不争竞，不喧嚷，街上也没有人听见祂的声音。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太12:20	压伤的芦苇，祂不折断；将残的火把，祂不吹灭，直到祂施行公理，至于得胜。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太12:21	外邦人都要仰望祂的名。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛42:1	看哪，我的仆人，我所扶持，我所拣选，我魂所喜悦的；我已将我的灵放在祂身上，祂必将公理宣布与外邦。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛42:2	祂不喧嚷，不扬声，也不使街上听见祂的声音。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛42:3	压伤的芦苇，祂不折断；将残的火把，祂不吹灭；祂要凭真实将公理宣布出去。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛42:4	祂不灰心，也不丧胆，直到祂在地上设立公理；众海岛都要等候祂的训诲。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前1:18	知道你们得赎，脱离你们祖宗所传流虚妄的生活，不是用能坏的金银等物，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前1:19	乃是用基督的宝血，如同无瑕疵无玷污的羔羊之血。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前1:20	基督在创世以前，就预先被神知道，却在诸时期的末后，才为你们显现出来；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-一-4">
+            <div class="section-level3">
+                
+                4　对于基督的认识与万事之间的估价—8节，彼后一2~3、8，二20，三18。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼前1:8	你们虽然没有见过祂，却是爱祂，如今虽不得看见，却因信入祂而欢腾，有说不出来、满有荣光的喜乐，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:2	愿恩典与平安，因你们充分认识神和我们的主耶稣，繁增地归与你们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:3	神的神能，借着我们充分认识那用祂自己的荣耀和美德呼召我们的，已将一切关于生命和敬虔的事赐给我们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:8	因为这几样存在你们里面，且不断增多，就必将你们构成非闲懒不结果子的，以致充分地认识我们的主耶稣基督。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后2:20	倘若他们因认识主和救主耶稣基督，得以逃脱世上的污秽，却又在其中被缠住制伏，他们末后的景况，就比先前更不好了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后3:18	你们却要在我们的主和救主耶稣基督的恩典和知识上长大。愿荣耀归与祂，从现今直到永远之日。阿们。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-一-5">
+            <div class="section-level3">
+                
+                5　我们需要看见一个异象，新耶路撒冷乃是三一神，神圣的三一，作为三种基本的因素，作到蒙祂救赎的人里面，并与他们结构在一起，成为奇妙珍宝的结构；这是整本圣经的总结—作为城之基础的金预表父神，作为城门的珍珠预表子神，城的碧玉墙预表灵神—启二一18~21，参林前三12。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一-5')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一-5" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启21:18	墙是用碧玉造的，城是纯金的，如同明净的玻璃。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启21:19	城墙的根基是用各样宝石装饰的。第一根基是碧玉，第二是蓝宝石，第三是玛瑙，第四是绿宝石，</div>
+                    
+                    
+                    
+                    <div class="verse-line">启21:20	第五是红玛瑙，第六是红宝石，第七是黄璧玺，第八是水苍玉，第九是黄玉，第十是翡翠，第十一是紫玛瑙，第十二是紫晶。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启21:21	十二个门是十二颗珍珠，每一个门各自是一颗珍珠造的，城内的街道是纯金，好像透明的玻璃。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前3:12	然而，若有人用金、银、宝石，木、草、禾秸，在这根基上建造，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二">
+            <div class="section-level2">
+                
+                二　我们需要求主给我们亮光，叫我们的价值观有彻底的改变，叫我们不断地拣选基督并祂一切的所是，作我们绝佳的分—可九7~8，林后二10，四7，彼前一8。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">可9:7	有一朵云彩来遮盖他们，又有声音从云彩里出来，说，这是我的爱子，你们要听祂。</div>
+                    
+                    
+                    
+                    <div class="verse-line">可9:8	他们忽然周围一看，不再见一人，只见耶稣同他们在那里。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后2:10	你们饶恕谁什么，我也饶恕；我若曾有所饶恕，我所已经饶恕的，是在基督的面前，为你们饶恕的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:7	但我们有这宝贝在瓦器里，要显明这超越的能力，是属于神，不是出于我们；</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前1:8	你们虽然没有见过祂，却是爱祂，如今虽不得看见，却因信入祂而欢腾，有说不出来、满有荣光的喜乐，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-三">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-三')">▼</button>
+                
+                三　“你若将宝贵的从低贱的分别出来，你就可以作我的口”—耶十五19，参16节：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">耶15:19	耶和华如此说，你若归回，我就将你带回，使你站在我面前；你若将宝贵的从低贱的分别出来，你就可以作我的口；他们必归向你，你却不归向他们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">耶15:16	耶和华万军之神啊，我得着你的言语，就当食物吃了；你的言语成了我心中的欢喜快乐；因我是称为你名下的人。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-三" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-三-1">
+            <div class="section-level3">
+                
+                1　我们必须看重主的话，过于派定给我们的饮食，在主的话里品尝主作涌流着滋养的奶和新蜜之美地的实际，使我们将其分赐给神的子民，为着他们完满的救恩—伯二三12，彼前二2~5，诗一一九103，申八8，歌四11上。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-三-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">伯23:12	祂嘴唇的命令，我未曾离弃；我珍藏祂口中的言语，过于派定给我的饮食。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:2	像才生的婴孩一样，切慕那纯净的话奶，叫你们靠此长大，以致得救；</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:3	你们若尝过主是美善的，就必如此。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:4	你们来到祂这为人所弃绝，却为神所拣选所宝贵的活石跟前，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:5	也就像活石，被建造成为属灵的殿，成为圣别的祭司体系，借着耶稣基督献上神所悦纳的属灵祭物。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:103	你的言语在我上膛何等甘美！在我口中比蜜更甜！</div>
+                    
+                    
+                    
+                    <div class="verse-line">申8:8	那地有小麦、大麦、葡萄树、无花果树、石榴树；那地有出油的橄榄树，有蜜。</div>
+                    
+                    
+                    
+                    <div class="verse-line">歌4:11上	我新妇，你的嘴唇滴下新蜜；你的舌下有蜜有奶；……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-三-2">
+            <div class="section-level3">
+                
+                2　我们必须看重主的话，过于一切地上的财富，使我们能讲神的谕言，分赐基督那追测不尽的丰富，作为神诸般的恩典—诗一一九72、9~16，弗三8，林后六10，彼前四10~11。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-三-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗119:72	你口中的律法与我有益，胜过千万的金银。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:9	少年人用什么使他的行径纯洁呢？是要遵行你的话。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:10	我全心寻求了你，求你不要叫我偏离你的诫命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:11	我将你的话珍藏在心里，免得我得罪你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:12	耶和华啊，你是当受颂赞的；求你将你的律例教训我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:13	我用嘴唇述说你口中的一切典章。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:14	我喜悦你法度的道路，如同喜悦一切的财物。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:15	我要默想你的训辞，看重你的道路。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:16	我要在你的律例中自乐；我不忘记你的话。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗3:8	这恩典赐给了我这比众圣徒中最小者还小的，叫我将基督那追测不尽的丰富，当作福音传给外邦人，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后6:10	似乎忧愁，却常常喜乐；似乎贫穷，却叫许多人富足；似乎一无所有，却拥有万有。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前4:10	各人要照所得的恩赐，将这恩赐彼此供应，作神诸般恩典的好管家。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前4:11	若有人讲论，要讲神的谕言；若有人服事，要按着神所供应的力量服事，叫神可以在凡事上借着耶稣基督得荣耀。愿荣耀权能归与祂，直到永永远远。阿们。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰')">▼</button>
+                
+                贰　彼得看见基督自己在信祂的人是宝贵的—二7，参腓三8：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼前2:7	所以祂在你们信的人是宝贵的，在那不信的人却是“匠人所弃的石头，已成了房角的头块石头”，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓3:8	不但如此，我也将万事看作亏损，因我以认识我主基督耶稣为至宝；我因祂已经亏损万事，看作粪土，为要赢得基督，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-一')">▼</button>
+                
+                一　彼得被主迷住（吸引并夺取）到一个地步，虽然多次受主责备并大大地失败，还是跟定主作他的牧者，直到殉道—路五8~11，可十四67~72，十六7，约二一15~22，彼后一14~15：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">路5:8	西门彼得看见，就俯伏在耶稣膝前，说，主啊，离开我，因我是个罪人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路5:9	他和一切同在的人，都希奇这一网所打的鱼。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路5:10	西门的伙伴，西庇太的儿子雅各和约翰也是这样。耶稣对西门说，不要怕，从今以后你要得人了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路5:11	他们把两只船靠了岸，就撇下一切，跟从了耶稣。</div>
+                    
+                    
+                    
+                    <div class="verse-line">可14:67	见彼得烤火，就看着他说，你也是同那拿撒勒人耶稣一起的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">可14:68	彼得却不承认，说，我不知道，也不明白你说的是什么。于是出来，到了前院，鸡就叫了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">可14:69	那使女看见他，又对旁边站着的人说，这个人也是属他们的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">可14:70	彼得又不承认。过了不久，旁边站着的人又对彼得说，你确是属他们的，因为你也是加利利人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">可14:71	彼得遂发咒起誓说，我不认得你们所说的这个人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">可14:72	立时鸡叫了第二遍。彼得想起耶稣对他所说的话，鸡叫两遍以前，你要三次否认我。他想起来，就哭了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">可16:7	你们要去告诉祂的门徒和彼得说，祂在你们以先往加利利去，在那里你们要看见祂，正如祂从前所告诉你们的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约21:15	他们吃完了早饭，耶稣对西门彼得说，约翰的儿子西门，你爱我比这些更深么？彼得对祂说，主啊，是的，你知道我爱你。耶稣对他说，你喂养我的小羊。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约21:16	耶稣第二次又对他说，约翰的儿子西门，你爱我么？彼得对祂说，主啊，是的，你知道我爱你。耶稣对他说，你牧养我的羊。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约21:17	耶稣第三次对他说，约翰的儿子西门，你爱我么？彼得因为耶稣第三次对他说，你爱我么？就忧愁，对耶稣说，主啊，你是无所不知的，你知道我爱你。耶稣对他说，你喂养我的羊。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约21:18	我实实在在地告诉你，你年轻的时候，自己束上带子，随意往来；但年老的时候，你要伸出手来，别人要把你束上，带你到不愿意去的地方。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约21:19	耶稣说这话，是指明彼得要怎样死荣耀神。说了这话，就对他说，你跟从我吧。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约21:20	彼得转过身来，看见耶稣所爱的那门徒跟着，就是在晚饭的时候，靠着耶稣胸膛，说，主啊，出卖你的是谁的那门徒。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约21:21	彼得看见他，就对耶稣说，主啊，这人怎么样？</div>
+                    
+                    
+                    
+                    <div class="verse-line">约21:22	耶稣对他说，我若要留他直到我来的时候，与你何干？你跟从我吧。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:14	知道我脱去这帐幕的时候快到了，正如我们主耶稣基督所指示我的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:15	不仅如此，我也要竭力，使你们在我去世以后，时常记念这些事。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-一" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一-1">
+            <div class="section-level3">
+                
+                1　彼得晓得在主变化形像时，他和雅各、约翰乃是得许可极其完全地进入其中，观看祂的威荣—16~18节，参彼前五1。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼后1:16	我们曾将我们主耶稣基督的大能，和祂的来临告诉你们，并不是随从乖巧捏造的虚构无稽之事，乃是作祂威荣的亲眼见证人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:17	因为祂从父神领受尊贵荣耀的时候，从显赫的荣耀中，有这样的声音向祂发出：这是我的爱子，我所喜悦的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:18	我们同祂在圣山的时候，亲自听见这声音从天上发出。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前5:1	所以，我这同作长老，作基督受苦的见证人，并同享那将要显出之荣耀的，劝你们中间作长老的人，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-一-2">
+            <div class="section-level3">
+                
+                2　基督在祂的升天里是“威严者”—祂是我们的神和救主（彼后一1），是万有的主（彼前三22，徒二36），在神的行政中作我们的审判者、设立律法者和君王（赛三三21~22），好将祂自己分赐到我们里面，作我们的享受，使我们得着完满的救恩（启二二1）。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼后1:1	耶稣基督的奴仆和使徒西门彼得，写信给那些因我们的神和救主，耶稣基督的义，与我们分得同样宝贵之信的人：</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前3:22	耶稣基督既已进入了天，就坐在神的右边，众天使和掌权的、并有能的，都服了祂。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒2:36	所以，以色列全家当确实地知道，你们钉在十字架上的这位耶稣，神已经立祂为主为基督了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛33:21	在那里，那威严者耶和华之于我们，必如江河宽渠溢流之处，其中必没有荡桨摇橹的船来往，也没有威武的船经过。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛33:22	因为耶和华是审判我们的，耶和华是给我们设律法的，耶和华是我们的王；祂必拯救我们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启22:1	天使又指给我看在城内街道当中一道生命水的河，明亮如水晶，从神和羔羊的宝座流出来。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二">
+            <div class="section-level2">
+                
+                二　为着神建造的宝石，乃是基督自己—彼前二4、6~8。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼前2:4	你们来到祂这为人所弃绝，却为神所拣选所宝贵的活石跟前，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:6	因为经上记着说，“看哪，我把所拣选所宝贵的房角石，安放在锡安，信靠祂的人，必不至于羞愧。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:7	所以祂在你们信的人是宝贵的，在那不信的人却是“匠人所弃的石头，已成了房角的头块石头”，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:8	又是“绊脚的石头，并跌人的磐石”。他们既不信从，就在这话上绊跌，他们这样绊跌也是预定的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三">
+            <div class="section-level2">
+                
+                三　基督的宝血已救赎我们脱离虚妄的生活—一14、18~19。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼前1:14	你们是顺从的儿女，不要模仿从前无知之时所放纵的私欲；</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前1:18	知道你们得赎，脱离你们祖宗所传流虚妄的生活，不是用能坏的金银等物，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前1:19	乃是用基督的宝血，如同无瑕疵无玷污的羔羊之血。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-四')">▼</button>
+                
+                四　我们的神和救主，耶稣基督，已将又宝贵又极大的应许赐给我们—彼后一1、4，参赛四二6，来八8~12：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼后1:1	耶稣基督的奴仆和使徒西门彼得，写信给那些因我们的神和救主，耶稣基督的义，与我们分得同样宝贵之信的人：</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:4	借这荣耀和美德，祂已将又宝贵又极大的应许赐给我们，叫你们既逃离世上从情欲来的败坏，就借着这些应许，得有分于神的性情。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛42:6	我是耶和华，凭公义召了你；我必紧握你的手，保守你，使你作众民的约，作外邦人的光，</div>
+                    
+                    
+                    
+                    <div class="verse-line">来8:8	但神既找出祂百姓的瑕疵，就说，“看哪，日子将到，主说，我要与以色列家和犹大家，立定新约，</div>
+                    
+                    
+                    
+                    <div class="verse-line">来8:9	不是照着我拉他们祖宗的手，领他们出埃及地的日子，与他们所立的约；因为他们没有恒守我的约，我也不理他们；这是主说的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来8:10	主又说，因为这是那些日子以后，我要与以色列家所立的约：我要将我的律法赐在他们心思里，并且将这些律法写在他们心上；我要作他们的神，他们要作我的子民。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来8:11	他们各人绝不用教导自己同国之民，各人也绝不用教导自己的弟兄，说，你该认识主；因为他们从最小的到至大的，都必认识我；</div>
+                    
+                    
+                    
+                    <div class="verse-line">来8:12	因为我要宽恕他们的不义，绝不再记念他们的罪。”</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-四" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-四-1">
+            <div class="section-level3">
+                
+                1　我们借着呼求主宝贵的名，就得以饮于祂这救恩的杯，享受祂是神一切又宝贵又极大之应许的实际，目标是为着神的建造—徒四10~12，诗一一六12~13。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒4:10	你们众人和以色列众百姓就当知道，乃是在拿撒勒人耶稣基督，就是你们所钉十字架，神从死人中所复活者的名里，在这名里，这人才站在你们面前健康完好。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒4:11	祂是你们匠人所轻弃的石头，已成了房角的头块石头。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒4:12	除祂以外，别无拯救，因为在天下人间，没有赐下别的名，我们可以靠着得救。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗116:12	我拿什么回报耶和华对我的一切厚待？</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗116:13	我要举起救恩的杯，呼求耶和华的名。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-2">
+            <div class="section-level3">
+                
+                2　这些宝贵的应许，具体化于神的话；借着祷读这些应许，我们就有分于并享受神圣的性情，使我们在生命里长大并发展，达到生命的成熟，得以享受丰富的进入我们主和救主耶稣基督永远的国—彼后一4~11。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼后1:4	借这荣耀和美德，祂已将又宝贵又极大的应许赐给我们，叫你们既逃离世上从情欲来的败坏，就借着这些应许，得有分于神的性情。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:5	正因这缘故，你们要分外殷勤，在你们的信上，充足地供应美德，在美德上供应知识，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:6	在知识上供应节制，在节制上供应忍耐，在忍耐上供应敬虔，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:7	在敬虔上供应弟兄相爱，在弟兄相爱上供应爱。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:8	因为这几样存在你们里面，且不断增多，就必将你们构成非闲懒不结果子的，以致充分地认识我们的主耶稣基督。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:9	那没有这几样的，就是眼瞎、近视，忘了他旧日的罪已经得了洁净。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:10	所以弟兄们，应当更加殷勤，使你们所蒙的呼召和拣选坚定不移；你们行这几样，就永不失脚。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后1:11	这样，你们就必得着丰富充足的供应，以进入我们主和救主耶稣基督永远的国。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-五">
+            <div class="section-level2">
+                
+                五　神已将同样宝贵的信，分给所有的信徒—1节，罗十二3。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-五')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-五" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼后1:1	耶稣基督的奴仆和使徒西门彼得，写信给那些因我们的神和救主，耶稣基督的义，与我们分得同样宝贵之信的人：</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗12:3	我借着所赐给我的恩典，对你们各人说，不要看自己过于所当看的，乃要照着神所分给各人信心的度量，看得清明适度。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-六">
+            <div class="section-level2">
+                
+                六　我们信心所受宝贵的试验，乃是借着苦难而来的诸般试炼—彼前一6~7。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-六')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-六" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼前1:6	在那时期你们要欢腾，尽管目前在诸般的试炼中，或许必须暂时忧愁，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前1:7	叫你们信心所受的试验，比那经过火的试验仍会毁坏之金子的试验，更为宝贵，可以在耶稣基督显现的时候，显为可得称赞、荣耀和尊贵的；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-叁">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁')">▼</button>
+                
+                叁　以赛亚在沮丧中看见在荣耀里之基督的异象—赛六1~8，参五20，二二1，代下二六1~5：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛6:1	当乌西雅王崩的那年，我看见主坐在高高的宝座上，祂的衣袍垂下，遮满圣殿。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:2	其上有撒拉弗侍立，各有六个翅膀：用两个翅膀遮脸，两个翅膀遮脚，两个翅膀飞翔。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:3	彼此呼喊说，圣哉，圣哉，圣哉，万军之耶和华；祂的荣光充满全地。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:4	因呼喊者的声音，门槛的根基震动，殿充满了烟云。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:5	那时我说，祸哉，我灭亡了！因为我是嘴唇不洁的人，又住在嘴唇不洁的民中；又因我眼见大君王万军之耶和华。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:6	撒拉弗中有一位飞到我跟前，手里拿着红炭，是用火剪从坛上取下来的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:7	他用炭沾我的口，说，看哪，这炭沾了你的嘴唇，你的罪孽便除掉，你的罪就遮盖了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:8	我又听见主的声音，说，我可以差遣谁呢？谁肯为我们去呢？我说，我在这里，请差遣我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛5:20	祸哉，那些称恶为善，称善为恶，以暗为光，以光为暗，以苦为甜，以甜为苦的人！</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛22:1	关于异象谷的默示：有什么事使你们众人都上了房顶呢？</div>
+                    
+                    
+                    
+                    <div class="verse-line">代下26:1	犹大众民选取乌西雅，立他接续他父亲亚玛谢作王，那时他年十六岁。</div>
+                    
+                    
+                    
+                    <div class="verse-line">代下26:2	亚玛谢王与他列祖同睡之后，乌西雅修筑以禄，使其仍归犹大。</div>
+                    
+                    
+                    
+                    <div class="verse-line">代下26:3	乌西雅登基的时候年十六岁，在耶路撒冷作王五十二年；他母亲名叫耶可利雅，是耶路撒冷人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">代下26:4	乌西雅行耶和华眼中看为正的事，是照他父亲亚玛谢一切所行的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">代下26:5	通晓神异象的撒迦利亚在世的日子，乌西雅定意寻求神；他寻求耶和华，神就使他亨通。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-一">
+            <div class="section-level2">
+                
+                一　以赛亚所在的时期乃是邪恶的时代，这可见于主警告的话—“祸哉，那些称恶为善，称善为恶，以暗为光，以光为暗，以苦为甜，以甜为苦的人！”—赛五20。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二">
+            <div class="section-level2">
+                
+                二　尽管神所拣选、所爱的百姓背叛，满有罪孽和败坏，基督作为主、君王、万军之耶和华，仍在荣耀里坐在高高的宝座上—六1~5，哀五19，启二二1。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛6:1	当乌西雅王崩的那年，我看见主坐在高高的宝座上，祂的衣袍垂下，遮满圣殿。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:2	其上有撒拉弗侍立，各有六个翅膀：用两个翅膀遮脸，两个翅膀遮脚，两个翅膀飞翔。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:3	彼此呼喊说，圣哉，圣哉，圣哉，万军之耶和华；祂的荣光充满全地。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:4	因呼喊者的声音，门槛的根基震动，殿充满了烟云。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:5	那时我说，祸哉，我灭亡了！因为我是嘴唇不洁的人，又住在嘴唇不洁的民中；又因我眼见大君王万军之耶和华。</div>
+                    
+                    
+                    
+                    <div class="verse-line">哀5:19	耶和华啊，你存到永远，你的宝座，存到万代。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启22:1	天使又指给我看在城内街道当中一道生命水的河，明亮如水晶，从神和羔羊的宝座流出来。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-三')">▼</button>
+                
+                三　以赛亚所见的一位乃是基督—赛六5下，约十二38~41：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛6:5下	……又因我眼见大君王万军之耶和华。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约12:38	这是要应验申言者以赛亚的话，说，“主啊，我们所传给人听的，有谁信？主的膀臂向谁显露？”</div>
+                    
+                    
+                    
+                    <div class="verse-line">约12:39	他们所以不能信，因为以赛亚又说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">约12:40	“主叫他们瞎了眼，硬了心，免得他们眼睛看见，心里明白，回转过来，我就医治他们。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">约12:41	以赛亚说这些话，是因为看见了祂的荣耀，就指着祂说的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-三" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-三-1">
+            <div class="section-level3">
+                
+                1　约翰叙述基督在地上的生活工作时，说以赛亚“看见了祂的荣耀，就指着祂说”—41节。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三-2">
+            <div class="section-level3">
+                
+                2　我们要看见登宝座之荣耀基督的异象，就需要注意以赛亚警告的话（赛六9~10），操练我们的灵祷告，求主开启我们里面的眼睛，柔软我们的心，使我们的心转向祂，好接受祂内里的医治，除去我们的瞎眼和疾病（约十二40，太十三14~17，徒二八25~27，启三18，四2，林后三16~18）。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛6:9	祂说，你去对这百姓说，你们听是要听见，却绝不领悟；看是要看见，却绝不晓得。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:10	你要使这百姓心蒙脂油，耳朵发沉，眼睛封闭；恐怕他们眼睛看见，耳朵听见，心里领悟，回转过来，便得医治。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约12:40	“主叫他们瞎了眼，硬了心，免得他们眼睛看见，心里明白，回转过来，我就医治他们。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:14	在他们身上，应验了以赛亚的申言，说，“你们听是要听见，却绝不领悟；看是要看见，却绝看不透。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:15	因为这百姓心蒙脂油，耳听不灵，眼睛闭着；恐怕他们眼睛看见，耳朵听见，心里领悟，回转过来，我就医治他们。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:16	但你们的眼睛是有福的，因为看见了；你们的耳朵也是有福的，因为听见了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:17	我实在告诉你们，曾经有许多申言者和义人，渴想要看你们所看的，却没有看见；要听你们所听的，却没有听见。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒28:25	他们彼此不合，就散了。散去以前，保罗说了一句话：圣灵借申言者以赛亚，向你们祖宗所说的话，是不错的，祂说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒28:26	“你去对这百姓说，你们听是要听见，却绝不领悟；看是要看见，却绝看不透；</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒28:27	因为这百姓心蒙脂油，耳听不灵，眼睛闭着；恐怕他们眼睛看见，耳朵听见，心里领悟，回转过来，我就医治他们。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">启3:18	我劝你向我买火炼的金子，叫你富足；又买白衣穿上，叫你赤身的羞耻不露出来；又买眼药擦你的眼睛，使你能看见。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启4:2	我立刻就在灵里；看哪，有一个宝座安置在天上，又有一位坐在宝座上。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:16	但他们的心几时转向主，帕子就几时除去了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:17	而且主就是那灵；主的灵在哪里，哪里就有自由。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:18	但我们众人既然以没有帕子遮蔽的脸，好像镜子观看并返照主的荣光，就渐渐变化成为与祂同样的形像，从荣耀到荣耀，乃是从主灵变化成的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四">
+            <div class="section-level2">
+                
+                四　基督的长袍，表征基督在祂美德上的荣美；这荣美主要是在祂的人性里，并借着祂的人性彰显出来；基督穿着长袍，指明祂是以人的形像向以赛亚显现；基督是登宝座的神人，有神圣的荣耀彰显在祂人性的美德里—赛六1，参结一26、22，徒二36，来二9上。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛6:1	当乌西雅王崩的那年，我看见主坐在高高的宝座上，祂的衣袍垂下，遮满圣殿。</div>
+                    
+                    
+                    
+                    <div class="verse-line">结1:26	在他们头以上的穹苍之上，有宝座的样式，像蓝宝石的样子；在宝座的样式以上，有一位的样式好像人的样子。</div>
+                    
+                    
+                    
+                    <div class="verse-line">结1:22	活物的头以上有穹苍的样式，看着像可畏的水晶，铺张在活物的头以上。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒2:36	所以，以色列全家当确实地知道，你们钉在十字架上的这位耶稣，神已经立祂为主为基督了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来2:9上	唯独看见耶稣得了荣耀尊贵为冠冕，祂为着受死的苦，成为比天使微小一点的，……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-五')">▼</button>
+                
+                五　以赛亚看见圣别里的基督，那圣别乃是基于祂的公义—赛六2~3：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛6:2	其上有撒拉弗侍立，各有六个翅膀：用两个翅膀遮脸，两个翅膀遮脚，两个翅膀飞翔。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:3	彼此呼喊说，圣哉，圣哉，圣哉，万军之耶和华；祂的荣光充满全地。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-五" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-五-1">
+            <div class="section-level3">
+                
+                1　撒拉弗表征或代表那作三一神具体化身之基督的圣别；他们是为着基督的圣别站立在那里。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五-2">
+            <div class="section-level3">
+                
+                2　基督的圣别是基于祂的义；基督一直是公义的，所以祂是圣别的，与凡俗的人有分别—五16。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛5:16	唯有万军之耶和华，因审判得高举，圣别的神，因公义显为圣别。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-六">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-六')">▼</button>
+                
+                六　以赛亚看见这异象，结果就被了结、被结束了，领悟他是嘴唇不洁的人，又住在嘴唇不洁的民中—六5：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-六" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛6:5	那时我说，祸哉，我灭亡了！因为我是嘴唇不洁的人，又住在嘴唇不洁的民中；又因我眼见大君王万军之耶和华。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-六" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-六-1">
+            <div class="section-level3">
+                
+                1　按新约的意义说，看见神等于得着神；得着神就是在神的元素、生命和性情上接受神，使我们被神构成—参创十三14~15，加三14，太五8。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-六-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">创13:14	罗得离别亚伯兰以后，耶和华对亚伯兰说，从你所在的地方，举目向东西南北观看；</div>
+                    
+                    
+                    
+                    <div class="verse-line">创13:15	凡你所看见的一切地，我都要赐给你和你的后裔，直到永远。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加3:14	为叫亚伯拉罕的福，在基督耶稣里可以临到外邦人，使我们借着信，可以接受所应许的那灵。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太5:8	清心的人有福了，因为他们必看见神。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-六-2">
+            <div class="section-level3">
+                
+                2　看见神使我们变化，因为我们看见神时，就得着神，把祂的元素接受到我们里面，我们旧的元素也被排除了；这新陈代谢的过程就是变化—林后三16~四1，罗十二2，腓三8。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-六-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后3:16	但他们的心几时转向主，帕子就几时除去了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:17	而且主就是那灵；主的灵在哪里，哪里就有自由。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:18	但我们众人既然以没有帕子遮蔽的脸，好像镜子观看并返照主的荣光，就渐渐变化成为与祂同样的形像，从荣耀到荣耀，乃是从主灵变化成的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:1	因此，我们既照所蒙的怜悯，受了这职事，就不丧胆，</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗12:2	不要模仿这世代，反要借着心思的更新而变化，叫你们验证何为神那美好、可喜悦、并纯全的旨意。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓3:8	不但如此，我也将万事看作亏损，因我以认识我主基督耶稣为至宝；我因祂已经亏损万事，看作粪土，为要赢得基督，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-六-3">
+            <div class="section-level3">
+                
+                3　我们越看见神、认识神并爱神，就越厌恶自己，越否认自己—伯四二5~6，太十六24，路九23，十四26。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-六-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">伯42:5	我从前风闻有你，现在亲眼看见你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯42:6	因此我厌恶自己，在尘土和炉灰中懊悔。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太16:24	于是耶稣对门徒说，若有人要跟从我，就当否认己，背起他的十字架，并跟从我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路9:23	耶稣又对众人说，若有人要跟从我，就当否认己，天天背起他的十字架，并跟从我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路14:26	人到我这里来，若不恨自己的父亲、母亲、妻子、儿女、弟兄、姊妹，甚至自己的魂生命，就不能作我的门徒。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-七">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-七')">▼</button>
+                
+                七　以赛亚看见自己是不洁的，之后就由一位撒拉弗，用来自坛上的红炭使他得了洁净；撒拉弗表征神的圣别：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-七" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-七-1">
+            <div class="section-level3">
+                
+                1　撒拉弗应用这红炭，表征基督在十字架上所完成之救赎的功效，借着“那灵那圣的”在其审判、焚烧并圣别的大能里得以应用—赛六6~7，四4，参路十二49，启四5。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-七-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-七-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛6:6	撒拉弗中有一位飞到我跟前，手里拿着红炭，是用火剪从坛上取下来的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:7	他用炭沾我的口，说，看哪，这炭沾了你的嘴唇，你的罪孽便除掉，你的罪就遮盖了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛4:4	因为主已用审判的灵，和焚烧的灵，将锡安女子的污秽洗去，又将耶路撒冷中杀人的血洁除。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路12:49	我来要把火丢在地上，若是已经着起来，那是我所愿意的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启4:5	有闪电、声音、雷轰，从宝座中发出。又有七盏火灯在宝座前点着，这七灯就是神的七灵。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-七-2">
+            <div class="section-level3">
+                
+                2　看见神，结果乃是被神炼净并洁净；被神洁净，结果乃是受神差遣，要将祂所拣选的人带到一种活基督的光景里，使他们在祂的荣耀里彰显祂，被祂的圣别浸透，并活在祂的义里—赛六6~8，约壹一7~9，徒十三47，腓一21上。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-七-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-七-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛6:6	撒拉弗中有一位飞到我跟前，手里拿着红炭，是用火剪从坛上取下来的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:7	他用炭沾我的口，说，看哪，这炭沾了你的嘴唇，你的罪孽便除掉，你的罪就遮盖了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:8	我又听见主的声音，说，我可以差遣谁呢？谁肯为我们去呢？我说，我在这里，请差遣我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:7	但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:8	我们若说自己没有罪，便是自欺，真理就不在我们里面了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:9	我们若认自己的罪，神是信实的，是公义的，必要赦免我们的罪，洗净我们一切的不义。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒13:47	因为主曾这样吩咐我们说，“我已经立你作外邦人的光，叫你施行救恩直到地极。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:21上	因为在我，活着就是基督，……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-肆">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-肆')">▼</button>
+                
+                肆　超越的基督在祂无上的宝贵里向但以理显现为一个人，这异象供但以理珍赏，叫他得着安慰、鼓励和坚定—但十4~9：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆" style="display: none;">
+                    
+                    
+                    <div class="verse-line">但10:4	正月二十四日，我在希底结大河边，</div>
+                    
+                    
+                    
+                    <div class="verse-line">但10:5	举目观看，见有一人身穿细麻衣，腰束乌法精金带。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但10:6	祂身体如水苍玉，面貌如闪电，眼目如火把，手和脚如闪耀发亮的铜，说话的声音如大众的声音。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但10:7	这异象唯有我但以理一人看见，同着我的人没有看见；他们却大大战兢，逃跑隐藏，</div>
+                    
+                    
+                    
+                    <div class="verse-line">但10:8	只剩下我一人；我见了这大异象，便浑身无力，面色死灰，毫无力气。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但10:9	我却听见祂说话的声音；我一听见祂说话的声音，就面伏在地沉睡了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-肆" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-肆-一">
+            <div class="section-level2">
+                
+                一　基督在人性里显现为祭司（由细麻衣袍所表征），照顾祂被掳的选民—5节上，出二八31~35。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">但10:5上	举目观看，见有一人身穿细麻衣，……</div>
+                    
+                    
+                    
+                    <div class="verse-line">出28:31	你要作以弗得的外袍，颜色全是蓝的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出28:32	袍上要为头留一领口，用编织的手工在领口周围织出领边，仿佛铠甲的领口，免得破裂。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出28:33	袍子周围底边上，要用蓝色、紫色、朱红色线作石榴。在袍子周围的石榴中间，要有金铃，</div>
+                    
+                    
+                    
+                    <div class="verse-line">出28:34	一个金铃一个石榴，一个金铃一个石榴，在袍子周围的底边上。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出28:35	亚伦供职的时候，要穿这袍子。他进圣所到耶和华面前，以及出来的时候，袍上的铃声必被听见，使他不至于死亡。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-二">
+            <div class="section-level2">
+                
+                二　基督在神性里显现为君王（由精金带所表征），为要掌管万民—但十5下。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">但10:5下	……腰束乌法精金带。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-三">
+            <div class="section-level2">
+                
+                三　基督在祂的宝贵和尊荣里显现（由祂身体如水苍玉所表征），供祂的子民珍赏；“水苍玉”原文可指一种蓝绿色或黄色的宝石，表征基督在祂的具体化身里是神圣的（黄色），满了生命（绿色），并且是属天的（蓝色）—6节上。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">但10:6上	祂身体如水苍玉，……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-四">
+            <div class="section-level2">
+                
+                四　基督也在祂的光明里显现，为要光照人（由祂的面貌如闪电所表征），并在祂光照的眼光里显现，为要搜寻并审判（由祂眼目如火把所表征）—6节中。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">但10:6中	……面貌如闪电，眼目如火把，……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-五">
+            <div class="section-level2">
+                
+                五　基督在祂工作和行动的闪耀里向但以理显现（由祂的手和脚如闪耀发亮的铜所表征）—6节下。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-五')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-五" style="display: none;">
+                    
+                    
+                    <div class="verse-line">但10:6下	……手和脚如闪耀发亮的铜，……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-六">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-肆-六')">▼</button>
+                
+                六　基督在祂刚强的说话里显现，为要审判人（由祂说话的声音如大众的声音所表征）—6节末：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-六')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-六" style="display: none;">
+                    
+                    
+                    <div class="verse-line">但10:6末	……说话的声音如大众的声音。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-肆-六" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-肆-六-1">
+            <div class="section-level3">
+                
+                1　整个世界局势都在天上之神的诸天掌权之下，好叫基督在万有中居首位，使祂在凡事上得着首位—二34~35，七9~10，四34~35，西一15、18，启二4~5。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-六-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-六-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">但2:34	你观看，见有一块非人手凿出来的石头，打在这像半铁半泥的脚上，把脚砸碎。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但2:35	于是铁、泥、铜、银、金，都一同砸得粉碎，成如夏天禾场上的糠秕，被风吹散，无处可寻。打碎这像的石头，变成一座大山，充满全地。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但7:9	我观看，见有些宝座设立，那亘古常在者坐下了。祂的衣服洁白如雪，头发如纯净的羊毛；祂的宝座乃是火焰，其轮乃是烈火。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但7:10	从祂面前有火河流出。事奉祂的有千千，侍立在祂面前的有万万。审判者已经坐庭，案卷都展开了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但4:34	那些日子过后，我尼布甲尼撒举目望天，我的理性复归于我，我便颂赞至高者，赞美尊敬那永活者；因为祂的权柄是永远的权柄，祂的国存到万代。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但4:35	地上所有的居民，都算为虚无；但在天上的万军和地上的居民中，祂照自己的意旨行事；无人能拦住祂的手，或对祂说，你作什么呢？</div>
+                    
+                    
+                    
+                    <div class="verse-line">西1:15	爱子是那不能看见之神的像，是一切受造之物的首生者。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西1:18	祂也是召会身体的头；祂是元始，是从死人中复活的首生者，使祂可以在万有中居首位；</div>
+                    
+                    
+                    
+                    <div class="verse-line">启2:4	然而有一件事我要责备你，就是你离弃了起初的爱。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启2:5	所以要回想你是从哪里坠落的，并要悔改，行起初所行的。不然，我就要临到你那里；你若不悔改，我就把你的灯台从原处挪去。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-六-2">
+            <div class="section-level3">
+                
+                2　在我们个人的宇宙中，基督必须是第一位，必须居首位；今天，基督这居首位者必须是我们召会生活、家庭生活和日常生活的中心与普及—西一17下、18下，三17，林前十31。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-六-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-六-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西1:17下	……万有也在祂里面得以维系；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西1:18下	……祂是元始，是从死人中复活的首生者，使祂可以在万有中居首位；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:17	凡你们所作的，无论是什么，或说话，或行事，都要在主耶稣的名里，借着祂感谢父神。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前10:31	所以你们或吃、或喝、或作什么事，一切都要为荣耀神而行。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-六-3">
+            <div class="section-level3">
+                
+                3　在神属天的掌权下，祂正在使用环境，使基督成为我们的中心（第一位）与普及（一切）—罗八28，西一18、27，三4、10~11。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-六-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-六-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗8:28	还有，我们晓得万有都互相效力，叫爱神的人得益处，就是按祂旨意被召的人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西1:18	祂也是召会身体的头；祂是元始，是从死人中复活的首生者，使祂可以在万有中居首位；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西1:27	神愿意叫他们知道，这奥秘的荣耀在外邦人中是何等的丰富，就是基督在你们里面成了荣耀的盼望；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:4	基督是我们的生命，祂显现的时候，你们也要与祂一同显现在荣耀里。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:10	并且穿上了新人；这新人照着创造他者的形像渐渐更新，以致有充足的知识；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:11	在此并没有希利尼人和犹太人、受割礼的和未受割礼的、化外人、西古提人、为奴的、自主的，唯有基督是一切，又在一切之内。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-六-4">
+            <div class="section-level3">
+                
+                4　我们蒙神拣选作祂的子民，为叫基督居首位；我们乃是在神属天的掌权之下，使基督得以居首位，使祂在万有中居第一位—但四26下、35，西一18，三4、10~11，诗二七4。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-六-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-六-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">但4:26下	……等你知道诸天掌权，以后你的国必定归你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但4:35	地上所有的居民，都算为虚无；但在天上的万军和地上的居民中，祂照自己的意旨行事；无人能拦住祂的手，或对祂说，你作什么呢？</div>
+                    
+                    
+                    
+                    <div class="verse-line">西1:18	祂也是召会身体的头；祂是元始，是从死人中复活的首生者，使祂可以在万有中居首位；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:4	基督是我们的生命，祂显现的时候，你们也要与祂一同显现在荣耀里。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:10	并且穿上了新人；这新人照着创造他者的形像渐渐更新，以致有充足的知识；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:11	在此并没有希利尼人和犹太人、受割礼的和未受割礼的、化外人、西古提人、为奴的、自主的，唯有基督是一切，又在一切之内。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗27:4	有一件事，我曾求耶和华，我仍要寻求；就是一生一世住在耶和华的殿中，瞻仰祂的荣美，在祂的殿里求问。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-伍">
+            <div class="section-level1">
+                
+                伍　我们必须赎回光阴，享受基督作神无上的宝贝，使我们被祂构成，成为宝贵的人，作祂自己的珍宝；当我们活在祂宝贵的同在里，享受祂作我们的分，正如祂享受我们作祂的珍宝，祂就将自己建造到我们里面，把我们作成祂属灵的殿和祂圣别、君尊的祭司体系，以完成祂心头的渴望—彼前三4，但九23，十11、19，林后二10，诗十六5，出十九4~6，彼前二1~9，彼后三8、11~12。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼前3:4	乃要重于那以温柔安静的灵为不朽坏之妆饰的心中隐藏的人，这在神面前是极有价值的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但9:23	你初恳求的时候，就有命令发出，我来告诉你，因你是大蒙眷爱的；所以你要明白这事，思想这异象。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但10:11	他对我说，大蒙眷爱的但以理啊，要明白我与你所说的话，只管在原地站起，因为我现在奉差遣来到你这里。他对我说这话，我便战战兢兢地立起来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但10:19	他说，大蒙眷爱的人哪，不要惧怕，愿你平安。你要刚强，要刚强。他一向我说话，我便觉得有力量，说，我主请说，因你使我有了力量。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后2:10	你们饶恕谁什么，我也饶恕；我若曾有所饶恕，我所已经饶恕的，是在基督的面前，为你们饶恕的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗16:5	耶和华是我的产业，是我杯中的分；我所得的分你为我持守。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出19:4	我向埃及人所行的事，你们都看见了，且看见我如鹰将你们背在翅膀上，带来归我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出19:5	如今你们若实在听从我的话，遵守我的约，就要在万民中作我自己的珍宝，因为全地都是我的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出19:6	你们要归我作祭司的国度，为圣别的国民。这些话你要告诉以色列人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:1	所以要脱去一切的恶毒、和一切的诡诈、并伪善、嫉妒、以及一切毁谤的话，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:2	像才生的婴孩一样，切慕那纯净的话奶，叫你们靠此长大，以致得救；</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:3	你们若尝过主是美善的，就必如此。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:4	你们来到祂这为人所弃绝，却为神所拣选所宝贵的活石跟前，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:5	也就像活石，被建造成为属灵的殿，成为圣别的祭司体系，借着耶稣基督献上神所悦纳的属灵祭物。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:6	因为经上记着说，“看哪，我把所拣选所宝贵的房角石，安放在锡安，信靠祂的人，必不至于羞愧。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:7	所以祂在你们信的人是宝贵的，在那不信的人却是“匠人所弃的石头，已成了房角的头块石头”，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:8	又是“绊脚的石头，并跌人的磐石”。他们既不信从，就在这话上绊跌，他们这样绊跌也是预定的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:9	唯有你们是蒙拣选的族类，是君尊的祭司体系，是圣别的国度，是买来作产业的子民，要叫你们宣扬那召你们出黑暗、入祂奇妙之光者的美德；</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后3:8	亲爱的，这一件事你们却不可不理，就是在主一日如千年，千年如一日。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后3:11	这一切既然都要如此销化，你们该当怎样为人，有圣别的生活和敬虔，</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼后3:12	期待并催促神的日子来临？因着那日子的来临，诸天被火烧就销化了，所有的元素都要被焚烧而熔化。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.outline-page {
+    padding: 5px;
+}
+
+/* 字体大小控制 */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: #f0f4ff;
+    border: 1px solid #d0d7f0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #667eea;
+    cursor: pointer;
+}
+
+.font-btn:active {
+    background: #667eea;
+    color: #ffffff;
+    border-color: #667eea;
+}
+
+.outline-content {
+    margin-top: 20px;
+}
+
+.section-level1 {
+    font-weight: bold;
+    font-size: 17px;
+    margin: 20px 0 12px 0;
+    color: #2c3e50;
+    line-height: 1.8;
+}
+
+.section-level2 {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 16px 0 10px 15px;
+    color: #34495e;
+    line-height: 1.8;
+}
+
+.section-level3 {
+    font-size: 16px;
+    margin: 14px 0 8px 30px;
+    color: #4a5568;
+    line-height: 1.8;
+}
+
+.section-level4 {
+    font-size: 15px;
+    margin: 12px 0 8px 45px;
+    color: #718096;
+    line-height: 1.8;
+}
+
+.subsections {
+    margin-left: 0;
+    display: block;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 0.875em; /* 14px -> 0.875em */
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    margin-right: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-btn:active {
+    color: var(--brand-2);
+}
+
+.scripture-toggle-btn {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+    padding: 10px 12px;
+    margin: 8px 0 0 0;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.scripture-toggle-btn:active {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.scripture-content {
+    background: #f8f9fa;
+    border-left: 3px solid var(--brand-1);
+    padding: 10px 12px;
+    margin: 10px 0 10px 15px;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.8;
+}
+
+.verse-line {
+    margin-bottom: 8px;
+}
+
+.verse-line:last-child {
+    margin-bottom: 0;
+}
+
+.scripture-ref {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-left: 8px;
+}
+
+/* 章节级别经文样式 */
+.scripture-section {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.chapter-scripture-toggle {
+    margin-left: 10px;
+    font-size: 13px;
+    padding: 8px 14px;
+    min-height: 40px;
+}
+
+.chapter-scripture-content {
+    margin-top: 12px;
+    margin-left: 0;
+    background: white;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const hymnElem = document.querySelector('.hymn-number');
+            if (hymnElem) text += hymnElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const sections = document.querySelectorAll('.section-level1, .section-level2, .section-level3, .section-level4');
+            sections.forEach(s => {
+                const t = s.textContent.trim();
+                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+                    text += t + '。';
+                }
+            });
+            return text;
+        }
+    });
+});
+
+function toggleSection(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '▼';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '▶';
+    }
+}
+
+function toggleScripture(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '收起经文';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '展开经文';
+    }
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025夏季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

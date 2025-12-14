@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}第{{ chapter.number }}篇 - 诗歌{% endblock %}
+
+{% block content %}
+<div class="hymn-page">
+    {% include "page_navigation.html" %}
+    
+    <h2 class="chapter-title">第{{ chapter.number }}篇 {{ chapter.title }}</h2>
+    
+    {% if chapter.hymn_number %}
+    <div class="hymn-info">
+        <h3>诗歌</h3>
+        <p class="hymn-number-display">{{ chapter.hymn_number }}</p>
+        
+        {% if chapter.hymn_image %}
+        <div class="hymn-image">
+            <img src="{{ chapter.hymn_image }}" alt="诗歌内容">
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <p class="no-content">暂无诗歌信息</p>
+    {% endif %}
+    
+    <div class="hymn-note">
+        <p>💡 本诗歌在原始文档中以图片格式存储，完整内容请查阅相应的诗歌本</p>
+    </div>
+</div>
+
+<style>
+.hymn-page {
+    padding: 5px;
+}
+
+.hymn-info {
+    margin: 20px 0;
+    padding: 15px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.hymn-info h3 {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 12px;
+    font-weight: bold;
+}
+
+.hymn-number-display {
+    font-size: 15px;
+    color: #666;
+    margin: 12px 0;
+    line-height: 1.8;
+}
+
+.hymn-image {
+    margin-top: 15px;
+}
+
+.hymn-image img {
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.hymn-note {
+    margin: 20px 0;
+    padding: 15px;
+    background: #fff9e6;
+    border-left: 4px solid #ffc107;
+    border-radius: 4px;
+}
+
+.hymn-note p {
+    margin: 0;
+    color: #856404;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+.no-content {
+    color: #999;
+    text-align: center;
+    padding: 30px 0;
+    font-size: 15px;
+}
+
+@media (min-width: 768px) {
+    .hymn-page {
+        padding: 20px 0;
+    }
+    
+    .hymn-info {
+        margin: 30px 0;
+        padding: 20px;
+    }
+    
+    .hymn-info h3 {
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+    
+    .hymn-number-display {
+        font-size: 16px;
+        margin: 15px 0;
+    }
+    
+    .hymn-image {
+        margin-top: 20px;
+    }
+    
+    .hymn-image img {
+        width: auto;
+    }
+    
+    .hymn-note {
+        margin: 30px 0;
+        padding: 20px;
+    }
+    
+    .no-content {
+        padding: 40px 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .font-size-controls {
+        padding: 6px 10px;
+        gap: 6px;
+        margin: 8px 0;
+    }
+    
+    .font-btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+</style>
+
+{% endblock %}

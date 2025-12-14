@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}第{{ chapter.number }}篇 - 纲目{% endblock %}
+
+{% block content %}
+<div class="outline-page">
+    {% include "page_navigation.html" %}
+    
+    <h2 class="chapter-title">第{{ chapter.number }}篇 {{ chapter.title }}</h2>
+    
+    {% if chapter.hymn_number %}
+    <div class="hymn-number">{{ chapter.hymn_number }}</div>
+    {% endif %}
+    
+    {% if chapter.scripture %}
+    <div class="scripture-section">
+        <div class="scripture">读经：{{ chapter.scripture }}</div>
+        {% if chapter.scripture_verses %}
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+            {% for verse in chapter.scripture_verses.split('\n') %}
+                {% if verse.strip() %}
+                <div class="verse-line">{{ verse }}</div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="outline-content">
+        {% macro render_section(section, depth=1, show_scripture=True, parent_id='') %}
+        {% set section_id = parent_id ~ '-' ~ section.level if parent_id else section.level %}
+        <div class="section" id="section-{{ section_id }}">
+            <div class="section-level{{ depth }}">
+                {% if section.children %}
+                <button class="toggle-btn" onclick="toggleSection('subsection-{{ section_id }}')">{% if default_collapsed %}▶{% else %}▼{% endif %}</button>
+                {% endif %}
+                {{ section.level }}　{{ section.title }}
+                {% if section.scripture and section.scripture.strip() and show_scripture %}
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-{{ section_id }}')">展开经文</button>
+                <div class="scripture-content" id="scripture-{{ section_id }}" style="display: none;">
+                    {% for verse_line in section.scripture.split('\n') %}
+                    {% if verse_line.strip() %}
+                    <div class="verse-line">{{ verse_line }}</div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if section.children %}
+            <div class="subsections" id="subsection-{{ section_id }}" style="{% if default_collapsed %}display: none;{% else %}display: block;{% endif %}">
+                {% for child in section.children %}
+                {{ render_section(child, depth + 1, show_scripture, section_id) }}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endmacro %}
+        
+        {% for section in chapter.outline_sections %}
+        {{ render_section(section, 1, True, '') }}
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.outline-page {
+    padding: 5px;
+}
+
+/* 字体大小控制 */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: #f0f4ff;
+    border: 1px solid #d0d7f0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #667eea;
+    cursor: pointer;
+}
+
+.font-btn:active {
+    background: #667eea;
+    color: #ffffff;
+    border-color: #667eea;
+}
+
+.outline-content {
+    margin-top: 20px;
+}
+
+.section-level1 {
+    font-weight: bold;
+    font-size: 17px;
+    margin: 20px 0 12px 0;
+    color: #2c3e50;
+    line-height: 1.8;
+}
+
+.section-level2 {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 16px 0 10px 15px;
+    color: #34495e;
+    line-height: 1.8;
+}
+
+.section-level3 {
+    font-size: 16px;
+    margin: 14px 0 8px 30px;
+    color: #4a5568;
+    line-height: 1.8;
+}
+
+.section-level4 {
+    font-size: 15px;
+    margin: 12px 0 8px 45px;
+    color: #718096;
+    line-height: 1.8;
+}
+
+.subsections {
+    margin-left: 0;
+    display: block;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 0.875em; /* 14px -> 0.875em */
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    margin-right: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-btn:active {
+    color: var(--brand-2);
+}
+
+.scripture-toggle-btn {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+    padding: 10px 12px;
+    margin: 8px 0 0 0;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.scripture-toggle-btn:active {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.scripture-content {
+    background: #f8f9fa;
+    border-left: 3px solid var(--brand-1);
+    padding: 10px 12px;
+    margin: 10px 0 10px 15px;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.8;
+}
+
+.verse-line {
+    margin-bottom: 8px;
+}
+
+.verse-line:last-child {
+    margin-bottom: 0;
+}
+
+.scripture-ref {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-left: 8px;
+}
+
+/* 章节级别经文样式 */
+.scripture-section {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.chapter-scripture-toggle {
+    margin-left: 10px;
+    font-size: 13px;
+    padding: 8px 14px;
+    min-height: 40px;
+}
+
+.chapter-scripture-content {
+    margin-top: 12px;
+    margin-left: 0;
+    background: white;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const hymnElem = document.querySelector('.hymn-number');
+            if (hymnElem) text += hymnElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const sections = document.querySelectorAll('.section-level1, .section-level2, .section-level3, .section-level4');
+            sections.forEach(s => {
+                const t = s.textContent.trim();
+                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+                    text += t + '。';
+                }
+            });
+            return text;
+        }
+    });
+});
+
+function toggleSection(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '▼';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '▶';
+    }
+}
+
+function toggleScripture(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '收起经文';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '展开经文';
+    }
+}
+</script>
+{% endblock %}

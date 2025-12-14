@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}{{ training.title }}{% endblock %}
+
+{% block content %}
+<div class="index-page">
+    {% for chapter in training.chapters %}
+    <a href="{{ chapter.number }}_cv.htm" class="chapter-item">
+        <div class="chapter-number">{{ chapter.number }}</div>
+        <div class="chapter-title">{{ chapter.title }}</div>
+        <div class="chapter-arrow">→</div>
+    </a>
+    {% endfor %}
+</div>
+
+<style>
+.index-page {
+    padding: 0;
+}
+
+.chapter-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 14px 0;
+    padding: 18px 16px;
+    background: #fff;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.chapter-item:active {
+    background: #f7fafc;
+}
+
+.chapter-number {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #667eea;
+    color: #fff;
+    border-radius: 50%;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.chapter-title {
+    flex: 1;
+    font-size: 16px;
+    line-height: 1.7;
+    color: #2d3748;
+    font-weight: 500;
+}
+
+.chapter-arrow {
+    flex-shrink: 0;
+    color: #667eea;
+    font-size: 18px;
+    font-weight: 700;
+    justify-content: center;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chapter-links a:active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-color: #667eea;
+    transform: scale(0.96);
+}
+
+@media (min-width: 768px) {
+    .chapter-links a {
+        padding: 6px 14px;
+        min-height: auto;
+    }
+    
+    .chapter-links a:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #ffffff;
+        border-color: #667eea;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+    }
+}
+
+.chapter-links::after {
+    content: none;
+}
+
+@media (min-width: 768px) {
+}
+</style>
+{% endblock %}

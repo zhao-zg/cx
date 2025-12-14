@@ -1,0 +1,2798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第11篇 - 纲目</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>夏季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025夏季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="11_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="11_cv.htm" class="nav-link active" title="纲目">纲目</a>
+    <a href="11_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="11_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="11_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第11篇 永远生命的交通—在基督身体里生活的实际</h2>
+    
+    
+    <div class="hymn-number">RA 诗歌: s410</div>
+    
+    
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：约壹一1~二2</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+            
+                
+                <div class="verse-line">约壹1:1	论到那从起初原有的生命之话，就是我们所听见过的，我们亲眼所看见过的，我们所注视过，我们的手也摸过的；</div>
+                
+            
+                
+                <div class="verse-line">约壹1:2	（这生命已经显现出来，我们也看见过，现在又作见证，将原与父同在，且显现与我们那永远的生命传与你们；）</div>
+                
+            
+                
+                <div class="verse-line">约壹1:3	我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。</div>
+                
+            
+                
+                <div class="verse-line">约壹1:4	我们写这些事，是要叫我们的喜乐得以满足。</div>
+                
+            
+                
+                <div class="verse-line">约壹1:5	神就是光，在祂里面毫无黑暗；这是我们从祂所听见，现在又报给你们的信息。</div>
+                
+            
+                
+                <div class="verse-line">约壹1:6	我们若说我们与神有交通，却在黑暗里行，就是说谎话，不行真理了；</div>
+                
+            
+                
+                <div class="verse-line">约壹1:7	但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。</div>
+                
+            
+                
+                <div class="verse-line">约壹1:8	我们若说自己没有罪，便是自欺，真理就不在我们里面了。</div>
+                
+            
+                
+                <div class="verse-line">约壹1:9	我们若认自己的罪，神是信实的，是公义的，必要赦免我们的罪，洗净我们一切的不义。</div>
+                
+            
+                
+                <div class="verse-line">约壹1:10	我们若说自己没有犯过罪，便是以神为说谎的，祂的话就不在我们里面了。</div>
+                
+            
+                
+                <div class="verse-line">约壹2:1	我的孩子们，我将这些事写给你们，是要叫你们不犯罪。若有人犯罪，我们有一位与父同在的辩护者，就是那义者耶稣基督；</div>
+                
+            
+                
+                <div class="verse-line">约壹2:2	祂为我们的罪，作了平息的祭物，不是单为我们的罪，也是为所有世人的罪。</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="outline-content">
+        
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹')">▼</button>
+                
+                壹　约翰的书信（特别是约翰一书）揭开永远生命交通的奥秘—约壹一3~4、6~7：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约壹1:3	我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:4	我们写这些事，是要叫我们的喜乐得以满足。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:6	我们若说我们与神有交通，却在黑暗里行，就是说谎话，不行真理了；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:7	但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-一">
+            <div class="section-level2">
+                
+                一　交通乃是所有信徒里面永远生命的流，由新耶路撒冷里生命水的流所描绘；基督身体的实际，现实的召会生活，乃是主耶稣在我们里面的涌流，这涌流者必须在我们里面居首位—2~4节，启二二1，西一18下，参结四七1。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约壹1:2	（这生命已经显现出来，我们也看见过，现在又作见证，将原与父同在，且显现与我们那永远的生命传与你们；）</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:3	我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:4	我们写这些事，是要叫我们的喜乐得以满足。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启22:1	天使又指给我看在城内街道当中一道生命水的河，明亮如水晶，从神和羔羊的宝座流出来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西1:18下	……祂是元始，是从死人中复活的首生者，使祂可以在万有中居首位；</div>
+                    
+                    
+                    
+                    <div class="verse-line">结47:1	祂带我回到殿门，见水从殿的门槛下流出，往东流去（原来殿面朝东）；这水从槛下，由殿的南边，在祭坛的南边往下流。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二">
+            <div class="section-level2">
+                
+                二　交通乃是涌流的三一神—父是生命源，子是生命泉，灵是生命河；这涌流的结果带进永远生命的总和，就是新耶路撒冷—约四14下，启二二1~2。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约4:14下	……我所赐的水，要在他里面成为泉源，直涌入永远的生命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启22:1	天使又指给我看在城内街道当中一道生命水的河，明亮如水晶，从神和羔羊的宝座流出来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启22:2	在河这边与那边有生命树，生产十二样果子，每月都结出果子，树上的叶子乃为医治万民。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-三">
+            <div class="section-level2">
+                
+                三　交通乃是三一神—父、子、灵—将祂自己分赐到信徒里面，作他们唯一的分和福分，给他们享受，从今时直到永远—林前一9，林后十三14，民六22~27。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林前1:9	神是信实的，你们乃是为祂所召，进入了祂儿子我们主耶稣基督的交通。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后13:14	愿主耶稣基督的恩，神的爱，圣灵的交通，与你们众人同在。</div>
+                    
+                    
+                    
+                    <div class="verse-line">民6:22	耶和华对摩西说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">民6:23	你要对亚伦和他儿子们说，你们要这样为以色列人祝福，说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">民6:24	愿耶和华赐福给你，保护你；</div>
+                    
+                    
+                    
+                    <div class="verse-line">民6:25	愿耶和华使祂的面光照你，赐恩给你；</div>
+                    
+                    
+                    
+                    <div class="verse-line">民6:26	愿耶和华向你仰脸，赐你平安。</div>
+                    
+                    
+                    
+                    <div class="verse-line">民6:27	他们要如此将我的名赐给以色列人，好使我赐福给他们。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四">
+            <div class="section-level2">
+                
+                四　交通指明为着某一共同的目的，把个人的利益放在一边，并联于别人；因此，在神圣的交通里，就是放下我们个人的利益，联于使徒和三一神，为着完成神的定旨—徒二42，约壹一3。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒2:42	他们都坚定持续在使徒的教训和交通里，持续擘饼和祷告。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:3	我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五">
+            <div class="section-level2">
+                
+                五　交通来自教训；我们若教导错误或教导不同于使徒的教训，神经纶的教训，我们的教训就会产生宗派的、分裂的交通—徒二42，提前一3~6，六3~4，林后三8~9，五18。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-五" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒2:42	他们都坚定持续在使徒的教训和交通里，持续擘饼和祷告。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前1:3	我往马其顿去的时候，曾劝你仍住在以弗所，好嘱咐那几个人，不可教导与神的经纶不同的事，</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前1:4	也不可注意虚构无稽之事，和无穷的家谱；这等事只引起辩论，对于神在信仰里的经纶并无助益。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前1:5	这嘱咐的目的乃是爱，这爱是出于清洁的心、无亏的良心、并无伪的信心。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前1:6	有人失去目标，偏离这些，转向虚空的谈论，</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前6:3	若有人教导的不同，不赞同健康的话，就是我们主耶稣基督的话，以及那合乎敬虔的教训，</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前6:4	他是为高傲所蒙蔽，一无所知，却好问难，争辩言辞，由此就生出嫉妒、争竞、毁谤、恶意的猜疑，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:8	何况那灵的职事，岂不更带着荣光？</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:9	若定罪的职事有荣光，那称义的职事，就越发充盈着荣光了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后5:18	一切都是出于神，祂借着基督使我们与祂自己和好，又将这和好的职事赐给我们；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六">
+            <div class="section-level2">
+                
+                六　约翰一书启示神圣交通的原则；约翰二书启示我们必须与那些否认基督的人没有交通（7~11）；约翰三书启示我们应当留在神家的一个交通里，照着与神相配的作法，给那些为着福音和话语的职事作客旅的人送行，并且在召会里不好为首（5~10）。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约贰7	因为有许多迷惑人的已经出来，进到世界里，他们不承认耶稣基督是在肉体里来的。这就是那迷惑人的和敌基督的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约贰8	你们要小心，不要失去我们所已经作成的，乃要得着满足的赏赐。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约贰9	凡越过基督的教训，不留于其中的，就没有神；留于这教训中的，这人就有父又有子。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约贰10	若有人到你们那里，不是传讲这教训，不要接他到家里，也不要对他说，愿你喜乐；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约贰11	因为对他说，愿你喜乐的，就在他的恶行上有分。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约叁5	亲爱的，凡你向作客旅之弟兄所行的，都是忠信的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约叁6	他们在召会面前见证了你的爱；你照着与神相配的，送他们往前行，就作得好；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约叁7	因他们是为那名出外，对于外邦人一无所取。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约叁8	所以我们应该款待、供应这样的人，使我们能成为在真理上的同工。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约叁9	我曾略略地写信给召会；但那在他们中间好为首的丢特腓，不接待我们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约叁10	所以我若去，必要提起他所行的事，就是他用恶言妄论我们；还不以此为足，他自己不接待弟兄，有人愿意接待，他也禁止，并且把他们赶出召会。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰')">▼</button>
+                
+                贰　永远生命的交通，乃是在那灵的一里，在基督身体里生活的实际—林前十16~18，徒二42，弗四3：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林前10:16	我们所祝福的福杯，岂不是基督之血的交通么？我们所擘开的饼，岂不是基督身体的交通么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前10:17	因着只有一个饼，我们虽多，还是一个身体，因我们都分受这一个饼。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前10:18	你们看那按着肉体是以色列人的，那些吃祭物的，岂不是与祭坛交通的人么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒2:42	他们都坚定持续在使徒的教训和交通里，持续擘饼和祷告。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:3	以和平的联索，竭力保守那灵的一：</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一">
+            <div class="section-level2">
+                
+                一　我们借着神圣的灵，圣灵，进入神圣交通垂直的一面；这一面的交通，是指我们因着爱三一神，而有与祂的交通—林后十三14，约壹一3、6，可十二30。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后13:14	愿主耶稣基督的恩，神的爱，圣灵的交通，与你们众人同在。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:3	我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:6	我们若说我们与神有交通，却在黑暗里行，就是说谎话，不行真理了；</div>
+                    
+                    
+                    
+                    <div class="verse-line">可12:30	你要全心、全魂、全心思并全力，爱主你的神。”</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二">
+            <div class="section-level2">
+                
+                二　我们借着人的灵，进入神圣交通平面的一面；这一面的交通，是指我们借着操练灵，彼此相爱，而有彼此之间的交通—腓二1，启一10，约壹一2~3、7，林前十六18，可十二31，罗十三8~10，加五13~15。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓2:1	所以在基督里若有什么鼓励，若有什么爱的安慰，若有什么灵的交通，若有什么慈心、怜恤，</div>
+                    
+                    
+                    
+                    <div class="verse-line">启1:10	当主日我在灵里，听见在我后面有大声音如吹号说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:2	（这生命已经显现出来，我们也看见过，现在又作见证，将原与父同在，且显现与我们那永远的生命传与你们；）</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:3	我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:7	但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前16:18	他们使我和你们的灵都畅快。这样的人你们务要赏识。</div>
+                    
+                    
+                    
+                    <div class="verse-line">可12:31	其次，“要爱邻舍如同自己。”再没有别的诫命比这两条更大的了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗13:8	凡事都不可亏欠人，唯有彼此相爱，要常以为亏欠，因为爱人的就完全了律法。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗13:9	因为“不可奸淫，不可杀人，不可偷盗，不可贪心，”以及任何别的诫命，都总括在“要爱邻舍如同自己”这一句话里面了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗13:10	爱是不加害与邻舍的，所以爱乃是律法的完满。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加5:13	弟兄们，你们蒙召原是为得自由；只是不可将自由当作放纵肉体的机会，倒要凭着爱互相服事。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加5:14	因为全律法都在“要爱邻舍如同自己”这一句话之内，得以完全了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加5:15	你们要谨慎，若相咬相吞，只怕要彼此销灭了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-三')">▼</button>
+                
+                三　这一个神圣的交通乃是交织的交通—平面的交通交织着垂直的交通：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-三" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-三-1">
+            <div class="section-level3">
+                
+                1　使徒们起初的经历，乃是与父并与祂儿子耶稣基督垂直的交通，但是当使徒们将永远的生命传与别人时，他们就经历神圣交通平面的一面—约壹一2~3，参徒二42。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约壹1:2	（这生命已经显现出来，我们也看见过，现在又作见证，将原与父同在，且显现与我们那永远的生命传与你们；）</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:3	我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒2:42	他们都坚定持续在使徒的教训和交通里，持续擘饼和祷告。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三-2">
+            <div class="section-level3">
+                
+                2　我们与圣徒平面的交通，将我们带进与主垂直的交通；然后，我们与主垂直的交通，将我们带进与圣徒平面的交通。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三-3">
+            <div class="section-level3">
+                
+                3　我们必须保持垂直与平面这两面神圣的交通，好在属灵上是健康的—参约壹一7、9。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约壹1:7	但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:9	我们若认自己的罪，神是信实的，是公义的，必要赦免我们的罪，洗净我们一切的不义。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-四')">▼</button>
+                
+                四　在基督徒生活里，神圣的交通乃是一切：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-四" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-四-1">
+            <div class="section-level3">
+                
+                1　当交通没有了，神也消失了；神乃是作为交通而来—林后十三14，启二二1。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后13:14	愿主耶稣基督的恩，神的爱，圣灵的交通，与你们众人同在。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启22:1	天使又指给我看在城内街道当中一道生命水的河，明亮如水晶，从神和羔羊的宝座流出来。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-2">
+            <div class="section-level3">
+                
+                2　在这神圣的交通里，神与我们交织在一起；这种交织就是神与人的调和，把神圣的成分带到我们属灵的所是里，使我们在生命里长大并变化—利二4~5。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">利2:4	你若献炉中烤的物为素祭作供物，就要用细面，作成调油的无酵饼，或抹油的无酵薄饼。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利2:5	你的供物若用煎盘上作的物为素祭，就要用调油的无酵细面，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-3">
+            <div class="section-level3">
+                
+                3　神圣的交通调和我们，调节我们，调整我们，使我们和谐，并将我们调在一起，成为一个身体—林前十16~18，十二24~25。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林前10:16	我们所祝福的福杯，岂不是基督之血的交通么？我们所擘开的饼，岂不是基督身体的交通么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前10:17	因着只有一个饼，我们虽多，还是一个身体，因我们都分受这一个饼。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前10:18	你们看那按着肉体是以色列人的，那些吃祭物的，岂不是与祭坛交通的人么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前12:24	至于我们俊美的肢体，就不需要了。但神将这身体调和在一起，把更丰盈的体面加给那有缺欠的肢体，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前12:25	免得身体上有了分裂，总要肢体彼此同样相顾。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-叁">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁')">▼</button>
+                
+                叁　我们要留在神圣交通的享受里，就需要为着在我们天性里内住的罪，取用基督作我们的赎罪祭，并为着我们行为中的罪行，取用基督作我们的赎愆祭—约壹一8~9，三20~21，利四3，五6，约一29，罗八3，林后五21，彼前二24~25：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约壹1:8	我们若说自己没有罪，便是自欺，真理就不在我们里面了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:9	我们若认自己的罪，神是信实的，是公义的，必要赦免我们的罪，洗净我们一切的不义。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹3:20	我们的心若责备我们，神比我们的心大，一切事祂都知道。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹3:21	亲爱的，我们的心若不责备我们，我们就可以向神坦然无惧了；</div>
+                    
+                    
+                    
+                    <div class="verse-line">利4:3	或是受膏的祭司犯罪，使百姓陷在罪里，就当为他所犯的罪，把一只没有残疾的公牛犊献给耶和华作赎罪祭。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利5:6	并要为所犯的罪，把他的赎愆祭，就是羊群中的母羊，或绵羊或山羊，牵到耶和华面前作赎罪祭。至于他的罪，祭司要为他遮盖。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约1:29	次日，约翰看见耶稣向他走来，就说，看哪，神的羔羊，除去世人之罪的！</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:3	律法因肉体而软弱，有所不能的，神，既在罪之肉体的样式里，并为着罪，差来了自己的儿子，就在肉体中定罪了罪，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后5:21	神使那不知罪的，替我们成为罪，好叫我们在祂里面成为神的义。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:24	祂在木头上，在祂的身体里，亲自担当了我们的罪，使我们既然向罪死了，就得以向义活着；因祂受的鞭伤，你们便得了医治。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:25	你们好像羊走迷了路，如今却归到你们魂的牧人和监督了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-一">
+            <div class="section-level2">
+                
+                一　罪是撒但邪恶的性情，他借着亚当的堕落，已经将他自己注射到人里面，如今成了不法的罪的性情，作为一个律，在堕落的人里面居住、行动并作工—罗五12、19上、21上，六14，七11、14、17~23，诗五一5，约壹三4，参帖后二3、7~8。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗5:12	这就如罪是借着一人入了世界，死又是借着罪来的，于是死就遍及众人，因为众人都犯了罪。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗5:19上	借着一人的悖逆，多人构成了罪人，……</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗5:21上	使罪怎样在死中作王，恩典也照样借着义作王，……</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗6:14	罪必不能作主管辖你们，因你们不在律法之下，乃在恩典之下。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗7:11	因为罪借着诫命得着机会，诱骗了我，并且借着诫命杀了我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗7:14	我们原晓得律法是属灵的，但我是属肉的，是已经卖给罪了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗7:17	其实，不是我行出来的，乃是住在我里面的罪行出来的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗7:18	我知道住在我里面，就是我肉体之中，并没有善，因为立志为善由得我，只是行出来由不得我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗7:19	因为我所愿意的善，我反不作；我所不愿意的恶，我倒去作。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗7:20	若我去作所不愿意的，就不是我行出来的，乃是住在我里面的罪行出来的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗7:21	于是我发现那律与我这愿意为善的人同在，就是那恶与我同在。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗7:22	因为按着里面的人，我是喜欢神的律，</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗7:23	但我看出我肢体中另有个律，和我心思的律交战，借着那在我肢体中罪的律，把我掳去。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:5	看哪，我是在罪孽里生的，我母亲在罪中怀了我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹3:4	凡犯罪的，也行不法；罪就是不法。</div>
+                    
+                    
+                    
+                    <div class="verse-line">帖后2:3	不要让任何人用任何方法诱骗你们；因为那日子以前，必有背道的事先来，并有那不法的人，就是灭亡之子，显露出来；</div>
+                    
+                    
+                    
+                    <div class="verse-line">帖后2:7	因为那不法的奥秘已经发动，只等那现在的抑制者被除去；</div>
+                    
+                    
+                    
+                    <div class="verse-line">帖后2:8	那时这不法者必显露出来，主耶稣要用祂口中的气除灭他，并用祂来临的显现废掉他。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-二')">▼</button>
+                
+                二　取用基督作我们的赎罪祭，意思是我们的旧人被对付（罗六6），堕落之人性情里的罪被定罪（八3），撒但这罪的本身被废除（来二14），世界受审判，世界的王被赶出去（约十二31）：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗6:6	知道我们的旧人已经与祂同钉十字架，使罪的身体失效，叫我们不再作罪的奴仆，</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:3	律法因肉体而软弱，有所不能的，神，既在罪之肉体的样式里，并为着罪，差来了自己的儿子，就在肉体中定罪了罪，</div>
+                    
+                    
+                    
+                    <div class="verse-line">来2:14	儿女既同有血肉之体，祂也照样亲自有分于血肉之体，为要借着死，废除那掌死权的，就是魔鬼，</div>
+                    
+                    
+                    
+                    <div class="verse-line">约12:31	现在这世界受审判，这世界的王要被赶出去。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-二" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-二-1">
+            <div class="section-level3">
+                
+                1　“世界的王”这辞里的“王”，含示权势或权力，以及争夺权力—路四5~8，参太二十20~21、24，约叁9。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">路4:5	魔鬼又领祂上了高山，霎时间将天下万国都指给祂看。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路4:6	魔鬼对祂说，这一切权柄及其荣耀，我都要给你；因为这原是交付我的，我愿意给谁就给谁。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路4:7	所以你若在我面前下拜，这一切就都是你的了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路4:8	耶稣回答他说，经上记着，“当拜主你的神，单要事奉祂。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">太20:20	那时，西庇太儿子的母亲，同她儿子们进前来拜耶稣，求祂一件事。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太20:21	耶稣就对她说，你要什么？她说，请叫我这两个儿子在你国里，一个坐在你右边，一个坐在你左边。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太20:24	那十个听见，就恼怒这两个兄弟。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约叁9	我曾略略地写信给召会；但那在他们中间好为首的丢特腓，不接待我们。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二-2">
+            <div class="section-level3">
+                
+                2　争夺权力是肉体、罪、撒但、世界和这世界的王所产生的结果—加五16~17、24~26。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">加5:16	我说，你们当凭着灵而行，就绝不会满足肉体的情欲了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加5:17	因为肉体纵任贪欲，抵抗那灵，那灵也抵抗肉体，二者彼此敌对，使你们不能作所愿意的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加5:24	但那属基督耶稣的人，是已经把肉体连肉体的邪情私欲，都钉了十字架。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加5:25	我们若凭着灵活着，也就当凭着灵而行。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加5:26	不要贪图虚荣，彼此惹气，互相嫉妒。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二-3">
+            <div class="section-level3">
+                
+                3　我们肉体里罪的律，是与神相争的自动能力、力量和动力；赎罪祭的律（条例）乃是我们所享受那是灵之基督的生命之律，使我们自动且自然地脱离罪的律—罗七23，八2，利六24~30，参七1~10。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗7:23	但我看出我肢体中另有个律，和我心思的律交战，借着那在我肢体中罪的律，把我掳去。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:2	因为生命之灵的律，在基督耶稣里已经释放了我，使我脱离了罪与死的律。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利6:24	耶和华对摩西说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">利6:25	你要对亚伦和他儿子们说，赎罪祭的条例乃是这样：要在宰燔祭牲的地方，在耶和华面前宰赎罪祭牲；这是至圣的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利6:26	为罪献这祭的祭司要吃这祭物，要在圣处，就是在会幕的院子里吃。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利6:27	凡触着这祭肉的要成为圣；这祭牲的血若溅在什么衣服上，所溅的那一件要在圣处洗净。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利6:28	唯有煮祭物的瓦器要打碎；若是煮在铜器里，这铜器要擦磨，在水中涮净。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利6:29	凡祭司中的男丁都可以吃这祭物；这是至圣的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利6:30	凡赎罪祭，若有一些血带进会幕，在圣所遮罪，这祭物就不可吃，必用火焚烧。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利7:1	赎愆祭的条例乃是这样：这祭是至圣的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利7:2	人在哪里宰燔祭牲，也要在哪里宰赎愆祭牲；祭牲的血，祭司要洒在坛的四边。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利7:3	又要献上祭牲所有的脂油，就是肥尾巴，和盖脏的脂油，</div>
+                    
+                    
+                    
+                    <div class="verse-line">利7:4	并两个腰子和腰子上的脂油，就是靠腰两旁的脂油，与肝上连着腰子取下的网子。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利7:5	祭司要把这些烧在坛上，作为献给耶和华的火祭；这是赎愆祭。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利7:6	凡祭司中的男丁都可以吃这祭物；要在圣处吃；这是至圣的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利7:7	赎罪祭怎样，赎愆祭也怎样，两个祭是一个条例：用赎愆祭遮罪的祭司，要得这祭物。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利7:8	祭司无论为谁献燔祭，要亲自得他所献那燔祭牲的皮。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利7:9	凡在炉中烤的素祭，并在锅里或煎盘上作的，都要归那献祭的祭司。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利7:10	所有别的素祭，无论是调油的或是干的，都要归亚伦所有的子孙，大家均分。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三">
+            <div class="section-level2">
+                
+                三　我们有分于基督作我们的赎罪祭，是在于享受祂作我们的生命，就是那能担当别人之罪的生命，使我们能将基督这对付罪的生命，供应神的子民，而担当他们的难处，使他们蒙保守在那灵的一里—约壹五16，利十17。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约壹5:16	人若看见他的弟兄犯了不至于死的罪，就当为他祈求，将生命赐给他，就是给那些犯了不至于死之罪的。有至于死的罪，我不说当为那罪祈求。</div>
+                    
+                    
+                    
+                    <div class="verse-line">利10:17	这赎罪祭既是至圣的，耶和华又给了你们，要你们担当会众的罪孽，在祂面前为他们遮罪，你们为何没有在圣所吃呢？</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-四')">▼</button>
+                
+                四　借着我们与那是光的神（约壹一5，西一12）有真实、亲密、活泼、爱的交通，我们就看见自己是有罪的，而取用基督作我们的赎罪祭和赎愆祭：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约壹1:5	神就是光，在祂里面毫无黑暗；这是我们从祂所听见，现在又报给你们的信息。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西1:12	感谢父，叫你们够资格在光中同得所分给众圣徒的分；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-四" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-四-1">
+            <div class="section-level3">
+                
+                1　我们越爱主并享受祂，就越认识我们是多么邪恶—赛六5，路五8，罗七18。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛6:5	那时我说，祸哉，我灭亡了！因为我是嘴唇不洁的人，又住在嘴唇不洁的民中；又因我眼见大君王万军之耶和华。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路5:8	西门彼得看见，就俯伏在耶稣膝前，说，主啊，离开我，因我是个罪人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗7:18	我知道住在我里面，就是我肉体之中，并没有善，因为立志为善由得我，只是行出来由不得我。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四-2">
+            <div class="section-level3">
+                
+                2　领悟我们有罪性，并取用基督作我们的赎罪祭，使我们受审判并被征伏；这样的领悟保守我们，使我们不信靠自己—腓三3，参出四6。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓3:3	真受割礼的，乃是我们这凭神的灵事奉，在基督耶稣里夸口，不信靠肉体的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出4:6	耶和华又对他说，把手放在怀里。他就把手放在怀里，及至抽出来，不料，手长了麻风，像雪那样白。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四-3">
+            <div class="section-level3">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-四-3')">▼</button>
+                
+                3　人是神所造的，目的是要彰显并代表神，不该为着神以外的事物，乃该绝对为着神；因此，凡我们出于自己所作的，无论是好或坏，都是为自己作的，既是为自己作而不是为神作的，在神眼中都是有罪的；罪乃是为着己—创一26，赛四三7，罗三23：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">创1:26	神说，我们要按着我们的形像，照着我们的样式造人，使他们管理海里的鱼、空中的鸟、地上的牲畜、和全地、并地上所爬的一切爬物。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛43:7	就是凡称为我名下的人，是我为自己的荣耀所创造、所塑造的，更是我所造作的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗3:23	因为众人都犯了罪，亏缺了神的荣耀，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-四-3" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-四-3-a">
+            <div class="section-level4">
+                
+                a　为着自己而事奉主乃是罪；宣扬自己乃是罪—民十八1，王下五20~27，太七22~23，林后四5。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-3-a')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四-3-a" style="display: none;">
+                    
+                    
+                    <div class="verse-line">民18:1	耶和华对亚伦说，你和你的儿子，并你宗族的人，要一同担当干犯圣所的罪孽；你和你的儿子，也要一同担当干犯祭司职任的罪孽。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下5:20	神人以利沙的仆人基哈西心里说，我主人白白放过这亚兰人乃缦，不从他手里受他带来的礼物，我指着永活的耶和华起誓，我必跑去追上他，向他要些东西。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下5:21	于是基哈西追赶乃缦。乃缦看见有人追赶，就急忙下车迎着他，说，都平安么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下5:22	他说，都平安。我主人打发我来说，刚才有两个少年人，是申言者的门徒，从以法莲山地来见我；请你赐他们一他连得银子，两套衣裳。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下5:23	乃缦说，请接受二他连得。他再三地促请基哈西，并将二他连得银子包在两个口袋里，连同两套衣裳，交给两个仆人；他们就在基哈西前头抬着走。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下5:24	到了山冈，基哈西从他们手中接过来，存放在屋里；然后打发他们离去，他们就走了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下5:25	基哈西进去，站在他主人面前。以利沙问他说，基哈西，你从哪里来？他说，仆人没有往哪里去。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下5:26	以利沙对他说，那人下车转回迎你的时候，我的心岂没有去呢？这岂是接受银子和衣裳，买橄榄园、葡萄园、牛羊、仆婢的时候呢？</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下5:27	因此，乃缦的麻风必沾附于你和你的后裔，直到永远。基哈西从以利沙面前出去，就患了麻风，像雪那样白。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太7:22	当那日，许多人要对我说，主啊，主啊，我们不是在你的名里预言过，在你的名里赶鬼过，并在你的名里行过许多异能么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">太7:23	那时，我要向他们宣告：我从来不认识你们，你们这些行不法的人，离开我去吧。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:5	因为我们不是传自己，乃是传基督耶稣为主，也传自己为耶稣的缘故，作你们的奴仆。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四-3-b">
+            <div class="section-level4">
+                
+                b　我们行义，就如施舍、祷告、禁食，若是为着自己，好表现并炫耀自己，乃是罪—太六1~6。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-3-b')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四-3-b" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太6:1	你们要小心，不可将你们的义行在人前，故意叫他们注视；不然，在你们诸天之上的父面前，你们就没有赏赐了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:2	所以你施舍的时候，不可在你前面吹号，像那假冒为善的人在会堂里和巷道上所行的，为要得人的荣耀。我实在告诉你们，他们已经充分地得了他们的赏赐。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:3	但你施舍的时候，不要让左手知道右手所作的，</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:4	好叫你的施舍可在隐密中，你父在隐密中察看，必要报答你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:5	你们祷告的时候，不可像那假冒为善的人，因为他们爱站在会堂里，并十字街口祷告，为要叫人看见。我实在告诉你们，他们已经充分地得了他们的赏赐。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:6	你祷告的时候，要进你的密室，关上门，祷告你在隐密中的父，你父在隐密中察看，必要报答你。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四-3-c">
+            <div class="section-level4">
+                
+                c　爱别人若是为着自己（为着我们的名声、地位、利益和骄傲），乃是罪；养育儿女若是为着我们自己和未来，乃是罪—路十四12~14，参林前七14。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-3-c')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四-3-c" style="display: none;">
+                    
+                    
+                    <div class="verse-line">路14:12	耶稣又对请祂的人说，你摆设午饭或晚饭，不要请你的朋友、弟兄、亲属和富足的邻舍，恐怕他们也回请你，你就得了报答。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路14:13	你摆设筵席，倒要请那贫穷的、残废的、瘸腿的、瞎眼的，你就有福了，</div>
+                    
+                    
+                    
+                    <div class="verse-line">路14:14	因为他们没有可报答你的；在义人复活的时候，你要得着报答。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前7:14	因为不信的丈夫，就因着妻子被圣别，并且不信的妻子，也因着弟兄被圣别；不然，你们的儿女就不洁净，但如今他们是圣别的了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四-4">
+            <div class="section-level3">
+                
+                4　主使用我们的失败，给我们看见自己是多么可怕、丑陋并可憎，使我们弃绝一切出于己的，完全倚靠神—诗五一，路二二31~32，罗八28。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗51:1	神啊，求你按你的慈爱恩待我，按你丰盛的怜恤涂抹我的过犯。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:2	求你将我的罪孽洗涤净尽，并洁净我的罪。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:3	因为我知道我的过犯，我的罪常在我面前。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:4	我向你犯罪，唯独得罪了你；我在你眼前行了这恶。因此你责备的时候，显为公义；判断的时候，显为清正。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:5	看哪，我是在罪孽里生的，我母亲在罪中怀了我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:6	看哪，你所喜爱的，是内里真实；你在我隐密处，必使我认识智慧。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:7	求你用牛膝草洁除我的罪，我就洁净；求你洗涤我，我就比雪更白。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:8	求你使我得听欢喜快乐的声音，使你所压伤的骨头，可以踊跃。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:9	求你掩面不看我的罪，涂抹我一切的罪孽。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:10	神啊，求你为我造清洁的心，使我里面重新有正直的灵。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:11	不要丢弃我，使我离开你的面；不要从我取去你圣别的灵。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:12	求你使我复得你救恩之乐，赐我乐意的灵扶持我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:13	我必将你的道路指教有过犯的人，罪人必回转归向你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:14	神啊，拯救我的神啊，求你救我脱离流人血的罪；我的舌头就欢唱你的公义。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:15	主啊，求你使我嘴唇张开，我的口便传扬赞美你的话。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:16	你本不喜爱祭物；若喜爱，我就献上；燔祭你也不喜悦。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:17	神所要的祭，就是忧伤的灵；神啊，忧伤痛悔的心，你必不轻看。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:18	求你按你的美意善待锡安，建造耶路撒冷的城墙。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:19	那时，你必喜爱公义的祭、燔祭、并全牲的燔祭；那时，人必将公牛献在你坛上。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路22:31	西门，西门，看哪，撒但想要得着你们，好筛你们像麦子一样。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路22:32	但我已经为你祈求，叫你不至于失了信心，你回转过来，要坚固你的弟兄。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:28	还有，我们晓得万有都互相效力，叫爱神的人得益处，就是按祂旨意被召的人。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-五')">▼</button>
+                
+                五　取用基督作赎愆祭的实际，乃是经历祂作救赎者、照耀者和掌权者，好在生命的交通里享受祂作生命的供应—约壹一1~二2，启二一21、23，二二1~2：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约壹1:1	论到那从起初原有的生命之话，就是我们所听见过的，我们亲眼所看见过的，我们所注视过，我们的手也摸过的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:2	（这生命已经显现出来，我们也看见过，现在又作见证，将原与父同在，且显现与我们那永远的生命传与你们；）</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:3	我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:4	我们写这些事，是要叫我们的喜乐得以满足。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:5	神就是光，在祂里面毫无黑暗；这是我们从祂所听见，现在又报给你们的信息。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:6	我们若说我们与神有交通，却在黑暗里行，就是说谎话，不行真理了；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:7	但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:8	我们若说自己没有罪，便是自欺，真理就不在我们里面了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:9	我们若认自己的罪，神是信实的，是公义的，必要赦免我们的罪，洗净我们一切的不义。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:10	我们若说自己没有犯过罪，便是以神为说谎的，祂的话就不在我们里面了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹2:1	我的孩子们，我将这些事写给你们，是要叫你们不犯罪。若有人犯罪，我们有一位与父同在的辩护者，就是那义者耶稣基督；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹2:2	祂为我们的罪，作了平息的祭物，不是单为我们的罪，也是为所有世人的罪。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启21:21	十二个门是十二颗珍珠，每一个门各自是一颗珍珠造的，城内的街道是纯金，好像透明的玻璃。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启21:23	那城内不需要日月光照，因有神的荣耀光照，又有羔羊为城的灯。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启22:1	天使又指给我看在城内街道当中一道生命水的河，明亮如水晶，从神和羔羊的宝座流出来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启22:2	在河这边与那边有生命树，生产十二样果子，每月都结出果子，树上的叶子乃为医治万民。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-五" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-五-1">
+            <div class="section-level3">
+                
+                1　我们取用基督作我们的赎愆祭时，需要彻底地认我们一切的罪和不洁，而有无亏和清洁的良心—徒二四16，提前一5、19，三9，提后一3，来九14，十22。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒24:16	我因此操练自己，对神对人常存无亏的良心。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前1:5	这嘱咐的目的乃是爱，这爱是出于清洁的心、无亏的良心、并无伪的信心。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前1:19	持守信心和无亏的良心；有人丢弃这些，就在信仰上犹如船破，</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前3:9	用清洁的良心持守信仰的奥秘。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提后1:3	我感谢神，就是我接续祖先，用清洁的良心所事奉的神，昼夜祈求的时候，不住地提到你，</div>
+                    
+                    
+                    
+                    <div class="verse-line">来9:14	何况基督借着永远的灵，将自己无瑕无疵地献给神，祂的血岂不更洁净我们的良心，使其脱离死行，叫我们事奉活神么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">来10:22	并且在心一面，我们已经被基督的血洒过，脱开了邪恶的良心，在身体一面，也已经用清水洗净了，就当存着真诚的心，以十分确信的信，前来进入至圣所；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五-2">
+            <div class="section-level3">
+                
+                2　我们若认自己的罪，神在祂的话上是信实的，必要赦免我们的罪，在祂的救赎上是公义的，必要洗净我们一切的不义；不仅如此，基督作我们的长兄，是与父同在的辩护者，要恢复我们与父中断的交通，使我们住在神圣交通的享受里—约壹一7、9，二1~2。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约壹1:7	但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:9	我们若认自己的罪，神是信实的，是公义的，必要赦免我们的罪，洗净我们一切的不义。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹2:1	我的孩子们，我将这些事写给你们，是要叫你们不犯罪。若有人犯罪，我们有一位与父同在的辩护者，就是那义者耶稣基督；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹2:2	祂为我们的罪，作了平息的祭物，不是单为我们的罪，也是为所有世人的罪。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五-3">
+            <div class="section-level3">
+                
+                3　神的儿子耶稣之血的洗净，解决了我们与神隔离的难处、我们良心里定罪的难处以及从撒但而来控告的难处，因而使我们过一种满有神同在的日常生活—诗一〇三1~4、12~13，三二1~2，启十二10~11。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗103:1	我的魂哪，你要颂赞耶和华；在我里面的一切，都要颂赞祂的圣名。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗103:2	我的魂哪，你要颂赞耶和华，不可忘记祂的一切恩惠：</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗103:3	祂赦免你的一切罪孽，医治你的一切疾病；</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗103:4	祂救赎你的命不见朽坏，以慈爱和怜恤为你的冠冕；</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗103:12	东离西有多远，祂叫我们的过犯，离我们也有多远。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗103:13	父亲怎样怜恤他的儿女，耶和华也怎样怜恤敬畏祂的人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗32:1	得赦免其过，遮盖其罪的，这人是有福的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗32:2	耶和华不算为有罪孽，灵里没有诡诈的，这人是有福的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启12:10	我听见天上有大声音说，我们神的救恩、能力、国度、并祂基督的权柄，现在都来到了，因为那在我们神面前昼夜控告我们弟兄们的控告者，已经被摔下去了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启12:11	弟兄们胜过他，是因羔羊的血，并因自己所见证的话，他们虽至于死，也不爱自己的魂生命。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五-4">
+            <div class="section-level3">
+                
+                4　在神圣的光中认我们的罪，并取用基督作我们的赎愆祭，乃是我们喝基督作活水的路，使我们成为新耶路撒冷—约四14~18。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约4:14	人若喝我所赐的水，就永远不渴；我所赐的水，要在他里面成为泉源，直涌入永远的生命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约4:15	妇人说，先生，请把这水赐给我，叫我不渴，也不用来这里打水。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约4:16	耶稣说，你去叫你的丈夫，然后到这里来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约4:17	妇人回答说，我没有丈夫。耶稣说，你说没有丈夫，是不错的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约4:18	因为你有过五个丈夫，现在有的，并不是你的丈夫，你所说的是真的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五-5">
+            <div class="section-level3">
+                
+                5　取用基督作我们的赎愆祭，得着罪的赦免，结果使我们敬畏神并爱神—诗一三〇4，路七47~50。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五-5')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五-5" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗130:4	但在你有赦免之恩，要叫人敬畏你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路7:47	所以我告诉你，她许多的罪都赦免了，因为她爱得多；但那赦免少的，他爱得就少。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路7:48	于是对那女人说，你的罪赦了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路7:49	同席的人心里说，这人是谁，竟然赦罪？</div>
+                    
+                    
+                    
+                    <div class="verse-line">路7:50	但耶稣对那女人说，你的信救了你，平平安安地走吧！</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-肆">
+            <div class="section-level1">
+                
+                肆　我们在神圣的交通中享受基督，就在属灵的生活中不断地经历一个循环，其中有四件要紧的事物，就是永远的生命、永远生命的交通、神圣的光以及神儿子耶稣的血；这样的循环，在神圣生命的成长上带我们向前，直到我们生命成熟，团体地达到了长成的人，达到了基督丰满之身材的度量—约壹一1~9，来六1，弗四13。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约壹1:1	论到那从起初原有的生命之话，就是我们所听见过的，我们亲眼所看见过的，我们所注视过，我们的手也摸过的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:2	（这生命已经显现出来，我们也看见过，现在又作见证，将原与父同在，且显现与我们那永远的生命传与你们；）</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:3	我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:4	我们写这些事，是要叫我们的喜乐得以满足。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:5	神就是光，在祂里面毫无黑暗；这是我们从祂所听见，现在又报给你们的信息。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:6	我们若说我们与神有交通，却在黑暗里行，就是说谎话，不行真理了；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:7	但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:8	我们若说自己没有罪，便是自欺，真理就不在我们里面了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹1:9	我们若认自己的罪，神是信实的，是公义的，必要赦免我们的罪，洗净我们一切的不义。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来6:1	所以，我们既离开了那论到基督之开端的话，就当竭力前进，达到完全、成熟，不再立根基，就是悔改脱开死行，信靠神，</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:13	直到我们众人都达到了信仰上并对神儿子之完全认识上的一，达到了长成的人，达到了基督丰满之身材的度量，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.outline-page {
+    padding: 5px;
+}
+
+/* 字体大小控制 */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: #f0f4ff;
+    border: 1px solid #d0d7f0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #667eea;
+    cursor: pointer;
+}
+
+.font-btn:active {
+    background: #667eea;
+    color: #ffffff;
+    border-color: #667eea;
+}
+
+.outline-content {
+    margin-top: 20px;
+}
+
+.section-level1 {
+    font-weight: bold;
+    font-size: 17px;
+    margin: 20px 0 12px 0;
+    color: #2c3e50;
+    line-height: 1.8;
+}
+
+.section-level2 {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 16px 0 10px 15px;
+    color: #34495e;
+    line-height: 1.8;
+}
+
+.section-level3 {
+    font-size: 16px;
+    margin: 14px 0 8px 30px;
+    color: #4a5568;
+    line-height: 1.8;
+}
+
+.section-level4 {
+    font-size: 15px;
+    margin: 12px 0 8px 45px;
+    color: #718096;
+    line-height: 1.8;
+}
+
+.subsections {
+    margin-left: 0;
+    display: block;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 0.875em; /* 14px -> 0.875em */
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    margin-right: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-btn:active {
+    color: var(--brand-2);
+}
+
+.scripture-toggle-btn {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+    padding: 10px 12px;
+    margin: 8px 0 0 0;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.scripture-toggle-btn:active {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.scripture-content {
+    background: #f8f9fa;
+    border-left: 3px solid var(--brand-1);
+    padding: 10px 12px;
+    margin: 10px 0 10px 15px;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.8;
+}
+
+.verse-line {
+    margin-bottom: 8px;
+}
+
+.verse-line:last-child {
+    margin-bottom: 0;
+}
+
+.scripture-ref {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-left: 8px;
+}
+
+/* 章节级别经文样式 */
+.scripture-section {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.chapter-scripture-toggle {
+    margin-left: 10px;
+    font-size: 13px;
+    padding: 8px 14px;
+    min-height: 40px;
+}
+
+.chapter-scripture-content {
+    margin-top: 12px;
+    margin-left: 0;
+    background: white;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const hymnElem = document.querySelector('.hymn-number');
+            if (hymnElem) text += hymnElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const sections = document.querySelectorAll('.section-level1, .section-level2, .section-level3, .section-level4');
+            sections.forEach(s => {
+                const t = s.textContent.trim();
+                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+                    text += t + '。';
+                }
+            });
+            return text;
+        }
+    });
+});
+
+function toggleSection(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '▼';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '▶';
+    }
+}
+
+function toggleScripture(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '收起经文';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '展开经文';
+    }
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025夏季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

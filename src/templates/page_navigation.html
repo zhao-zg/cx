@@ -1,0 +1,15 @@
+<!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="{{ chapter.number }}_dg.htm" class="nav-link{% if page_type == 'dg' %} active{% endif %}" title="大纲">大纲</a>
+    <a href="{{ chapter.number }}_cv.htm" class="nav-link{% if page_type == 'cv' %} active{% endif %}" title="纲目">纲目</a>
+    <a href="{{ chapter.number }}_h.htm" class="nav-link{% if page_type == 'h' or page_type == 'ts' %} active{% endif %}" title="听抄">听抄</a>
+    {% if chapter.morning_revivals and chapter.morning_revivals|length > 0 %}
+    <a href="{{ chapter.number }}_cx.htm" class="nav-link{% if page_type == 'cx' %} active{% endif %}" title="晨兴">晨兴</a>
+    {% endif %}
+    {% if chapter.hymn_number and chapter.hymn_number.strip() %}
+    <a href="{{ chapter.number }}_sg.htm" class="nav-link{% if page_type == 'sg' %} active{% endif %}" title="诗歌">诗歌</a>
+    {% endif %}
+    {% if chapter.ministry_excerpt and chapter.ministry_excerpt.strip() %}
+    <a href="{{ chapter.number }}_zs.htm" class="nav-link{% if page_type == 'zs' %} active{% endif %}" title="职事">职事</a>
+    {% endif %}
+</div>

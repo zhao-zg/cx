@@ -1,0 +1,2928 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第3篇 - 纲目</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>二〇二五年感恩节相调特会</h1>
+            <div class="subtitle">总题：马太福音中所启示包罗万有的基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025感恩节训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="3_dg.htm" class="nav-link active" title="大纲">大纲</a>
+    <a href="3_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="3_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="3_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="3_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第3篇 耶稣—神所起君王救主的名，与以马内利—人所称君王救主的名</h2>
+    
+    
+    <div class="hymn-number">RA  诗歌: s225, 64</div>
+    
+    
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：太一21、23，十八20，二八20</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+            
+                
+                <div class="verse-line">太1:21	她将要生一个儿子，你要给祂起名叫耶稣，因祂要亲自将祂的百姓从他们的罪里救出来。</div>
+                
+            
+                
+                <div class="verse-line">太1:23	“看哪，必有童女怀孕生子，人要称祂的名为以马内利”（以马内利翻出来，就是神与我们同在）。</div>
+                
+            
+                
+                <div class="verse-line">太18:20	因为无论在哪里，有两三个人被聚集到我的名里，哪里就有我在他们中间。</div>
+                
+            
+                
+                <div class="verse-line">太28:20	凡我所吩咐你们的，无论是什么，都教训他们遵守；看哪，我天天与你们同在，直到这世代的终结。</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="outline-content">
+        
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹')">▶</button>
+                
+                壹　“她将要生一个儿子，你要给祂起名叫耶稣，因祂要亲自将祂的百姓从他们的罪里救出来”—太一21：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-一">
+            <div class="section-level2">
+                
+                一　“耶稣”是希腊文，等于希伯来文的名“约书亚”，意，耶和华救主，或耶和华救恩；耶稣是耶和华成为我们的救主和救恩—罗十12~13，五10，参腓一19。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗10:12	因为犹太人和希利尼人并没有分别，众人同有一位主，祂对一切呼求祂的人是丰富的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗10:13	因为“凡呼求主名的，就必得救。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗5:10	因为我们作仇敌的时候，且借着神儿子的死得与神和好，既已和好，就更要在祂的生命里得救了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:19	因为我知道，这事借着你们的祈求，和耶稣基督之灵全备的供应，终必叫我得救。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-二')">▶</button>
+                
+                二　“耶稣”这名包括“耶和华”这名；“耶和华”的意思是“我是那我是”，指明耶和华是自有永有的永远者，就是那昔是今是以后永是者—出三14，启一4：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">出3:14	神对摩西说，我是那我是；又说，你要对以色列人这样说，那我是差我到你们这里来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启1:4	约翰写信给在亚西亚的七个召会：愿恩典与平安，从那今是昔是以后永是的，从祂宝座前的七灵，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-二" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-二-1">
+            <div class="section-level3">
+                
+                1　唯有耶和华是那是的一位，祂不倚靠自己以外的任何事物；我们必须操练信心的灵信“祂是”，我们“不是”；在一切事上，祂是唯一的一位，独一的一位，我们什么都不是—来十一6。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来11:6	人非有信，就不能得神的喜悦；因为到神面前来的人，必须信有神，且信祂赏赐那寻求祂的人。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二-2">
+            <div class="section-level3">
+                
+                2　作为“我是”，祂是包罗万有的一位，是一切正面事物的实际，也是祂子民所需的一切—约六35，八12，十14，十一25，十四6。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约6:35	耶稣对他们说，我就是生命的粮，到我这里来的，必永远不饿；信入我的，必永远不渴。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约8:12	于是耶稣又对众人讲论说，我是世界的光，跟从我的，就绝不在黑暗里行，必要得着生命的光。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:14	我是好牧人，我认识那属我的，那属我的也认识我，</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:25	耶稣对她说，我是复活，我是生命；信入我的人，虽然死了，也必复活；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:6	耶稣说，我就是道路、实际、生命；若不借着我，没有人能到父那里去。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二-3">
+            <div class="section-level3">
+                
+                3　我们可以说，我们有一张金额栏空白的签名支票，可以填写我们所需要的一切；我们需要什么，耶稣就是什么，就如光、生命、能力、智慧、圣别或公义；我们所需要的一切，都能在耶稣的名里找到。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-三">
+            <div class="section-level2">
+                
+                三　耶稣是我们的约书亚，带我们进入安息，这安息就是祂自己作了我们的美地—来四8，太十一28~29。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来4:8	若是约书亚已经使他们得了安息，此后神就不会提起别的日子了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太11:28	凡劳苦担重担的，可以到我这里来，我必使你们得安息。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太11:29	我心里柔和谦卑，因此你们要负我的轭，且要跟我学，你们魂里就必得安息；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四">
+            <div class="section-level2">
+                
+                四　主的名，就是祂的人位，乃是包罗万有复合的灵—歌一3，出三十23~30，腓一19。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">歌1:3	你的膏油馨香；你的名如同倒出来的香膏，所以众童女都爱你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出30:23	你要取上好的香料，就是流质的没药五百舍客勒，香肉桂一半，就是二百五十舍客勒，香菖蒲二百五十舍客勒，</div>
+                    
+                    
+                    
+                    <div class="verse-line">出30:24	桂皮五百舍客勒，都按着圣所的舍客勒，又取橄榄油一欣；</div>
+                    
+                    
+                    
+                    <div class="verse-line">出30:25	你要把这些香料，按调制香品者之法复合成香品，作成圣膏油。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出30:26	要用这膏油抹会幕和见证的柜、</div>
+                    
+                    
+                    
+                    <div class="verse-line">出30:27	桌子和桌子的一切器具、灯台和灯台的器具、并香坛、</div>
+                    
+                    
+                    
+                    <div class="verse-line">出30:28	燔祭坛和坛的一切器具、洗濯盆和盆座。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出30:29	你要这样使这些分别为圣，好成为至圣；凡触着这些的都成为圣。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出30:30	要膏亚伦和他的儿子们，使他们分别为圣，可以作祭司事奉我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:19	因为我知道，这事借着你们的祈求，和耶稣基督之灵全备的供应，终必叫我得救。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-五')">▶</button>
+                
+                五　耶稣的名超乎万名之上—二9~10：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-五" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓2:9	所以神将祂升为至高，又赐给祂那超乎万名之上的名，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:10	叫天上的、地上的和地底下的，在耶稣的名里，万膝都要跪拜，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-五" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-五-1">
+            <div class="section-level3">
+                
+                1　耶稣的名是给我们信入的—约一12。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-五-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约1:12	凡接受祂的，就是信入祂名的人，祂就赐他们权柄，成为神的儿女。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五-2">
+            <div class="section-level3">
+                
+                2　耶稣的名是给我们浸入的—徒八16，十九5。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-五-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒8:16	因为圣灵还没有降在他们任何人身上，他们只是浸入主耶稣的名里。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒19:5	他们听了，就浸入主耶稣的名里。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五-3">
+            <div class="section-level3">
+                
+                3　耶稣的名叫我们得救—四12。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-五-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒4:12	除祂以外，别无拯救，因为在天下人间，没有赐下别的名，我们可以靠着得救。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五-4">
+            <div class="section-level3">
+                
+                4　耶稣的名使我们得医治—三6，四10。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-五-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒3:6	彼得却说，金银我都没有，只把我所有的给你：我在拿撒勒人耶稣基督的名里，叫你起来行走！</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒4:10	你们众人和以色列众百姓就当知道，乃是在拿撒勒人耶稣基督，就是你们所钉十字架，神从死人中所复活者的名里，在这名里，这人才站在你们面前健康完好。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五-5">
+            <div class="section-level3">
+                
+                5　耶稣的名使我们被洗净、圣别、称义—林前六11。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五-5')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-五-5" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林前6:11	你们中间有人从前也是这样，但在主耶稣基督的名里，并在我们神的灵里，你们已经洗净了自己，已经圣别了，已经称义了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五-6">
+            <div class="section-level3">
+                
+                6　耶稣的名是给我们呼求的—罗十13，林前一2，徒九14，创四26。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五-6')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-五-6" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗10:13	因为“凡呼求主名的，就必得救。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前1:2	写信给在哥林多神的召会，就是给在基督耶稣里被圣别，蒙召的圣徒，同着所有在各处呼求我们主耶稣基督之名的人；祂是他们的，也是我们的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:14	并且他在这里有从祭司长得来的权柄，要捆绑一切呼求你名的人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创4:26	塞特也生了一个儿子，起名叫以挪士。在那时候，人开始呼求耶和华的名。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五-7">
+            <div class="section-level3">
+                
+                7　那灵是属天的空气给我们吸入；我们操练灵呼求主的名吸入那灵，借此接受那灵—约二十22，加三2，帖前五17，哀三55~56，诗歌二一〇首。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五-7')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-五-7" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约20:22	说了这话，就向他们吹入一口气，说，你们受圣灵。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加3:2	我只愿问你们这一件，你们接受了那灵，是本于行律法，还是本于听信仰？</div>
+                    
+                    
+                    
+                    <div class="verse-line">帖前5:17	不住地祷告，</div>
+                    
+                    
+                    
+                    <div class="verse-line">哀3:55	耶和华啊，我从极深的坑里呼求你的名。</div>
+                    
+                    
+                    
+                    <div class="verse-line">哀3:56	你曾听见我的声音；求你不要掩耳不听我的呼吸，我的呼吁。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗歌二一〇首</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-一">
+            <div class="section-level2">
+                
+                一　主，求你向我吹圣灵，	教我如何吸入你；
+助我向你胸怀一倾		我的犯罪与自己。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二">
+            <div class="section-level2">
+                
+                二　我是呼出我的生命，		我才可能被充满；
+放弃软弱或是力劲，		吸入怜悯和恩湛。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-三">
+            <div class="section-level2">
+                
+                三　呼出我的罪律桎梏，		你已为我全除摒；
+吸入你的圣洁丰富，		发现惟你是生命。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四">
+            <div class="section-level2">
+                
+                四　我正呼出我的忧愁		在你慈爱的胸臆；
+吸入你的喜乐、保守，	吸入你的甜安息。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五">
+            <div class="section-level2">
+                
+                五　我正呼出我的病势，		你早已为我负担；
+我正吸入你的医治，		因你早已赐平安。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六">
+            <div class="section-level2">
+                
+                六　我今呼出我的羡慕，		入你慈爱的耳中；
+我今吸入你的答复，		平静疑惑和惊恐。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-七">
+            <div class="section-level2">
+                
+                七　我今每刻都在呼吸		你的生命作生命；
+一呼一吸都在乎你，		求你由我来显明。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-六')">▶</button>
+                
+                六　呼求主名的目的是：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-六" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-六-1">
+            <div class="section-level3">
+                
+                1　得救—罗十13。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗10:13	因为“凡呼求主名的，就必得救。”</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-2">
+            <div class="section-level3">
+                
+                2　从急难、患难、愁苦和痛苦中蒙拯救—诗十八6，一一八5，八六7，五十15，八一7，一一六3~4。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗18:6	我在急难中呼求耶和华，向我的神呼救。祂从殿中听了我的声音，我在祂面前的呼救入了祂的耳中。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗118:5	我在急难中呼求耶和华，耶和华就应允我，把我安置在宽阔之处。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗86:7	我在患难之日要呼求你，因为你必应允我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗50:15	并要在患难之日呼求我：我必搭救你，你也要荣耀我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗81:7	你在患难中呼求，我就搭救你；我在雷的隐密处应允你；我在米利巴水那里试验你。细拉</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗116:3	死亡的绳索围绕我，阴间的痛苦临到我；我遭遇患难愁苦。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗116:4	然而我呼求耶和华的名。耶和华啊，求你救我的性命。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-3">
+            <div class="section-level3">
+                
+                3　有分于主的慈爱，祂的怜悯—八六5。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗86:5	主啊，你本为良善，乐意饶恕人，对一切呼求你的人，有丰盛的慈爱。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-4">
+            <div class="section-level3">
+                
+                4　有分于主的救恩—一一六2、4、13、17。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗116:2	祂既向我侧耳，我一生要呼求祂。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗116:4	然而我呼求耶和华的名。耶和华啊，求你救我的性命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗116:13	我要举起救恩的杯，呼求耶和华的名。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗116:17	我要将感谢祭献给你，又要呼求耶和华的名。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-5">
+            <div class="section-level3">
+                
+                5　接受那灵—徒二17、21。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-5')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-5" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒2:17	“神说，在末后的日子，我要将我的灵浇灌在一切属肉体的人身上；你们的儿女要说预言，你们的青年人要见异象，你们的老年人要作异梦。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒2:21	那时，凡呼求主名的，就必得救。”</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-6">
+            <div class="section-level3">
+                
+                6　饮灵水吃灵粮以得满足—赛五五1~2、6。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-6')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-6" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛55:1	喂！你们一切干渴的都当就近水来，没有银钱的也可以来；你们都来，买了吃；不用银钱，不用价值，也来买酒和奶。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛55:2	你们为何花钱买那不是食物的，用劳碌得来的买那不能使人饱足的呢？你们要留意听我的话，就能吃那美物，使你们的魂享肥甘得喜乐。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛55:6	当趁耶和华可寻找的时候寻找祂，相近的时候呼求祂。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-7">
+            <div class="section-level3">
+                
+                7　享受主的丰富—罗十12，林前十二3下，申四7，诗一四五18。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-7')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-7" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗10:12	因为犹太人和希利尼人并没有分别，众人同有一位主，祂对一切呼求祂的人是丰富的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前12:3下	……若不是在圣灵里，也没有人能说，主，耶稣！</div>
+                    
+                    
+                    
+                    <div class="verse-line">申4:7	哪一大国的人有神与他们相近，像耶和华我们的神，在我们呼求祂的时候与我们相近？</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗145:18	凡呼求耶和华的，就是真实呼求祂的，耶和华便与他们相近。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-8">
+            <div class="section-level3">
+                
+                8　将我们自己挑旺起来—赛六四7。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-8')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-8" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛64:7	无人呼求你的名，无人奋起抓住你；原来你掩面不顾我们，使我们被自己的罪孽消灭。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-9">
+            <div class="section-level3">
+                
+                9　耶稣的名是给我们在其中祷告的—约十四13~14，十五16，十六24。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-9')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-9" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约14:13	你们在我的名里无论求什么，我必作成，叫父在子身上得荣耀。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:14	你们若在我的名里求我什么，我必作成。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约15:16	不是你们拣选了我，乃是我拣选了你们，并且立了你们，要你们前去，并要你们结果子，且要你们的果子常存，使你们在我的名里，无论向父求什么，祂就赐给你们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约16:24	向来你们没有在我的名里求什么，现在你们求，就必得着，叫你们的喜乐可以满足。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-10">
+            <div class="section-level3">
+                
+                10　耶稣的名是给我们聚集归入的—太十八20。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-10')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-10" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太18:20	因为无论在哪里，有两三个人被聚集到我的名里，哪里就有我在他们中间。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-11">
+            <div class="section-level3">
+                
+                11　耶稣的名是给我们赶鬼的—徒十六18。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-11')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-11" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒16:18	她一连多日都这样作，保罗就十分厌烦，转身对那巫觋的灵说，我在耶稣基督的名里，吩咐你从她身上出来。那巫觋的灵当时就出来了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六-12">
+            <div class="section-level3">
+                
+                12　耶稣的名是给我们在其中放胆讲说的—九27。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-12')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六-12" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒9:27	唯有巴拿巴接受他，领他到使徒那里去，把他在路上怎么看见主，主怎么向他说话，他在大马色怎么在耶稣的名里放胆讲说，都向他们述说出来。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-七">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-七')">▶</button>
+                
+                七　撒但恨恶耶稣的名：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-七" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-七-1">
+            <div class="section-level3">
+                
+                1　撒但利用人攻击耶稣的名—参二六9。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-七-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-七-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒26:9	从前我自己也以为，应当多方攻击拿撒勒人耶稣的名。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-七-2">
+            <div class="section-level3">
+                
+                2　宗教徒攻击耶稣的名，禁止信徒在那名里传扬或施教—四17~18，五40。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-七-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-七-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒4:17	唯恐这事越发传布在民间，我们必须恐吓他们，叫他们不要再靠这名对任何人讲论。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒4:18	于是叫了他们来，吩咐他们，绝对不要靠耶稣的名讲论、施教。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒5:40	议会的人听从了他，便叫使徒来，打了他们，又吩咐他们不可靠耶稣的名讲论，就把他们释放了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-七-3">
+            <div class="section-level3">
+                
+                3　使徒们遭受逼迫时，因被算是配为耶稣的名受辱而欢喜—41节，十五26。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-七-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-七-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒5:41	他们欢欢喜喜从议会跟前走开，因被算是配为这名受辱。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒15:26	这二人是为我们主耶稣基督的名，不顾性命的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-八">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-八')">▶</button>
+                
+                八　主耶稣称赞非拉铁非的得胜者，因为他们没有否认祂的名—启三8：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-八')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-八" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启3:8	我知道你的行为；看哪，我在你面前给你一个敞开的门，是无人能关的；因为你稍微有一点能力，也曾遵守我的话，没有否认我的名。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-八" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-八-1">
+            <div class="section-level3">
+                
+                1　恢复的召会弃绝了主耶稣基督之外一切的名，而绝对属于主。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-八-2">
+            <div class="section-level3">
+                
+                2　以主名之外的名称呼召会，乃是属灵的淫乱；召会如同贞洁的童女许配基督（林后十一2），除了她丈夫的名以外，不该有别的名。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-八-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-八-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后11:2	我以神的妒忌，妒忌你们，因为我曾把你们许配一个丈夫，要将一个贞洁的童女献给基督。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰')">▶</button>
+                
+                贰　“‘看哪，必有童女怀孕生子，人要称祂的名为以马内利。’（以马内利翻出来，就是神与我们同在）”—太一23：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-一">
+            <div class="section-level2">
+                
+                一　耶稣这君王救主的名是神所起的，而以马内利这君王救主的名是人所称的—23节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太1:23	“看哪，必有童女怀孕生子，人要称祂的名为以马内利”（以马内利翻出来，就是神与我们同在）。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二">
+            <div class="section-level2">
+                
+                二　马太福音是一卷论到以马内利—神成为肉体与我们同在—的书—21~23节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太1:21	她将要生一个儿子，你要给祂起名叫耶稣，因祂要亲自将祂的百姓从他们的罪里救出来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太1:22	这一切成就了，为要应验主借着申言者所说的，说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">太1:23	“看哪，必有童女怀孕生子，人要称祂的名为以马内利”（以马内利翻出来，就是神与我们同在）。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-三')">▶</button>
+                
+                三　以马内利是包罗万有的—腓一19：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓1:19	因为我知道，这事借着你们的祈求，和耶稣基督之灵全备的供应，终必叫我得救。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-三" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-三-1">
+            <div class="section-level3">
+                
+                1　祂先是我们的救主（路二11），然后是我们的救赎主（约一29，罗三24）、赐我们生命者（林前十五45下），之后是包罗万有、内住的灵（约十四16~20，罗八9~11）。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">路2:11	因今天在大卫的城里，为你们生了救主，就是主基督。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约1:29	次日，约翰看见耶稣向他走来，就说，看哪，神的羔羊，除去世人之罪的！</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗3:24	但因神的恩典，借着在基督耶稣里的救赎，就白白地得称义。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前15:45下	……末后的亚当成了赐生命的灵。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:16	我要求父，祂必赐给你们另一位保惠师，叫祂永远与你们同在，</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:17	就是实际的灵，乃世人不能接受的，因为不见祂，也不认识祂；你们却认识祂，因祂与你们同住，且要在你们里面。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:18	我不撇下你们为孤儿，我正往你们这里来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:19	还有不多的时候，世人不再看见我，你们却看见我，因为我活着，你们也要活着。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:20	到那日，你们就知道我在我父里面，你们在我里面，我也在你们里面。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:9	但神的灵若住在你们里面，你们就不在肉体里，乃在灵里了；然而人若没有基督的灵，就不是属基督的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:10	但基督若在你们里面，身体固然因罪是死的，灵却因义是生命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:11	然而那叫耶稣从死人中复活者的灵，若住在你们里面，那叫基督从死人中复活的，也必借着祂住在你们里面的灵，赐生命给你们必死的身体。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三-2">
+            <div class="section-level3">
+                
+                2　实际上，全本新约的内容就是以马内利（太一23，十八20，二八20，启二一3），并且所有在基督里的信徒，作为基督的众肢体，乃是团体的基督（林前十二12，西三10~11）这伟大以马内利的一部分。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太1:23	“看哪，必有童女怀孕生子，人要称祂的名为以马内利”（以马内利翻出来，就是神与我们同在）。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太18:20	因为无论在哪里，有两三个人被聚集到我的名里，哪里就有我在他们中间。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太28:20	凡我所吩咐你们的，无论是什么，都教训他们遵守；看哪，我天天与你们同在，直到这世代的终结。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启21:3	我听见有大声音从宝座出来，说，看哪，神的帐幕与人同在，祂要与人同住，他们要作祂的百姓，神要亲自与他们同在，作他们的神。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前12:12	就如身体是一个，却有许多肢体，而且身体上一切的肢体虽多，仍是一个身体，基督也是这样。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:10	并且穿上了新人；这新人照着创造他者的形像渐渐更新，以致有充足的知识；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:11	在此并没有希利尼人和犹太人、受割礼的和未受割礼的、化外人、西古提人、为奴的、自主的，唯有基督是一切，又在一切之内。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-四')">▶</button>
+                
+                四　实际的以马内利就是实际的灵，也就是终极完成之三一神在我们灵里的同在；祂一直在我们灵里与我们同在—不只天天，更是每时每刻—约一14，十四16~20，林前十五45下，提后四22：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约1:14	话成了肉体，支搭帐幕在我们中间，丰丰满满地有恩典，有实际。我们也见过祂的荣耀，正是从父而来独生子的荣耀。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:16	我要求父，祂必赐给你们另一位保惠师，叫祂永远与你们同在，</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:17	就是实际的灵，乃世人不能接受的，因为不见祂，也不认识祂；你们却认识祂，因祂与你们同住，且要在你们里面。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:18	我不撇下你们为孤儿，我正往你们这里来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:19	还有不多的时候，世人不再看见我，你们却看见我，因为我活着，你们也要活着。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:20	到那日，你们就知道我在我父里面，你们在我里面，我也在你们里面。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前15:45下	……末后的亚当成了赐生命的灵。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提后4:22	愿主与你的灵同在。愿恩典与你们同在。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-四" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-四-1">
+            <div class="section-level3">
+                
+                1　祂在我们的聚集中与我们同在—太十八20。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太18:20	因为无论在哪里，有两三个人被聚集到我的名里，哪里就有我在他们中间。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-2">
+            <div class="section-level3">
+                
+                2　祂天天与我们同在—二八20。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太28:20	凡我所吩咐你们的，无论是什么，都教训他们遵守；看哪，我天天与你们同在，直到这世代的终结。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-3">
+            <div class="section-level3">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-四-3')">▶</button>
+                
+                3　祂在我们的灵里与我们同在—提后四22：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">提后4:22	愿主与你的灵同在。愿恩典与你们同在。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-四-3" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-四-3-a">
+            <div class="section-level4">
+                
+                a　今天我们的灵就是以马内利的地—赛八7~8。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-3-a')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-3-a" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛8:7	因此，主必使大河汹涌浩大的水，就是亚述王和他所有的威荣，上来淹没他们；那河必漫过一切的水道，涨过所有的河岸；</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛8:8	必冲入犹大，涨溢泛滥，直到颈项；以马内利啊，那河展开翅膀，遍满你的地。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-3-b">
+            <div class="section-level4">
+                
+                b　因为神与我们同在，仇敌绝不能占取以马内利的地—10节，参约壹五4，约三6。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-3-b')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-3-b" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛8:10	任凭你们策划，终必失败；任凭你们言定，终不成立；因为神与我们同在。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹5:4	因为凡从神生之物，就胜过世界，胜过世界的，就是我们的信。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约3:6	从肉体生的，就是肉体；从那灵生的，就是灵。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-4">
+            <div class="section-level3">
+                
+                4　我们聚集在一起，教训神的圣言，就能享受三一神的同在—太十八20，二八20，诗一一九30，徒六4。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太18:20	因为无论在哪里，有两三个人被聚集到我的名里，哪里就有我在他们中间。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太28:20	凡我所吩咐你们的，无论是什么，都教训他们遵守；看哪，我天天与你们同在，直到这世代的终结。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:30	我拣选了忠信的道路，将你的典章摆在我面前。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒6:4	但我们要坚定持续地祷告，并尽话语的职事。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-5">
+            <div class="section-level3">
+                
+                5　我们借着作三一神同在的那灵，享受恩典与平安—加六18，徒九31。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-5')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-5" style="display: none;">
+                    
+                    
+                    <div class="verse-line">加6:18	弟兄们，愿我们主耶稣基督的恩与你们的灵同在。阿们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:31	那时全犹太、加利利、撒玛利亚遍处的召会得平安，被建造，在对主的敬畏并圣灵的安慰中行动，人数就繁增了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-6">
+            <div class="section-level3">
+                
+                6　那灵的引导和见证，就是祂的同在—罗八14、16。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-6')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-6" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗8:14	因为凡被神的灵引导的，都是神的儿子。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:16	那灵自己同我们的灵见证我们是神的儿女。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-7">
+            <div class="section-level3">
+                
+                7　我们借着三一神作为那灵的同在，享受三一神的分赐—林后十三14。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-7')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-7" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后13:14	愿主耶稣基督的恩，神的爱，圣灵的交通，与你们众人同在。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-五">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-五')">▶</button>
+                
+                五　我们要与作以马内利的基督同活，就需要在祂的神圣同在里；这神圣的同在就是赐生命的灵，作三一神的终极完成—加五25：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-五')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-五" style="display: none;">
+                    
+                    
+                    <div class="verse-line">加5:25	我们若凭着灵活着，也就当凭着灵而行。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-五" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-五-1">
+            <div class="section-level3">
+                
+                1　与基督同活就是我们仍然活着，但不是凭自己单独活着，乃是凭那作以马内利的基督在我们里面活着并与我们同活；三一神若在我们外面，就无法完成祂的目的，就是将祂自己分赐到我们这人里面；所以，祂与我们的同在必须是内里的—二20。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-五-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-五-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">加2:20	我已经与基督同钉十字架；现在活着的，不再是我，乃是基督在我里面活着；并且我如今在肉身里所活的生命，是我在神儿子的信里，与祂联结所活的，祂是爱我，为我舍了自己。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-五-2">
+            <div class="section-level3">
+                
+                2　以马内利是我们的生命和人位，我们是祂的器官，与祂一同生活如同一人；我们的得胜在于以马内利—耶稣的同在。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-五-3">
+            <div class="section-level3">
+                
+                3　我们若有主的同在，就有智慧、眼光、先见以及对事物内里的认识；主的同在对我们乃是一切—林后二10，四6~7，加五25，创五22~24，来十一5~6。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-五-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-五-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后2:10	你们饶恕谁什么，我也饶恕；我若曾有所饶恕，我所已经饶恕的，是在基督的面前，为你们饶恕的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:6	因为那说光要从黑暗里照出来的神，已经照在我们心里，为着光照人，使人认识那显在耶稣基督面上之神的荣耀。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:7	但我们有这宝贝在瓦器里，要显明这超越的能力，是属于神，不是出于我们；</div>
+                    
+                    
+                    
+                    <div class="verse-line">加5:25	我们若凭着灵活着，也就当凭着灵而行。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创5:22	以诺生玛土撒拉之后，与神同行三百年，并且生儿生女。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创5:23	以诺共活了三百六十五岁。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创5:24	以诺与神同行，神将他取去，他就不在世了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来11:5	以诺因着信被接去，不至于见死，人也找不着他，因为神把他接去了；原来他被接去以前，已经得了蒙神喜悦的见证。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来11:6	人非有信，就不能得神的喜悦；因为到神面前来的人，必须信有神，且信祂赏赐那寻求祂的人。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-六">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-六')">▶</button>
+                
+                六　我们若要进入、据有并享受包罗万有的基督这美地的实际，就必须在主的同在里去；主应许摩西：“我的同在必和你同去，我必使你得安息”（出三三14）；神的同在就是祂的道路，是那向祂的百姓指示当行之路的“地图”：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-六" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-六-1">
+            <div class="section-level3">
+                
+                1　我们要为着神的建造完全得着并据有基督这包罗万有的地，就必须抓牢这一个原则：神的同在乃是一切问题的准则；我们无论作什么，都必须注意我们有否神的同在；我们若有神的同在，就有一切，但我们若失去神的同在，就失去一切—太一23，提后四22，加六18，诗二七4、8，五一11。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-六-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-六-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太1:23	“看哪，必有童女怀孕生子，人要称祂的名为以马内利”（以马内利翻出来，就是神与我们同在）。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提后4:22	愿主与你的灵同在。愿恩典与你们同在。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加6:18	弟兄们，愿我们主耶稣基督的恩与你们的灵同在。阿们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗27:4	有一件事，我曾求耶和华，我仍要寻求；就是一生一世住在耶和华的殿中，瞻仰祂的荣美，在祂的殿里求问。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗27:8	你说，你们当寻求我的面；那时我的心向你说，耶和华啊，你的面我正要寻求。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗51:11	不要丢弃我，使我离开你的面；不要从我取去你圣别的灵。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-六-2">
+            <div class="section-level3">
+                
+                2　主的同在，主的微笑，是支配的原则；我们必须学习受主直接、头手的同在保守、掌管、管理并指引—二七8，八十3、7、17~19。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-六-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-六-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗27:8	你说，你们当寻求我的面；那时我的心向你说，耶和华啊，你的面我正要寻求。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗80:3	神啊，求你恢复我们，使你的脸发光，我们便要得救。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗80:7	万军之神啊，求你恢复我们，使你的脸发光，我们便要得救。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗80:17	愿你的手护庇你右边的人，就是你为自己所坚固的人子。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗80:18	这样，我们便不退后离开你；求你救活我们，我们就要呼求你的名。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗80:19	耶和华万军之神啊，求你恢复我们，使你的脸发光，我们便要得救。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-六-3">
+            <div class="section-level3">
+                
+                3　作为成熟生命掌权一面的代表，约瑟享受主的同在，并且因此享有主所赐的权柄、亨通与祝福—创三九2~5、21，徒七9。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-六-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-六-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">创39:2	约瑟住在他主人埃及人的家中，耶和华与他同在，他就凡事亨通。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创39:3	他主人见耶和华与他同在，又见耶和华使他手里所办的尽都顺利，</div>
+                    
+                    
+                    
+                    <div class="verse-line">创39:4	约瑟就在主人眼前蒙恩，伺候他主人；主人派他管理家务，把一切所有的都交在他手里。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创39:5	自从主人派约瑟管理家务和他一切所有的，耶和华就因约瑟的缘故赐福与那埃及人的家；他家里和田间一切所有的，都蒙耶和华赐福。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创39:21	耶和华与约瑟同在，向他施恩慈，使他在狱长眼前蒙恩。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒7:9	先祖嫉妒约瑟，把他卖到埃及去，神却与他同在，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-六-4">
+            <div class="section-level3">
+                
+                4　摩西是个非常接近神的心，并照着神的心的人；因此，他有神的同在，到了完满的地步—出三三11。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-六-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-六-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">出33:11	耶和华与摩西面对面说话，好像人与同伴说话一般。摩西回到营里去，但他的帮手，一个少年人，就是嫩的儿子约书亚，不离开会幕。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-六-5">
+            <div class="section-level3">
+                
+                5　使徒保罗是照着基督眼中所表露祂全人的标示，在祂面前生活行动的人—林后二10。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-六-5')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-六-5" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后2:10	你们饶恕谁什么，我也饶恕；我若曾有所饶恕，我所已经饶恕的，是在基督的面前，为你们饶恕的；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-六-6">
+            <div class="section-level3">
+                
+                6　“我年轻时，人教导我各种得胜、圣别、并属灵的方法。然而，……除了主的同在以外，没有一样管用。祂与我们同在，乃是一切”—约书亚记生命读经，五八至五九页。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-七">
+            <div class="section-level2">
+                
+                七　整个新约就是以马内利；我们现今是这伟大以马内利的一部分，这以马内利要终极完成于新天新地里的新耶路撒冷，直到永远；新约开始于一个神人，祂是“神与我们同在”，结束于一个伟大的神人，新耶路撒冷，就是“耶和华的所在”—太一23，林前六17，徒九4，提前三15~16，启二一3、22，结四八35。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-七')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-七" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太1:23	“看哪，必有童女怀孕生子，人要称祂的名为以马内利”（以马内利翻出来，就是神与我们同在）。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前6:17	但与主联合的，便是与主成为一灵。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:4	他就仆倒在地，听见有声音对他说，扫罗，扫罗，你为什么逼迫我？</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前3:15	倘若我耽延，你也可以知道在神的家中当怎样行；这家就是活神的召会，真理的柱石和根基。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前3:16	并且，大哉！敬虔的奥秘！这是众所公认的，就是：祂显现于肉体，被称义于灵里，被天使看见，被传于万邦，被信仰于世人中，被接去于荣耀里。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启21:3	我听见有大声音从宝座出来，说，看哪，神的帐幕与人同在，祂要与人同住，他们要作祂的百姓，神要亲自与他们同在，作他们的神。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启21:22	我未见城内有殿，因主神全能者和羔羊为城的殿。</div>
+                    
+                    
+                    
+                    <div class="verse-line">结48:35	城四围共一万八千苇，从那日起，这城的名字必称为耶和华的所在。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.outline-page {
+    padding: 5px;
+}
+
+/* 字体大小控制 */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: #f0f4ff;
+    border: 1px solid #d0d7f0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #667eea;
+    cursor: pointer;
+}
+
+.font-btn:active {
+    background: #667eea;
+    color: #ffffff;
+    border-color: #667eea;
+}
+
+.outline-content {
+    margin-top: 20px;
+}
+
+.section-level1 {
+    font-weight: bold;
+    font-size: 17px;
+    margin: 20px 0 12px 0;
+    color: #2c3e50;
+    line-height: 1.8;
+}
+
+.section-level2 {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 16px 0 10px 15px;
+    color: #34495e;
+    line-height: 1.8;
+}
+
+.section-level3 {
+    font-size: 16px;
+    margin: 14px 0 8px 30px;
+    color: #4a5568;
+    line-height: 1.8;
+}
+
+.section-level4 {
+    font-size: 15px;
+    margin: 12px 0 8px 45px;
+    color: #718096;
+    line-height: 1.8;
+}
+
+.subsections {
+    margin-left: 0;
+    display: block;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 0.875em; /* 14px -> 0.875em */
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    margin-right: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-btn:active {
+    color: var(--brand-2);
+}
+
+.scripture-toggle-btn {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+    padding: 10px 12px;
+    margin: 8px 0 0 0;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.scripture-toggle-btn:active {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.scripture-content {
+    background: #f8f9fa;
+    border-left: 3px solid var(--brand-1);
+    padding: 10px 12px;
+    margin: 10px 0 10px 15px;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.8;
+}
+
+.verse-line {
+    margin-bottom: 8px;
+}
+
+.verse-line:last-child {
+    margin-bottom: 0;
+}
+
+.scripture-ref {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-left: 8px;
+}
+
+/* 章节级别经文样式 */
+.scripture-section {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.chapter-scripture-toggle {
+    margin-left: 10px;
+    font-size: 13px;
+    padding: 8px 14px;
+    min-height: 40px;
+}
+
+.chapter-scripture-content {
+    margin-top: 12px;
+    margin-left: 0;
+    background: white;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const hymnElem = document.querySelector('.hymn-number');
+            if (hymnElem) text += hymnElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const sections = document.querySelectorAll('.section-level1, .section-level2, .section-level3, .section-level4');
+            sections.forEach(s => {
+                const t = s.textContent.trim();
+                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+                    text += t + '。';
+                }
+            });
+            return text;
+        }
+    });
+});
+
+function toggleSection(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '▼';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '▶';
+    }
+}
+
+function toggleScripture(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '收起经文';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '展开经文';
+    }
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025感恩节训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

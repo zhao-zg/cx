@@ -1,0 +1,2161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第3篇 - 纲目</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>夏季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025夏季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="3_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="3_cv.htm" class="nav-link active" title="纲目">纲目</a>
+    <a href="3_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="3_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="3_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第3篇 享受包罗万有的基督作美地—我们所分得的分</h2>
+    
+    
+    <div class="hymn-number">JL 诗歌: 163, 477</div>
+    
+    
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：西一12，二6~15、19，出三8，申八8~9，二六9</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+            
+                
+                <div class="verse-line">西1:12	感谢父，叫你们够资格在光中同得所分给众圣徒的分；</div>
+                
+            
+                
+                <div class="verse-line">西2:6	你们既然接受了基督，就是主耶稣，</div>
+                
+            
+                
+                <div class="verse-line">西2:7	在祂里面已经生根，并正被建造，且照着你们所受的教导，在信心上得以坚固，洋溢着感谢，就要在祂里面行事为人。</div>
+                
+            
+                
+                <div class="verse-line">西2:8	你们要谨慎，恐怕有人用他的哲学，和虚空的欺骗，照着人的传统，照着世上的蒙学，不照着基督，把你们掳去；</div>
+                
+            
+                
+                <div class="verse-line">西2:9	因为神格一切的丰满，都有形有体地居住在基督里面，</div>
+                
+            
+                
+                <div class="verse-line">西2:10	你们在祂里面也得了丰满。祂是一切执政掌权者的元首；</div>
+                
+            
+                
+                <div class="verse-line">西2:11	你们在祂里面也受了非人手所行的割礼，乃是在基督的割礼里，脱去了肉体的身体，</div>
+                
+            
+                
+                <div class="verse-line">西2:12	在受浸中与祂一同埋葬，也在受浸中，借着那叫祂从死人中复活之神所运行的信心，与祂一同复活。</div>
+                
+            
+                
+                <div class="verse-line">西2:13	你们从前在过犯，和未受割礼的肉体中死了，神赦免了你们一切的过犯，叫你们一同与基督活过来；</div>
+                
+            
+                
+                <div class="verse-line">西2:14	涂抹了规条上所写，攻击我们，反对我们的字据，并且把它撤去，钉在十字架上。</div>
+                
+            
+                
+                <div class="verse-line">西2:15	既将执政的和掌权的脱下，神就把他们公然示众，仗着十字架在凯旋中向他们夸胜。</div>
+                
+            
+                
+                <div class="verse-line">西2:19	不持定元首；本于祂，全身借着节和筋，得了丰富的供应，并结合一起，就以神的增长而长大。</div>
+                
+            
+                
+                <div class="verse-line">出3:8	我下来要救他们脱离埃及人的手，领他们从那地出来，上到美好、宽阔、流奶与蜜之地，就是到迦南人、赫人、亚摩利人、比利洗人、希未人、耶布斯人的地方。</div>
+                
+            
+                
+                <div class="verse-line">申8:8	那地有小麦、大麦、葡萄树、无花果树、石榴树；那地有出油的橄榄树，有蜜。</div>
+                
+            
+                
+                <div class="verse-line">申8:9	你在那地不缺食物，你必一无所缺；那地的石头是铁，山内可以挖铜。</div>
+                
+            
+                
+                <div class="verse-line">申26:9	将我们领进这地方，把这流奶与蜜之地赐给我们。</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="outline-content">
+        
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹')">▼</button>
+                
+                壹　基督作居首位和包罗万有者，乃是众圣徒所分得的分—西一12：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西1:12	感谢父，叫你们够资格在光中同得所分给众圣徒的分；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-一">
+            <div class="section-level2">
+                
+                一　“所分得的分”是指业分，如以色列人分得迦南美地之分，作他们的产业—书十四1。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">书14:1	以下是以色列人在迦南地所得的产业，就是祭司以利亚撒和嫩的儿子约书亚，并以色列人各支派宗族的首领所分给他们的；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-二')">▼</button>
+                
+                二　新约信徒所分得的分，不是物质的土地，乃是包罗万有的基督作为赐生命的灵—西二6~7，加三14：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:6	你们既然接受了基督，就是主耶稣，</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:7	在祂里面已经生根，并正被建造，且照着你们所受的教导，在信心上得以坚固，洋溢着感谢，就要在祂里面行事为人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加3:14	为叫亚伯拉罕的福，在基督耶稣里可以临到外邦人，使我们借着信，可以接受所应许的那灵。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-二" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-二-1">
+            <div class="section-level3">
+                
+                1　美地的丰富预表基督那追测不尽之丰富的不同方面，在祂的灵里作祂信徒全备的供应—申八7~10，弗三8，腓一19。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">申8:7	因为耶和华你神领你进入美地，那地有川，有泉，有源，从谷中和山上流出水来；</div>
+                    
+                    
+                    
+                    <div class="verse-line">申8:8	那地有小麦、大麦、葡萄树、无花果树、石榴树；那地有出油的橄榄树，有蜜。</div>
+                    
+                    
+                    
+                    <div class="verse-line">申8:9	你在那地不缺食物，你必一无所缺；那地的石头是铁，山内可以挖铜。</div>
+                    
+                    
+                    
+                    <div class="verse-line">申8:10	你吃得饱足，就要颂赞耶和华你的神，因祂将那美地赐给你了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗3:8	这恩典赐给了我这比众圣徒中最小者还小的，叫我将基督那追测不尽的丰富，当作福音传给外邦人，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:19	因为我知道，这事借着你们的祈求，和耶稣基督之灵全备的供应，终必叫我得救。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二-2">
+            <div class="section-level3">
+                
+                2　在基督里的信徒享受那地的丰富，借此被建造成为祂的身体，作神的家与神的国—弗一22~23，二21~22，提前三15，太十六18~19，罗十四17。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗1:22	将万有服在祂的脚下，并使祂向着召会作万有的头；</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗1:23	召会是祂的身体，是那在万有中充满万有者的丰满。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗2:21	在祂里面，全房联结一起，长成在主里的圣殿；</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗2:22	你们也在祂里面同被建造，成为神在灵里的居所。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前3:15	倘若我耽延，你也可以知道在神的家中当怎样行；这家就是活神的召会，真理的柱石和根基。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太16:18	我还告诉你，你是彼得，我要把我的召会建造在这磐石上，阴间的门不能胜过她。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太16:19	我要把诸天之国的钥匙给你，凡你在地上捆绑的，必是在诸天之上已经捆绑的；凡你在地上释放的，必是在诸天之上已经释放的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗14:17	因为神的国不在于吃喝，乃在于公义、和平、并圣灵中的喜乐。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰')">▼</button>
+                
+                贰　神呼召的目的，是要将神所拣选的人带进对流奶与蜜的美地所预表包罗万有之基督的享受里—出三8，参林前一9：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰" style="display: none;">
+                    
+                    
+                    <div class="verse-line">出3:8	我下来要救他们脱离埃及人的手，领他们从那地出来，上到美好、宽阔、流奶与蜜之地，就是到迦南人、赫人、亚摩利人、比利洗人、希未人、耶布斯人的地方。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前1:9	神是信实的，你们乃是为祂所召，进入了祂儿子我们主耶稣基督的交通。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-一')">▼</button>
+                
+                一　奶和蜜是动物生命与植物生命的调和，是基督生命的两面—救赎的一面和生产的一面—申八8，二六9，参约一29，十二24：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">申8:8	那地有小麦、大麦、葡萄树、无花果树、石榴树；那地有出油的橄榄树，有蜜。</div>
+                    
+                    
+                    
+                    <div class="verse-line">申26:9	将我们领进这地方，把这流奶与蜜之地赐给我们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约1:29	次日，约翰看见耶稣向他走来，就说，看哪，神的羔羊，除去世人之罪的！</div>
+                    
+                    
+                    
+                    <div class="verse-line">约12:24	我实实在在地告诉你们，一粒麦子不落在地里死了，仍旧是一粒；若是死了，就结出许多子粒来。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-一" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一-1">
+            <div class="section-level3">
+                
+                1　基督的生命救赎这一面是为着我们法理的救赎，基督的生命生产这一面是为着我们生机的拯救—一29，十二24，启二7，罗五10。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约1:29	次日，约翰看见耶稣向他走来，就说，看哪，神的羔羊，除去世人之罪的！</div>
+                    
+                    
+                    
+                    <div class="verse-line">约12:24	我实实在在地告诉你们，一粒麦子不落在地里死了，仍旧是一粒；若是死了，就结出许多子粒来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启2:7	那灵向众召会所说的话，凡有耳的，就应当听。得胜的，我必将神乐园中生命树的果子赐给他吃。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗5:10	因为我们作仇敌的时候，且借着神儿子的死得与神和好，既已和好，就更要在祂的生命里得救了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-一-2">
+            <div class="section-level3">
+                
+                2　主桌子的表记之物，表征基督的生命救赎与生产这两面，为着神完整的救恩；因此，美地成了给我们享受的桌子，筵席—太二六26~28，林前十17。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太26:26	他们吃的时候，耶稣拿起饼来，祝福了，就擘开，递给门徒，说，你们拿着吃，这是我的身体。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太26:27	又拿起杯来，祝谢了，递给他们，说，你们都喝这个，</div>
+                    
+                    
+                    
+                    <div class="verse-line">太26:28	因为这是我立约的血，为多人流出来，使罪得赦。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前10:17	因着只有一个饼，我们虽多，还是一个身体，因我们都分受这一个饼。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-二')">▼</button>
+                
+                二　我们必须“在光中”，好在包罗万有之基督救赎与生产这两面享受祂作美地—西一12，彼前二9，赛二5：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西1:12	感谢父，叫你们够资格在光中同得所分给众圣徒的分；</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:9	唯有你们是蒙拣选的族类，是君尊的祭司体系，是圣别的国度，是买来作产业的子民，要叫你们宣扬那召你们出黑暗、入祂奇妙之光者的美德；</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛2:5	雅各家啊，来吧，我们在耶和华的光中行走。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-二" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-二-1">
+            <div class="section-level3">
+                
+                1　神是光—约壹一5。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约壹1:5	神就是光，在祂里面毫无黑暗；这是我们从祂所听见，现在又报给你们的信息。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-2">
+            <div class="section-level3">
+                
+                2　神的话是光—诗一一九105、130。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗119:105	你的话是我脚前的灯，是我路上的光。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:130	你的言语一解开，就发出亮光，使愚蒙人通达。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-3">
+            <div class="section-level3">
+                
+                3　基督是光—约八12，九5。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约8:12	于是耶稣又对众人讲论说，我是世界的光，跟从我的，就绝不在黑暗里行，必要得着生命的光。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约9:5	我在世界的时候，是世界的光。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-4">
+            <div class="section-level3">
+                
+                4　基督的生命是光—一4。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约1:4	生命在祂里面，这生命就是人的光。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-5">
+            <div class="section-level3">
+                
+                5　信徒是光—太五14，腓二15。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-5')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二-5" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太5:14	你们是世上的光。城立在山上，是不能隐藏的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:15	使你们无可指摘、纯洁无杂，在弯曲悖谬的世代中，作神无瑕疵的儿女；你们在其中好像发光之体显在世界里，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-6">
+            <div class="section-level3">
+                
+                6　召会是灯台发光照耀—启一20，诗七三16~17。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-6')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二-6" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启1:20	论到你所看见在我右手中的七星，和七个金灯台的奥秘，那七星就是七个召会的使者，七灯台就是七个召会。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗73:16	我思索要明白这事，眼看实系为难；</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗73:17	等我进了神的圣所，我才看清他们的结局。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三">
+            <div class="section-level2">
+                
+                三　我们必须吃神的话，好在包罗万有之基督救赎与生产这两面享受祂作美地；神的话是奶给我们喝，是蜜给我们吃—约六57、63、68，彼前二2，诗一一九103，结三3。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约6:57	活的父怎样差我来，我又因父活着，照样，那吃我的人，也要因我活着。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约6:63	赐人生命的乃是灵，肉是无益的；我对你们所说的话，就是灵，就是生命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约6:68	西门彼得回答祂说，主啊，你有永远生命的话，我们还归从谁？</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:2	像才生的婴孩一样，切慕那纯净的话奶，叫你们靠此长大，以致得救；</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:103	你的言语在我上膛何等甘美！在我口中比蜜更甜！</div>
+                    
+                    
+                    
+                    <div class="verse-line">结3:3	祂又对我说，人子啊，要把我所赐给你的这书卷吃下，充满你的肚腹。我就吃了，口中觉得其甜如蜜。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-四')">▼</button>
+                
+                四　我们借着享受基督作流奶与蜜之地，就被祂这奶与蜜所构成—“我新妇，你的嘴唇滴下新蜜；你的舌下有蜜有奶”—歌四11上：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-四" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-四-1">
+            <div class="section-level3">
+                
+                1　蜜叫衰颓的人得着苏醒，奶喂养新蒙恩的人。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-2">
+            <div class="section-level3">
+                
+                2　寻求者里面所蕴藏的是这样大量的丰富，好像食物在舌下，可以随时将基督的丰富分给需要的人—赛五十4，太十二35~36，路四22，弗四29~30。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛50:4	主耶和华赐我受教者的舌头，使我知道怎样用言语扶助疲乏的人。主每早晨唤醒我；祂唤醒我的耳朵，使我能听，像受教者一样。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太12:35	善人从他所存的善，发出善来；恶人从他所存的恶，发出恶来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太12:36	我还告诉你们，人所说的每句闲话，在审判的日子，都必须供出来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路4:22	众人都称赞祂，并希奇祂口中所出的恩言，又说，这不是约瑟的儿子么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:29	败坏的话一句都不可出口，只要按需要说建造人的好话，好将恩典供给听见的人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:30	并且不要叫神的圣灵忧愁，你们原是在祂里面受了印记，直到得赎的日子。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-3">
+            <div class="section-level3">
+                
+                3　这一种甘甜，并非在短时间内就可以产生的，乃是经过长时间的采集，经过里面的运动，并且谨慎地收藏，才有的—歌四16，林后十二7~9。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">歌4:16	北风啊，醒起！南风啊，吹来！吹在我的园内，使其中的香气散发出来。愿我的良人进入自己园里，吃他佳美的果子。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后12:7	又恐怕我因所得启示的超越，就过于高抬自己，所以有一根刺，就是撒但的使者，加在我的肉体上，为要攻击我，免得我过于高抬自己。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后12:8	为这事，我三次求过主，叫这刺离开我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后12:9	祂对我说，我的恩典够你用的，因为我的能力，是在人的软弱上显得完全。所以我极其喜欢夸我的软弱，好叫基督的能力覆庇我。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-叁">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁')">▼</button>
+                
+                叁　基督是我们活的土地和丰富的土壤，我们既在祂里面已经生根，就能在祂里面行事为人并吸取祂，使我们能凭着从这土壤所吸取的元素而长大—西二6~7，参林前三6、9，西二19：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:6	你们既然接受了基督，就是主耶稣，</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:7	在祂里面已经生根，并正被建造，且照着你们所受的教导，在信心上得以坚固，洋溢着感谢，就要在祂里面行事为人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前3:6	我栽种了，亚波罗浇灌了，唯有神叫他生长。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前3:9	因为我们是神的同工，你们是神的耕地，神的建筑。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:19	不持定元首；本于祂，全身借着节和筋，得了丰富的供应，并结合一起，就以神的增长而长大。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-一">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-一')">▼</button>
+                
+                一　歌罗西二章八至十五节，对基督作为土壤有完满的描述和说明，在这土壤中我们一无所缺；当我们花时间吸取祂这包罗万有的土地时，这几节经文里的事实就成为我们的经历：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:8	你们要谨慎，恐怕有人用他的哲学，和虚空的欺骗，照着人的传统，照着世上的蒙学，不照着基督，把你们掳去；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:9	因为神格一切的丰满，都有形有体地居住在基督里面，</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:10	你们在祂里面也得了丰满。祂是一切执政掌权者的元首；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:11	你们在祂里面也受了非人手所行的割礼，乃是在基督的割礼里，脱去了肉体的身体，</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:12	在受浸中与祂一同埋葬，也在受浸中，借着那叫祂从死人中复活之神所运行的信心，与祂一同复活。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:13	你们从前在过犯，和未受割礼的肉体中死了，神赦免了你们一切的过犯，叫你们一同与基督活过来；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:14	涂抹了规条上所写，攻击我们，反对我们的字据，并且把它撤去，钉在十字架上。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:15	既将执政的和掌权的脱下，神就把他们公然示众，仗着十字架在凯旋中向他们夸胜。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-一" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-一-1">
+            <div class="section-level3">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-一-1')">▼</button>
+                
+                1　基督这土壤，乃是神格一切的丰满都有形有体地居住在祂里面的那一位—9节：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:9	因为神格一切的丰满，都有形有体地居住在基督里面，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-一-1" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-一-1-a">
+            <div class="section-level4">
+                
+                a　“丰满”不是指神的丰富，乃是指神丰富的彰显；那居住在基督里的，不仅是神格的丰富，更是神所是之丰富的彰显—9节，一15、19，三10~11。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-1-a')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-1-a" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:9	因为神格一切的丰满，都有形有体地居住在基督里面，</div>
+                    
+                    
+                    
+                    <div class="verse-line">西1:15	爱子是那不能看见之神的像，是一切受造之物的首生者。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西1:19	因为一切的丰满，乐意居住在祂里面，</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:10	并且穿上了新人；这新人照着创造他者的形像渐渐更新，以致有充足的知识；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:11	在此并没有希利尼人和犹太人、受割礼的和未受割礼的、化外人、西古提人、为奴的、自主的，唯有基督是一切，又在一切之内。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-一-1-b">
+            <div class="section-level4">
+                
+                b　当我们生根在基督这土壤里，我们就在祂里面得了丰满；我们被一切神圣的丰富所充满，而成为祂的彰显—弗三8、19。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-1-b')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-1-b" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗3:8	这恩典赐给了我这比众圣徒中最小者还小的，叫我将基督那追测不尽的丰富，当作福音传给外邦人，</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗3:19	并认识基督那超越知识的爱，使你们被充满，成为神一切的丰满。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-一-1-c">
+            <div class="section-level4">
+                
+                c　在作土壤的基督里，我们被充满、得完备、被成全、得满足并彻底得着供应；我们一无所缺—参腓一19。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-1-c')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-1-c" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓1:19	因为我知道，这事借着你们的祈求，和耶稣基督之灵全备的供应，终必叫我得救。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-一-1-d">
+            <div class="section-level4">
+                
+                d　基督这土壤，乃是神的历史与奥秘，含有祂身位和所经过过程的一切丰富—西二2。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-1-d')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-1-d" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:2	要叫他们的心得安慰，在爱里结合一起，以致丰丰富富地在悟性上有充分的确信，能以完全认识神的奥秘，就是基督；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-一-2">
+            <div class="section-level3">
+                
+                2　作土壤的基督，乃是一切执政掌权者的元首—10节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:10	你们在祂里面也得了丰满。祂是一切执政掌权者的元首；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-一-3">
+            <div class="section-level3">
+                
+                3　在作土壤的基督里，有一种元素有杀死的能力，将肉体治死—11节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:11	你们在祂里面也受了非人手所行的割礼，乃是在基督的割礼里，脱去了肉体的身体，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-一-4">
+            <div class="section-level3">
+                
+                4　在作土壤的基督里，有一种元素使我们被埋葬—12节上。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:12上	在受浸中与祂一同埋葬，……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-一-5">
+            <div class="section-level3">
+                
+                5　在作土壤的基督里，有一种元素使我们复活—12节下。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-5')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-5" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:12下	……也在受浸中，借着那叫祂从死人中复活之神所运行的信心，与祂一同复活。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-一-6">
+            <div class="section-level3">
+                
+                6　在作土壤的基督里，有一种元素使我们活过来—13节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-6')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-6" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:13	你们从前在过犯，和未受割礼的肉体中死了，神赦免了你们一切的过犯，叫你们一同与基督活过来；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-一-7">
+            <div class="section-level3">
+                
+                7　在作土壤的基督里，有一种元素涂抹规条上所写的字据—14节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-7')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-7" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:14	涂抹了规条上所写，攻击我们，反对我们的字据，并且把它撤去，钉在十字架上。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-一-8">
+            <div class="section-level3">
+                
+                8　在作土壤的基督里，有一种元素胜过空中的邪灵—15节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-8')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-8" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:15	既将执政的和掌权的脱下，神就把他们公然示众，仗着十字架在凯旋中向他们夸胜。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-二')">▼</button>
+                
+                二　我们必须花时间享受主这包罗一切的土地，使基督这丰富土壤的一切元素，都能被吸取到我们里面，好叫我们在经历中，在祂里面得了丰满—10节上，四2：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:10上	你们在祂里面也得了丰满。……</div>
+                    
+                    
+                    
+                    <div class="verse-line">西4:2	你们要坚定持续地祷告，在此儆醒感恩，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-二" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-二-1">
+            <div class="section-level3">
+                
+                1　我们若要吸取作土壤之基督的丰富，就需要细嫩、新长的根—参林后四16。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后4:16	所以我们不丧胆，反而我们外面的人虽然在毁坏，我们里面的人却日日在更新。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二-2">
+            <div class="section-level3">
+                
+                2　我们需要忘掉我们的环境、我们的光景、我们的失败以及我们的软弱，单单花时间吸取主；当我们花时间吸取祂，我们就以神在我们里面的增长而长大，为着建造基督的身体—路八13，太十四22~23，六6，西二7上、19。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">路8:13	那些在磐石上的，就是人听了道，欢喜领受，但没有根，不过是暂时信了，在试炼的时候，就退后了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太14:22	耶稣随即催门徒上船，在祂以先到对岸去，等祂解散群众。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太14:23	既解散了群众，祂就独自上山去祷告。到了晚上，只有祂单独在那里。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:6	你祷告的时候，要进你的密室，关上门，祷告你在隐密中的父，你父在隐密中察看，必要报答你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:7上	在祂里面已经生根，并正被建造，……</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:19	……持定元首；本于祂，全身借着节和筋，得了丰富的供应，并结合一起，就以神的增长而长大。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.outline-page {
+    padding: 5px;
+}
+
+/* 字体大小控制 */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: #f0f4ff;
+    border: 1px solid #d0d7f0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #667eea;
+    cursor: pointer;
+}
+
+.font-btn:active {
+    background: #667eea;
+    color: #ffffff;
+    border-color: #667eea;
+}
+
+.outline-content {
+    margin-top: 20px;
+}
+
+.section-level1 {
+    font-weight: bold;
+    font-size: 17px;
+    margin: 20px 0 12px 0;
+    color: #2c3e50;
+    line-height: 1.8;
+}
+
+.section-level2 {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 16px 0 10px 15px;
+    color: #34495e;
+    line-height: 1.8;
+}
+
+.section-level3 {
+    font-size: 16px;
+    margin: 14px 0 8px 30px;
+    color: #4a5568;
+    line-height: 1.8;
+}
+
+.section-level4 {
+    font-size: 15px;
+    margin: 12px 0 8px 45px;
+    color: #718096;
+    line-height: 1.8;
+}
+
+.subsections {
+    margin-left: 0;
+    display: block;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 0.875em; /* 14px -> 0.875em */
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    margin-right: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-btn:active {
+    color: var(--brand-2);
+}
+
+.scripture-toggle-btn {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+    padding: 10px 12px;
+    margin: 8px 0 0 0;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.scripture-toggle-btn:active {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.scripture-content {
+    background: #f8f9fa;
+    border-left: 3px solid var(--brand-1);
+    padding: 10px 12px;
+    margin: 10px 0 10px 15px;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.8;
+}
+
+.verse-line {
+    margin-bottom: 8px;
+}
+
+.verse-line:last-child {
+    margin-bottom: 0;
+}
+
+.scripture-ref {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-left: 8px;
+}
+
+/* 章节级别经文样式 */
+.scripture-section {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.chapter-scripture-toggle {
+    margin-left: 10px;
+    font-size: 13px;
+    padding: 8px 14px;
+    min-height: 40px;
+}
+
+.chapter-scripture-content {
+    margin-top: 12px;
+    margin-left: 0;
+    background: white;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const hymnElem = document.querySelector('.hymn-number');
+            if (hymnElem) text += hymnElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const sections = document.querySelectorAll('.section-level1, .section-level2, .section-level3, .section-level4');
+            sections.forEach(s => {
+                const t = s.textContent.trim();
+                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+                    text += t + '。';
+                }
+            });
+            return text;
+        }
+    });
+});
+
+function toggleSection(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '▼';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '▶';
+    }
+}
+
+function toggleScripture(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '收起经文';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '展开经文';
+    }
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025夏季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

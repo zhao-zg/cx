@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}第{{ chapter.number }}篇 - 职事信息摘录{% endblock %}
+
+{% block content %}
+<div class="ministry-page">
+    {% include "page_navigation.html" %}
+    
+    <h2 class="chapter-title">第{{ chapter.number }}篇 {{ chapter.title }}</h2>
+    
+    {% if chapter.scripture %}
+    <div class="scripture">读经：{{ chapter.scripture }}</div>
+    {% endif %}
+    
+    <div class="ministry-content">
+        {% if chapter.ministry_excerpt %}
+            {% for paragraph in chapter.ministry_excerpt.split('\n\n') %}
+                {% if paragraph.strip() %}
+                    {% if paragraph.strip()|length < 30 and '\n' not in paragraph %}
+                        {# 短文本作为小标题 #}
+                        <h3 class="ministry-subtitle">{{ paragraph.strip() }}</h3>
+                    {% else %}
+                        {# 长文本作为段落 #}
+                        <p class="ministry-paragraph">{{ paragraph }}</p>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <p class="no-content">暂无职事信息摘录</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.ministry-page {
+    padding: 5px;
+}
+
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 46px;
+    min-height: 46px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e8ecf9 100%);
+    border: 1.5px solid #d0d7f0;
+    border-radius: 23px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.font-btn:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+}
+
+.ministry-content {
+    margin-top: 20px;
+    line-height: 1.8;
+}
+
+.ministry-subtitle {
+    margin-top: 20px;
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #2c3e50;
+    text-align: center;
+}
+
+.ministry-paragraph {
+    margin-bottom: 15px;
+    text-indent: 2em;
+    text-align: justify;
+    font-size: 15px;
+}
+
+.no-content {
+    color: #999;
+    text-align: center;
+    padding: 30px 0;
+    font-size: 15px;
+}
+
+@media (min-width: 768px) {
+    .ministry-page {
+        padding: 20px 0;
+    }
+    
+    .ministry-content {
+        margin-top: 30px;
+        line-height: 2;
+    }
+    
+    .ministry-subtitle {
+        margin-top: 30px;
+        margin-bottom: 15px;
+        font-size: 1.1em;
+    }
+    
+    .ministry-paragraph {
+        margin-bottom: 20px;
+    }
+    
+    .no-content {
+        padding: 40px 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .speech-controls {
+        padding: 8px 10px;
+        gap: 8px;
+        margin: 8px 0;
+    }
+    
+    .speech-btn {
+        min-width: 40px;
+        min-height: 40px;
+        padding: 8px;
+        font-size: 16px;
+    }
+    
+    .speech-time {
+        font-size: 12px;
+    }
+    
+    .speech-rate-select {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    
+    .font-size-controls {
+        padding: 6px 10px;
+        gap: 6px;
+        margin: 8px 0;
+    }
+    
+    .font-btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 0.8125em; /* 13px -> 0.8125em */
+    }
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const paragraphs = document.querySelectorAll('.ministry-paragraph');
+            paragraphs.forEach(p => {
+                const t = p.textContent.trim();
+                if (t) text += t + '。';
+            });
+            return text;
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,173 @@
+<!-- 通用朗读控件组件 -->
+<!-- 朗读控制 -->
+<div class="speech-controls" id="speechControls" style="display:none;">
+    <button class="speech-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    <div class="speech-progress">
+        <div class="progress-bar-container">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+        </div>
+        <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+    </div>
+    <select id="rateSelect" class="speech-rate-select" title="语速">
+        <option value="0.5">0.5x</option>
+        <option value="0.75">0.75x</option>
+        <option value="1" selected>1x</option>
+        <option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2">2x</option>
+    </select>
+</div>
+
+<style>
+/* 朗读控制样式 */
+.speech-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    background: var(--brand-soft-bg, var(--surface-muted));
+    border: 1.5px solid var(--brand-soft-border, var(--border));
+    border-radius: 12px;
+    margin: 15px 0;
+    box-shadow: 0 2px 8px rgba(var(--brand-1-rgb), 0.10);
+}
+
+.speech-btn {
+    min-width: 46px;
+    min-height: 46px;
+    padding: 11px;
+    background: var(--bg);
+    border: none;
+    border-radius: 23px;
+    font-size: 18px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(var(--brand-1-rgb), 0.30);
+}
+
+.speech-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--brand-1-rgb), 0.40);
+}
+
+.speech-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(var(--brand-1-rgb), 0.30);
+}
+
+.speech-progress {
+    flex: 1;
+    min-width: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.progress-bar-container {
+    width: 100%;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px; /* 增加高度便于拖动 */
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--brand-soft-track, var(--border));
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    touch-action: none; /* 防止触摸滚动干扰 */
+}
+
+.progress-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px; /* 增加滑块大小 */
+    height: 20px;
+    border-radius: 50%;
+    background: var(--bg);
+    cursor: grab; /* 改为抓取手势 */
+    box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.35);
+    transition: transform 0.1s ease;
+}
+
+.progress-bar::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.1);
+}
+
+.progress-bar::-moz-range-thumb {
+    width: 20px; /* 增加滑块大小 */
+    height: 20px;
+    border-radius: 50%;
+    background: var(--bg);
+    cursor: grab; /* 改为抓取手势 */
+    border: none;
+    box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.35);
+    transition: transform 0.1s ease;
+}
+
+.progress-bar::-moz-range-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.1);
+}
+
+.progress-bar::-webkit-slider-runnable-track {
+    background: transparent;
+}
+
+.progress-bar::-moz-range-track {
+    background: transparent;
+}
+
+.speech-time {
+    font-size: 13px;
+    color: var(--link);
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    text-align: center;
+}
+
+.speech-rate-select {
+    padding: 8px 12px;
+    border: 1.5px solid var(--brand-soft-border, var(--border));
+    border-radius: 8px;
+    font-size: 13px;
+    background: var(--surface);
+    color: var(--link);
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+@media (max-width: 768px) {
+    .speech-controls {
+        padding: 8px 10px;
+        gap: 8px;
+        margin: 8px 0;
+    }
+    
+    .speech-btn {
+        min-width: 40px;
+        min-height: 40px;
+        padding: 8px;
+        font-size: 16px;
+    }
+    
+    .speech-time {
+        font-size: 12px;
+    }
+    
+    .speech-rate-select {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+}
+</style>

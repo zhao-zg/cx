@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}第{{ chapter.number }}篇 - 听抄{% endblock %}
+
+{% block content %}
+<div class="message-page">
+    {% include "page_navigation.html" %}
+    
+    <h2 class="chapter-title">第{{ chapter.number }}篇 {{ chapter.title }}</h2>
+    
+    {% if chapter.scripture %}
+    <div class="scripture">读经：{{ chapter.scripture }}</div>
+    {% endif %}
+    
+    <div class="message-content">
+        {% if chapter.detail_sections %}
+        {% macro render_section(section, depth=1, section_index=0) %}
+        {% set section_id = 'msg-' ~ section_index ~ '-' ~ section.level %}
+        <div class="section">
+            <div class="section-level{{ depth }}">
+                {{ section.level }}　{{ section.title }}
+            </div>
+            
+            {% if section.content %}
+            <div class="section-content">
+                {% for content_text in section.content %}
+                <p class="message-text">{{ content_text }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if section.children %}
+            <div class="subsections">
+                {% for child in section.children %}
+                {{ render_section(child, depth + 1, loop.index) }}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endmacro %}
+        
+        {% for section in chapter.detail_sections %}
+        {{ render_section(section, 1, loop.index) }}
+        {% endfor %}
+        {% elif chapter.message_content %}
+        {% for para in chapter.message_content %}
+        <p class="message-text">{{ para }}</p>
+        {% endfor %}
+        {% else %}
+        <p class="no-content">职事信息内容暂缺</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.message-page {
+    padding: 0;
+}
+
+.scripture {
+    font-size: 15px;
+    color: #555;
+    margin: 0 0 20px 0;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #667eea;
+    line-height: 1.8;
+}
+
+.message-content {
+    margin-top: 20px;
+    line-height: 2;
+}
+
+/* 章节结构样式 */
+.section {
+    margin: 25px 0;
+}
+
+.section-level1 {
+    font-weight: 700;
+    font-size: 18px;
+    margin: 28px 0 18px 0;
+    padding: 14px 18px;
+    color: #1a202c;
+    line-height: 1.6;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf9 100%);
+    border-left: 5px solid #667eea;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.section-level2 {
+    font-weight: 700;
+    font-size: 17px;
+    margin: 22px 0 14px 0;
+    padding: 12px 16px 12px 24px;
+    color: #2d3748;
+    line-height: 1.6;
+    background: #f8f9ff;
+    border-left: 4px solid #7c8df0;
+    border-radius: 6px;
+}
+
+.section-level3 {
+    font-weight: 600;
+    font-size: 16px;
+    margin: 18px 0 12px 0;
+    padding: 10px 14px 10px 32px;
+    color: #374151;
+    line-height: 1.6;
+    background: #fafbff;
+    border-left: 3px solid #9ca9f0;
+    border-radius: 4px;
+}
+
+.section-level4 {
+    font-weight: 600;
+    font-size: 15px;
+    margin: 16px 0 10px 0;
+    padding: 8px 12px 8px 40px;
+    color: #4b5563;
+    line-height: 1.6;
+    background: #fcfcff;
+    border-left: 2px solid #b8c3f0;
+}
+
+.section-content {
+    margin: 12px 0 16px 0;
+    padding-left: 10px;
+}
+
+.subsections {
+    margin-left: 0;
+}
+
+.message-text {
+    text-indent: 2em;
+    margin: 16px 0;
+    font-size: 16px;
+    color: #374151;
+    line-height: 2;
+    text-align: justify;
+    padding: 8px 12px;
+}
+
+/* 移动端优化 */
+@media (max-width: 767px) {
+    .section-level1 {
+        font-size: 17px;
+        padding: 12px 14px;
+        margin: 24px 0 16px 0;
+    }
+    
+    .section-level2 {
+        font-size: 16px;
+        padding: 10px 12px 10px 20px;
+        margin: 20px 0 12px 0;
+    }
+    
+    .section-level3 {
+        font-size: 15px;
+        padding: 8px 10px 8px 24px;
+        margin: 16px 0 10px 0;
+    }
+    
+    .section-level4 {
+        font-size: 14px;
+        padding: 6px 8px 6px 28px;
+        margin: 14px 0 8px 0;
+    }
+    
+    .message-text {
+        font-size: 15px;
+        line-height: 1.9;
+        padding: 6px 8px;
+        margin: 14px 0;
+    }
+    
+    .section-content {
+        padding-left: 5px;
+    }
+}
+
+/* 平板优化 */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .section-level1 {
+        font-size: 18px;
+        padding: 13px 16px;
+    }
+    
+    .section-level2 {
+        font-size: 17px;
+        padding: 11px 14px 11px 22px;
+    }
+    
+    .section-level3 {
+        font-size: 16px;
+        padding: 9px 12px 9px 28px;
+    }
+    
+    .message-text {
+        font-size: 16px;
+        line-height: 2;
+    }
+}
+
+.no-content {
+    color: #999;
+    font-style: italic;
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 15px;
+}
+
+@media (min-width: 768px) {
+    .message-page {
+        padding: 10px 0;
+    }
+    
+    .message-content {
+        margin-top: 20px;
+    }
+    
+    .message-text {
+        margin: 15px 0;
+        font-size: 15px;
+        padding: 0;
+    }
+    
+    .no-content {
+        padding: 50px 20px;
+    }
+}
+
+@media (max-width: 768px) {
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const paragraphs = document.querySelectorAll('.message-text');
+            paragraphs.forEach(p => {
+                const t = p.textContent.trim();
+                if (t) text += t + '。';
+            });
+            return text;
+        }
+    });
+});
+</script>
+{% endblock %}

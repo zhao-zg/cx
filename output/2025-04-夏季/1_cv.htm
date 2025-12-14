@@ -1,0 +1,2832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第1篇 - 纲目</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>夏季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025夏季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="1_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="1_cv.htm" class="nav-link active" title="纲目">纲目</a>
+    <a href="1_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="1_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="1_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第1篇 基督为我们的美德、神的平安、我们的秘诀和那加我们能力者</h2>
+    
+    
+    <div class="hymn-number">EM 诗歌: s250, s432, s1004</div>
+    
+    
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：腓四5~9、11下~13</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+            
+                
+                <div class="verse-line">腓4:5	当叫众人知道你们的谦让宜人。主是近的。</div>
+                
+            
+                
+                <div class="verse-line">腓4:6	应当一无挂虑，只要凡事借着祷告、祈求，带着感谢，将你们所要的告诉神；</div>
+                
+            
+                
+                <div class="verse-line">腓4:7	神那超越人所能理解的平安，必在基督耶稣里，保卫你们的心怀意念。</div>
+                
+            
+                
+                <div class="verse-line">腓4:8	末了的话，弟兄们，凡是真实的，凡是庄重的，凡是公义的，凡是纯洁的，凡是可爱的，凡是有美名的；若有什么德行，若有什么称赞，这些事你们都要思念。</div>
+                
+            
+                
+                <div class="verse-line">腓4:9	你们在我身上所学习的、所领受的、所听见的、所看见的，这些事你们都要去行，平安的神就必与你们同在。</div>
+                
+            
+                
+                <div class="verse-line">腓4:11下	……因为我已经学会了，无论在什么景况，都可以知足。</div>
+                
+            
+                
+                <div class="verse-line">腓4:12	我知道怎样处卑贱，也知道怎样处富余；或饱足、或饥饿、或富余、或缺乏，在各事上，并在一切事上，我都学得秘诀。</div>
+                
+            
+                
+                <div class="verse-line">腓4:13	我在那加我能力者的里面，凡事都能作。</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="outline-content">
+        
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹')">▼</button>
+                
+                壹　在腓立比四章五至九节我们所经历基督的美德，乃是活基督之生活的彰显—一19~21上，二5~13，三8~10：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓4:5	当叫众人知道你们的谦让宜人。主是近的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:6	应当一无挂虑，只要凡事借着祷告、祈求，带着感谢，将你们所要的告诉神；</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:7	神那超越人所能理解的平安，必在基督耶稣里，保卫你们的心怀意念。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:8	末了的话，弟兄们，凡是真实的，凡是庄重的，凡是公义的，凡是纯洁的，凡是可爱的，凡是有美名的；若有什么德行，若有什么称赞，这些事你们都要思念。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:9	你们在我身上所学习的、所领受的、所听见的、所看见的，这些事你们都要去行，平安的神就必与你们同在。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:19	因为我知道，这事借着你们的祈求，和耶稣基督之灵全备的供应，终必叫我得救。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:20	这是照着我所专切期待并盼望的，就是没有一事会叫我羞愧，只要凡事放胆，无论是生，是死，总叫基督在我身体上，现今也照常显大，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:21上	因为在我，活着就是基督，……</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:5	你们里面要思念基督耶稣里面所思念的：</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:6	祂本有神的形状，不以自己与神同等为强夺之珍，紧持不放，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:7	反而倒空自己，取了奴仆的形状，成为人的样式；</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:8	既显为人的样子，就降卑自己，顺从至死，且死在十字架上。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:9	所以神将祂升为至高，又赐给祂那超乎万名之上的名，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:10	叫天上的、地上的和地底下的，在耶稣的名里，万膝都要跪拜，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:11	万口都要公开承认耶稣基督为主，使荣耀归与父神。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:12	这样，我亲爱的，你们既是常顺从的，不但我与你们同在的时候，就是我如今不在的时候，更是顺从的，就当恐惧战兢，作成你们自己的救恩，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:13	因为乃是神为着祂的美意，在你们里面运行，使你们立志并行事。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓3:8	不但如此，我也将万事看作亏损，因我以认识我主基督耶稣为至宝；我因祂已经亏损万事，看作粪土，为要赢得基督，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓3:9	并且给人看出我是在祂里面，不是有自己那本于律法的义，乃是有那借着信基督而有的义，就是那基于信、本于神的义，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓3:10	使我认识基督、并祂复活的大能、以及同祂受苦的交通，模成祂的死，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-一">
+            <div class="section-level2">
+                
+                一　保罗认为谦让宜人和没有挂虑是活基督之生活彰显的头两面。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二">
+            <div class="section-level2">
+                
+                二　挂虑来自撒但，是人生活的总和，搅扰信徒活基督的生活；谦让宜人来自神，是活基督之生活的总和；二者完全相反—太六22~34。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太6:22	眼睛乃是身上的灯。所以你的眼睛若单一，全身就明亮；</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:23	但你的眼睛若不专，全身就黑暗。所以你里面的光若黑暗了，那黑暗是何等的大！</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:24	没有人能事奉两个主；因为他不是恨这个爱那个，就是忠于这个轻视那个。你们不能事奉神，又事奉玛门。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:25	所以我告诉你们，不要为生命忧虑，吃什么，喝什么；也不要为身体忧虑，穿什么。生命不胜于食物么？身体不胜于衣服么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:26	你们看天空的飞鸟，它们既不种，也不收，又不收积在仓里，你们的天父尚且养活它们。你们不比它们贵重么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:27	你们中间谁能因忧虑使自己的身量多加一肘？</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:28	你们何必为衣服忧虑？你们细想野地里的百合花，怎样生长；它们既不劳苦，也不纺线。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:29	但我告诉你们，就是所罗门在他极盛的荣耀里，也没有披戴得像这些花中的一朵。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:30	小信的人哪，野地里的草，今天存在，明天就丢在炉里，神尚且这样给它穿戴，何况你们？</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:31	所以不要忧虑，说，我们要吃什么？喝什么？披戴什么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:32	因为这一切都是外邦人所急切寻求的，你们的天父原知道你们需要这一切。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:33	但你们要先寻求祂的国和祂的义，这一切就都要加给你们了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太6:34	所以你们不要为明天忧虑，因为明天自有明天的忧虑，一天的难处一天当就够了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰')">▼</button>
+                
+                贰　“当叫众人知道你们的谦让宜人。主是近的”—腓四5：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-一')">▼</button>
+                
+                一　按照基督徒的经历，谦让宜人是包罗一切的，因为它包含了基督徒一切的美德；谦让宜人实际上乃是包罗万有的基督作为包罗万有的灵，同着祂全备的供应—一19~21上：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓1:19	因为我知道，这事借着你们的祈求，和耶稣基督之灵全备的供应，终必叫我得救。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:20	这是照着我所专切期待并盼望的，就是没有一事会叫我羞愧，只要凡事放胆，无论是生，是死，总叫基督在我身体上，现今也照常显大，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:21上	因为在我，活着就是基督，……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-一" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一-1">
+            <div class="section-level3">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-一-1')">▼</button>
+                
+                1　谦让宜人是待人合理，体谅，顾到别人，不严格要求合法的权利；谦让宜人的意思是我们很容易满足，甚至以少于我们所当得的为满足：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-一-1" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一-1-a">
+            <div class="section-level4">
+                
+                a　谦让宜人包含爱、忍耐、恩慈、谦卑、怜恤、体谅以及服从，就是心甘情愿地降服；我们若有这样一个包罗万有的美德，也就有了公义与圣别。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-一-1-b">
+            <div class="section-level4">
+                
+                b　谦让宜人也包括自制、适度、温和、了解、同情、智慧、怜悯、和平、仰望主，甚至包括承认主在一切事上有主宰权柄的美德—参林后十二7~9。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-1-b')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一-1-b" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后12:7	又恐怕我因所得启示的超越，就过于高抬自己，所以有一根刺，就是撒但的使者，加在我的肉体上，为要攻击我，免得我过于高抬自己。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后12:8	为这事，我三次求过主，叫这刺离开我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后12:9	祂对我说，我的恩典够你用的，因为我的能力，是在人的软弱上显得完全。所以我极其喜欢夸我的软弱，好叫基督的能力覆庇我。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-一-2">
+            <div class="section-level3">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-一-2')">▼</button>
+                
+                2　一个谦让宜人的人总是合式的，他的行为总是合宜的—参六1下，十1，腓一19，赛十一2：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后6:1下	……也就劝你们不可徒受祂的恩典，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后10:1	然而我保罗，就是那如你们所说，在你们中间，见面的时候是卑鄙的，不在的时候，向你们却是放胆的，亲自借着基督的温柔与和蔼劝你们，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:19	因为我知道，这事借着你们的祈求，和耶稣基督之灵全备的供应，终必叫我得救。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛11:2	耶和华的灵必安歇在祂身上，就是智慧和聪明的灵，谋略和能力的灵，认识和敬畏耶和华的灵。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-一-2" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一-2-a">
+            <div class="section-level4">
+                
+                a　我们若谦让宜人，就会有智慧与能力供应别人的需要；我们也会有充分的知识，知道要对别人说什么话，以及该什么时候说—五十4~5，西一28，箴二五15。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-2-a')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一-2-a" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛50:4	主耶和华赐我受教者的舌头，使我知道怎样用言语扶助疲乏的人。主每早晨唤醒我；祂唤醒我的耳朵，使我能听，像受教者一样。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛50:5	主耶和华开通我的耳朵；我并没有违背，也没有退后。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西1:28	我们宣扬祂，是用全般的智慧警戒各人，教导各人，好将各人在基督里成熟地献上；</div>
+                    
+                    
+                    
+                    <div class="verse-line">箴25:15	恒久忍耐可以劝动官长，柔和的舌能折断骨头。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-一-2-b">
+            <div class="section-level4">
+                
+                b　谦让宜人就是顾到我们所作或所说的，会怎样影响别人—代下一10。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-2-b')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一-2-b" style="display: none;">
+                    
+                    
+                    <div class="verse-line">代下1:10	求你赐我智慧和知识，我好在这民前出入；不然，谁能审断你这众多的民呢？</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-二')">▼</button>
+                
+                二　谦让宜人是个包罗一切的美德，也就是基督自己；基督既是谦让宜人，保罗活着就是谦让宜人—腓一21上：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓1:21上	因为在我，活着就是基督，……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-二" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-二-1">
+            <div class="section-level3">
+                
+                1　叫众人知道我们的谦让宜人，就是叫众人知道我们所活、所显大、所引为榜样并所竭力追求作标竿的基督。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-2">
+            <div class="section-level3">
+                
+                2　唯有主耶稣过一种满了谦让宜人的生活，而今天唯有基督才能成为我们完全的谦让宜人—路二四15~19、28~31，太十七24~27，约十一20~34。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">路24:15	正谈话讨论的时候，耶稣亲自就近他们，和他们同行。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路24:16	只是他们的眼睛被蒙蔽，以致认不出祂来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路24:17	耶稣对他们说，你们走路彼此交谈的是什么事？他们就站住，面带愁容。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路24:18	其中有一位名叫革流巴的，对祂说，独有你在耶路撒冷作客，不知道这几天在那里所发生的事么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">路24:19	耶稣说，什么事？他们对祂说，就是关于拿撒勒人耶稣的事。祂是个人，是个申言者，在神和众百姓面前，行事说话都有大能。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路24:28	将近他们所要去的村子，耶稣好像还要往前行。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路24:29	他们却强留祂说，请你同我们住下吧，因为时候晚了，日头已经平西了。耶稣就进去，要同他们住下。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路24:30	到了同他们坐席的时候，耶稣拿起饼来，祝福了，擘开，递给他们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路24:31	他们的眼睛开了，这才认出祂来；耶稣就从他们面前不见了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太17:24	他们到了迦百农，有收殿税的人前来对彼得说，你们的老师不纳殿税么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">太17:25	彼得说，纳。等他进了屋子，耶稣先向他说，西门，你怎么看？地上的君王向谁征收关税或丁税？向自己的儿子，还是向外人？</div>
+                    
+                    
+                    
+                    <div class="verse-line">太17:26	彼得一说，向外人，耶稣就对他说，既然如此，儿子就可以免了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太17:27	但为免绊跌他们，你要到海边去钓鱼，拿起先钓上来的鱼，开它的口，就必找到一块钱，可以拿去给他们，作你我的殿税。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:20	马大听见耶稣来了，就去迎接祂，马利亚却仍然坐在家里。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:21	马大对耶稣说，主啊，你若早在这里，我兄弟就不会死。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:22	就是现在，我也知道你无论向神求什么，神也必赐给你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:23	耶稣对她说，你兄弟必然复活。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:24	马大说，我知道在末日复活的时候，他必复活。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:25	耶稣对她说，我是复活，我是生命；信入我的人，虽然死了，也必复活；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:26	凡活着信入我的人，必永远不死。你信这话么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:27	马大对祂说，主啊，是的；我信你是基督，是神的儿子，就是那要来到世界的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:28	马大说了这话，就去暗暗地叫她妹妹马利亚，说，夫子来了，叫你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:29	马利亚听见了，就急忙起来，到耶稣那里去。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:30	那时，耶稣还没有进村子，仍在马大迎接祂的地方。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:31	那些同马利亚在家里安慰她的犹太人，见她急忙起来出去，就跟着她，以为她要往坟墓那里去哭。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:32	马利亚到了耶稣那里，看见祂，就俯伏在祂脚前，对祂说，主啊，你若早在这里，我兄弟就不会死。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:33	耶稣看见她哭，并看见与她同来的犹太人也哭，就灵里悲愤，又受搅扰，</div>
+                    
+                    
+                    
+                    <div class="verse-line">约11:34	便说，你们把他安放在哪里？他们说，主啊，来看。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-3">
+            <div class="section-level3">
+                
+                3　叫人知道我们的谦让宜人，就是过彰显基督为一切人性美德之总和的生活。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-4">
+            <div class="section-level3">
+                
+                4　保罗说到谦让宜人之后，紧接着就说，主是近的（腓四5）；就空间说，主对我们是近的，是很便当的帮助；就时间说，主与我们是近的，不久就要来（参罗十8~13）；主是近的，主要的是说到主与我们同在（太一23，出三三14）。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓4:5	当叫众人知道你们的谦让宜人。主是近的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗10:8	这义到底怎么说？它说，“这话与你相近，就在你口里，也在你心里。”这就是我们所传信主的话，</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗10:9	就是你若口里认耶稣为主，心里信神叫祂从死人中复活，就必得救；</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗10:10	因为人心里信，就得着义；口里承认，就得救。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗10:11	因为经上说，“凡信靠祂的，必不至于羞愧。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗10:12	因为犹太人和希利尼人并没有分别，众人同有一位主，祂对一切呼求祂的人是丰富的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗10:13	因为“凡呼求主名的，就必得救。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">太1:23	“看哪，必有童女怀孕生子，人要称祂的名为以马内利”（以马内利翻出来，就是神与我们同在）。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出33:14	耶和华说，我的同在必和你同去，我必使你得安息。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三">
+            <div class="section-level2">
+                
+                三　我们在各种环境、境遇和遭遇里，都需要学基督作我们渐渐变化（也就是在天然的生命里新陈代谢的改变）的秘诀（腓四12）；这实际又简单的秘诀在六至七节—“应当一无挂虑，只要凡事借着祷告、祈求，带着感谢，将你们所要的告诉神；神那超越人所能理解的平安，必在基督耶稣里，保卫你们的心怀意念。”
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓4:12	我知道怎样处卑贱，也知道怎样处富余；或饱足、或饥饿、或富余、或缺乏，在各事上，并在一切事上，我都学得秘诀。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-叁">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁')">▼</button>
+                
+                叁　“我们生活中有问题，不必去问别人，因为我们里面有灵，并且主就是那灵，在我们灵里，对我们是何等亲近。我们凡事都可以问问祂，不必打电话，也不必用传真机，祂就在我们里面和我们谈话。你可以凡事和祂谈一谈，商量一下。主的话说，‘应当一无挂虑，只要凡事借着祷告、祈求，带着感谢，将你们所要的告诉神。’（腓四6）因此，你有难处只要告诉祂，祂就在你里面，面对面与你同在。父、子、灵三一神在我们里面，不是麻烦我们，乃是作我们的保惠师、安慰者、扶持者。我常常祷告说，‘主啊，我现在要去走路了，求你支持我，维持我，还要加我力量。’这就是喝主。这样，我就没有挂虑。挂虑一来了，你就要说，‘主啊，这挂虑是你的，不是我的；我交给你了，因为你替我挂虑。’这样，你就在里面得着主的成分，你里面就会常常起新陈代谢的作用，结果你外面显出来的就是基督。这就是活基督。不知道这秘诀的人，以为活基督是很难的事；其实你只要操练常与主说话，你自然就会活基督”—神救恩生机的一面，五五~五六页：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-一">
+            <div class="section-level2">
+                
+                一　基督自己就是神那超越人所能理解的平安—腓四7，赛九6，约十四27，路七50，罗三17，五1，八6，十五13，十六20。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓4:7	神那超越人所能理解的平安，必在基督耶稣里，保卫你们的心怀意念。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛9:6	因有一婴孩为我们而生，有一子赐给我们；政权必担在祂的肩头上；祂的名称为奇妙的策士、全能的神、永远的父、和平的君。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约14:27	我留下平安给你们，我将我的平安赐给你们；我所赐给你们的，不像世人所赐的。你们心里不要受搅扰，也不要胆怯。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路7:50	但耶稣对那女人说，你的信救了你，平平安安地走吧！</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗3:17	平安的路，他们未曾知道；</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗5:1	所以，我们既本于信得称义，就借着我们的主耶稣基督，对神有了和平。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:6	因为心思置于肉体，就是死；心思置于灵，乃是生命平安。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗15:13	但愿那赐盼望的神，因信将一切喜乐平安充满你们，使你们靠圣灵的能力，充盈满溢地有盼望。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗16:20	平安的神快要将撒但践踏在你们的脚下。愿我们主耶稣的恩，与你们同在。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二">
+            <div class="section-level2">
+                
+                二　“凡事”这辞，指每天临到我们的许多不同的事；祷告是一般的，带着敬拜和交通的成分；祈求是专一的，为着特殊的需要；我们的祷告和祈求，都该带着对主的感谢—腓四6。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓4:6	应当一无挂虑，只要凡事借着祷告、祈求，带着感谢，将你们所要的告诉神；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三">
+            <div class="section-level2">
+                
+                三　“告诉神”，直译，给神知道；“给”，表示向前的动作，有活的联合并交往之意，含示交通；因此，这里“告诉神”的意义，乃是“在与神的交通中”—6节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓4:6	应当一无挂虑，只要凡事借着祷告、祈求，带着感谢，将你们所要的告诉神；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四">
+            <div class="section-level2">
+                
+                四　在祷告中与神交通的结果，乃是得享神的平安；神的平安实际上就是平安的神自己（9），借着我们祷告与祂交通，注入我们里面，抗拒苦恼，化解挂虑（约十六33）。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓4:9	你们在我身上所学习的、所领受的、所听见的、所看见的，这些事你们都要去行，平安的神就必与你们同在。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约16:33	我将这些事对你们说了，是要叫你们在我里面有平安。在世上你们有苦难，但你们可以放心，我已经胜了世界。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五">
+            <div class="section-level2">
+                
+                五　平安的神在基督里，在我们的心怀意念前巡查，保守我们平静安宁（赛三十15上）；我们若要过一无挂虑的生活，就必须领悟，我们所有的遭遇，不论是好是坏，都是神派定的，目的是要使我们达到赢得基督、活基督并显大基督的定命（罗八28~30，太十29~31，林后四15~18）。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛30:15上	主耶和华以色列的圣者如此说，你们得救在于归回安息；你们得力在于平静信靠；……</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:28	还有，我们晓得万有都互相效力，叫爱神的人得益处，就是按祂旨意被召的人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:29	因为神所预知的人，祂也预定他们模成神儿子的形像，使祂儿子在许多弟兄中作长子。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:30	祂所预定的人，又召他们来；所召来的人，又称他们为义；所称为义的人，又叫他们得荣耀。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太10:29	两只麻雀不是卖一个铜钱么？没有你们父的许可，一只也不会掉在地上。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太10:30	就是连你们的头发，也都被数过了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太10:31	所以不要怕，你们比许多麻雀还贵重。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:15	因为凡事都是为你们，好叫恩典借着更多的人而增多，使感谢洋溢，以致荣耀归与神。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:16	所以我们不丧胆，反而我们外面的人虽然在毁坏，我们里面的人却日日在更新。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:17	因为我们这短暂轻微的苦楚，要极尽超越地为我们成就永远重大的荣耀。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:18	我们原不是顾念所见的，乃是顾念所不见的，因为所见的是暂时的，所不见的才是永远的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-肆">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-肆')">▼</button>
+                
+                肆　“末了的话，弟兄们，凡是真实的，凡是庄重的，凡是公义的，凡是纯洁的，凡是可爱的，凡是有美名的；若有什么德行，若有什么称赞，这些事你们都要思念”—腓四8：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-肆" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-肆-一">
+            <div class="section-level2">
+                
+                一　这些美德乃是神属性的彰显，从那些追求神具体化身之基督的人里面活出来。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-二">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-肆-二')">▼</button>
+                
+                二　这些美德乃是活基督之生活管治的六方面：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-肆-二" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-肆-二-1">
+            <div class="section-level3">
+                
+                1　活基督的生活是真实的—在道德上是真实的，没有虚伪和假冒。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-二-2">
+            <div class="section-level3">
+                
+                2　活基督的生活是庄重的—可尊重的，高贵的，端庄的，稳重的，有分量的，值得尊敬的—提前三8、11，多二2，参罗九21。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-二-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-二-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">提前3:8	作执事的也是如此，必须庄重，不一口两舌，不酗酒成瘾，不贪卑鄙的利益；</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前3:11	女人也是如此，必须庄重，不说谗言，节制适度，凡事忠信。</div>
+                    
+                    
+                    
+                    <div class="verse-line">多2:2	劝老年人要节制适度、庄重、清明自守，在信、爱、忍耐上都要健康。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗9:21	窑匠难道没有权柄，从同一团泥里，拿一块作成贵重的器皿，又拿一块作成卑贱的器皿么？</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-二-3">
+            <div class="section-level3">
+                
+                3　活基督的生活是公义的—在神和人面前是对的—腓三9。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-二-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-二-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓3:9	并且给人看出我是在祂里面，不是有自己那本于律法的义，乃是有那借着信基督而有的义，就是那基于信、本于神的义，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-二-4">
+            <div class="section-level3">
+                
+                4　活基督的生活是纯洁的—在意愿和行动上是单纯的，毫无搀杂—太五8。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-二-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-二-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太5:8	清心的人有福了，因为他们必看见神。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-二-5">
+            <div class="section-level3">
+                
+                5　活基督的生活是可爱的—令人爱的，合人意的，讨人喜欢的。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-二-6">
+            <div class="section-level3">
+                
+                6　活基督的生活是有美名的—闻名的，有好名声的，吸引人的，动人的，亲切的—何十四7。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-二-6')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-二-6" style="display: none;">
+                    
+                    
+                    <div class="verse-line">何14:7	曾坐在他荫下的必归回，发旺如五谷，开花如葡萄树；他的名声如利巴嫩的酒。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-三">
+            <div class="section-level2">
+                
+                三　德行和称赞是前六项的总纲；前六项，每一项都有一些德行或优越，都有值得称赞的—太五16。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太5:16	你们的光也当这样照在人前，叫他们看见你们的好行为，就荣耀你们在诸天之上的父。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-四">
+            <div class="section-level2">
+                
+                四　作正确的人，就是借着在我们人性美德里神圣的属性彰显神，也就是过一种充满基督作神属性之实际的人性生活—参创一26。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">创1:26	神说，我们要按着我们的形像，照着我们的样式造人，使他们管理海里的鱼、空中的鸟、地上的牲畜、和全地、并地上所爬的一切爬物。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-伍">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍')">▼</button>
+                
+                伍　“我已经学会了，无论在什么景况，都可以知足。我知道怎样处卑贱，也知道怎样处富余；或饱足、或饥饿、或富余、或缺乏，在各事上，并在一切事上，我都学得秘诀。我在那加我能力者的里面，凡事都能作”—腓四11下~13：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-伍-一">
+            <div class="section-level2">
+                
+                一　保罗是以基督为秘诀而经历基督，在任何环境、任何境遇、任何事上，都能因着基督知足喜乐—4节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓4:4	你们要在主里常常喜乐，我再说，你们要喜乐。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-二">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍-二')">▼</button>
+                
+                二　“我都学得秘诀”，直译，“我都已经被引进”；这是个隐喻，说到人被引进秘密社团，受其基本原则的教导—西二2，弗三3~4，五32：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:2	要叫他们的心得安慰，在爱里结合一起，以致丰丰富富地在悟性上有充分的确信，能以完全认识神的奥秘，就是基督；</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗3:3	就是照着启示使我知道这奥秘，正如我前面略略写过的，</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗3:4	你们念了，就能借此明了我对基督的奥秘所有的领悟，</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗5:32	这是极大的奥秘，但我是指着基督与召会说的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍-二" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-伍-二-1">
+            <div class="section-level3">
+                
+                1　保罗悔改信主之后，被引进基督与基督的身体—徒九3~19、25~28，二二6~21，十三1~4。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-二-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-二-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒9:3	扫罗行路，将近大马色，忽然有光从天上四面照着他，</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:4	他就仆倒在地，听见有声音对他说，扫罗，扫罗，你为什么逼迫我？</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:5	他说，主啊，你是谁？主说，我就是你所逼迫的耶稣。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:6	起来，进城去，你所当作的事，必有人告诉你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:7	与他同行的人站着，说不出话来，听见声音，却看不见人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:8	扫罗从地上起来，睁开眼睛，竟不能看见什么；有人拉着他的手，领他进了大马色。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:9	他三日不能看见，也不吃，也不喝。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:10	当时在大马色有一个门徒，名叫亚拿尼亚，主在异象中对他说，亚拿尼亚。他说，主啊，看哪，我在这里。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:11	主对他说，起来，往那叫直的街上去，在犹大的家里，寻找一个大数人名叫扫罗。看哪，他正在祷告，</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:12	在异象中看见一个人，名叫亚拿尼亚，进来按手在他身上，叫他能看见。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:13	亚拿尼亚回答说，主啊，我听见许多人说到这人，他在耶路撒冷向你的圣徒行了多少恶事，</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:14	并且他在这里有从祭司长得来的权柄，要捆绑一切呼求你名的人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:15	主却对亚拿尼亚说，你只管去，因为这人是我所拣选的器皿，要在外邦人和君王并以色列子孙面前，宣扬我的名；</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:16	我要指示他，为我的名必须受许多的苦难。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:17	亚拿尼亚就去了，进了那家，按手在扫罗身上，说，扫罗弟兄，在你来的路上向你显现的耶稣，就是主，差遣我来，叫你能看见，又被圣灵充溢。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:18	扫罗的眼睛上，好像有鳞立刻掉下来，他就能看见，于是起来受了浸，</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:19	吃过饭，就健壮了。扫罗和大马色的门徒同在了一些日子；</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:25	他的门徒就在夜间，用筐子把他从城墙上缒下去。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:26	扫罗到了耶路撒冷，想与门徒结交，众人却都怕他，不信他是门徒。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:27	唯有巴拿巴接受他，领他到使徒那里去，把他在路上怎么看见主，主怎么向他说话，他在大马色怎么在耶稣的名里放胆讲说，都向他们述说出来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒9:28	于是扫罗在耶路撒冷，和门徒出入来往，</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:6	我将到大马色，正走的时候，约在中午，忽然从天上发出大光，四面照着我，</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:7	我就仆倒在地，听见有声音对我说，扫罗，扫罗，你为什么逼迫我？</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:8	我回答说，主啊，你是谁？祂对我说，我就是你所逼迫的拿撒勒人耶稣。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:9	与我同行的人看见了那光，却没有听明那对我说话者的声音。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:10	我说，主啊，我当作什么？主对我说，起来，进大马色去，在那里要将所派你作的一切事都告诉你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:11	我因那光的荣耀，不能看见，就由同行的人牵着我的手，进了大马色。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:12	有一个人名叫亚拿尼亚，按着律法是虔诚人，为一切住在那里的犹太人所称赞。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:13	他到我这里来，站在旁边对我说，扫罗弟兄，你看见吧。我当时一看，就看见了他。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:14	他又说，我们祖宗的神预先选定了你，叫你认识祂的旨意，又得见那义者，且得听祂口中所出的声音；</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:15	因为你要将所看见所听见的，向万人为祂作见证。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:16	现在你为什么耽延？起来，呼求着祂的名受浸，洗去你的罪。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:17	后来我回到耶路撒冷，在殿里祷告的时候，魂游象外，</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:18	看见主向我说，你要赶紧，快快离开耶路撒冷，因你为我所作的见证，人必不领受。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:19	我就说，主啊，他们知道我从前把信靠你的人收在监里，又在各会堂里鞭打他们，</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:20	并且你的见证人司提反遇害流血的时候，我还亲自站在旁边，予以赞同，并且看守害死他之人的衣服。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒22:21	主向我说，你去吧，因为我要差遣你远远地往外邦人那里去。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒13:1	在安提阿当地的召会中，有几位申言者和教师，就是巴拿巴和称呼尼结的西面，古利奈人路求，与分封王希律同养的马念，并扫罗。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒13:2	他们事奉主，禁食的时候，圣灵说，要为我分别巴拿巴和扫罗，去作我召他们所作的工。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒13:3	于是禁食祷告，按手在他们身上，就打发他们去了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒13:4	他们既被圣灵差遣，就下到西流基，从那里坐船往居比路去。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-二-2">
+            <div class="section-level3">
+                
+                2　保罗学得如何以基督为生命（西三4），如何活基督（腓一21上），如何显大基督（20），如何赢得基督（三8、12），以及如何过召会生活（一8、19，二1~4、19~20，四1~3）的秘诀。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-二-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-二-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西3:4	基督是我们的生命，祂显现的时候，你们也要与祂一同显现在荣耀里。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:21上	因为在我，活着就是基督，……</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:20	这是照着我所专切期待并盼望的，就是没有一事会叫我羞愧，只要凡事放胆，无论是生，是死，总叫基督在我身体上，现今也照常显大，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓3:8	不但如此，我也将万事看作亏损，因我以认识我主基督耶稣为至宝；我因祂已经亏损万事，看作粪土，为要赢得基督，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓3:12	这不是说，我已经得着了，或已经完全了，我乃是竭力追求，或者可以取得基督耶稣所以取得我的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:8	神可为我作见证，我在基督耶稣的心肠里，怎样切切地想念你们众人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓1:19	因为我知道，这事借着你们的祈求，和耶稣基督之灵全备的供应，终必叫我得救。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:1	所以在基督里若有什么鼓励，若有什么爱的安慰，若有什么灵的交通，若有什么慈心、怜恤，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:2	你们就要使我的喜乐满足，就是要思念相同的事，有相同的爱，魂里联结，思念同一件事，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:3	凡事都不私图好争，也不贪图虚荣，只要心思卑微，各人看别人比自己强；</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:4	各人不单看重自己的长处，也看重别人的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:19	我在主耶稣里，盼望快打发提摩太到你们那里去，叫我知道关于你们的事，也可魂中快慰。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓2:20	因我没有人与我同魂，真正关心你们的事，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:1	所以，我所亲爱所切慕的弟兄们，我的喜乐和冠冕—亲爱的，你们要这样在主里站立得住。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:2	我劝友欧底亚，也劝循都基，要在主里思念相同的事。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:3	是的，我也求你这真实同负一轭的，帮助她们；她们在福音上曾与我和革利免、并我其余的同工一同努力，他们的名字都在生命册上。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-二-3">
+            <div class="section-level3">
+                
+                3　腓立比四章的秘诀乃是在那加我们能力的基督里作一切事（13，补充本诗歌四三二首）；保罗是一个在基督里的人，他经历基督，并将祂应用在一切景况中（腓三9）；这位基督是真实的、活的、相近的、便利的，且卓越的（四5下，诗歌四〇〇首）。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-二-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-二-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓4:13	我在那加我能力者的里面，凡事都能作。</div>
+                    
+                    
+                    
+                    <div class="verse-line">补充本诗歌四三二首</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-一">
+            <div class="section-level2">
+                
+                一　奇妙秘诀我已学会，		就是住在主里面；
+在此畅饮生命纯泉，		日日饱尝祂圣言；
+在祂有能宝血底下，		我得加力享肥甘；
+败坏的‘己’日渐消逝，	当我浸没祂里面。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-二">
+            <div class="section-level2">
+                
+                二　我与基督已经同钉，		祂今与我同生活；
+我已停下一切挣扎，		今是祂，不再是我。
+当我意志降服于祂，		祂灵掌权我心内，
+祂的救赎、拯救有能，	使我洁净并脱罪。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-三">
+            <div class="section-level2">
+                
+                三　我将疾病带来归祂，		由祂一一都担去；
+我告祂以软弱、忧、惧，	祂使我一无挂虑。
+我的力量取自基督，		生活行动祂指点；
+祂赐我以生命、信、爱，	使我活出祂意念。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-四">
+            <div class="section-level2">
+                
+                四　我以祂智作我言、语		凭祂灵力而作工；
+祂的同在作我道路，		不住保卫、引导我。
+祂是无穷喜乐泉源，		作我永分藏心房-
+是我救主、圣别、医治、	荣耀主、永世君王。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓3:9	并且给人看出我是在祂里面，不是有自己那本于律法的义，乃是有那借着信基督而有的义，就是那基于信、本于神的义，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:5下	……主是近的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗歌四〇〇首</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-一">
+            <div class="section-level2">
+                
+                一　哦主，在我你是生命，	对我也是一切；
+何其亲切、何其便利，	永远取用不竭！
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-二">
+            <div class="section-level2">
+                
+                二　对于我的大小需要，		你是丰富供应；
+何其全备、何其充足，	我得应用于灵。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-三">
+            <div class="section-level2">
+                
+                三　你作膏油涂抹、运行，	时常顾我软弱；
+借你能力无限供应，		使我刚强、灵活。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-四">
+            <div class="section-level2">
+                
+                四　生命之律灵中规律，		使我得享自由；
+你的实际所有丰富，		将我全人浸透。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-五">
+            <div class="section-level2">
+                
+                五　你是与我永远成一，		无比神圣联结；
+永远与我成为一灵，		永远不再隔绝。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-六">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍-六')">▼</button>
+                
+                六　愿你在我全人居衷，		在我心中安家；
+一部一部、荣上加荣，	将我全人变化。
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍-六" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-伍-六-4">
+            <div class="section-level3">
+                
+                4　保罗说到基督是加力者的话，特别适用于基督加我们能力，使我们活祂作我们人性的美德，因而在任何环境里都显大祂那无限的伟大—腓四8~13。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-六-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-六-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓4:8	末了的话，弟兄们，凡是真实的，凡是庄重的，凡是公义的，凡是纯洁的，凡是可爱的，凡是有美名的；若有什么德行，若有什么称赞，这些事你们都要思念。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:9	你们在我身上所学习的、所领受的、所听见的、所看见的，这些事你们都要去行，平安的神就必与你们同在。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:10	我在主里大大地喜乐，因为你们对我的思念，如今终于重新发生；你们向来就思念我，只是未得机会。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:11	我并不是因缺乏说这话，因为我已经学会了，无论在什么景况，都可以知足。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:12	我知道怎样处卑贱，也知道怎样处富余；或饱足、或饥饿、或富余、或缺乏，在各事上，并在一切事上，我都学得秘诀。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:13	我在那加我能力者的里面，凡事都能作。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-六-5">
+            <div class="section-level3">
+                
+                5　借着基督的加力，我们能过知足的生活，并且成为真实的、庄重的、公义的、纯洁的、可爱的、有美名的（11~12、8）；要过这一切美德的生活，比作基督教的工作难多了。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-六-5')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-六-5" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓4:11	我并不是因缺乏说这话，因为我已经学会了，无论在什么景况，都可以知足。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:12	我知道怎样处卑贱，也知道怎样处富余；或饱足、或饥饿、或富余、或缺乏，在各事上，并在一切事上，我都学得秘诀。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓4:8	末了的话，弟兄们，凡是真实的，凡是庄重的，凡是公义的，凡是纯洁的，凡是可爱的，凡是有美名的；若有什么德行，若有什么称赞，这些事你们都要思念。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-六-6">
+            <div class="section-level3">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍-六-6')">▼</button>
+                
+                6　我们若要经历基督作加力者，就需要在以下的事上与祂合作：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍-六-6" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-伍-六-6-a">
+            <div class="section-level4">
+                
+                a　我们在地上实际的生活，必须是一直祷告的人，来到神面前，进到祂里面，并活在祂的面光中—诗四二5、11，八十1、3、7、19。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-六-6-a')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-六-6-a" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗42:5	我的魂哪，你为何忧闷？为何在我里面烦躁？应当仰望神；因祂的脸是我的救恩，我还要赞美祂。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗42:11	我的魂哪，你为何忧闷？为何在我里面烦躁？应当仰望神；因我还要赞美祂，祂是我脸上的救恩，是我的神。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗80:1	领约瑟如领羊群之以色列的牧者啊，求你侧耳听；坐在二基路伯之间的啊，求你发出光来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗80:3	神啊，求你恢复我们，使你的脸发光，我们便要得救。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗80:7	万军之神啊，求你恢复我们，使你的脸发光，我们便要得救。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗80:19	耶和华万军之神啊，求你恢复我们，使你的脸发光，我们便要得救。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-六-6-b">
+            <div class="section-level4">
+                
+                b　我们需要基于主在十字架上的流血，彻底并新鲜地经历罪得赦免—来九14，十19、22，出二四8，太二六28。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-六-6-b')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-六-6-b" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来9:14	何况基督借着永远的灵，将自己无瑕无疵地献给神，祂的血岂不更洁净我们的良心，使其脱离死行，叫我们事奉活神么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">来10:19	弟兄们，我们既因耶稣的血，得以坦然进入至圣所，</div>
+                    
+                    
+                    
+                    <div class="verse-line">来10:22	并且在心一面，我们已经被基督的血洒过，脱开了邪恶的良心，在身体一面，也已经用清水洗净了，就当存着真诚的心，以十分确信的信，前来进入至圣所；</div>
+                    
+                    
+                    
+                    <div class="verse-line">出24:8	摩西将血洒在百姓身上，说，看哪，这是耶和华按这一切话与你们所立之约的血。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太26:28	因为这是我立约的血，为多人流出来，使罪得赦。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-六-6-c">
+            <div class="section-level4">
+                
+                c　我们需要知道什么叫作升天，并且知道我们所得的生命乃是属天的生命；我们该知道我们已经与主一同升到天上，因此是属天的人；从外面看，我们还生活在地上，但从我们里面的生命和心情而言，我们乃是活在天上—弗二6，来八1~2，四14~15，七25~26。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-六-6-c')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-六-6-c" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗2:6	祂又叫我们在基督耶稣里一同复活，一同坐在诸天界里，</div>
+                    
+                    
+                    
+                    <div class="verse-line">来8:1	我们所讲之事的要点，就是我们有这样的大祭司，祂已经坐在诸天之上至尊至大者宝座的右边，</div>
+                    
+                    
+                    
+                    <div class="verse-line">来8:2	作了圣所，就是真帐幕的执事；这帐幕是主所支的，不是人所支的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来4:14	所以，我们既有一位经过了诸天，尊大的大祭司，就是神的儿子耶稣，便当坚守所承认的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来4:15	因我们并非有一位不能同情我们软弱的大祭司，祂乃是在各方面受过试诱，与我们一样，只是没有罪。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来7:25	所以，那借着祂来到神面前的人，祂都能拯救到底；因为祂是长远活着，为他们代求。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来7:26	像这样圣而无邪恶、无玷污、与罪人分别，并且高过诸天的大祭司，原是与我们合宜的；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.outline-page {
+    padding: 5px;
+}
+
+/* 字体大小控制 */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: #f0f4ff;
+    border: 1px solid #d0d7f0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #667eea;
+    cursor: pointer;
+}
+
+.font-btn:active {
+    background: #667eea;
+    color: #ffffff;
+    border-color: #667eea;
+}
+
+.outline-content {
+    margin-top: 20px;
+}
+
+.section-level1 {
+    font-weight: bold;
+    font-size: 17px;
+    margin: 20px 0 12px 0;
+    color: #2c3e50;
+    line-height: 1.8;
+}
+
+.section-level2 {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 16px 0 10px 15px;
+    color: #34495e;
+    line-height: 1.8;
+}
+
+.section-level3 {
+    font-size: 16px;
+    margin: 14px 0 8px 30px;
+    color: #4a5568;
+    line-height: 1.8;
+}
+
+.section-level4 {
+    font-size: 15px;
+    margin: 12px 0 8px 45px;
+    color: #718096;
+    line-height: 1.8;
+}
+
+.subsections {
+    margin-left: 0;
+    display: block;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 0.875em; /* 14px -> 0.875em */
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    margin-right: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-btn:active {
+    color: var(--brand-2);
+}
+
+.scripture-toggle-btn {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+    padding: 10px 12px;
+    margin: 8px 0 0 0;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.scripture-toggle-btn:active {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.scripture-content {
+    background: #f8f9fa;
+    border-left: 3px solid var(--brand-1);
+    padding: 10px 12px;
+    margin: 10px 0 10px 15px;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.8;
+}
+
+.verse-line {
+    margin-bottom: 8px;
+}
+
+.verse-line:last-child {
+    margin-bottom: 0;
+}
+
+.scripture-ref {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-left: 8px;
+}
+
+/* 章节级别经文样式 */
+.scripture-section {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.chapter-scripture-toggle {
+    margin-left: 10px;
+    font-size: 13px;
+    padding: 8px 14px;
+    min-height: 40px;
+}
+
+.chapter-scripture-content {
+    margin-top: 12px;
+    margin-left: 0;
+    background: white;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const hymnElem = document.querySelector('.hymn-number');
+            if (hymnElem) text += hymnElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const sections = document.querySelectorAll('.section-level1, .section-level2, .section-level3, .section-level4');
+            sections.forEach(s => {
+                const t = s.textContent.trim();
+                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+                    text += t + '。';
+                }
+            });
+            return text;
+        }
+    });
+});
+
+function toggleSection(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '▼';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '▶';
+    }
+}
+
+function toggleScripture(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '收起经文';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '展开经文';
+    }
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025夏季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

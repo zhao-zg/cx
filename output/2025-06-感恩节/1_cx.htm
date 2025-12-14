@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第1篇 - 晨兴</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>二〇二五年感恩节相调特会</h1>
+            <div class="subtitle">总题：马太福音中所启示包罗万有的基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025感恩节训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="1_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="1_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="1_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="1_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="1_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+    <h2 class="chapter-title">第1篇 作为活星之属天基督当前、即时、活的异象</h2>
+    
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container">
+        
+        <div class="day-page" data-page="0" style="display: block;">
+            <h3 class="day-title">周一</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">壹</span>
+                    <span class="outline-text">耶稣生在伯利恒之后，有星象家从东方来到耶路撒冷，说，“那生为犹太人之王的在哪里？因为祂的星出现的时候，我们看见了，就前来拜祂”（太二2）；这是应验民数记二十四章十七节的话，说，“必有一星从雅各而出” ；这星是指基督：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">星象家不是说，他们看见了“一个星”或“那星”，乃是说，他们看见了“祂的星”；这星乃是属天的基督。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">马太二章二节所说到的星向这些博学者显现；这星没有向任何以色列人显现；犹太人有论到基督的圣经，并且知道祂要生在何处（4~6），但星象家看见了基督的星。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">三</span>
+                    <span class="outline-text">犹太人有关于基督将生于何处字句的知识（弥五2），但这些来自东方的博学者接受了关于祂活的异象；至终那星引他们到基督所在的地方（太二1~12）。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">四</span>
+                    <span class="outline-text">基督是真日头（玛四2），但严格说来，祂在这黑夜的世代并非出现如日头；祂乃是发光如星（启二28）；星是在黑夜里发光，但这指明白昼将到（罗十三11~14）。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">五</span>
+                    <span class="outline-text">基督第一次来时，公开出现如星，但祂第二次来时，对儆醒等候祂来的得胜者将是晨星（启二28，二二16）；对所有其余的人，基督后来要出现如日头（玛四2，参太十三43）。</span>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">太二2　	那生为犹太人之王的在哪里？因为祂的星出现的时候，我们看见了，就前来拜祂。</p>
+                
+                <p class="content-paragraph">民二四17	我看祂，却不在现时；我望祂，却不在近日。必有一星从雅各而出，必有一杖从以色列兴起，祂必打碎摩押的四角，毁坏舍特所有的子孙。</p>
+                
+                <p class="content-paragraph">民数记二十四章十七节……这星是指基督。基督这预表的应验，见于马太二章二节所记载星象家（来自东方的博学者）的话。……星象家不是说，他们看见了“一个星”，或他们看见了“那星”，乃是说，他们看见了“祂的星”。……这节所说到的星向这些博学者显现；这星没有向任何以色列人显现。犹太人有论到基督的圣经，并知道祂要生在何处（太二4~6），但星象家看见了基督的星。犹太人有关于基督字句的知识，但这些来自东方的博学者接受了关于祂活的异象。至终那星引他们到基督所在的地方（9~10）。</p>
+                
+                <p class="content-paragraph">虽然基督是真日头（玛四2），但祂在这黑夜的世代并没有出现如日头。祂乃是发光如星。星是在黑夜里发光，但这指明白昼将到。基督第一次来时，公开出现如星。但祂第二次来时，对儆醒等候祂来的得胜者将是晨星（启二28，二二16）。对所有其余的人，基督后来要出现如日头（新约总论第二册，二八一至二八二页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">马太二章二节……似乎指主耶稣只为着犹太人，但是首先来寻找主的，却是外邦人；是从外邦人口中说出犹太人的王。这一节又可见主的工作是为着外邦人和犹太人的。……东方星象家之所以知主降生，圣经未给我们证据，但可得着一点端倪（“光”—赛六十3，“祂”—诗七二4）。外邦人也有先知，巴兰就是一个；四个讲主耶稣事情最多的先知，巴兰是其中之一（民二四17）。也许这些预言流传在东方；也许东方星象家读了但以理书的预言，但以理被掳在巴比伦讲七十个七，曾讲主耶稣的事（但九24~25）。“拜祂”……并非拜神之拜，乃以最高对人敬礼拜主而已（倪柝声文集第一辑第十五册，五至六页）。</p>
+                
+                <p class="content-paragraph">耶稣出生的时候，……圣经记载有些外邦人，星象家，来寻找祂（太二1~12）。当然，这是由神发起，不是由他们发起的。……神给星象家一颗发亮的星引导他们（2）。这星没有出现在圣地。这星向远离圣地、圣城、圣殿、圣宗教、圣经、圣民、圣祭司的人显现出来。这发亮的星远离这一切神圣的事物，向外邦地的一些外邦人显现。那星的照耀激起这些外邦星象家，想到犹太人的王。我不知道这些星象家怎样受到激动，想起犹太人的王，我不想猜测。……无论如何，他们是从东方来的，并且领悟这星指明犹太人的王。</p>
+                
+                <p class="content-paragraph">星象家有活的异象—天上的星，犹太宗教徒有圣经。你喜欢哪一样？圣经还是星？最好两者都有。我喜欢手中有圣经，也喜欢看见天上的星。最好我是犹太人，又是外邦人（马太福音生命读经，九六至九七页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-page="1" style="display: none;">
+            <h3 class="day-title">周二</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">贰</span>
+                    <span class="outline-text">马太二章一至十二节启示，寻得基督是一件活的事，而不仅仅是圣经道理知识的事：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">这星的显现远离圣地的圣殿，远离犹太的宗教中心，远离祭司、经学家、法利赛人，远离所有守宗教的人；反之，在外邦人之地，却有一颗星显明了一些有关基督的事。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">单单手持圣经，念弥迦书五章二节说基督将生在伯利恒，那是不灵的；我们也许有圣经，但可能失去了属天的星。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">三</span>
+                    <span class="outline-text">那星就是活的启示，活的异象，不是老旧且死的圣经道理知识，不是弥迦书五章二节死的知识；今日我们所需要的不是单单圣经的知识，而是属天的异象，当前、即时的异象，活的异象，人的观念永远没法教导的异象。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">四</span>
+                    <span class="outline-text">即或我们有了圣经的知识，我们还需要即时、当前的活星引导我们，去到耶稣所在的那一条街，那一家屋子。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">五</span>
+                    <span class="outline-text">星象家接受了活的异象后，受自己属人观念的误引，去了犹太国的京城耶路撒冷，以为犹太人的王就在那里；他们这误引使许多孩童被杀—太二16。</span>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">太二4~6	他〔希律王〕就召集了所有的祭司长和民间的经学家，向他们查问，基督当生在何处。他们对他说，在犹太的伯利恒，因为借着申言者所记的是这样：“犹大地的伯利恒啊！你在犹大的首领中，绝不是最小的，因为有一位掌权者要从你出来，牧养我民以色列。”耶稣生在伯利恒，……但奇怪的是，远离了所谓的圣地，远离了这真的宗教，远离了圣殿，远离了犹太的宗教中心，远离了祭司、经学家、法利赛人和所有宗教人士，却有一颗星在异教之地显明有关基督的事。这星并未显示给犹太人，而是显示给外邦人，异教人。人一再被告知，必须凭借圣经来寻找并认识基督。但是圣经里寻找基督的头一个例子并非借着圣经。星象家并没有任何圣经知识—他们连圣经也没有。</p>
+                
+                <p class="content-paragraph">那些祭司长和经学家真是精通圣经，但主并没有到他们那里去。祂去到一个遥远的异教之地，把这件事启示给一些异教徒，不是借着圣经，而是借着人手摸不到的东西—一颗天上的星。</p>
+                
+                <p class="content-paragraph">也许我们有圣经，但我们可能错过了星。把圣经拿在手里是容易的事，但要等待观看一颗星太难了。我们根本没法晓得这星会在何时何地出现。我们能研究圣经，……可能知道圣经讲论基督的一切事，但我们无法断定那颗星几时来到。圣经这本书是在犹太人这群宗教人士手中，星却是显示给异教人士。你看见这点么？也许我们想，这星一定会向那些在圣殿中祈祷的祭司们显现，但它却是显示给远离圣殿的外邦人（李常受文集一九七○年第一册，三六九至三七○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">我们都必须看见这颗星！……那星是什么？那星就是活的启示，活的异象。不是圣经字句的死知识，不是弥迦书五章二节的死知识。今日我们所需要的不是单单圣经的知识，而是属天的异象，即时的异象，活的异象，人的观念没法教导的异象。……今日要认识基督，乃是一件活的事，不是照着圣经知识的死字句，而是照着那属天的活星。</p>
+                
+                <p class="content-paragraph">我们没法将祂包围、拘禁、限制在我们的宗教里。……每逢我们坚持自己对，别人错，主就要离开我们去找那些错的人了。</p>
+                
+                <p class="content-paragraph">民数记二十四章十七节说，“必有一星从雅各而出”，但这星没有显给雅各家任何一个人。从雅各而出的星显给外教人了。</p>
+                
+                <p class="content-paragraph">现在我们要来看星象家作了什么事：他们看见了那天上的星，便跟随它，但是他们犯了一个大错。……他们知道这星表征犹太人的王；因此他们推想他们该去到耶路撒冷，询问那些对这一类事有知识的人。我们知道，那一去就带来许多麻烦。我确信，如果他们不转向自己天然的观念，而是继续仰望天上的星，那星会一直走在他们前头，引导他们直达耶稣所在的地方。他们用不着去耶路撒冷。他们完全错了，以致许多幼小无辜的生命受害。犹太宗教的领袖们有知识，星象家有异象。但那些接受异象的人犯了一个大错，若非神出来干预，甚至可能导致婴孩耶稣丧生（李常受文集一九七○年第一册，三七○至三七二页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-page="2" style="display: none;">
+            <h3 class="day-title">周三</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">六</span>
+                    <span class="outline-text">他们到达耶路撒冷，查问犹太人的王当生在何处，圣经说，“希律王听见了，就惊慌不安，全耶路撒冷也同他一样”—太二3：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">他们听见这信息，应当欢喜，却反而惊慌不安；这没有别的，乃因他们并没有真要救主—参箴四23。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">一个信主的人，如果他里面的感情、感觉没有受主作为爱的影响，则他尚不能配作基督徒—提后四8，可十二30，林前二9。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">基督徒盼望主来，盼望被提，当以此为鉴—提后四8，多二13，启二28，二二20，太二四40~44，二五8~13。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">七</span>
+                    <span class="outline-text">当星象家受了圣经的改正（太二4~6），往伯利恒去（8~9），那星就再向他们显现，引他们到基督所在的地方，“他们看见那星，就极其欢乐”（10）：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">星象家得了圣经的改正，回到正确的路上，那星就再向他们显现；活的异象总是随着圣经的。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">祭司是教导百姓律法的人（玛二7），经学家是通晓圣经的人（拉七6）；祭司和经学家都具备基督出生的知识（太二5~6），但他们没有看见异象，也无心寻求基督，不像东方来的星象家那样。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">不论我们多“合乎圣经”，我们若失去主的同在，我们就完全错了；在新约里寻得并跟随主的路，乃是不断停留在祂隐密的同在中—约五39~40，赛四五15，出三三11、14，参林后五16。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">4</span>
+                            <span class="outline-text">储存一些圣经知识是容易的事，但我们若要有活的引导，就必须活在与主亲密的关系里；我们必须与祂是一—太二10~14。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">5</span>
+                            <span class="outline-text">星象家看见了基督，并且敬拜祂；然后他们在梦中受神警示，不要回去见希律，就从“别的路”回本地去了（12）；我们一旦看见了基督，就绝不走原路，就是遇不见基督之宗教的路，我们一定会走别的路。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">弥五2	伯利恒以法他啊，你在犹大诸城中为小，将来必有一位从你那里为我而出，在以色列中作掌权者；祂是从亘古，从太初而出。</p>
+                
+                <p class="content-paragraph">太二10	他们〔星象家〕看见那星，就极其欢乐。</p>
+                
+                <p class="content-paragraph">当星象家到达耶路撒冷，希律就惊慌不安，全耶路撒冷也同他一样（太二3）。……为何当他们所等候的那位出生的时候，全耶路撒冷都惊慌不安呢？这就是宗教。我怕当主来临的时候，许多看起来在等待主回来的人也会不安。</p>
+                
+                <p class="content-paragraph">然后希律就召了祭司长和民间的经学家，向他们查问基督当生在何处（4）。经学家就是百姓中有神学博士学位的人。他们立刻回答说，“伯利恒！”他们引用的书卷对，章节对；他们引弥迦书五章二节，但他们有人去伯利恒么？一个也没有！他们因这消息惊慌不安，但没有人有心要去看看发生了什么事（李常受文集一九七○年第一册，三七二至三七三页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">然后星象家离开耶路撒冷，圣经说，“看哪，他们曾看见它出现的那星，在他们前头领路，……他们看见那星，就极其欢乐。”（太二9~10）星象家一进到宗教里，就失去那星；但他们几时离开宗教，星又向他们显现了。他们在耶路撒冷找不到活的引导，在宗教里得不着属天的异象，他们必须离开宗教。当他们离开了耶路撒冷，看哪，那星在他们前头领路。这原则在今天仍是一样的。</p>
+                
+                <p class="content-paragraph">弥迦书五章二节是圣言，是圣经，预言耶稣要在伯利恒出生。但是单凭那节圣经你没法找到耶稣；你能知道耶稣出生于哪座城，但你不会知道在哪条街，在哪个家。……即或你有了圣经的知识，你还需要即时、当前的活星引导你，去到耶稣所在的那条街，那间屋子。也许你有圣经知识，但你还需要活的引导。……累积一些圣经知识是容易的事，但我们若要有活的引导，就必须活在与主亲密的关系里；我们必须与祂是一。</p>
+                
+                <p class="content-paragraph">圣经说，那星“在他们前头领路，直领到那孩子那里”（太二9）。那颗天上的星把星象家一直带到那个地方。这是我们的需要。……我们怎么才能寻得基督并事奉祂？不是单凭圣经的知识，而是凭那活星。单有圣经知识的人并不就能找到基督，只有那些跟随天上之星的人，才能找到祂并敬拜祂。……我们需要圣经的知识么？当然我们需要。它有帮助；但是有一个条件，那一个活的、即时的引导，就是此时此刻引我们去到耶稣确切所在之处的引导，是不可或缺的。缺了这活的引导，我们或许认识圣经，但却到达不了耶稣所在的地方。乃是那活的引导把我们带到耶稣那里，叫我们能敬拜祂，并向祂献上我们的礼物。</p>
+                
+                <p class="content-paragraph">星象家看见了基督，并且敬拜祂；然后圣经说了一些很有意义的话—他们在梦中受神指示，不要回去见希律，就从“别的路”回本地去了（太二12）。……当我们见到了活的基督，我们总会走另一条路；我们绝不会再走我们来的那条路。……我们来的时候走错了路；现在主校正我们，所以我们能在正路上往前。不要再经耶路撒冷回去。……我们若是看见了基督，就必须走另一条路（李常受文集一九七○年第一册，三七三至三七五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-page="3" style="display: none;">
+            <h3 class="day-title">周四</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">叁</span>
+                    <span class="outline-text">基督忠信的跟从者是照耀的活星，他们跟随基督这照耀的活星，成为祂的复制—但十二3，参创二二17：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">基督是神经纶的中心与普及，众活星跟随基督那属天、活泼、当前和即时的异象—徒二六16~18，西一17下、18下。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">众活星乃是祝福神子民的人；我们越为着神的子民赞美主，并在信心里正面地说到他们，就越将自己摆在神的祝福之下—民二四9，创十二2~3，二二17。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">三</span>
+                    <span class="outline-text">众活星留意经上申言者的话，“如同留意照在暗处的灯”，使基督这晨星日复一日在他们心里出现；我们若留意圣经的话，会叫我们在基督作晨星实际显出前，就得着祂在我们心里出现，照耀在我们今天所处之背道的黑暗中—彼后一19，约六63，启二28，二二16，提后四8：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">按晨星的原则，基督徒应当清早起来，因为清晨是遇见主（与神有交通、赞美歌颂、祷读圣经同职事的话，并向主祷告）最好的时候—歌七12，诗五1~3，五七8~9，五九16~17，六三1~8，九十14，九二1~2，一○八2~3，一四三8，出十六21。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">主会隐密地把祂自己当作晨星，赐给那些爱祂而儆醒等候祂的人，叫他们尝到祂久离再临之同在的新鲜—帖前五6，启二28，三2~3，十六15。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">四</span>
+                    <span class="outline-text">众活星享受并被七倍加强的灵充满，使他们为着神的建造加强的活并加强的亮—三1，四5，五6。</span>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">启一20　	论到……七星，和七个金灯台的奥秘，那七星就是七个召会的使者，七灯台就是七个召会。</p>
+                
+                <p class="content-paragraph">但十二3	通达人必发光，如同穹苍的光辉；那使多人归义的，必发光如星，直到永永远远。</p>
+                
+                <p class="content-paragraph">马太二章里的星，只是这事在新约里的起头。如果我们到了圣经最后一卷书启示录，我们就看见两件相关的事：第一，主耶稣是星。不是晚星，而是晨星。第二，所有召会的使者也全都是星。在此我们必须了解，这些使者不是那些天上的人物（天使），而是在召会中担负属灵责任的属灵人—他们是众星。在这卷书里基督是晨星，而那些在众召会中忠心跟随基督的人乃是众星。现在星在哪里？非常清楚，今天星是在召会里（李常受文集一九七○年第一册，三八三页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">在新约起头，星是在宗教之外，但在新约的末了，星是在召会里面。你有没有看见新约的这两端？……今日星是在召会里，在众召会中。大卫的根与后裔，是神子又是人子的耶稣基督，就是那晨星，祂今天行走在众地方召会中间。</p>
+                
+                <p class="content-paragraph">不只基督自己是星，祂的跟从者也是，他们是在众召会中发光的人。在使徒行传与书信里，带头的人被称作长老，但在圣经末一卷里他们乃是星。……所有在地方召会中领头的人必须是发光的星。</p>
+                
+                <p class="content-paragraph">是一颗星，究竟是什么意思？但以理十二章三节答复了这个问题。……众星乃是那些在黑暗中照亮，并使人从错误的路转到正路上去的人。现今的召会时代乃是黑夜的时期；因此我们需要星发光照耀。在地方召会中，所有领头的人都不该自居地位。他们不该说，“我是长老，你们必须承认我。”如果他们这样说，他们就是在黑暗里。我们需要发光的弟兄姊妹；我们需要发光的星。乃是借着在今日黑暗中发光，才叫人能接受引导，从错误的路转到正路上。任何一件错误的事都是不义；任何一件对的事都是义。那使多人归义的，才是发光的星，直到永永远远。</p>
+                
+                <p class="content-paragraph">在新约开头，只题到有一颗星在天上；但在新约末了，有七星在七个地方召会中。在每个地方召会中都有一颗星；在每个地方召会里都有发光物，把人带到正路上去。</p>
+                
+                <p class="content-paragraph">大约在四十年以前，我因为地方召会里的星，从错误的路转到正路上。许多亲爱的弟兄姊妹今天也能见证这个事实；他们能说，“阿利路亚，在地方召会里我看见了星。是召会里的星使我转到正路上。”我们如何能有新约的事奉？就是借着跟随那星。星在哪里？……今天星是在地方召会里。在圣经的结尾有这样的话：“我是大卫的根，又是他的后裔，我是明亮的晨星。那灵和新妇说，来！”（启二二16~17）今天星与那灵同在，也与新妇同在。那灵在哪里，哪里就有星；新妇召会在哪里，哪里就有星（李常受文集一九七○年第一册，三八三至三八五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-page="4" style="display: none;">
+            <h3 class="day-title">周五</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">五</span>
+                    <span class="outline-text">众活星乃是众召会的使者，他们享受并经历是灵的基督作神的使者，并作从神来的新鲜信息，使他们能将新鲜并现今的基督分赐到神的子民里面，为着耶稣的见证—一16、20，二1，玛三1~3。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">六</span>
+                    <span class="outline-text">众活星乃是“心中定大志”并“心中设大谋”的人；他们是爱神的人，像星“从其轨道”与神一同争战，抵挡祂的仇敌，使他们“如日头出现，光辉烈烈”，并且成为“在他们父的国里……发光如同太阳”的人—士五15~16、20、31，但十一32，太十三43。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">七</span>
+                    <span class="outline-text">众活星是敬畏耶和华并听从祂仆人声音者，信靠耶和华，好能行在暗中而有亮光—赛五十10~11，诗一三九7~12、23~24：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">那些为自己造光，并行在自己所造之光里，而不是行在神光中的人，必落在悲惨之中—赛五十11。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">这对我们该是警告，叫我们行在神所赐的光中，不行在我们为自己所造的光中；“来罢，我们在耶和华的光中行走”—二5。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">八</span>
+                    <span class="outline-text">众活星是由神在第四日的恢复并进一步的创造里所设立的星作预表，星是借着照耀来管理；哪里有照耀，哪里就有管理，为着生命的长大—创一14~19：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">主耶稣在变化山上的照耀，乃是国度在大能里的来临；这照耀实际上乃是三一神管治的同在—太十七1~8，可九1~8。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">神的国作为神的管治，神的掌权，同其一切的祝福和享受，就是主耶稣的照耀，也是主耶稣借着照耀在我们身上而有的扩展。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">国度乃是主耶稣这实际的照耀；每当祂照耀在我们身上，并且我们也在那照耀之下，我们就在国度里，受我们里面神的管治和掌权，为着我们生命的长大。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">彼后一19	我们并有申言者更确定的话，你们留意这话，如同留意照在暗处的灯，直等到天发亮，晨星在你们心里出现，你们就作得好了。</p>
+                
+                <p class="content-paragraph">腓二13　	因为乃是神为着祂的美意，在你们里面运行，使你们立志并行事。</p>
+                
+                <p class="content-paragraph">在星象家的日子，看见那星是奇迹似的事件，但在今天看见晨星只是寻常的事，并且该是我们例常的经历。每天都该有晨星在我们心里出现。不要单单念圣经，也不要单单祷读圣经，我们必须留意申言者的话，直等到天发亮，晨星在我们心里出现。</p>
+                
+                <p class="content-paragraph">所以，今日这星是来自这活话。我很喜欢在〔彼后一章十九节〕，主的话与晨星摆在一起。首先我们有话；其次由于留意申言者的话，我们有晨星在我们心里出现。我们若一直随从这在我们里面出现的星，就会一直在那灵里。这就是新约的事奉（李常受文集一九七○年第一册，三八八页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">主耶稣的变化形像乃是祂所是的实化〔太十七1~2〕。当祂局限在祂的肉体里，人们以为祂只是一个微小的拿撒勒人。国度在祂里面，但他们看不见。……祂上到山顶，在那里祂“打开开关”了。祂发光照耀。祂的照耀乃是从祂里面出来，不是从天上来的。祂里面有一个东西在照耀。虽然这实际在祂变化形像以前，就已经在祂里面，人却不能观察得到。然而，在祂变化形像时，祂的门徒就能观察得到从祂里面照耀出来的东西。</p>
+                
+                <p class="content-paragraph">我们也许说这是主耶稣的照耀，或主耶稣的变化形像，但祂自己说那是国度的来临。主耶稣在山顶的照耀，乃是国度的来临。……国度就是主耶稣照耀在你身上。我盼望这句话能对你留下深刻印象：国度就是主耶稣的照耀，国度就是主耶稣借着照耀在你身上而有的扩展。祂告诉彼得、雅各和约翰，他们要看见祂在祂的国里来临—他们要看见神的国带着能力来临。他们看见了什么？他们看见了主耶稣的照耀。当彼得、雅各和约翰都在祂的照耀之下，他们就在国度里。那些由摩西所代表之死了的圣徒，和由以利亚所代表之活着的圣徒，也都显现，并在主耶稣之扩展的照耀下。</p>
+                
+                <p class="content-paragraph">假定有五位弟兄住在弟兄之家。如果这些弟兄们真是在主耶稣的照耀之下，国度就在那个弟兄之家里。每当你访问他们，你会感觉那个照耀、掌权、管治和美好的次序。虽然你看不到规则条文，但每件事都借着照耀，维持在秩序之下。然而假定他们不活在照耀之下，反而彼此批评、轻视，却假装彼此相爱。你访问他们时，你在属灵上就会感觉你是在墓地。虽然一切都很安静，却有可怕的死亡在那里。虽然没有人相争，一切都有秩有序，死亡和黑暗的权势却仍在那里。那里没有照耀。</p>
+                
+                <p class="content-paragraph">国度乃是主耶稣这实际的照耀。每当祂照耀在你身上，并且你也在那照耀之下，你就在国度里。……国度不仅是一个时代，一个范围，或一个领域，国度乃是主耶稣实际的实化。每当祂借着照耀在你身上而得以扩展，你就在国度里，并且国度就带着能力来临（李常受文集一九七二年第二册，二二至二四页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-page="5" style="display: none;">
+            <h3 class="day-title">周六</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">九</span>
+                    <span class="outline-text">在消极一面，有些人是“流荡的星”—犹12~13：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">流荡之星的隐喻，指明这些反复无常的教师、背道者，未稳固的定在属天启示不变之真理上，反倒在神像星一样的子民中流荡。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">反复无常的背道者，今天是流荡的星，至终要被禁入那为他们永远存留的黑暗幽冥里。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">众地方召会不是神经纶的目标，而只是达到基督身体之实际这目标的手续，无论谁不教导这事，就与现今世代神职事的需要不符；无论谁要使我们离开众召会为着基督身体之实际的相调，就是流荡的星；真正的星乃是使多人归义的，他们并不领人走迷，而是使人转上正路。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">4</span>
+                            <span class="outline-text">今日那活星和众活星离我们不远，就在那作基督身体实际彰显的众地方召会里，并且与众地方召会同在（启一11、20）；在所有的地方召会中，都有一些活星；我们只要与他们接触，与他们在一起，他们就要引我们到耶稣所在的地方。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">十</span>
+                    <span class="outline-text">愿主怜悯我们，叫我们一直蒙保守在正路上，遇见主，敬拜祂，并向祂献上我们的爱；愿主使我们都像这些星象家，跟随活星去寻得基督并对基督有新的发现，好成为祂的复制，作众活星—参弗五8~9，耶十五16上。</span>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">太十三43	那时，义人在他们父的国里，要发光如同太阳。有耳可听的，就应当听。</p>
+                
+                <p class="content-paragraph">犹13	是海里的狂浪，涌出自己可耻的泡沫；是流荡的星，有黑暗的幽冥为他们永远存留。</p>
+                
+                <p class="content-paragraph">今天在黑夜中我们需要像星一样的尽功用。但在要来的国度时代，那些今日像星一样发光照亮的，要发光如同太阳。现今我们是发光的星，但那日我们要像太阳〔太十三43〕。</p>
+                
+                <p class="content-paragraph">星，也有消极一面的—流荡的星。犹大书十二至十三节说，“这样的人，在你们的爱筵上乃是暗礁，与你们同吃的时候，无所惧怕；他们是只喂养自己的牧人；是没有雨水的云彩，被风飘荡；是秋天没有果子的树，死而又死，连根被拔出来；……是流荡的星，有黑暗的幽冥为他们永远存留。”我们该作星，但不该是流荡的星（李常受文集一九七○年第一册，三九一至三九二页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">一颗正当的星有一定的位置和固定的轨道。它是一直坚定在它的轨道上。但有些星没有固定的位置和轨道，它们是流荡的星。有些基督徒好像是星，好像也发光，但他们的光是骗人的。他们是星，但不是坚定的星。你若是跟随他们，你就被带迷路了；到头来你都不知道要往哪里去。他们本身就是流荡的，他们没有立场，没有立足点，没有确定的路与主一同往前去。他们今天这样说，明天又那样说；他们是流荡的。要当心！我们永远无法借着跟随一颗流荡的星来寻得耶稣。</p>
+                
+                <p class="content-paragraph">我们怎能认出流荡的星呢？有一些特征。他们是秋天没有果子的树，是没有雨水的云彩。……主耶稣说，从果子可以认出树来（太七16~20）。我们如果跟随流荡的星，到末了我们的分与他们一样—为他们永远存留的黑暗幽冥。</p>
+                
+                <p class="content-paragraph">我们必须跟随发光的星，就是那些有确定立场、确定道路的人。他们是稳定的星，他们是坚定的人。如果有人来到我们面前，没有确定的立场和道路，我们要远避他。正当的立场是地方召会，正确的道路是在地方召会里，在那灵里向前。不要作流荡的星，也不要跟随流荡的星。要站在正当的立场上，要保守自己走在正确的路上。我们若流荡，就是浪费自己的时日。如果你要到某地去，要拿出地图来，走上对的路，进入对的车道；你这样驾车，就能到达目的地。</p>
+                
+                <p class="content-paragraph">我们深深感觉今日的混乱。哦，那些死的事物！哦，流荡之人的拦阻与打岔！无论谁使我们离开真正的地方召会，使我们不能与主的子民在合一立场上聚会的，都是流荡的星。真正的星乃是使多人归义的，他们并不领人走迷，而是使人转向正路。今天你我或任何人寻得基督的路，乃是要看那活星。阿利路亚！今日这星离我们不远—就在地方召会中。所有的地方召会中都有一些活星。你只要与他们接触，一直与他们为伴，他们就要引你到耶稣所在的地方。</p>
+                
+                <p class="content-paragraph">愿主怜悯我们，叫我们蒙保守在正路上，事奉主，敬拜祂，并向祂献上我们的爱。愿主使我们像那些星象家，跟随那星去寻得基督。今日那活星和众多的活星都在地方召会中。让我们跟随他们，个个都成为他们中间的一颗星（李常受文集一九七○年第一册，三九二至三九四页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const totalPages = 6;
+    if (totalPages === 0) return;
+    
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    const pagesContainer = document.querySelector('.pages-container');
+    
+    // 显示指定页面
+    function showPage(pageIndex) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach(page => page.style.display = 'none');
+        
+        // 显示目标页面
+        pages[pageIndex].style.display = 'block';
+        
+    
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 滚动到顶部
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（仅水平滑动）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    
+    pagesContainer.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    
+    pagesContainer.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const swipeThreshold = 80; // 增加最小滑动距离
+        const diffX = touchStartX - touchEndX;
+        const diffY = touchStartY - touchEndY;
+        
+        // 只有当水平滑动距离大于垂直滑动距离时才触发翻页
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > swipeThreshold) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 初始化第一页
+    showPage(0);
+})();
+
+// 朗读功能（共享脚本）
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page[style*="display: block"]') || document.querySelector('.day-page');
+            if (!activePage) return '';
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = item.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-paragraph');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-paragraph');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+});
+</script>
+
+<style>
+.morning-revival-page {
+    padding: 5px;
+    max-width: 820px;
+    margin: 0 auto;
+}
+
+/* 天导航栏 */
+.day-navigation {
+    display: flex;
+    gap: 8px;
+    margin: 15px 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.day-link {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 12px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.day-link:active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.day-link.active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+    font-weight: 700;
+}
+
+/* 分页容器 */
+.pages-container {
+    position: relative;
+    min-height: 400px;
+    touch-action: pan-y;
+}
+
+.day-page {
+    background: #fff;
+    padding: 0;
+}
+
+.day-section {
+    margin: 20px 0;
+    background: #fff;
+    padding: 0;
+}
+
+.day-title {
+    font-size: 17px;
+    font-weight: bold;
+    color: #2d3748;
+    margin: 16px 0 14px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+    line-height: 1.6;
+}
+
+/* 纲目样式 - 优化层级视觉差异 */
+.outline-section {
+    margin: 16px 0;
+    line-height: 2.0;
+}
+
+.outline-item {
+    margin: 8px 0;
+    color: #2d3748;
+    font-size: 16px;
+    line-height: 1.8;
+}
+
+/* Level 1: 大纲 (壹贰叁、I II III、A B C) - 最突出 */
+.outline-item.level-1 {
+    margin-top: 16px;
+    margin-bottom: 12px;
+    font-size: 1.0625em; /* 17px -> 1.0625em */
+    font-weight: 800;
+    color: var(--brand-1);
+    padding: 8px 0;
+    border-bottom: 2px solid rgba(var(--brand-1-rgb), 0.2);
+}
+
+.outline-item.level-1 > .outline-level {
+    font-size: 1.125em; /* 18px -> 1.125em */
+    font-weight: 800;
+    color: var(--brand-1);
+    background: var(--brand-soft-bg);
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-right: 8px;
+}
+
+.outline-item.level-1 > .outline-text {
+    color: var(--text);
+    font-weight: 700;
+}
+
+/* Level 2: 中纲 (一二三、a b c) - 中等突出 */
+.outline-item.level-2 {
+    padding-left: 1.8em;
+    font-size: 1em; /* 16px -> 1em */
+    margin-top: 8px;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.outline-item.level-2 > .outline-level {
+    font-weight: 700;
+    color: var(--brand-2);
+    background: rgba(var(--brand-2-rgb), 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+}
+
+.outline-item.level-2 > .outline-text {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* Level 3: 小纲 (1 2 3) - 普通样式 */
+.outline-item.level-3 {
+    padding-left: 3.2em;
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    margin-top: 4px;
+    margin-bottom: 3px;
+    font-weight: 500;
+}
+
+.outline-item.level-3 > .outline-level {
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 5px;
+}
+
+.outline-item.level-3 > .outline-text {
+    color: var(--text);
+    font-weight: 400;
+}
+
+.outline-children {
+    margin-left: 0;
+}
+
+.outline-level {
+    margin-right: 5px;
+}
+
+.outline-text {
+    color: #333;
+}
+
+@media (min-width: 768px) {
+    .outline-item {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
+    }
+
+    .outline-item.level-1 {
+        margin-top: 15px;
+        font-size: 1em; /* 16px -> 1em */
+    }
+
+    .outline-item.level-1 > .outline-level {
+        font-size: 1.0625em; /* 17px -> 1.0625em */
+    }
+}
+
+/* 内容分隔线 */
+.content-separator {
+    height: 1px;
+    background: #ddd;
+    margin: 20px 0;
+}
+
+/* 晨兴喂养和信息选读 */
+.feeding-section,
+.reading-section {
+    margin: 20px 0;
+}
+
+.feeding-section h4,
+.reading-section h4 {
+    font-size: 17px;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 16px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.content-paragraph {
+    margin: 14px 0;
+    text-indent: 2em;
+    line-height: 2.1;
+    color: #4a5568;
+    font-size: 16px;
+}
+
+/* 翻页控制 */
+.page-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0 15px 0;
+    padding: 10px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.prev-btn,
+.next-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 44px;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    color: #333;
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    cursor: pointer;
+    transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.prev-btn:active:not(:disabled),
+.next-btn:active:not(:disabled) {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.55);
+}
+
+.prev-btn:disabled,
+.next-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.page-indicator {
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    color: var(--text-muted);
+    font-weight: 800;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .morning-revival-page {
+        padding: 5px;
+    }
+    
+    .day-navigation {
+        gap: 5px;
+        padding: 8px;
+    }
+    
+    .day-link {
+        padding: 5px 10px;
+        font-size: 0.8125em; /* 13px -> 0.8125em */
+    }
+    
+    .day-title {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
+    }
+    
+    .outline-item,
+    .content-paragraph {
+        font-size: 0.875em; /* 14px -> 0.875em */
+        line-height: 1.8;
+    }
+    
+    .feeding-section h4,
+    .reading-section h4 {
+        font-size: 0.875em; /* 14px -> 0.875em */
+    }
+    
+    .page-controls {
+        padding: 10px;
+        margin: 20px 0 10px 0;
+    }
+    
+    .prev-btn,
+    .next-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .btn-text {
+        display: none;
+    }
+    
+    .page-indicator {
+        font-size: 13px;
+    }
+}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025感恩节训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第7篇 - 职事信息摘录</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>国　际 长老及负责弟兄训练</h1>
+            <div class="subtitle">总题：马太福音五至七章极重要的方面</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025秋季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="ministry-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="7_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="7_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="7_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="7_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="7_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+    <a href="7_zs.htm" class="nav-link active" title="职事">职事</a>
+    
+</div>
+    
+    <h2 class="chapter-title">第7篇 进窄门并走那引到生命的狭路，这生命就是国度永远蒙福的光景</h2>
+    
+    
+    <div class="scripture">读经：启二7，约六57、63</div>
+    
+    
+    <div class="ministry-content">
+        
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">召会道路的启示</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">第六个召会—非拉铁非</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">在〔启示录三章〕有第六个召会，名字叫作非拉铁非。“非拉”的意思是爱，“铁非”的意思是弟兄，“非拉铁非”的意思是弟兄相爱。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">回到弟兄相爱</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">在〔二至三章的〕七个召会里，只有这一个召会，主没有责备；罗马教受责备，更正教受责备，非拉铁非没有受责备。在非拉铁非里只有称赞，没有责备。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">非拉铁非的特点到底在哪里？三章八节：“我知道你的行为；……因为你稍微有一点能力，也曾遵守我的话，没有否认我的名。”非拉铁非的特点，就是这一个。推雅推喇的特点，是女人的教训。撒狄的特点，是召会与世界合在一起，要一直地脱离；是死亡和生命，要一直地挣扎。但是，非拉铁非乃是弟兄相爱。在这里乃是回到弟兄相爱的地步。在这里没有世界，因为是弟兄。在这里根本不是要挣扎，不是要脱离死亡，乃是回到当初弟兄的地位去。在这里乃是弟兄相爱。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">撒狄如何是从推雅推喇出来的，非拉铁非也照样是从撒狄出来的。更正教是从天主教出来的，非拉铁非是从更正教出来的。不过，这相当明显的是圣灵一个新的运动。这个新的运动，乃是把人从死亡的撒狄里拉出来，让人站在一个地位上，就是弟兄彼此相爱。换一句话说，就是站在身体的地位上。不承认有其他的关系，只承认有弟兄的关系；不承认有其他的交通，只承认有爱的交通。这乃是非拉铁非。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">遵守主的话</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">非拉铁非有两个特点：一个就是他们遵守主的命令，一个就是他们不弃绝主的名。这里有一班的人，被神带到一个地步，学习遵守主的话。神在他们中间把话解开，叫人能明白神的话。在他们中间没有信条，只有话语。在他们中间没有道理，只有话语。在他们中间没有遗传，只有话语。自有召会以来，除了使徒的教训以外，这是第一个主所称许的召会。因为到了非拉铁非的时候，你才看见有一班人完全回到主的话语里去，任何的权柄都没有用，任何的道理都没有用，任何的信条都没有用。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">请你们记得，人能够传道理，人也能够明白道理，但是人不能明白圣经。人能够念信条，人也能够接受信条，但是人不能明白圣经。这是希奇的事！召会如果需要有信条，主老早就给了我们。人今天把圣经分析了，人今天把圣经综合了，叫它变成一个信条。信条是专一的，但是，圣经是无限的。信条是简单的，但是，圣经是复杂的。信条是愚昧的人一读就知道的，但是圣经不是愚昧的人一读就知道的。圣经的话，只有某一种的人才能够知道；需要某一种的情形，才能够明白神的话。信条是把门开得大大的，谁都可以进去；神的话只开得这么大，只有有生命的人才能进去。信条的门是开得大大的，只要头脑好的人，一读就明白；但是，读神的话，就没有这么容易。如果不是有生命的，如果不是在主面前，眼睛是专一的，就看不见，就没有法子明白。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">人因为看见神的话的范围太窄，就想弄得宽一点，好把人带进去。但是非拉铁非的人，拒绝了任何的信条和道理，他们只回到主的话里去。主说，“你曾遵守我的话。”在召会的历史里，没有一个时代明白神的话，像非拉铁非那样。在召会的历史里，只有在非拉铁非里面，神的话得着了当得的地位。在其他的时代里，你只看见人接受信条，接受遗传。但是非拉铁非除了神的话之外，什么都没有，只回到神的话里面去走路。在召会的历史里，没有一个时候有这么多的话语职事，像非拉铁非一样。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">没有否认主的名</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">主说，“你……没有否认我的名。”这也是非拉铁非的特点。历世历代以来，召会历史这么长，主耶稣的名字反而变作是最末了的名字。人所注重的是许多信徒的名字；彼得的名字，使徒的名字，人都在那里注意。人也特别注重自己所挑选的名字，道理的名字，国家的名字。许多人很骄傲地说，我是一个路德人（Lutheran）。许多人很骄傲地说，我是一个卫斯理人（Wesleyan）。哦！人的名字！许多人很骄傲地说，我是柯柏铁的人（Coptic），这是一个地方的名字。许多人很骄傲地说，我是一个安立甘的人（Anglican），意思就是英国的人。这是国家的名字。许多名字，把神的儿女完全分开了！好像基督的名字，不够把我们从世界里分别出来。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">有的人如果问你说，“你是谁？”你答应说，“我是基督徒。”他定规不满意，一定要再问说，“你是什么种的基督徒？”我记得，有一次我在外国的时候，有一个人问我：“你到底是什么？”我说，“我是一个基督徒。”他说，“这是毫无意义的！”</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">主的名字已经够了</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">主觉得说，祂的名字，在祂的儿女身上已经够了。只有到非拉铁非来的时候，人才以为主的名字已经够了。用不着那么许多分开的名字，有祂的名字已经够了！请你们记得，主在这里注意这一件事，你“没有否认我的名”。这是祂所注意的事。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">没有一个时候，在召会里那样弃绝别的名字，像非拉铁非一样。只有回到非拉铁非来的时候，所有其他的名字才都被弃绝了！非拉铁非把所有的名字都去掉，只把基督的名字高举起来。请你们记得，主注意这一件事。主把这一件事，当作称赞的根基，这是叫祂悦纳的。所以，不要轻看这件事，不要以为这是随便的。主看见他们承认祂的名字，不弃绝祂的名字，祂注意这件事，祂称赞这件事！</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">得胜的问题</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">有一个问题，好些弟兄问过我，就是：“非拉铁非的得胜者，到底得胜了什么东西？”你们看见这里的难处么？以弗所的得胜者，自然是胜过离弃起初的爱。士每拿的得胜者，自然是胜过外面死亡的恐吓。别迦摩的得胜者，自然是胜过世界的捆绑和引诱。推雅推喇的得胜者，自然是胜过那女人的教训。撒狄的得胜者，是胜过按名是活的，其实是死的—属灵的死亡。老底嘉的得胜者，是胜过不冷不热的光景，和虚谎的骄傲。但是非拉铁非的这些得胜者，是胜过什么东西？主在全封的书信里，给我们看见，他们所作的一切都是主所悦纳的。在这七封书信里，只有这一封书信是完全蒙悦纳的。主如果完全悦纳了，还要得胜什么呢？都悦纳了，是最好的了。非拉铁非是合乎主心意的召会。但是，在非拉铁非的召会里，主也有得胜者的应许，但是要胜过什么呢？我说，没有什么事要特别得胜的，因为那一个召会没有任何的难处。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">要持守所有的</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">但是，主在这里也有警告。启示录三章十一节：“我必快来，你要持守你所有的，免得有人夺去你的冠冕。”全封书信，只有这一个地方，是一个警告。这里是叫非拉铁非的人注意，要持守他们所有的。换一句话说，你所有的都行，可是不要丢掉。不要到一个时候，以为作惯了，就把它改一改；不要到一个时候，以为作了这么多年了，就把它换一换。要持守你所有的，不要丢掉！这是非拉铁非唯一的警告。主对非拉铁非只有一个要求，就是要持守你所有的。你所作的没有错，可是还要再作。你所作的有神的祝福，你还要再作。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">非拉铁非若不持守所已经有的，神要兴起别人夺去她的冠冕。本来冠冕是赐给你的，若你放弃你的地位，别人就要来夺去你的冠冕。这一个是非拉铁非唯一的警告。非拉铁非的得胜，乃是在不失去所已经得着的。这和其余的六个召会都不一样。所以，我们要注意主的话。只有一个召会，就是非拉铁非，是合乎主心意的，特点是遵守主的话，没有否认主的名。我们在这两件事情上千万不要放松。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">第七个召会—老底嘉</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">在七个召会里，有五个召会受责备，一个召会没有受责备，一个召会完全被称赞。完全被称赞的乃是非拉铁非。罗马教、更正教、非拉铁非，都要继续到主耶稣再来。那最末了的一个召会，就是第七个—老底嘉，也要继续到主耶稣再来。如果撒狄是从推雅推喇出来的，非拉铁非是从撒狄出来的，就老底嘉是从非拉铁非出来的。你看见么？一个生一个。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">老底嘉是非拉铁非堕落而成的</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">所以，今天的问题在这里，非拉铁非如果失败的话，非拉铁非就变作老底嘉。千万不要弄错了，以为说更正教是老底嘉。没有这件事。更正教是撒狄，不是老底嘉。请记得，今天的更正教只会作撒狄，不会作老底嘉。读圣经的人，不能糊涂地在那里说，他们是老底嘉。不，他们是撒狄。乃是非拉铁非堕落了才变成老底嘉。撒狄是从推雅推喇出来的，是进步的；非拉铁非是从撒狄出来的，也是进步的；老底嘉是从非拉铁非出来的，但是退步的。四个召会都要一直继续到主耶稣再来。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">老底嘉是变相的非拉铁非，是走了样的非拉铁非。有一天弟兄相爱失去的时候，就马上变作众人的意见。这就是老底嘉的意思。老底嘉是一个城的名字，是罗马的一个王子，恩帝荷格斯（Entiochus）所起的名字。他有一个妻子，名字叫作老底奥斯（Laodios），他就采取他妻子的这个名字，把“奥斯”拿掉，加上“细亚”，或者“嘉”，变成老底细亚（Laodicea），或作老底嘉。“老”这一个字，在希腊文的意思就是众人，“细亚”或者“嘉”的意思，就是意见。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">当非拉铁非堕落的时候，弟兄就变作众人，弟兄相爱就变作众人的意见。爱心变作意见。弟兄相爱，那是活的东西；众人的意见，那是死的东西。什么时候弟兄相爱一没有，身体的关系一取消，生命上的来往一失去，所剩下的，就是大家的意见。没有主的意见；大多数通过、投票、举手而已。非拉铁非堕落的时候，就变作老底嘉。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">不冷不热而有属灵的骄傲</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">三章十五节：“我知道你的行为，你也不冷也不热；我巴不得你或冷或热。”这就是老底嘉的特点。十七节：“你说，我是富足，已经发了财，一样都不缺；却不知道你是那困苦、可怜、贫穷、瞎眼、赤身的。”这就是老底嘉的特点。老底嘉的特点，就是不冷不热，而在主面前有属灵的骄傲。“我是富足”，说一句就够了；但他又说，“我已经发了财。”说了两句应该够了，但他又说，“我是一样都不缺。”“你是那困苦、可怜、贫穷、瞎眼、赤身的。”这是主的看法。这些属灵的骄傲是从哪里来的呢？是从已往的历史来的。曾有一次他们是富足的，他们就以为今天仍然是富足的。曾有一次主怜悯他们，他们记得那一个历史，而今天却失去了那一个实际。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">已往的生命今天没有了</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">今天在更正教里，难得有一个人夸口自己属灵的富足。我在外国曾遇见多少更正教的首领，连在中国的更正教牧师也是这样，他们都说，“我们不行！我们不行！”你不能在撒狄里面遇见骄傲的人。只有一班的人，从前是非拉铁非，神的话是遵守的，神的名是没有弃绝的，可是已往的生命，今天没有了。已往的故事今天还记得，但是已往的生命没有了！已往的历史今天还记得，记得我是富足，发了财，一样都不缺，但现在是贫穷、瞎眼的！我告诉你们，只有一班的人，能夸口他们的富足，就是堕落的非拉铁非，就是失去了能力和生命的非拉铁非！</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">要学习在神面前谦卑</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">所以弟兄姊妹要记得，你们如果要继续在非拉铁非的道路上，你们就得学习在神面前谦卑。有的时候，我听见有的弟兄说，“神的祝福在我们中间。”我承认这话，但是说这话的时候，特别要小心。一不小心，你就觉得说，那一个是老底嘉的味道。我们是富足，我们已经发了财，我们一样都不缺。我告诉你们，如果有一天你站在那一个地位上，你是很近老底嘉了！</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">要记得，我们没有一样不是领受来的。四围的人可以充满了死亡，但是这并不需要你知道你自己是充满了生命。四围的人都可以贫穷，但是用不着你知道你是财主。活在主面前的人，不觉得自己是富足的。愿神怜悯我们，叫我们学习活在主的面前，可以富足，但是又不知道自己是富足的。摩西脸上发光，自己却不知道，这是更好的事！一知道，就变作老底嘉。一知道，结果就是也不冷，也不热。老底嘉，就是说起来样样都知道，事实上没有一样是热切的；说起来样样都有，但是没有一样是能够把命拚上的。记得已往时候的光荣，却忘记了今天在神面前的光景。已过是非拉铁非，但是今天是老底嘉。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">要为自己挑选召会的道路</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">我今天把这四个召会，摆在你们面前。自从罗马教之后，有四种的召会产生，这四种的召会要一直继续到主耶稣再来。今天每一个神的儿女，都得挑选自己召会的道路。我是要作罗马教的人呢？我是要作更正教的人呢？我是要跟从罗马教的合一呢？我是要跟从更正教那么多的宗派呢？或者我是要行走非拉铁非的路？或者我曾有一阵是非拉铁非，而今天活在已往的历史里，来夸口我已往的荣耀，作一个老底嘉的人？请你们记得，当人在神面前起首骄傲，离开生命，不重实际，只记得已往的历史，看见自己的富足，在这一种人的里头就是大众的意见，只能大家商量事情。这好像是民主，但是不能有身体的关系。你如果不认识身体的捆绑，不认识身体的权柄，不认识身体的生命，就也不能认识弟兄相爱。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">这四种不同的召会，要一直继续；所以，我们要忠心地继续在非拉铁非的里面。不要好奇去问看，罗马教是怎么一回事。好奇的人，常常要受亏。不要去摸更正教的各宗派，这不是神的路。圣经清楚地给我们看见，整个更正教的运动有神的祝福，但是有许多被定罪的，有许多受责备的，用不着我们去查考、去问。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">我们要学习站在非拉铁非的地位上，总是遵守主的话，不弃绝主的名。站在弟兄的地位上，千万不要骄傲！不要在罗马教面前骄傲，不要在更正教面前骄傲，不要在各宗派面前骄傲。你一骄傲，你就是老底嘉，不是非拉铁非！什么时候，你在他们面前骄傲，你就不是非拉铁非，你是老底嘉。你们要在哪一条路上走？求神赐福给祂的儿女，给弟兄们在召会的事情上，能走一条正直的路。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">主所定规召会的道路，是非拉铁非。我虽不能有千万的凭据来说，我能够有百千的凭据来说，许多神最好的儿女，都讲这一个话，都走这一条路。更正教整个问题解决了，就不要去找那些细的；罗马教整个问题解决了，也就不要去找那些细的。罗马教有二十一个公会在中国，不要加入罗马教，也就不必问到底要加入哪一个公会。罗马教整个问题过去了，二十一个公会也过去了。照样，更正教整个问题都解决了，所有一千五百个宗派都过去了。</p>
+                    
+                
+            
+                
+                    
+                        
+                        <p class="ministry-paragraph">主的道路只有一个，就是非拉铁非。要走在这一条道路上！但是要小心，不要骄傲。一走非拉铁非的路，最大的试探是骄傲。“我比你好，我的真理比你清楚，比你懂得多！我们只有主的名字，和你们不一样！”一骄傲，马上就落到老底嘉去。跟从主的人，没有骄傲。骄傲的人，就被主吐出去。求主怜悯！我警告你们，要不说骄傲的话！人要不说骄傲的话，只有一直活在神面前。也只有一直活在神面前的，才不会看见自己富足，才能不骄傲！（倪柝声文集第三辑第四册，二七六至二八七页）</p>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">马太福音五至七章极重要的方面</h3>
+                    
+                
+            
+                
+                    
+                        
+                        <h3 class="ministry-subtitle">（周六—早上第二堂聚会）</h3>
+                    
+                
+            
+        
+    </div>
+</div>
+
+<style>
+.ministry-page {
+    padding: 5px;
+}
+
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 46px;
+    min-height: 46px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e8ecf9 100%);
+    border: 1.5px solid #d0d7f0;
+    border-radius: 23px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.font-btn:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+}
+
+.ministry-content {
+    margin-top: 20px;
+    line-height: 1.8;
+}
+
+.ministry-subtitle {
+    margin-top: 20px;
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #2c3e50;
+    text-align: center;
+}
+
+.ministry-paragraph {
+    margin-bottom: 15px;
+    text-indent: 2em;
+    text-align: justify;
+    font-size: 15px;
+}
+
+.no-content {
+    color: #999;
+    text-align: center;
+    padding: 30px 0;
+    font-size: 15px;
+}
+
+@media (min-width: 768px) {
+    .ministry-page {
+        padding: 20px 0;
+    }
+    
+    .ministry-content {
+        margin-top: 30px;
+        line-height: 2;
+    }
+    
+    .ministry-subtitle {
+        margin-top: 30px;
+        margin-bottom: 15px;
+        font-size: 1.1em;
+    }
+    
+    .ministry-paragraph {
+        margin-bottom: 20px;
+    }
+    
+    .no-content {
+        padding: 40px 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .speech-controls {
+        padding: 8px 10px;
+        gap: 8px;
+        margin: 8px 0;
+    }
+    
+    .speech-btn {
+        min-width: 40px;
+        min-height: 40px;
+        padding: 8px;
+        font-size: 16px;
+    }
+    
+    .speech-time {
+        font-size: 12px;
+    }
+    
+    .speech-rate-select {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    
+    .font-size-controls {
+        padding: 6px 10px;
+        gap: 6px;
+        margin: 8px 0;
+    }
+    
+    .font-btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 0.8125em; /* 13px -> 0.8125em */
+    }
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const paragraphs = document.querySelectorAll('.ministry-paragraph');
+            paragraphs.forEach(p => {
+                const t = p.textContent.trim();
+                if (t) text += t + '。';
+            });
+            return text;
+        }
+    });
+});
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025秋季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

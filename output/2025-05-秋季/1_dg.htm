@@ -1,0 +1,2400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第1篇 - 纲目</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>国　际 长老及负责弟兄训练</h1>
+            <div class="subtitle">总题：马太福音五至七章极重要的方面</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025秋季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="1_dg.htm" class="nav-link active" title="大纲">大纲</a>
+    <a href="1_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="1_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="1_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="1_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+    <a href="1_zs.htm" class="nav-link" title="职事">职事</a>
+    
+</div>
+    
+    <h2 class="chapter-title">第1篇 灵里贫穷者以及清心者之福，得在新王基督属天的掌权之下，并得看见神而在祂的生命里彰显祂，且有祂的权柄来代表祂</h2>
+    
+    
+    <div class="hymn-number">MC 诗歌：539，540</div>
+    
+    
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：以西结书三十六章二十六至二十七节，马太福音五章三节、八节，希伯来书四章十二节，罗马书一章九节，七章六节，彼得前书三章四节，马可福音十二章三十节，四章十四至二十节，哥林多后书三章十六至十八节，耶利米书三十一章三十三节，希伯来书八章十节，诗篇五十一篇六节，希伯来书十章二十二节。</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+            
+                
+                <div class="verse-line">太5:3	灵里贫穷的人有福了，因为诸天的国是他们的。</div>
+                
+            
+                
+                <div class="verse-line">太5:8	清心的人有福了，因为他们必看见神。</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="outline-content">
+        
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹')">▶</button>
+                
+                壹　“灵里贫穷的人有福了，因为诸天的国是他们的”—太五3：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-一">
+            <div class="section-level2">
+                
+                一　灵里贫穷不仅是指谦卑，更是指我们的灵，我们人的深处，完全倒空，不持守旧时代的老东西，却卸去旧有的，以接受诸天之国的新东西—参路六20。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">路6:20	耶稣举目看着门徒说，贫穷的人有福了，因为神的国是你们的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二">
+            <div class="section-level2">
+                
+                二　我们人的灵里必须是贫穷的、倒空的、卸去旧有的，我们才能领悟并得着诸天的国—参太十九13~15。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太19:13	那时，有人带着小孩子到耶稣那里，要祂为他们按手祷告，门徒就责备那些人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太19:14	耶稣却说，让小孩子到我这里来，不要禁止他们，因为诸天之国正是这等人的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太19:15	祂给他们按了手，就从那里往前去。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-三">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-三')">▶</button>
+                
+                三　灵里贫穷，意思就是我们是谦卑的，承认自己一无所有，一无所知，一无所能，一无所是—加六3，约十五5下，赛五七15，六六2：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">加6:3	人若不是什么，还以为是什么，就是自欺了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约15:5下	……因为离了我，你们就不能作什么。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛57:15	因为那至高至上、住在永远、名为圣者的如此说，我必住在至高至圣的所在，也与灵里痛悔卑微的人同居，要使卑微之人的灵苏醒，也使痛悔之人的心苏醒。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛66:2	耶和华说，这一切都是我手所造的，所以就都有了；但我所看顾的，就是灵里贫穷痛悔、因我话战兢的人。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-三" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-三-1">
+            <div class="section-level3">
+                
+                1　灵里贫穷的人对主的事和召会的事有乐意的灵—诗五一12。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-三-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗51:12	求你使我复得你救恩之乐，赐我乐意的灵扶持我。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-三-2">
+            <div class="section-level3">
+                
+                2　灵里贫穷的人经历喜乐的灵，以及智慧和聪明的灵，谋略和能力的灵，认识和敬畏神的灵—来一9，罗十四17，赛十一2~3。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-三-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来1:9	你爱公义，恨恶不法；所以神，就是你的神，用欢乐的油膏你，胜过膏你的同伙。”</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗14:17	因为神的国不在于吃喝，乃在于公义、和平、并圣灵中的喜乐。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛11:2	耶和华的灵必安歇在祂身上，就是智慧和聪明的灵，谋略和能力的灵，认识和敬畏耶和华的灵。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛11:3	祂必以敬畏耶和华为乐：审判不凭眼见，判断也不凭耳闻；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-四')">▶</button>
+                
+                四　所有属灵的长进，都在乎人的饥渴—路一53，诗八一10：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">路1:53	叫饥饿的得饱美物，叫富足的空着回去。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗81:10	我是耶和华你的神，是把你从埃及地领上来的；你要大大张口，我就给你充满。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-四" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-四-1">
+            <div class="section-level3">
+                
+                1　我们该害怕自满自足、自以为够或以过去的为满足—腓三13。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓3:13	弟兄们，我不是以为自己已经取得了，我只有一件事，就是忘记背后，努力面前的，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四-2">
+            <div class="section-level3">
+                
+                2　属灵的不进步，乃是因为对自己属灵的缺乏漠不关心；所有的失败和退后，都是因为自以为已经够好了—参申四25。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">申4:25	你们在那地生子生孙，久住而衰萎，就雕制偶像，仿佛什么形像，败坏自己，行耶和华你神眼中看为恶的事，惹祂发怒；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四-3">
+            <div class="section-level3">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-四-3')">▶</button>
+                
+                3　已往的得胜永远不是我们今天的力量—参书七3~4：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">书7:3	他们回到约书亚那里，对他说，众民不必都上去，大约二三千人上去就能攻下艾城；不必劳累众民都去，因为那里的人少。</div>
+                    
+                    
+                    
+                    <div class="verse-line">书7:4	于是民中约有三千人上那里去，竟在艾城的人面前逃跑了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-四-3" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-四-3-a">
+            <div class="section-level4">
+                
+                a　我们对主如果没有新的认识，没有新的看见，就无法往前—参徒二六16，腓三8下、10上。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-3-a')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四-3-a" style="display: none;">
+                    
+                    
+                    <div class="verse-line">徒26:16	你起来站着，我向你显现，正是要选定你作执事和见证人，将你所看见我的事，和我将要显现给你的事，见证出来；</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓3:8下	……我因祂已经亏损万事，看作粪土，为要赢得基督，</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓3:10上	使我认识基督、并祂复活的大能、以及同祂受苦的交通，……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四-3-b">
+            <div class="section-level4">
+                
+                b　什么时候我们不得不喊说，“我没有办法了”，那时就是我们进步的起点；神就很容易在我们里面造出一个对祂的渴慕来—参代下二十12。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-3-b')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四-3-b" style="display: none;">
+                    
+                    
+                    <div class="verse-line">代下20:12	我们的神啊，你不惩罚他们么？因为我们无力抵挡这来攻击我们的大批军众，我们也不知道该怎样行，我们的眼目单仰望你。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四-3-c">
+            <div class="section-level4">
+                
+                c　我们要记得，神所以叫我们遇见难处，就是要在我们里面挖得更深，好让主更多以祂自己充满我们—参罗八28~29。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-3-c')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四-3-c" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗8:28	还有，我们晓得万有都互相效力，叫爱神的人得益处，就是按祂旨意被召的人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗8:29	因为神所预知的人，祂也预定他们模成神儿子的形像，使祂儿子在许多弟兄中作长子。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四-4">
+            <div class="section-level3">
+                
+                4　什么时候我们里面是空的，什么时候我们就要被主充满；属灵的长进乃是一直空又一直满的—参王下四1~6。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">王下4:1	有一个申言者门徒的妻子哀求以利沙说，你仆人我丈夫死了，他敬畏耶和华是你知道的。现在有债主来，要取我两个儿子作他的奴仆。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下4:2	以利沙问她说，我可以为你作什么呢？你告诉我，你家里有什么？她说，婢女家中除了一瓶油之外，没有什么。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下4:3	以利沙说，你去，到外面向你众邻舍借空器皿，不要少借；</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下4:4	然后进屋里去，把自己和儿子关在门内，你要将油倒在所有的器皿里，倒满了的放在一边。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下4:5	于是妇人离开以利沙去了，把自己和儿子关在门内；儿子把器皿拿给她，她就倒油。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下4:6	器皿都满了，她对儿子说，再给我拿器皿来。儿子说，再没有器皿了。油就止住了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹-五')">▶</button>
+                
+                五　“我实在告诉你们，凡不像小孩子一样接受神国的，绝不能进去”—路十八17：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-五" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-五-1">
+            <div class="section-level3">
+                
+                1　小孩子没有被老旧的观念充满并占有，很容易接受新思想—参诗一三九17。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-五-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗139:17	神啊，你的意念对我何等宝贵！其数何等众多！</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五-2">
+            <div class="section-level3">
+                
+                2　人必须像小孩子一样，以不受霸占的心，将神的国当作新事物来接受。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰')">▶</button>
+                
+                贰　“清心的人有福了，因为他们必看见神”—太五8：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-一">
+            <div class="section-level2">
+                
+                一　有一个纯洁的心，意思是我们的心是专一的，除了主自己以外，不寻求什么，使基督能在我们里面毫无拦阻地长大—十三19~23。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太13:19	凡听见国度之道不领悟的，那恶者就来，把撒在他心里的夺了去；这就是那撒在路旁的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:20	又有那撒在石头地上的，就是人听了道，立刻欢喜领受，</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:21	只因他里面没有根，不过是暂时的；一旦为道遭遇患难或逼迫，就立刻绊跌了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:22	还有那撒在荆棘里的，就是人听了道，后来有今世的思虑，和钱财的迷惑，把道全然挤住了，道就不能结实。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:23	但那撒在好土里的，就是人听了道，也领悟了，他就结出果实，有的结了一百倍，有的六十倍，有的三十倍。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二">
+            <div class="section-level2">
+                
+                二　我们若清心寻求神，我们的赏赐就是必看见神。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三">
+            <div class="section-level2">
+                
+                三　神向约伯显现，约伯看见神，就在个人经历上得着神并厌恶自己—伯三八1~3，四二1~6。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">伯38:1	那时耶和华从旋风中回答约伯，说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯38:2	谁用无知的言语，使我的旨意暗晦不明？</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯38:3	你要如勇士束腰；我问你，你可以指示我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯42:1	约伯回答耶和华说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯42:2	我知道你万事都能作，你的定旨是不能拦阻的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯42:3	谁用无知的言语，使你的旨意隐藏呢？故此我说了我所不明白的；这些事对我太奇妙，是我不知道的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯42:4	求你听我，我要说话；我要问你，求你指示我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯42:5	我从前风闻有你，现在亲眼看见你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯42:6	因此我厌恶自己，在尘土和炉灰中懊悔。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四">
+            <div class="section-level2">
+                
+                四　今天我们的神乃是包罗万有的灵，作为经过过程并终极完成之三一神的终极完成；我们所观看的这一位神，乃是终极完成的灵；我们能在我们的灵里观看祂—林后二10，提后四22。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后2:10	你们饶恕谁什么，我也饶恕；我若曾有所饶恕，我所已经饶恕的，是在基督的面前，为你们饶恕的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">提后4:22	愿主与你的灵同在。愿恩典与你们同在。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-五">
+            <div class="section-level2">
+                
+                五　我们看见神，使我们被神构成；看见神使我们变化，看见神等于得着神，使我们在生命和性情上（但不在神格上）成为神—林后三16、18，太五8，启二二4。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-五')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-五" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后3:16	但他们的心几时转向主，帕子就几时除去了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:18	但我们众人既然以没有帕子遮蔽的脸，好像镜子观看并返照主的荣光，就渐渐变化成为与祂同样的形像，从荣耀到荣耀，乃是从主灵变化成的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太5:8	清心的人有福了，因为他们必看见神。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启22:4	也要见祂的面；祂的名字必在他们的额上。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-六">
+            <div class="section-level2">
+                
+                六　我们越看见神并爱神，就越否认自己并厌恶自己—伯四二5~6，赛六5，路十四26。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-六')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-六" style="display: none;">
+                    
+                    
+                    <div class="verse-line">伯42:5	我从前风闻有你，现在亲眼看见你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">伯42:6	因此我厌恶自己，在尘土和炉灰中懊悔。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛6:5	那时我说，祸哉，我灭亡了！因为我是嘴唇不洁的人，又住在嘴唇不洁的民中；又因我眼见大君王万军之耶和华。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路14:26	人到我这里来，若不恨自己的父亲、母亲、妻子、儿女、弟兄、姊妹，甚至自己的魂生命，就不能作我的门徒。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-七">
+            <div class="section-level2">
+                
+                七　我们若是看见了主，就知道一切的世事和世物不过是垃圾—腓三7~8，参耶十五19。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-七')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-七" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓3:7	只是从前我以为对我是赢得的，这些，我因基督都已经看作亏损。</div>
+                    
+                    
+                    
+                    <div class="verse-line">腓3:8	不但如此，我也将万事看作亏损，因我以认识我主基督耶稣为至宝；我因祂已经亏损万事，看作粪土，为要赢得基督，</div>
+                    
+                    
+                    
+                    <div class="verse-line">耶15:19	耶和华如此说，你若归回，我就将你带回，使你站在我面前；你若将宝贵的从低贱的分别出来，你就可以作我的口；他们必归向你，你却不归向他们。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-八">
+            <div class="section-level2">
+                
+                八　属灵的长进就是在我们里头神的成分的加增，也是在我们里头那些占有神地位的东西的减少—提前四15，西二19。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-八')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-八" style="display: none;">
+                    
+                    
+                    <div class="verse-line">提前4:15	这些事你要殷勤实行，并要投身其中，使众人看出你的长进来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:19	不持定元首；本于祂，全身借着节和筋，得了丰富的供应，并结合一起，就以神的增长而长大。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-九">
+            <div class="section-level2">
+                
+                九　只要有一样东西，或是一件事情，或是一个人，把我们这个人占有了，这些就夺去了神在我们心里的地位；任何在我们里面成为我们所爱，超过我们对主的爱，或在我们生命里顶替了神的人事物，都是偶像—箴四23，结十四3。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-九')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-九" style="display: none;">
+                    
+                    
+                    <div class="verse-line">箴4:23	你要切切保守你心，因为生命的果效发之于心。</div>
+                    
+                    
+                    
+                    <div class="verse-line">结14:3	人子啊，这些人已将他们的偶像接到心里，把陷他们于罪孽的绊脚石放在自己面前；我岂能丝毫被他们求问么？</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-十">
+            <div class="section-level2">
+                
+                十　我们必须是纯洁的；我们的心不应该被神之外的东西占有—太十三19~23。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-十')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-十" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太13:19	凡听见国度之道不领悟的，那恶者就来，把撒在他心里的夺了去；这就是那撒在路旁的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:20	又有那撒在石头地上的，就是人听了道，立刻欢喜领受，</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:21	只因他里面没有根，不过是暂时的；一旦为道遭遇患难或逼迫，就立刻绊跌了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:22	还有那撒在荆棘里的，就是人听了道，后来有今世的思虑，和钱财的迷惑，把道全然挤住了，道就不能结实。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:23	但那撒在好土里的，就是人听了道，也领悟了，他就结出果实，有的结了一百倍，有的六十倍，有的三十倍。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-十一">
+            <div class="section-level2">
+                
+                十一　我们属灵的长进是根据于我们的心转向神有多少而定的—四17，林后三16，参王下二三25。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-十一')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-十一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太4:17	从那时候，耶稣开始传道，说，你们要悔改，因为诸天的国已经临近了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后3:16	但他们的心几时转向主，帕子就几时除去了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王下23:25	在约西亚以前，没有王像他照着摩西的一切律法，全心、全魂、全力回转归向耶和华；在他以后也没有一个王兴起像他。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-十二">
+            <div class="section-level2">
+                
+                十二　一个越在神话语里的人，就越纯洁—诗十二6，一一九140，约十七17。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-十二')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-十二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗12:6	耶和华的言语，是纯净的言语，如同地上炉中炼过的银子，精炼过七次。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:140	你的话极其精炼，为你的仆人所爱。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约17:17	求你用真理圣别他们，你的话就是真理。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-叁">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁')">▶</button>
+                
+                叁　我们该渴望有宽宏的心—诗一一九32：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗119:32	你既开广我的心，我就奔跑你诫命的道路。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-叁-一">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-一')">▶</button>
+                
+                一　所罗门之所以能监督神的子民，是在于他有智慧和广大的心，这两件事就是一件事的两面：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-一" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-叁-一-1">
+            <div class="section-level3">
+                
+                1　虽然他不过是求智慧聪明，好知道怎样在神的子民中出入（王上三5~9，代下一10），神还赐他一颗“宽广的心，如同海边的沙那样不可测量”（王上四29）。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">王上3:5	在基遍，夜间梦中，耶和华向所罗门显现；神说，我当赐给你什么？你可以求。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王上3:6	所罗门说，你仆人我父亲大卫用诚实、公义、和对你正直的心，行在你面前，你就按着他所行的，向他大施恩慈，又为他存留这大恩慈，赐他一个儿子坐在他的位上，正如今日一样。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王上3:7	耶和华我的神啊，如今你使仆人接续我父亲大卫作王；但我是幼童，不知道怎样出入。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王上3:8	仆人住在你所拣选的民中，这民多得无法数点，无法计算。</div>
+                    
+                    
+                    
+                    <div class="verse-line">王上3:9	所以求你赐仆人聪明的心，可以审断你的民，能辨别善恶。不然，谁能审断你这众多的民呢？</div>
+                    
+                    
+                    
+                    <div class="verse-line">代下1:10	求你赐我智慧和知识，我好在这民前出入；不然，谁能审断你这众多的民呢？</div>
+                    
+                    
+                    
+                    <div class="verse-line">王上4:29	神赐给所罗门智慧、极大的聪明、和宽广的心，如同海边的沙那样不可测量。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-一-2">
+            <div class="section-level3">
+                
+                2　海沙是包括海的，神“用沙为界限，使海不得越过”（耶五22）；这给我们看见所罗门的心比海洋还大。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-一-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">耶5:22	耶和华说，你们怎么不惧怕我呢？你们在我面前还不战兢么？我以永远的定例，用沙为界限，使海不得越过。波浪虽然翻腾，却不能得胜；虽然匉訇，却不能越过。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-二')">▶</button>
+                
+                二　我们必须作真正的新约执事，有宽宏的心，带着供应的生命对人亲密的关切，这是结果子的生命—林后七2~3：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后7:2	你们要容纳我们，我们未曾亏负谁，未曾败坏谁，未曾占谁的便宜。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后7:3	我说这话，不是为定罪你们，因我先前说过，你们是在我们的心里，以至同死同活。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-二" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-叁-二-1">
+            <div class="section-level3">
+                
+                1　使徒有宽宏的心，能容纳所有的信徒，不论他们的光景如何；使徒也有张开的口，率直地向所有的信徒指出他们误入歧途的真实光景—六11。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后6:11	哥林多人哪，我们的口向你们是张开的，我们的心是宽宏的；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二-2">
+            <div class="section-level3">
+                
+                2　要将误入歧途、被岔开的信徒带回，使其与神和好，需要这样的敞开与宽宏。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-肆">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-肆')">▶</button>
+                
+                肆　要使我们的心和灵常新，我们需要有复活生命的新鲜供应，而日日得更新，成为与新耶路撒冷一样的新—四16~18：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后4:16	所以我们不丧胆，反而我们外面的人虽然在毁坏，我们里面的人却日日在更新。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:17	因为我们这短暂轻微的苦楚，要极尽超越地为我们成就永远重大的荣耀。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:18	我们原不是顾念所见的，乃是顾念所不见的，因为所见的是暂时的，所不见的才是永远的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-肆" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-肆-一">
+            <div class="section-level2">
+                
+                一　新就是神；信徒该得更新，成为与新耶路撒冷一样的新，因为他们都借着在生命的新样中生活行动（罗六4）而成为新耶路撒冷，并借着在灵的新样里服事（七6）而建造新耶路撒冷。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗6:4	所以我们借着浸入死，和祂一同埋葬，好叫我们在生命的新样中生活行动，像基督借着父的荣耀，从死人中复活一样。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗7:6	但我们既然在捆我们的律法上死了，现今就脱离了律法，叫我们在灵的新样里服事，不在字句的旧样里。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-二">
+            <div class="section-level2">
+                
+                二　当我们在苦难中，我们需要得着更新；不然，我们所经过的苦难，就对我们毫无意义；在我们里面有一避难所—我们的灵—诗九一1。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗91:1	住在至高者隐密处的，必住在全能者的荫下。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-三">
+            <div class="section-level2">
+                
+                三　我们要每早晨得复兴，好日日得更新—太十三43，路一78~79，箴四18，士五31，林后四16。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太13:43	那时，义人在他们父的国里，要发光如同太阳。有耳可听的，就应当听。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路1:78	因我们神怜悯的心肠，叫清晨的日光从高天临到我们，</div>
+                    
+                    
+                    
+                    <div class="verse-line">路1:79	要照亮坐在黑暗中死荫里的人，把我们的脚引到平安的路上。</div>
+                    
+                    
+                    
+                    <div class="verse-line">箴4:18	但义人的途径好像黎明的光，越照越明，直到日午。</div>
+                    
+                    
+                    
+                    <div class="verse-line">士5:31	耶和华啊，愿你的仇敌都这样灭亡。愿爱你的人如日头出现，光辉烈烈。这样，那地太平四十年。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:16	所以我们不丧胆，反而我们外面的人虽然在毁坏，我们里面的人却日日在更新。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-四">
+            <div class="section-level2">
+                
+                四　我们必须在新样里来赴主的筵席（太二六29）；我们可以学习说，“对不起，请赦免我”，好得着更新。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太26:29	但我告诉你们，从今以后，我绝不喝这葡萄树的产品，直到我在我父的国里，同你们喝新的那日子。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-五">
+            <div class="section-level2">
+                
+                五　我们日日得更新，是凭着四项：十字架（林后四10~12、16~18）；圣灵—用神圣生命使我们被重修、再制并改造（多三5）；我们调和的灵（弗四23）；以及神的圣言（五26）。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-五')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-五" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后4:10	身体上常带着耶稣的治死，使耶稣的生命也显明在我们的身体上。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:11	因为我们这活着的人，是常为耶稣被交于死，使耶稣的生命，也在我们这必死的肉身上显明出来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:12	这样，死是在我们身上发动，生命却在你们身上发动。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:16	所以我们不丧胆，反而我们外面的人虽然在毁坏，我们里面的人却日日在更新。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:17	因为我们这短暂轻微的苦楚，要极尽超越地为我们成就永远重大的荣耀。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后4:18	我们原不是顾念所见的，乃是顾念所不见的，因为所见的是暂时的，所不见的才是永远的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">多3:5	祂便救了我们，并不是本于我们所成就的义行，乃是照着祂的怜悯，借着重生的洗涤，和圣灵的更新。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:23	而在你们心思的灵里得以更新，</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗5:26	好圣化召会，借着话中之水的洗涤洁净召会，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-六">
+            <div class="section-level2">
+                
+                六　我们调和的灵需要扩展到我们的心思里，好制伏、接管、占有我们的心思，而成为我们心思的灵；调和的灵越多渗透、浸透、占有我们的心思，我们就越多让基督的心思成为我们的心思—腓二5，弗四23，林前二16，罗十二2。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-六')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-六" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓2:5	你们里面要思念基督耶稣里面所思念的：</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:23	而在你们心思的灵里得以更新，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前2:16	谁曾知道主的心思能教导祂？但我们是有基督的心思了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗12:2	不要模仿这世代，反要借着心思的更新而变化，叫你们验证何为神那美好、可喜悦、并纯全的旨意。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-七">
+            <div class="section-level2">
+                
+                七　我们不该照着心思的虚妄生活，乃该照着心思的灵生活；这是一个团体的新人日常生活的关键，是使召会生活满有神的特征，满有基督的香气，并满有那灵的一的秘诀—弗四3~4、17~18、23。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-七')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-七" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗4:3	以和平的联索，竭力保守那灵的一：</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:4	一个身体和一位灵，正如你们蒙召，也是在一个盼望中蒙召的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:17	所以我这样说，且在主里见证，你们行事为人，不要再像外邦人在他们心思的虚妄里行事为人，</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:18	他们在悟性上既然昏暗，就因着那在他们里面的无知，因着他们心里的刚硬，与神的生命隔绝了；</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:23	而在你们心思的灵里得以更新，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-八">
+            <div class="section-level2">
+                
+                八　我们爱主，并且天天操练灵祷告和读经，就会改变并更新我们的心思；这乃是在一切对人生事物的观念上，受圣经的教训和圣灵的光照，而有的去旧更新—诗一一九105、130，提后三15~17，申十七18~20。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-八')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-八" style="display: none;">
+                    
+                    
+                    <div class="verse-line">诗119:105	你的话是我脚前的灯，是我路上的光。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗119:130	你的言语一解开，就发出亮光，使愚蒙人通达。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提后3:15	并且知道你是从小明白圣经；这圣经能使你借着相信基督耶稣，有得救的智慧。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提后3:16	圣经都是神的呼出，对于教训、督责、改正、在义上的教导，都是有益的，</div>
+                    
+                    
+                    
+                    <div class="verse-line">提后3:17	叫属神的人得以完备，为着各样的善工，装备齐全。</div>
+                    
+                    
+                    
+                    <div class="verse-line">申17:18	他登了国位，就要将祭司利未人面前的这律法书，为自己抄录一本，</div>
+                    
+                    
+                    
+                    <div class="verse-line">申17:19	存在他那里；他一生的日子都要诵读，好学习敬畏耶和华他的神，谨守遵行这律法书上的一切言语和这些律例，</div>
+                    
+                    
+                    
+                    <div class="verse-line">申17:20	免得他向弟兄心里高傲，离了这诫命，或偏左或偏右。这样，他和他的子孙在以色列中治国的日子，就得以长久。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-伍">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍')">▶</button>
+                
+                伍　主的恢复有赖于我们得更新、得洁净的心，以及我们得更新、被加强的灵；当我们的心完全被基督据有，并且我们习惯运用灵接触主，神就会有路，这恢复就会普及：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-伍-一">
+            <div class="section-level2">
+                
+                一　这要终极完成神的心意，将信徒作成新造的新人，终极完成于新耶路撒冷；更新的结果使我们成为新造，也就是在基督里的新人—西三10~11，林后五17，加六15~17，弗二10、15。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西3:10	并且穿上了新人；这新人照着创造他者的形像渐渐更新，以致有充足的知识；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:11	在此并没有希利尼人和犹太人、受割礼的和未受割礼的、化外人、西古提人、为奴的、自主的，唯有基督是一切，又在一切之内。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后5:17	因此，若有人在基督里，他就是新造；旧事已过，看哪，都变成新的了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加6:15	受割礼不受割礼，都无关紧要，要紧的乃是作新造。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加6:16	凡照这准则而行的，愿平安怜悯临到他们，就是临到神的以色列。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加6:17	从今以后，人都不要搅扰我，因为我身体上带着耶稣的烙印。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗2:10	我们原是神的杰作，在基督耶稣里，为着神早先预备好，要我们行在其中的善良事工创造的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗2:15	在祂的肉体里，废掉了那规条中诫命的律法，好把两下在祂自己里面，创造成一个新人，成就了和平；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-二">
+            <div class="section-level2">
+                
+                二　神的目标乃是要得着这一个新人，至终这新人要完成于新耶路撒冷，就是这一个新人最终的完成。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.outline-page {
+    padding: 5px;
+}
+
+/* 字体大小控制 */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: #f0f4ff;
+    border: 1px solid #d0d7f0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #667eea;
+    cursor: pointer;
+}
+
+.font-btn:active {
+    background: #667eea;
+    color: #ffffff;
+    border-color: #667eea;
+}
+
+.outline-content {
+    margin-top: 20px;
+}
+
+.section-level1 {
+    font-weight: bold;
+    font-size: 17px;
+    margin: 20px 0 12px 0;
+    color: #2c3e50;
+    line-height: 1.8;
+}
+
+.section-level2 {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 16px 0 10px 15px;
+    color: #34495e;
+    line-height: 1.8;
+}
+
+.section-level3 {
+    font-size: 16px;
+    margin: 14px 0 8px 30px;
+    color: #4a5568;
+    line-height: 1.8;
+}
+
+.section-level4 {
+    font-size: 15px;
+    margin: 12px 0 8px 45px;
+    color: #718096;
+    line-height: 1.8;
+}
+
+.subsections {
+    margin-left: 0;
+    display: block;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 0.875em; /* 14px -> 0.875em */
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    margin-right: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-btn:active {
+    color: var(--brand-2);
+}
+
+.scripture-toggle-btn {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+    padding: 10px 12px;
+    margin: 8px 0 0 0;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.scripture-toggle-btn:active {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.scripture-content {
+    background: #f8f9fa;
+    border-left: 3px solid var(--brand-1);
+    padding: 10px 12px;
+    margin: 10px 0 10px 15px;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.8;
+}
+
+.verse-line {
+    margin-bottom: 8px;
+}
+
+.verse-line:last-child {
+    margin-bottom: 0;
+}
+
+.scripture-ref {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-left: 8px;
+}
+
+/* 章节级别经文样式 */
+.scripture-section {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.chapter-scripture-toggle {
+    margin-left: 10px;
+    font-size: 13px;
+    padding: 8px 14px;
+    min-height: 40px;
+}
+
+.chapter-scripture-content {
+    margin-top: 12px;
+    margin-left: 0;
+    background: white;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const hymnElem = document.querySelector('.hymn-number');
+            if (hymnElem) text += hymnElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const sections = document.querySelectorAll('.section-level1, .section-level2, .section-level3, .section-level4');
+            sections.forEach(s => {
+                const t = s.textContent.trim();
+                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+                    text += t + '。';
+                }
+            });
+            return text;
+        }
+    });
+});
+
+function toggleSection(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '▼';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '▶';
+    }
+}
+
+function toggleScripture(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '收起经文';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '展开经文';
+    }
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025秋季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

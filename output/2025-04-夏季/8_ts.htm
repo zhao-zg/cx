@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第8篇 - 详情</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>夏季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025夏季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="details-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="8_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="8_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="8_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="8_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="8_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第8篇 望断以及于耶稣，就是我们信心的创始者与成终者</h2>
+    
+    
+    <div class="scripture">读经：来一3，十二1下~2上，林前九24，帖后三5</div>
+    
+    
+    <div class="details-content">
+        
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　希伯来人是过河的人
+            </div>
+            
+            
+            <div class="content-text">本篇的篇题是“望断以及于耶稣，就是我们信心的创始者与成终者”，信息要讲到信心这极重要的题目，所根据的关键经文是出自希伯来书。希伯来书主要是写给希伯来信徒的，他们是初期召会时代的信徒，当时备受逼迫和反对。这些逼迫多是来自热中犹太教者。希伯来信徒脱离了犹太教，把心转向主，得了重生，但如今在往前的路上遇到了争战。他们需要蒙拯救，脱离旧路连同旧约及其规条和律法，好被带到神新约经纶的实际里。所以保罗写希伯来书是带着这样的领悟，为了这个目的。“希伯来”这辞的原文意即“过河的人”。希伯来信徒需要过河，从河的这边过到河的那边，意即他们必须抛弃旧的事物，旧的宗教，而进到新的事物里。这点也要应用在我们身上，我们都要作过河的人。我们都需要过河，把我们的老旧、死沉、属宗教的事物，以及属于己、肉体、天然的事物，都留在河的这边。我们要进入美地，就需要过河。</div>
+            
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　信的定义，
+以及信心的见证人
+            </div>
+            
+            
+            <div class="content-text">保罗写希伯来书时特别讲到信心，这非常有意思。我们要从十章三十八节起，按次序往下看。十一章为众人所熟悉，乃是专门讲到信心的一章。这会把我们带到十二章，而该章一至二节，乃是本篇信息的主要内容和中心负担。</div>
+            
+            <div class="content-text">十章三十八至三十九节说，“只是我的义人必本于信活着；他若退缩，我的心就不喜悦他。我们却不是退缩以致遭毁坏的人，乃是有信心以致得着魂的人。”保罗让我们看见，义人必本于信活着。我们要与神与人都是对的，就需要本于信活着。接下来的十一章一节给我们看见信的定义：“信就是所望之事的质实，是未见之事的确证。”我们要质实那看不见、属灵的事物和实际，就需要信。信是一个必要的元素，使我们能将未见之事的实际质实出来。</div>
+            
+            <div class="content-text">然后，二至三十八节就给我们看见许多信心的见证人，诸如亚伯、以诺、挪亚、亚伯拉罕、以撒、摩西，还有众申言者。这些人都过着一种信心的生活。八节说，“亚伯拉罕因着信，蒙召的时候，就遵命出去……；他出去了，还不知道往那里去。”这些人都过着一种信心的生活，好讨神喜悦。末了，三十九至四十节说，“这些人都借着信得了美好的见证，却没有得着所应许的；因为神为我们预备了更美的事，叫他们若没有我们，就不能完全。”</div>
+            
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　奔那摆在我们前头的赛程，
+使历代见证人得着所应许的
+            </div>
+            
+            
+            <div class="content-text">这就把我们带到十二章一至二节：“所以，我们既有这许多的见证人，如同云彩围着我们，就当脱去各样的重担，和容易缠累我们的罪，凭着忍耐奔那摆在我们前头的赛程，望断以及于耶稣，就是我们信心的创始者与成终者；祂为那摆在前面的喜乐，就轻看羞辱，忍受了十字架，便坐在神宝座的右边。”十一章是美妙的一章，专门讲到信的见证人。我们从中看见许多敬虔的义人，他们都是凭信而活，却没有得到所应许的。为什么呢？因为神为我们预备了更美的事，叫他们若没有我们，就不能完全。</div>
+            
+            <div class="content-text">十二章一节讲到有许多见证人，如同云彩围着我们。一九七五年，李弟兄释放了希伯来书生命读经，那年夏天是讲前半，冬天是讲后半。我被主得着，进到主的恢复，是在当年的九月。那时，我听到圣徒们都在谈论希伯来书生命读经训练，说到这个训练何等美妙，我就觉得我必须参加十二月的训练。我那时是在纽约一家医院上班，院方规定，圣诞节期间不能请假。我知道这规定，但因着圣徒们的分享，就很想参加训练。我去向主管请假，不被批准，但主没有让我过去。几天后，我还是觉得必须去加州参训。我里面受主催促，就再去向主管请假。主管说，“你若去，就不要回来了。”于是我就去了，至今从未后悔作了这个决定。</div>
+            
+            <div class="content-text">当年十二月，是李弟兄最后一次在安那翰会议中心举办生命读经训练。他在那次训练讲到希伯来十二章一节，有许多见证人如同云彩围着我们。根据这节，他说，在我们的基督徒生活中，要奔跑一个赛程，有许多人在我们前面已经跑完了，他们有些是旧约的人物，也有些是新约的信徒，诸如保罗、彼得等人。他们就是如云彩般的见证人。“云彩是为着引导百姓跟随主（民九15~22），并且主是在云彩中与百姓同在（出十三21~22）。以色列人乃是借着云柱跟随主，并在云柱中享受主的同在。所有信心的见证人，和信心的殉道者，都如同云彩。借着这些如同云彩的见证人，我们得以跟随主，并享受祂的同在。”（希伯来书生命读经，六五九页）</div>
+            
+            <div class="content-text">当时李弟兄鼓励我们，要操练我们信心的灵，领悟我们正在一个运动场上，周围有这些如云彩般的见证人围着我们。亚伯拉罕、摩西、大卫、彼得、保罗都在那里，催促我们，激励我们继续奔跑赛程。今天，如同云彩般的见证人，仍在我们周围。今天我们在这里，乃是在奔跑赛程，且要跑完赛程，好得着奖赏。没有我们跑完赛程，这些伟大的、信心的见证人，就还不能得着所应许的。没有我们，他们就不能完全。</div>
+            
+            <div class="content-text">同时，李弟兄也讲到马太十一章十一节。主耶稣在那里说，“我实在告诉你们，妇人所生的，没有一个兴起来大过施浸者约翰的；然而在诸天的国里最小的比他还大。”这让我们看见，施浸者约翰比他之前的人都还大，因为他是主的先锋，为主的职事开路。但我们在诸天的国里，甚至比施浸者约翰还大，而这就使我们比他之前的那些人更大了。正因如此，这些云彩般的见证人，需要我们跑完赛程。这是一个信心的赛程。主实在渴望得着一班人，能完全与祂合作，来结束这个时代。我们是何等荣幸的一班人。</div>
+            
+            <div class="content-text">在马太十三章十六至十七节，主说，“你们的眼睛是有福的，因为看见了；你们的耳朵也是有福的，因为听见了。我实在告诉你们，曾经有许多申言者和义人，渴想要看你们所看的，却没有看见；要听你们所听的，却没有听见。”我们实在就是这样的一班人。在这次的训练里，我们所看见并听见的，是历世历代以来许多申言者和义人想看却没有看见，想听却没有听见的。所以我们是何等有福，但同时我们的责任是何等重大。我们一定要往前，跑完这赛程。</div>
+            
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　“望断以及于耶稣”
+            </div>
+            
+            
+            <div class="content-text">“望断以及于耶稣。”（来十二2上）当我们想到这信心的赛程，想到我们的基督徒生活和召会生活，我们首先就要望断以及于耶稣。望断乃是开头。望断就是要离开。要望断我们的问题，望断我们的环境，望断我们的短处和失败。我们都知道自己有很多失败，有很多问题和短缺，但我们不要看那些，我们要望断一切这类的事，以及于耶稣。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　“望断”，原文指转离其他各种目标，专一的注视；
+希伯来的信徒必须望断他们环境中一切的事物，
+以达到这位坐在神宝座右边的耶稣
+            </div>
+            
+            
+            <div class="content-text">“望断”，原文指转离其他各种目标，以专一的注意力注视（2上）。希伯来的信徒必须望断他们环境中一切的事物，望断他们老旧的宗教─犹太教，望断犹太教的逼迫，望断一切属地的事物，好望断以及于，以达到这位现今在诸天之上，坐在神宝座右边的耶稣（一3）。但愿我们有这种望断以及于耶稣的生活。我们要望断一切搅扰我们的事，不管是里面的，还是外面的，使我们能专一注视耶稣。这位耶稣如同极大的磁石，是宇宙中最有吸引力的一位。但有一件拦阻我们，使我们不能望断的事，就是我们被许多事霸占或分心。其中一个最搅扰我们的，就是我们的己。我们花很多时间看我们自己，这是一个很大的问题。倪弟兄、李弟兄都曾提到这件事，并用“内顾”这个辞来形容这事。</div>
+            
+            <div class="content-text">李弟兄在雅歌结晶读经第五篇说到“内顾自己”。这是我们中间一个很常见的问题。内顾自己，就是看自己属灵的长进，考量自己情形如何。我常与各地圣徒、服事者以及训练受训者交通，知道众人都认真追求。我们从世界各地来参加这次训练，用一整周来追求主的话，这说出我们是很认真的一班人。我们在训练里讲到很多高超的事，讲到要转移时代，成为得胜者。然而，在听到这些事以后，我们很容易就开始衡量自己属灵生命长进的程度，因而内顾自己。一面我们需要认罪，对付我们的罪，对主的光照敞开；但另一面，我们可能落到极端。李弟兄和倪弟兄都对我们说了警告的话，说到内顾自己的危险，并且告诉我们解决之道，就是要望断以及于耶稣。</div>
+            
+            <div class="content-text">李弟兄说，“基督的佳偶在追求基督达到满足与安息后，结果落到一种光景里，过分注意自己在基督面前的属灵情形，关心她是否留在她所达到的完全中。这使她落到内顾自己；这个内顾自己成了隔离的墙，使她离开基督的同在。”（雅歌结晶读经，五一页）这是讲到雅歌二章九节。圣经告诉我们要望断以及于耶稣，但是内顾自己总是使我们往自己里面看。内顾自己是对我们里面光景的内省。这是一种属灵的疾病。</div>
+            
+            <div class="content-text">倪弟兄说，“自己回想到自己，自己分析自己的感觉，自己一直顾念到自己的进步与否，自己过度地挂虑自己的灵性情形，都会拦阻我们前进。奔跑路程的一个极大的危险，就是因为我们急于进步的缘故，就不知不觉地不断回想到自己的情形如何，以致不能‘望断以及于耶稣’。”（倪柝声文集第一辑第十七册，二五七页）你是否焦虑自己有没有进步，有没有买油，有没有在生命中长大以致成熟，是否预备好让主提取？许多信徒忧虑这些事，但主说，“应当一无挂虑。”（腓四6）我们要一无挂虑，就需要“望断以及于耶稣”。</div>
+            
+            <div class="content-text">我们有一个很大的危险，就是内顾自己。因为我们挂念自己是否有进步，就叫我们不能望断以及于耶稣。“望断以及于耶稣”，就是不看我们自己。我们要蒙拯救脱离看自己的光景。每早晨起来，不要看自己，而要进到主的话里，呼求祂的名。不要看自己，要仰望主耶稣，被祂吸引离开我们里面的世界，将自己联于所仰望的那一位，就是为我们信心创始并成终的耶稣。我们要对付内顾自己，望断以及于耶稣。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们要享受天上的基督，
+就需要望断一切地上的事物，而及于祂
+            </div>
+            
+            
+            <div class="content-text">我们要享受天上的基督（来一3），就需要望断一切地上的事物，而及于祂。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　奇妙的耶稣，在天上登了宝座，
+并得了荣耀尊贵为冠冕，
+祂是宇宙中最大的吸引
+            </div>
+            
+            
+            <div class="content-text">奇妙的耶稣，在天上登了宝座，并得了荣耀尊贵为冠冕（二9），祂是宇宙中最大的吸引。地上没有什么能与我们的主耶稣相比。有一首英文诗歌说，“谁像我们的耶稣？祂是我们心一切所望！祂爱吸引我们就祂，使我们灵里焚烧发旺！”（中文暂译）谁像我们的耶稣？祂是何等奇妙超绝，即使是不信者也会对祂有一种尊敬和钦佩。对我们这些已向祂敞开而接受祂的人来说，无人能与我们的主耶稣相比。</div>
+            
+            <div class="content-text">希伯来十二章二节第二注说，“奇妙的耶稣，在天上登了宝座，并得了荣耀尊贵为冠冕（二9），祂是宇宙中最大的吸引，就像巨大的磁石，吸引所有寻求祂的人归向祂。我们乃是受祂迷人的美丽所吸引，才望断祂以外一切的事物。没有这样迷人的对象，我们怎能望断地上这么多迷惑人的事物？”</div>
+            
+            <div class="content-text">福音书中记载，主耶稣来到加利利，对一些渔夫说，“来跟从我，我要使你们成为得人的渔夫。他们就立刻撇下网，跟从了祂。”（可一17~18）这些人愿意不顾一切，立刻撇下网来跟从主耶稣，因为主是何等的吸引人！历世历代以来，千千万万的信徒就是这样，从不同的历史背景和环境中，被带到主耶稣面前，来珍赏祂、宝爱祂。我们也是这样。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们乃是受祂迷人的美丽所吸引，
+才望断祂以外一切的事物，
+使我们凭着忍耐，奔那摆在我们前头的赛程
+            </div>
+            
+            
+            <div class="content-text">我们乃是受祂迷人的美丽所吸引，才望断祂以外一切的事物，使我们凭着忍耐，奔那摆在我们前头的赛程（来十二1下）。这就是我们的基督徒生活。我们要凭着忍耐，奔那摆在我们前头的赛程。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　基督徒的一生就是一个赛程；
+每一个得救的基督徒
+都必须奔跑这赛程，好赢得奖赏
+            </div>
+            
+            
+            <div class="content-text">基督徒的一生就是一个赛程；每一个得救的基督徒都必须奔跑这赛程，好赢得奖赏（林前九24）。前一篇信息给我们看见，我们正在借着圣别而被子化，好被带进荣耀里；那是这赛程的目标。关于保罗在希伯来十二章一节所提到的赛程，李弟兄在希伯来书生命读经第五十篇如此说：</div>
+            
+            <div class="content-text">现在我们要问一个不容易答复的问题：这赛程到底是什么？我们不能说赛程就是得完全或得荣耀，因为那是赛程的目标。也不能说赛程是生命之律内里的运行，因为那是赛程的过程。赛程甚至也不是丧失魂，因为那是奔跑赛程的途径，而不是赛程本身。要解答这个问题，我们需要来看主在约翰十四章六节所说的话：“我就是道路。”赛程就是道路、行程。因为基督是道路，所以祂也是赛程。我们所奔跑的赛程乃是基督。我们的道路就是我们的赛程。这不是指两件东西，一件是道路，另一件是赛程。不，我们所行走的道路，就是所奔跑的赛程。因此基督不仅是道路，也是赛程。我传讲奔跑赛程这件事，已经有四十多年了，但是从来没有像现在这样清楚看见，这赛程就是基督自己。</div>
+            
+            <div class="content-text">我有个负担，盼望大家都能清楚神的道路。在宇宙中，神预备了一条独一的路，是我们必须行走的。这条路是无始无终的，是从永远到永远，没有止境的。从创世记一章到启示录二十二章，只有一条路，就是基督（六七〇至六七一页）。</div>
+            
+            <div class="content-text">阿利路亚，基督自己就是这个赛程，也就是我们基督徒的生活。基督徒生活不是如同在公园散步，不能随心所欲；基督徒生活乃是一个赛程。我们都要奔跑这个赛程。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　这奖赏不是指一般的救恩，
+乃是指特别的赏赐
+            </div>
+            
+            
+            <div class="content-text">这奖赏不是指一般的救恩，乃是指特别的赏赐（林前九24，弗二8~9，林前三14~15）。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　使徒保罗
+已经跑完这赛程，赢得了奖赏
+            </div>
+            
+            
+            <div class="content-text">使徒保罗已经跑完这赛程，赢得了奖赏（九26~27，腓三13~14，提后四7~8）。林前九章保罗说到这赛程：“岂不知在场上赛跑的都跑，但得奖赏的只有一人？……我乃是痛击己身，叫身为奴，免得我传给别人，自己反不蒙称许。”（24、27）保罗也担心，自己可能会在奔跑赛程的事上不蒙称许。这对我们是警告，也是劝告，要我们领悟，自己应当奔跑赛程。</div>
+            
+            <div class="content-text">在提后四章保罗说，“那美好的仗我已经打过了，当跑的赛程我已经跑尽了，当守的信仰我已经守住了；从此以后，有公义的冠冕为我存留。”（7~8）保罗有这样的渴望，奔跑赛程就是他的生活。他总是努力向前，竭力追求，不被任何过去的事所捆绑。他实在是一个过河的人。愿我们也作这样过河的人。</div>
+            
+            <div class="content-text">在希伯来书生命读经第五十篇里，李弟兄说，“在主恢复里的圣徒们，你是在道路上行走，或是在奔跑赛程？我们若是在路上走，有一天我们会走出去。我们若是悠闲地慢步而行，就会被其他的路岔开。但我们若是奔跑赛程，不花时间东张西望，并且定睛于前面的目标，我们就不会受到打岔。”（六七三页）我们也要问自己：我们是在道路上行走，或是在奔跑赛程？这就说到我们追求的态度。我们要奔跑赛程，就必须望断以及于耶稣。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　重担乃是重量、负担或障碍；赛跑的人脱去各样不必要的重量，各样缠累人的重担，使他们没有障碍，以赢得竞赛
+            </div>
+            
+            
+            <div class="content-text">重担乃是重量、负担或障碍；赛跑的人脱去各样不必要的重量，各样缠累人的重担，使他们没有障碍，以赢得竞赛。我们都看过奥林匹克的赛跑，若是运动员穿着西装外套跑步，那就会成为重担。他们必须脱去重担，并且跑的时候，眼睛也必须专注于最终的目标。如果他们跑的时候东张西望，就必定失败。因此，我们需要全心专注于那目标，望断以及于耶稣，竭力追求祂在地上的权益；这才是我们赛跑的方式。</div>
+            
+            <div class="content-text">重担就是消磨我们、搅扰我们的事。亚伯拉罕和罗得有一个对比。亚伯拉罕是过祭坛与帐棚的生活，他总是听耶和华的话，也尊重并尊崇耶和华的话。但罗得不是这样。彼得说，他是个义人，但他却被各样的重担所缠累，因为他生活在错误的地方─所多玛城（彼后二6~8）。然而，即使他是一个义人，因着被那样的环境所压、所束缚，就无法奔跑赛程。</div>
+            
+            <div class="content-text">在我们基督徒的生活中，当我们与主往前时，要好好考量，我们实际的生活到底如何？不是说，我们需要搬到与世隔绝的地方。但我们要想想，我们有没有被什么事所缠累？有什么事是我们的重担？重担可能是一些物质的所有物。例如，我们的房子也会带给我们许多烦恼。我们也要考量，该有怎样的工作。我们要跑基督徒的赛程，就不要被各样的事物所缠累。我们宁可薪水不高，也不要被工作霸占。我们也不要因欠债而受捆绑。我们需要把这一切都带到主面前，对主说，所有的选择，不论是买房子、找工作、上学校，一切都要先寻求祂的国和祂的义。我们要相信主是主宰一切的；但另一面，我们要脱去一切缠累我们的事，因我们要奔跑这赛程。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　希伯来十二章中独一的、缠累人的罪，
+乃是故意犯的罪，指停止与圣徒们的聚集，
+放弃神经纶中新约的路，以及回到犹太教去
+            </div>
+            
+            
+            <div class="content-text">希伯来十二章中独一的、缠累人的罪，乃是故意犯的罪，指停止与圣徒们的聚集，放弃神经纶中新约的路，以及回到犹太教去（十25~26）。这独一的、缠累人的罪，会叫我们不能奔跑赛程，我们要对付这类的罪。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　重担和缠累人的罪，
+都会阻挠并限制希伯来的信徒，
+使他们不能在新约的路上跟从耶稣，奔跑那属天的赛程
+            </div>
+            
+            
+            <div class="content-text">重担和缠累人的罪，都会阻挠并限制希伯来的信徒，使他们不能在新约的路上跟从耶稣，奔跑那属天的赛程。在主的恢复里，我们在跑赛程的事上不要被阻挠或限制，而要凭着忍耐奔跑。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们需要凭着忍耐奔跑，
+求主引导我们的心，
+进入神的爱以爱神，并进入基督的忍耐以忍耐
+            </div>
+            
+            
+            <div class="content-text">我们需要凭着忍耐奔跑，求主引导我们的心，进入神的爱以爱神，并进入基督的忍耐以忍耐（帖后三5）。这爱，即我们对神的爱，出自那已经浇灌在我们心里之神的爱（约壹四19，罗五5）。这忍耐乃是以我们所享受并经历之基督的忍耐来忍耐（参启一9）。</div>
+            
+            <div class="content-text">启示录七次讲到忍耐（一9，二2、3、19，三10，十三10，十四12）。在新约里也常常提到“忍耐”这个辞（太十22，十七17，二四13，可九19，十三13，路八15，九41，十八7，二一19，罗五3~4，八25，十二12，十五4~5，林前十三4、7，林后六4，十二12，西一11，帖前一3，帖后一4，三5，提前六11，提后二10、12，三10，多二2，来六15，十36，十二1，雅一3~4，五11，彼前二20，彼后一6）。我们越过基督徒的生活，就越领悟我们何等需要忍耐。主在启示录三章十节对非拉铁非召会说，“你既遵守我忍耐的话，我也必保守你免去那将要临到普天下，试炼一切住在地上之人试炼的时候。”主的话就是忍耐的话，非拉铁非召会遵守这忍耐的话。</div>
+            
+            <div class="content-text">在一章九节，约翰说到耶稣的忍耐。我们需要忍耐来跑这赛程，这不是短跑，乃是像马拉松一样的长跑。我们需要忍耐，才能跑完这赛程。倪柝声文集第二辑第十八册第五十一篇讲到“撒但的折磨”：</div>
+            
+            <div class="content-text">撒但有一个工作，就是攻击神的儿女。攻击的方法并不是忽然的，在许多时候，都是渐渐地、慢慢地来的。但以理七章二十五节说到撒但必折磨至高者的圣民。撒但对于至高者的圣民有一个计策，就是“折磨”，或者说“磨”。我们要记得，撒但在神的儿女身上的工作，是不大明显的，他的工作乃是磨。</div>
+            
+            <div class="content-text">在身体方面，你就能看见撒但特别磨神的儿女。像约伯的身体被击打（伯二7~8），像保罗肉体上的那根刺（林后十二7），都是撒但磨人的身体。又如好些基督徒，没有得救以前，身体也许是很好的，得救之后，有时反而生病了，反而身体渐渐地软弱不支了。神如果开我们的眼睛，我们就看见，有一个是在那里计划打算的，是一直在那里对付神的子民的，就是撒但。</div>
+            
+            <div class="content-text">不只在身体上，撒但在人的心里也这样作。你在起头信主的时候，也许觉得很欢喜、很快乐、很平安；但是，你如果不儆醒，不知道撒但所作的事，后来你就莫名其妙的，今天心里有一点不平安，明天心里有一点不痛快，后天心里觉得有一点郁闷，就是这样一点又一点，你的平安失去了，就是这样一点又一点，你的喜乐失去了。就是这样使你疲倦，使你灰心，这就是撒但在那里磨。</div>
+            
+            <div class="content-text">我们的眼睛如果被神开启，我们就能看见，撒但磨人的时候，各种各样的方法都有：在身体上、在环境上、在灵性上，都在那里磨；不是猛烈地攻打，是慢慢地磨。所以我们要防备撒但的磨。千万不要让撒但一直磨下去。我们要反对撒但的磨（一四四至一四六，一四八页）。</div>
+            
+            <div class="content-text">世界上总是充满了坏消息，即使是召会生活中也常有一些坏消息。仇敌常常用各样的事，来搅扰我们，并用圣徒们失败的经历，来折磨圣徒。这就是但以理七章二十五节所说，“他必……折磨至高者的圣民。”这是撒但的诡计。他甚至会把我们带到一个地步，叫我们以为那是主的工作，使我们在那里劳苦，却没有目标，没有结果。如同保罗曾跟腓力斯传讲，但两年之后，还是没有结果（徒二四24~27）。撒但可以用各式各样的方法来折磨我们，我们要识破他的诡计，像倪弟兄所说，“我们要说，‘我拒绝，我反对，我不接受这一个磨。’撒但任何的磨，你都不要，你都反对，你都拒绝，这样，就要看见主给你释放，主给你拯救，你就能脱离撒但在你身上折磨的工作。”（倪柝声文集第二辑第十八册，一五一页）我们该领悟，这是撒但工作的方式，我们不要被动接受他差来的磨，要抵挡。为此我们需要望断以及于耶稣，祂就会把祂自己灌注到我们里面，来作我们所需要的忍耐。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　耶稣是信心的创始者、
+发起者、开创者、源头和因由
+            </div>
+            
+            
+            <div class="content-text">耶稣是信心的创始者、发起者、开创者、源头和因由（来十二2上）。在基督教里，许多人以为的信心是里面的一种动力。他们常说你的信心需要加强，好像信心是可以自己发展出来，是自己可以加强的。然而，我们按着圣经和职事信息的启示，对信有不同的领会。希伯来十二章二节说，“望断以及于耶稣，就是我们信心的创始者与成终者。”这个信心是耶稣基督的信心，不是我们的信心。因着堕落，我们被不信所构成。在我们里面没有信的元素，更没有信的能力。但罗马十章十七节说，“信是由于听，听是借着基督的话。”因此，当我们听见主的话，听见关于主的事，就叫信心能灌注到我们的里面。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　信徒的信实际上不是他们自己的信，
+乃是基督进到他们里面作他们的信
+            </div>
+            
+            
+            <div class="content-text">信徒的信实际上不是他们自己的信，乃是基督进到他们里面作他们的信（罗三22，加二16）。保罗在加拉太二章二十节下半说，“我如今在肉身里所活的生命，是我在神儿子的信里，与祂联结所活的。”这乃是神儿子基督的信，不是我们的信。我们再次强调，要望断以及于耶稣，当我们越转向祂，越观看祂，祂就越把祂信的元素灌注到我们里面。</div>
+            
+            <div class="content-text">我们的信是我们对基督的珍赏，作为我们受祂吸引所起的反应（罗十17）。即使我在信主之前，也有一次这样的经历。当时我看了一部关于耶稣的电影。当人将祂钉十字架时，我心里纳闷：为什么要钉死祂？祂到底作了什么，叫祂遭受这样的对待？那时，我甚至因耶稣受到人极其不公、不义的对待而落泪。再者，从耶稣在地上的为人生活，我们看见祂是那样的谦卑，祂倒空自己并降卑自己，祂对待人是那样的谦让宜人。祂是何等的一位神人，是那样吸引人、令人喜悦。每当我们有机会多看见主一点，祂的信就要更多灌注到我们里面。</div>
+            
+            <div class="content-text">照我们天然的人，我们没有信的能力；我们凭自己没有信。那叫我们得救的信，乃是我们从主所得宝贵的信，就是神所分给的信（彼后一1，西一12）。这就是彼后一章一节所说，我们是“分得同样宝贵之信的人”。当我们望断以及于耶稣，祂这赐生命的灵（林前十五45下）就将祂自己，将祂信的成分，灌输到我们里面。主耶稣乃是我们信心的创始者、发起者；没有祂，就没有信心。只要我们向主敞开，祂自己作为信，就要灌输到我们里面。为此，我要说一点关于传福音的事。永远不要轻看我们在传福音时对人分享关于主的事。每当我们对人讲到主耶稣基督时，那就是一种灌输，把信心的元素灌输到这人里面，使其得着先前所没有的信。</div>
+            
+            <div class="content-text">让我用自己的经历来见证。有一次，我和一个朋友到佛罗里达州，我们坐在公园的椅子上，彼此谈论宇宙中到底有没有神。对于神是否存在、人如何到祂那里以及如何认识祂，我们都按自己的想像和推理有许多谈论。后来，有一对年轻的基督徒夫妇来到我们面前。借着他们的传讲，我第一次听见福音。从前我曾听过关于耶稣的事迹，但从未听过耶稣基督的福音。那位年轻的弟兄见证他是如何认识主，如何将心转向主、接受了基督；当他向我传讲时，就把信心灌注到我里面。那时，我跟他辩论了将近有两三个小时之久；在他的认知里，我们可能就是两个爱争辩的纽约人来到佛罗里达州，是不会得救的。后来我们也没有再见到他，但那次的对话却改变了我的一生，因为当他对我们说话时，我从他的面容和神情看见主是真实的。在他身上所经历关于主的事，是我所没有的；那是我无法否认的。这就把一些信的元素灌注到我的里面。一年多以后，我真正相信并接受基督；但在这之前，信就借着那人的传讲灌输到我里面了。我的重点是，不论我们在职场或学校，都不要以为主耶稣作见证为耻。我们要向同事、朋友、同学、邻舍作见证。即使对他们说短短的一句：“我是基督徒，我爱主耶稣，”也会将信灌注到听的人里面。他们也许会冷漠地回应我们，但不要因此失望。要知道，我们每次对人传讲主耶稣时，就是将信心灌注到听的人里面。</div>
+            
+            <div class="content-text">这信不是出于我们自己，乃是出于那将自己作信的成分，分赐到我们里面，替我们信者的。在福音书里，人将他们所患的各种疾病和疑难杂症都带到主面前，求主拯救并医治。比方在马可十章，有一个讨饭的瞎子巴底买，坐在路旁。他听见是拿撒勒人耶稣经过，就喊着说，“大卫的子孙耶稣，可怜我吧！”有许多人责备他，叫他安静，他却越发喊着：“大卫的子孙，可怜我吧！”耶稣就站住，说，“叫过他来。”（47~49）当瞎子来到耶稣那里，耶稣对他说，“你要我为你作什么？”他说，“我要能看见。”这时，主怎么说呢？祂说，“你的信救了你。”（51~52）试问，是谁医治了他？没错，是耶稣医治了他；但耶稣却说，“你的信救了你。”为什么信可以救他？因为基督把信灌输到他里面，而这个信就是基督自己，所以是这个信救了他，医治了他。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　信是一种质实的能力，
+把未见之事或所望之事的本质，质成现实
+            </div>
+            
+            
+            <div class="content-text">信是一种质实的能力，是“第六个感官”，我们乃是凭这官能，把未见之事或所望之事质实出来，就是把这些事的本质，质成现实（来十一1）。质实就是那使我们能把本质实化出来的能力。我们五官的作用是质实外面世界的东西，把一切客观的东西质实到我们里面来，成为我们主观的经历。就像眼睛之于视觉，耳朵之于听觉，鼻子之于嗅觉一样，信心─我们信心的灵─乃是我们将看不见之属灵世界里的一切，质实到我们里面的器官（林后四13）。这些日子，主实在渴望训练我们，牧养我们，使我们活在看不见的范围里。</div>
+            
+            <div class="content-text">我们必须运用我们信心的灵，就是我们调和的灵，信并且说我们所经历于主的事。信心是在我们那与圣灵调和的灵里，不是在我们的心思里；怀疑才是在我们的心思里。但这并非指着我们不该用我们的心思，而是说我们要将我们的心思置于灵（罗八6下）。我们要操练灵，学习分辨什么是出于灵的，什么是在我们灵里的，就是在那看不见之范围里的。为此，我们要望断以及于耶稣，因为祂会加强我们信心的灵；这样，我们心思里一切的怀疑，都能够被对付。</div>
+            
+            <div class="content-text">我们不是顾念、注视所见并暂时的，乃是顾念、注视所不见并永远的（林后四18）。林后四章十八节说，“我们原不是顾念所见的，乃是顾念所不见的，因为所见的是暂时的，所不见的才是永远的。”在疫情期间，我对这节经文有鲜活的经历。当时，我走在都柏林的一条街上，那条街曾经可媲美纽约第五大道。平常街上熙来攘往的，非常热闹；但在疫情期间，店面全都关闭，整条街上空无一人。我顿时发觉，我们不能再像以前那样过我们的生活了；所有的店都关了，连电影院、咖啡厅也关了，不能旅行，也不能社交。我就在思量：主正在训练我们珍赏那看不见的事。特别在疫情期间，我越发领悟，看得见的事是暂时的。人爱看电影，电影院关了；人爱喝咖啡，咖啡厅也关了。换句话说，所有我们所喜所爱那些看得见的事物和活动，事实上都是稍纵即逝，没有什么价值的；唯有那看不见的，才有永远的价值。所以，我们要学习培养对看不见之事物的珍赏。什么是看不见的呢？神是看不见的，从来没有人见过神（约壹四12）；但神是灵，凡敬拜祂的，都必须在灵和真实里敬拜（约四24）。所以我们要培养对看不见之事物的珍赏和经历。</div>
+            
+            <div class="content-text">基督徒的生活是一种未见之事的生活（罗八24~25，来十一27，彼前一8，加六10）。召会的堕落是从所不见的事堕落到所见的事。这话发人深省。很多时候，甚至在主恢复中的圣徒，也常因一些看得见的事物深受影响，譬如看得见的反对、逼迫。我们也可能寻求一些看得见的工作成果，比如聚会人数有多大的增长、开展工作得了多少人等。的确，我们该在意人，该掌握聚会人数；但另一面，我们要领悟这一切事的源头，都必须是那灵，就是在看不见之范围里的那灵。召会的堕落是从所不见的事，就是从属灵的事，堕落到看得见的事，就是属物质和心理范围的事。主的恢复是要将祂的召会从所见的事恢复到所不见的事。</div>
+            
+            <div class="content-text">信就是信神是。人非有信，就不能得神的喜悦，不能使神快乐（来十一6上）。“到神面前来的人，必须信有神〔直译，神是〕。”（6中）信神是，就是信祂是我们的一切，而我们一无所是（约八58，传一2）。信神是，含示我们不是；祂必须在凡事上是唯一的一位，独一的一位，我们必须在凡事上什么也不是（来十一5）。从前我有些受这话搅扰；说神是，没有问题，但说我什么都不是，我觉得这话有些极端。但借着职事信息的帮助，并借着祷读这些经文，至终我不得不承认：神是，而我什么也不是。我们只能带来虚空的虚空，而神是宇宙中唯一的实际。我们越珍赏并宝贝“祂是”，就越帮助我们奔跑前面的赛程。信神是，就是否认我们的己；在全宇宙中祂是，我们众人什么也不是（路九23）。</div>
+            
+            <div class="content-text">主的话的意思是说，“我是那伟大的我是。我是那是的一位。你必须信我是，你不是。”（参约八24、28、58）我们必须信祂是，我们不是。因着我们不是，所以我们要否认己，背起十字架来跟从祂。离了祂，我们就不能作什么（约十五5）。我们何等需要主。</div>
+            
+            <div class="content-text">在出埃及三章十三至十四节，“摩西对神说，我到以色列人那里，对他们说，你们祖宗的神差我到你们这里来；他们若问我说，祂叫什么名字？我要对他们说什么？神对摩西说，我是那我是；又说，你要对以色列人这样说，那我是差我到你们这里来。”神是那我是；这是祂的本质。“我是”乃是耶和华名字的意义。祂是自有永有的那一位。祂的存在不倚靠任何事物；相对的，我们只是神的造物。要不是神造了我们，我们也不会存在。所以我们什么都不是，唯有神是一切。</div>
+            
+            <div class="content-text">我们在基督徒生活和召会生活中越领悟这点，就越得帮助。李弟兄在信息中说到：“信心就是信神是，我不是。希伯来十一章六节说，‘到神面前来的人，必须信神是。’（直译）。今天世界的人，连基督徒，连我们中间带头的同工们，行事为人大多是信自己是。很少看见一个弟兄，他的态度、表情给人看见，他不信自己是，他信只有神是。这样一个不信自己是，只信神是的人，乃是主的得胜者。用这尺度衡量，我对主说，‘主啊，我愿在人生最后的路程中，能蒙你的怜悯、恩典，作你的得胜者。’没有这样一班得胜者，主怎么结束这个世代？”（李常受文集一九九四至一九九七年第一册，六六八页）我们需要让主对付我们，使我们领悟并珍赏“祂是，我们不是”。</div>
+            
+            <div class="content-text">这就是信─“哦，何等喜乐，能够一无所有，一无所是，一无所见，唯见在荣耀里活的基督；并且一无所顾，唯顾祂在此地的权益。”（达秘，J. N. Darby）达秘领悟一无所是乃是一件喜乐的事；看见这点能对付我们的骄傲、野心和任何形式的争竞。我们可能以为奔跑赛程是跟别的圣徒比赛争竞，其实完全不然。领悟自己一无所是，对我们奔跑基督徒赛程有很大的帮助。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　耶稣是我们信心的
+成终者、完成者、完全者
+            </div>
+            
+            
+            <div class="content-text">耶稣是我们信心的成终者、完成者、完全者（来十二2上）。耶稣是我们信心的创始者，也是成终者。祂要完成祂所开始的（腓一6）。祂开始了我们的信心，也要成全这信心，直到我们成熟，在祂手中成为有用的。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们不断地望断以及于祂，
+祂就要完成并完全
+我们奔跑属天赛程所需要的信心
+            </div>
+            
+            
+            <div class="content-text">我们不断地望断以及于祂，祂就要完成并完全我们奔跑属天赛程所需要的信心（来十二1下~2上）。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　当我们望断以及于祂，
+祂就供应我们，
+使我们能奔跑属天的赛程
+            </div>
+            
+            
+            <div class="content-text">当我们望断以及于祂，祂就要把天、生命和力量供应我们，将祂的所是传输并灌注到我们里面，使我们能奔跑属天的赛程，在地上过属天的生活（林后三18）。主渴望得着我们作一班望断以及于祂的人，在地上过属天的生活，向这世代一切的潮流、趋势和哲学作相反的见证。我们不受那些事的影响，因为我们望断以及于祂。当我们望断以及于祂，祂就以祂自己作为信心传输到我们里面，使我们能继续奔跑属天的赛程。我们如此奔跑赛程，就是向这邪恶世代中的一切作相反的见证。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们所有的信在质的一面都是同样的，
+但这信的量有多少，
+乃在于我们有多少接触活的神
+            </div>
+            
+            
+            <div class="content-text">我们所有的信在质的一面都是同样的，但这信的量有多少，乃在于我们有多少接触活的神，使祂得以在我们里面增长（罗十二3）。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　进展阶段的信是
+借着我们接触三一神而来；
+接受这样的信的路，
+乃是借着呼求主，向主祷告，并祷读主话
+            </div>
+            
+            
+            <div class="content-text">进展阶段的信是借着我们接触三一神而来，祂在我们里面就是信（帖前五17）。接受这样的信的路，乃是借着呼求主，向主祷告，并祷读主话，来接触这信的源头，就是主，也就是那经过过程并终极完成的神（来四2、16，罗十12，提后二22，弗六17~18）。这些生活的实行是很大的帮助，能将这信灌输到我们里面，因为生命的律的一个功用，就是将信灌输到我们里面。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　当我们接触祂时，祂就在我们里面涌流，
+并且我们中间就有相互的信心
+            </div>
+            
+            
+            <div class="content-text">当我们接触祂时，祂就在我们里面涌流，并且我们中间就有相互的信心；我们因着彼此的信心，就同得鼓励（罗一12，门6）。保罗说到“信的交通”（6）。在召会生活中，或在家聚会中，或在年度的特会和训练中，众人来在一起，就因彼此的信心而得鼓励。我们应该更多聚在一起，互相鼓励彼此的信心。</div>
+            
+            <div class="content-text">李弟兄在“信心的道路─望断以及于耶稣”这篇信息中，讲到基督徒的道路就是信心的道路：</div>
+            
+            <div class="content-text">这条路是信心的路，一面给我们看见，走这条路的动力，乃是在于我们对神的儿子有认识、有启示。所以我们前面摆着的，应该是祂自己；我们心思、心情里所常悬念难忘的，也是祂自己；我们眼睛所注视、观看、仰望的，还是祂自己。这是一个吸力，也是一个动力；一面吸引我们走前头的路，一面推动我们走前头的路（李常受文集一九五九年第二册，一三七至一三八页）。</div>
+            
+            <div class="content-text">李弟兄接着又讲到，我们的信心会受到试炼：</div>
+            
+            <div class="content-text">事奉主的人，恐怕会有一段相当长的时间，要被神摆在信心的试炼中。……这个试炼是多方的，有的是感觉上的试炼，叫我们不觉得事奉主的兴趣，不觉得走这条路的甘甜，甚至不觉得主的鼓舞。有的是难处上的试炼，有家庭中的难处，身体上的难处，或者别方面的难处。有的也许是在物质上，在财物上经历贫苦、艰难、缺乏。有的也许在工作上，工作上感觉缺少能力，缺少亮光，里头糢糊不清，缺少主的引导；不像已往许多的工作，一摸就摸着主的心意，知道该作什么。今后我们许多人恐怕要比从前更糊涂，更摸不着主的路，摸不着主的心意。有的试炼也许是在工作的果效上，许多的果效会变得不那么明显；你一直劳苦，一直作工，但是果效看不见，也不觉得。还有的试炼是在同工身上，好像在同工中间，有的人会觉得同工总不能体谅你，了解你，并向你敞开。这些都变作试炼。</div>
+            
+            <div class="content-text">我愿意告诉弟兄姊妹，我深深觉得主在我身上的试炼，并没有减少。……主的心意在今后为要叫我们能成熟，能作好的工作，能在祂手里更有分量，祂就定规要带我们走这条试炼的路，要我们经过试炼。……祂把我们逐渐带到一种境地，没有办法觉得什么，也没有办法摸着什么（一三八至一三九页）。</div>
+            
+            <div class="content-text">这里的重点是，我们要凭信而活，而不凭眼见。祂是我们信心的创始者和成终者。祂用各样属人的情形、困难，甚至是召会生活的难处，来试炼、试验我们，好叫我们更多的望断以及于那作我们信心的创始者与成终者的耶稣。当我们经历身体上或心理上的受苦，甚至是无法承担的试炼时，祂就把我们所需要的信心，更多灌输到我们里面。今天有一位弟兄告诉我，他发现自己罹患了癌症，但他却没有因此被打垮，因为他觉得主是要借此叫他醒悟过来。这就是在试炼中操练信心的灵。</div>
+            
+            <div class="content-text">愿我们都学习操练我们信心的灵，望断以及于耶稣。当我们望断以及于祂，祂就临到我们，来供应我们所需要的一切。祂不盼望我们凭自己作得更好。反之，祂盼望我们向祂敞开，让祂把更多的信心传输到我们里面；祂必作成这事。关键在于我们是否向祂敞开，望断以及于祂。所以，当我们遇到各种困难时，我们可以因信而得鼓励，也能以这信彼此鼓励。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们重生的灵，我们信心的灵，
+就是那胜过撒但所组织并霸占之世界的得胜
+            </div>
+            
+            
+            <div class="content-text">我们重生的灵，我们信心的灵，就是那胜过撒但所组织并霸占之世界的得胜（约壹五4）。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　那无法压制、无限无量之信的大能，推动许多人
+为主受苦，冒生命的危险，并成为得胜的
+受差遣者和殉道者，以完成神在信仰里永远的经纶
+            </div>
+            
+            
+            <div class="content-text">那无法压制、无限无量之信的大能，推动许多人为主受苦，冒生命的危险，并成为得胜的受差遣者和殉道者，以完成神在信仰里永远的经纶（路十八8，腓二30，罗十六3~4，徒二十24，提前一4）。倪弟兄有一篇题为“末了一段的道路”的信息（倪柝声文集第一辑第十册，六至一七页），是根据马可六章四十五至五十一节。在那里，耶稣催门徒渡海到对岸，然后自己就往山上去祷告。到了晚上，门徒的船在海中，因风不顺，摇橹甚苦。然而，主后来走向他们，一上了船，一切就都平静了。我们都该好好读那篇信息。</div>
+            
+            <div class="content-text">在这些日子，我们面临各样的情形，可能外面有反对，里面有难处。我们觉得自己很糟糕，充满林林总总的问题，但我们要忘记这一切。我们要望断以及于耶稣，祂是我们信心的创始者与成终者。祂是把我们带到对岸的那一位，祂是让我们能凭着忍耐，跑完赛程的那一位。赞美祂！我们能望断以及于祂。（R. M.）</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.details-page {
+    padding: 5px;
+}
+
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 46px;
+    min-height: 46px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e8ecf9 100%);
+    border: 1.5px solid #d0d7f0;
+    border-radius: 23px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.font-btn:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+}
+
+.details-content {
+    margin-top: 15px;
+    line-height: 1.8;
+}
+
+.section {
+    margin-bottom: 18px;
+}
+
+.section-level1, .section-level2, .section-level3, .section-level4 {
+    font-weight: 600;
+    margin: 20px 0 12px 0;
+    line-height: 1.8;
+    color: #2d3748;
+}
+
+.section-level1 {
+    font-size: 18px;
+    color: #667eea;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+.section-level2 {
+    font-size: 17px;
+    padding-left: 10px;
+    border-left: 3px solid #667eea;
+}
+
+.section-level3 {
+    font-size: 16px;
+    padding-left: 16px;
+}
+
+.section-level4 {
+    font-size: 16px;
+    padding-left: 24px;
+    color: #4a5568;
+}
+
+.content-text {
+    margin: 14px 0;
+    padding-left: 14px;
+    color: #4a5568;
+    text-indent: 2em;
+    line-height: 2.1;
+    font-size: 16px;
+}
+
+@media (min-width: 768px) {
+    .details-page {
+        padding: 20px 0;
+    }
+    
+    .details-content {
+        margin-top: 30px;
+    }
+    
+    .section {
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .font-size-controls {
+        gap: 6px;
+        margin: 8px 0;
+    }
+    
+    .font-btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const contentTexts = document.querySelectorAll('.content-text');
+            contentTexts.forEach(p => {
+                const t = p.textContent.trim();
+                if (t) text += t + '。';
+            });
+            return text;
+        }
+    });
+});
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025夏季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

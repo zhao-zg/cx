@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="主恢复训练合集 - 所有训练总览">
+    <title>主恢复训练合集</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            line-height: 1.6;
+            color: #2d3748;
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #667eea;
+            color: white;
+            text-align: center;
+            padding: 32px 20px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .header p {
+            font-size: 15px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .trainings-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .training-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border-left: 4px solid #667eea;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        
+        .training-card:active {
+            background: #f7fafc;
+        }
+        
+        .training-card .year-season {
+            font-size: 14px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .training-card .title {
+            font-size: 17px;
+            color: #2d3748;
+            margin-bottom: 12px;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+        
+        .training-card .info {
+            color: #718096;
+            font-size: 14px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .training-card .arrow {
+            float: right;
+            color: #667eea;
+            font-size: 1.5em;
+            transition: transform 0.3s ease;
+        }
+        
+        .training-card:hover .arrow {
+            transform: translateX(5px);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            background: #f5f7fa;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.95em;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .trainings-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏠 主恢复训练合集</h1>
+            <p>Lord's Recovery Training Collections</p>
+        </div>
+        
+        <div class="content">
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number">{{ trainings|length }}</div>
+                    <div class="stat-label">训练批次</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ total_chapters }}</div>
+                    <div class="stat-label">篇章总数</div>
+                </div>
+            </div>
+            
+            <div class="trainings-grid">
+                {% for training in trainings %}
+                <a href="{{ training.path }}/index.html" class="training-card">
+                    <div class="year-season">{{ training.year }}年{{ training.season }}</div>
+                    <div class="title">{{ training.title }}</div>
+                    <div class="info">
+                        📖 共 {{ training.chapter_count }} 篇
+                        <span class="arrow">→</span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>本站内容仅供主恢复圣徒交通使用</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">
+                生成时间: {{ generation_time }}
+            </p>
+        </div>
+    </div>
+</body>
+</html>

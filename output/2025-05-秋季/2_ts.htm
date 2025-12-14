@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第2篇 - 详情</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>国　际 长老及负责弟兄训练</h1>
+            <div class="subtitle">总题：马太福音五至七章极重要的方面</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025秋季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="details-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="2_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="2_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="2_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="2_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="2_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+    <a href="2_zs.htm" class="nav-link" title="职事">职事</a>
+    
+</div>
+    
+    <h2 class="chapter-title">第2篇 哀恸者之福，温柔者之福，以及称为神儿子的制造和平者之福</h2>
+    
+    
+    <div class="scripture">读经：太五4~5、9</div>
+    
+    
+    <div class="details-content">
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                壹　“哀恸的人有福了，因为他们必得安慰”—太五4：
+            </div>
+            
+            
+            <div class="content-text">我不知道你们如何，每当我读到这九福的时候，就是马太五章提到的九福，这些特别的方面，对我来说这个方面总是很奇特。哀恸的人有福了。哀恸是蒙福的情形么？我要说应该是喜乐的人有福了，因为他们必得满足。但没有这样说。主说，哀恸的人有福了，因为他们必得安慰。我思考这事，从倪弟兄的职事得着许多帮助，他释放了一篇信息，篇题是《眼泪》。在倪柝声文集第十九册，每当……</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-一">
+            <div class="section-level1">
+                一　哀恸是感到或表达深深的忧伤或懊悔：
+            </div>
+            
+            
+            <div class="content-text">常常哀恸总是伴随着眼泪，不是总是如此，但常常是这样。在深深的哀恸里总是带进流泪，这彼此是相关的。哀恸是里面有一种的深刻的哀恸，一种光景，我们深深觉得哀伤，使我们哀恸，也带着眼泪，因为我们深深被触动。哀恸，所摸着一个人的比喜乐更多，喜乐、快乐会让你有时就像会让你很轻浮。但是哀恸是深深地摸着你这个人。</div>
+            
+            <div class="content-text">从倪弟兄的职事里说到眼泪，我学到至少有五个方面，使哀恸这件事变得非常重要。第一，借着我们的哀恸，带着眼泪的哀恸，我们在内在一面的感觉里就更敏锐了。倪弟兄是用眼泪，说到洗净我们这个人的眼睛。有时候我们的眼是模糊的，因着某些事模糊，但是眼泪洗净了一切遮盖、遮掩的事物。的确如此，像旧约的耶利米书，耶利米被认为是哭泣的申言者。他哭泣多次，他写了哀歌，他是流泪的申言者，哀哭的申言者，为了神对以色列的审判，对神子民的管教。但是在他的哀恸里，神向他启示祂的子民要被掳七十年，他就清楚了，在这样的管教里，就是七十年。然后有一道亮光，甚至但以理也根据这样的预言，祷告要神的子民得释放。所以首先，我们的哀恸帮助我们得洁净，除去许多的光景，向着许多的周遭的环境，我们得着了洗净。</div>
+            
+            <div class="content-text">并且借着哀恸，我们被带到更亲近神。你想一想，诗篇五十一篇，大卫在犯淫乱之后，他心里悔改哀恸，是这样的深。他写了诗篇五十一篇，你能感觉到他的痛悔，他的悔改。他深深被神责备，知道他犯了何等的罪，他被带到更亲近神。借着这样的悔改，被带到更亲近神。在诗篇三十四篇十八节，这一节告诉我们，耶和华亲近那一些心里破碎的人，祂拯救那些灵里痛悔的人，祂与那些心里破碎的人亲近。大卫王，的确，当他写诗篇五十一篇的时候，心是破碎的。你每次读五十一篇，你都会感觉到这个人是深深地被神摸着了，借着他的哀恸被摸着了。</div>
+            
+            <div class="content-text">然后第三，哀恸帮助我们经历神的救恩。就像在路加七章那有罪的妇人来到主面前，甚至什么都不能说，她就是流泪。流泪湿了主的脚，用她的头发擦干。她什么都说不出来，她只是哭泣。她为什么哭？那是最可能是因为她自己犯罪的关系，她何等的可怕，她没什么可说，只能哭泣。主尊重她这样的哀恸，甚至珍赏她的眼泪，那湿了祂的脚的眼泪。</div>
+            
+            <div class="content-text">并且我们的哀恸使我们的祷告蒙神垂听，摸着神的心。想一想哈拿的祷告，在旧约里的祷告，就是撒母耳的母亲哈拿的祷告，她何等迫切。她觉得她自己的情形太糟，她不能怀孕。其他的女人怀孕，但她没有怀孕。所以她在她这样的迫切里向神祷告。主应允她，因为她这样的迫切，她愿意把自己所生的孩子献与、借与耶和华；神应允她的祷告了。然后希西家的祷告，希西家是个好王，但是因为他的骄傲，所以他患病将死，但他变得这样的迫切，在耶和华面前悔改、痛悔。因为他这样的哀恸，他的痛悔，耶和华垂听他的呼求，就告诉他说，希西家，我听了你的祷告，看见你的眼泪，我要延长你十五年的岁数。</div>
+            
+            <div class="content-text">所以哀恸在主面前，事实上是一件非常要紧的事。有的时候我们真是太轻浮，我们说什么都可以，什么都好，赞美主，我们只要爱主、与主往前就可以了。然而我们欠缺这种哀恸的灵。</div>
+            
+            <div class="content-text">然后末了，哀恸使我们的服事和事奉向着主是有效并蒙福的。想想保罗的劳苦。在行传二十章，他在以弗所圣徒中三年之久的劳苦，他是流泪不住地劝戒他们。他为什么要在那里流泪劝戒他们呢？很可能许多圣徒没有回应，不同意，或者甚至显出一些的抗拒，所以使徒在那里流泪劝戒、劳苦甚至为他们感到哀恸。</div>
+            
+            <div class="content-text">亲爱的弟兄们，我们是作长老的负责弟兄或是同工的，我们为着自己的召会有多少次哀恸了，为圣徒哀恸有多少？我怕我们来聚会，看一看，圣徒人数还很多，我们聚会也不错。但你是不是有感觉？我们当前在主恢复中，众召会的光景达到了主的标准呢？说到繁增，说到生命，说到我们对真理的认识，你觉得我们已经到了能满足主心的层次么？为什么我们这么容易感觉满足？我们觉得一切都好了。我相信我们知道，更多地为召会、为圣徒、为恢复感到哀恸，主在我们中间就更有路往前了。反而我们却成为容易满足的、漠不关心、冷淡的。</div>
+            
+            <div class="content-text">我回想到在一九八四年，李弟兄想到众召会的光景，不论东方西方都是这样的不冷不热，都不结果子，都这么被动，没有活力，不活，他真是有负担。我相信他哀恸，在主面前许多的哭泣，他在想我该怎么作。他已经迈入八十岁，他说我愿意牺牲我的性命来到台湾。在那里他何等的迫切，他不肯放弃，他没有满足。感谢主，因着他这样，主的恢复就被带往前去，到了另外一个阶段。</div>
+            
+            <div class="content-text">我们今天若不是这样，只有我们自己的光景，我们是不是有哀恸的灵，向着你们所服事的召会有哀恸的感觉呢？对于那些属灵的情形，我们所在的属灵光景，我们有哀恸的感觉么？所以亲爱的弟兄们，我开始领悟到，不得了，哀恸的人有福了，有福。如果不是为自己哀恸，不是为自己的权利来哀恸，是为着神的权益哀恸，如果你是这样一个哀恸的人，主说，你必得安慰。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　世界的整个局面，向着神的经纶都是消极的。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　神的荣耀受羞辱，基督被弃绝，圣灵遭阻挠，召会荒凉，己败坏，全世界都是邪恶的。
+            </div>
+            
+            
+            <div class="content-text">你同意么？我们不得不同意这一切所说的。即使在今天的世代更是如此，甚至远胜过以往的世代。这不只是一个不敬虔的世代，这是一个无神、不以神为荣的世代，神的荣耀受羞辱，基督被弃绝，圣灵遭阻挠，召会荒凉。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　撒但、罪、己、黑暗和世界，辖制了全地的人。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　神要我们为这样的局面哀恸。
+            </div>
+            
+            
+            <div class="content-text">亲爱的弟兄们，我们在召会中服事，在主的工作中服事，看看周遭的光景，看看圣徒们、众召会我们所服事的情形，我们里面有没有一种扎心的感觉？有没有一种，主啊，我们太欠缺你要我们达到的了？我们要学习如何哀恸。当然要哀恸，你需要前一个光景，就是灵里贫穷，里面要倒空，除去所有先入为主的观念和想法，里里外外全部倒空，不持守所有的观念。哦，所有的聚会这样的传讲很好，到会率也不错，你觉得都好了。但是你如果真的灵里贫穷，不是那么容易自满，不满意于某种成就，某种完成的情形，我们里面有一种哀恸，说到我们的情形不是我们所看的这么好，那么你就蒙福了。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-二">
+            <div class="section-level1">
+                二　灵里贫穷而寻求神的圣徒，会因四围的光景、当前的世代、所有的世人都是
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　那样不要神，抵挡神，反叛神而哀恸：
+            </div>
+            
+            
+            <div class="content-text">这样的描述就是我们所生活的世界的光景。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　主应许那些为着神而哀恸的人必得安慰。
+            </div>
+            
+            
+            <div class="content-text">为着神而哀恸。事实上弟兄们，我们哀恸，你知道不是我们在哀恸。我们哀恸，因为是回应神的哀恸。我们哀恸是为着神，不用为自己哀恸。因为失败了，因为自己很差而为自己哀恸，忘掉那些吧。你的哀恸是为着神，神的权益的情形，神的光景，神的见证，是我们需要哀恸的。这个哀恸不是可怜自己的哀恸，这不一样的。我们不要自怜，不论自己情形如何，不论我们如何被人恶待，有多少情形临到我们，不要自怜，不要为此哀恸；但要为着神的权益而哀恸，为着神来哀恸。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　我们伤痛的心，会因着今天得着神并服神的管治，而受到安慰；但我们所得更大、更丰满的安慰，乃是在将来的国度和永世里。
+            </div>
+            
+            
+            <div class="content-text">我们得安慰，就是知道我们的哀恸不是永远的，不会直到永远，只是短暂的安慰。在这个时代，我们所生活的时代，我们在这个不完全的世代，这个世代是满了失败，这个世代是满了败坏、失败的，不完全；我们为此哀恸。我们所仰望的是下一个时代，就是国度时代，那是个完全的时代，那是一个完满的时代，那是有实际的时代。所以现在我们哀恸，经过这一个不完全的时代，充满缺点和失败的时代。感谢主！主应许你要得安慰，会有安慰来面对我们的哀恸。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-三">
+            <div class="section-level1">
+                三　一个活在诸天之国实际里的信徒，常有这种哀恸：
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　圣徒的哀恸不是因着自己受灾难，乃是因着不够得着神。
+            </div>
+            
+            
+            <div class="content-text">我希望主借着这些信息，使我们里面的感觉能安定下来。因为在我们天然的人里我们很容易满意，因此对事物漠不关心。我们需要有一种感觉，在灵里有一种感觉，使我们不是那么容易自满。因着有一点的成就就感到自满，因着完成了一些事就感到自满。我们的哀恸不是因着我们自己受灾难，那个一点意义都没有。我们哀恸是因着不够得着神。神是不是得着了祂的心意，祂的目的呢？神的子民是不是得着他所该得着的这位神呢？这是我们该哀恸的。</div>
+            
+            <div class="content-text">我还记得多年前有一位弟兄打电话给我，因为在召会里，他所在的地方有一种情形很艰难，很艰难。多年甚至数十年，情形都停滞在那里。所以弟兄打电话给我，让我们一同祷告。我们祷告了。告诉你们，真是流泪祷告。我们在那里哭喊，主啊，还要多久？还要再等二十年、三十年么？这个情形这样的状况还要等多久？虽然就人一面来说，什么人什么事都不能作。但我很非常珍赏那段时间，我们一同祷告，我们的确摸着了主的心。主在那样的情形里是哀恸的，召会无法往前，在那个地区无法往前，因为有一些人在那里。但是有一些弟兄们哀恸，向神哭泣、呼吁。末了，主尊重这些的哀恸，祂进来清理了整个局面。亲爱的弟兄们，我绝对相信，借着我们哀恸，我们被带到更接近神。借着哀恸，我们接受了救恩，得着了救恩，我们的祷告得着了应允，并且受祂的看重。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　这种哀恸的对象，乃是神和神的管治权。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　这种哀恸是高尚的、圣别的。
+            </div>
+            
+            
+            <div class="content-text">这样的哀恸不该被轻看，神看重这样的哀恸，这样的哀恸。我还记得以赛亚书六十六章一到二节说的，耶和华说，“天是我的座位，地是我的脚凳；……哪里是我安息的地方？”然后祂说，“我所看顾的，就是灵里贫穷痛悔、因我话战兢的人。”这些人是我在看顾的，我寻求的，这些人是我安息的地方。神在寻找的，是灵里贫穷痛悔、因祂的话战兢的人。我们太轻看主的话了，常常是这样。在此耶和华在寻找那些灵里贫穷痛悔的人。什么是痛悔？那就是心破碎了，他们因着神的话而战兢。这样的人，神就在寻找他们作祂的居所，神住在这样的人里面。不是住在那些自满的人、那些高傲的人里面，乃是灵里痛悔的人里面。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　哀恸的人必定蒙到神的安慰。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-四">
+            <div class="section-level1">
+                四　如果我们灵里贫穷，当然我们就会哀恸：
+            </div>
+            
+            
+            <div class="content-text">九福的顺序是很有意义的。我们开始的时候是说到，灵里贫穷的人有福了，因为诸天的国是他们的，这是基础。紧接着在那之后主就说，哀恸的人有福了，因为他们必得安慰。灵里若是满的，被事物占满，你就很难哀恸。你已经满了，你已经自满了，留在自己老旧的观念里。唯有你的灵倒空，灵里真的贫穷，你才站在一个地位，预备好为着世界的局面哀恸，为着神的子民哀恸，为着众召会哀恸。我们哀恸是因为这么多的短缺，我们所面对祂的子民和世界的情形，我们灵里贫穷，当然我们就会哀恸。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　我们会因着神子民中间贫穷的光景，甚至因着我们自己的光景，觉得哀伤和忧愁。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　今天神子民中间的光景，真值得哀恸。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　为着国度生活，我们也需要哀恸。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　我们需要为着我们自己、我们的社会以及今天的基督教哀恸。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-5">
+            <div class="section-level1">
+                5　当我们注视基督，我们就快乐欢跃，但当我们看看自己和周围的人，我们就必须哀恸。
+            </div>
+            
+            
+            <div class="content-text">在正常的基督徒生活中，喜乐和哀恸是并行的。我们观看主就喜乐。因为祂是我们的盼望，祂就是在宝座上的那一位，祂是我们人生的意义，我们看祂，这就是我们喜乐的原因。但我们看看自己，看看环境，就满了哀恸。所以这两件事是并行的，我们在主面前喜乐，观看祂，看看祂永远的旨意，看祂的心爱美意，我们就满了喜乐。祂是掌权的一位。但是同时我们看看环境，就满了哀恸。</div>
+            
+            <div class="content-text">好，亲爱的弟兄们，让我们都学习哀恸。不是学习只是在道理上知道怎么哀恸，我们要开始让自己的灵倒空，灵里贫穷来到主面前。实在、真实将全人将心敞开，让主光照你，显明周遭世界和人群的光景。祂来摸着你，祂所关心的是不是我所关心的呢？所有的反对，在世上所有的反对、虚假、败坏、不义、罪恶、逼迫、弃绝，主啊，还要多久呢？你的义才能被带进来呢？你学习这样祷告，弟兄们，也许有时你该流泪。你不满意，意思不是你灰心，这不一样。我们在主面前哀恸，意思不是我们要放弃了，我们退后了。我们在主面前哀恸，是因为我们不跟这个世代同流合污，是你看见很多短缺，看见许多缺欠。但你对别人这样说，你对别人说许多抱怨批评的话。你不必批评，你不必对人抱怨，你只要到主面前哀恸就可以了。在主面前哀恸，你就要得安慰。批评抱怨不会改变环境和局面，但哀恸，主说，你必得安慰。</div>
+            
+            <div class="content-text">所以弟兄们，在带领召会时，可能如果你从来没有掉过一滴眼泪，你的服事是不会好的。你不能把主的工作得好，除非你为着祂的工作流泪。使徒保罗就是这样。这是他服事的方式。他有一种哀伤、痛悔、哀恸的灵，不以为一切都好了。你会要看见，主在你的一生中，在圣徒中，在你的召会里还能往前多少？在你的工作里，祂还能不能往前呢？现在我们来到第二个有福的情形。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                贰　“温柔的人有福了，因为他们必承受地土”—5节：
+            </div>
+            
+            
+            <div class="content-text">这是何等的讽刺呢，要承受地土，需要我们温柔。温柔，来承受地土，好像不是并行的事。我意思是根据今天世人的情形，如果你要据有一块土地，你就必须很积极，你必须要争取。但是在属灵的范围里不是如此。在神的眼里，如果你要承受更多地土，你就必须温柔。什么是温柔？</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-一">
+            <div class="section-level1">
+                一　温柔，意即不抵抗世人的反对，甘心忍受。
+            </div>
+            
+            
+            <div class="content-text">今天在世上看得到这样的事么？这个世界，如果一个国家是温柔的，就完了。所有的战争就没有了，战争不停是因为没有人温柔。每个人都竭力要侵略别人，要占别人的便宜。但是国度生命的特点就是其中之一是温柔，最终会征服全地，最终要承受这地。这非常曝露我们天然的生命，因为我们受教育长大，在这个世界里，我们天然的生命里总是想要侵略，想要占别人的便宜，想要积极进取。我们必须学习温柔、不抵抗，反而甘心忍受。甚至主耶稣也是这样，就像使徒们也是这样。许多亲爱的弟兄们，像倪柝声弟兄、李常受弟兄那样，他们是何等的温柔，他们承受地土。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-二">
+            <div class="section-level1">
+                二　我们若灵里贫穷，并且为别人可怜的情况哀恸，我们自然而然就会是温柔的：
+            </div>
+            
+            
+            <div class="content-text">所以首先我们的灵需要倒空，需要空出来，没有任何霸占的事物，除了神和祂的权益以外，没有别的。然后在那样的光景里，我们哀恸，为着所有的环境和局面哀恸，这些都因达不到神的标准，满足神的要求，我们就因此哀恸。在这样的情形下，主说，我们要温柔。温柔是来自我们灵里贫穷，也是来自我们有哀恸的灵，就是向着我们周遭的人和局面哀恸，自然而然我们就会温柔。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　我们对众人都必须是温柔的。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　有温柔的美德，意即我们不侵犯别人，或与他们相争：
+            </div>
+            
+            
+            <div class="content-text">弟兄们这样如何呢？你是不是有侵犯别人？我还记得李弟兄在我们中间的时候，有一次在安那翰全时间训练的课程里，他对弟兄们，坐在第一排的弟兄们说，有些人喜欢翘着腿，甚至越过了自己的椅子的范围，他说你是侵犯别人的空间了。你只被分配到这一个空间，但是你的脚跨到另外一个人的脚的空间里去，那你就是在侵犯别人的土地。对我们来说，这个好像很好笑。但是你看见么？我们的弟兄，他是很有操练的，不侵犯别人的范围。这是件小事，就是坐在你被安排的位置，不要越过或以为整个都是你的。</div>
+            
+            <div class="content-text">许多时候我们这些工人，我们到各地作工，我们不管其他的工人在那里劳苦过，我们就去作我们想作的事。你完全没有想到你的度量，神量给你的度量只有这些。你需要谦卑下来，与你前面的弟兄核对一下，弟兄在这里作了什么，我要接续你，我要跟随你。我不是只要，完全忽略、否认别人作过的，现在我在这里，我在这里，我在这里要作我要作的事，这并不是温柔的灵。许多在召会中在恢复中的问题和难处，都是因着我们欠缺温柔。不只是在主的工作，在众召会里，我们作长老，在召会里服事，大家同作长老，你是否侵犯别人的那一分呢？这不是你的分。你为什么要以为只有你能作所有的事？不，你只要作好你自己的那一分。我们天然的人喜欢侵犯别人，总是想要这么积极，我们不温柔。</div>
+            
+            <div class="content-text">我需要注意时间。</div>
+            
+            <div class="content-text">在民数记第十章有一种情形，米利暗和亚伦说了抵挡摩西的话。她说神只借着你说话么？神也借着我们说话呀。摩西什么都没有说。他有神的呼召，带领神的百姓，他不是自己求得这个工作。事实上，他在旷野里，他说，我是一个拙口笨舌的人，你们去找别人。但是神呼召了他。然后他的亲人却兴起来反对他。神怎么会只借着你说话，神不也借着我们说话么？他们挑战摩西，但是摩西没有作任何事来保护自己。这里的记载很有意思。耶和华听见了。你能想象么？亚伦和米利暗说的，耶和华听见了。摩西没有回应，什么话都没说，但耶和华不高兴了，祂听见了。祂就召了米利暗和亚伦，说你们两位出来，你们三位出来，让我对你们说话。这两位出来，然后耶和华就说，第三节说，“摩西这人极其谦和，胜过地上的众人。”民数记十二章三节。摩西没有试着保护自己的领域、自己的地位，他什么都没有说，就让他们照着他们想说的说吧。他保持安静，让耶和华说话。这里有许多的功课要学，弟兄们。我们看看我们过去的历史，甚至我们个人的经历。有许多时候我们说别人的坏话，我们批评他人，试着要为自己说话，保护自己的地位，使我们一次又一次地对事情有反应。但你知不知道，这样就引起更多的风波。温柔的人有福了，因为他们必承受地土。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-三">
+            <div class="section-level1">
+                三　我们对别人温柔，但我们必须与黑暗的权势争战—弗六12：
+            </div>
+            
+            
+            <div class="content-text">我们再次听见一个对比的话。我们温柔，我们让步，对于逼迫或者负面消极的情形，我们让步。但不是我们要忽略仇敌，就是这一切事背后的仇敌。仇敌不是这些弟兄姊妹，或者这些亲人们，真正的仇敌是魔鬼。他在背后，在这所有活动中的背后。所以外面来说，我们让步了，我们对这些人是让步了，对环境是让步了。但是内在来说，我们是与神是一，我们与神是一，与祂的旨意是一。这就是主耶稣所作的。当祂在十字架上，祂让那些人为所欲为，他们戏笑祂，他们嘲弄祂，他们诽谤祂。他们说，你若是神的儿子，你就从十字架上下来吧。耶稣安静，什么都没说。然而，赞美主！祂没有从十字架上跳下来，祂留在那里，让这些人嘲笑祂，让他们为所欲为。祂仍与神的旨意是一，顺从神的旨意，神向着祂的旨意就是十架，直到路终。祂拣选神的旨意，完全服神的旨意，这样服神的旨意，就是一个对仇敌最强的争战。我们对仇敌争战不是与血肉之人争战，乃是借着我们站住，顺从神的旨意而争战。但同时我们让步，让神所允许的一切发生。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　仇敌不是别人。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　仇敌乃是撒但和他的使者，就是空中邪恶的权势—二2。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-四">
+            <div class="section-level1">
+                四　我们若是温柔，在今世甘心忍受世人的反对，来世就必承受地土—来二5~8，路十九17、19，太十一28~30，民十二3。
+            </div>
+            
+            
+            <div class="content-text">阿们。地，不是讲现在此时这个败坏的地。我们不在意，我们也不想要承受这种地。要有一个时代，这个地，在启示录十一章，世上的国要成了我主和祂基督的国，那才是新地，那是我们要承受的地土，就是承受神的国。好么？不是要承受马来西亚或者印尼，这个现在的是这样的地土，我们没有意思要承受这个地土，我们要承受的是神的国，就是新地。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-五">
+            <div class="section-level1">
+                五　主耶稣说到祂自己：“我心里柔和〔或，温柔〕”—太十一29：
+            </div>
+            
+            
+            <div class="content-text">这是马太十一章二十九节。我喜欢这两节，二十八、二十九节。主叫那些劳苦的人，到祂这里来得安息。祂说，我的轭是容易的，我的担子是轻省的，你们要跟我学，我心里柔和谦卑。我们学温柔，因为我们身上有轭，就像主耶稣祂来到地上，祂是背着轭来的。祂的轭是什么？就是神的旨意。祂不能说别人说的，祂不能作别人作的，祂有一种限制在身上，就是父的旨意，是祂的轭。祂要我们，当我们让同样的轭在身上的时候，要我们跟祂学，使我们能柔和谦卑，像祂一样。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　在面临敌对时，主耶稣总是温柔的。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　保罗在哥林多后书说到基督的温柔—十1：
+            </div>
+            
+            
+            <div class="content-text">这是林后十章，很美妙的话。保罗说，我借着基督的温柔、和蔼劝你们。基督的温柔乃是什么？就是基督作温柔，不只是那属于基督的温柔，而是基督就是温柔。严格说，温柔就是祂人性美德的一个方面。但是保罗把这人性的美德与基督放在一起，他称之为基督的温柔。他在那里与哥林多人相处，那些人他们怀疑使徒保罗，以为保罗占他们的便宜，现在他们根本不信从保罗，不听保罗。保罗试着要在他们中间劳苦，在这些哥林多人身上作工，他到他们那里不是带着刑杖要对付他们，他到哥林多人那里是带着基督的温柔去的，他恳求他们。弟兄们啊，许多时候，当我们遇到一些冲突的时候，我们想要带着刑杖，带着剑，想要争战来解决冲突的情形。那不是保罗到哥林多人中间的方式。保罗恳求他们，是用基督的温柔来劝他们。他不试着要跟他们争论、争执。亲爱弟兄们，在我们事奉的生活中，我们会遇到一种情形、发生的冲突，不要拿出你的宝剑，不要拿出你的刑杖，要操练基督，运用基督的温柔。</div>
+            
+            <div class="content-text">所以基督的温柔是显出这位神性与人性的调和，神圣的生命是凭并在人性的生命里活出的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　基督的温柔见于马太二十一章一至十一节所描述祂进耶路撒冷的方式：
+            </div>
+            
+            
+            <div class="content-text">这是神的儿子，祂是有神一切丰满内住其中的一位，祂这一位是神本质的印像。但是祂来到祂子民当中的情形，是这样一种低微温柔的情形中来临。好像祂是最低微的，在人群中最低微的一位。祂不是骑在高大的白马上，祂骑在驴驹上，就是驴驹，负重牲口的崽子。</div>
+            
+            <div class="content-text">在属人的范围里，我们在世界上所有的君王，所有的皇帝，所有的总统，他们都想要显出他们的权力，影响力，要人有深刻的印象。但是这一位诸天之上的王，祂没有要人对祂有深刻的印象，祂是这样卑微地来临。亲爱的弟兄们，我们在召会中领头，作无论是长老或是同工，我们都要知道我们什么都不是，我们什么都没有。</div>
+            
+            <div class="content-text">许多时候圣徒们与我们发生了冲突，觉得我们太高傲，我们太自以为是。我们来到会所，我们迟到五到十分钟，我们却，我们都要坐到第一排。我们来了，我是长老，我是长老长，我是李弟兄指派的长老，我是最资深的。结果迟到五分钟，走到前排坐下来，好像什么错什么事都没发生一样。李弟兄事实上多次提到，你要对自己感到羞愧。你里面没有感觉么？你以为你自己是李弟兄所按立的长老或是最资深的长老，就这样么？你要向圣徒道歉，不要以为你有地位，你是某某人，你还要求别人尊敬你。但你里面没有温柔的灵，在温柔低微中来服事圣徒。我们的主是这样，祂是温柔的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-六">
+            <div class="section-level1">
+                六　温柔的人必承受地土—五5：
+            </div>
+            
+            
+            <div class="content-text">这里的地土我说过，是指国度说的。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们若活在诸天之国的实际里，并有分于国度，我们就必承受神的国—林前六9上、10下，加五21下，弗五5下。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　承受神的国与借着重生进入神的国不同：
+            </div>
+            
+            
+            <div class="content-text">我们进入神的国是借重生。当我们相信，我们就生进神的国里，这国度是生命的范围，我们是这样进入神的国。但是这里不是说到，我们进入神的国，这是说到，我们承受神的国。你得着了神的国，这里是要你承受作奖赏。</div>
+            
+            <div class="content-text">亲爱的弟兄们，我们都在，都已经在神的国里了，阿们，这是借着重生。但我们需要长大，在神圣的生命里使我们长大，使我们能成熟，好承受神的国作奖赏。好，我要再往前说到第三项，就是我们有福的光景，就是在国度的实际里有福的光景。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-叁">
+            <div class="section-level1">
+                叁　“制造和平的人有福了，因为他们必称为神的儿子”—太五9：
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-一">
+            <div class="section-level1">
+                一　背叛者撒但是一切背叛的煽动者。
+            </div>
+            
+            
+            <div class="content-text">和平是神的国一个必要的条件，必有的情形。耶路撒冷这意思就是含示和平的城，平安的城。新耶路撒冷就是平安的城。国度若没有平安就不能存在。在此神的子民，我们这些神的子民，我们需要作制造和平的人。撒但是煽动背叛的人，他制造难处，在人与人之间制造不平，制造冲突，制造争执。但在神的国里，和平必须居最重要的地位。我们是神国的子民，这国度生活的一项特征就是我们制造和平。我们不制造麻烦，不是制造风波，而是制造和平。任何一种的背叛都是打岔和平的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-二">
+            <div class="section-level1">
+                二　我们为着诸天的国，在其属天的管治之下，在众人中间必须是制造和平的人—来十二14：
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　我们的父是平安（和平）的神（罗十五33，十六20），有和平的生命连同和平的性情。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　我们是从祂生的，我们若要成为制造和平的人，就必须在祂神圣的生命里，照着祂神圣的性情行事为人。
+            </div>
+            
+            
+            <div class="content-text">我们维持和平不是凭着耍政治，或者作一些政治上的安排和条约，不是借着协商，我们乃是借着行在神圣生命和性情里。我们的神是和平、平安的神，意思就是祂自己就是和平，祂的生命是和平，祂的性情是和平。所以在召会生活里，在主的工作里，我们必须维持、维系和平。如果和平受到打岔，立刻，你就要预备好，会有背叛的事发生，会有分裂。这就是为什么在每一篇保罗的书信里，他都说“恩典与平安归于你们”。恩典就是供应，平安是光景。使徒不只是希望用恩典来供应众召会，他也希望众召会有平安的光景，使众召会能往前被建造。当平安受干扰，召会就无法被建造。召会要得建造，唯一要在和平的条件下。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　这样，我们就能彰显祂的生命和性情，并得称为神的儿子。
+            </div>
+            
+            
+            <div class="content-text">制造和平的人，不是称作制造和平者，而被称为神的儿子，这是很有意思的。这些人借着从父而生，父神这平安的源头，祂是有和平的生命、和平的性情的人。当我们维系和平、平安时，结果这彰显就是我们被称为神的儿子，就像我们的父一样。我们是神的儿子，我们是基督的众弟兄。我们的长子基督祂这一位当祂在十字架上，祂将两下在祂自己里面创造成一个新人，成就了和平。祂在十字架上创造了和平，祂把两班人，彼此为仇的两班人创造为一，祂自己就是那和平的实际。召会在今天作为一个新人、作神的国乃是见证和平、平安。和平是彰显神的生命和性情。我们在这里，弟兄们，不只是蒙救赎的罪人，我们在这里是神的儿子，我们是神的众儿子。我们在这里不只是笼统地来说是神的儿子，我们是那位神的众儿子。要注意那一个定冠词，那个指定冠词，我们是那一位神的众儿子。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-三">
+            <div class="section-level1">
+                三　有福的制造和平者，必称为神的儿子—太五9：
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　信徒是神的儿女，然后他们逐渐长大成为神的儿子。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　神在祂的救恩里，将罪人作成儿子。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　罗马书的中心思想，乃是神在祂的救恩里，将罪人作成祂的儿子，有祂的生命和性情，使他们成为基督身体的构成分子，作祂的彰显：
+            </div>
+            
+            
+            <div class="content-text">我们知道，就内在一面说，就构成来说，在神的经纶里有儿子名分这件事。儿子名分是神永远经纶内在的构成成分。神的救恩不只是要把罪人救出、脱离审判，让他们有永远的生命。神的救恩是要使罪人作成神的儿子，作为神经纶为着建造祂身体的构成成分，这些人是国度的子民。</div>
+            
+            <div class="content-text">整个受造之物都在等待神的儿子显示出来，神的众儿子当他们显明出来，那就是神经纶的终极完成，神的众子他们是制造和平者。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　加拉太三章二十六节说，“你们众人借着相信基督耶稣，都是神的儿子”：
+            </div>
+            
+            
+            <div class="content-text">赞美主！哀恸的人有福了，因为他们必得安慰。温柔的人有福了，因为他们必承受地土。制造和平的人有福了，因为他们必称为神的儿子。这些是国度生活的实际，是我们必须活在其中的。我们的渴望就是在这段时间，主带我们进入国度的实际里。借着我们活出这一切的方面，就是我们在这里所看见，在马太五到七章的一切方面。</div>
+            
+            <div class="content-text">让我们跟身旁的祷告几分钟。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.details-page {
+    padding: 5px;
+}
+
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 46px;
+    min-height: 46px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e8ecf9 100%);
+    border: 1.5px solid #d0d7f0;
+    border-radius: 23px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.font-btn:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+}
+
+.details-content {
+    margin-top: 15px;
+    line-height: 1.8;
+}
+
+.section {
+    margin-bottom: 18px;
+}
+
+.section-level1, .section-level2, .section-level3, .section-level4 {
+    font-weight: 600;
+    margin: 20px 0 12px 0;
+    line-height: 1.8;
+    color: #2d3748;
+}
+
+.section-level1 {
+    font-size: 18px;
+    color: #667eea;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+.section-level2 {
+    font-size: 17px;
+    padding-left: 10px;
+    border-left: 3px solid #667eea;
+}
+
+.section-level3 {
+    font-size: 16px;
+    padding-left: 16px;
+}
+
+.section-level4 {
+    font-size: 16px;
+    padding-left: 24px;
+    color: #4a5568;
+}
+
+.content-text {
+    margin: 14px 0;
+    padding-left: 14px;
+    color: #4a5568;
+    text-indent: 2em;
+    line-height: 2.1;
+    font-size: 16px;
+}
+
+@media (min-width: 768px) {
+    .details-page {
+        padding: 20px 0;
+    }
+    
+    .details-content {
+        margin-top: 30px;
+    }
+    
+    .section {
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .font-size-controls {
+        gap: 6px;
+        margin: 8px 0;
+    }
+    
+    .font-btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const contentTexts = document.querySelectorAll('.content-text');
+            contentTexts.forEach(p => {
+                const t = p.textContent.trim();
+                if (t) text += t + '。';
+            });
+            return text;
+        }
+    });
+});
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025秋季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

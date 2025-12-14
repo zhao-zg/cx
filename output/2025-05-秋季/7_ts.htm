@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>第7篇 - 详情</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: var(--text);
+            margin: 15px 0;
+            padding: 15px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.8;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                padding: 12px 15px;
+                line-height: 1.7;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            color: #444;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 2;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                line-height: 1.8;
+                padding: 12px 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 11px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .speech-time {
+                font-size: 10px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>国　际 长老及负责弟兄训练</h1>
+            <div class="subtitle">总题：马太福音五至七章极重要的方面</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025秋季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="details-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="7_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="7_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="7_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="7_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="7_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+    <a href="7_zs.htm" class="nav-link" title="职事">职事</a>
+    
+</div>
+    
+    <h2 class="chapter-title">第7篇 进窄门并走那引到生命的狭路，这生命就是国度永远蒙福的光景</h2>
+    
+    
+    <div class="scripture">读经：启二7，约六57、63</div>
+    
+    
+    <div class="details-content">
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                壹　在颁布国度的宪法时，基督展示人在神面前生活和工作两条可能的路—“你们要进窄门；因为引到毁坏的，那门宽，那路阔，进去的人也多；引到生命的，那门窄，那路狭，找着的人也少”—太七13~14：
+            </div>
+            
+            
+            <div class="content-text">在颁布国度的宪法时，基督展示人在神面前生活和工作两条可能的路，让我们一同读下面引号所引用的这一节经节，“你们要进窄门；因为引到毁坏的，那门宽，那路阔，进去的人也多；引到生命的，那门窄，那路狭，找着的人也少。”主在这里给我们看见两种可能，来走这个路程，我们可以进窄门，走狭路；我们也可以进宽门，这是容易的。可能五尺宽你轻易就可以进去，然后走在阔路上，非常方便，非常轻松，就可以走在这一条路上。但是窄门要挤进去是不容易的，狭路我们需要受限制，使我们受压，使我们觉得窘迫，在这整条路上都是狭窄的。主给我们这两个选择：我们可以选择阔路，引到毁坏；也可以选择窄门狭路，引到生命。我们若想想，这是与我们在作为国度子民在主面前的生活工作有关，要活在国度的实际里，主显然盼望我们进窄门走狭路，将我们引到生命。另外一条路是将我们引到毁坏，主说进去的人很多，走在这个路上的人多。但是进窄门走狭路的，找着的人是少的。诸天之国不是大批群众多数人的选择，这是少数人，一班余民，一班愿意与父的生命，就是那完全的生命，就是我们先前所讲到的生命来合作的。他们拒绝属世界、属人、属天然范围的，愿意走狭路受限制，而引到生命。我盼望在这篇信息，主借着这篇信息向我们说话，给我们看见这对我们在主面前的生活工作是何等重要，不只在于我们的热心、忠信、有果效。我们要想想我们作工的范围是什么范围？我们是走阔路么？受人欢迎么？是受人称赞的路么？受人喜爱的路么？或者是走在狭路上，少有人知道，少有人珍赏，少受人的称赞。这对我们是非常需要受提醒的，在我们的生活和工作是极其重要的。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-一">
+            <div class="section-level1">
+                一　“引到生命的……路”是引到生命里活的赏赐的路，乃是“这道路”（徒九2，十九9、23，二二4，二四22），就是真理的路（彼后二2）、正路（15）、义路（21）、平安的路（路一79，罗三17）、救人的道路（徒十六17）、神的道路（太二二16，徒十八26）和主的道路（约一23，徒十八25）。
+            </div>
+            
+            
+            <div class="content-text">“引到生命的……路”是引到生命里活的赏赐的路。当我们走在狭路上有一个结果，这个结果就是生命作为赏赐，生命作为，生命的总和就是新耶路撒冷，新耶路撒冷是生命的总和，我们要承受。我们重生的时候接受了生命，当我们与属天，在我们里面属天神圣的生命合作走狭路，就会有一个结果，就是永远生命的总和，作为活的赏赐。这乃是这道路。在使徒行传九章，当保罗还是扫罗的时候，他找着这道路上的人，这道路。当时的信徒他们被形容为这道路上的人，他们是属于这道路的。这道路是什么呢？是真理的路、正路、义路、平安的路、救人的道路、神的道路和主的道路。</div>
+            
+            <div class="content-text">弟兄们，今天早上我们要放胆地说，我们在这道路上。这道路形容一个路径，一个路途。不是一个宽大的禾场，你想去哪里就去哪里。路是有方向的，我们这一班人不是自由地在那里漫游，我们是在路上。这是真理的路、义路、救人的道路或是救恩的路。这也可以说是一种实行。当时的信徒他们有一种生活，一种实行，使外人都认得他们。他们不同，他们与世人不同，他们与凡俗的人不同，他们呼求耶稣的名；他们挨家挨户聚集；他们传福音；他们与世上其他的人有别；所以说他们是在这道路上的人。这道路给我们看见这班人是在一种的规范，在一种的限制底下，被什么限制？被真理限制；被义限制；被神的救恩限制。这些形容词给我们看见这个路包括了什么。这不是人的路，不是传统的路，是神的路，是主的道路，是救人的道路。借着这条路，神将祂自己分赐到我们里面，作为人的救恩。事实上，这道路就是耶稣基督自己，如同祂在约翰十四章说，我就是道路。这条路不是一个方法，不是一个组合，是一个活的人位。这个活的人位引导我们、指引我们、带领我们、管制我们。这个人位，这活的一位有祂的人位、有祂的意志、有祂的心思。我们在祂的指引，在祂的控制之下而走在这条路上。所以一面来说，我们在这道路上，让神能将祂自己分赐到我们里面，作为救恩、作为义，作为这一切，非常的美妙。但另一面，这道路也限制我们，也指引我们，也管制我们。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-二">
+            <div class="section-level1">
+                二　阔路引到毁坏，是按照属世的系统，满足天然的口味；为要得着群众；维持人的事业；成就人的企业—太十三31~33，启二13、20，十七4~5。
+            </div>
+            
+            
+            <div class="content-text">弟兄们，在外面有一条称为阔路，是全世界的人都走的路，是受人欢迎的路，是成功的路，是福利平安的路。那是一个宽阔的路，许多的人想走这样的路，但那是主恢复的路么？我怕甚至在弟兄们中间，当他们听见有一些团体，他们有五千人、一万人，就想说我们要跟他们一样。我们有真理，我们有许多人所需要的，我们怎么不能像他们一样呢？主的恢复不是这样的巨大的教会，基督徒团体。主的恢复要像一粒芥菜种，是好土能够提供神的子民养分，不是马太十三章的大树，让天空的飞鸟都来栖息。有一些属世的事物可能还存在我们的观念中，连我们的事奉也是这样。</div>
+            
+            <div class="content-text">当我预备这篇信息的时候，我实在对下一代，对我们中间的青年人有负担，那些我们之后要起来的这一班人。他们知不知道我们生活和事奉，在神面前生活、工作的立场是什么？我们作为国度的子民是怎么样？我们是不是里面有这样的光照？我们不走属世的道路；我们不走受人欢迎要取得成功的路。我们要走在狭路上，这是讨主喜悦的路。</div>
+            
+            <div class="content-text">我还记得李弟兄作过几次这样的见证。当他到台湾的时候，他受倪弟兄的打发到了台湾。在他们开始举行的福音聚会中，当时在福音聚会中，第一次有许多的人来，因为当时有许多从中国大陆来的难民，会场满了人，水泄不通。如果你我在那里我们都要兴奋起来，哇！这么多人受吸引，你要说，哦，阿利路亚！欢迎来到聚集中。但李弟兄说，他开宗明义就说，“今天你来到这里，如果是想得到一些福利，得到一些好处，你来错地方了。我们只有一个东西给你，耶稣基督的福音，就这样。你如果想要别的，你来错地方了。”所以他一点也不觉得羞愧地这样说。下一次聚集中一半的人消失了，但李弟兄说我实在喜乐，我实在喜乐。他喜乐这些人来到真正是为着福音，为着耶稣基督来的。另一半的人，他们是为着其他的目的、动机而来的。亲爱的弟兄们，愿主把这样的光照，这样子的感觉放在我们里面。在长老负责弟兄，甚至同工们中间需要有这样子的感觉，受这样子的光照责备。我们在这里不是要吸引大批的群众，不是要有外面的成功，主恢复的路是狭路。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-三">
+            <div class="section-level1">
+                三　狭路引到生命，是按照神圣的规律，履行属灵的要求；以带进神的选民；作
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　耶稣基督的见证；并完成神的经纶，为着建造基督的身体—罗一9，来十一5~6，启一1~2、9~10。
+            </div>
+            
+            
+            <div class="content-text">这是神的经纶，这是神永远的定旨。我们在这里就是为此。我们不是为着人的好处，人的成功。我们在这里要是为着神的权益，是要让主得着祂的身体作祂的彰显，这是狭路，是按照神圣的规律。我们应该受一种的规律，当我们为主作工时，应该有一个感觉我们是在规律之下。我们不是自由的，想说什么就说什么；想作什么就作什么；想去哪里就去哪里；我们没有这样的自由。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-四">
+            <div class="section-level1">
+                四　神命定的路乃是要照着主那难以描述之生命与职事的榜样，有一种一直是窄的、狭的生活和工作—约五19、30，四34，十七4，十四10、24，七16、18。
+            </div>
+            
+            
+            <div class="content-text">这是从九三年李弟兄关于活力排的训练讲到的。神命定之路是什么呢？一般性来说，我们都学过，神命定之路包括我们要去到人那里，传福音；牧养人，在家里成全他们；教导他们；并在召会聚会中借着申言来建造召会。但这是个架构，神命令之路的架构。在那一本书，在那一系列的交通中，事实上那篇信息的篇题就是进窄门走狭路。我们不该以为神命定之路是个进宽门走阔路的路。你错了，神命定之路是个受限制的路，是照着主那难以描述之生命与职事的榜样。我实在珍赏这个发表。当主在地上的时候，祂的生命是超越的，祂是神成了人。在那三十三年半的生活中，祂不凭着属人的生命而活，祂凭着神圣的生命而活。主在约翰七章讲说，你们的时候是方便的，我的时候还没有到。你什么时候想去哪里就去哪里，但我不是。因为若父不释放我，若父没有对我说话，我不能说话。这是怎么样的一个人？祂说我所说的一切是父所说的，我从自己不能作什么，唯独看见父所作的我才能作。甚至在使拉撒路，一个祂深爱的，当他的姐妹来找祂，请祂来医治他的时候，主没有立刻前往，因为父还没有释放祂让祂去。祂等了几天，拉撒路死了。就着人来说，我们会说祂真是铁石心肠，祂对祂所爱的人连这样的心也没有。但我们的主不是照着祂属人的生命而活，祂是照着神圣生命而活。所以祂的生命给我们看见这样的芬芳，这样子的卓越，超越了你在人类历史中的一切。祂的生命是难以描述的，因为祂活在限制之下，祂受限制，祂为父所限制。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-五">
+            <div class="section-level1">
+                五　在主的恢复里，我们必须在灵里行事为人；在灵里行事为人约束我们，使我们过正常基督徒的生活，并使我们成为有活力、健康的信徒，为着神的建造走生命的路—罗八4，加五16、22~23，帖前五16、18。
+            </div>
+            
+            
+            <div class="content-text">在主的恢复里，我们必须在灵里行事为人，在灵里行事为人约束我们。弟兄们，你们觉得怎么样呢？你可能觉得在灵里我们得了释放，我们是得了释放。但你错了，在灵里是约束我们。你越真实地在灵里行事为人，你越知道那灵常常告诉我们“不，不可以吃这个，不可以作这个”。我们的行事为人，在灵里行事为人约束我们，使我们过正常基督徒的生活，并使我们成为有活力、健康的信徒，为着神的建造走生命的路。就如李弟兄多次见证的，当他九十三岁的时候，他还是健康。因为他很感谢李师母约束他，很多他喜欢吃的，他想吃十个水饺，五个被李师母拿走了，他的妻子会来约束他、限制他，但他领会这使他健康。我们不受约束的生活使我们不健康。当我们不健康，我们就没有活力。李弟兄所说的活力就是我们的健康。活力不是说我们满了能力、大能、热心，活力等于健康。我们要是作有活力、健康的信徒，为着神的建造走生命的路。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-六">
+            <div class="section-level1">
+                六　我们必须学习照着度量的神，管治的神，所分给我们尺度的度量，在我们的劳苦上约束自己—林后十13~15。
+            </div>
+            
+            
+            <div class="content-text">这一个受约束，为我们定义了神给我们的度量。在第二篇信息我们讲到，我们都有神的度量，我们不要过了度量，我们不要超过了，我们需要知道神的度量。无论你是长老，负责弟兄或是主的工人，你要知道神量给我们的是什么。不是你有热心；你有方法；你有能力；你什么都能作。不，不，神没有赐你这样的度量。连保罗这么大的使徒，他都很清楚他的度量。他知道他所认识的这位神是度量的神。在主的恢复里，当服事者不尊重、不知道、不持守他们的度量，就会造成许多的难处、冲突，彼此圣徒们中间许多的不和，单单是因为我们不认识我们的度量，我们过了度量，我们逾矩了，我们超越了，我们需要受约束。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-七">
+            <div class="section-level1">
+                七　我们越受限制，就越受规律；我们越受规律，就越健康；有活力的意思就是健康；保罗渴望用全般的智慧警戒各人，教导各人，好将各人在基督里成熟地献上；保罗并不倚靠神迹，乃是更多以“各人”的方式作工—西一28~29，徒二十19~20、31。
+            </div>
+            
+            
+            <div class="content-text">我们越受限制，就越受规律；我们越受规律；就越健康；有活力的意思就是健康；阿们么？有活力的意思就是健康。我们知道，我们觉得有活力的意思就是活的，活跃的。是的，我们应该我们不要被动。但当你活而活跃时，你要确定你是健康的。不要因着你的活而活跃，就逾越了，就侵入了别人的度量。事实上在我读到职事的话的时候，我读到李弟兄的一段话，讲到活力是成为一般、正常的、普通的、正常的，不是出众的，你要健康，你要有活力，不是不正常的，特别的。是如同波阿斯和路得那样，他们是真正地有活力，是健康地有活力。不像参孙有那样的所谓的活力，那样地有所谓的有大能。但是在就着生命来说，波阿斯和路得他们是真正有活力，带进了基督。</div>
+            
+            <div class="content-text">保罗渴望用全般的智慧警戒各人，教导各人，好将各人在基督里成熟地献上；保罗并不倚靠神迹，乃是更多以“各人”的方式作工。这什么意思呢？有时候我们有许多人聚在一起，我们传福音，然后许多人就信主了。我们喜欢这样伟大的工作，好像神迹一样—五旬节。但保罗在形容他的事奉时，他要将各人在基督里成熟地献上，一个一个地成熟地献上。他不是期待许多神迹式的。他在一个一个人身上劳苦，他要将各人在基督里成熟地献上，就如同我们前面所说，甚至他为人流泪。因为在一个一个人身上劳苦并不容易，会遇见许多的挫折，许多的拒绝，许多的误会。但他在一个一个人身上劳苦，他所走的路是“各人”的方式，这是有活力的路，这是神命定的路，受限制、受约束。好，我要继续往前。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                贰　我们必须借着享受基督作为生命流中的生命树而留在生命之路、生命的线上，维持在生命中，使我们在生命上长大，为着神在生命里的建造—约十10下，启二二1~2，弗四16，二21~22：
+            </div>
+            
+            
+            <div class="content-text">为着生命，阿利路亚！生命是原则，没有生命，神的经纶永远无法得着成就和完成。我们这班国度子民要作生命人，生命的人。我们渴望事奉主、服事召会的时候，为主作工的时候，不该是渴望作一个伟大的工人，大能的工人，而应该是一个生命人，借着享受基督作生命树。生命是什么？生命就是三一神自己，神具体化身在基督里，实化为那灵，流到我们里面，达到我们，那就是生命。我们所有的生活和工作都该由这一个来量度，是出于生命的呢，还是仅仅是工作？我们在特会训练里，我们讲到我们受和受恩教士的帮助，他说，倪弟兄说她注重生命过于工作。当你不冷不热的时候，当你退后的时候你不会在意这个。但是当你想要为神作工的时候，那一种的努力，那一种的工作可能一开始带进了一些祝福，但至终却产生了破坏过于祝福。我们要受提醒，唯有生命能建造神的殿，神的家唯有借着生命、在生命里、凭着生命才能建造起来，不是因着其他任何的事物。所以我们要享受基督作为生命流中的生命树，留在生命之路生命的线上，在生命长大才能建造。好，接下来我要快一点。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-一">
+            <div class="section-level1">
+                一　我们留在生命之路上，乃是借着按照生命的原则生活与事奉，而不是按照是非的原则。
+            </div>
+            
+            
+            <div class="content-text">认识生命，要求我们不按照是非的原则。我们需要蒙拯救，脱离是非善恶的树，恢复到神生命树这里。许多弟兄许多召会，我们被是非善恶所困住了。在已过几年，当我访问各个召会，我们在很多的情形中，我们发现弟兄们，你们在这样子的难处中，若是一直在是非对错的范围里，你们永远也出不来。你们需要蒙拯救，你们需要帮助圣徒们脱离是非善恶的范围，回到生命的范围。如同李弟兄所作的，在上海帮助那里的弟兄们，他们的猜疑，他们对倪弟兄的误会、不信任，将他们带回到生命树上而带进了复兴。这可能看起来是很基本的，但是我们几乎每天在各地都看见这样的事。我们若要走在生命的路上，就需要蒙拯救脱离是非的原则。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-二">
+            <div class="section-level1">
+                二　我们留在生命之路上，乃是借着爱主到极点，吸引人快跑跟随祂—可十二30，歌一4上。
+            </div>
+            
+            
+            <div class="content-text">请记得生命不是一个东西，是一个人位。我们走在生命的路上，就是我们以基督作我们的道路。我们要爱祂，享受祂这活的一位。不是以生命作一个好的东西、好的事物，生命乃是人位，借着爱主到极点来留在生命之路上。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-三">
+            <div class="section-level1">
+                三　我们留在生命之路上，乃是借着祷读及默想主的话而吃耶稣，并借着操练我们的灵，将是灵的话供应到别人里面—约六57、63，弗六17~18，诗一一九15与注1，耶十五16，太四4，二四45，林前二4~5、13。
+            </div>
+            
+            
+            <div class="content-text">弟兄们，我们要吃耶稣！吃耶稣！你要怎么得着生命？生命是在话里，生命就是那灵。所以弟兄们，我再说，也许我太过了。但弟兄们，你有没有天天吃主的话呢？你说我有读《晨兴圣言》，我用《晨兴圣言》来为主说话。是的，用《晨兴圣言》来申言非常美妙，但是你要直接来接触主的话，吃主的话，神的话。当然《晨兴圣言》是有许多的经节，我不是轻看《晨兴圣言》，但这不能取代你来读主的话。并且我们需要祷读主的话来吃耶稣，并且我们需要操练我们的灵，将是灵的话供应到别人里面。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-四">
+            <div class="section-level1">
+                四　我们留在生命之路上，乃是借着享受三一神作为生命之灵的律，同其神圣的性能—罗八2，耶三二39。
+            </div>
+            
+            
+            <div class="content-text">阿利路亚！我们的三一神乃是生命之灵的律，一个自动自发的律，不需要你我立志行事。这一个生命之灵的律在你里面，是一个自动自发、自动运行的律，生命是自然而然、自动自发。有时候我看见有些弟兄太刻意，太努力，太想改良自己，你要知道这一位三一神实化为那灵，如今乃是生命之灵的律，在基督耶稣里已经释放了我，脱离罪与死的律。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-五">
+            <div class="section-level1">
+                五　我们留在生命之路上，乃是借着在基督的元首权柄下，并照着祂的神圣性情，住在那在生命流中作生命树的基督里—启二二1~2。
+            </div>
+            
+            
+            <div class="content-text">我们要留在基督这位元首，在祂的元首权柄下。我们要天天被提醒，祂是一切的源头，祂是坐在宝座上的一位。启示录二十二章讲到，从神和羔羊的宝座流出这一道生命水的河，我们要留在生命里，就需要留在基督的元首权柄下。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-六">
+            <div class="section-level1">
+                六　我们留在生命之路上，乃是借着谨慎我们与人的接触，并从各样属灵的死亡—野蛮的死亡、温和的死亡、狡猾的死亡—分别出来归于神—利五2，十一1~40，民六6~7。
+            </div>
+            
+            
+            <div class="content-text">这里有各样属灵的死亡。你如果读利未记五章，神的子民受限制，不该接触兽、牲畜，不洁之兽、不洁之牲畜、不洁之爬物的尸体。兽是野蛮的，牲畜，吃草的是温和的，爬物是狡猾的，狡猾地进来。但无论如何，无论是野蛮、温和、狡猾都是，尸体就是死亡。弟兄们，远离死亡。神恨恶死亡过于罪。你若摸到了死亡，你要与神其他的子民分别七天。我们的神是活神。你在召会生活里，有时候你听到一些闲话，有些弟兄说这个弟兄这个同工怎么样，这些闲话你听了，没有把生命带给你；没有让你有活力；没有使你与主更亲近；让你产生了许多的问号、许多的疑惑；死亡进来了。当死亡遍布召会生活，建造就了了。我们永远不该让死亡有地步，给死亡留地步。不论是野蛮的、温和的或狡猾的死亡，我们要恨恶死亡。在聚会中，团体的聚会或是个人的接触，远离死亡。你听见一些话的时候，你知道死亡进来了，你要从那个情况中出去，不要让死亡侵入你、浸透你，我们要保守自己在生命的范围里。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-七">
+            <div class="section-level1">
+                七　我们留在生命之路上，乃是借着活在复活里，活在召会作基督的身体（由金灯台这棵复活生命的树所表征）之实际里—弗一22~23，出二五31~40，启一11~12。
+            </div>
+            
+            
+            <div class="content-text">基督的生命不仅仅是生命，乃是复活的生命，是死亡不能拘禁的复活生命，这一个复活生命其实就是那灵自己。那灵就是基督复活的实际，我们要留在生命之路上，就需要一直留在我们调和的灵里，摸着复活的实际，这是金灯台这个杏树作为基督的见证这个图画所说明的。</div>
+            
+            <div class="content-text">好，第三大点，我们要从召会历史中来看，这一个狭路如何应用。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-叁">
+            <div class="section-level1">
+                叁　神为着召会所定规的路，就是非拉铁非的路；神所定规的路乃是引到生命的狭路：
+            </div>
+            
+            
+            <div class="content-text">在启示录二到三章，我们看见七个召会，给七个召会的七封书信，这是真实的在亚西亚的七个召会。当时亚西亚不仅这七个召会，但是约翰选择从以弗所到老底嘉的七个召会来说明、来陈明作为召会的路程，在这两千年中在新约时代的进展。那灵用这七个召会给我们看见，召会在地上今天该走的路。头三个召会—以弗所、士每拿、别迦摩—已经过去了。各个召会预表起初的召会；以及在罗马帝国下受逼迫的召会；以及与世联婚的别迦摩召会。她向世界敞开，在康士坦丁大帝的时候与世联婚，将从原来逼迫的光景转为欢迎基督教，于是召会与世联婚，就是当时别迦摩召会的光景。这给我们看见，在别迦摩与世联婚之后，接下来就是这个从异教来的制度，来进到了罗马天主教，由推雅推喇的召会所预表。推雅推喇，所有研读圣经的都同意，推雅推喇就是罗马天主教，满了偶像、满了淫乱，叫神的子民误入歧途。在那里有耶洗别，在那里的耶洗别就如同后面讲到的大妓女，在启示录后面讲到的大妓女。大妓女就是在这里讲到的女申言者，自称是女申言者的妇人耶洗别，将带进淫乱，带进拜偶像，使神的子民偏离了神的目标。推雅推喇之后有撒狄，表征改革的召会，更正教，由路得改教所开始。再之后有非拉铁非的召会，是唯一受主称赞的召会。最后是老底嘉的召会。后四个召会如今仍然存在。起头的三个召会已经过去了，但后四个召会今天还在，要持续到主的回来。在这四个召会的书信中都讲到主的回来，就说出他们要存在，直到主回来。所以罗马天主教、更正教、非拉铁非恢复的召会，我们看见从英国弟兄们开始，到最后老底嘉，讲到恢复又堕落的召会，老底嘉是那个堕落的变形的，非拉铁非召会成了老底嘉召会。</div>
+            
+            <div class="content-text">亲爱的弟兄们，当我们讲到走狭路的时候，我们该注意召会的路，在启示录二到三章所说的这个召会的路。这四个召会所陈明的路给我们看见，有的走了阔路，也有走了狭路，主要就是非拉铁非召会。今天我们要走狭路，就是走非拉铁非的路。非拉铁非—弟兄相爱的召会—要把主带回来，要满足主的心愿，要成就神永远的定旨好。好，我们继续。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-一">
+            <div class="section-level1">
+                一　在非拉铁非的得胜者，其特征是他们的弟兄相爱（三7~8）；在他们中间，爱是有效能的，以致他们按着神牧养人（彼前五2），以令人愉快之神的同在顾惜人，并以神经纶健康的教训喂养人（弗四11，五29，徒二十28）。
+            </div>
+            
+            
+            <div class="content-text">在天主教所有的虚假、所有错谬的教训被曝露之后，就有了改革的改教运动，由路德起头来改革，来反对教皇的制度，带进了改教运动，从因信称义开始。这样的运动是召会历史上重要的运动，但没有太久。更正教是反对天主教中所有的错谬，他们陷入了属灵的死亡，使许多真正爱主寻求主的人，这一班弟兄，特别在英国的这一班弟兄们，许多人他们受过好的教育，有些是领主，有些是牧师，有些是教师，是领头人。但他们领悟，他们被主摸着，从那一个在死亡里濒死的更正教里出来，他们放下了他们的头衔、他们的职位、他们的履历；他们只愿被称为弟兄们。所以在历史上，他们被称为弟兄会。他们不要被称为是某某牧师、某某长老、某某传道，他们只是弟兄。有一段时间圣灵的行动，兴起了许多满有知识、满有恩赐的弟兄。达秘弟兄，牛顿弟兄，许多为主大用满有恩赐的弟兄，放下了一切的头衔、一切的成就来在一起，作为弟兄聚在一起，那实在是非常重要的一段时期。</div>
+            
+            <div class="content-text">非拉铁非的意思是弟兄相爱。昨天晚上有一篇信息讲到我们要完全，像我们的天父完全一样，那是在爱里完全，爱是神内在的本质。这些弟兄们从死的光景中更正教情形里出来，他们在那里彼此相爱，不分高低，不分彼此，只有弟兄相爱。这我相信实在在主的心上。主要在我们中间恢复弟兄相爱，弟兄相爱。我们中间是有长老，是有同工，但那不代表什么。同工不该自居同工，同工不是个头衔，长老不是个头衔。是的，召会中有长老，但那不是个地位，不是个官阶，我们只是弟兄，甚至讲信息、释放信息的弟兄没有比你们高，我们都是弟兄。在基督教满了阶级，是一个阶级的组织，主恨恶那个。所以当非拉铁非召会来到，那是弟兄相爱，爱在他们中间是有效能的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-二">
+            <div class="section-level1">
+                二　主在非拉铁非的恢复乃是质的恢复，恢复到召会原初的本质，就是神内在的本质，也就是爱（约壹四8）；站在一的真正立场（就是召会的立场）上，乃是拣选爱所有的弟兄们（启三7上，参二4、7）。
+            </div>
+            
+            
+            <div class="content-text">这些，非拉铁非召会的特征，就是弟兄相爱。有一个弟兄会教师潘汤说，神的行动借着弟兄们，也就是当时的弟兄会，比改教运动更重大。改教运动是人所皆知的，甚至连不信者都知道。是因为其实这也牵扯到政治，比如说德国政府，路德会后来成了德国国教，这是众所周知的。但许多人并不知道神在弟兄们中间的行动，但他们能见证，在弟兄们中间的行动是更有大能的，更有冲击力，比改教运动带进更大的冲击力。</div>
+            
+            <div class="content-text">改教运动是一个量的恢复，许多人能被带到主这里；但是主借着弟兄们的恢复乃是质的恢复，恢复到召会原初的本质就是爱。神祝福这些弟兄们，给他们看见神话语中的宝贝，神话语中的丰富好像瀑布一样前所未有地倾倒下来，从使徒时代之后就没有这样子的启示了。李弟兄说那好像瀑布般倾泻。圣经从前从来没有，好像在天主教中被关在黑暗里，但在改教的时候被许多错误地解释，但是到了弟兄们中间，新鲜地启示出来。什么是国度；什么是国度的惩罚与赏赐；什么是主的再来；这一切的真理，召会作为基督的身体，这所有的真理都借着这一些弟兄们得以恢复。那完全被许多更正教的信徒所忽略、所忽视，但主借着这些弟兄们中伟大的教师有了重大的恢复。难怪在他们中间主肯定的，主所说就是你遵守了我的话，他们遵守了主的话到极点。当天主教、更正教遗弃了、忽略了主的话，这些弟兄们遵守主的话，绝对地遵守主的话。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-三">
+            <div class="section-level1">
+                三　主为着扩展祂的恢复，使用大卫的钥匙开门，这对我们乃是客观的；但基督也使用大卫的钥匙，主观地打开我们内里所是的门，使我们被变化，并建造到神的殿里作柱子，其上有神的名，新耶路撒冷的名，并主的新名—17节，
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　三12，参二一22：
+            </div>
+            
+            
+            <div class="content-text">主对非拉铁非召会其中一个祝福，祂是手上有大卫钥匙的一位，也就是祂有权柄来打开许多的门，让神的话传布出去，扩展出去，到许多的地方。不仅如此，大卫的门，大卫的钥匙打开人的心，使我们内里的所是被打开，使我们被变化得建造。</div>
+            
+            <div class="content-text">亲爱的弟兄们，一面来说，我们是讲到历史，讲到英国的弟兄们。但我信，靠着主的怜悯和恩典，祂在倪弟兄的时候也将这个恢复带到了我们中间。我们也渴望作今日的非拉铁非召会，作这一班遵守主的话，没有否认主的名，有主作那拿着那大卫的钥匙，开了就没有人能关，为我们开启许多门的那一位。从倪弟兄、李弟兄的时代，我们能见证，一面来说，我们算不得什么，我们没有什么有头衔、有学问，但是借着我们这一些小人物，主扩展了祂的见证到全球各大洲。许多门被打开了，不仅是地理上的，更是在人的心里被打开了。最近我听到有弟兄们到非洲许多的地方，当我们向许多人交谈的时候，他们多年受倪弟兄的职事的书报帮助。主使用这个职事打开了许多门，那是神所种下的，那是神所开的门。今天全地上向着这分职事都是敞开的，不是特别因为哪一个人，而是因为我们是非拉铁非。大卫的钥匙在这里为我们开门，不仅是地理上的，也是在人的心里，有一种的饥渴，有一种的回应，渴慕这分职事。我们也因此被构成为柱子，有这三项写在其上，其上有神的名、神城的名并主的新名。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　“我神的名”指柱子是神自己；“我神城的名”指柱子是新耶路撒冷；“我的新名”指柱子乃是有新意义的基督；作为柱子的得胜者在生命和性情上成为神，但无分于神格，他要成为新耶路撒冷的构成分子，并在新的经历之意义上成为基督—三12。
+            </div>
+            
+            
+            <div class="content-text">你若有神的名写在你的额上，你觉得怎么样呢？你就是神。我们不是说我们在神的神格上是神，但我们有神写到我们里面，写在我们额上，指明神已经作到我们里面，构成在我们里面，我们在生命和性情上成为神。并且我们有神城新耶路撒冷的名写在我们其上，我们就是新耶路撒冷。新耶路撒冷不是天上的华厦，我们就是新耶路撒冷，我们是神的城。我们也有神，有基督的新名。这个名不是一般的名，与一般的经历相同，这是基督在你特别新鲜的经历上的名。你在这一方面上经历祂，祂对你是这样的一位。那一个人对基督有那样一个经历，他有那样的经历，那样的新名。所以我们要成为神，成为神城，在新的经历之意义上成为基督。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　新耶路撒冷乃是新的基督；我们作为神的扩大和扩展，乃是新意义上的基督，即新耶路撒冷；新的基督与四福音中的基督不同；新妇—新郎的扩增—乃是新耶路撒冷，包括一切神所重生的人—约三29~30，启二一9~10。
+            </div>
+            
+            
+            <div class="content-text">新耶路撒冷其实就是基督，但是扩大的基督，扩展的基督。基督得了扩增。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　我们要被建造到神里面，成为新耶路撒冷的构成分子，并成为新的基督的
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　一部分，就人说是不可能的，但我们里面生命之灵的律包含一个元素，能对付不可能—罗八2，路十八27，参创二八12~19，约一51。
+            </div>
+            
+            
+            <div class="content-text">阿利路亚！为着生命之灵的律，阿利路亚！不是靠你的挣扎、努力，而是这个律在你里面运行，使你能够达到。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-四">
+            <div class="section-level1">
+                四　在非拉铁非的得胜者注意生命过于工作，重质过于重量（参林前三12）；他们“稍微有一点能力”，明白能使主喜欢的，不在于他们能为主作多少，乃在于他们是否以他们所有的尽力为主而作（启三8，可十四8）。
+            </div>
+            
+            
+            <div class="content-text">当然非拉铁非好像不如以弗所那样的刚强、有大能、有恩赐，主称赞以弗所召会是有能力的，是有行为，劳碌忍耐，能够认识教训的。但我们只有一点能力，主不是期待一班有大能的工人，大能的召会，但主渴望的是只有一点能力，但他们尽所能地为主而作；持守主的话，遵守主的话，持守主的名。我知道有时候弟兄们因着得胜者的标准这么高而觉得失望，觉得自己达不到，毕竟初熟的果子只有十四万四千，我想我没有机会在信徒中作这班人。我对弟兄们说，弟兄们，我也不知道标准，我不知道得胜者绝对的标准是多高，你只有一点能力，但你要尽所能地爱祂。也许你能作的跟另一个弟兄不一样，但你要忠信于主所托付你，你虽然只有一点能力，你要尽力地与主合作，你就能作祂的得胜者。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-五">
+            <div class="section-level1">
+                五　在非拉铁非的得胜者，遵守主在祂独一新约职事里的话（启三8），这话带他们真正的珍赏、宝爱并享受主耶稣基督自己这宝贵人位，作他们的生命和一切（林后十一2~3）。
+            </div>
+            
+            
+            <div class="content-text">他们遵守主的话，这就是在英国弟兄们所作的，他们弃绝了一切的信条，一切的教条。他们遵守主纯正的话，主也祝福，以真理一切的丰富来祝福他们，使他们能恢复这些真理。借着他们遵守主的话，带他们真正的珍赏、宝爱、享受主耶稣自己。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-六">
+            <div class="section-level1">
+                六　那些在非拉铁非的人，因着遵守主的话，乃是“对神……富足的”（启三8，路十二21），借着祷读并默想祂的话，将祂的话珍藏在心里（弗六17~18，诗一一九11、15）；我们可以向神的话举手，指明我们热诚欢乐地接受它，并对它说，阿们（48，尼八5~6）。
+            </div>
+            
+            
+            <div class="content-text">对神的话说阿们！弟兄们，我想在今天的基督教讲主的话，没有像主的恢复这么多了。你看看这个纲要里有多少处经节，你就知道我们不是只是讲讲人的教训，我们是要回到主的话上，我们对主的话说阿们。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-七">
+            <div class="section-level1">
+                七　在非拉铁非的得胜者没有否认主的名；他们弃绝了主耶稣基督之外一切的名，并呼求主的名，主对一切呼求祂的人是丰富的（罗十9~10、12~13）；他们公开承认“耶稣基督为主，使荣耀归与父神”（腓二11），并且他们不是传自己，乃是传基督耶稣为主，也传自己为耶稣的缘故，作信徒的奴仆（林后四5）。
+            </div>
+            
+            
+            <div class="content-text">在非拉铁非的得胜者没有否认主的名；他们弃绝了主耶稣基督之外一切的名，并呼求主的名，主对一切呼求祂的人是丰富的；他们公开承认“耶稣基督为主，使荣耀归于父神”。哦！主耶稣！亲爱的弟兄们，我们得恢复来呼求主名不是件小事，不是件小事。非拉铁非的得胜者，他们没有否认主的名。名是祂宝贵的人位。许多的工会团体，他们宁愿用其他的名称，我是天主，我是路德会，我是圣公会，我是某某会。为什么我们要这么多名字？我们只有一个名，主耶稣的名是超过地上一切的名。这是非拉铁非召会的特征。他们弃绝了一切的名，他们只彼此称自己为弟兄。亲爱的弟兄们，遵守主的话，不要否认主的名，我们有主的名那就够了。他们不是传自己，乃是传基督耶稣为主，也传自己为耶稣的缘故作信徒的奴仆。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-八">
+            <div class="section-level1">
+                八　李弟兄对安那翰众长老末了的话：“长老们需要彼此相爱，他们的妻子也需要彼此相爱，他们也需要爱彼此的儿女。”
+            </div>
+            
+            
+            <div class="content-text">愿主恢复保守祂的众召会作今日的非拉铁非。好，我们要进到，用最后的几分钟讲第四大点。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-肆">
+            <div class="section-level1">
+                肆　非拉铁非一堕落，就成为老底嘉：
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-一">
+            <div class="section-level1">
+                一　老底嘉是走了样的非拉铁非；弟兄相爱失去的时候，多数人的意见就是通过的意见，多数人赞成就行了。
+            </div>
+            
+            
+            <div class="content-text">老底嘉的意思是多数人的意见。老，在原文的意思就是平民多数人，底嘉，是意见。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-二">
+            <div class="section-level1">
+                二　在主眼中，老底嘉的特点是不冷不热和属灵的骄傲—启三15~18：
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　属灵的骄傲是从已往的历史来的；曾有一次他们是富足的，他们就以为今天仍然是富足的；已往的故事他们今天还记得，但已往的生命却失去了。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　曾有一次主怜悯他们，他们记得那个历史，而今天却失去了那个实际。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　他们还记得他们是富足，发了财，一样都不缺，但现在他们是贫穷、瞎眼的。
+            </div>
+            
+            
+            <div class="content-text">弟兄们，这是很严肃的。曾经是荣耀的，非拉铁非那样的荣耀，他们骄傲了，他们自满自足了，他们说我是富足的，是一无所缺，那就是他们堕落的开始。弟兄会的运动持续不到一个世纪，他们对于真理对于道理过于热心，就彼此分裂。他们仍然以为，他们仍然相信他们是富足的，发了财的。他们有基督徒没有看见的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-三">
+            <div class="section-level1">
+                三　我们如果要继续在非拉铁非的路上并避免成为老底嘉，就得学习在神面前降卑自己—太五3，赛五七15，加六3。
+            </div>
+            
+            
+            <div class="content-text">我来到这一点深深地感觉受主的光照和责备，也非常的关切，非常的担心。是的，主祝福祂的恢复有最高的真理，最好的启示。但是我们有骄傲的危险，以为我们有最好的，我们是最好的。当我们遇见其他的基督徒，他们祷告的方式不同，说话领会真理的方式，领会圣经的方式与我们不同。我们歧视，我们小看人，我们觉得他们比我们差。你如果有这样的感觉，你已经踏上老底嘉的路了。老底嘉是骄傲的非拉铁非，是自以为足的非拉铁非。我们都得学习在神面前降卑自己。以赛亚五十七章，我记得陈实弟兄之前讲到，我们要有忧伤痛悔的灵。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-四">
+            <div class="section-level1">
+                四　老底嘉就是说起来样样都知道，事实上没有一样是热切的；说起来样样都有，
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　但没有一样是能够把命拼上的；记得已往时候的光荣，却忘记了今天在神面前的光景；已过是非拉铁非，但今天是老底嘉—启三15~18：
+            </div>
+            
+            
+            <div class="content-text">我们在英国的弟兄会看见那已成历史。在今天主的恢复中靠着祂的怜悯、恩典，我们仍然领受许多的祝福，但这不代表我们不会成为老底嘉。一旦我们骄傲，满足于我们所有的，我们就可能成为老底嘉，那会使主失望。我们可能记得过去的历史，李弟兄讲到了高峰真理，我们记得这些，哦，我去过，参加过训练，我受过李常受的训练，今天如何呢？你今天的享受如何呢？你今天对主的爱如何？我们在今天的这个训练中，我信主渴望我们要成为，要有国度生活的实际。实际，这些日子非常地摸着我，我们需要实际。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　恢复后又堕落的召会，对基督有道理的认识，但没有多少活的信，以有分于基督的神圣元素。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　白衣指蒙主称许的行为，就是主自己从召会活出来，这是恢复后又堕落的召会所需要的，好遮盖她的赤身。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　那擦眼睛所需要的眼药，必是指膏抹的灵（约壹二27），也就是主自己这赐生命的灵（林前十五45下）；恢复后又堕落的召会需要这种眼药医治她的瞎眼（参伯四二5~6）。
+            </div>
+            
+            
+            <div class="content-text">主吩咐恢复后又堕落的召会要买这三样，要买火炼的金子，买眼药，并且要买白衣，买眼药。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-五">
+            <div class="section-level1">
+                五　死的虚空知识和道理的仪式，使恢复后又堕落的召会不冷不热；她需要为她的不冷不热悔改而发热心、沸腾、火烧，借此重得享受基督的实际。
+            </div>
+            
+            
+            <div class="content-text">弟兄们，愿主在我们中间成就这事，我们需要悔改。每天早晨，这是我们该为自己感到哀恸的，使我们不要不冷不热，要热心、要沸腾、要火烧。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-六">
+            <div class="section-level1">
+                六　“得胜的，我要赐他在我宝座上与我同坐，就如我得了胜，在我父的宝座上与祂同坐一样。那灵向众召会所说的话，凡有耳的，就应当听”—启三21~22：
+            </div>
+            
+            
+            <div class="content-text">得胜的，我要赐他在我宝座上与我同坐，就如我得了胜，在我父的宝座上与祂同坐一样。这是多么亲切的话，能与祂一同坐在父的宝座上。那灵向众召会所说的话，有凡有耳的，就应当听。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　这里的得胜，是指胜过恢复后又堕落的召会中，不冷不热和骄傲的光景，并出代价买所需之物，且开门让主进来；基督这独一的得胜者包括了所有的得胜者。
+            </div>
+            
+            
+            <div class="content-text">祂是那独一的得胜者。当祂得胜，我们也得胜。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　在主的宝座上与主同坐，乃是给得胜者的赏赐，使他在要来的千年国有分于主的权柄，与主同王，管理全地。
+            </div>
+            
+            
+            <div class="content-text">愿主怜悯我们，使我们愿意走狭路，走非拉铁非的道路，直到祂回来。我们可以花一分钟与邻座的弟兄有点祷告。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.details-page {
+    padding: 5px;
+}
+
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 46px;
+    min-height: 46px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e8ecf9 100%);
+    border: 1.5px solid #d0d7f0;
+    border-radius: 23px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.font-btn:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+}
+
+.details-content {
+    margin-top: 15px;
+    line-height: 1.8;
+}
+
+.section {
+    margin-bottom: 18px;
+}
+
+.section-level1, .section-level2, .section-level3, .section-level4 {
+    font-weight: 600;
+    margin: 20px 0 12px 0;
+    line-height: 1.8;
+    color: #2d3748;
+}
+
+.section-level1 {
+    font-size: 18px;
+    color: #667eea;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+.section-level2 {
+    font-size: 17px;
+    padding-left: 10px;
+    border-left: 3px solid #667eea;
+}
+
+.section-level3 {
+    font-size: 16px;
+    padding-left: 16px;
+}
+
+.section-level4 {
+    font-size: 16px;
+    padding-left: 24px;
+    color: #4a5568;
+}
+
+.content-text {
+    margin: 14px 0;
+    padding-left: 14px;
+    color: #4a5568;
+    text-indent: 2em;
+    line-height: 2.1;
+    font-size: 16px;
+}
+
+@media (min-width: 768px) {
+    .details-page {
+        padding: 20px 0;
+    }
+    
+    .details-content {
+        margin-top: 30px;
+    }
+    
+    .section {
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .font-size-controls {
+        gap: 6px;
+        margin: 8px 0;
+    }
+    
+    .font-btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const contentTexts = document.querySelectorAll('.content-text');
+            contentTexts.forEach(p => {
+                const t = p.textContent.trim();
+                if (t) text += t + '。';
+            });
+            return text;
+        }
+    });
+});
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025秋季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+</body>
+</html>

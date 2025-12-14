@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# 调试和测试文件
+debug_*.py
+test_*.py
+check_*.py
+analyze_*.py
+quick_*.py
+simple_*.py
+find_*.py
+temp_*.py
+compare_*.py
+search_*.py
+verify_*.py
+
+# 临时目录
+temp/
+temp_debug/
+temp_output/
+
+# 日志文件
+*.log
+generation_log.txt
+
+# 临时配置
+config_debug.yaml
+config_summer_debug.yaml
+config_test_summer.yaml
+
+# 临时文档
+*.docx
+!resource/**/*.docx
+
+# 输出目录（可选，根据需求调整）
+# output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

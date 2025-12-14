@@ -1,0 +1,10 @@
+# Minimal runtime dependencies for generating the static site
+# Python: 3.10+
+
+python-docx>=0.8.11
+PyYAML>=6.0
+Jinja2>=3.1
+Pillow>=10.0
+
+# Optional (only needed if you want to read .doc directly via MS Word COM)
+# pywin32>=306; sys_platform == "win32"
