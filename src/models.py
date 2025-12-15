@@ -65,7 +65,7 @@ class Chapter:
         if self.number == 1 and len(self.morning_revivals) >= 6:
             saturday_revival = self.morning_revivals[5]  # 周六(index 5)
             if saturday_revival.outline:
-                print(f"    First outline item: level={saturday_revival.outline[0].level}, children={len(saturday_revival.outline[0].children)}")
+                pass  # print(f"    First outline item: level={saturday_revival.outline[0].level}, children={len(saturday_revival.outline[0].children)}")
         
         return {
             'number': self.number,
@@ -93,7 +93,7 @@ class Chapter:
         """递归转换内容节点为字典 - 调试版本"""
         result = []
         for i, content in enumerate(contents):
-            print(f"  Item {i}: level={content.level}, title={content.title[:50]}..., children={len(content.children)}")
+            # print(f"  Item {i}: level={content.level}, title={content.title[:50]}..., children={len(content.children)}")
             content_dict = {
                 'level': content.level,
                 'title': content.title,
@@ -120,9 +120,9 @@ class Chapter:
             # Debug: 检查周六相关的内容
             if content.level == '贰' or len(contents) == 1:
                 if content.children:
-                    print(f"    Has {len(content.children)} children:")
-                    for i, child in enumerate(content.children):
-                        print(f"      Child {i}: level={child.level}, title={child.title[:30]}")
+                    pass  # print(f"    Has {len(content.children)} children:")
+                    # for i, child in enumerate(content.children):
+                    #     print(f"      Child {i}: level={child.level}, title={child.title[:30]}")
                 
         return result
 
