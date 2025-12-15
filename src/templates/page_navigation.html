@@ -1,6 +1,6 @@
 <!-- 页面间跳转导航 -->
 <div class="page-navigation">
-    <a href="./" class="nav-link" title="返回目录">📑 目录</a>
+    <a href="./" class="nav-link" title="返回目录">目录</a>
     <a href="{{ chapter.number }}_cv.htm" class="nav-link{% if page_type == 'cv' %} active{% endif %}" title="纲目">纲目</a>
     <a href="{{ chapter.number }}_h.htm" class="nav-link{% if page_type == 'h' or page_type == 'ts' %} active{% endif %}" title="听抄">听抄</a>
     {% if chapter.morning_revivals and chapter.morning_revivals|length > 0 %}
