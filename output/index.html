@@ -22,7 +22,7 @@
             color: #2d3748;
             background: #f7fafc;
             min-height: 100vh;
-            padding: 16px;
+            padding: 12px;
         }
         
         .container {
@@ -38,7 +38,7 @@
             background: #667eea;
             color: white;
             text-align: center;
-            padding: 32px 20px;
+            padding: 20px 16px;
         }
         
         .header h1 {
@@ -53,82 +53,140 @@
         }
         
         .content {
-            padding: 20px;
+            padding: 0;
         }
         
         .trainings-grid {
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            margin-top: 20px;
+            gap: 0;
+            margin: 0;
+            background: #fff;
+            overflow: hidden;
         }
         
         .training-card {
             background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-            border-left: 4px solid #667eea;
             overflow: hidden;
+            border-bottom: 1px solid #e8e8e8;
+            transition: background-color 0.2s;
+        }
+        
+        .training-card:hover {
+            background: #fafbfc;
+        }
+        
+        .training-card:last-child {
+            border-bottom: none;
+        }
+        
+        .training-card-wrapper {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
         }
         
         .training-link {
             display: block;
-            padding: 16px 20px;
+            padding: 12px 16px;
             text-decoration: none;
             color: inherit;
+            flex: 1;
+            min-width: 0;
+            transition: background-color 0.2s;
         }
         
         .training-link:active {
-            background: #f7fafc;
+            background: #f0f4f8;
+        }
+        
+        .training-info {
+            position: relative;
+        }
+        
+        .training-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            gap: 8px;
         }
         
         .training-card .year-season {
-            font-size: 14px;
+            font-size: 13px;
             color: #667eea;
             font-weight: 600;
-            margin-bottom: 8px;
-        }
-        
-        .training-card .title {
-            font-size: 16px;
-            color: #2d3748;
-            margin-bottom: 8px;
-            line-height: 1.5;
-            font-weight: 500;
+            flex-shrink: 0;
         }
         
         .training-card .info {
-            color: #718096;
-            font-size: 14px;
+            color: #a0aec0;
+            font-size: 12px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        .training-title-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 0;
+        }
+        
+        .training-card .title {
+            font-size: 15px;
+            color: #2d3748;
+            line-height: 1.4;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            flex: 1;
+            min-width: 0;
         }
         
         .training-card .arrow {
-            float: right;
+            color: #cbd5e0;
+            font-size: 16px;
+            flex-shrink: 0;
+            line-height: 1;
+            transition: color 0.2s, transform 0.2s;
+        }
+        
+        .training-card:hover .arrow {
             color: #667eea;
-            font-size: 1.2em;
+            transform: translateX(2px);
         }
         
         .training-cache {
-            padding: 8px 12px;
-            background: #f8f9fa;
-            border-top: 1px solid #e2e8f0;
+            padding: 12px 16px;
+            background: #fafbfc;
             display: none;
+            border-left: 1px solid #e8e8e8;
+            flex-shrink: 0;
         }
         
         .training-cache.show {
-            display: block;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
         }
         
         .mini-cache-btn {
-            padding: 6px 12px;
+            padding: 6px 10px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
             border: none;
-            border-radius: 5px;
-            font-size: 12px;
+            border-radius: 4px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             min-height: 32px;
+            white-space: nowrap;
         }
         
         .mini-cache-btn:active {
@@ -137,15 +195,28 @@
         
         .mini-cache-btn:disabled {
             opacity: 0.6;
+            cursor: not-allowed;
         }
         
         .mini-cache-btn.cached {
             background: #48bb78;
         }
         
+        .mini-cache-btn.refresh {
+            background: #ed8936;
+        }
+        
+        .cache-progress {
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+            max-width: 80px;
+            line-height: 1.2;
+        }
+        
         .footer {
             text-align: center;
-            padding: 30px;
+            padding: 16px;
             color: #999;
             background: #f5f7fa;
             border-top: 1px solid #e0e0e0;
@@ -154,15 +225,6 @@
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.8em;
-            }
-            
-            .trainings-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            
-            .content {
-                padding: 20px;
             }
         }
         
@@ -270,48 +332,78 @@
             <div class="trainings-grid">
                 
                 <div class="training-card">
-                    <a href="2025-06-感恩节/index.html" class="training-link">
-                        <div class="year-season">2025年感恩节</div>
-                        <div class="title">二〇二五年感恩节相调特会</div>
-                        <div class="info">📖 共 6 篇 <span class="arrow">→</span></div>
-                    </a>
-                    <div class="training-cache">
-                        <button class="mini-cache-btn" data-training="2025-06-感恩节" data-chapters="6">
-                            <span class="cache-icon">📥</span> 缓存
-                        </button>
+                    <div class="training-card-wrapper">
+                        <a href="2025-06-感恩节/" class="training-link">
+                            <div class="training-info">
+                                <div class="training-header">
+                                    <div class="year-season">2025年感恩节</div>
+                                    <div class="info">共 6 篇</div>
+                                </div>
+                                <div class="training-title-row">
+                                    <div class="title">二〇二五年感恩节相调特会</div>
+                                    <span class="arrow">→</span>
+                                </div>
+                            </div>
+                        </a>
+                        <div class="training-cache">
+                            <button class="mini-cache-btn" data-training="2025-06-感恩节" data-chapters="6">
+                                <span class="cache-icon">📥</span> <span class="cache-text">缓存</span>
+                            </button>
+                            <span class="cache-progress"></span>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="training-card">
-                    <a href="2025-05-秋季/index.html" class="training-link">
-                        <div class="year-season">2025年秋季</div>
-                        <div class="title">国　际 长老及负责弟兄训练</div>
-                        <div class="info">📖 共 9 篇 <span class="arrow">→</span></div>
-                    </a>
-                    <div class="training-cache">
-                        <button class="mini-cache-btn" data-training="2025-05-秋季" data-chapters="9">
-                            <span class="cache-icon">📥</span> 缓存
-                        </button>
+                    <div class="training-card-wrapper">
+                        <a href="2025-05-秋季/" class="training-link">
+                            <div class="training-info">
+                                <div class="training-header">
+                                    <div class="year-season">2025年秋季</div>
+                                    <div class="info">共 9 篇</div>
+                                </div>
+                                <div class="training-title-row">
+                                    <div class="title">国　际 长老及负责弟兄训练</div>
+                                    <span class="arrow">→</span>
+                                </div>
+                            </div>
+                        </a>
+                        <div class="training-cache">
+                            <button class="mini-cache-btn" data-training="2025-05-秋季" data-chapters="9">
+                                <span class="cache-icon">📥</span> <span class="cache-text">缓存</span>
+                            </button>
+                            <span class="cache-progress"></span>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="training-card">
-                    <a href="2025-04-夏季/index.html" class="training-link">
-                        <div class="year-season">2025年夏季</div>
-                        <div class="title">夏季训练</div>
-                        <div class="info">📖 共 12 篇 <span class="arrow">→</span></div>
-                    </a>
-                    <div class="training-cache">
-                        <button class="mini-cache-btn" data-training="2025-04-夏季" data-chapters="12">
-                            <span class="cache-icon">📥</span> 缓存
-                        </button>
+                    <div class="training-card-wrapper">
+                        <a href="2025-04-夏季/" class="training-link">
+                            <div class="training-info">
+                                <div class="training-header">
+                                    <div class="year-season">2025年夏季</div>
+                                    <div class="info">共 12 篇</div>
+                                </div>
+                                <div class="training-title-row">
+                                    <div class="title">夏季训练</div>
+                                    <span class="arrow">→</span>
+                                </div>
+                            </div>
+                        </a>
+                        <div class="training-cache">
+                            <button class="mini-cache-btn" data-training="2025-04-夏季" data-chapters="12">
+                                <span class="cache-icon">📥</span> <span class="cache-text">缓存</span>
+                            </button>
+                            <span class="cache-progress"></span>
+                        </div>
                     </div>
                 </div>
                 
             </div>
         </div>
         
-        <!-- 安装和缓存按钮区域 -->
+        <!-- 安装按钮区域 -->
         <div class="cache-section" id="installSection">
             <button class="cache-btn install-btn" id="installBtn" style="display:none;">
                 <span class="cache-icon">📲</span>
@@ -320,18 +412,10 @@
             <div class="cache-status" id="installStatus"></div>
         </div>
         
-        <div class="cache-section" id="cacheSection">
-            <button class="cache-btn clear-btn" id="clearCacheBtn">
-                <span class="cache-icon">🗑</span>
-                <span class="cache-text">清空缓存</span>
-            </button>
-            <div class="cache-status" id="cacheStatus"></div>
-        </div>
-        
         <div class="footer">
             <p>本站内容仅供主恢复圣徒交通使用</p>
             <p style="margin-top: 10px; font-size: 0.9em;">
-                生成时间: 2025年12月15日 09:49
+                生成时间: 2025年12月15日 14:43
             </p>
         </div>
     </div>
@@ -397,10 +481,7 @@
     });
     
     document.addEventListener('DOMContentLoaded', function() {
-        var cacheStatus = document.getElementById('cacheStatus');
-        var cacheSection = document.getElementById('cacheSection');
         var installSection = document.getElementById('installSection');
-        var clearCacheBtn = document.getElementById('clearCacheBtn');
         var installBtn = document.getElementById('installBtn');
         var installStatus = document.getElementById('installStatus');
         
@@ -411,19 +492,10 @@
         // 检查是否在 PWA 模式下运行（已安装）
         var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
         
-        // 只在 PWA 模式下显示缓存相关功能
+        // 只在 PWA 模式下显示单独缓存按钮
         if (isStandalone) {
-            cacheSection.classList.add('show');
             document.querySelectorAll('.training-cache').forEach(function(el) {
                 el.classList.add('show');
-            });
-            
-            // 检查缓存状态
-            caches.keys().then(function(keys) {
-                if (keys.length > 0) {
-                    cacheStatus.textContent = '已缓存 ' + keys.length + ' 个训练';
-                    cacheStatus.className = 'cache-status success';
-                }
             });
         } else {
             // 非 PWA 模式，显示安装区域
@@ -433,7 +505,7 @@
         // 生成单个训练的资源列表
         function getTrainingResources(path, chapters) {
             var resources = [
-                './' + path + '/index.html',
+                './' + path + '/',
                 './' + path + '/js/speech.js',
                 './' + path + '/js/font-control.js'
             ];
@@ -454,90 +526,141 @@
             var path = btn.getAttribute('data-training');
             var chapters = parseInt(btn.getAttribute('data-chapters'), 10);
             var cacheKey = 'cx-' + path;
+            var progressSpan = btn.parentElement.querySelector('.cache-progress');
             
-            // 检查是否已缓存
-            caches.has(cacheKey).then(function(has) {
-                if (has) {
-                    btn.innerHTML = '<span class="cache-icon">✓</span> 已缓存';
-                    btn.classList.add('cached');
-                }
-            });
+            // 检查是否已完全缓存
+            function checkCacheStatus() {
+                caches.open(cacheKey).then(function(cache) {
+                    var resources = getTrainingResources(path, chapters);
+                    return Promise.all(resources.map(function(url) {
+                        return cache.match(url);
+                    })).then(function(responses) {
+                        var cachedCount = responses.filter(function(r) { return r; }).length;
+                        var total = resources.length;
+                        
+                        if (cachedCount === total) {
+                            // 全部已缓存
+                            btn.querySelector('.cache-icon').textContent = '🔄';
+                            btn.querySelector('.cache-text').textContent = '刷新';
+                            btn.classList.add('refresh');
+                            btn.classList.remove('cached');
+                            if (progressSpan) progressSpan.textContent = '已缓存';
+                        } else if (cachedCount > 0) {
+                            // 部分缓存
+                            btn.querySelector('.cache-icon').textContent = '📥';
+                            btn.querySelector('.cache-text').textContent = '继续';
+                            var percent = Math.round((cachedCount / total) * 100);
+                            if (progressSpan) progressSpan.textContent = percent + '%';
+                        }
+                    });
+                }).catch(function() {});
+            }
+            
+            checkCacheStatus();
             
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 
-                btn.disabled = true;
-                var originalText = btn.innerHTML;
+                // 如果是刷新按钮，先清除旧缓存
+                var isRefresh = btn.classList.contains('refresh');
                 
+                btn.disabled = true;
                 var resources = getTrainingResources(path, chapters);
                 var total = resources.length;
                 var loaded = 0;
                 
-                btn.innerHTML = '<span class="cache-icon">⏳</span> 0%';
+                btn.querySelector('.cache-icon').textContent = '⏳';
+                btn.querySelector('.cache-text').textContent = '0%';
+                if (progressSpan) progressSpan.textContent = '';
                 
-                caches.open(cacheKey).then(function(cache) {
-                    // 逐个缓存以显示进度
-                    var promises = resources.map(function(url) {
-                        return fetch(url).then(function(response) {
-                            if (response.ok) {
+                var startCache = function() {
+                    caches.open(cacheKey).then(function(cache) {
+                        // 逐个缓存以显示进度
+                        var cachePromises = [];
+                        var successCount = 0;
+                        resources.forEach(function(url) {
+                            var promise = fetch(url, {
+                                redirect: 'follow',  // 自动跟随重定向（默认行为）
+                                cache: 'no-cache'    // 不使用浏览器缓存，确保获取最新内容
+                            }).then(function(response) {
                                 loaded++;
                                 var percent = Math.round((loaded / total) * 100);
-                                btn.innerHTML = '<span class="cache-icon">⏳</span> ' + percent + '%';
-                                return cache.put(url, response);
-                            }
-                        }).catch(function() {
-                            // 忽略单个文件失败
-                            loaded++;
+                                btn.querySelector('.cache-text').textContent = percent + '%';
+                                
+                                // 检查响应类型和状态
+                                // response.type 可能是 'basic', 'cors', 'opaque' 等
+                                // 重定向后的响应仍然是 'basic' 类型
+                                if (response.ok && response.status >= 200 && response.status < 300) {
+                                    successCount++;
+                                    // 克隆响应，因为响应体只能读取一次
+                                    return cache.put(url, response.clone());
+                                } else if (response.type === 'opaqueredirect') {
+                                    // 不透明重定向，无法访问内容
+                                    console.warn('遇到不透明重定向:', url);
+                                    loaded++;
+                                    return Promise.resolve();
+                                } else {
+                                    // 失败的响应不缓存
+                                    console.warn('跳过缓存失败的资源:', url, 'status:', response.status, 'type:', response.type);
+                                    return Promise.resolve();
+                                }
+                            }).catch(function(err) {
+                                // 网络错误，跳过此文件
+                                loaded++;
+                                console.warn('无法获取资源:', url, err);
+                                return Promise.resolve();
+                            });
+                            cachePromises.push(promise);
                         });
+                        return Promise.all(cachePromises).then(function() {
+                            return successCount;
+                        });
+                    }).then(function(successCount) {
+                        btn.querySelector('.cache-icon').textContent = '🔄';
+                        btn.querySelector('.cache-text').textContent = '刷新';
+                        btn.classList.add('refresh');
+                        btn.classList.remove('cached');
+                        btn.disabled = false;
+                        var failedCount = total - successCount;
+                        if (progressSpan) {
+                            if (failedCount > 0) {
+                                progressSpan.textContent = '失败 ' + failedCount;
+                            } else {
+                                progressSpan.textContent = '已缓存';
+                            }
+                        }
+                    }).catch(function(err) {
+                        btn.querySelector('.cache-icon').textContent = '❌';
+                        btn.querySelector('.cache-text').textContent = '失败';
+                        btn.disabled = false;
+                        if (progressSpan) progressSpan.textContent = '缓存失败';
+                        setTimeout(function() {
+                            checkCacheStatus();
+                        }, 2000);
+                        console.error('缓存失败:', err);
                     });
-                    return Promise.all(promises);
-                }).then(function() {
-                    btn.innerHTML = '<span class="cache-icon">✓</span> 已缓存';
-                    btn.classList.add('cached');
-                    btn.disabled = false;
-                }).catch(function(err) {
-                    btn.innerHTML = '<span class="cache-icon">❌</span> 失败';
-                    btn.disabled = false;
-                    setTimeout(function() {
-                        btn.innerHTML = originalText;
-                    }, 2000);
-                    console.error('缓存失败:', err);
-                });
+                };
+                
+                if (isRefresh) {
+                    // 先清除旧缓存
+                    caches.delete(cacheKey).then(function() {
+                        // 清理完成，开始重新缓存
+                        startCache();
+                    }).catch(function(err) {
+                        btn.querySelector('.cache-icon').textContent = '❌';
+                        btn.querySelector('.cache-text').textContent = '失败';
+                        btn.disabled = false;
+                        if (progressSpan) progressSpan.textContent = '失败';
+                        console.error('清理缓存失败:', err);
+                    });
+                } else {
+                    startCache();
+                }
             });
         });
         
-        // 点击清空缓存按钮
-        clearCacheBtn.addEventListener('click', function() {
-            if (!confirm('确定要清空所有缓存吗？清空后需要重新缓存才能离线使用。')) {
-                return;
-            }
-            
-            clearCacheBtn.disabled = true;
-            cacheStatus.textContent = '清空中...';
-            cacheStatus.className = 'cache-status';
-            
-            caches.keys().then(function(keys) {
-                return Promise.all(keys.map(function(key) {
-                    return caches.delete(key);
-                }));
-            }).then(function() {
-                clearCacheBtn.style.display = 'none';
-                clearCacheBtn.disabled = false;
-                cacheStatus.textContent = '缓存已清空，刷新页面后将重新自动缓存';
-                cacheStatus.className = 'cache-status success';
-                // 重置所有单独按钮状态
-                document.querySelectorAll('.mini-cache-btn').forEach(function(btn) {
-                    btn.innerHTML = '<span class="cache-icon">📥</span> 缓存';
-                    btn.classList.remove('cached');
-                });
-            }).catch(function(err) {
-                clearCacheBtn.disabled = false;
-                cacheStatus.textContent = '清空失败: ' + err.message;
-                cacheStatus.className = 'cache-status error';
-            });
-        });
-        
+
         // iOS 安装提示
         var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         

@@ -68,6 +68,16 @@
         .training-card {
             background: #fff;
             overflow: hidden;
+            border-bottom: 1px solid #e8e8e8;
+            transition: background-color 0.2s;
+        }
+        
+        .training-card:hover {
+            background: #fafbfc;
+        }
+        
+        .training-card:last-child {
+            border-bottom: none;
         }
         
         .training-card-wrapper {
@@ -78,15 +88,16 @@
         
         .training-link {
             display: block;
-            padding: 10px 12px;
+            padding: 12px 16px;
             text-decoration: none;
             color: inherit;
             flex: 1;
             min-width: 0;
+            transition: background-color 0.2s;
         }
         
         .training-link:active {
-            background: #f7fafc;
+            background: #f0f4f8;
         }
         
         .training-info {
@@ -109,7 +120,7 @@
         }
         
         .training-card .info {
-            color: #718096;
+            color: #a0aec0;
             font-size: 12px;
             white-space: nowrap;
             flex-shrink: 0;
@@ -117,9 +128,9 @@
         
         .training-title-row {
             display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            min-height: 2.8em;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 0;
         }
         
         .training-card .title {
@@ -133,20 +144,27 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             flex: 1;
+            min-width: 0;
         }
         
         .training-card .arrow {
-            color: #667eea;
-            font-size: 1.2em;
+            color: #cbd5e0;
+            font-size: 16px;
             flex-shrink: 0;
-            margin-top: 2px;
+            line-height: 1;
+            transition: color 0.2s, transform 0.2s;
+        }
+        
+        .training-card:hover .arrow {
+            color: #667eea;
+            transform: translateX(2px);
         }
         
         .training-cache {
-            padding: 10px 12px;
-            background: #fff;
+            padding: 12px 16px;
+            background: #fafbfc;
             display: none;
-            border-left: 1px solid #f0f0f0;
+            border-left: 1px solid #e8e8e8;
             flex-shrink: 0;
         }
         
@@ -207,15 +225,6 @@
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.8em;
-            }
-            
-            .trainings-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            
-            .content {
-                padding: 20px;
             }
         }
         
@@ -489,12 +498,13 @@
                             btn.querySelector('.cache-text').textContent = '刷新';
                             btn.classList.add('refresh');
                             btn.classList.remove('cached');
-                            if (progressSpan) progressSpan.textContent = '已缓存 ' + total + ' 个文件';
+                            if (progressSpan) progressSpan.textContent = '已缓存';
                         } else if (cachedCount > 0) {
                             // 部分缓存
                             btn.querySelector('.cache-icon').textContent = '📥';
                             btn.querySelector('.cache-text').textContent = '继续';
-                            if (progressSpan) progressSpan.textContent = '已缓存 ' + cachedCount + '/' + total;
+                            var percent = Math.round((cachedCount / total) * 100);
+                            if (progressSpan) progressSpan.textContent = percent + '%';
                         }
                     });
                 }).catch(function() {});
@@ -516,7 +526,7 @@
                 
                 btn.querySelector('.cache-icon').textContent = '⏳';
                 btn.querySelector('.cache-text').textContent = '0%';
-                if (progressSpan) progressSpan.textContent = '准备中...';
+                if (progressSpan) progressSpan.textContent = '';
                 
                 var startCache = function() {
                     caches.open(cacheKey).then(function(cache) {
@@ -537,9 +547,6 @@
                                 // 重定向后的响应仍然是 'basic' 类型
                                 if (response.ok && response.status >= 200 && response.status < 300) {
                                     successCount++;
-                                    if (progressSpan) {
-                                        progressSpan.textContent = '正在缓存 ' + successCount + '/' + total;
-                                    }
                                     // 克隆响应，因为响应体只能读取一次
                                     return cache.put(url, response.clone());
                                 } else if (response.type === 'opaqueredirect') {
@@ -550,18 +557,12 @@
                                 } else {
                                     // 失败的响应不缓存
                                     console.warn('跳过缓存失败的资源:', url, 'status:', response.status, 'type:', response.type);
-                                    if (progressSpan) {
-                                        progressSpan.textContent = '正在缓存 ' + successCount + '/' + total + ' (跳过 ' + (loaded - successCount) + ' 个失败)';
-                                    }
                                     return Promise.resolve();
                                 }
                             }).catch(function(err) {
                                 // 网络错误，跳过此文件
                                 loaded++;
                                 console.warn('无法获取资源:', url, err);
-                                if (progressSpan) {
-                                    progressSpan.textContent = '正在缓存 ' + successCount + '/' + total + ' (跳过 ' + (loaded - successCount) + ' 个失败)';
-                                }
                                 return Promise.resolve();
                             });
                             cachePromises.push(promise);
@@ -578,9 +579,9 @@
                         var failedCount = total - successCount;
                         if (progressSpan) {
                             if (failedCount > 0) {
-                                progressSpan.textContent = '已缓存 ' + successCount + ' 个文件 (失败 ' + failedCount + ' 个)';
+                                progressSpan.textContent = '失败 ' + failedCount;
                             } else {
-                                progressSpan.textContent = '已缓存 ' + successCount + ' 个文件';
+                                progressSpan.textContent = '已缓存';
                             }
                         }
                     }).catch(function(err) {
@@ -596,9 +597,16 @@
                 };
                 
                 if (isRefresh) {
-                    // 清除旧缓存后重新缓存
+                    // 先清除旧缓存
                     caches.delete(cacheKey).then(function() {
+                        // 清理完成，开始重新缓存
                         startCache();
+                    }).catch(function(err) {
+                        btn.querySelector('.cache-icon').textContent = '❌';
+                        btn.querySelector('.cache-text').textContent = '失败';
+                        btn.disabled = false;
+                        if (progressSpan) progressSpan.textContent = '失败';
+                        console.error('清理缓存失败:', err);
                     });
                 } else {
                     startCache();

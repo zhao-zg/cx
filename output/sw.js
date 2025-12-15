@@ -1,17 +1,33 @@
 // Service Worker for 主恢复训练合集
-const CACHE_VERSION = '20251215094918';
+const CACHE_VERSION = '20251215144310';
 const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
 
-// 所有需要缓存的资源
-const RESOURCES = [
+// 初始安装时只缓存核心资源（主页和各训练目录页）
+const CORE_RESOURCES = [
   './',
-  './index.html',
   './manifest.json',
 
-  './2025-06-感恩节/index.html',
+  './2025-06-感恩节/',
   './2025-06-感恩节/manifest.json',
   './2025-06-感恩节/js/speech.js',
   './2025-06-感恩节/js/font-control.js',
+
+  './2025-05-秋季/',
+  './2025-05-秋季/manifest.json',
+  './2025-05-秋季/js/speech.js',
+  './2025-05-秋季/js/font-control.js',
+
+  './2025-04-夏季/',
+  './2025-04-夏季/manifest.json',
+  './2025-04-夏季/js/speech.js',
+  './2025-04-夏季/js/font-control.js',
+
+];
+
+// 所有资源列表（用于手动缓存）
+const ALL_RESOURCES = [
+  ...CORE_RESOURCES,
+
 
   './2025-06-感恩节/1_cv.htm',
   './2025-06-感恩节/1_dg.htm',
@@ -62,10 +78,6 @@ const RESOURCES = [
   './2025-06-感恩节/6_h.htm',
 
 
-  './2025-05-秋季/index.html',
-  './2025-05-秋季/manifest.json',
-  './2025-05-秋季/js/speech.js',
-  './2025-05-秋季/js/font-control.js',
 
   './2025-05-秋季/1_cv.htm',
   './2025-05-秋季/1_dg.htm',
@@ -140,10 +152,6 @@ const RESOURCES = [
   './2025-05-秋季/9_h.htm',
 
 
-  './2025-04-夏季/index.html',
-  './2025-04-夏季/manifest.json',
-  './2025-04-夏季/js/speech.js',
-  './2025-04-夏季/js/font-control.js',
 
   './2025-04-夏季/1_cv.htm',
   './2025-04-夏季/1_dg.htm',
@@ -244,11 +252,11 @@ const RESOURCES = [
 
 ];
 
-// 安装事件 - 预缓存资源
+// 安装事件 - 只预缓存核心资源
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(RESOURCES);
+      return cache.addAll(CORE_RESOURCES);
     })
   );
   self.skipWaiting();
@@ -293,7 +301,7 @@ self.addEventListener('message', event => {
   if (event.data === 'cache-all') {
     event.waitUntil(
       caches.open(CACHE_NAME).then(cache => {
-        return cache.addAll(RESOURCES).then(() => {
+        return cache.addAll(ALL_RESOURCES).then(() => {
           self.clients.matchAll().then(clients => {
             clients.forEach(client => client.postMessage({ type: 'cached', success: true }));
           });
