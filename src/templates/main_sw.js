@@ -58,6 +58,31 @@ self.addEventListener('activate', event => {
 
 // 请求拦截 - 缓存优先策略（离线优先）
 self.addEventListener('fetch', event => {
+  // 如果请求设置了 cache: 'no-cache' 或 'reload'，跳过缓存直接请求网络
+  if (event.request.cache === 'no-cache' || event.request.cache === 'reload') {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        // 如果是成功的 GET 请求，更新缓存
+        if (response.ok && response.status >= 200 && response.status < 300 && event.request.method === 'GET') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, clone);
+          });
+        }
+        return response;
+      }).catch(err => {
+        // 网络失败，尝试返回缓存
+        return caches.match(event.request).then(cached => {
+          if (cached) {
+            return cached;
+          }
+          throw err;
+        });
+      })
+    );
+    return;
+  }
+  
   // 规范化 URL：将 index.html 请求重定向到目录
   let requestUrl = new URL(event.request.url);
   if (requestUrl.pathname.endsWith('/index.html')) {
