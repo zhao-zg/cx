@@ -221,13 +221,37 @@ python main.py
 - **Jinja2**: HTML模板引擎
 - **PyYAML**: 配置文件解析
 
-## 🚀 一键部署到 Cloudflare Pages
+## 🚀 部署到 Cloudflare Pages
 
-本项目支持一键自动部署到 Cloudflare Pages（免费、全球 CDN、自动 HTTPS）。
+本项目支持两种部署方式：
 
-### 快速开始
+### 方案 1：GitHub Actions 构建 + Cloudflare Pages 部署（推荐）⭐
 
-**首次设置（一键完成）：**
+**优势**：
+- ✅ **支持 .doc 和 .docx 格式**（GitHub Actions 可以安装 LibreOffice）
+- ✅ 自动化部署
+- ✅ 完全免费
+- ✅ 更灵活的构建环境
+
+**设置步骤**：
+1. 获取 Cloudflare API Token 和 Account ID
+2. 在 GitHub 仓库设置 Secrets
+3. 推送代码自动触发部署
+
+详细步骤查看 [GitHub-Actions部署说明.md](GitHub-Actions部署说明.md)
+
+### 方案 2：Cloudflare Pages 直接连接 GitHub
+
+**优势**：
+- ✅ 配置简单，无需 API Token
+- ✅ 构建速度快
+- ✅ 完全免费，无限带宽
+
+**限制**：
+- ⚠️ **只支持 .docx 格式**（无法安装 LibreOffice）
+- ⚠️ 如有 .doc 文件，需要先在本地转换为 .docx
+
+**快速设置**：
 ```bash
 # Windows CMD
 setup-cloudflare.bat
@@ -236,18 +260,10 @@ setup-cloudflare.bat
 .\setup-cloudflare.ps1
 ```
 
-脚本会自动推送代码并打开 Cloudflare 设置页面，按照提示配置即可！
-
-**或手动设置（3 步）：**
-1. 推送代码到 GitHub
-2. 在 Cloudflare 连接 GitHub 仓库
-3. 配置构建命令：
-   - 构建命令: `chmod +x build.sh && ./build.sh`
-   - 输出目录: `output`
-
 详细步骤查看 [QUICK_START.md](QUICK_START.md) 或 [一键部署说明.md](一键部署说明.md)
 
-**日常使用（一键部署）：**
+### 日常使用（一键部署）
+
 ```bash
 # Windows
 deploy.bat
@@ -256,26 +272,15 @@ deploy.bat
 .\deploy.ps1
 ```
 
-### 自动化流程
+### 方案对比
 
-每次推送到 GitHub 后，Cloudflare Pages 会自动：
-1. 检测到代码更新
-2. 安装依赖（首次或依赖变更时，会被缓存）
-3. 运行 `python main.py` 生成静态文件
-4. 部署 `output` 文件夹到全球 CDN
-5. 网站自动更新（首次 3-5 分钟，后续 10-30 秒）
-
-**优势**：
-- ✅ 无需配置 GitHub Actions
-- ✅ Cloudflare 直接连接 GitHub
-- ✅ 依赖缓存，构建速度快
-- ✅ 完全免费，无限带宽
-
-**重要提示**：
-- ⚠️ Cloudflare Pages 无法安装 LibreOffice
-- ✅ 请确保所有文档都是 `.docx` 格式（不要使用 `.doc`）
-
-详细优化说明查看 [Cloudflare构建优化说明.md](Cloudflare构建优化说明.md)
+| 特性 | GitHub Actions | Cloudflare 直接连接 |
+|------|---------------|-------------------|
+| 支持 .doc 格式 | ✅ 是 | ❌ 否 |
+| 支持 .docx 格式 | ✅ 是 | ✅ 是 |
+| 配置复杂度 | ⚙️ 需要 API Token | ✅ 简单 |
+| 构建时间 | 2-3 分钟 | 40-90 秒 |
+| 推荐场景 | 有 .doc 文件 | 只有 .docx 文件 |
 
 ## 许可证
 

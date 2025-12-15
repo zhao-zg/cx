@@ -1,0 +1,46 @@
+name: 构建并部署到 Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      
+      - name: 安装 LibreOffice
+        run: |
+          echo "📦 安装 LibreOffice..."
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libreoffice-writer libreoffice-core --no-install-recommends
+          echo "✓ LibreOffice 已安装"
+      
+      - name: 安装 Python 依赖
+        run: |
+          echo "📦 安装 Python 依赖..."
+          pip install -r requirements.txt
+      
+      - name: 生成静态文件
+        run: |
+          echo "🔨 生成静态文件..."
+          python main.py
+      
+      - name: 部署到 Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: cx-training
+          directory: output
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
