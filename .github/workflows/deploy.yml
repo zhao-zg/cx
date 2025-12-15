@@ -41,6 +41,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: cx-training
+          projectName: cx-training  # 修改为你在 Cloudflare 创建的项目名称
           directory: output
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

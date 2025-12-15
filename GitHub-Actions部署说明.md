@@ -38,10 +38,19 @@
 1. 进入 **Workers & Pages**
 2. 点击 **Create application** → **Pages**
 3. 选择 **Direct Upload**（不是 Connect to Git）
-4. 项目名称：`cx-training`（或其他名称，需要与 workflow 中的 `projectName` 一致）
+4. 项目名称：输入你想要的名称（例如：`cx-training`）
+   - ⚠️ **记住这个名称**，后面需要修改 workflow 文件
 5. 点击 **Create project**
+6. 可以关闭页面，不需要上传文件（GitHub Actions 会自动上传）
 
-### 步骤 4: 配置 GitHub Secrets
+### 步骤 4: 修改 Workflow 配置
+
+1. 在你的仓库中编辑 `.github/workflows/deploy.yml`
+2. 找到 `projectName: cx-training` 这一行
+3. 将 `cx-training` 改为你在步骤 3 创建的项目名称
+4. 保存并提交
+
+### 步骤 5: 配置 GitHub Secrets
 
 1. 进入你的 GitHub 仓库
 2. 点击 **Settings** → **Secrets and variables** → **Actions**
@@ -59,13 +68,15 @@
    Value: <你在步骤2获取的 Account ID>
    ```
 
-### 步骤 5: 推送代码触发部署
+### 步骤 6: 推送代码触发部署
 
 ```bash
 git add .
 git commit -m "配置 GitHub Actions 部署"
 git push origin main
 ```
+
+推送后，GitHub Actions 会自动运行并部署到 Cloudflare Pages。
 
 ## 📊 工作流程
 
