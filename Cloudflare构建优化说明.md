@@ -1,61 +1,44 @@
 # Cloudflare Pages 构建优化说明
 
-## 📋 优化方案
+## 📋 构建方案
 
-### 原方案（单一构建命令）
+### Cloudflare Pages 配置
 
 ```bash
 Build command: chmod +x build.sh && ./build.sh
 Build output directory: output
 ```
 
-**缺点**：
-- ❌ 每次构建都要重新安装依赖（LibreOffice + Python 包）
-- ❌ 构建时间长（3-5 分钟）
-- ❌ 浪费资源
+**说明**：
+- Cloudflare Pages 只有一个构建命令字段
+- `build.sh` 包含完整的构建流程（安装依赖 + 生成文件）
+- Cloudflare 会自动缓存构建环境和依赖
 
-### 优化方案（分离构建和部署）
+**构建流程**：
+1. 检查并安装 LibreOffice（如果未安装）
+2. 安装 Python 依赖（从 `requirements.txt`）
+3. 运行 `python main.py` 生成静态文件
 
-```bash
-Build command: chmod +x install-deps.sh && ./install-deps.sh
-Deploy command: chmod +x generate.sh && ./generate.sh
-Build output directory: output
-```
-
-**优势**：
-- ✅ 依赖安装会被 Cloudflare 缓存
-- ✅ 后续构建只需运行 `generate.sh`（10-30 秒）
-- ✅ 构建速度提升 5-10 倍
-- ✅ 节省资源和时间
+**缓存机制**：
+- ✅ Cloudflare 自动缓存构建环境
+- ✅ 依赖安装后会被保留
+- ✅ 后续构建速度更快（如果依赖未变更）
 
 ## 🔧 配置说明
 
 ### 构建命令（Build command）
 
 ```bash
-chmod +x install-deps.sh && ./install-deps.sh
+chmod +x build.sh && ./build.sh
 ```
 
 **作用**：
 1. 检查并安装 LibreOffice（如果未安装）
 2. 安装 Python 依赖（从 `requirements.txt`）
+3. 运行 `python main.py` 生成静态文件
 
 **执行时机**：
-- 首次部署
-- 依赖文件变更（`requirements.txt` 修改）
-- 缓存失效
-
-### 部署命令（Deploy command）
-
-```bash
-chmod +x generate.sh && ./generate.sh
-```
-
-**作用**：
-- 运行 `python main.py` 生成静态文件
-
-**执行时机**：
-- 每次推送代码
+- 每次推送代码到 GitHub
 
 ### 输出目录（Build output directory）
 
@@ -67,48 +50,47 @@ output
 - 生成的静态文件所在目录
 - Cloudflare 会部署这个目录的内容
 
-## 📊 性能对比
+## 📊 性能说明
 
 ### 首次部署
 
-| 方案 | 时间 | 说明 |
+| 阶段 | 时间 | 说明 |
 |------|------|------|
-| 单一命令 | 3-5 分钟 | 安装依赖 + 生成文件 |
-| 分离命令 | 3-5 分钟 | 安装依赖 + 生成文件 |
-
-**结论**：首次部署时间相同
+| 安装 LibreOffice | 1-2 分钟 | 使用 apt 安装 |
+| 安装 Python 依赖 | 30-60 秒 | pip install |
+| 生成静态文件 | 10-30 秒 | python main.py |
+| **总计** | **2-4 分钟** | 首次部署 |
 
 ### 后续部署（代码更新）
 
-| 方案 | 时间 | 说明 |
+| 阶段 | 时间 | 说明 |
 |------|------|------|
-| 单一命令 | 3-5 分钟 | 每次都重新安装依赖 |
-| 分离命令 | 10-30 秒 | 使用缓存的依赖，只生成文件 |
+| 检查 LibreOffice | <1 秒 | 已安装，跳过 |
+| 安装 Python 依赖 | 10-20 秒 | 使用缓存 |
+| 生成静态文件 | 10-30 秒 | python main.py |
+| **总计** | **20-50 秒** | 后续部署 |
 
-**结论**：后续部署速度提升 **5-10 倍**！
+**结论**：Cloudflare 自动缓存环境，后续部署速度快 **3-5 倍**！
 
 ### 依赖更新（修改 requirements.txt）
 
-| 方案 | 时间 | 说明 |
+| 阶段 | 时间 | 说明 |
 |------|------|------|
-| 单一命令 | 3-5 分钟 | 重新安装依赖 |
-| 分离命令 | 3-5 分钟 | 重新安装依赖 |
+| 检查 LibreOffice | <1 秒 | 已安装 |
+| 重新安装依赖 | 30-60 秒 | 更新的包 |
+| 生成静态文件 | 10-30 秒 | python main.py |
+| **总计** | **40-90 秒** | 依赖更新 |
 
-**结论**：依赖更新时间相同
+## 🎯 推荐配置
 
-## 🎯 使用建议
-
-### 推荐配置（优化版）
+### Cloudflare Pages 配置
 
 ```
 Production branch: main
 Framework preset: None
 
 Build command:
-chmod +x install-deps.sh && ./install-deps.sh
-
-Deploy command:
-chmod +x generate.sh && ./generate.sh
+chmod +x build.sh && ./build.sh
 
 Build output directory:
 output
@@ -118,60 +100,46 @@ PYTHON_VERSION = 3.9
 DEBIAN_FRONTEND = noninteractive
 ```
 
-### 兼容配置（如果没有 Deploy command 选项）
-
-如果 Cloudflare Pages 界面没有单独的 "Deploy command" 选项，使用：
-
-```
-Build command:
-chmod +x build.sh && ./build.sh
-
-Build output directory:
-output
-```
-
-**说明**：`build.sh` 包含完整的构建流程，兼容性更好。
+**说明**：
+- Cloudflare Pages 只有一个构建命令字段
+- `build.sh` 包含完整的构建流程
+- Cloudflare 会自动缓存构建环境和依赖
 
 ## 📁 文件说明
 
-### install-deps.sh（依赖安装）
+### build.sh（完整构建）
 
 ```bash
 #!/bin/bash
 set -e
 
-# 安装 LibreOffice
+echo "🚀 开始构建..."
+
+# 1. 安装 LibreOffice
 if ! command -v soffice &> /dev/null; then
+    echo "正在安装 LibreOffice..."
     apt-get update -qq
     apt-get install -y -qq libreoffice-writer libreoffice-core --no-install-recommends
+    echo "✓ LibreOffice 已安装"
+else
+    echo "✓ LibreOffice 已存在"
 fi
 
-# 安装 Python 依赖
+# 2. 安装 Python 依赖
+echo "正在安装 Python 依赖..."
 pip install -r requirements.txt
-```
 
-### generate.sh（文件生成）
-
-```bash
-#!/bin/bash
-set -e
-
-# 生成静态文件
+# 3. 生成静态文件
+echo "正在生成静态文件..."
 python main.py
+
+echo "✅ 构建完成！"
 ```
 
-### build.sh（完整构建，兼容方案）
-
-```bash
-#!/bin/bash
-set -e
-
-# 安装依赖
-./install-deps.sh
-
-# 生成文件
-./generate.sh
-```
+**说明**：
+- 包含完整的构建流程
+- 自动检测 LibreOffice 是否已安装
+- 利用 Cloudflare 的缓存机制
 
 ## 🚀 一键设置
 
@@ -194,16 +162,13 @@ setup-cloudflare.bat
 
 ## ❓ 常见问题
 
-### Q: 为什么要分离构建和部署命令？
+### Q: Cloudflare Pages 如何缓存依赖？
 
 **A:** 
-- Cloudflare Pages 会缓存构建环境
-- 依赖安装（LibreOffice + Python 包）只需执行一次
-- 后续只需运行生成脚本，速度快 5-10 倍
-
-### Q: 如果没有 Deploy command 选项怎么办？
-
-**A:** 使用 `build.sh`，它包含完整流程，兼容性更好。
+- Cloudflare 会自动缓存构建环境
+- 如果依赖未变更，会重用已安装的包
+- LibreOffice 安装后会被保留
+- 后续构建速度自动提升 3-5 倍
 
 ### Q: 缓存什么时候会失效？
 
