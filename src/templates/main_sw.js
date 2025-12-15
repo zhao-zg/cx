@@ -5,10 +5,9 @@ const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
 // 初始安装时只缓存核心资源（主页和各训练目录页）
 const CORE_RESOURCES = [
   './',
-  './index.html',
   './manifest.json',
 {% for training in trainings %}
-  './{{ training.path }}/index.html',
+  './{{ training.path }}/',
   './{{ training.path }}/manifest.json',
   './{{ training.path }}/js/speech.js',
   './{{ training.path }}/js/font-control.js',

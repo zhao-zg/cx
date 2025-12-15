@@ -324,7 +324,7 @@
                 {% for training in trainings %}
                 <div class="training-card">
                     <div class="training-card-wrapper">
-                        <a href="{{ training.path }}/index.html" class="training-link">
+                        <a href="{{ training.path }}/" class="training-link">
                             <div class="training-info">
                                 <div class="training-header">
                                     <div class="year-season">{{ training.year }}年{{ training.season }}</div>
@@ -450,7 +450,7 @@
         // 生成单个训练的资源列表
         function getTrainingResources(path, chapters) {
             var resources = [
-                './' + path + '/index.html',
+                './' + path + '/',
                 './' + path + '/js/speech.js',
                 './' + path + '/js/font-control.js'
             ];
