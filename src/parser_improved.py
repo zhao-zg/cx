@@ -262,7 +262,7 @@ class ImprovedParser:
         """
         解析纲目文档（经文.docx/.doc）- 提取大纲结构和职事信息摘录
         """
-        print(f"  解析纲目结构（{os.path.basename(docx_path)}）...")
+        # print(f"  解析纲目结构（{os.path.basename(docx_path)}）...")
         doc = load_document(docx_path)
         chapters = []
         self.reset_state()
@@ -574,7 +574,7 @@ class ImprovedParser:
         - 详细的正文说明
         - 听抄的实际内容
         """
-        print(f"  解析详细内容（{os.path.basename(docx_path)}）...")
+        # print(f"  解析详细内容（{os.path.basename(docx_path)}）...")
         doc = load_document(docx_path)
         current_chapter_num = 0
         self.reset_state()
@@ -705,7 +705,7 @@ class ImprovedParser:
         
         支持.doc和.docx格式，支持基于样式和基于文本的解析
         """
-        print(f"  解析晨兴内容（{os.path.basename(docx_path)}）...")
+        # print(f"  解析晨兴内容（{os.path.basename(docx_path)}）...")
         
         # 检查文件格式
         is_doc_format = docx_path.endswith('.doc') and not docx_path.endswith('.docx')
