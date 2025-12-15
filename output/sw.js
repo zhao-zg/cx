@@ -1,5 +1,5 @@
 // Service Worker for 主恢复训练合集
-const CACHE_VERSION = '20251215145011';
+const CACHE_VERSION = '20251215154510';
 const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
 
 // 初始安装时只缓存核心资源（主页和各训练目录页）
@@ -293,13 +293,19 @@ self.addEventListener('fetch', event => {
           return cached;
         }
         return fetch(normalizedRequest).then(response => {
-          if (response.ok && normalizedRequest.method === 'GET') {
+          // 只缓存成功的响应（200-299）
+          if (response.ok && response.status >= 200 && response.status < 300 && normalizedRequest.method === 'GET') {
             const clone = response.clone();
             caches.open(CACHE_NAME).then(cache => {
               cache.put(normalizedRequest, clone);
             });
           }
           return response;
+        }).catch(err => {
+          // 网络错误时，如果有缓存则返回缓存，否则返回主页
+          return caches.match(normalizedRequest).then(cachedResponse => {
+            return cachedResponse || caches.match('./');
+          });
         });
       }).catch(() => {
         return caches.match('./');
@@ -314,13 +320,19 @@ self.addEventListener('fetch', event => {
         return cached;
       }
       return fetch(event.request).then(response => {
-        if (response.ok && event.request.method === 'GET') {
+        // 只缓存成功的响应（200-299）
+        if (response.ok && response.status >= 200 && response.status < 300 && event.request.method === 'GET') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => {
             cache.put(event.request, clone);
           });
         }
         return response;
+      }).catch(err => {
+        // 网络错误时，如果有缓存则返回缓存，否则返回主页
+        return caches.match(event.request).then(cachedResponse => {
+          return cachedResponse || caches.match('./');
+        });
       });
     }).catch(() => {
       return caches.match('./');

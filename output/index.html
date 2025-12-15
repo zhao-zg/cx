@@ -415,7 +415,7 @@
         <div class="footer">
             <p>本站内容仅供主恢复圣徒交通使用</p>
             <p style="margin-top: 10px; font-size: 0.9em;">
-                生成时间: 2025年12月15日 14:50
+                生成时间: 2025年12月15日 15:45
             </p>
         </div>
     </div>
@@ -643,17 +643,102 @@
                 };
                 
                 if (isRefresh) {
-                    // 先清除旧缓存
-                    caches.delete(cacheKey).then(function() {
-                        // 清理完成，开始重新缓存
-                        startCache();
-                    }).catch(function(err) {
-                        btn.querySelector('.cache-icon').textContent = '❌';
-                        btn.querySelector('.cache-text').textContent = '失败';
-                        btn.disabled = false;
-                        if (progressSpan) progressSpan.textContent = '失败';
-                        console.error('清理缓存失败:', err);
-                    });
+                    // 使用临时缓存，成功后再替换旧缓存
+                    var tempCacheKey = cacheKey + '-temp';
+                    var originalStartCache = startCache;
+                    
+                    startCache = function() {
+                        // 先缓存到临时位置
+                        caches.open(tempCacheKey).then(function(cache) {
+                            var cachePromises = [];
+                            var successCount = 0;
+                            resources.forEach(function(url) {
+                                var promise = fetch(url, {
+                                    redirect: 'follow',
+                                    cache: 'no-cache'
+                                }).then(function(response) {
+                                    loaded++;
+                                    var percent = Math.round((loaded / total) * 100);
+                                    btn.querySelector('.cache-text').textContent = percent + '%';
+                                    
+                                    if (response.ok && response.status >= 200 && response.status < 300) {
+                                        successCount++;
+                                        return cache.put(url, response.clone());
+                                    } else if (response.type === 'opaqueredirect') {
+                                        console.warn('遇到不透明重定向:', url);
+                                        loaded++;
+                                        return Promise.resolve();
+                                    } else {
+                                        console.warn('跳过缓存失败的资源:', url, 'status:', response.status, 'type:', response.type);
+                                        return Promise.resolve();
+                                    }
+                                }).catch(function(err) {
+                                    loaded++;
+                                    console.warn('无法获取资源:', url, err);
+                                    return Promise.resolve();
+                                });
+                                cachePromises.push(promise);
+                            });
+                            return Promise.all(cachePromises).then(function() {
+                                return successCount;
+                            });
+                        }).then(function(successCount) {
+                            // 检查是否有足够的成功缓存（至少80%）
+                            var successRate = successCount / total;
+                            if (successRate >= 0.8) {
+                                // 成功率足够，替换旧缓存
+                                return caches.delete(cacheKey).then(function() {
+                                    return caches.open(cacheKey).then(function(newCache) {
+                                        return caches.open(tempCacheKey).then(function(tempCache) {
+                                            return tempCache.keys().then(function(requests) {
+                                                var copyPromises = requests.map(function(request) {
+                                                    return tempCache.match(request).then(function(response) {
+                                                        return newCache.put(request, response);
+                                                    });
+                                                });
+                                                return Promise.all(copyPromises);
+                                            });
+                                        });
+                                    });
+                                }).then(function() {
+                                    // 清理临时缓存
+                                    return caches.delete(tempCacheKey);
+                                }).then(function() {
+                                    btn.querySelector('.cache-icon').textContent = '🔄';
+                                    btn.querySelector('.cache-text').textContent = '刷新';
+                                    btn.classList.add('refresh');
+                                    btn.classList.remove('cached');
+                                    btn.disabled = false;
+                                    var failedCount = total - successCount;
+                                    if (progressSpan) {
+                                        if (failedCount > 0) {
+                                            progressSpan.textContent = '失败 ' + failedCount;
+                                        } else {
+                                            progressSpan.textContent = '已缓存';
+                                        }
+                                    }
+                                });
+                            } else {
+                                // 成功率不足，保留旧缓存，清理临时缓存
+                                return caches.delete(tempCacheKey).then(function() {
+                                    throw new Error('缓存成功率不足 (' + Math.round(successRate * 100) + '%)，已保留旧缓存');
+                                });
+                            }
+                        }).catch(function(err) {
+                            // 失败时清理临时缓存，保留旧缓存
+                            caches.delete(tempCacheKey);
+                            btn.querySelector('.cache-icon').textContent = '❌';
+                            btn.querySelector('.cache-text').textContent = '失败';
+                            btn.disabled = false;
+                            if (progressSpan) progressSpan.textContent = '已保留旧缓存';
+                            setTimeout(function() {
+                                checkCacheStatus();
+                            }, 2000);
+                            console.error('刷新失败:', err);
+                        });
+                    };
+                    
+                    startCache();
                 } else {
                     startCache();
                 }

@@ -52,7 +52,7 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// 请求拦截 - 缓存优先策略
+// 请求拦截 - 缓存优先策略（离线优先）
 self.addEventListener('fetch', event => {
   // 规范化 URL：将 index.html 请求重定向到目录
   let requestUrl = new URL(event.request.url);
@@ -65,13 +65,17 @@ self.addEventListener('fetch', event => {
       credentials: event.request.credentials,
       redirect: event.request.redirect
     });
+    
     event.respondWith(
+      // 优先从缓存返回
       caches.match(normalizedRequest).then(cached => {
+        // 如果有缓存，立即返回
         if (cached) {
           return cached;
         }
-        return fetch(normalizedRequest).then(response => {
-          // 只缓存成功的响应（200-299）
+        
+        // 没有缓存时，尝试网络请求（带超时）
+        return fetchWithTimeout(normalizedRequest, 5000).then(response => {
           if (response.ok && response.status >= 200 && response.status < 300 && normalizedRequest.method === 'GET') {
             const clone = response.clone();
             caches.open(CACHE_NAME).then(cache => {
@@ -80,25 +84,31 @@ self.addEventListener('fetch', event => {
           }
           return response;
         }).catch(err => {
-          // 网络错误时，如果有缓存则返回缓存，否则返回主页
-          return caches.match(normalizedRequest).then(cachedResponse => {
-            return cachedResponse || caches.match('./');
+          // 网络失败，返回离线页面提示
+          console.log('离线或网络超时:', normalizedRequest.url);
+          return new Response('离线模式：请先缓存此页面', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers({
+              'Content-Type': 'text/html; charset=utf-8'
+            })
           });
         });
-      }).catch(() => {
-        return caches.match('./');
       })
     );
     return;
   }
   
   event.respondWith(
+    // 优先从缓存返回
     caches.match(event.request).then(cached => {
+      // 如果有缓存，立即返回
       if (cached) {
         return cached;
       }
-      return fetch(event.request).then(response => {
-        // 只缓存成功的响应（200-299）
+      
+      // 没有缓存时，尝试网络请求（带超时）
+      return fetchWithTimeout(event.request, 5000).then(response => {
         if (response.ok && response.status >= 200 && response.status < 300 && event.request.method === 'GET') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => {
@@ -107,16 +117,29 @@ self.addEventListener('fetch', event => {
         }
         return response;
       }).catch(err => {
-        // 网络错误时，如果有缓存则返回缓存，否则返回主页
-        return caches.match(event.request).then(cachedResponse => {
-          return cachedResponse || caches.match('./');
+        // 网络失败，返回离线页面提示
+        console.log('离线或网络超时:', event.request.url);
+        return new Response('离线模式：请先缓存此页面', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({
+            'Content-Type': 'text/html; charset=utf-8'
+          })
         });
       });
-    }).catch(() => {
-      return caches.match('./');
     })
   );
 });
+
+// 带超时的 fetch 函数
+function fetchWithTimeout(request, timeout) {
+  return Promise.race([
+    fetch(request),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('网络请求超时')), timeout)
+    )
+  ]);
+}
 
 // 接收消息 - 手动缓存和跳过等待
 self.addEventListener('message', event => {
