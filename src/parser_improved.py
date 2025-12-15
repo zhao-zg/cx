@@ -1435,7 +1435,6 @@ class ImprovedParser:
                                     print(f"      Content {i}: {content.level} - {content.title[:50]}")
                         elif last_outline_lines:
                             revival.outline = self._parse_outline_content(last_outline_lines)
-            else:
             
             # 特别处理第一章
             if chapter_idx == 1:
