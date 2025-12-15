@@ -151,9 +151,6 @@ class HTMLGenerator:
         training_dict = training_data.to_dict()
         chapter_dict = chapter.to_dict()
         
-        # 生成大纲页（_dg.htm）- 默认全部收起
-        self._generate_outline_page(num, chapter_dict, training_dict, collapsed=True, filename_suffix='dg', page_name='大纲')
-        
         # 生成纲目页（_cv.htm）- 默认全部展开（经文不展开）
         self._generate_outline_page(num, chapter_dict, training_dict, collapsed=False, filename_suffix='cv', page_name='纲目')
         

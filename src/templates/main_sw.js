@@ -23,7 +23,6 @@ const ALL_RESOURCES = [
 {% for training in trainings %}
 {% for i in range(1, training.chapter_count + 1) %}
   BASE_URL + '{{ training.path }}/{{ i }}_cv.htm',
-  BASE_URL + '{{ training.path }}/{{ i }}_dg.htm',
   BASE_URL + '{{ training.path }}/{{ i }}_cx.htm',
   BASE_URL + '{{ training.path }}/{{ i }}_sg.htm',
   BASE_URL + '{{ training.path }}/{{ i }}_ts.htm',
