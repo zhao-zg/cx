@@ -66,15 +66,19 @@
         .training-card {
             background: #fff;
             border-radius: 8px;
-            padding: 20px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
             border-left: 4px solid #667eea;
-            text-decoration: none;
-            color: inherit;
-            display: block;
+            overflow: hidden;
         }
         
-        .training-card:active {
+        .training-link {
+            display: block;
+            padding: 16px 20px;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .training-link:active {
             background: #f7fafc;
         }
         
@@ -82,34 +86,56 @@
             font-size: 14px;
             color: #667eea;
             font-weight: 600;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
         
         .training-card .title {
-            font-size: 17px;
+            font-size: 16px;
             color: #2d3748;
-            margin-bottom: 12px;
-            line-height: 1.6;
+            margin-bottom: 8px;
+            line-height: 1.5;
             font-weight: 500;
         }
         
         .training-card .info {
             color: #718096;
             font-size: 14px;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #e2e8f0;
         }
         
         .training-card .arrow {
             float: right;
             color: #667eea;
-            font-size: 1.5em;
-            transition: transform 0.3s ease;
+            font-size: 1.2em;
         }
         
-        .training-card:hover .arrow {
-            transform: translateX(5px);
+        .training-cache {
+            padding: 10px 16px;
+            background: #f8f9fa;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .mini-cache-btn {
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            min-height: 36px;
+        }
+        
+        .mini-cache-btn:active {
+            transform: scale(0.97);
+        }
+        
+        .mini-cache-btn:disabled {
+            opacity: 0.6;
+        }
+        
+        .mini-cache-btn.cached {
+            background: #48bb78;
         }
         
         .footer {
@@ -211,14 +237,18 @@
         <div class="content">
             <div class="trainings-grid">
                 {% for training in trainings %}
-                <a href="{{ training.path }}/index.html" class="training-card">
-                    <div class="year-season">{{ training.year }}年{{ training.season }}</div>
-                    <div class="title">{{ training.title }}</div>
-                    <div class="info">
-                        📖 共 {{ training.chapter_count }} 篇
-                        <span class="arrow">→</span>
+                <div class="training-card">
+                    <a href="{{ training.path }}/index.html" class="training-link">
+                        <div class="year-season">{{ training.year }}年{{ training.season }}</div>
+                        <div class="title">{{ training.title }}</div>
+                        <div class="info">📖 共 {{ training.chapter_count }} 篇 <span class="arrow">→</span></div>
+                    </a>
+                    <div class="training-cache">
+                        <button class="mini-cache-btn" data-training="{{ training.path }}" data-chapters="{{ training.chapter_count }}">
+                            <span class="cache-icon">📥</span> 缓存
+                        </button>
                     </div>
-                </a>
+                </div>
                 {% endfor %}
             </div>
         </div>
@@ -274,11 +304,70 @@
         
         if (!('serviceWorker' in navigator)) {
             cacheSection.style.display = 'none';
+            document.querySelectorAll('.training-cache').forEach(function(el) {
+                el.style.display = 'none';
+            });
             return;
         }
         
+        // 生成单个训练的资源列表
+        function getTrainingResources(path, chapters) {
+            var resources = [
+                './' + path + '/index.html',
+                './' + path + '/js/speech.js',
+                './' + path + '/js/font-control.js'
+            ];
+            for (var i = 1; i <= chapters; i++) {
+                resources.push('./' + path + '/' + i + '_cv.htm');
+                resources.push('./' + path + '/' + i + '_dg.htm');
+                resources.push('./' + path + '/' + i + '_cx.htm');
+                resources.push('./' + path + '/' + i + '_sg.htm');
+                resources.push('./' + path + '/' + i + '_ts.htm');
+                resources.push('./' + path + '/' + i + '_zs.htm');
+                resources.push('./' + path + '/' + i + '_h.htm');
+            }
+            return resources;
+        }
+        
+        // 单个训练缓存按钮
+        document.querySelectorAll('.mini-cache-btn').forEach(function(btn) {
+            var path = btn.getAttribute('data-training');
+            var chapters = parseInt(btn.getAttribute('data-chapters'), 10);
+            var cacheKey = 'cx-' + path;
+            
+            // 检查是否已缓存
+            caches.has(cacheKey).then(function(has) {
+                if (has) {
+                    btn.innerHTML = '<span class="cache-icon">✓</span> 已缓存';
+                    btn.classList.add('cached');
+                }
+            });
+            
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                btn.disabled = true;
+                btn.innerHTML = '<span class="cache-icon">⏳</span> 缓存中...';
+                
+                var resources = getTrainingResources(path, chapters);
+                
+                caches.open(cacheKey).then(function(cache) {
+                    return cache.addAll(resources);
+                }).then(function() {
+                    btn.innerHTML = '<span class="cache-icon">✓</span> 已缓存';
+                    btn.classList.add('cached');
+                    btn.disabled = false;
+                }).catch(function(err) {
+                    btn.innerHTML = '<span class="cache-icon">❌</span> 失败';
+                    btn.disabled = false;
+                    console.error('缓存失败:', err);
+                });
+            });
+        });
+        
         function showCachedState() {
-            cacheBtn.innerHTML = '<span class="cache-icon">🔄</span><span class="cache-text">重新缓存</span>';
+            cacheBtn.innerHTML = '<span class="cache-icon">🔄</span><span class="cache-text">重新缓存全部</span>';
             cacheBtn.classList.add('cached');
             clearCacheBtn.style.display = 'inline-flex';
         }
@@ -302,8 +391,13 @@
                 cacheBtn.disabled = false;
                 if (event.data.success) {
                     showCachedState();
-                    cacheStatus.textContent = '缓存完成，可离线使用';
+                    cacheStatus.textContent = '全部缓存完成';
                     cacheStatus.className = 'cache-status success';
+                    // 更新所有单独按钮状态
+                    document.querySelectorAll('.mini-cache-btn').forEach(function(btn) {
+                        btn.innerHTML = '<span class="cache-icon">✓</span> 已缓存';
+                        btn.classList.add('cached');
+                    });
                 } else {
                     cacheStatus.textContent = '缓存失败: ' + (event.data.error || '未知错误');
                     cacheStatus.className = 'cache-status error';
@@ -311,7 +405,7 @@
             }
         });
         
-        // 点击缓存按钮
+        // 点击缓存全部按钮
         cacheBtn.addEventListener('click', function() {
             cacheBtn.disabled = true;
             cacheBtn.innerHTML = '<span class="cache-icon">⏳</span><span class="cache-text">缓存中...</span>';
@@ -341,6 +435,11 @@
                 clearCacheBtn.disabled = false;
                 cacheStatus.textContent = '缓存已清空';
                 cacheStatus.className = 'cache-status success';
+                // 重置所有单独按钮状态
+                document.querySelectorAll('.mini-cache-btn').forEach(function(btn) {
+                    btn.innerHTML = '<span class="cache-icon">📥</span> 缓存';
+                    btn.classList.remove('cached');
+                });
             }).catch(function(err) {
                 clearCacheBtn.disabled = false;
                 cacheStatus.textContent = '清空失败: ' + err.message;

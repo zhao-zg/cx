@@ -124,9 +124,6 @@ class HTMLGenerator:
         # 生成首页
         self.generate_index(training_data)
         
-        # 生成 PWA 文件
-        self._generate_pwa_files(training_data)
-        
         # 为每个篇章生成页面
         for chapter in training_data.chapters:
             self.generate_chapter_pages(chapter, training_data)
@@ -256,21 +253,3 @@ class HTMLGenerator:
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
-    
-    def _generate_pwa_files(self, training_data: TrainingData):
-        """生成 PWA 相关文件（manifest.json 和 sw.js）"""
-        training_dict = training_data.to_dict()
-        
-        # 生成 manifest.json
-        manifest_template = self.env.get_template('manifest.json')
-        manifest_content = manifest_template.render(training=training_dict)
-        manifest_path = os.path.join(self.output_dir, 'manifest.json')
-        with open(manifest_path, 'w', encoding='utf-8') as f:
-            f.write(manifest_content)
-        
-        # 生成 sw.js
-        sw_template = self.env.get_template('sw.js')
-        sw_content = sw_template.render(training=training_dict)
-        sw_path = os.path.join(self.output_dir, 'sw.js')
-        with open(sw_path, 'w', encoding='utf-8') as f:
-            f.write(sw_content)

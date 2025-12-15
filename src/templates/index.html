@@ -13,22 +13,7 @@
         {% endfor %}
     </div>
     
-    <!-- 安装和缓存按钮 -->
-    <div class="cache-section" id="cacheSection">
-        <button class="cache-btn install-btn" id="installBtn" style="display:none;">
-            <span class="cache-icon">📲</span>
-            <span class="cache-text">安装到桌面</span>
-        </button>
-        <button class="cache-btn" id="cacheBtn">
-            <span class="cache-icon">📥</span>
-            <span class="cache-text">缓存离线使用</span>
-        </button>
-        <button class="cache-btn clear-btn" id="clearCacheBtn" style="display:none;">
-            <span class="cache-icon">🗑</span>
-            <span class="cache-text">清空缓存</span>
-        </button>
-        <div class="cache-status" id="cacheStatus"></div>
-    </div>
+
 </div>
 
 <style>
@@ -101,82 +86,10 @@
     }
 }
 
-/* 缓存按钮 */
-.cache-section {
-    margin-top: 20px;
-    text-align: center;
-}
 
-.cache-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    min-height: 44px;
-    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
-}
-
-.cache-btn:active {
-    transform: scale(0.97);
-}
-
-.cache-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.cache-btn.cached {
-    background: #48bb78;
-}
-
-.clear-btn {
-    background: #e53e3e;
-    margin-left: 10px;
-}
-
-.install-btn {
-    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
-    margin-right: 10px;
-}
-
-.cache-icon {
-    font-size: 18px;
-}
-
-.cache-status {
-    margin-top: 10px;
-    font-size: 14px;
-    color: #666;
-}
-
-.cache-status.success {
-    color: #48bb78;
-}
-
-.cache-status.error {
-    color: #e53e3e;
-}
 </style>
 
 <script>
-// PWA 安装功能
-var deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', function(e) {
-    e.preventDefault();
-    deferredPrompt = e;
-    var installBtn = document.getElementById('installBtn');
-    if (installBtn) {
-        installBtn.style.display = 'inline-flex';
-    }
-});
-
 // 根据星期几决定跳转目标
 document.addEventListener('DOMContentLoaded', function() {
     var dayOfWeek = new Date().getDay(); // 0=周日, 1=周一, ..., 6=周六
@@ -194,119 +107,6 @@ document.addEventListener('DOMContentLoaded', function() {
             item.href = chapterNum + '_cx.htm#' + dayAnchors[dayOfWeek];
         }
     });
-    
-    // 缓存功能
-    var cacheBtn = document.getElementById('cacheBtn');
-    var cacheStatus = document.getElementById('cacheStatus');
-    var cacheSection = document.getElementById('cacheSection');
-    
-    if (!('serviceWorker' in navigator)) {
-        cacheSection.style.display = 'none';
-        return;
-    }
-    
-    var clearCacheBtn = document.getElementById('clearCacheBtn');
-    
-    function showCachedState() {
-        cacheBtn.innerHTML = '<span class="cache-icon">🔄</span><span class="cache-text">重新缓存</span>';
-        cacheBtn.classList.add('cached');
-        clearCacheBtn.style.display = 'inline-flex';
-    }
-    
-    function showUncachedState() {
-        cacheBtn.innerHTML = '<span class="cache-icon">📥</span><span class="cache-text">缓存离线使用</span>';
-        cacheBtn.classList.remove('cached');
-        clearCacheBtn.style.display = 'none';
-    }
-    
-    // 检查是否已缓存
-    caches.keys().then(function(keys) {
-        if (keys.length > 0) {
-            showCachedState();
-        }
-    });
-    
-    // 监听 SW 消息
-    navigator.serviceWorker.addEventListener('message', function(event) {
-        if (event.data.type === 'cached') {
-            cacheBtn.disabled = false;
-            if (event.data.success) {
-                showCachedState();
-                cacheStatus.textContent = '缓存完成，可离线使用';
-                cacheStatus.className = 'cache-status success';
-            } else {
-                cacheStatus.textContent = '缓存失败: ' + (event.data.error || '未知错误');
-                cacheStatus.className = 'cache-status error';
-            }
-        }
-    });
-    
-    // 点击缓存按钮
-    cacheBtn.addEventListener('click', function() {
-        cacheBtn.disabled = true;
-        cacheBtn.innerHTML = '<span class="cache-icon">⏳</span><span class="cache-text">缓存中...</span>';
-        cacheStatus.textContent = '';
-        
-        navigator.serviceWorker.ready.then(function(reg) {
-            reg.active.postMessage('cache-all');
-        }).catch(function(err) {
-            cacheBtn.disabled = false;
-            showUncachedState();
-            cacheStatus.textContent = '缓存失败: ' + err.message;
-            cacheStatus.className = 'cache-status error';
-        });
-    });
-    
-    // 点击清空缓存按钮
-    clearCacheBtn.addEventListener('click', function() {
-        clearCacheBtn.disabled = true;
-        cacheStatus.textContent = '清空中...';
-        
-        caches.keys().then(function(keys) {
-            return Promise.all(keys.map(function(key) {
-                return caches.delete(key);
-            }));
-        }).then(function() {
-            showUncachedState();
-            clearCacheBtn.disabled = false;
-            cacheStatus.textContent = '缓存已清空';
-            cacheStatus.className = 'cache-status success';
-        }).catch(function(err) {
-            clearCacheBtn.disabled = false;
-            cacheStatus.textContent = '清空失败: ' + err.message;
-            cacheStatus.className = 'cache-status error';
-        });
-    });
-    
-    // 安装按钮点击
-    var installBtn = document.getElementById('installBtn');
-    
-    // 检测 iOS
-    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-    
-    // iOS 且未安装时显示提示
-    if (isIOS && !isStandalone) {
-        installBtn.style.display = 'inline-flex';
-        installBtn.innerHTML = '<span class="cache-icon">📲</span><span class="cache-text">添加到主屏幕</span>';
-        installBtn.addEventListener('click', function() {
-            cacheStatus.innerHTML = '请点击浏览器底部 <strong>分享按钮 ↑</strong>，然后选择 <strong>"添加到主屏幕"</strong>';
-            cacheStatus.className = 'cache-status';
-        });
-    } else if (installBtn) {
-        // Android/桌面浏览器
-        installBtn.addEventListener('click', function() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then(function(result) {
-                    if (result.outcome === 'accepted') {
-                        installBtn.style.display = 'none';
-                    }
-                    deferredPrompt = null;
-                });
-            }
-        });
-    }
 });
 </script>
 {% endblock %}
