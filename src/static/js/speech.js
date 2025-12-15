@@ -145,7 +145,9 @@
       if (!fullText) return;
 
       var p = clamp(Number(percent) || 0, 0, 100);
-      var rate = Number(rateSelect.value) || 0.5;
+      // 实际播放速度是显示值的一半
+      var displayRate = Number(rateSelect.value) || 1;
+      var rate = displayRate * 0.5;
 
       // Use totalDuration for time mapping; slice text proportionally for approximate seek.
       var targetSeconds = totalDuration ? (p / 100) * totalDuration : 0;
@@ -266,7 +268,10 @@
         fullText = safeText(getText());
         if (!fullText) return;
 
-        totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
+        // 实际播放速度是显示值的一半
+        var displayRate = Number(rateSelect.value) || 1;
+        var actualRate = displayRate * 0.5;
+        totalDuration = estimateTotalSeconds(fullText, actualRate);
         elapsedOffset = 0;
         progressBar.value = '0';
         speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
@@ -313,7 +318,10 @@
       
       // 重新计算新倍速下的总时长
       var oldTotalDuration = totalDuration;
-      totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
+      // 实际播放速度是显示值的一半
+      var displayRate = Number(rateSelect.value) || 1;
+      var actualRate = displayRate * 0.5;
+      totalDuration = estimateTotalSeconds(fullText, actualRate);
       
       // 根据实际播放时间计算新的百分比
       var newPercent = 0;
