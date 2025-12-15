@@ -129,14 +129,16 @@
         }
         
         .training-cache {
-            padding: 8px 12px;
+            padding: 6px 12px;
             background: #f8f9fa;
             border-top: 1px solid #e2e8f0;
             display: none;
         }
         
         .training-cache.show {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .mini-cache-btn {
@@ -149,6 +151,7 @@
             font-weight: 600;
             cursor: pointer;
             min-height: 32px;
+            flex-shrink: 0;
         }
         
         .mini-cache-btn:active {
@@ -157,10 +160,21 @@
         
         .mini-cache-btn:disabled {
             opacity: 0.6;
+            cursor: not-allowed;
         }
         
         .mini-cache-btn.cached {
             background: #48bb78;
+        }
+        
+        .mini-cache-btn.refresh {
+            background: #ed8936;
+        }
+        
+        .cache-progress {
+            font-size: 11px;
+            color: #666;
+            flex: 1;
         }
         
         .footer {
@@ -302,8 +316,9 @@
                     </a>
                     <div class="training-cache">
                         <button class="mini-cache-btn" data-training="{{ training.path }}" data-chapters="{{ training.chapter_count }}">
-                            <span class="cache-icon">📥</span> 缓存
+                            <span class="cache-icon">📥</span> <span class="cache-text">缓存</span>
                         </button>
+                        <span class="cache-progress"></span>
                     </div>
                 </div>
                 {% endfor %}
@@ -433,56 +448,102 @@
             var path = btn.getAttribute('data-training');
             var chapters = parseInt(btn.getAttribute('data-chapters'), 10);
             var cacheKey = 'cx-' + path;
+            var progressSpan = btn.parentElement.querySelector('.cache-progress');
             
-            // 检查是否已缓存
-            caches.has(cacheKey).then(function(has) {
-                if (has) {
-                    btn.innerHTML = '<span class="cache-icon">✓</span> 已缓存';
-                    btn.classList.add('cached');
-                }
-            });
+            // 检查是否已完全缓存
+            function checkCacheStatus() {
+                caches.open(cacheKey).then(function(cache) {
+                    var resources = getTrainingResources(path, chapters);
+                    return Promise.all(resources.map(function(url) {
+                        return cache.match(url);
+                    })).then(function(responses) {
+                        var cachedCount = responses.filter(function(r) { return r; }).length;
+                        var total = resources.length;
+                        
+                        if (cachedCount === total) {
+                            // 全部已缓存
+                            btn.querySelector('.cache-icon').textContent = '🔄';
+                            btn.querySelector('.cache-text').textContent = '刷新';
+                            btn.classList.add('refresh');
+                            btn.classList.remove('cached');
+                            if (progressSpan) progressSpan.textContent = '已缓存 ' + total + ' 个文件';
+                        } else if (cachedCount > 0) {
+                            // 部分缓存
+                            btn.querySelector('.cache-icon').textContent = '📥';
+                            btn.querySelector('.cache-text').textContent = '继续';
+                            if (progressSpan) progressSpan.textContent = '已缓存 ' + cachedCount + '/' + total;
+                        }
+                    });
+                }).catch(function() {});
+            }
+            
+            checkCacheStatus();
             
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 
-                btn.disabled = true;
-                var originalText = btn.innerHTML;
+                // 如果是刷新按钮，先清除旧缓存
+                var isRefresh = btn.classList.contains('refresh');
                 
+                btn.disabled = true;
                 var resources = getTrainingResources(path, chapters);
                 var total = resources.length;
                 var loaded = 0;
                 
-                btn.innerHTML = '<span class="cache-icon">⏳</span> 0%';
+                btn.querySelector('.cache-icon').textContent = '⏳';
+                btn.querySelector('.cache-text').textContent = '0%';
+                if (progressSpan) progressSpan.textContent = '准备中...';
                 
-                caches.open(cacheKey).then(function(cache) {
-                    // 逐个缓存以显示进度
-                    var promises = resources.map(function(url) {
-                        return fetch(url).then(function(response) {
-                            if (response.ok) {
+                var startCache = function() {
+                    caches.open(cacheKey).then(function(cache) {
+                        // 逐个缓存以显示进度
+                        var cachePromises = [];
+                        resources.forEach(function(url) {
+                            var promise = fetch(url).then(function(response) {
+                                if (response.ok) {
+                                    loaded++;
+                                    var percent = Math.round((loaded / total) * 100);
+                                    btn.querySelector('.cache-text').textContent = percent + '%';
+                                    if (progressSpan) {
+                                        progressSpan.textContent = '正在缓存 ' + loaded + '/' + total;
+                                    }
+                                    return cache.put(url, response);
+                                }
+                            }).catch(function() {
+                                // 忽略单个文件失败
                                 loaded++;
-                                var percent = Math.round((loaded / total) * 100);
-                                btn.innerHTML = '<span class="cache-icon">⏳</span> ' + percent + '%';
-                                return cache.put(url, response);
-                            }
-                        }).catch(function() {
-                            // 忽略单个文件失败
-                            loaded++;
+                            });
+                            cachePromises.push(promise);
                         });
+                        return Promise.all(cachePromises);
+                    }).then(function() {
+                        btn.querySelector('.cache-icon').textContent = '🔄';
+                        btn.querySelector('.cache-text').textContent = '刷新';
+                        btn.classList.add('refresh');
+                        btn.classList.remove('cached');
+                        btn.disabled = false;
+                        if (progressSpan) progressSpan.textContent = '已缓存 ' + total + ' 个文件';
+                    }).catch(function(err) {
+                        btn.querySelector('.cache-icon').textContent = '❌';
+                        btn.querySelector('.cache-text').textContent = '失败';
+                        btn.disabled = false;
+                        if (progressSpan) progressSpan.textContent = '缓存失败';
+                        setTimeout(function() {
+                            checkCacheStatus();
+                        }, 2000);
+                        console.error('缓存失败:', err);
                     });
-                    return Promise.all(promises);
-                }).then(function() {
-                    btn.innerHTML = '<span class="cache-icon">✓</span> 已缓存';
-                    btn.classList.add('cached');
-                    btn.disabled = false;
-                }).catch(function(err) {
-                    btn.innerHTML = '<span class="cache-icon">❌</span> 失败';
-                    btn.disabled = false;
-                    setTimeout(function() {
-                        btn.innerHTML = originalText;
-                    }, 2000);
-                    console.error('缓存失败:', err);
-                });
+                };
+                
+                if (isRefresh) {
+                    // 清除旧缓存后重新缓存
+                    caches.delete(cacheKey).then(function() {
+                        startCache();
+                    });
+                } else {
+                    startCache();
+                }
             });
         });
         
