@@ -136,10 +136,10 @@
         var lastPage = localStorage.getItem('cx_last_page');
         var lastPageTime = localStorage.getItem('cx_last_page_time');
         
-        // 如果有保存的页面，且在24小时内访问过，则恢复
+        // 如果有保存的页面，且在7天内访问过，则恢复
         if (lastPage && lastPageTime) {
             var timeDiff = Date.now() - parseInt(lastPageTime);
-            var hours24 = 24 * 60 * 60 * 1000;
+            var hours24 = 7 * 24 * 60 * 60 * 1000;
             
             if (timeDiff < hours24) {
                 // 检查上次访问的页面是否属于当前训练
