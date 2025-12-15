@@ -36,11 +36,48 @@ jobs:
           echo "🔨 生成静态文件..."
           python main.py
       
+      - name: 检查并创建 Cloudflare Pages 项目
+        run: |
+          echo "🔍 检查项目是否存在..."
+          
+          # 检查项目是否存在
+          response=$(curl -s -X GET \
+            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects/cx" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json")
+          
+          success=$(echo "$response" | jq -r '.success')
+          
+          if [ "$success" = "true" ]; then
+            echo "✓ 项目 cx 已存在"
+          else
+            echo "📦 项目不存在，正在创建..."
+            
+            create_response=$(curl -s -X POST \
+              "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects" \
+              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "name": "cx",
+                "production_branch": "main"
+              }')
+            
+            create_success=$(echo "$create_response" | jq -r '.success')
+            
+            if [ "$create_success" = "true" ]; then
+              echo "✓ 项目 cx 创建成功"
+            else
+              echo "❌ 项目创建失败"
+              echo "$create_response" | jq '.'
+              exit 1
+            fi
+          fi
+      
       - name: 部署到 Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: cx  # 修改为你在 Cloudflare 创建的项目名称
+          projectName: cx
           directory: output
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
