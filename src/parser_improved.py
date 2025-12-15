@@ -1389,11 +1389,11 @@ class ImprovedParser:
             # 显示每个revival的基本信息
             for day_num, revival in enumerate(chapter.morning_revivals, 1):
                 day_text = revival.day.replace('•', ' ')  # 避免编码问题
-                print(f"    Day {day_num}: {day_text} -> has outline: {bool(revival.outline)}")
+                # print(f"    Day {day_num}: {day_text} -> has outline: {bool(revival.outline)}")
                 if revival.outline:
-                    print(f"      Outline content count: {len(revival.outline)}")
+                    pass  # print(f"      Outline content count: {len(revival.outline)}")
                 else:
-                    print(f"      No outline content")
+                    pass  # print(f"      No outline content")
             
             # 检查该章节对应的周是否有纲目
             # 对于夏季训练，需要使用week_to_chapter_map的反向映射找到正确的周数
@@ -1415,7 +1415,7 @@ class ImprovedParser:
                 for day_key, outline_lines in week_day_outlines.items():
                     if day_key in day_map:
                         converted_outlines[day_map[day_key]] = outline_lines
-                        print(f"    Converted {day_key} -> day {day_map[day_key]}: {len(outline_lines)} lines")
+                        # print(f"    Converted {day_key} -> day {day_map[day_key]}: {len(outline_lines)} lines")
                 
                 if converted_outlines:
                     chapter._day_outlines = converted_outlines
@@ -1431,8 +1431,8 @@ class ImprovedParser:
                             
                             # 特别针对第一章第六天添加详细debug
                             if chapter_idx == 1 and day_num == 6:
-                                for i, content in enumerate(parsed_outline):
-                                    print(f"      Content {i}: {content.level} - {content.title[:50]}")
+                                pass  # for i, content in enumerate(parsed_outline):
+                                    # print(f"      Content {i}: {content.level} - {content.title[:50]}")
                         elif last_outline_lines:
                             revival.outline = self._parse_outline_content(last_outline_lines)
             
@@ -1440,7 +1440,7 @@ class ImprovedParser:
             if chapter_idx == 1:
                 for day_num, revival in enumerate(chapter.morning_revivals, 1):
                     outline_count = len(revival.outline) if revival.outline else 0
-                    print(f"    Day {day_num} ({revival.day.replace('•', ' ')}): {outline_count} outline items")
+                    # print(f"    Day {day_num} ({revival.day.replace('•', ' ')}): {outline_count} outline items")
     
     def _parse_outline_content(self, content_lines: List[str]) -> List[Content]:
         """
@@ -1652,14 +1652,14 @@ class ImprovedParser:
                 
                 week_numbers = sorted(week_numbers)
                 if week_numbers:
-                    print(f"    文档包含周数: {week_numbers}")
+                    # print(f"    文档包含周数: {week_numbers}")
                     # 如果是第一个晨兴文档,记录起始周数
                     if self.first_week_number is None:
                         self.first_week_number = min(week_numbers)
-                        print(f"    记录起始周数: {self.first_week_number}")
+                        # print(f"    记录起始周数: {self.first_week_number}")
                     # 计算周数到章节的映射偏移量
                     week_offset = self.first_week_number - 1
-                    print(f"    周数映射: 第{min(week_numbers)}周 对应 第{min(week_numbers) - week_offset}篇")
+                    # print(f"    周数映射: 第{min(week_numbers)}周 对应 第{min(week_numbers) - week_offset}篇")
                 else:
                     week_offset = 0
             except Exception as e:
@@ -1673,7 +1673,7 @@ class ImprovedParser:
                 image_files = sorted([f for f in docx_zip.namelist() 
                                     if f.startswith('word/media/') and not f.endswith('/')])
                 
-                print(f"    找到 {len(image_files)} 个图片文件 {f'({doc_identifier})' if doc_identifier else ''}")
+                # print(f"    找到 {len(image_files)} 个图片文件 {f'({doc_identifier})' if doc_identifier else ''}")
                 
                 for idx, img_file in enumerate(image_files):
                     # 使用识别到的周数,如果有的话
@@ -1686,7 +1686,7 @@ class ImprovedParser:
                         chapter_num = idx + 1
                     
                     if chapter_num > len(chapters) or chapter_num < 1:
-                        print(f"    ⚠ 第{actual_week_num}周对应第{chapter_num}篇超出范围(1-{len(chapters)}),跳过")
+                        # print(f"    ⚠ 第{actual_week_num}周对应第{chapter_num}篇超出范围(1-{len(chapters)}),跳过")
                         continue
                     
                     # 添加文档标识符以避免覆盖
@@ -1696,7 +1696,7 @@ class ImprovedParser:
                     
                     # 如果图片文件已存在，跳过提取（避免重复提取）
                     if os.path.exists(image_path):
-                        print(f"    跳过第{actual_week_num}周图片（文件已存在）")
+                        pass  # print(f"    跳过第{actual_week_num}周图片（文件已存在）")
                         # 但仍然需要记录路径到chapter
                         if not chapters[chapter_num - 1].hymn_image:
                             chapters[chapter_num - 1].hymn_image = f'images/hymn_{chapter_num}{suffix}.png'
@@ -1709,7 +1709,7 @@ class ImprovedParser:
                         
                         # 转换为PNG并保存
                         img.save(image_path, 'PNG')
-                        print(f"    ✓ 第{actual_week_num}周 -> 第{chapter_num}篇诗歌图片{suffix}")
+                        # print(f"    ✓ 第{actual_week_num}周 -> 第{chapter_num}篇诗歌图片{suffix}")
                         
                         # 记录图片路径到对应章节
                         chapters[chapter_num - 1].hymn_image = f'images/hymn_{chapter_num}{suffix}.png'

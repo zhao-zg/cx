@@ -1,11 +1,29 @@
 # Cloudflare Pages 配置检查清单
 
+## 🔍 第一步：运行诊断测试
+
+1. 进入 GitHub 仓库 → **Actions** 标签
+2. 点击左侧 **测试 Cloudflare 配置** workflow
+3. 点击右侧 **Run workflow** → **Run workflow** 按钮
+4. 等待测试完成（约 10 秒）
+5. 查看测试结果，会显示：
+   - ✅ Secrets 是否配置
+   - ✅ API 连接是否成功
+   - 📋 你的所有 Cloudflare Pages 项目列表
+   - ✅/❌ 是否找到 `cx` 项目
+
+**根据测试结果继续下面的步骤**
+
+---
+
 ## ✅ 检查项目是否存在
 
 1. 访问 https://dash.cloudflare.com/
 2. 点击 **Workers & Pages**
 3. 确认看到名为 `cx` 的项目
 4. 点击项目，记下项目详情
+
+**重要：** 项目名称必须完全匹配，区分大小写！
 
 ## ✅ 检查 Account ID
 
@@ -102,6 +120,44 @@ Project not found. The specified project name does not match
 2. 修改 `.github/workflows/deploy.yml` 中的 `projectName`
 3. 提交并推送
 
+## 🔧 高级诊断
+
+### 方法 1：手动测试 API
+
+在本地终端运行（替换你的实际值）：
+
+```bash
+# 替换为你的实际值
+ACCOUNT_ID="你的Account ID"
+API_TOKEN="你的API Token"
+
+# 列出所有项目
+curl -X GET \
+  "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/pages/projects" \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -H "Content-Type: application/json" | jq '.'
+```
+
+### 方法 2：检查 API Token 范围
+
+1. 访问 https://dash.cloudflare.com/profile/api-tokens
+2. 找到你的 Token，点击 **Edit**
+3. 确认 **Permissions** 包含：
+   ```
+   Account - Cloudflare Pages - Edit
+   ```
+4. 确认 **Account Resources** 选择了正确的账户
+
+### 方法 3：重新创建项目
+
+如果项目确实存在但 API 找不到，可能需要：
+
+1. 在 Cloudflare 删除 `cx` 项目
+2. 重新创建项目：
+   - 项目名称：`cx`（小写）
+   - 不要连接 Git（我们用 API 部署）
+3. 重新运行 GitHub Actions
+
 ## 🚀 重新运行部署
 
 配置正确后：
@@ -109,11 +165,46 @@ Project not found. The specified project name does not match
 2. 点击失败的 workflow
 3. 点击 **Re-run jobs** → **Re-run all jobs**
 
+## 📊 诊断测试结果解读
+
+### 场景 1：找到项目列表，但没有 `cx`
+
+**原因：** 项目名称不匹配或项目不存在
+
+**解决：**
+- 检查 Cloudflare 中的实际项目名称
+- 修改 `.github/workflows/deploy.yml` 中的 `projectName`
+- 或在 Cloudflare 创建名为 `cx` 的项目
+
+### 场景 2：API 返回 401 错误
+
+**原因：** API Token 无效
+
+**解决：**
+- 重新创建 API Token
+- 更新 GitHub Secret `CLOUDFLARE_API_TOKEN`
+
+### 场景 3：API 返回 403 错误
+
+**原因：** API Token 权限不足
+
+**解决：**
+- 编辑 Token，添加 `Cloudflare Pages - Edit` 权限
+- 或重新创建 Token
+
+### 场景 4：API 返回 404 错误
+
+**原因：** Account ID 不正确
+
+**解决：**
+- 检查 Cloudflare Dashboard 右侧的 Account ID
+- 更新 GitHub Secret `CLOUDFLARE_ACCOUNT_ID`
+
 ## 📞 需要帮助？
 
 如果仍然失败，请提供：
-1. GitHub Actions 的完整错误日志
-2. Cloudflare 项目名称
-3. 是否看到两个 Secrets 都已配置
+1. **诊断测试** 的完整输出（运行 "测试 Cloudflare 配置" workflow）
+2. Cloudflare 项目列表截图
+3. API Token 权限截图（隐藏 Token 值）
 
-我可以帮你进一步诊断问题。
+这样可以快速定位问题！
