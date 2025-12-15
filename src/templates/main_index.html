@@ -506,31 +506,56 @@
                     caches.open(cacheKey).then(function(cache) {
                         // 逐个缓存以显示进度
                         var cachePromises = [];
+                        var successCount = 0;
                         resources.forEach(function(url) {
                             var promise = fetch(url).then(function(response) {
-                                if (response.ok) {
-                                    loaded++;
-                                    var percent = Math.round((loaded / total) * 100);
-                                    btn.querySelector('.cache-text').textContent = percent + '%';
+                                loaded++;
+                                var percent = Math.round((loaded / total) * 100);
+                                btn.querySelector('.cache-text').textContent = percent + '%';
+                                
+                                // 只缓存成功的响应（状态码 200-299）
+                                if (response.ok && response.status >= 200 && response.status < 300) {
+                                    successCount++;
                                     if (progressSpan) {
-                                        progressSpan.textContent = '正在缓存 ' + loaded + '/' + total;
+                                        progressSpan.textContent = '正在缓存 ' + successCount + '/' + total;
                                     }
                                     return cache.put(url, response);
+                                } else {
+                                    // 失败的响应不缓存
+                                    console.warn('跳过缓存失败的资源:', url, 'status:', response.status);
+                                    if (progressSpan) {
+                                        progressSpan.textContent = '正在缓存 ' + successCount + '/' + total + ' (跳过 ' + (loaded - successCount) + ' 个失败)';
+                                    }
+                                    return Promise.resolve();
                                 }
-                            }).catch(function() {
-                                // 忽略单个文件失败
+                            }).catch(function(err) {
+                                // 网络错误，跳过此文件
                                 loaded++;
+                                console.warn('无法获取资源:', url, err);
+                                if (progressSpan) {
+                                    progressSpan.textContent = '正在缓存 ' + successCount + '/' + total + ' (跳过 ' + (loaded - successCount) + ' 个失败)';
+                                }
+                                return Promise.resolve();
                             });
                             cachePromises.push(promise);
                         });
-                        return Promise.all(cachePromises);
-                    }).then(function() {
+                        return Promise.all(cachePromises).then(function() {
+                            return successCount;
+                        });
+                    }).then(function(successCount) {
                         btn.querySelector('.cache-icon').textContent = '🔄';
                         btn.querySelector('.cache-text').textContent = '刷新';
                         btn.classList.add('refresh');
                         btn.classList.remove('cached');
                         btn.disabled = false;
-                        if (progressSpan) progressSpan.textContent = '已缓存 ' + total + ' 个文件';
+                        var failedCount = total - successCount;
+                        if (progressSpan) {
+                            if (failedCount > 0) {
+                                progressSpan.textContent = '已缓存 ' + successCount + ' 个文件 (失败 ' + failedCount + ' 个)';
+                            } else {
+                                progressSpan.textContent = '已缓存 ' + successCount + ' 个文件';
+                            }
+                        }
                     }).catch(function(err) {
                         btn.querySelector('.cache-icon').textContent = '❌';
                         btn.querySelector('.cache-text').textContent = '失败';
