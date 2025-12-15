@@ -33,10 +33,10 @@ git push origin main
    - Variable name: `DEBIAN_FRONTEND`, Value: `noninteractive`
 8. 点击 **Save and Deploy**
 
-**注意**：
-- 构建脚本会自动检测并安装 LibreOffice（用于转换 `.doc` 文件）
-- 如果你的文档都是 `.docx` 格式，LibreOffice 不是必需的
-- 在 Cloudflare Pages 的 Linux 环境中，会使用 apt 自动安装 LibreOffice
+**重要提示**：
+- ⚠️ Cloudflare Pages 构建环境没有 sudo 权限，无法安装 LibreOffice
+- ✅ **请确保所有文档都是 `.docx` 格式**（不要使用 `.doc` 格式）
+- ✅ 如果有 `.doc` 文件，请在本地用 Word 转换为 `.docx` 后再推送
 
 ### 步骤 3: 等待首次部署完成
 

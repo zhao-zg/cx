@@ -268,8 +268,12 @@ deploy.bat
 **优势**：
 - ✅ 无需配置 GitHub Actions
 - ✅ Cloudflare 直接连接 GitHub
-- ✅ 依赖缓存，构建速度快 5-10 倍
+- ✅ 依赖缓存，构建速度快
 - ✅ 完全免费，无限带宽
+
+**重要提示**：
+- ⚠️ Cloudflare Pages 无法安装 LibreOffice
+- ✅ 请确保所有文档都是 `.docx` 格式（不要使用 `.doc`）
 
 详细优化说明查看 [Cloudflare构建优化说明.md](Cloudflare构建优化说明.md)
 

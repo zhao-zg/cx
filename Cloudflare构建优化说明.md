@@ -15,13 +15,17 @@ Build output directory: output
 - Cloudflare 会自动缓存构建环境和依赖
 
 **构建流程**：
-1. 检查并安装 LibreOffice（如果未安装）
-2. 安装 Python 依赖（从 `requirements.txt`）
-3. 运行 `python main.py` 生成静态文件
+1. 安装 Python 依赖（从 `requirements.txt`）
+2. 运行 `python main.py` 生成静态文件
+
+**重要限制**：
+- ⚠️ Cloudflare Pages 没有 sudo 权限，无法安装 LibreOffice
+- ✅ 请确保所有文档都是 `.docx` 格式（不要使用 `.doc`）
+- ✅ 如有 `.doc` 文件，请在本地转换为 `.docx` 后推送
 
 **缓存机制**：
 - ✅ Cloudflare 自动缓存构建环境
-- ✅ 依赖安装后会被保留
+- ✅ Python 依赖安装后会被保留
 - ✅ 后续构建速度更快（如果依赖未变更）
 
 ## 🔧 配置说明
@@ -56,21 +60,19 @@ output
 
 | 阶段 | 时间 | 说明 |
 |------|------|------|
-| 安装 LibreOffice | 1-2 分钟 | 使用 apt 安装 |
 | 安装 Python 依赖 | 30-60 秒 | pip install |
 | 生成静态文件 | 10-30 秒 | python main.py |
-| **总计** | **2-4 分钟** | 首次部署 |
+| **总计** | **40-90 秒** | 首次部署 |
 
 ### 后续部署（代码更新）
 
 | 阶段 | 时间 | 说明 |
 |------|------|------|
-| 检查 LibreOffice | <1 秒 | 已安装，跳过 |
 | 安装 Python 依赖 | 10-20 秒 | 使用缓存 |
 | 生成静态文件 | 10-30 秒 | python main.py |
 | **总计** | **20-50 秒** | 后续部署 |
 
-**结论**：Cloudflare 自动缓存环境，后续部署速度快 **3-5 倍**！
+**结论**：Cloudflare 自动缓存 Python 依赖，构建速度很快！
 
 ### 依赖更新（修改 requirements.txt）
 
@@ -115,22 +117,15 @@ set -e
 
 echo "🚀 开始构建..."
 
-# 1. 安装 LibreOffice
-if ! command -v soffice &> /dev/null; then
-    echo "正在安装 LibreOffice..."
-    apt-get update -qq
-    apt-get install -y -qq libreoffice-writer libreoffice-core --no-install-recommends
-    echo "✓ LibreOffice 已安装"
-else
-    echo "✓ LibreOffice 已存在"
-fi
+# 注意：Cloudflare Pages 没有 sudo 权限，无法安装 LibreOffice
+# 请确保所有文档都是 .docx 格式
 
-# 2. 安装 Python 依赖
-echo "正在安装 Python 依赖..."
+# 1. 安装 Python 依赖
+echo "📦 安装 Python 依赖..."
 pip install -r requirements.txt
 
-# 3. 生成静态文件
-echo "正在生成静态文件..."
+# 2. 生成静态文件
+echo "🔨 生成静态文件..."
 python main.py
 
 echo "✅ 构建完成！"
@@ -138,7 +133,8 @@ echo "✅ 构建完成！"
 
 **说明**：
 - 包含完整的构建流程
-- 自动检测 LibreOffice 是否已安装
+- ⚠️ 不包含 LibreOffice 安装（Cloudflare Pages 没有权限）
+- ✅ 请确保所有文档都是 `.docx` 格式
 - 利用 Cloudflare 的缓存机制
 
 ## 🚀 一键设置

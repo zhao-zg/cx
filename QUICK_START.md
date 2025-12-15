@@ -47,7 +47,10 @@ setup-cloudflare.bat
    ```
 7. 点击 **Save and Deploy**
 
-**提示**：构建脚本会自动检测并安装 LibreOffice 来处理 `.doc` 文件，在 Cloudflare Pages 的 Linux 环境中使用 apt 安装
+**重要提示**：
+- ⚠️ Cloudflare Pages 无法安装 LibreOffice
+- ✅ 请确保所有文档都是 `.docx` 格式
+- ✅ 如有 `.doc` 文件，请先在本地转换为 `.docx`
 
 ### 步骤 3: 等待部署完成 ✅
 
