@@ -5,6 +5,7 @@ const CACHE_NAME = 'cx-2025-感恩节-v1';
 const RESOURCES = [
   './',
   './index.html',
+  './manifest.json',
   './js/speech.js',
   './js/font-control.js',
 
@@ -80,23 +81,23 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// 请求拦截 - 缓存优先策略
+// 请求拦截 - 网络优先策略（有网络时获取最新，离线时使用缓存）
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      return cached || fetch(event.request).then(response => {
-        // 缓存新请求的资源
-        if (response.ok && event.request.method === 'GET') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, clone);
-          });
-        }
-        return response;
-      });
+    fetch(event.request).then(response => {
+      // 网络请求成功，更新缓存
+      if (response.ok && event.request.method === 'GET') {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, clone);
+        });
+      }
+      return response;
     }).catch(() => {
-      // 离线时返回缓存的首页
-      return caches.match('./index.html');
+      // 网络失败，使用缓存
+      return caches.match(event.request).then(cached => {
+        return cached || caches.match('./index.html');
+      });
     })
   );
 });

@@ -272,40 +272,40 @@
         }
         
         .scripture {
-            font-size: 0.9375em; /* 15px -> 0.9375em */
+            font-size: 14px;
             color: var(--text);
             margin: 15px 0;
-            padding: 15px;
+            padding: 12px;
             background: #f7f8ff;
             border-left: 4px solid var(--brand-1);
             border-radius: 6px;
-            line-height: 1.8;
+            line-height: 1.7;
         }
         
         @media (min-width: 768px) {
             .scripture {
-                font-size: 0.875em; /* 14px -> 0.875em */
-                padding: 12px 15px;
-                line-height: 1.7;
+                font-size: 15px;
+                padding: 15px;
+                line-height: 1.8;
             }
         }
         
         .scripture-verses {
-            font-size: 0.9375em; /* 15px -> 0.9375em */
+            font-size: 14px;
             color: #444;
             margin: 15px 0;
-            padding: 15px;
+            padding: 12px;
             background: #fafafa;
             border: 1px solid #e8e8e8;
             border-radius: 6px;
-            line-height: 2;
+            line-height: 1.7;
         }
         
         @media (min-width: 768px) {
             .scripture-verses {
-                font-size: 0.875em; /* 14px -> 0.875em */
+                font-size: 15px;
                 line-height: 1.8;
-                padding: 12px 15px;
+                padding: 15px;
             }
         }
         
@@ -756,8 +756,12 @@
         
     </div>
     
-    <!-- 离线缓存按钮 -->
+    <!-- 安装和缓存按钮 -->
     <div class="cache-section" id="cacheSection">
+        <button class="cache-btn install-btn" id="installBtn" style="display:none;">
+            <span class="cache-icon">📲</span>
+            <span class="cache-text">安装到桌面</span>
+        </button>
         <button class="cache-btn" id="cacheBtn">
             <span class="cache-icon">📥</span>
             <span class="cache-text">缓存离线使用</span>
@@ -880,6 +884,11 @@
     margin-left: 10px;
 }
 
+.install-btn {
+    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+    margin-right: 10px;
+}
+
 .cache-icon {
     font-size: 18px;
 }
@@ -900,6 +909,17 @@
 </style>
 
 <script>
+// PWA 安装功能
+var deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    var installBtn = document.getElementById('installBtn');
+    if (installBtn) {
+        installBtn.style.display = 'inline-flex';
+    }
+});
+
 // 根据星期几决定跳转目标
 document.addEventListener('DOMContentLoaded', function() {
     var dayOfWeek = new Date().getDay(); // 0=周日, 1=周一, ..., 6=周六
@@ -1000,6 +1020,36 @@ document.addEventListener('DOMContentLoaded', function() {
             cacheStatus.className = 'cache-status error';
         });
     });
+    
+    // 安装按钮点击
+    var installBtn = document.getElementById('installBtn');
+    
+    // 检测 iOS
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    
+    // iOS 且未安装时显示提示
+    if (isIOS && !isStandalone) {
+        installBtn.style.display = 'inline-flex';
+        installBtn.innerHTML = '<span class="cache-icon">📲</span><span class="cache-text">添加到主屏幕</span>';
+        installBtn.addEventListener('click', function() {
+            cacheStatus.innerHTML = '请点击浏览器底部 <strong>分享按钮 ↑</strong>，然后选择 <strong>"添加到主屏幕"</strong>';
+            cacheStatus.className = 'cache-status';
+        });
+    } else if (installBtn) {
+        // Android/桌面浏览器
+        installBtn.addEventListener('click', function() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(function(result) {
+                    if (result.outcome === 'accepted') {
+                        installBtn.style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        });
+    }
 });
 </script>
 
