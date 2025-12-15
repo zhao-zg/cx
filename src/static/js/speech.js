@@ -1,1 +1,359 @@
-!function(){"use strict";function t(t){return document.getElementById(t)}function e(t){return(t||"").replace(/\s+/g," ").trim()}function n(t){var e=Math.max(0,Math.floor(t||0)),n=Math.floor(e/60);return String(n).padStart(2,"0")+":"+String(e%60).padStart(2,"0")}function o(t,e){var n=Math.max(.1,Number(e)||1);return Math.max(1,Math.ceil((t||"").length/(250*n)*60))}function i(t,e,n){return Math.max(e,Math.min(n,t))}function r(r){if("speechSynthesis"in window&&"SpeechSynthesisUtterance"in window){var a=r&&"function"==typeof r.getText?r.getText:null;if(a){var s=r&&r.lang||"zh-CN",c=t("bottomControlBar")||t("speechControls"),u=t("playPauseBtn"),l=t("rateSelect"),d=t("speechTime"),f=t("progressBar");if(u&&l&&d&&f&&c){var p=u.querySelector(".play-icon"),m=u.querySelector(".pause-icon"),g=localStorage.getItem("speechRate");g&&(l.value=g);var v,h,y="",S=null,b=!1,w=0,E=0,C=0,T=0,I=null,x=!1;function L(t){p&&m&&(p.style.display=t?"none":"inline",m.style.display=t?"inline":"none"),u.setAttribute("aria-label",t?"暂停":"播放")}function M(){I&&(clearInterval(I),I=null)}function k(){return w?C?i(E+(Date.now()-C)/1e3,0,w):i(E,0,w):0}function A(){if(w){var t=k(),e=i(t/w*100,0,100);f.value=String(e),d.textContent=n(t)+" / "+n(w)}else f.value=0,d.textContent="00:00 / 00:00"}function D(){M(),I=setInterval((function(){x||A()}),120)}function N(t){M(),S=null,b=!1,C=0,T=0,E=0,w=0,t||(y=""),L(!1),f.value="0",d.textContent="00:00 / 00:00"}function P(){try{window.speechSynthesis.cancel()}catch(t){}}function U(t){if(y){var r=i(Number(t)||0,0,100),a=Number(l.value)||.5,c=w?(r/100)*w:0,u=Math.floor(y.length*(r/100));u=i(u,0,Math.max(0,y.length-1));var p=e(y.slice(u));if(p){v=!0,P(),M(),(S=new SpeechSynthesisUtterance(p)).lang=s,S.rate=a,S.onstart=function(){v=!1,E=c,C=Date.now(),T=0,b=!1,L(!0),D()},S.onend=function(){v=!1,N(!1)},S.onerror=function(t){var e=t&&t.error;if("interrupted"===e||"cancelled"===e){if(v)return;return void N(!0)}v=!1,console.error("朗读错误:",t),N(!1),d.textContent="错误"},f.value=String(r),d.textContent=n(c)+" / "+n(w),window.speechSynthesis.speak(S)}}}window.CXSpeech=window.CXSpeech||{},window.CXSpeech.cancel=function(){P(),N(!1)},c.style.display="flex",f.addEventListener("mousedown",(function(){x=!0,M()})),f.addEventListener("touchstart",(function(){x=!0,M()})),f.addEventListener("input",(function(){if(w){var t=i(Number(f.value)||0,0,100),e=(t/100)*w;d.textContent=n(e)+" / "+n(w)}else f.value="0",d.textContent="00:00 / 00:00"})),f.addEventListener("change",(function(){var t=i(Number(f.value)||0,0,100);x=!1,y&&U(t)})),document.addEventListener("mouseup",(function(){x&&(x=!1)})),document.addEventListener("touchend",(function(){x&&(x=!1)})),u.addEventListener("click",(function(){if(!S||!y)return y=e(a()),y?(w=o(y,Number(l.value)||.5),E=0,f.value="0",d.textContent="00:00 / "+n(w),void U(0)):void 0;if(b){try{window.speechSynthesis.resume()}catch(t){}b=!1,L(!0),T&&(C+=Date.now()-T,T=0),D()}else{try{window.speechSynthesis.pause()}catch(t){}b=!0,L(!1),T=Date.now(),M()}})),l.addEventListener("change",(function(){if(localStorage.setItem("speechRate",l.value),y){var t=k(),e=w;w=o(y,Number(l.value)||.5);var n=0;e>0&&(n=i(t/e*100,0,100)),f.value=String(n),U(n)}})),N(!0),window.addEventListener("beforeunload",(function(){P(),N(!1)})),document.addEventListener("visibilitychange",(function(){if(document.hidden&&S&&!b)try{window.speechSynthesis.pause(),b=!0,L(!1),T=Date.now(),M()}catch(t){}}))}}}}window.CXSpeech=window.CXSpeech||{},window.CXSpeech.init=r}();
+/* Shared speech controls for CX site (Web Speech API)
+   Exposes: window.CXSpeech.init({ getText: () => string, lang?: string }) and window.CXSpeech.cancel()
+*/
+(function () {
+  'use strict';
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  function safeText(text) {
+    return (text || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function formatTime(seconds) {
+    var s = Math.max(0, Math.floor(seconds || 0));
+    var mins = Math.floor(s / 60);
+    var secs = s % 60;
+    return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+  }
+
+  function estimateTotalSeconds(text, rate) {
+    var r = Math.max(0.1, Number(rate) || 1);
+    // Rough estimate: ~250 Chinese chars per minute at 1x
+    var charsPerMinute = 250 * r;
+    var minutes = (text || '').length / charsPerMinute;
+    return Math.max(1, Math.ceil(minutes * 60));
+  }
+
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function init(options) {
+    if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+      return;
+    }
+
+    var getText = options && typeof options.getText === 'function' ? options.getText : null;
+    if (!getText) return;
+
+    var lang = (options && options.lang) || 'zh-CN';
+
+    // 支持新的底部控制栏和旧的speech-controls组件
+    var controlsDiv = byId('bottomControlBar') || byId('speechControls');
+    var playPauseBtn = byId('playPauseBtn');
+    var rateSelect = byId('rateSelect');
+    var speechTime = byId('speechTime');
+    var progressBar = byId('progressBar');
+
+    if (!playPauseBtn || !rateSelect || !speechTime || !progressBar || !controlsDiv) {
+      return;
+    }
+
+    var playIcon = playPauseBtn.querySelector('.play-icon');
+    var pauseIcon = playPauseBtn.querySelector('.pause-icon');
+
+    // 从localStorage恢复语速设置
+    var savedRate = localStorage.getItem('speechRate');
+    if (savedRate) {
+      rateSelect.value = savedRate;
+    }
+
+    // State
+    var fullText = '';
+    var utterance = null;
+    var isPaused = false;
+
+    var totalDuration = 0;
+    var elapsedOffset = 0;
+    var startTime = 0;
+    var pauseStartedAt = 0;
+
+    var progressInterval = null;
+    var isSeeking = false;
+
+    function updateButtonState(isPlaying) {
+      if (playIcon && pauseIcon) {
+        playIcon.style.display = isPlaying ? 'none' : 'inline';
+        pauseIcon.style.display = isPlaying ? 'inline' : 'none';
+      }
+      playPauseBtn.setAttribute('aria-label', isPlaying ? '暂停' : '播放');
+    }
+
+    function stopProgressUpdate() {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+    }
+
+    function currentElapsedSeconds() {
+      if (!totalDuration) return 0;
+      if (!startTime) return clamp(elapsedOffset, 0, totalDuration);
+      var elapsed = elapsedOffset + (Date.now() - startTime) / 1000;
+      return clamp(elapsed, 0, totalDuration);
+    }
+
+    function updateProgressUI() {
+      if (!totalDuration) {
+        progressBar.value = 0;
+        speechTime.textContent = '00:00 / 00:00';
+        return;
+      }
+      var elapsed = currentElapsedSeconds();
+      var percent = clamp((elapsed / totalDuration) * 100, 0, 100);
+      progressBar.value = String(percent);
+      speechTime.textContent = formatTime(elapsed) + ' / ' + formatTime(totalDuration);
+    }
+
+    function startProgressUpdate() {
+      stopProgressUpdate();
+      progressInterval = setInterval(function () {
+        if (isSeeking) return;
+        updateProgressUI();
+      }, 120);
+    }
+
+    function resetState(keepText) {
+      stopProgressUpdate();
+      utterance = null;
+      isPaused = false;
+      startTime = 0;
+      pauseStartedAt = 0;
+      elapsedOffset = 0;
+      totalDuration = 0;
+      if (!keepText) fullText = '';
+      updateButtonState(false);
+      progressBar.value = '0';
+      speechTime.textContent = '00:00 / 00:00';
+    }
+
+    function safeCancel() {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // 用于跳过 cancel 导致的 onerror
+    var isSeekingInternal = false;
+
+    function startSpeakingFromPercent(percent) {
+      if (!fullText) return;
+
+      var p = clamp(Number(percent) || 0, 0, 100);
+      var rate = Number(rateSelect.value) || 0.5;
+
+      // Use totalDuration for time mapping; slice text proportionally for approximate seek.
+      var targetSeconds = totalDuration ? (p / 100) * totalDuration : 0;
+      var charIndex = Math.floor(fullText.length * (p / 100));
+      charIndex = clamp(charIndex, 0, Math.max(0, fullText.length - 1));
+
+      var segmentText = safeText(fullText.slice(charIndex));
+      if (!segmentText) return;
+
+      // 标记正在跳转，防止 cancel 触发的 onerror 重置状态
+      isSeekingInternal = true;
+      safeCancel();
+      stopProgressUpdate();
+
+      utterance = new SpeechSynthesisUtterance(segmentText);
+      utterance.lang = lang;
+      utterance.rate = rate;
+
+      utterance.onstart = function () {
+        isSeekingInternal = false;
+        // 在 onstart 中设置时间状态
+        elapsedOffset = targetSeconds;
+        startTime = Date.now();
+        pauseStartedAt = 0;
+        isPaused = false;
+        
+        updateButtonState(true);
+        startProgressUpdate();
+      };
+
+      utterance.onend = function () {
+        isSeekingInternal = false;
+        resetState(false);
+      };
+
+      utterance.onerror = function (event) {
+        var err = event && event.error;
+        if (err === 'interrupted' || err === 'cancelled') {
+          // 如果是跳转导致的 cancel，不重置状态
+          if (isSeekingInternal) {
+            return;
+          }
+          resetState(true);
+          return;
+        }
+        isSeekingInternal = false;
+        console.error('朗读错误:', event);
+        resetState(false);
+        speechTime.textContent = '错误';
+      };
+
+      // 立即更新进度条显示
+      progressBar.value = String(p);
+      speechTime.textContent = formatTime(targetSeconds) + ' / ' + formatTime(totalDuration);
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Expose cancel for page navigation
+    window.CXSpeech = window.CXSpeech || {};
+    window.CXSpeech.cancel = function () {
+      safeCancel();
+      resetState(false);
+    };
+
+    // Show controls on supported browsers
+    controlsDiv.style.display = 'flex';
+
+    // Seek UI - 进度条拖动功能
+    progressBar.addEventListener('mousedown', function() {
+      isSeeking = true;
+      stopProgressUpdate();
+    });
+    
+    progressBar.addEventListener('touchstart', function() {
+      isSeeking = true;
+      stopProgressUpdate();
+    });
+    
+    progressBar.addEventListener('input', function () {
+      if (!totalDuration) {
+        progressBar.value = '0';
+        speechTime.textContent = '00:00 / 00:00';
+        return;
+      }
+      // 拖动时实时更新时间显示
+      var p = clamp(Number(progressBar.value) || 0, 0, 100);
+      var target = (p / 100) * totalDuration;
+      speechTime.textContent = formatTime(target) + ' / ' + formatTime(totalDuration);
+    });
+    
+    // 使用 change 事件来处理拖动结束（比 mouseup 更可靠）
+    progressBar.addEventListener('change', function () {
+      var p = clamp(Number(progressBar.value) || 0, 0, 100);
+      isSeeking = false;
+      
+      if (fullText) {
+        startSpeakingFromPercent(p);
+      }
+    });
+    
+    // 在 document 上监听 mouseup/touchend，确保能捕获到
+    document.addEventListener('mouseup', function() {
+      if (isSeeking) {
+        isSeeking = false;
+      }
+    });
+    
+    document.addEventListener('touchend', function() {
+      if (isSeeking) {
+        isSeeking = false;
+      }
+    });
+
+    // Play / Pause
+    playPauseBtn.addEventListener('click', function () {
+      if (!utterance || !fullText) {
+        fullText = safeText(getText());
+        if (!fullText) return;
+
+        totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
+        elapsedOffset = 0;
+        progressBar.value = '0';
+        speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
+
+        startSpeakingFromPercent(0);
+        return;
+      }
+
+      if (isPaused) {
+        try {
+          window.speechSynthesis.resume();
+        } catch (e) {
+          // ignore
+        }
+        isPaused = false;
+        updateButtonState(true);
+        if (pauseStartedAt) {
+          startTime += (Date.now() - pauseStartedAt);
+          pauseStartedAt = 0;
+        }
+        startProgressUpdate();
+      } else {
+        try {
+          window.speechSynthesis.pause();
+        } catch (e) {
+          // ignore
+        }
+        isPaused = true;
+        updateButtonState(false);
+        pauseStartedAt = Date.now();
+        stopProgressUpdate();
+      }
+    });
+
+    // Rate change: restart from current progress and save to localStorage
+    rateSelect.addEventListener('change', function () {
+      // 保存语速设置
+      localStorage.setItem('speechRate', rateSelect.value);
+      
+      if (!fullText) return;
+      
+      // 保存当前的实际播放时间（秒数）
+      var currentElapsed = currentElapsedSeconds();
+      
+      // 重新计算新倍速下的总时长
+      var oldTotalDuration = totalDuration;
+      totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
+      
+      // 根据实际播放时间计算新的百分比
+      var newPercent = 0;
+      if (oldTotalDuration > 0) {
+        // 保持相同的文本位置，而不是相同的时间百分比
+        newPercent = clamp((currentElapsed / oldTotalDuration) * 100, 0, 100);
+      }
+      
+      // 更新进度条显示
+      progressBar.value = String(newPercent);
+      
+      // 从新的百分比位置开始播放
+      startSpeakingFromPercent(newPercent);
+    });
+
+    // Init UI
+    resetState(true);
+    
+    // 页面卸载时停止朗读
+    window.addEventListener('beforeunload', function() {
+      safeCancel();
+      resetState(false);
+    });
+    
+    // 页面隐藏时暂停朗读（可选）
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden && utterance && !isPaused) {
+        try {
+          window.speechSynthesis.pause();
+          isPaused = true;
+          updateButtonState(false);
+          pauseStartedAt = Date.now();
+          stopProgressUpdate();
+        } catch (e) {
+          // ignore
+        }
+      }
+    });
+  }
+
+  window.CXSpeech = window.CXSpeech || {};
+  window.CXSpeech.init = init;
+})();
