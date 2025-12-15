@@ -241,9 +241,8 @@ setup-cloudflare.bat
 **或手动设置（3 步）：**
 1. 推送代码到 GitHub
 2. 在 Cloudflare 连接 GitHub 仓库
-3. 配置构建命令（优化版）：
-   - 构建命令: `chmod +x install-deps.sh && ./install-deps.sh`
-   - 部署命令: `chmod +x generate.sh && ./generate.sh`
+3. 配置构建命令：
+   - 构建命令: `chmod +x build.sh && ./build.sh`
    - 输出目录: `output`
 
 详细步骤查看 [QUICK_START.md](QUICK_START.md) 或 [一键部署说明.md](一键部署说明.md)

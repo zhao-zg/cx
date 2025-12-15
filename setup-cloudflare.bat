@@ -48,10 +48,7 @@ echo.
 echo    Production branch: main
 echo.
 echo    构建命令 (Build command):
-echo    chmod +x install-deps.sh ^&^& ./install-deps.sh
-echo.
-echo    部署命令 (Build output directory 前的命令):
-echo    chmod +x generate.sh ^&^& ./generate.sh
+echo    chmod +x build.sh ^&^& ./build.sh
 echo.
 echo    输出目录 (Build output directory):
 echo    output

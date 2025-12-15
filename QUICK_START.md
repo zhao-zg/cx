@@ -34,11 +34,10 @@ setup-cloudflare.bat
 2. 点击 **Workers & Pages** → **Create application**
 3. 选择 **Pages** → **Connect to Git**
 4. 授权并选择你的 GitHub 仓库
-5. 配置构建设置（优化版）：
+5. 配置构建设置：
    ```
    Production branch: main
-   构建命令: chmod +x install-deps.sh && ./install-deps.sh
-   部署命令: chmod +x generate.sh && ./generate.sh
+   构建命令: chmod +x build.sh && ./build.sh
    输出目录: output
    ```
 6. 添加环境变量：
@@ -47,8 +46,6 @@ setup-cloudflare.bat
    DEBIAN_FRONTEND = noninteractive
    ```
 7. 点击 **Save and Deploy**
-
-**优势**：分离构建和部署命令，依赖会被缓存，构建速度更快！
 
 **提示**：构建脚本会自动检测并安装 LibreOffice 来处理 `.doc` 文件，在 Cloudflare Pages 的 Linux 环境中使用 apt 安装
 

@@ -22,16 +22,11 @@ git push origin main
 6. 配置构建设置：
    - **Production branch**: `main`
    - **Framework preset**: `None`
-   - **Build command**: `chmod +x install-deps.sh && ./install-deps.sh`
+   - **Build command**: `chmod +x build.sh && ./build.sh`
    - **Build output directory**: `output`
    - **Root directory**: `/` (保持默认)
    
-   **可选优化**：如果看到 "Build output directory" 前有命令输入框，可以分离构建和部署：
-   - **Build command**: `chmod +x install-deps.sh && ./install-deps.sh`（安装依赖）
-   - **Deploy command**: `chmod +x generate.sh && ./generate.sh`（生成文件）
-   - **Build output directory**: `output`
-   
-   这样可以利用 Cloudflare 的缓存机制，依赖只需安装一次，提高构建速度。
+   **注意**：Cloudflare Pages 目前不支持分离的构建和部署命令，使用 `build.sh` 包含完整流程。
 
 7. 展开 **Environment variables (advanced)**，添加：
    - Variable name: `PYTHON_VERSION`, Value: `3.9`

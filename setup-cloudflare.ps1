@@ -49,10 +49,7 @@ Write-Host ""
 Write-Host "   Production branch: main" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "   构建命令 (Build command):" -ForegroundColor Cyan
-Write-Host "   chmod +x install-deps.sh && ./install-deps.sh" -ForegroundColor Green
-Write-Host ""
-Write-Host "   部署命令 (Build output directory 前的命令):" -ForegroundColor Cyan
-Write-Host "   chmod +x generate.sh && ./generate.sh" -ForegroundColor Green
+Write-Host "   chmod +x build.sh && ./build.sh" -ForegroundColor Green
 Write-Host ""
 Write-Host "   输出目录 (Build output directory):" -ForegroundColor Cyan
 Write-Host "   output" -ForegroundColor Green
