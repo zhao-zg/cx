@@ -301,8 +301,10 @@ window.addEventListener('DOMContentLoaded', function() {
     padding: 10px;
     background: #f8f9fa;
     border-radius: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .day-link {
@@ -319,6 +321,8 @@ window.addEventListener('DOMContentLoaded', function() {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .day-link:active {
