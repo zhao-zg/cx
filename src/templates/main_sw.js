@@ -2,15 +2,18 @@
 const CACHE_VERSION = '{{ cache_version }}';
 const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
 
+// 获取 Service Worker 的基础 URL
+const BASE_URL = self.location.origin + self.location.pathname.replace(/\/[^\/]*$/, '/');
+
 // 初始安装时只缓存核心资源（主页和各训练目录页）
 const CORE_RESOURCES = [
-  './',
-  './manifest.json',
+  BASE_URL,
+  BASE_URL + 'manifest.json',
 {% for training in trainings %}
-  './{{ training.path }}/',
-  './{{ training.path }}/manifest.json',
-  './{{ training.path }}/js/speech.js',
-  './{{ training.path }}/js/font-control.js',
+  BASE_URL + '{{ training.path }}/',
+  BASE_URL + '{{ training.path }}/manifest.json',
+  BASE_URL + '{{ training.path }}/js/speech.js',
+  BASE_URL + '{{ training.path }}/js/font-control.js',
 {% endfor %}
 ];
 
@@ -19,13 +22,13 @@ const ALL_RESOURCES = [
   ...CORE_RESOURCES,
 {% for training in trainings %}
 {% for i in range(1, training.chapter_count + 1) %}
-  './{{ training.path }}/{{ i }}_cv.htm',
-  './{{ training.path }}/{{ i }}_dg.htm',
-  './{{ training.path }}/{{ i }}_cx.htm',
-  './{{ training.path }}/{{ i }}_sg.htm',
-  './{{ training.path }}/{{ i }}_ts.htm',
-  './{{ training.path }}/{{ i }}_zs.htm',
-  './{{ training.path }}/{{ i }}_h.htm',
+  BASE_URL + '{{ training.path }}/{{ i }}_cv.htm',
+  BASE_URL + '{{ training.path }}/{{ i }}_dg.htm',
+  BASE_URL + '{{ training.path }}/{{ i }}_cx.htm',
+  BASE_URL + '{{ training.path }}/{{ i }}_sg.htm',
+  BASE_URL + '{{ training.path }}/{{ i }}_ts.htm',
+  BASE_URL + '{{ training.path }}/{{ i }}_zs.htm',
+  BASE_URL + '{{ training.path }}/{{ i }}_h.htm',
 {% endfor %}
 {% endfor %}
 ];
