@@ -1,5 +1,5 @@
 // Service Worker for 主恢复训练合集
-const CACHE_VERSION = '20251215154822';
+const CACHE_VERSION = '20251215155353';
 const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
 
 // 初始安装时只缓存核心资源（主页和各训练目录页）
