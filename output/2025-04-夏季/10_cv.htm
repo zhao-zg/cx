@@ -1,0 +1,2941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <title>第10篇 - 纲目</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 14px;
+            color: var(--text);
+            margin: 15px 0;
+            padding: 12px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 15px;
+                padding: 15px;
+                line-height: 1.8;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 14px;
+            color: #444;
+            margin: 15px 0;
+            padding: 12px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 15px;
+                line-height: 1.8;
+                padding: 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 13px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        /* 底部控制栏的字体按钮 - 使用更高优先级 */
+        .bottom-control-bar .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .bottom-control-bar .font-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .speech-time {
+                font-size: 12px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>夏季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025夏季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="10_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="10_cv.htm" class="nav-link active" title="纲目">纲目</a>
+    <a href="10_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="10_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="10_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第10篇 按着神牧养</h2>
+    
+    
+    <div class="hymn-number">JL 诗歌: 301, 英857</div>
+    
+    
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：约二一15~17，十9~17，彼前五2、4，二25，来十三20</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+            
+                
+                <div class="verse-line">约21:15	他们吃完了早饭，耶稣对西门彼得说，约翰的儿子西门，你爱我比这些更深么？彼得对祂说，主啊，是的，你知道我爱你。耶稣对他说，你喂养我的小羊。</div>
+                
+            
+                
+                <div class="verse-line">约21:16	耶稣第二次又对他说，约翰的儿子西门，你爱我么？彼得对祂说，主啊，是的，你知道我爱你。耶稣对他说，你牧养我的羊。</div>
+                
+            
+                
+                <div class="verse-line">约21:17	耶稣第三次对他说，约翰的儿子西门，你爱我么？彼得因为耶稣第三次对他说，你爱我么？就忧愁，对耶稣说，主啊，你是无所不知的，你知道我爱你。耶稣对他说，你喂养我的羊。</div>
+                
+            
+                
+                <div class="verse-line">约10:9	我就是门；凡从我进来的，必要得救，并且必要入，必要出，也必要找着草场。</div>
+                
+            
+                
+                <div class="verse-line">约10:10	贼来了，无非是要偷窃、杀害、毁坏；我来了，是要叫羊得生命，并且得的更丰盛。</div>
+                
+            
+                
+                <div class="verse-line">约10:11	我是好牧人，好牧人为羊舍命。</div>
+                
+            
+                
+                <div class="verse-line">约10:12	那作雇工的，不是牧人，羊也不是他自己的，他看见狼来，就撇下羊逃跑了，狼抓住羊，把它们赶散了；</div>
+                
+            
+                
+                <div class="verse-line">约10:13	雇工逃跑，因他是雇工，并不顾念羊。</div>
+                
+            
+                
+                <div class="verse-line">约10:14	我是好牧人，我认识那属我的，那属我的也认识我，</div>
+                
+            
+                
+                <div class="verse-line">约10:15	正如父认识我，我也认识父一样；并且我为羊舍命。</div>
+                
+            
+                
+                <div class="verse-line">约10:16	我另外有羊，不是属于这圈的；我必须领他们来，他们也要听我的声音，并且要成为一群，归一个牧人了。</div>
+                
+            
+                
+                <div class="verse-line">约10:17	父爱我，因我将命舍去，好再取回来。</div>
+                
+            
+                
+                <div class="verse-line">彼前5:2	务要牧养你们中间神的群羊，按着神监督他们，不是出于勉强，乃是出于甘心；不是为着卑鄙的利益，乃是出于热切；</div>
+                
+            
+                
+                <div class="verse-line">彼前5:4	到了牧长显现的时候，你们必得着那不能衰残的荣耀冠冕。</div>
+                
+            
+                
+                <div class="verse-line">彼前2:25	你们好像羊走迷了路，如今却归到你们魂的牧人和监督了。</div>
+                
+            
+                
+                <div class="verse-line">来13:20	但愿平安的神，就是那凭永约之血，领群羊的大牧人我们的主耶稣，从死人中上来的，</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="outline-content">
+        
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                
+                壹　牧养是给群羊周全、柔细的照顾；牧养是指顾到羊一切的需要—约二一15~17，徒二十28。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约21:15	他们吃完了早饭，耶稣对西门彼得说，约翰的儿子西门，你爱我比这些更深么？彼得对祂说，主啊，是的，你知道我爱你。耶稣对他说，你喂养我的小羊。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约21:16	耶稣第二次又对他说，约翰的儿子西门，你爱我么？彼得对祂说，主啊，是的，你知道我爱你。耶稣对他说，你牧养我的羊。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约21:17	耶稣第三次对他说，约翰的儿子西门，你爱我么？彼得因为耶稣第三次对他说，你爱我么？就忧愁，对耶稣说，主啊，你是无所不知的，你知道我爱你。耶稣对他说，你喂养我的羊。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒20:28	圣灵立你们作全群的监督，你们就当为自己谨慎，也为全群谨慎，牧养神的召会，就是祂用自己的血所买来的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰')">▼</button>
+                
+                贰　牧养的两个基本元素是顾惜和喂养—弗五29：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗5:29	从来没有人恨恶自己的身体，总是保养顾惜，正像基督待召会一样，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一">
+            <div class="section-level2">
+                
+                一　牧养是安慰、抚慰、以柔爱养育并以亲切的照料维护。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二">
+            <div class="section-level2">
+                
+                二　我们牧养别人时，应当先顾惜他们，使他们快乐，然后就要喂养他们。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-叁">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁')">▼</button>
+                
+                叁　在主今日的恢复里，迫切需要牧养—约二一16，彼前五2、4：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约21:16	耶稣第二次又对他说，约翰的儿子西门，你爱我么？彼得对祂说，主啊，是的，你知道我爱你。耶稣对他说，你牧养我的羊。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前5:2	务要牧养你们中间神的群羊，按着神监督他们，不是出于勉强，乃是出于甘心；不是为着卑鄙的利益，乃是出于热切；</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前5:4	到了牧长显现的时候，你们必得着那不能衰残的荣耀冠冕。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-一">
+            <div class="section-level2">
+                
+                一　我们中间最大的缺欠，就是牧养这件事。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二">
+            <div class="section-level2">
+                
+                二　在神生机的救恩里，父神先用灵神重生我们，再在作我们牧人的子神里牧养我们，使我们在祂的生命中存活并长大，直到永远—一3，约十11，启七17。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼前1:3	我们主耶稣基督的神与父是当受颂赞的，祂曾照自己的大怜悯，借耶稣基督从死人中复活，重生了我们，使我们有活的盼望，</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:11	我是好牧人，好牧人为羊舍命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启7:17	因为宝座中的羔羊必牧养他们，领他们到生命水的泉；神也必从他们眼中擦去一切的眼泪。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三">
+            <div class="section-level2">
+                
+                三　牧养信徒对于他们在神圣生命里的长大以至于成熟，为着建造基督的身体，是极其重要的—弗四13~16。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗4:13	直到我们众人都达到了信仰上并对神儿子之完全认识上的一，达到了长成的人，达到了基督丰满之身材的度量，</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:14	使我们不再作小孩子，为波浪漂来漂去，并为一切教训之风所摇荡，这教训是在于人的欺骗手法，在于将人引入错谬系统的诡诈作为；</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:15	唯在爱里持守着真实，我们就得以在一切事上长到祂，就是元首基督里面；</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:16	本于祂，全身借着每一丰富供应的节，并借着每一部分依其度量而有的功用，得以联络在一起，并结合在一起，便叫身体渐渐长大，以致在爱里把自己建造起来。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-四')">▼</button>
+                
+                四　那建造基督身体的牧养，乃是相互的牧养—林前十二23~26：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林前12:23	身上肢体我们以为比较不体面的，就给它加上更丰盈的体面；我们不俊美的肢体，就得着更丰盈的俊美；</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前12:24	至于我们俊美的肢体，就不需要了。但神将这身体调和在一起，把更丰盈的体面加给那有缺欠的肢体，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前12:25	免得身体上有了分裂，总要肢体彼此同样相顾。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前12:26	若一个肢体受苦，所有的肢体就一同受苦；若一个肢体得荣耀，所有的肢体就一同欢乐。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-四" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-四-1">
+            <div class="section-level3">
+                
+                1　所有的信徒，无论属灵生命长大有多少，都需要牧养；我们都有缺点和短处，需要别人牧养我们。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四-2">
+            <div class="section-level3">
+                
+                2　我们都需要在基督生机的牧养之下，并与祂是一，而牧养别人—约十11、16，来十三20~21，彼前五4，二25。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约10:11	我是好牧人，好牧人为羊舍命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:16	我另外有羊，不是属于这圈的；我必须领他们来，他们也要听我的声音，并且要成为一群，归一个牧人了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来13:20	但愿平安的神，就是那凭永约之血，领群羊的大牧人我们的主耶稣，从死人中上来的，</div>
+                    
+                    
+                    
+                    <div class="verse-line">来13:21	在各样善事上成全你们，好实行祂的旨意；祂是在我们里面，借着耶稣基督，行祂看为可喜悦的事。愿荣耀归与祂，直到永永远远。阿们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前5:4	到了牧长显现的时候，你们必得着那不能衰残的荣耀冠冕。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:25	你们好像羊走迷了路，如今却归到你们魂的牧人和监督了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四-3">
+            <div class="section-level3">
+                
+                3　我们是羊也是牧人，彼此互相牧养并接受牧养；借着这相互的牧养，召会就被建造成为基督的身体—来五14，弗四12~13。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来5:14	只有长成的人，才能吃干粮，他们的官能因习用而受了操练，就能分辨好坏了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:12	为要成全圣徒，目的是为着职事的工作，为着建造基督的身体，</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:13	直到我们众人都达到了信仰上并对神儿子之完全认识上的一，达到了长成的人，达到了基督丰满之身材的度量，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-五')">▼</button>
+                
+                五　我们越被基督构成，就越自然而然的过牧养的生活，有负担照顾别人—西一27，三10~11、14：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西1:27	神愿意叫他们知道，这奥秘的荣耀在外邦人中是何等的丰富，就是基督在你们里面成了荣耀的盼望；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:10	并且穿上了新人；这新人照着创造他者的形像渐渐更新，以致有充足的知识；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:11	在此并没有希利尼人和犹太人、受割礼的和未受割礼的、化外人、西古提人、为奴的、自主的，唯有基督是一切，又在一切之内。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:14	在这一切之上，还要穿上爱，爱是全德的联索。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-五" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-五-1">
+            <div class="section-level3">
+                
+                1　基督在我们属灵生命里的构成，有牧养的一面—约二一15~17。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约21:15	他们吃完了早饭，耶稣对西门彼得说，约翰的儿子西门，你爱我比这些更深么？彼得对祂说，主啊，是的，你知道我爱你。耶稣对他说，你喂养我的小羊。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约21:16	耶稣第二次又对他说，约翰的儿子西门，你爱我么？彼得对祂说，主啊，是的，你知道我爱你。耶稣对他说，你牧养我的羊。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约21:17	耶稣第三次对他说，约翰的儿子西门，你爱我么？彼得因为耶稣第三次对他说，你爱我么？就忧愁，对耶稣说，主啊，你是无所不知的，你知道我爱你。耶稣对他说，你喂养我的羊。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五-2">
+            <div class="section-level3">
+                
+                2　牧养不是因为别人鼓励才去作的事。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五-3">
+            <div class="section-level3">
+                
+                3　牧养乃是被基督构成的结果—西三4、10~11。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西3:4	基督是我们的生命，祂显现的时候，你们也要与祂一同显现在荣耀里。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:10	并且穿上了新人；这新人照着创造他者的形像渐渐更新，以致有充足的知识；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:11	在此并没有希利尼人和犹太人、受割礼的和未受割礼的、化外人、西古提人、为奴的、自主的，唯有基督是一切，又在一切之内。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五-4">
+            <div class="section-level3">
+                
+                4　我们这人由基督构成的部分，就是牧养别人的部分。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五-5">
+            <div class="section-level3">
+                
+                5　我们无法牧养任何人；构成到我们里面的基督才是牧人—约十11，彼前二25，五2、4，来十三20。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五-5')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-五-5" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约10:11	我是好牧人，好牧人为羊舍命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:25	你们好像羊走迷了路，如今却归到你们魂的牧人和监督了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前5:2	务要牧养你们中间神的群羊，按着神监督他们，不是出于勉强，乃是出于甘心；不是为着卑鄙的利益，乃是出于热切；</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前5:4	到了牧长显现的时候，你们必得着那不能衰残的荣耀冠冕。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来13:20	但愿平安的神，就是那凭永约之血，领群羊的大牧人我们的主耶稣，从死人中上来的，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-六">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-六')">▼</button>
+                
+                六　我们需要按着我们父神爱和柔细的心，并按着我们救主基督寻找和牧养的灵，来牧养神的群羊—路十五1~32：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-六" style="display: none;">
+                    
+                    
+                    <div class="verse-line">路15:1	众税吏和罪人都挨近耶稣，要听祂。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:2	法利赛人和经学家纷纷地唧咕议论说，这个人接待罪人，又同他们吃饭。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:3	耶稣就对他们讲了这个比喻说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:4	你们中间谁有一百只羊，失去其中的一只，不把这九十九只撇在旷野，去找那失去的，直到找着么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:5	找着了，就欢欢喜喜地扛在自己肩上，回到家里，</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:6	召齐朋友、邻舍，对他们说，和我一同欢喜吧，因为我失去的那只羊已经找着了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:7	我告诉你们，一个罪人悔改，在天上也要这样为他欢喜，比为九十九个不用悔改的义人欢喜更大。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:8	或是一个妇人有十个银币，若失落一个，岂不点上灯，打扫屋子，细细地找，直到找着么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:9	找着了，就召齐朋友、邻舍，说，和我一同欢喜吧，因为我失落的那个银币已经找着了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:10	我告诉你们，一个罪人悔改，在神的使者面前，也是这样为他欢喜。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:11	耶稣又说，一个人有两个儿子。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:12	小的对父亲说，父亲，请把归我的那一份家产给我。他父亲就把产业分给他们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:13	过了不多几日，小儿子就收拾一切，起身往远方去了，在那里生活放荡，挥霍家产。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:14	既耗尽了一切，又遇着那地方大遭饥荒，就穷乏起来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:15	于是去投靠那地方的一个居民，那人打发他到自己的田里去放猪。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:16	他恨不得拿猪所吃的豆荚充饥，也没有人给他。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:17	他醒悟过来，就说，我父亲有多少的雇工，口粮有余，我倒在这里饿死么？</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:18	我要起来，到我父亲那里去，向他说，父亲，我犯罪得罪了天，并得罪了你。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:19	我不配再称为你的儿子，把我当作一个雇工吧。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:20	于是起来往他父亲那里去。相离还远，他父亲看见，就动了慈心，跑去抱着他的颈项，热切地与他亲嘴。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:21	儿子说，父亲，我犯罪得罪了天，并得罪了你。我不配再称为你的儿子。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:22	父亲却吩咐奴仆说，快把那上好的袍子拿出来给他穿，把戒指戴在他手上，把鞋穿在他脚上，</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:23	把那肥牛犊牵来宰了，让我们吃喝快乐。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:24	因为我这个儿子是死而复活，失而又得的。他们就快乐起来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:25	那时，大儿子正在田里。他回来，离家不远，听见作乐跳舞的声音，</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:26	便叫过一个仆人来，查问是什么事。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:27	仆人说，你兄弟来了，你父亲因为得他无灾无病地回来，把肥牛犊宰了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:28	大儿子就生气，不肯进去，他父亲就出来劝他。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:29	他对父亲说，看哪，我像奴仆服事你这么多年，从来没有违背过你的命令，你并没有给我一只山羊羔，叫我和朋友一同快乐。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:30	但你这个儿子，和娼妓吞尽了你的产业，他一来了，你倒为他宰了肥牛犊。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:31	父亲对他说，孩子，你始终和我同在，我一切所有的都是你的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路15:32	只是你这个兄弟是死而复活，失而又得的，所以我们理当欢喜快乐。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-六" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-六-1">
+            <div class="section-level3">
+                
+                1　我们需要在爱里彼此牧养—林前十三1~13。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-六-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林前13:1	我若能说人和天使的方言，却没有爱，我就成了鸣的锣、响的钹。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前13:2	我若有申言的恩赐，也明白一切的奥秘，和一切的知识，并有全备的信，以致能够移山，却没有爱，我就算不得什么。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前13:3	我若将我一切所有的变卖为食物分给人吃，又舍己身叫我可以夸口，却没有爱，仍然与我无益。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前13:4	爱是恒久忍耐，又有恩慈；爱是不嫉妒；爱是不自夸，不张狂，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前13:5	不作不合宜的事，不求自己的益处，不轻易发怒，不计算人的恶，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前13:6	不因不义而欢乐，却与真理同欢乐；</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前13:7	凡事包容，凡事相信，凡事盼望，凡事忍耐。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前13:8	爱是永不败落；但申言终必归于无用，方言终必停止，知识也终必归于无用。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前13:9	因为我们所知道的是局部的，所申言的也是局部的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前13:10	及至那完全的来到，这局部的就要归于无用了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前13:11	我作孩童的时候，说话像孩童，思想像孩童，推究像孩童，既已成人，就把孩童的事废掉了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前13:12	我们如今对着镜子观看，模糊不清，到那时就要面对面了。我如今所知道的是局部的，到那时就全知道，如同我全被知道一样。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前13:13	如今常存的，有信、望、爱这三样，其中最大的是爱。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-六-2">
+            <div class="section-level3">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-六-2')">▼</button>
+                
+                2　在我们的所是和所作上，爱乃是极超越的路—十二31下：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-六-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林前12:31下	……我还要把极超越的路指示你们。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-六-2" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-六-2-a">
+            <div class="section-level4">
+                
+                a　神赐给我们的，乃是爱的灵—提后一7。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六-2-a')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-六-2-a" style="display: none;">
+                    
+                    
+                    <div class="verse-line">提后1:7	因为神赐给我们的，不是胆怯的灵，乃是能力、爱、并清明自守的灵。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-六-2-b">
+            <div class="section-level4">
+                
+                b　神乃是爱，我们既已蒙神重生，成为神的种类，就应当是爱—约壹四8，约三6。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六-2-b')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-六-2-b" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约壹4:8	不爱弟兄的，未曾认识神，因为神就是爱。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约3:6	从肉体生的，就是肉体；从那灵生的，就是灵。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-六-3">
+            <div class="section-level3">
+                
+                3　基督的身体在爱里把自己建造起来—弗四16。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-六-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗4:16	本于祂，全身借着每一丰富供应的节，并借着每一部分依其度量而有的功用，得以联络在一起，并结合在一起，便叫身体渐渐长大，以致在爱里把自己建造起来。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-肆">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-肆')">▼</button>
+                
+                肆　基督是好牧人、大牧人、牧长以及我们魂的牧人—约十9~17，来十三20~21，彼前五4，二25：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约10:9	我就是门；凡从我进来的，必要得救，并且必要入，必要出，也必要找着草场。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:10	贼来了，无非是要偷窃、杀害、毁坏；我来了，是要叫羊得生命，并且得的更丰盛。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:11	我是好牧人，好牧人为羊舍命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:12	那作雇工的，不是牧人，羊也不是他自己的，他看见狼来，就撇下羊逃跑了，狼抓住羊，把它们赶散了；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:13	雇工逃跑，因他是雇工，并不顾念羊。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:14	我是好牧人，我认识那属我的，那属我的也认识我，</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:15	正如父认识我，我也认识父一样；并且我为羊舍命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:16	我另外有羊，不是属于这圈的；我必须领他们来，他们也要听我的声音，并且要成为一群，归一个牧人了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:17	父爱我，因我将命舍去，好再取回来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来13:20	但愿平安的神，就是那凭永约之血，领群羊的大牧人我们的主耶稣，从死人中上来的，</div>
+                    
+                    
+                    
+                    <div class="verse-line">来13:21	在各样善事上成全你们，好实行祂的旨意；祂是在我们里面，借着耶稣基督，行祂看为可喜悦的事。愿荣耀归与祂，直到永永远远。阿们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前5:4	到了牧长显现的时候，你们必得着那不能衰残的荣耀冠冕。</div>
+                    
+                    
+                    
+                    <div class="verse-line">彼前2:25	你们好像羊走迷了路，如今却归到你们魂的牧人和监督了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-肆" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-肆-一">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-肆-一')">▼</button>
+                
+                一　主耶稣作好牧人，来使我们得生命，并且得的更丰盛—约十10~11：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约10:10	贼来了，无非是要偷窃、杀害、毁坏；我来了，是要叫羊得生命，并且得的更丰盛。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:11	我是好牧人，好牧人为羊舍命。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-肆-一" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-肆-一-1">
+            <div class="section-level3">
+                
+                1　祂舍了祂的魂生命，就是人的生命，为祂的羊成功救赎，使他们能有分于祂的奏厄（zoe）生命，就是祂神圣的生命—11、15、17节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-一-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-一-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约10:11	我是好牧人，好牧人为羊舍命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:15	正如父认识我，我也认识父一样；并且我为羊舍命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约10:17	父爱我，因我将命舍去，好再取回来。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-一-2">
+            <div class="section-level3">
+                
+                2　祂领祂的羊出羊圈，进入祂自己这草场，就是得喂养的地方，使他们可以自由地吃祂，得着祂的喂养—9节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-一-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-一-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约10:9	我就是门；凡从我进来的，必要得救，并且必要入，必要出，也必要找着草场。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-一-3">
+            <div class="section-level3">
+                
+                3　主使犹太和外邦信徒在祂的牧养下合为一群（召会，基督的身体）—16节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-一-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-一-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约10:16	我另外有羊，不是属于这圈的；我必须领他们来，他们也要听我的声音，并且要成为一群，归一个牧人了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-二">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-肆-二')">▼</button>
+                
+                二　神“凭永约之血”，使“群羊的大牧人我们的主耶稣”从死人中复活—来十三20：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来13:20	但愿平安的神，就是那凭永约之血，领群羊的大牧人我们的主耶稣，从死人中上来的，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-肆-二" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-肆-二-1">
+            <div class="section-level3">
+                
+                1　永约乃是借着牧养来终极完成新耶路撒冷。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-二-2">
+            <div class="section-level3">
+                
+                2　永约就是新遗命的约，为要得着群羊，就是召会，结果带进基督的身体，并终极完成于新耶路撒冷。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-三">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-肆-三')">▼</button>
+                
+                三　基督作牧长，借着众召会的长老牧养祂的群羊—彼前五4：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼前5:4	到了牧长显现的时候，你们必得着那不能衰残的荣耀冠冕。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-肆-三" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-肆-三-1">
+            <div class="section-level3">
+                
+                1　若没有长老的牧养，召会就无法得建造。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-三-2">
+            <div class="section-level3">
+                
+                2　长老的牧养该是基督借着他们的牧养。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-四">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-肆-四')">▼</button>
+                
+                四　是灵的基督作我们魂的牧人，监督我们里面的光景，顾到我们内里所是的情形—二25：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-肆-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-肆-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼前2:25	你们好像羊走迷了路，如今却归到你们魂的牧人和监督了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-肆-四" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-肆-四-1">
+            <div class="section-level3">
+                
+                1　祂是借着顾到我们魂的益处，并借着监督我们内里所是的光景，而牧养我们。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-四-2">
+            <div class="section-level3">
+                
+                2　因为我们的魂很复杂，所以我们需要那在我们灵里是赐生命之灵的基督，在我们的魂里牧养我们，为要照顾我们的心思、情感和意志，并顾到我们的难处、需要和创伤。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-伍">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍')">▼</button>
+                
+                伍　“务要〔按着神〕牧养你们中间神的群羊”—五2：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-伍-一">
+            <div class="section-level2">
+                
+                一　“按着神”意思是我们活神—帖前三8，五10。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">帖前3:8	因为现今你们若在主里站立得住，我们就活了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">帖前5:10	祂为我们死，好叫我们无论醒着或睡着，都可与祂同活。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-二">
+            <div class="section-level2">
+                
+                二　当我们与神是一，我们就在生命和性情上，但不在神格上，成为神，并且在我们牧养别人时，我们就是神—罗十一24。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗11:24	你是从那天然的野橄榄树上砍下来的，尚且逆着性得接在栽种的橄榄树上，何况这些天然的枝子，岂不更要接在自己的橄榄树上么？</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-三">
+            <div class="section-level2">
+                
+                三　按着神牧养，就是按着神的性情、心意、作法和荣耀，而不是按着我们的偏好、兴趣、目的和个性牧养。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-四">
+            <div class="section-level2">
+                
+                四　按着神牧养，就是按着神在祂属性上的所是牧养—弗四18，约壹四8，启十五3。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗4:18	他们在悟性上既然昏暗，就因着那在他们里面的无知，因着他们心里的刚硬，与神的生命隔绝了；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约壹4:8	不爱弟兄的，未曾认识神，因为神就是爱。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启15:3	他们唱着神奴仆摩西的歌、和羔羊的歌，说，主神，全能者，你的作为大哉、奇哉！万国之王，你的道路义哉、诚哉！</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-五">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍-五')">▼</button>
+                
+                五　我们要按着神牧养，就必须在生命、性情、彰显和功用上成为神：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍-五" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-伍-五-1">
+            <div class="section-level3">
+                
+                1　我们必须被神圣的生命所满溢，享受三一神作源、泉、川，而成为神圣生命的总和，甚至成为神圣生命的本身—约四14，西三4。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-五-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-五-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约4:14	人若喝我所赐的水，就永远不渴；我所赐的水，要在他里面成为泉源，直涌入永远的生命。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:4	基督是我们的生命，祂显现的时候，你们也要与祂一同显现在荣耀里。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-五-2">
+            <div class="section-level3">
+                
+                2　我们必须在神那爱、光、义、圣的属性上成为神。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-五-3">
+            <div class="section-level3">
+                
+                3　我们必须成为基督的复制，就是神的彰显，使我们在牧养上彰显神，而不是彰显我们的己，连同个性与乖僻。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-五-4">
+            <div class="section-level3">
+                
+                4　我们必须在神的功用上成为神，照着祂的所是并照着祂经纶中的目标，牧养神的群羊。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-六">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍-六')">▼</button>
+                
+                六　我们若要按着神牧养，就需要与神成为一—约十四20，林前六17：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-六')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-六" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约14:20	到那日，你们就知道我在我父里面，你们在我里面，我也在你们里面。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前6:17	但与主联合的，便是与主成为一灵。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍-六" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-伍-六-1">
+            <div class="section-level3">
+                
+                1　圣经的基本原则是神在祂的经纶里，使自己与人成为一，并使人与祂成为一—约十五4，林前六17。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-六-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-六-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约15:4	你们要住在我里面，我也住在你们里面。枝子若不住在葡萄树上，自己就不能结果子，你们若不住在我里面，也是这样。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前6:17	但与主联合的，便是与主成为一灵。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-六-2">
+            <div class="section-level3">
+                
+                2　神渴望神圣的生命与属人的生命能联为一个生命，过一个生活—约六57，加二20。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-六-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-六-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约6:57	活的父怎样差我来，我又因父活着，照样，那吃我的人，也要因我活着。</div>
+                    
+                    
+                    
+                    <div class="verse-line">加2:20	我已经与基督同钉十字架；现在活着的，不再是我，乃是基督在我里面活着；并且我如今在肉身里所活的生命，是我在神儿子的信里，与祂联结所活的，祂是爱我，为我舍了自己。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-七">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍-七')">▼</button>
+                
+                七　按着神牧养，要求我们被神构成—弗三17上，西三10~11：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-七')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-七" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗3:17上	使基督借着信，安家在你们心里，……</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:10	并且穿上了新人；这新人照着创造他者的形像渐渐更新，以致有充足的知识；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:11	在此并没有希利尼人和犹太人、受割礼的和未受割礼的、化外人、西古提人、为奴的、自主的，唯有基督是一切，又在一切之内。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍-七" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-伍-七-1">
+            <div class="section-level3">
+                
+                1　神渴望将祂自己分赐到我们里面，使我们的所是由祂的所是所构成，以致与祂的所是成为一个构成—弗三17上，西三10~11。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-七-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-七-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗3:17上	使基督借着信，安家在你们心里，……</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:10	并且穿上了新人；这新人照着创造他者的形像渐渐更新，以致有充足的知识；</div>
+                    
+                    
+                    
+                    <div class="verse-line">西3:11	在此并没有希利尼人和犹太人、受割礼的和未受割礼的、化外人、西古提人、为奴的、自主的，唯有基督是一切，又在一切之内。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-七-2">
+            <div class="section-level3">
+                
+                2　神这神圣的一位用祂的元素注入我们里面，使我们在生命和性情上，但不在神格上，与祂一样—林后十三14。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-七-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-七-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后13:14	愿主耶稣基督的恩，神的爱，圣灵的交通，与你们众人同在。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-八">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍-八')">▼</button>
+                
+                八　唯有活神的人，才能按着神牧养—腓一21上：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-八')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-八" style="display: none;">
+                    
+                    
+                    <div class="verse-line">腓1:21上	因为在我，活着就是基督，……</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍-八" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-伍-八-1">
+            <div class="section-level3">
+                
+                1　神的经纶是要将祂自己作到我们里面，使我们可以接受祂作我们的生命和生命的供应，好活祂—约十一25，六48、57。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-八-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-八-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">约11:25	耶稣对她说，我是复活，我是生命；信入我的人，虽然死了，也必复活；</div>
+                    
+                    
+                    
+                    <div class="verse-line">约6:48	我就是生命的粮。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约6:57	活的父怎样差我来，我又因父活着，照样，那吃我的人，也要因我活着。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-八-2">
+            <div class="section-level3">
+                
+                2　我们现今正有分于神圣的生命和神圣的性情，使我们能在人性里活神—加二20。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-八-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-八-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">加2:20	我已经与基督同钉十字架；现在活着的，不再是我，乃是基督在我里面活着；并且我如今在肉身里所活的生命，是我在神儿子的信里，与祂联结所活的，祂是爱我，为我舍了自己。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-九">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍-九')">▼</button>
+                
+                九　我们要作按着神牧养的人，就需要代表神，尽代理之神的功用：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍-九" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-伍-九-1">
+            <div class="section-level3">
+                
+                1　耶和华使摩西“在法老面前作神”；在摩西身上，神得着一个代表祂并执行祂旨意的人—出七1，三16~18，五1。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-九-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-九-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">出7:1	耶和华对摩西说，你看，我使你在法老面前作神；你的哥哥亚伦要作你的申言者。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出3:16	你去招聚以色列的长老，对他们说，耶和华你们祖宗的神，就是亚伯拉罕、以撒、雅各的神，向我显现，说，我实在眷顾了你们，也看见了你们在埃及受到什么样的对待。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出3:17	我也说，我要将你们从埃及的困苦中领出来，上到迦南人、赫人、亚摩利人、比利洗人、希未人、耶布斯人之地，就是到流奶与蜜之地。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出3:18	他们必听你的话；你和以色列的长老要去见埃及王，对他说，耶和华希伯来人的神遇见了我们；现在求你让我们走三天的路程，到旷野里去，我们好献祭给耶和华我们的神。</div>
+                    
+                    
+                    
+                    <div class="verse-line">出5:1	后来摩西、亚伦去对法老说，耶和华以色列的神这样说，让我的百姓去，他们好在旷野向我守节。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-九-2">
+            <div class="section-level3">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍-九-2')">▼</button>
+                
+                2　作为神的代表，撒母耳乃是代理的神—撒上一11，二35，七3，八22：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-九-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-九-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">撒上1:11	她许愿说，万军之耶和华啊，你若垂顾你婢女的苦情，记念我，不忘记你的婢女，赐你的婢女一个男孩，我必将他终身献与耶和华，不用剃刀剃他的头。</div>
+                    
+                    
+                    
+                    <div class="verse-line">撒上2:35	我要为自己立一个忠信的祭司；他必照我的心意而行。我要为他建立稳固的家；他必永远行在我的受膏者面前。</div>
+                    
+                    
+                    
+                    <div class="verse-line">撒上7:3	撒母耳对以色列全家说，你们若全心回转归向耶和华，就要把外邦的神和亚斯他录从你们中间除掉，专心归向耶和华，单单事奉祂；祂必救你们脱离非利士人的手。</div>
+                    
+                    
+                    
+                    <div class="verse-line">撒上8:22	耶和华对撒母耳说，你只管听从他们的话，为他们立王。撒母耳对以色列人说，你们各归各城去吧。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍-九-2" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-伍-九-2-a">
+            <div class="section-level4">
+                
+                a　撒母耳能作代理的神，因为他的所是和神的心乃是一—二35。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-九-2-a')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-九-2-a" style="display: none;">
+                    
+                    
+                    <div class="verse-line">撒上2:35	我要为自己立一个忠信的祭司；他必照我的心意而行。我要为他建立稳固的家；他必永远行在我的受膏者面前。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-九-2-b">
+            <div class="section-level4">
+                
+                b　撒母耳的生活和工作乃是为着完成一切在神心中的事。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-九-3">
+            <div class="section-level3">
+                
+                3　申言者以利沙在他的职事中，作为神人（直译，属神的人），行事如同神的代表，如同代理的神；今天我们在基督里的信徒，也能这样—王下四9，提前六11。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-九-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-九-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">王下4:9	妇人对丈夫说，我看出那常从我们这里经过的是圣别的神人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提前6:11	但你这属神的人啊，要逃避这些事，竭力追求公义、敬虔、信、爱、忍耐、温柔。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-十">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-伍-十')">▼</button>
+                
+                十　按着神牧养，就是将神供应给人—林后十三14：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-十')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-十" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后13:14	愿主耶稣基督的恩，神的爱，圣灵的交通，与你们众人同在。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-伍-十" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-伍-十-1">
+            <div class="section-level3">
+                
+                1　三一神已经具体化身在基督里，并且实化为终极完成的灵；这是我们所敬拜、传扬并供应给人的神—西二9，林前十五45下，林后一3~4、12、15~16，二10，十三14。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-十-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-十-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:9	因为神格一切的丰满，都有形有体地居住在基督里面，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前15:45下	……末后的亚当成了赐生命的灵。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后1:3	我们主耶稣基督的神与父，就是那怜恤人的父，和赐诸般安慰的神，是当受颂赞的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后1:4	祂在我们一切的患难中安慰我们，叫我们能用自己从神所受的安慰，安慰那些在各样患难中的人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后1:12	我们所夸的，是我们的良心见证我们凭着神的单纯和纯诚，在世为人，不靠属肉体的智慧，乃靠神的恩典，对你们更是这样。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后1:15	我既然这样深信，先前就有意到你们那里去，叫你们得着两次的恩典，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后1:16	也要从你们那里经过，往马其顿去，再从马其顿回到你们那里，然后蒙你们送行往犹太去。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后2:10	你们饶恕谁什么，我也饶恕；我若曾有所饶恕，我所已经饶恕的，是在基督的面前，为你们饶恕的；</div>
+                    
+                    
+                    
+                    <div class="verse-line">林后13:14	愿主耶稣基督的恩，神的爱，圣灵的交通，与你们众人同在。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-伍-十-2">
+            <div class="section-level3">
+                
+                2　我们若要彼此供应神，就需要讲说恩典、真理、灵和生命的话，供应那作到我们里面之经过过程的神—弗三16~17上，四25、29，约六63。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-伍-十-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-伍-十-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗3:16	愿祂照着祂荣耀的丰富，借着祂的灵，用大能使你们得以加强到里面的人里，</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗3:17上	使基督借着信，安家在你们心里，……</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:25	所以你们既已脱去谎言，各人就要与邻舍说实话，因为我们是互相为肢体。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗4:29	败坏的话一句都不可出口，只要按需要说建造人的好话，好将恩典供给听见的人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">约6:63	赐人生命的乃是灵，肉是无益的；我对你们所说的话，就是灵，就是生命。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.outline-page {
+    padding: 5px;
+}
+
+/* 字体大小控制 */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.font-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+}
+
+.outline-content {
+    margin-top: 20px;
+}
+
+.section-level1 {
+    font-weight: bold;
+    font-size: 17px;
+    margin: 20px 0 12px 0;
+    color: #2c3e50;
+    line-height: 1.8;
+}
+
+.section-level2 {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 16px 0 10px 15px;
+    color: #34495e;
+    line-height: 1.8;
+}
+
+.section-level3 {
+    font-size: 16px;
+    margin: 14px 0 8px 30px;
+    color: #4a5568;
+    line-height: 1.8;
+}
+
+.section-level4 {
+    font-size: 15px;
+    margin: 12px 0 8px 45px;
+    color: #718096;
+    line-height: 1.8;
+}
+
+.subsections {
+    margin-left: 0;
+    display: block;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 0.875em; /* 14px -> 0.875em */
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    margin-right: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-btn:active {
+    color: var(--brand-2);
+}
+
+.scripture-toggle-btn {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+    padding: 10px 12px;
+    margin: 8px 0 0 0;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.scripture-toggle-btn:active {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.scripture-content {
+    background: #f8f9fa;
+    border-left: 3px solid var(--brand-1);
+    padding: 10px 12px;
+    margin: 10px 0 10px 15px;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.8;
+}
+
+.verse-line {
+    margin-bottom: 8px;
+}
+
+.verse-line:last-child {
+    margin-bottom: 0;
+}
+
+.scripture-ref {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-left: 8px;
+}
+
+/* 章节级别经文样式 */
+.scripture-section {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.chapter-scripture-toggle {
+    margin-left: 10px;
+    font-size: 13px;
+    padding: 8px 14px;
+    min-height: 40px;
+}
+
+.chapter-scripture-content {
+    margin-top: 12px;
+    margin-left: 0;
+    background: white;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const hymnElem = document.querySelector('.hymn-number');
+            if (hymnElem) text += hymnElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const sections = document.querySelectorAll('.section-level1, .section-level2, .section-level3, .section-level4');
+            sections.forEach(s => {
+                const t = s.textContent.trim();
+                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+                    text += t + '。';
+                }
+            });
+            return text;
+        }
+    });
+});
+
+function toggleSection(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '▼';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '▶';
+    }
+}
+
+function toggleScripture(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '收起经文';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '展开经文';
+    }
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025夏季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+
+</body>
+</html>

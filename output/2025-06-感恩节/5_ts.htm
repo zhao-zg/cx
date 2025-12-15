@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <title>第5篇 - 详情</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 14px;
+            color: var(--text);
+            margin: 15px 0;
+            padding: 12px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 15px;
+                padding: 15px;
+                line-height: 1.8;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 14px;
+            color: #444;
+            margin: 15px 0;
+            padding: 12px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 15px;
+                line-height: 1.8;
+                padding: 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 13px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        /* 底部控制栏的字体按钮 - 使用更高优先级 */
+        .bottom-control-bar .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .bottom-control-bar .font-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .speech-time {
+                font-size: 12px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>二〇二五年感恩节相调特会</h1>
+            <div class="subtitle">总题：马太福音中所启示包罗万有的基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025感恩节训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="details-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="5_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="5_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="5_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="5_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="5_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第5篇 基督作为那赐我们安息者</h2>
+    
+    
+    <div class="scripture">读经：创一26、31~二2，太十一28~30，出三一12~17</div>
+    
+    
+    <div class="details-content">
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                壹　“凡劳苦担重担的，可以到我这里来，我必使你们得安息。我心里柔和谦卑，因此你们要负我的轭，且要跟我学，你们魂里就必得安息；因为我的轭是容易的，我的担子是轻省的”—太十一28~30：
+            </div>
+            
+            
+            <div class="content-text">好，第一大点，经节我们读过了。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-一">
+            <div class="section-level1">
+                一　这里的劳苦不仅是指为了遵守律法诫命和宗教规条而努力的劳苦，也是指为了工作成功而奋斗的劳苦；凡这样劳苦的，总是担重担的。
+            </div>
+            
+            
+            <div class="content-text">第一中点，这里的劳苦，你们读，你们如果研读希腊文，你们会发现这个劳苦是非常重的劳苦，不是一般的工作而已，这是劳苦到你非常疲乏，很累的时候，这是非常重的重担，这个就是劳苦，是担重担的。当主说你们要到我这里来就可以得着安息，我们觉得哦真好，主要我不要工作得太努力，祂只要我安息。请你不要用这个经节作为借口，就可以轻松了，这不是主的信息，主这里不是这样说的。这个话乃是为那些非常劳苦的人的话，而且他们是担重担。劳苦讲到不仅是为了遵守律法诫命，当然是包括这个。任何在想要努力成为好人，或者是要在那里守摩西的律法，要守神的诫命，他们都知道，如果你真是努力这样作的话，你就懂这个劳苦是什么意思。而且有的时候遵守律法诫命，这劳苦也是为着想要在，为了工作成功而奋斗的劳苦，凡这样劳苦的总是担重担的。</div>
+            
+            <div class="content-text">我是在主的恢复里面的一位同工，与许多的弟兄们一起。我在某一种程度我也懂什么是劳苦，什么是挣扎，什么是努力担重担，什么是能够很好地实行出一些事情来，而且能够完成你所开始的任何的工作奋斗，而且我也懂什么是担重担，所以这个话是为着我的。我相信我们每一位，在某种程度里，在主的恢复里，在召会生活里，我们都是劳苦或者是担重担，劳苦为着圣徒们，要作出主的工作。你看看主自己，祂在那里要教导我们如何找着安息，是么？你就想主好像从来没有工作，那你是大错特错了。祂怎么说？祂说父工作直到如今，我也工作，我也工作。主耶稣祂说到我这里来，我要使你们得安息。祂是最努力工作的一位，但是祂有个秘诀，这就是我们在这里找到的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-二">
+            <div class="section-level1">
+                二　主颂扬父，承认父的道路，并宣告神圣的经纶之后（25~27），便呼召这样的人到祂这里来得安息。
+            </div>
+            
+            
+            <div class="content-text">所以今天晚上我是在传福音，但是不是向着罪人传福音，不是那样的重担之下；我今天乃是向圣徒们传讲，向我自己传讲。在这里的，在主的恢复里的有重担，想要过一个正常的基督徒生活，要成为一个得胜者，想要作成神的经纶，要作成、完成、达到新耶路撒冷。这是非常重的事情，这是不可能的事情，让人在他自己里面或者凭他自己来作。为此，我们需要从基督来的福音，祂乃是呼召这样的人，要到祂这里来得安息，这何等地摸着我。弟兄姊妹们，当我在预备这边信息的时候，我觉得主就是在呼召这样的人，我就是这样的人中的一个，要来到祂这里，得着安息。我需要这个，我需要这个，非常地需要这个。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-三">
+            <div class="section-level1">
+                三　安息不仅是指从律法与宗教，或工作与责任的劳苦并重担中得着释放，也是指完全的平安和完满的满足。
+            </div>
+            
+            
+            <div class="content-text">所以安息，这里主所说的安息，不是说我没有负担了，没有任何的劳苦，我就很好了。不，这个安息比这个更多，这个安息乃是讲到完全的平安和完满的满足。我有一个问题向着所有服事主的人，是的，我们是忠信的，我们也勤劳的，我们应该这样。是的，我们也劳苦，我们工作。我常常告诉全时间的，说我要工作直到我死的那一天。我死的时候应该是服事主，还是在某种情况之下服事主。这个很好，不错。但是我们要来背负主的工作的责任，是不能够没有完全的安息，没有完全的满足，是可能的。这个我们会看到，这个是非常重要的，神圣的，在神的工作的原则。而且我必须要承认我常常犯规了。就是对我自己来讲是很可惜的，因为这个不是神所要的。你如何作到，要在这里努力流汗，努力地工作、劳苦，但是却有完全的平安和完满的满足？难怪主说要跟我学。弟兄姊妹们，我们都要学习，我们需要有一个新的学习，如何像主一样，来接受祂的轭。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-四">
+            <div class="section-level1">
+                四　负主的轭就是接受父的旨意；这不是受律法或宗教义务的规律或支配，也不是受任何工作的奴役，乃是受父旨意的约束。
+            </div>
+            
+            
+            <div class="content-text">负主的轭就是接受父的旨意；这是这里的中心思想。就是这一句话，职事打开了一切，就是这么一句话。什么是这个轭？这个轭不是罪，不是死，这个轭不是撒但的奴役，这个轭乃是父的旨意。这里刚刚讲到的重担，这个字就表示你实在是被它压垮了，有两百磅在你的肩膀上，你是非常重的，有重担，满了重担。这个轭是什么呢？这个轭就是父的旨意。我稍微查了一下，有一个解释或者一个应用，讲到，我在这里有两样东西，是一个天平，这两个东西是平衡的，这个就是轭，它是同时上面放两个重量，放在上面，那另一面来看是平衡的；但是另外一面来看你就是有看到一些动物，看到马，牛啊，不只是一只牛在那里耕地、劳苦，乃是两只牛，它们在那里背负一个轭。当那个领会临到我的时候，我就非常的惊讶。我说这怎么可能呢？这怎么可能呢？你们要负我的轭。这个轭是称为我的轭，不是你的轭，这是我的轭。弟兄们你们看到这个么？这是耶稣的轭，这是神儿子的轭，这是人子的轭，这是基督的轭，不是你的轭。祂说你们要负我的轭是什么意思？意思就是说你们要与我联结，你们要与我的轭连在一起，就在这个轭之下，我已经在背负这个轭，你就来与我一同背负这个轭，跟我一同来背负这个轭。这是独一的方法，这个轭能够轻省，这个轭能够容易，这个轭能够是给你有安息的。这是唯一的一条路，就是这个轭不是你的轭，乃是主的轭，你来背负，与主一同来背负这个轭。两个人像一个人一样地工作，背负同一个轭。当我想到这个，我就说，“主耶稣，赞美你！主耶稣，感谢你！”我以为我就要接受你给我的轭背在我身上，但是我是错的，主说要到我这里来，我已经有了这轭了，来跟我一同背负我同一个轭，我要你们全部跟我一起同样背负一个轭，是不是这样啊？这个是不是我们的经历？当我们背负这个轭（基督的轭）的时候，与基督一同，与这位基督合一，也只有在这个时候，这个轭是轻省的，是非常使人愉悦的，是非常宝贝的。责任改成喜乐，祷告变成了赞美。</div>
+            
+            <div class="content-text">只有，只有，当我们知道如何来背负基督的轭，那个轭，我再提醒你们，不是这个或者那个，那个轭乃是父的旨意。当你看见这个时候，你会觉得你再一次得救。那个轭就是父的旨意，不论是什么样的形状，什么样的情形，什么样的光景或者各种的情形，但是基本的点就是不论是什么，也许是被弃绝，也许是被毁谤，也许会被逼迫，也许是各种的受苦，可能是像罗马书八章讲的万有，不论是什么，你只要看这些东西，看这些事，你没有办法背负。但是如果你看到这一切乃是父的旨意，一切就改变了，一切都改变了。主被弃绝，但是祂并没有受搅扰，祂仍然是满了平安，满了安息，因为，为什么？因为祂在那里不是为着要人欢迎祂，祂在那里不是要有名，祂不是在那里要成为王，祂在地上只作一件事，只作一件事，就是父的旨意。如果父觉得祂应该被弃绝，祂就完全被弃绝，甚至到死地。祂说，“父啊，你的旨意要实行，不是我的旨意。”祂在那里得着安息，祂得了满足，因为那是父的旨意。</div>
+            
+            <div class="content-text">所以弟兄们，让我们的眼光，从这件事那件事情、这个环境那个环境转，让我们的眼睛转向父的旨意。你只要说“父，你的旨意要行出来”，在那个时候，你就是与祂一同背负耶稣，你就与耶稣一同背负祂的轭。这不是受律法或宗教义务的规律或支配，也不是受任何工作的奴役。你们听，我在作主的工作，但是我要见证，有的时候我被那个工作，成为那个工作的奴役，我失去了，没有看见这是关于父的旨意，这个工作变成我个人的了。你们懂我的意思么，弟兄姊妹们？如果这不是父的旨意，结果成为我的事情，当这个成为我的事物的时候，就没有平安了，就没有满足了。因为你关心你的名字是不是跟那个工作连在一起，你非常关切，你很关心你会不会成功，你很关心你是不是会被别人，有了恶名，就像使徒们在向哥林多人说，这些事情都是向着保罗，临到这么多的事情。他接受这些事情不是借着咬牙切齿，不是因为他比较刚强，当然是因着恩典，但是他接受这一切，完全顺服，是向着神的旨意，父的旨意，那个对他就够了。不是弃绝或者是人接受，乃是是不是父的旨意；不是恶名或者是美名，好的消息还是不好的报道，乃是父的旨意。所以不是要被受任何工作的奴役，乃是受父旨意的约束。弟兄姊妹们，让我们学这个功课，能够受约束，是受父旨意的约束。有担子，有压力，乃是父的旨意给我们的担子。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-五">
+            <div class="section-level1">
+                五　主过这样的生活，并不在意别的，只在意祂父的旨意（约四34，五30，六38）；祂将自己完全降服于父的旨意（太二六39、42）；因此，祂要我们跟祂学：
+            </div>
+            
+            
+            <div class="content-text">主过这样的生活，并不在意别的。祂所作的一切，祂每天的生活，祂都是这样。祂过这样的生活，主过这样的生活，主耶稣过这样的生活，这一位第一位神人祂这样作了，所以祂成为我们的模型，祂成为我们的榜样，祂成为我们的榜样。祂不在意别的，只在意祂父的旨意，这底下有非常宝贝的经节，“我的食物就是实行差我来者的旨意，作成祂的工。”约翰福音四章三十四节。五章三十节，我从自己不能作什么，我怎么听见，我乃是寻求那差我来者的意思。然后六章，“因为我从天上降下来，不是要行我自己的意思，乃是要行那差我来者的意思。”（38）然后祂又祷告，这样的一位，这样的一位，我父啊，祂知道什么是安息，祂有满足，有平安。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　信徒照祂的榜样负祂的轭—神的旨意—并为神的经纶劳苦，就在他们灵里翻印主—十一29上，彼前二21。
+            </div>
+            
+            
+            <div class="content-text">我真是从主学到，我常常不是这样作，我没有以主作我的榜样，不只是像祂这样地生活，而且是像祂这样地工作。当然，这个榜样，这个翻印不是外面的模仿，乃是在我们灵里翻印主。我再说，是同负一轭，这就是模成祂的死，就是我们在祂受苦里的交通，与祂同负一轭，与主负一个轭。就借着与祂同负一轭，在同一个轭之下，我就在这里，祂是翻印，祂就是我的榜样了，我就在祂的旁边与祂一同。彼得说，基督为我们受苦，给我们留下榜样，叫我们跟随祂的脚踪行。我就是那个牛，在跟随这只牛，一步一步地在灵里跟随祂。这就是我们应该这样地工作，弟兄姊妹们。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　主在祂的一生中服从并顺从父，祂已将祂服从并顺从的生命赐给我们—腓二5~11，来五7~9。
+            </div>
+            
+            
+            <div class="content-text">这是好信息。什么样的好信息啊？祂是一位真正服从、顺从，完全服从、顺服父的，祂已经将祂同样的服从并顺从的生命赐给我们了。弟兄姊妹们，我们有那个生命，我们有那个生命，同样的生命，就是主所有的生命。所以让我们有同样的心思。保罗说也是在基督耶稣里的，我们要思念祂所思念的，祂倒空自己，而且降卑自己，顺从至死，且死在十字架上，那个生命在我们的里面。而且我们在这里乃是来学习祂，学习祂的顺服。甚至子学习顺服，我们何等更需要学习顺服。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　基督是第一个神人，我们是许多的神人；我们必须在祂绝对服从神，并完全以神为满足的事上跟祂学。
+            </div>
+            
+            
+            <div class="content-text">所以我们学到什么？从祂学到什么？祂说要学我。这里怎么说的？为什么要学习祂？因为我是柔和谦卑，我心里柔和谦卑。所以我们学到什么了？我们学到什么？我们到底学到什么了？我们这里是要学什么？祂说我是柔和，我是心里柔和谦卑。这个是秘诀，弟兄们，这个是秘诀，让我们认识安息，真正的安息。要柔和，或者是温柔、谦卑，谦卑就是这个安息的秘诀。我继续来看第四小点。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　神是在我们里面，借着耶稣基督，行祂看为可喜悦的事，使我们能实行祂的旨意（十三20~21）；神为着祂的美意在我们里面运行，使我们立志并行事（腓二13）。
+            </div>
+            
+            
+            <div class="content-text">神是在我们里面，借着耶稣基督，行祂看为可喜悦的事，使我们能实行祂的旨意。我们也许说我怎么来实行神的旨意呢？神帮助我们，而且神在我们里面作这个，是在基督的人位里，而且是那灵与我们的灵调和，祂就作这个，是讨神喜悦的。我们都应该有这样的雄心，弟兄姊妹们，要我们的服事是讨神喜悦的，而且是讨神和人喜悦的。但是神在我们里面一直在作这样的事，如果我们顾到祂，我们如果与祂配合，我们如果能够与主同负一轭。希伯来书十三章有这个经节。在腓立比书，讲到神在我们里面运行就是为着祂的美意。这里是同样地让我们看见，神乃是在这里，我们里面作，作讨祂喜悦的。神在我们的运行，现在就在我们里面运行，使我们愿意而且工作，为着祂的喜悦，为着祂的美意。这里有两个非常好的经节，就是一直在讲到同一件事。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-六">
+            <div class="section-level1">
+                六　柔和，或，温柔，意即不抵抗任何反对；谦卑，意即不重看自己；在一切的敌对中，主是柔和的；在一切的弃绝里，祂心里是谦卑的。
+            </div>
+            
+            
+            <div class="content-text">第六中点，柔和，或，温柔，意即不抵抗任何反对；谦卑，意即不重看自己；你看到么？这是秘诀。我是柔和、谦卑。柔和就是不抵抗任何反对。主有许多的，见到许多的反对祂，不抵抗任何反对。而且祂是谦卑的，意思就是有很多恶名抛在祂身上的时候，他们把祂打倒，当别人给祂一些非常恶的名的时候，祂就是这样，感谢父。祂完全不看重自己，祂不在乎，祂不要求有任何的美名，祂不要求人人都喜欢祂。柔和、谦卑是在祂的心里。祂心里是谦卑的，在一切的敌对中，主是柔和的。在这段话之前，主是柔和的；在一切的敌对中，主是柔和的；在一切的弃绝里，祂心里是谦卑的。并不表示主是被动的，说祂是软弱的，祂什么都不能作，不是这个意思。乃是说当祂面对这一切事情的时候，祂里面是不受搅扰的，祂里面是满了平安的，因为这是父的旨意。在那个时候，是父的旨意，所以祂赞美父，祂感谢父，而且在那里称赞父。祂在那里颂赞父奥秘的经纶，祂也呼召那些门徒们，他们乃是一班要跟随祂而有同样的前途的。在这一切里面，主完全是在平安里的，祂是在安息里的，祂是满了满足的。弟兄姊妹们，我们需要学习这样地工作。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-七">
+            <div class="section-level1">
+                七　祂将自己完全降服于父的旨意，不为自己作什么，也不盼望为自己得什么；因此，无论环境如何，祂心里都有安息；祂完全以父的旨意为满足。
+            </div>
+            
+            
+            <div class="content-text">第七中点，祂将自己完全降服于父的旨意，不为自己作什么，也不盼望为自己得什么。这些每一句话，这都是职事的话，我真是爱这些话。年轻的弟兄姊妹们，我愿意给你们一个秘诀，那就是就重复职事的话，你就完全照，一字不差地来重复这分职事的话，你发现每一句话，每一个段落，每一字，每一个句子，不要以重复职事的话为羞耻，要来说职事的话。这里有宝贝，这里有金，如果你用你的话你得不着。祂将自己完全降服于父的旨意，不为自己作什么，也不盼望为自己得什么；这里完全没有己。因此，无论环境如何，祂心里都有安息。只有一位没有己的人他才有安息，这很合理的。当我们受搅扰的时候，当我们被得罪的时候，是因为我们里面有些东西是为着己，所以我们没有平安。我们还是在这里想要一些东西，想要得着一些东西，所以我们受搅扰，我们的魂就会在那里有不平，很受搅扰。我们是不是发现这样的情形？甚至我们是在为神工作，也会有这样的情形，就在那个时候我们需要停下来，在那个时候我们需要来到祂面前，一再地来到祂面前，在那个时候我们要学习，再来以祂为满足。就在那个时候，亲爱的弟兄姊妹们，我们要回到父的旨意，不是在我们自己的旨意里。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-八">
+            <div class="section-level1">
+                八　负主的轭、跟主学，就叫我们的魂得安息；这是里面的安息，不是任何仅仅在本质上是外面的事物。
+            </div>
+            
+            
+            <div class="content-text">我们都知道当我们在受搅扰的时候，就是都是魂的事情，在那里有很多的波动，后来变成一个大的海洋，这是我们的魂，这一切的问题都是在我们的魂里。当魂受搅扰的时候，你的全人就不平了，你这个全人就没有平安了，没有满足。你也许还可以有一个戴上一个面具在那里继续工作，但事实上那个平安没有了，这里面的，里面的满足，在魂里面的满足就没有了。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-九">
+            <div class="section-level1">
+                九　我们照着主的榜样跟祂学，不是凭我们天然的生命，乃是凭祂在复活里作我们的生命—弗四20~21，彼前二21。
+            </div>
+            
+            
+            <div class="content-text">我们知道我们不是外面模仿基督，我们乃是以祂为我们的榜样，在我们的灵里，在生命的范围里，在复活的范围里。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-十">
+            <div class="section-level1">
+                十　主的轭是父的旨意，祂的担子是将父旨意实行出来的工作；这样的轭是容易的，不是痛苦的；这样的担子是轻省的，不是沉重的。
+            </div>
+            
+            
+            <div class="content-text">第十中点，主的轭是父的旨意，祂的担子是将父旨意实行出来的工作；这样的轭是容易的，不是痛苦的。亲爱的圣徒们，我有看到一些亲爱的弟兄或姊妹，他们愿意服事主，但是到一个地步，觉得后来变得很苦毒，成为很苦毒的，因为他们觉得他们作不下去了，我为什么这样作啊。我见过这样的情形。有的时候一点点的，我也有这样的感觉，也许你们还没有这样的感觉，有一点点的苦。这样的担子，这样的担子，这样的重的担子是轻省的，应该是轻省的，如果我们是在对的地方。我们可以察看自己，你可以察看你自己，我也许在劳苦，也许睡得不够，也许作很多的事情，我并不是说我们一无所事，什么事都不作，乃是当我们在服事的时候，当我们在工作的时候，我们说，哦，这个是轻省的，这个不是苦的，不是痛苦的，甚至是甜美的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-十一">
+            <div class="section-level2">
+                十一　“容易”的原文表明合用；因此是美好、亲切、柔和、温良、容易、愉快，与艰难、严酷、尖锐、痛苦相对。
+            </div>
+            
+            
+            <div class="content-text">主的轭永远不是这样。当你觉得很艰难，很严酷，很尖锐、痛苦的时候，也许你就是在一个错的轭之下，应该是美好、亲切、柔和、温良、愉快的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-十二">
+            <div class="section-level2">
+                十二　我们若负主的轭（父的旨意）且跟祂学，我们魂里就必得安息；神经纶的轭就是如此；在神经纶中的每一件事，都不是重担，乃是享受。
+            </div>
+            
+            
+            <div class="content-text">我们都应该说一个大声的阿们，我们应该这样说，因为这是真实的话语。当你不安息的时候，不要怪主的恢复，你乃是在这里责怪错误的一个人。不是神的经纶使你苦毒，乃是你自己背负了错的轭，用你天然的生命还在努力作些事情，为着你自己，在你的事奉当中，使你没有平安，而且使你没有安息。我们现在来到第二大点，在出埃及三十一章十二至十七节。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                贰　在论到神居所的建造这一长段的记载之后，出埃及三十一章十二至十七节重申守安息日的诫命；按照歌罗西二章十六至十七节，基督是安息日之安息的实际；祂是我们的完成、安息、平静和完全的满足—来四7~9，赛三十15上：
+            </div>
+            
+            
+            <div class="content-text">让我很快地把出埃及记三十一章十二节到十七节读给你们听，好么？好。请你们安息，很平静地来听圣经的话。“耶和华告诉摩西说，你要吩咐以色列人说，你们务要守我的安息日；因为这是我与你们之间世世代代的记号，使你们知道我是把你们分别为圣的耶和华。所以你们要守安息日，因为这是你们的圣日。凡渎犯这日的，必要被处死；凡在这日作工的，那人要从民中剪除。六日要作工，但第七日是完全安息的安息日，是归耶和华为圣的；凡在安息日作工的，必要被处死。故此，以色列人要谨守安息日，要世世代代守这安息日为永远的约。这是我与以色列人之间永远的记号；因为六日之内耶和华造天地，第七日便安息舒畅。”所以这里我们有一段话，忽然提到安息日，在很多很多章之后，在出埃及记很多很多章讲到这个帐幕，神的居所，讲到很细地说到帐幕，讲到祭司体系，那些在这个帐幕里服事的，每一个器物，祭坛，陈设饼的桌子或者是面饼的桌子，灯台、金香坛，或者是等等，这一切，约柜等等。在这么多章之后，这么多的记载之后，忽然讲到，安息日跳出来，这个很突然地出来，这让我们看到安息日是如何的重要，这与神的居所是非常的紧紧地联结的。在预备这一切器具，还有这个帐幕的建立和建造，还有我们在那些器物里面的事奉，在这个帐幕里面的事奉，这一切都是与安息日有关，乃是与神的安息有关。这里，弟兄姊妹们，我们看到一个大的原则，属灵的原则，神圣的原则，让我们来读，来学习。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-一">
+            <div class="section-level1">
+                一　在帐幕建造工作的嘱咐之后插入关于安息日的话，指明主吩咐那些建造者，作工的人，为主作工时要学习如何与主一同安息。
+            </div>
+            
+            
+            <div class="content-text">第一中点，在帐幕建造工作的嘱咐之后插入关于安息日的话，指明主吩咐那些建造者，（祂是向那些建造者说话），作工的人，为主作工时要学习如何与主一同安息。当我在读这个时候，我就想到马太福音十六章主说的话，我要建造我的召会，我要建造我的帐幕。所以这样建造帐幕的第一个工人乃是基督，祂知道如何安息，祂知道如何守安息日。在建造这个帐幕的时候，在服事这个帐幕的时候，我们要学习祂。然后，神借着摩西让我们看到，我们乃是与神一同工作的，来建造召会的。我们首先要学习如何与主一同安息，然后我们才知道如何为祂工作。首先安息，然后工作，不是倒过来的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-二">
+            <div class="section-level1">
+                二　倘若我们只知道如何为主作工，而不晓得如何与祂一同安息，我们就违背了神圣的原则：
+            </div>
+            
+            
+            <div class="content-text">亲爱的圣徒们，不是件小事，来违犯了神的原则不是一件小事。有的时候我们不小心地这样作，但有的时候我们是故意这样作，我们需要恐惧战兢，这里有神圣的原则，你不能违背的，这是为我们的益处。神设立了原则，神在创造里面设立了原则，在人当中，在祂自己的工作里，祂也有原则。在这个神圣奥秘的范围里面有原则。这里有个大的原则，这应该是我们需要注意的，我们需要更新的，今天晚上有看见。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　神在第七日安息了，因为祂完成了祂的工，并且满足了；神的荣耀得着彰显，因为人有了祂的形像；祂的权柄也即将施行，以征服祂的仇敌撒但；只要人彰显神并对付神的仇敌，神就得着满足而能安息—创一26、31~二2。
+            </div>
+            
+            
+            <div class="content-text">所以这里你有神工作了六日，祂在那里又复造，地上完成了祂的创造，造了人，在第六日造了人。所以神工作得很努力，祂是非常努力地工作，到第六日，到第七日，祂完成了祂的工。所以祂很喜乐，祂满足了，祂安息了。为什么呢？不是只是日月星辰，其他的动物等等。不，那一切，天是为着地，地是为着什么？地是为着人。一切神的复造都是为着让人能够生存在地上，在这个宇宙里，为着祂的目的，照着祂的形像，按着祂的样式造的，为着祂的荣耀来彰显祂，来击败神的仇敌。所以神很喜乐，祂第七天祂就可以安息了，这是很重要的点，要记住。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　后来第七日蒙记念为安息日（出二十8~11）；神的第七日乃是人的第一日。
+            </div>
+            
+            
+            <div class="content-text">第二，后来第七日蒙记念为安息日，所以安息日是第七日，对神来说。这神的第七日是祂安息了，但是你知道么？这乃是人的第一日。阿们！阿们！神的第七日是我们的第一日。如果你知道这个意义，你就不会只是说阿们，你会跳起来说阿们，是吧？当然现在不需要这样作。神已经预备好一切给人享受，预备好一切，所有的动物、所有的树、所有的氧气、星辰等等，祂都预备好了，给人享受。所以人被造后都在那里了，那些都在那里，这些不是，为着他们的生存，而且是为着他们的享受。所以第一日，人在那里，人一无所事，他们没有事情可以作，第一日这样怎么样啊？第一日就是假日。你喜欢这个么？第一日就是感恩节，只要吃就好了，尽可能地吃。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　神已经预备好一切给人享受；人被造后，并不是加入神的工作，乃是进入神的安息。
+            </div>
+            
+            
+            <div class="content-text">神已经预备好一切给人享受；所以，人被造后，并不是加入神的工作。不是说人不要工作，但不是一开始开始工作，神不要人一开始就工作。祂造了人之后，祂先要人来学习如何享受，享受祂为人所作的，来享受祂所完成的一切，为着这个人所完成的一切。你知道在十字架上主说的是什么话，在最后祂说什么？祂说，成了，成了，完成了。在那个之后，祂死而复活了，我们也与祂一同复活，进入到第一日，是么？因为成了。阿利路亚！一切都成了，神已经完成了一切，一切我们所需要的，一切我们所需要祂都完成了，我们只要进入祂所完成的。所以我们今天所要作什么？我们只要赞美主！阿利路亚！成了！我们有没有这样的一首诗歌？我们乃是进入神的安息，乃是进入祂的安息，祂的满足。所以主说，安息日。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　人受造首先不是为了作工，乃是以神为满足，并与神一同安息（参太十一28~30）；安息日是为人设立的，人不是为安息日创造的（可二27）。
+            </div>
+            
+            
+            <div class="content-text">人受造首先不是为了作工，乃是以神为满足，并与神一同安息。第四小点，整个法利赛人他们都搞错了，他们要人来背负安息日的担子，这不是神的心意，这安息日是为人设立的，第七日的安息是为人设立的。神说，不要先去工作，先到我这里来享受我，然后你可以去工作。当你满了我，当你被我充满，当你被我得着，清心，因着我，你得着满足，你就可以去工作。当你去工作的时候，这样地去工作，你就是一个满足的人，你是一个快乐的人，你是一个涌流的人，你在那里涌流，你的工作乃是一个里面生命的涌流。阿利路亚！阿利路亚！</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-三">
+            <div class="section-level1">
+                三　出埃及三十一章十七节说，“六日之内耶和华造天地，第七日便安息舒畅”：
+            </div>
+            
+            
+            <div class="content-text">我很喜欢这个话，不只是安息而且舒畅。今天你说给我一罐可口可乐，或者是Dr Pepper，或者是茶，或者给我一个甜的茶，我们讲说这是饮料，新鲜的饮料，你可以安息，但是却没有得着舒畅，是么？所以我坐在飞机上，我按一个，椅子倒下来就很安息了，但是这个空中小姐从来没有来，因为那个路程太短了，没有花生米，什么都没有，所以我安息了，但是没有得着舒畅。但是神在第七日祂安息了，而且得着舒畅。亚当也是一样，我们也应该是这样。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　安息日不仅是神的安息，也是神的舒畅。
+            </div>
+            
+            
+            <div class="content-text">神就得着舒畅，也许在那边跳舞，神就在享受祂所造的这个人，祂就自己很喜乐，而且享受祂所创造的工作。祂花了七天，你想神如果花了七天的时间一定是很好的。七天，并没有讲到祂睡觉，祂一天二十四小时作了这个工，结果最后，他在这里，亚当出现了，祂何等的喜乐，亚当成为祂的食物，就好像神成了亚当的食物一样。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　神创造的工完毕以后，便安息了；祂看着祂的工作，看看诸天，看看大地，看看所有的活物，特别看看人，就说，“甚好！”—创一31。
+            </div>
+            
+            
+            <div class="content-text">太好了，非常的好。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　神是因人得着舒畅的；祂按着自己的形像造人，有一个灵，使人能与祂有交通；所以，人是神的舒畅—26节，二7，参约四31~34。
+            </div>
+            
+            
+            <div class="content-text">我是神的甜茶。在诗篇一百一十篇那里讲到在祂争战的日子，那些得胜者要给祂，从这个泉源里面，给祂有像饮料一样。我们在这里是要使神舒畅，祂在这里使我们舒畅，那个就是真正的安息日的安息，那个就是祂的第七日，也是我们的第一日，是清晨的甘露。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　神创造人以前，是个“单身汉”（参创二18、22）；祂要人接受祂、爱祂、被祂充满并彰显祂，好成为祂的妻子（林后十一2，弗五25）；在将来的永远里，神要得着一个妻子，就是新耶路撒冷，称为羔羊的妻（启二一9~10）。
+            </div>
+            
+            
+            <div class="content-text">你知道神看到亚当，但是从亚当里，祂看穿亚当了，你知道祂看到什么？祂看到一个妻子，一个妻子，不是只是亚当，祂乃是要得着一个妻子，为着羔羊，是么？这是祂所看见的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-5">
+            <div class="section-level1">
+                5　人就像一种令人舒畅的饮料，解除神的干渴，并使祂满足；神结束祂的工作，开始歇息时，就有人作祂的同伴。
+            </div>
+            
+            
+            <div class="content-text">在第七日，神就不是单独的了。当祂工作的时候，祂是一个“单身汉”在那里工作；但是到第七日，那时候有另外一位，就是祂的同伴，就是这个人。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-6">
+            <div class="section-level1">
+                6　对神而言，第七日是安息、舒畅的日子；然而，对作神同伴的人而言，安息、舒畅的日子是第一日；人的第一日乃是享受的日子。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-四">
+            <div class="section-level1">
+                四　在我们得着享受以前，神不会要求我们作工，这乃是一个神圣的原则；等到我们与祂一同并对祂有完满的享受以后，就能与祂同工：
+            </div>
+            
+            
+            <div class="content-text">第四，在我们得着享受以前，神不会要求我们作工，这乃是一个神圣的原则；等到我们与祂一同，我们一同来读，等到我们与祂一同并对祂有完满的享受以后，就能与祂同工。在我们得着享受以前，神不会要求我们作工，这乃是一个神圣的原则；等到我们与祂一同并对祂有完满的享受以后，就能与祂同工。如果我们不守住这个原则，我们就在亵渎安息日。一开始就跳进去工作。哦，全时间的，早上来在一起，不要一开始就跳进工作里，就开始配搭，要花一点的时间，花一点的时间进到第一日来享受神，是你的享受、安息和舒畅，然后你就守了这个原则，然后你就被充满，然后你就有供应，来为那天工作。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　如果我们不晓得如何与神一同有享受，如何享受神自己，以及如何被神充满，我们就不会晓得如何与祂同工，并在神圣的工作上与祂是一；人乃是享受神在祂的工作上所已经成就的。
+            </div>
+            
+            
+            <div class="content-text">我们何等需要重新来学习如何享受神，这样我们能够在祂神圣的工作里工作。只有当我们主观地被祂充满的时候，我们才能够知道如何与祂工作，与祂一同工作，为祂工作，而且与祂合一。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　五旬节那天门徒被那灵充满，意即他们是充满了对主的享受；因为他们被那灵充满，别人就以为他们喝醉了酒—徒二4上、12~13。
+            </div>
+            
+            
+            <div class="content-text">所以你以为彼得努力工作，他说，我不是在那里努力工作，我是醉酒的人，真是甜美的酒。你们懂我的意思么？我不是在这里说笑话，好像我在这里说笑话，是说这个点。但是亲爱的圣徒们，你们知道五旬节的时候，是七天，四十九天之后第五十天是五旬节，所以五旬节就是安息的日子。那一天，那灵临到他们，他们被那灵充满，那就是属天的饮料浇灌在他们身上，他们就充满了，满了了这些属天的饮料，然后他们就能够起来交通、传讲、工作、服事。他们是被神的酒充满了。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　事实上，他们是充满了对属天之酒的享受；他们被这种享受充满以后，才开始与神是一而与神同工；五旬节是第八周的第一日；因此，我们由五旬节看见了第一日的原则。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　对神而言，是作工而安息；对人而言，是安息而作工。
+            </div>
+            
+            
+            <div class="content-text">第四，对神而言，是作工而安息；对人而言，是安息，是什么？是安息而作工。神先作工而安息，我们是先安息而作工，这个是神圣的原则。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-五">
+            <div class="section-level1">
+                五　我们在作神的神圣工作以建造召会（由建造帐幕的工作所预表）时，必须带着一个记号，指明我们是神的子民，并且我们需要祂；然后我们就能不仅为神作工，也与神是一而与神同工；祂是我们作工的力量，和劳苦的能力：
+            </div>
+            
+            
+            <div class="content-text">安息日就是那个记号。我们安息得着畅快就是一个记号，就表示这是一个记号，我们是为神作工。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　我们是神的子民，我们应当带着一个记号，指明我们需要祂作我们的享受、力量、能力和一切，使我们能为祂作工，以尊崇祂并荣耀祂。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　安息日的意思是：我们为神作工以前，必须享受神，并且被祂充满；彼得凭着那充满他的神、充满他的灵传福音；因此，彼得有一个记号，指明他是神的同工，而他的传福音就是尊崇神、荣耀神—14节。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　我们这些神的子民，必须带着一个记号，指明我们是与神一同安息，享受神，并且先被神充满，然后与充满我们的那一位同工；此外，我们不仅与神同工，更与神是一而作工。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　在我们对神子民的说话中，我们总要带着一个记号，指明主是我们的力量、我们的能力和我们的一切，为着供应话语—林后十三3，徒六4。
+            </div>
+            
+            
+            <div class="content-text">在我们对神子民的说话中，我们总要带着一个记号，这里有个记号，指明主是我们的力量、我们的能力和我们的一切，为着供应话语。今天晚上，如果我没有在这里安息而且舒畅，我就没有办法尽职说话。是么？</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-六">
+            <div class="section-level1">
+                六　守安息日也是一个永远的合同，永远的约，向神保证我们与祂是一，是借着先享受祂、被祂充满，然后才为祂作工、与祂同工并且与祂是一而作工—出三一16：
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　凭着我们自己为主作工，而不把祂接受进来，借着吃喝祂而享受祂，乃是一件严重的事—参林前十二13，约六57。
+            </div>
+            
+            
+            <div class="content-text">这是一件严重的事。亲爱的圣徒们，在神以外作工，没有神。如果你没有神就只有你自己的力量，你自己的智慧，你自己的聪明，是么？你的己，神不要那个。神说，你要来到我这里，来到我这里，要接受我的轭，要与我一起，与我合一，当你在工作，在服事的时候。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　彼得在五旬节那天说话的时候，他里面有分于耶稣，喝祂并吃祂。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-七">
+            <div class="section-level1">
+                七　安息日也是圣别的事（出三一13）；我们享受主，然后与祂同工、为祂作工并与祂是一而作工，自然而然我们就圣别了，从凡俗的事物中分别归神，被神浸透以顶替一切肉体和天然的事物。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-八">
+            <div class="section-level1">
+                八　在召会生活中，我们也许作了许多事情，而没有先享受主，没有与主是一而事奉；这样的事奉导致属灵的死亡，也失去身体的交通（14~15）。
+            </div>
+            
+            
+            <div class="content-text">第八中点，在召会生活中，我们也许作了许多事情，而没有先享受主，没有与主是一而事奉；这样的事奉，请你们注意，这样的事奉导致属灵的死亡，这个人要从民中剪除，而且也会失去身体的交通。从神的子民被剪除，就是从身体的交通被剪除。如果我们在天然的方式里面服事，没有在灵里被充满而服事，我们事实上是在属灵的死亡里，我们自己知道，我们就觉得我们从身体的交通里被剪除，我们甚至在召会生活里面也会这样。但愿主拯救我们，怜悯我们。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-九">
+            <div class="section-level1">
+                九　凡与神居所有关的事，都将我们引到一件事—主的安息日及其安息与舒畅；在召会生活中，我们是在帐幕里，而帐幕将我们引到安息，引到享受神所定意并作成的！
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-十">
+            <div class="section-level1">
+                十　帐幕及其一切器物的建造工作（预表主建造召会的工作）应当开始于对神的享受，而其间继续有享受神而得的舒畅；这指明我们为神作工，不是凭着自己的力量，乃是借着享受祂并与祂是一；这就是以基督作我们灵中内里的安息而持守安息日的原则。
+            </div>
+            
+            
+            <div class="content-text">帐幕及其一切器物的建造工作（预表主建造召会的工作）应当开始于对神的享受，（每一项器物都是应当带领我们享受），而其间继续有享受神而得的舒畅；这指明我们为神作工，不是凭着自己的力量，乃是借着享受祂并与祂是一；这就是以基督作我们灵中内里的安息而持守安息日的原则。所以有两种的安息，一种的安息是讲到，马太福音说到，就是当我们在这里背重担的时候，当我们在负，在劳苦的时候，在我们工作的时候，我们可以在我们的魂里有安息。那这一段的话，在出埃及记的这段话是讲到是循环，是时间，有一段时间的安息，我们也有这样的安息。我们好像是季节性的安息，我们工作得很努力，然后我们服事，然后我们就知道我们需要停下来，再一次充电，再一次被充满。亲爱的圣徒们，我们都需要有这样宝贝的循环里生活，在这样不同的季节里面来享受安息和舒畅。在我们进到在劳苦的时候，到我这里来，要学习我，跟我学习，我要使你得安息。感谢主，请你们彼此有祷告。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.details-page {
+    padding: 5px;
+}
+
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 46px;
+    min-height: 46px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 23px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.font-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+}
+
+.details-content {
+    margin-top: 15px;
+    line-height: 1.8;
+}
+
+.section {
+    margin-bottom: 18px;
+}
+
+.section-level1, .section-level2, .section-level3, .section-level4 {
+    font-weight: 600;
+    margin: 20px 0 12px 0;
+    line-height: 1.8;
+    color: #2d3748;
+}
+
+.section-level1 {
+    font-size: 18px;
+    color: #667eea;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+.section-level2 {
+    font-size: 17px;
+    padding-left: 10px;
+    border-left: 3px solid #667eea;
+}
+
+.section-level3 {
+    font-size: 16px;
+    padding-left: 16px;
+}
+
+.section-level4 {
+    font-size: 16px;
+    padding-left: 24px;
+    color: #4a5568;
+}
+
+.content-text {
+    margin: 14px 0;
+    padding-left: 14px;
+    color: #4a5568;
+    text-indent: 2em;
+    line-height: 2.1;
+    font-size: 16px;
+}
+
+@media (min-width: 768px) {
+    .details-page {
+        padding: 20px 0;
+    }
+    
+    .details-content {
+        margin-top: 30px;
+    }
+    
+    .section {
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .font-size-controls {
+        gap: 6px;
+        margin: 8px 0;
+    }
+    
+    .font-btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const contentTexts = document.querySelectorAll('.content-text');
+            contentTexts.forEach(p => {
+                const t = p.textContent.trim();
+                if (t) text += t + '。';
+            });
+            return text;
+        }
+    });
+});
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025感恩节训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+
+</body>
+</html>

@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <title>第8篇 - 听抄</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 14px;
+            color: var(--text);
+            margin: 15px 0;
+            padding: 12px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 15px;
+                padding: 15px;
+                line-height: 1.8;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 14px;
+            color: #444;
+            margin: 15px 0;
+            padding: 12px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 15px;
+                line-height: 1.8;
+                padding: 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 13px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        /* 底部控制栏的字体按钮 - 使用更高优先级 */
+        .bottom-control-bar .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .bottom-control-bar .font-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .speech-time {
+                font-size: 12px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>国　际 长老及负责弟兄训练</h1>
+            <div class="subtitle">总题：马太福音五至七章极重要的方面</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025秋季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="message-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="8_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="8_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="8_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="8_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="8_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+    <a href="8_zs.htm" class="nav-link" title="职事">职事</a>
+    
+</div>
+    
+    <h2 class="chapter-title">第8篇 先寻求神的国和祂的义</h2>
+    
+    
+    <div class="scripture">读经：太五20，诗八九14，腓三9，林后三8~9，五21，提后四8上</div>
+    
+    
+    <div class="message-content">
+        
+        
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                壹　父的国是今天诸天之国的实际，就是今天召会生活的实际，也是来世诸天之国的实现—太五3，十三43：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">父的国是今天诸天之国的实际，我们从马太福音五章第三节，五章三节说，“灵里贫穷的人有福了，因为诸天的国是他们的。”所以你今天就可以经历诸天的国，你今天就可以享受诸天的国。诸天之国的实际是今天只要你灵里贫穷，你就能够享受到。所以父的国是今天诸天之国的实际，因为父是在诸天之上的父，这位在诸天之上的父的国，就是父的国，这个父的国就是今天诸天之国的实际，是我们今天可以经历的，也就是今天召会生活的实际，同时也是来世诸天之国的实现。马太十三章四十三节是讲来世，经文是说，“那时，义人在他们父的国里，要发光如同太阳。”那时，义人在他们父的国里，那时，不是讲今天。今天我们寻求父的国，在国度的实际里享受、经历、体验诸天之国的实际；那日，我们就要在父的国里发光如同太阳，这是来世的时候。</p>
+                
+                <p class="message-text">好，以下我们就开始来追求，先寻求，先寻求，先寻求背景就是主耶稣在这一段提到一些世上财物的事，神的国度子民对待财物的事。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                一　“不要为自己积蓄财宝在地上，……只要为自己积蓄财宝在天上”—六19上、20上：
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　信徒对于钱财，基本的存心是不要贪爱—来十三5，提前六10，提后三2。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">希伯来书十三章第五节，“你们生活为人不可贪爱钱财。”然后提前六章第十节，“因为贪财是万恶之根。”那提后三章二节提到，在这个末了的世代，人都是爱钱财。求主保守，在座都是各地背负责任的弟兄们，我们要留意不要积蓄财宝在地上。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　我们如果把财宝积蓄在地上，就总是事奉了玛门，不是事奉神—太六19上、24。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">因为这一段主的话说得非常清楚，主的话说得非常清楚。对不起，我读一下给大家听，祂说，“因为你们的财宝在哪里，你们的心也必在哪里。眼睛是身上的灯。所以你的眼睛若单一，全身就明亮；但你的眼睛若不专，全身就黑暗。所以你里面的光若黑暗了，那黑暗是何等的大！”（太六21~23）一个人不能够同时看两件东西，我们不能够注意钱财，又注意事奉，不可能的。“没有人能事奉两个主；因为他不是恨这个爱那个，就是忠于这个轻视那个。”（24）所以主的话提醒我们，你们不能事奉神，又事奉玛门。那这一段话是应用在积蓄财宝在地上。那也就是说，当我们积蓄财宝在地上就是事奉玛门，这个话是很强的，求主保守我们学习积蓄财宝在天上。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                3　这是管治的原则：积蓄财宝在地上乃是违反神的经纶，也表示我们不相信祂的怜悯和照顾—32下~33节。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">祂是我们的神，祂是我们的父。作儿女的从来不需要担心我们的生活，因为我们的父在养我们，是不是？同样的，我们要相信祂的怜悯和照顾，凡是积蓄财宝在地上的都是违反神的经纶。好，我们不要积蓄财宝在地上，只要为自己积蓄财宝在天上。</p>
+                
+                <p class="message-text">主的仆人在这里有一些的注解，我也愿意念给大家听。什么叫作积蓄财宝在天上呢？就是要将财物分给贫穷的人，并顾到缺乏的圣徒，以及主的仆人。关于分给穷人，主耶稣自己说，马太福音十九章二十一节，“耶稣对他说，你若想要完全，就去变卖你的家业，分给穷人。”我们要学习分给穷人。第二，我们要顾到缺乏的圣徒。在早期的召会生活，他们中间没有一人是缺乏的，因为他们都是凡物公用。然后使徒行传十一章也提到“无论是谁得昌盛的情况，各自定意赠送，去供给住在犹太的弟兄们”（29）。罗马十五章二十六节，也说，“马其顿人和亚该亚人，乐意对耶路撒冷圣徒中的穷人有些交通。”所以我们要学习顾到召会中缺乏的圣徒。那么另外也要学习顾到主的仆人。在腓立比书六章（四章）十六节到十七节，这个是腓立比的召会非常蒙恩，即便是保罗在帖撒罗尼迦，腓立比召会也一次两次打发人供给到保罗的需用。那保罗说，“我并不寻求什么馈送，只寻求你们的果子增多，归到你们的账上。”而且说，“但我一切都收到了，并且有余，我已经充足，因我从以巴弗提受了你们的馈送，如同馨香之气，可收纳的祭物，是神所喜悦的。”所以我们要学习将我们的财宝积蓄在天上。怎么积蓄？就是顾到穷人，顾到缺乏的圣徒，也顾到主的工人。</p>
+                
+                <p class="message-text">同时主的仆人很提醒我们一件事，就是我们在召会中要顾到召会的需要，也要顾到这个全时间人的需要。那我也在这里读一点主的仆人讲的话，他说，当然他是对台北讲。“在台北，爱主的弟兄姊妹很多，虽然环境不许可他们全时间，但他们可以摆上财物，作财务供给的全时间。两种全时间的分别，只在于生活方式的不同。有的人全时间去传福音，作主的工；有的人一面过召会生活，一面赚钱为着主的工作使用。前者是‘时间’的全时间，后者是‘财务’的全时间。若是有人不能拿出全部的时间作主的工，就可以作财务供给的全时间；从这个观点上，弟兄姊妹个个都是全时间的。”然后他又提到说，“我们从开头就说，在召会中聚会的，每二十个人就该出来一位全时间的。”我们现在台北目前离这个目标差得很远。为了主的需要，很盼望每二十个人有一位是全时间的。那二十位，这个人全时间，就另外的十九位就要学着，要有从自己的收入的百分之五来支持一位全时间者的生活，这是主的仆人给我们的一个目标。如果是这样，主的恢复在各地就会大大地开展。每位圣徒奉献收入的百分之五为着全时间者，这不是将例常的奉献改为全世间供给，而是在例常的奉献之外，另外奉献百分之五。但愿我们在召会中大家都能够忠信地奉献，将自己的财宝积蓄在天上。（《扩建召会的三要事—生、养、教》第七篇）</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                二　“你的财宝在哪里，你的心也必在哪里”—21节：
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　我们的心必定是跟着财宝走的。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　不管怎么说，我们的财宝在哪里，我们的心必定在哪里。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">不要认为你那么属灵，你有多余的钱，你要学习积蓄财宝在天上。在神的主宰里让你昌盛，在你需要的以外是你额外昌盛的部分。其实神是要你作管家，学习把你得的昌盛能顾到穷人的需要，顾到缺乏人的需要，也顾到主工作上的需要。而且主的仆人讲了一句话更特别，他说有一天我们都要到主那里去，在我们去到主那里以前，你的财物要先去。你的财宝在哪里，心才会在那里。在你去以前，你的财宝要先去到那里。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                三　“没有人能事奉两个主；因为他不是恨这个爱那个，就是忠于这个轻视那个。你们不能事奉神，又事奉玛门”—24节：
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　要事奉神，我们的心就必须单一；我们不能同时事奉神又事奉玛门（钱财）—路十六13。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">所以我们事奉神，我们的心必须是单一的。我们不能同时事奉神又事奉玛门。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　玛门的不义与其性质有关（9、11）；玛门是撒但所发明的，其性质在神
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　面前是与神各方面都不合的，所以在神看是不义的。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">在路加福音第十六章主耶稣自己讲了一个比喻，讲了一个故事。说到一个管家，他用不义的钱财结交朋友。主用这个事例来提醒我们，所有神的儿女都要学习跟这个管家学，用不义的钱财来结交朋友。这里讲到不义的钱财，不是你用不义的手段得到的钱财，不要误会，而是说这个钱财，它的性质是不义的。神创造人是要人来依靠神，但是撒但在他的破坏里就用钱财来替代神，叫人心被钱财夺去，来不事奉神。所以就着这个角度来说，钱财玛门是不义的。那在路加福音十六章十一节，“你们若是在不义的钱财上不忠信，谁还会把那真实的信托你们？”今天在神的主宰里，每一个人昌盛的情形都不一样。你多的都是神托付给你的，神托付给你的除了为子女积财，圣经上是有的，为着子女的需要以外，要学习为着主，为着主的工作的需要摆上。如果我们不忠信，如果不忠信，谁还能把真实的信托你们呢？真实的是什么呢？是国度时代。今天托你的，托给你的是暂时的，那个不义钱财交给你管是暂时的，但真正要给你的是在国度的时代。那什么意思？如果你不忠信了，这句话的意思就进不了国度。弟兄姊妹，弟兄们，你的钱存在哪里？哦，主耶稣。很严肃哦。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                3　宇宙争执的中心乃是：人到底是拜神，或者是拜玛门—太四9~10，六24。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">主耶稣开始尽职的时候受到撒但的试诱。撒但把祂，魔鬼带祂到最高的山，将万国的荣华都指给祂看，说，你若俯伏拜我，我将这一切都赐给你。结果主耶稣回答说，“撒但，退去吧！因为经上记着，‘当拜主你的神，单要事奉祂。’”主耶稣没有受到钱财任何的影响，祂是拜神，而且是单单事奉祂。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                4　脱离玛门乃是事奉神最起码、最基本的条件—21、24节，路十六13，来十三5。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我们在座的弟兄们都很有心，有的是全时间，愿意一生事奉神，有的是长老们在各地服事，也是在那里事奉神。但是事奉神最基本的条件就是要脱离玛门，就是要脱离玛门。某方面来说，我看就着长老们或者全时间的个人来说，在脱离玛门的问题没有很大。但是多少，我信在你服事的召会，在你服事的区域，慢慢圣徒有奉献了，你运用财务的作法有没有顾到临近的召会，有没有顾到身体，这个也是很严肃的事情。事奉神最基本的条件就是要脱离玛门。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                四　“不要为生命忧虑，……因为这一切都是外邦人所急切寻求的，……你们不要为明天忧虑”—太六25上、32上、34上：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">这一段话，主耶稣特别跟门徒讲故事，说，“不要为生命忧虑，吃什么，喝什么；也不要为身体忧虑，穿什么。生命不胜于食物么？身体不胜于衣服么？你们看天空的飞鸟，它们既不种，也不收，也不收积在仓里，你们的天父尚且养活它们，你们不比它们贵重么？你们中间谁能因忧虑使自己的身量多加一肘？你们何必为衣服忧虑？你们细想野地里的百合花，怎样生长；它们既不劳苦，也不纺线。但我告诉你们，就是所罗门在他极盛的荣耀里，也没有披戴得像这些花中的一朵。”底下，“小信的人哪，野地里的草，今天存在，明天就丢在炉里，神尚且这样给它穿戴，何况你们？所以不要忧虑，说，我们要吃什么？喝什么？披戴什么？因为这一切都是外邦人所急切寻求的，你们的天父原知道你们需要这一切。”</p>
+                
+                <p class="message-text">好，表面上看是说到不要积蓄财宝在地上，那主提醒我们，祂用的原因就是说，其实这些神都会照顾我们的。阿们。我们不该忧虑。天然的人总是忧虑的人。我们在中文有一句话，人如果没有远虑必有近忧。远也是虑，近也是忧。这不知道翻译怎么翻，反正都是一样。反正你这个人就是一个忧虑的人生，是吧？你为什么不能够积蓄财宝在天上呢？总是保留多一点存起来，怕，担心吃什么，喝什么，穿戴什么。但是大家要留意，在神的主宰里，当然这段的话也不是说你什么工作也不要作了，然后书也不要读了，然后不要忧虑，反正神都会照顾我。如果是这样，神也不照顾你。该有一个正常尽责任，就像神的子民进美地，每一个人都分得一块地，他们要尽自己的责任，但是不需要忧虑。天降雨，天不降雨，反正就是忠心地尽你的本分，然后不要过忧虑的人生。那你昌盛怎么办呢？昌盛在圣经里写得很清楚，以色列人要十分之一要奉献出来。而且在玛拉基书说那是当献的十分之一，甚至说那十分之一是祂的。圣经又提了很多，你们要顾到你们中间的穷人，甚至说穷人不会少的，为什么？因为要试验你会不会去照顾。你应该是一个忠信的管家，把神交托你的来顾到神的需要，不要忧虑，阿们。</p>
+                
+                <p class="message-text">然后底下就说，我还是读纲要。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　我们的人生就是挂虑的人生，是由忧虑所构成—32节上。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　在神圣的生命和神圣的性情里没有忧虑；神的生命是享受、安息、安慰和满足的生命—腓四6~7，彼前五7。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">在马太福音第六章，说到神子民义行的时候，其实祂对付的是人的己和人的肉体。人的己总是想显扬，是不是？当后面的一段在摸到财物的时候，它真正摸的点是人的忧虑。在神圣的生命和性情里是没有忧虑的，也是没有己、没有肉体的。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                3　我们尽人生的本分工作维生时，不该因着忧虑作什么，因为我们有不知忧虑的神圣生命—路十二25。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">好，我们一同把这句话再讲一遍，一同读一遍。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                4　国度子民绝不该活在明天，只该活在今天—太六34。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">阿利路亚！我们今天都在这里，你要说什么？阿利路亚！明天怎么办？不要忧虑。阿们。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                5　关于我们的生活，我们有天父自己顾念我们；当祂顾念我们物质的需要，祂就将祂的元素分赐到我们里面，我们就借着父顾念我们物质的需要，经历神圣的分赐—32~33节，约十六27上，弗一3。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">这个真好。我也不晓得弟兄们，你们的经历如何？容我作一点我自己早期，大学毕业，我的工作是非常好，但是天天就是卖命，早上晚上，回家还得作。其实我只作了三个月我就辞职了。我说这个是不能事奉主的，我不愿意我的人生这个是这样过，我愿意好好事奉主。然后慢慢慢慢，走着走着，就有一天召会就有需要了。那时候我在花莲服事，要盖会所。你们去过花莲知道，早年花莲的圣徒的结构是很不足的。聚会的人当时是接近一百，三分之一是农民之家，是给政府照顾的，是没有收入的；三分之一是年长退休的；另外的三分之一一半是学生。所以当时是有一个盖会所的需要，但是每一次祷告，我们的答案都是不可能，不可能。结果有一天，这个也是主怜悯，在有一天早晨的晨更的时候，我们追求追求追求完了之后，突然我里头有一个感觉，我说如果这个是我们自己盖我们自己的房子，三个人就可以把会所盖起来。那时候三个人买房子就可以盖那个房子，大家一听，真的。所以再也没有人说我们人很少，构成不够，从那时候就开始，就开始进行会所的改建。我告诉大家，其实我们摆上还是很有限，反正各地都会来款，所以今天在召会中是很好的，我们短缺，别人昌盛。但是我们不知道别人昌盛的，我们只知道我们短缺。我们也没有依赖别人的昌盛，我们就在主面前祷告。我只能告诉大家，在盖会所那几年，我一家带着三个孩子，我们住的房子是很小的，就在会所这个三坪的房子，三坪就是多少？十平方米，就是三十尺，对不对？三十五尺的房子。住不下去嘛，我就自己用角钢搭上下铺的床，很简单住。那几年都是为着会所的兴建，我们所有都是空的，你们懂得空的。当然我们也没多少钱，所以空也没空多少。我只讲一件事，会所盖好之后呢，神给我一户的房子，怎么来的？今天不作见证。但我只讲一件事，当神顾念的时候，你有个说不出的一个感觉，就是这里讲的，就是这里说的。那我要这么讲，主的怜悯，在我年轻的时候就学得，不要为我们吃什么，喝什么，穿什么，忧虑；不需要，反正神会顾念我。一直走到今天，我只能说，我们的神一直用祂爱的神迹多方地眷顾，这个就是这里所讲的那个意思。好，我们往下，第二大点。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                贰　父的义乃是因遵行国度新律法而显出的义（太五20）；这义就是国度子民所活出的基督：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">好，再读一遍。我读到另外一个地方，我也读给大家听。主的仆人说，父的义，寻求父的义，就是超过经学家和法利赛人的义，也就是内住的基督作我们活出的义，这是基督徒该有的义，要胜过经学家和法利赛人的义。我还是读一下职事信息，在主的仆人李常受文集一九三二到一九三九第一册的基督徒报第三十一章，国度的真理—进诸天之国的条件。他这里特别点出，超过经学家和法利赛人的义是什么义呢？是律法的义。对不起，经学家和法利赛人的义是律法的义，超过经学家和法利赛人的义是生命的义，就是基督徒该有的义。那经学家和法利赛人的义是律法的、字句的、死的；但是基督徒的义是生命的、属灵的、活的。所以它是超过经学家和法利赛人的义。那主耶稣在马太福音第十章二十节以后，那么就读出，给我们看见了法利赛人照着律法字句所有的义是什么，而基督徒生命的大能所有的义又是什么。第一，法利赛人的义是不杀人，是外面的，是律法的，是字句的；而基督徒的义是不动怒的，不恨人的、不嫉妒人的、不辱骂人的、不咒骂人的，不藐视人的，从心里与人和好，与人和谐，是里面的、生命的、属灵的。第二，法利赛人的义是不犯奸淫，是外面的行为；基督徒的义是不动淫念，是里面的意念。第三，法利赛人的义是给了休书，就可以休妻；但是基督徒的义是除非为淫乱的缘故，是绝对不可休妻。第四，法利赛人的义是不背誓；但是基督徒的义是根本不起誓，话是就说是，不是就说不是。第五，法利赛人的义是以眼还眼，以牙还牙；但是基督徒的义是不抗拒恶人，有人打你的右脸，连另一面也转给他，有人拿你的里衣，连外衣也让给他，有人强逼你走一里路，就同他走二里，有求的就给他，有借贷的不转开不顾。第六，法利赛人的义是爱邻舍，恨仇敌；基督徒的义是爱仇敌，为逼迫你的祷告，要像天父那样爱人，要完全像天父完全一样。总结地来说，法利赛人的义是律法的，是字句的，只是外面的行为合乎律法的字句就够了；但是基督徒的义是生命的、属灵的，是从里面出来的一种生活，不只要在外面对，并且要在里面圣别。以下说，因为诸天的国是绝对公义的，要进入诸天之国的人也必须是绝对公义的才可以。只有绝对公义的人才能进入绝对公义的诸天的国。这就是我们今天所需要寻求的。好，我们往下。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                一　按照新约，义有四个主要方面：
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　义就是按着神公义且严格的要求，与人事物都是对的—太五20。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">神的要求是极其严格的，是在神面前与人事物都是对的。这个跟保罗原来他追求的义是不一样的。保罗在腓立比书第三章说，他是在犹太教中极严谨的支派作了法利赛人。那法利赛人是这个非常强调他们的敬虔和遵守律法。那保罗说按着律法的义说，他是无可指摘的，按着律法的义说他是无可指摘的，但是这样的义在神面前不算数的。以赛亚书第六十四章第六节说，我们的义像污秽的衣服，我们的义都是像污秽的衣服。按着神公义严格的要求，我们都是不对的。难怪保罗就说，他现在把原来看为，他要追求以为是宝贝的，现在都看为粪土了，他要竭力地来追求基督。今天他追求的不是法利赛人的义，不是这个照着律法上的义无可指摘，他渴望的是被人发现他是在基督里，不是有那按着律法而有的义，乃是有因着信基督而有的义，就是借着信本于神的义。今天保罗所追求的、寻求的是这样的义。但愿我们跟保罗一样来寻求更高的义，生命的义。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　义乃是那作为赐生命之灵活在我们里面之基督外面的彰显—林后三9、18，林前十五45下：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">今天基督就是那是灵的基督，今天祂活在我们里面，我们要经历祂，然后让祂从我们里面活出来。所以保罗他的一生就是渴望被人发现在基督里，他说我活着就是基督。无论他遭遇到什么景况，总是让基督在他的身体上照常显大。这就是让赐生命的灵在我们里面，这样的一位的基督有一个外面的彰显。</p>
+                
+                <p class="message-text">我们知道新约的职事就是那灵的职事和义的职事。讲到那灵是强调那灵书写在我们里面，祂是素质，将祂神圣的成分作到我们里面。讲到义，当我们享受那灵作素质，自然而然就有一种外在的彰显，那个外在的彰显与人、与神、与人事物都是对的，那个就叫作义。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                3　义是神国的事—六33：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">马太福音六章三十三节说，“你们要先寻求祂的国和祂的义。”义跟国是连在一起的。</p>
+                
+                <p class="message-text">诗篇八十九篇十四节，“公义和和平，是你宝座的根基。”诗篇九十七篇第二节也再一次地说，“公义和公平，是祂宝座的根基。”宝座就在于祂的国，祂国的根基就是公义。</p>
+                
+                <p class="message-text">在罗马书八章第四节，说到律法义的要求，要成就在我们这不照着肉体，只照着灵而行的人身上。然后在八章二十九节，祂就预定我们要模成神儿子的形像。罗马十四章十七节就说神的国是在于公义。如果我们把罗马书上下连在一起，我们就读出来，义首先带进神的形像，我们模成神儿子的形像，我们彰显祂。在一切的人事物都是对的，对人对神都是对的，至终我们就会建立神的国。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                4　义是在我们的所是上与神是对的—林前十五34，林后五21：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">在林后五章二十一节特别说，叫我们在祂里面成为神的义。就是不光是神在外面称我们为义，更是在我们的所是上，在我们的构成上，我们与神都是对的。</p>
+                
+                <p class="message-text">不是我们不错就是对的，在人看，你没有作错事,你就是对的。但是事实上，只有你里面的人是透亮的，像水晶一样亮的话，你有神的心思，你有神的意愿，你所作的是神的心思，是神的意愿，这样才会是对的。清楚吧？</p>
+                
+                <p class="message-text">阿们，好。接下去我们来到第二中点。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                二　基督成为信徒的义有两面：
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　基督是信徒的义，使他们在悔改归向神并信入基督时，客观地在神面前得称义—罗三24~26，徒十三39，加三24下、27。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　基督是信徒的义，从他们活出来作神的显明；这位神就是在基督里赐给信徒的义，使他们主观地蒙神称义—罗四25，彼前二24上，雅二24，太五20，启十九8。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">神使基督成了从神给我们的义，这个义是有两方面，一方面是指着客观，一方面是指着主观。客观方面使我们在神面前得称义。罗马书第三章二十四节、二十五节这里说，“但因神的恩典，借着在基督耶稣里的救赎，就白白地得称义。”这个我们一点没有出代价，我们只是相信。所以二十五节这里特别是说，借着人的信，借着人的信。然后二十六节说，神称那以信耶稣为本的人为义。全是恩典，白白的恩典。我们不是靠着我们的行为，我们是借着信，我们就在神面前得神称义。在加拉太书第三章二十四节下，使我们本于信得称义。二十七节说，你们凡浸入基督的，都已经穿上了基督。我们因信得称义，就好像我们穿了一件衣服。这一件的衣服，祂是我们的锦衣，使我们在神面前，神看见我们所穿上的锦衣就称我们为义。我还是再次地提以赛亚六十四章的第六节说，我们的义都像污秽的衣服。在神看，义跟这个衣服是连在一起。衣服来形容义。我们的义是污秽的，我们是无法到神面前的。但是我们因信，我们就浸入，就穿上了基督，我们就得神称义，这完全是因为我们穿上了基督，这是客观的义。</p>
+                
+                <p class="message-text">第二，基督是信徒的义，要从他们活出来作神的显明；这位神就是在基督里赐给信徒的义，使他们主观地得称义。好，主观地得称义，用两节圣经给大家，一个就是马太福音五章二十节，“我告诉你们，你们的义，若不超过经学家和法利赛人的义，就绝不能进诸天的国。”这里就不是凭着恩典借着信，你白白地，你就可以蒙神称义了，这里讲的义是要超过经学家和法利赛人的义了。特别是强调有一种的行为，那个的行为也不是你作的，而是你活的。作和活是不一样的。作是凭着你的意志，凭着你的天然来去实行的；但是这里讲活，是强调你是联于祂，享受祂，经历祂复活的大能，然后让祂从你里面活出来。阿们。另外一处圣经节，启示录十九章第八节，就强调这个新妇是穿着明亮洁白的细麻衣。当主再来的时候迎娶的新妇就是我们了，将会穿明亮洁白的细麻衣，而这个细麻衣就是圣徒所行的义，特别讲所行的。不光是因信称义的起初的蒙神称义的，而是这位基督在我们里面的活出而有的义。这两件衣服我们也可以用诗篇第四十五篇，说到王女住在宫中，她的衣服是极其的荣华的，她的衣服是用金线绣的。这个金线绣的就是讲死而复活被对付的这位基督，这个就成了我们的衣服。因着祂死而复活所成功的救赎，借着我们的相信就白白地得称义，我们就有第一件的衣服。那另外一面呢，就是王女她要带到王的面前，她要穿刺绣的衣服，就要第二件的衣服。这个刺绣就是在我们的日常的生活中，那灵一针一针地在我们里面作刺绣的工作，将祂自己作到我们的里面，成为我们活出的义。所以基督徒的义是有两方面的，第一方面是客观地在神面前得称义，另外一方面是基督在我们里面活出，成了我们主观的义。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                3　这两面由路加十五章二十二至二十三节里上好的袍子和肥牛犊所预表：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">浪子回来，这个穿着是非常破烂的，但是父亲把上好的袍子给他穿上，这就比喻成了客观的义。光是这样不够，要肥牛犊宰了给他们吃，给他吃，叫他里头饱足，得到生命的供应，至终在基督里将祂活出来，作我们主观的义。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                三　“从此以后，有公义的冠冕为我存留，就是主，那公义的审判者，在那日要赏赐我的”—提后四8上：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">好，这个是总结的话了，就是提摩太后书第四章第八节，保罗他一生的经历到了末了，他自己非常清楚，从此以后，有公义的冠冕为我存留。这里特别提这个冠冕是公义的。这个不是你晃晃荡荡就给你带一个冠冕，是你必须要有一种的义行，需要有一种的活出，需要有一种的彰显，那一天你就要戴上这个公义的冠冕。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　冠冕象征荣耀，是在主的救恩之外，当作奖赏赐给奔跑赛程的得胜者—林前九25。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　这奖赏乃是本于公义并借着行为（太十六27，启二二12，林后五10），不像救恩是本于恩典并借着信（弗二5、8~9）。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                3　这样的奖赏要赏赐给信徒，不是照着主的恩典，乃是照着主的公义；因此是公义的冠冕—提后四8上。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">主来的日子近了。这一段的时间，在主的恢复里一年七次特会信息经常交通到主来的日子近了，要叫我们受提醒，要我们受儆醒。今天我们的这篇信息，我们要借着寻求父的国，要借着寻求父的义。要借着寻求父的国，今天就有国度的实际；要借着寻求父的义，让内住的基督在我们里面活出。然后刚才我们开头读的那一节圣经，就是马太福音第十三章说，那时，义人要在他们父的国里，发光如同太阳。我很宝贝这一节，那时，义人要在他们父的国里，发光如同太阳。怎么会是义人？就是你享受了客观的义，然后你过一种受限制、活基督、显大基督，让内住的基督在我们里面活出，使我们被构成义，阿们。阿利路亚！你今天活在国度的实际里，那时我们要在父的国里，也就是千年国的属天的部分，我们要发光如同太阳。</p>
+                
+                <p class="message-text">我读一点主的仆人在义人在他们父的国里发光如同太阳的一些说话。他说，“父乃是光，今天信徒作父神的众子，都像灯发光照耀。但在来世，信徒当中的得胜者要发光如同太阳。”这不是所有的人都会发光如同太阳，就是得胜者要发光如同太阳。“正如马太十三章四十三节上半所说，‘那时，义人在他们父的国里，要发光如同太阳。’义人，国度之子，要发光如同太阳，乃是因为他们有超凡的义。这义是内住的基督从他们里面活出来，使他们今天活在国度的实际里，将来进入国度的实现里。那时，千年国的属天部分，得胜的信徒一面要享受父作光，一面也要发光。他们是义的，到一个地步，要在他们父的国里发光如同太阳。”（《真理课程》四级卷四，第五十八课 信徒的将来—在神完全救恩完成的阶段，得荣的阶段（八））</p>
+                
+                <p class="message-text">主的仆人在这一段的交通他特别提，今天我们是发光如灯，那一天是发光如同太阳。他说这个远远是过于我们的经历和我们能领会的。然后他又说，我们发光如同太阳，是一种的照耀。这种照耀就是作王治理，就是掌权。所以在千年国的属天部分，父是光，我们要发光如同太阳。那时，我们和基督要一同作王一千年。这个就是末了我们要一同掌权。但愿弟兄们留意，今天我们要来寻求父的义，我们也要寻求父的国；将来我们完全构成义人，我们也要在父的国的诸天之国的实现里要发光如同太阳。愿神祝福，祝福我们有这个实际。阿们。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+    </div>
+</div>
+
+<style>
+.message-page {
+    padding: 0;
+}
+
+.scripture {
+    font-size: 15px;
+    color: #555;
+    margin: 0 0 20px 0;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #667eea;
+    line-height: 1.8;
+}
+
+.message-content {
+    margin-top: 20px;
+    line-height: 2;
+}
+
+/* 章节结构样式 */
+.section {
+    margin: 25px 0;
+}
+
+.section-level1 {
+    font-weight: 700;
+    font-size: 18px;
+    margin: 28px 0 18px 0;
+    padding: 14px 18px;
+    color: #1a202c;
+    line-height: 1.6;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf9 100%);
+    border-left: 5px solid #667eea;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.section-level2 {
+    font-weight: 700;
+    font-size: 17px;
+    margin: 22px 0 14px 0;
+    padding: 12px 16px 12px 24px;
+    color: #2d3748;
+    line-height: 1.6;
+    background: #f8f9ff;
+    border-left: 4px solid #7c8df0;
+    border-radius: 6px;
+}
+
+.section-level3 {
+    font-weight: 600;
+    font-size: 16px;
+    margin: 18px 0 12px 0;
+    padding: 10px 14px 10px 32px;
+    color: #374151;
+    line-height: 1.6;
+    background: #fafbff;
+    border-left: 3px solid #9ca9f0;
+    border-radius: 4px;
+}
+
+.section-level4 {
+    font-weight: 600;
+    font-size: 15px;
+    margin: 16px 0 10px 0;
+    padding: 8px 12px 8px 40px;
+    color: #4b5563;
+    line-height: 1.6;
+    background: #fcfcff;
+    border-left: 2px solid #b8c3f0;
+}
+
+.section-content {
+    margin: 12px 0 16px 0;
+    padding-left: 10px;
+}
+
+.subsections {
+    margin-left: 0;
+}
+
+.message-text {
+    text-indent: 2em;
+    margin: 16px 0;
+    font-size: 16px;
+    color: #374151;
+    line-height: 2;
+    text-align: justify;
+    padding: 8px 12px;
+}
+
+/* 移动端优化 */
+@media (max-width: 767px) {
+    .section-level1 {
+        font-size: 17px;
+        padding: 12px 14px;
+        margin: 24px 0 16px 0;
+    }
+    
+    .section-level2 {
+        font-size: 16px;
+        padding: 10px 12px 10px 20px;
+        margin: 20px 0 12px 0;
+    }
+    
+    .section-level3 {
+        font-size: 15px;
+        padding: 8px 10px 8px 24px;
+        margin: 16px 0 10px 0;
+    }
+    
+    .section-level4 {
+        font-size: 14px;
+        padding: 6px 8px 6px 28px;
+        margin: 14px 0 8px 0;
+    }
+    
+    .message-text {
+        font-size: 15px;
+        line-height: 1.9;
+        padding: 6px 8px;
+        margin: 14px 0;
+    }
+    
+    .section-content {
+        padding-left: 5px;
+    }
+}
+
+/* 平板优化 */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .section-level1 {
+        font-size: 18px;
+        padding: 13px 16px;
+    }
+    
+    .section-level2 {
+        font-size: 17px;
+        padding: 11px 14px 11px 22px;
+    }
+    
+    .section-level3 {
+        font-size: 16px;
+        padding: 9px 12px 9px 28px;
+    }
+    
+    .message-text {
+        font-size: 16px;
+        line-height: 2;
+    }
+}
+
+.no-content {
+    color: #999;
+    font-style: italic;
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 15px;
+}
+
+@media (min-width: 768px) {
+    .message-page {
+        padding: 10px 0;
+    }
+    
+    .message-content {
+        margin-top: 20px;
+    }
+    
+    .message-text {
+        margin: 15px 0;
+        font-size: 15px;
+        padding: 0;
+    }
+    
+    .no-content {
+        padding: 50px 20px;
+    }
+}
+
+@media (max-width: 768px) {
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const paragraphs = document.querySelectorAll('.message-text');
+            paragraphs.forEach(p => {
+                const t = p.textContent.trim();
+                if (t) text += t + '。';
+            });
+            return text;
+        }
+    });
+});
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025秋季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+
+</body>
+</html>

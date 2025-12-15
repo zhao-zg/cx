@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <title>第5篇 - 纲目</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 14px;
+            color: var(--text);
+            margin: 15px 0;
+            padding: 12px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 15px;
+                padding: 15px;
+                line-height: 1.8;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 14px;
+            color: #444;
+            margin: 15px 0;
+            padding: 12px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 15px;
+                line-height: 1.8;
+                padding: 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 13px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        /* 底部控制栏的字体按钮 - 使用更高优先级 */
+        .bottom-control-bar .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .bottom-control-bar .font-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .speech-time {
+                font-size: 12px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>国　际 长老及负责弟兄训练</h1>
+            <div class="subtitle">总题：马太福音五至七章极重要的方面</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025秋季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="5_dg.htm" class="nav-link active" title="大纲">大纲</a>
+    <a href="5_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="5_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="5_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="5_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+    <a href="5_zs.htm" class="nav-link" title="职事">职事</a>
+    
+</div>
+    
+    <h2 class="chapter-title">第5篇 国度子民有个人祷告的经历，在隐密中接触他们的天父，得着对父隐密的享受</h2>
+    
+    
+    <div class="hymn-number">NL/EC 诗歌：568</div>
+    
+    
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：赛三七31，太六5~6，十四22~23，诗四二7，歌四12</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+            
+                
+                <div class="verse-line">赛37:31	犹大家所逃脱余剩的，仍要往下扎根，向上结果。</div>
+                
+            
+                
+                <div class="verse-line">太6:5	你们祷告的时候，不可像那假冒为善的人，因为他们爱站在会堂里，并十字街口祷告，为要叫人看见。我实在告诉你们，他们已经充分地得了他们的赏赐。</div>
+                
+            
+                
+                <div class="verse-line">太6:6	你祷告的时候，要进你的密室，关上门，祷告你在隐密中的父，你父在隐密中察看，必要报答你。</div>
+                
+            
+                
+                <div class="verse-line">太14:22	耶稣随即催门徒上船，在祂以先到对岸去，等祂解散群众。</div>
+                
+            
+                
+                <div class="verse-line">太14:23	既解散了群众，祂就独自上山去祷告。到了晚上，只有祂单独在那里。</div>
+                
+            
+                
+                <div class="verse-line">诗42:7	你的瀑布发声，深渊就与深渊响应；你的波浪洪涛，都漫过我身。</div>
+                
+            
+                
+                <div class="verse-line">歌4:12	我妹子，我新妇，乃是关锁的园，禁闭的井，封闭的泉。</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="outline-content">
+        
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-壹')">▶</button>
+                
+                壹　“你们祷告的时候，不可像那假冒为善的人，因为他们爱站在会堂里，并十字街口祷告，为要叫人看见。我实在告诉你们，他们已经充分地得了他们的赏赐。你祷告的时候，要进你的密室，关上门，祷告你在隐密中的父，你父在隐密中察看，必要报答你”—太六5~6：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-壹-一">
+            <div class="section-level2">
+                
+                一　我们必须有个人在密室中关上门祷告的经历；我们的父是“在隐密中”，祂“在隐密中察看”；国度子民是天父的儿女，必须活在父隐密且隐藏的同在里，并顾到父隐密且隐藏的同在。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二">
+            <div class="section-level2">
+                
+                二　国度子民在国度属天的管治之下，活在倒空、谦卑的灵里，以纯洁、单一的心行事，就不可在肉体里作什么，得人的称赞；乃是必须凡事行在灵里，讨他们天父的喜悦。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-三">
+            <div class="section-level2">
+                
+                三　在隐密中祷告，结果乃是杀死肉体和己；在社会上，甚至在堕落的基督教中，如果不允许人显扬他们的善行，他们就不干了；己喜爱得人荣耀，肉体喜爱被人注视。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四">
+            <div class="section-level2">
+                
+                四　我们都需要一些生命中隐密的长大，一些对基督隐密的经历；我们需要隐密地祷告主、敬拜主、接触主并与主交通。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五">
+            <div class="section-level2">
+                
+                五　我们该多多祷告，但不要让别人知道我们有多少祷告；我们若天天祷告而不告诉别人，或者不让别人知道，这表示我们是健康的，并且我们正在长大。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六">
+            <div class="section-level2">
+                
+                六　国度子民必须有密室祷告的经历，在隐密中接触他们的天父，经历对父隐密的享受，并从祂接受隐密的回答—6节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太6:6	你祷告的时候，要进你的密室，关上门，祷告你在隐密中的父，你父在隐密中察看，必要报答你。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-七">
+            <div class="section-level2">
+                
+                七　无论何时我们在义行上显扬自己，我们就不健康；这样的显扬大大阻挠我们在生命里长大。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-八">
+            <div class="section-level2">
+                
+                八　我们人的生命喜爱炫耀、公开显扬，但神的生命总是隐藏的；假冒为善的人就是有外面的表显，里面却空无一物的人。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-九">
+            <div class="section-level2">
+                
+                九　我们在天然的生命里，绝不可能实行在隐密中过隐藏的生活；只有在神圣的生命，不喜欢显扬的生命里，才可能实行；我们若认真要成为国度的子民，就必须学习凭着我们父隐藏的生命而活。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰')">▶</button>
+                
+                贰　我们需要学习主的榜样，独自上山去祷告而过隐藏的生活—十四23，参路六12：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太14:23	既解散了群众，祂就独自上山去祷告。到了晚上，只有祂单独在那里。</div>
+                    
+                    
+                    
+                    <div class="verse-line">路6:12	那些日子，耶稣出去上山祷告，整夜祷告神。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-一">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-一')">▶</button>
+                
+                一　主没有与群众在一起留在所行神迹的结果里（指除了妇女孩子，食饱五千人的神迹），乃是离开群众，在山上独自在祷告中与父在一起—太十四14~23：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太14:14	耶稣出来，看见大批的群众，就对他们动了慈心，治好了他们的病人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太14:15	到了黄昏，门徒到祂跟前来，说，这是野地，时候已经晚了，请解散这些群众，他们好往村子里去，为自己买食物。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太14:16	耶稣却对他们说，不用他们去，你们给他们吃吧。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太14:17	他们就对祂说，我们这里除了五个饼两条鱼，再没有别的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太14:18	祂就说，拿过来给我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太14:19	于是吩咐群众坐在草地上，就拿着五个饼两条鱼，望着天祝福，擘开饼，递给门徒，门徒便递给群众。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太14:20	众人都吃，并且吃饱了。他们拾起剩下的零碎，装满了十二篮子。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太14:21	吃的人，除了妇女孩子，约有五千。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太14:22	耶稣随即催门徒上船，在祂以先到对岸去，等祂解散群众。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太14:23	既解散了群众，祂就独自上山去祷告。到了晚上，只有祂单独在那里。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-一" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-一-1">
+            <div class="section-level3">
+                
+                1　主催门徒离开，祂好有更多的时间独自祷告父—22~23节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太14:22	耶稣随即催门徒上船，在祂以先到对岸去，等祂解散群众。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太14:23	既解散了群众，祂就独自上山去祷告。到了晚上，只有祂单独在那里。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-一-2">
+            <div class="section-level3">
+                
+                2　祂需要独自祷告祂在诸天之上的父，好叫祂在地上为着建立诸天之国，无论作什么，都能与父是一，并有父与祂同在；祂不是在野地，乃是在山上祷告；祂离开群众，甚至离开门徒，为要独自与父接触。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-贰-二')">▶</button>
+                
+                二　我们应当宝贝这三句话：“与父在一起”、“在山上”、“在祷告中”：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-二" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-贰-二-1">
+            <div class="section-level3">
+                
+                1　与别人一起祷告是很好的，但通常我们需要独自祷告；我们与别人一起祷告时，无法像我们独自向主祷告时享受主那样深。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-2">
+            <div class="section-level3">
+                
+                2　甚至主耶稣也告诉我们，我们祷告时，要进我们的密室，关上门，向那在隐密中察看我们的父祷告（六6）；这样，我们就会感觉到祂与我们是何等亲，我们与祂是何等近。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太6:6	你祷告的时候，要进你的密室，关上门，祷告你在隐密中的父，你父在隐密中察看，必要报答你。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-3">
+            <div class="section-level3">
+                
+                3　我们必须学习离开群众、家庭、朋友和召会里的圣徒，去到更高一层的“高山”；我们必须离开群众和属地的事物，独自并隐密地与父在一起，好与祂有亲密的交通。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-叁">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁')">▶</button>
+                
+                叁　诗篇四十二篇七节说，“深渊就与深渊响应”：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-叁-一">
+            <div class="section-level2">
+                
+                一　别人的深处只能与从我们深处出来的响应；凡不是从深处出来的，就永远不能达到别人的深处。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二">
+            <div class="section-level2">
+                
+                二　没有深处的生活，我们只能用表面的工作得着人表面的感动；只有“深渊……与深渊响应”；国度的生活是深处的生活，是能“往下扎根，向上结果”的生活—赛三七31，参徒六7，十二24，十九20。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛37:31	犹大家所逃脱余剩的，仍要往下扎根，向上结果。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒6:7	神的话扩长起来，在耶路撒冷门徒的数目大为繁增，也有大群的祭司顺从了这信仰。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒12:24	但神的话却日见扩长，越发繁增。</div>
+                    
+                    
+                    
+                    <div class="verse-line">徒19:20	这样，主的话便强有力地扩长，而且得胜。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-三')">▶</button>
+                
+                三　一面，我们需要让基督作为生命的种子，在我们那是好土的心田里深深扎根（太十三23）；另一面，我们在基督里是活的植物，需要在包罗万有之基督这土壤里深深扎根，祂是美地的实际（林前三6、9，西二6~7）：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太13:23	但那撒在好土里的，就是人听了道，也领悟了，他就结出果实，有的结了一百倍，有的六十倍，有的三十倍。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前3:6	我栽种了，亚波罗浇灌了，唯有神叫他生长。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前3:9	因为我们是神的同工，你们是神的耕地，神的建筑。</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:6	你们既然接受了基督，就是主耶稣，</div>
+                    
+                    
+                    
+                    <div class="verse-line">西2:7	在祂里面已经生根，并正被建造，且照着你们所受的教导，在信心上得以坚固，洋溢着感谢，就要在祂里面行事为人。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-三" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-叁-三-1">
+            <div class="section-level3">
+                
+                1　好土象征好的心，没有为属世的交通往来所硬化，没有隐藏的罪，也没有今世的思虑和钱财的迷惑；我们需要天天让主对付我们心里的这些事物，好叫我们能以神的增长而长大—19节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:19	不持定元首；本于祂，全身借着节和筋，得了丰富的供应，并结合一起，就以神的增长而长大。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三-2">
+            <div class="section-level3">
+                
+                2　我们已经被栽种到基督这美地的实际里，需要花时间（特别是早晨与主同在的时间）来吸取祂。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四">
+            <div class="section-level2">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-叁-四')">▶</button>
+                
+                四　撒种者撒种的时候，有的落在路旁，有的落在土浅石头地上，有的落在荆棘里，有的落在好土里；这给我们看见，人对神话语的接受有四种不同的方式—太十三4~8、18~23：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太13:4	撒的时候，有的落在路旁，飞鸟来吃尽了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:5	又有的落在土浅石头地上，土既不深，立刻发苗；</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:6	等日头一出来，就晒焦了，又因没有根，便枯干了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:7	还有的落在荆棘里，荆棘长起来，就把它挤住了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:8	但有的落在好土里，就结果实，有的一百倍，有的六十倍，有的三十倍。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:18	所以你们要听这撒种者的比喻。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:19	凡听见国度之道不领悟的，那恶者就来，把撒在他心里的夺了去；这就是那撒在路旁的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:20	又有那撒在石头地上的，就是人听了道，立刻欢喜领受，</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:21	只因他里面没有根，不过是暂时的；一旦为道遭遇患难或逼迫，就立刻绊跌了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:22	还有那撒在荆棘里的，就是人听了道，后来有今世的思虑，和钱财的迷惑，把道全然挤住了，道就不能结实。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:23	但那撒在好土里的，就是人听了道，也领悟了，他就结出果实，有的结了一百倍，有的六十倍，有的三十倍。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-四" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-叁-四-1">
+            <div class="section-level3">
+                
+                1　主耶稣告诉我们，在这几种不同的情形中，有一种叫作土浅石头地，上面有一点土，下面是石头；种子落在这一种的地上，长得顶快，但是日头出来一晒，因为没有根，就枯干了—5~6节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太13:5	又有的落在土浅石头地上，土既不深，立刻发苗；</div>
+                    
+                    
+                    
+                    <div class="verse-line">太13:6	等日头一出来，就晒焦了，又因没有根，便枯干了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四-2">
+            <div class="section-level3">
+                
+                2　根是长在地下的；叶子是长在地上的；换句话说，看不见的生命叫作根，看得见的生命叫作叶子；许多基督徒的难处就在于看得见的生命虽然有许多，却缺少隐密、隐藏的生活。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四-3">
+            <div class="section-level3">
+                
+                3　没有隐藏在深处的，这样的基督徒是没有根的，经不起试炼和试诱；求神作工在我们身上，使我们能往下扎根。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四-4">
+            <div class="section-level3">
+                
+                4　没有根，就是没有隐藏的宝贝，没有隐藏的生命，没有隐藏的经历；有些经历我们必须遮盖起来；一切若都不遮盖起来，就要失去一切了—参赛三九2~8。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-四-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">赛39:2	希西家喜欢见使者，就把他的宝库，银子、金子、香料、和贵重的膏油，以及他整个军器库，并他所珍藏的一切，都给他们看；他家中和他所管治的全境之内，希西家没有一样不给他们看的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛39:3	于是申言者以赛亚来见希西家王，问他说，这些人说了什么？他们从哪里来见你？希西家说，他们从远方的巴比伦来见我。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛39:4	以赛亚说，他们在你家里看见了什么？希西家说，凡我家中所有的，他们都看见了；我所珍藏的，没有一样不给他们看的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛39:5	以赛亚对希西家说，你要听万军之耶和华的话：</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛39:6	看哪，日子必到，凡你家里所有的，并你列祖积蓄到今日的，都要被带到巴比伦去，不留下一样；这是耶和华说的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛39:7	并且从你而出，你所生的子孙中，必有被掳去在巴比伦王宫里当太监的。</div>
+                    
+                    
+                    
+                    <div class="verse-line">赛39:8	希西家对以赛亚说，你所说耶和华的话甚好。他又说，在我的年日中必有太平和稳固的景况。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-肆">
+            <div class="section-level1">
+                
+                <button class="toggle-btn" onclick="toggleSection('subsection-肆')">▶</button>
+                
+                肆　要有深处的生活，就必须与主有直接、亲密的交通；雅歌四章十二节说，“我妹子，我新妇，乃是关锁的园，禁闭的井，封闭的泉”：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-肆" style="display: none;">
+                
+                
+        
+        <div class="section" id="section-肆-一">
+            <div class="section-level2">
+                
+                一　这时爱主的寻求者在其属灵长进上成为一个园子，作基督私有的享受。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-二">
+            <div class="section-level2">
+                
+                二　她不是一个公园，乃是一个关锁的园；她所有的一切，只求良人的喜悦，不求人的喜悦。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-三">
+            <div class="section-level2">
+                
+                三　如果今天的信徒关锁多一点，盖扎得紧一点，他们作工就会更有功效。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-肆-四">
+            <div class="section-level2">
+                
+                四　愿主恩待我们，让十字架在我们里面作更深的工，好使我们深深扎根，过深处隐藏的生活，以满足神的要求，使神心满意足。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.outline-page {
+    padding: 5px;
+}
+
+/* 字体大小控制 */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.font-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+}
+
+.outline-content {
+    margin-top: 20px;
+}
+
+.section-level1 {
+    font-weight: bold;
+    font-size: 17px;
+    margin: 20px 0 12px 0;
+    color: #2c3e50;
+    line-height: 1.8;
+}
+
+.section-level2 {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 16px 0 10px 15px;
+    color: #34495e;
+    line-height: 1.8;
+}
+
+.section-level3 {
+    font-size: 16px;
+    margin: 14px 0 8px 30px;
+    color: #4a5568;
+    line-height: 1.8;
+}
+
+.section-level4 {
+    font-size: 15px;
+    margin: 12px 0 8px 45px;
+    color: #718096;
+    line-height: 1.8;
+}
+
+.subsections {
+    margin-left: 0;
+    display: block;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 0.875em; /* 14px -> 0.875em */
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    margin-right: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-btn:active {
+    color: var(--brand-2);
+}
+
+.scripture-toggle-btn {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    color: var(--brand-1);
+    cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+    padding: 10px 12px;
+    margin: 8px 0 0 0;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.scripture-toggle-btn:active {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.scripture-content {
+    background: #f8f9fa;
+    border-left: 3px solid var(--brand-1);
+    padding: 10px 12px;
+    margin: 10px 0 10px 15px;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.8;
+}
+
+.verse-line {
+    margin-bottom: 8px;
+}
+
+.verse-line:last-child {
+    margin-bottom: 0;
+}
+
+.scripture-ref {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-left: 8px;
+}
+
+/* 章节级别经文样式 */
+.scripture-section {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.chapter-scripture-toggle {
+    margin-left: 10px;
+    font-size: 13px;
+    padding: 8px 14px;
+    min-height: 40px;
+}
+
+.chapter-scripture-content {
+    margin-top: 12px;
+    margin-left: 0;
+    background: white;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const hymnElem = document.querySelector('.hymn-number');
+            if (hymnElem) text += hymnElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const sections = document.querySelectorAll('.section-level1, .section-level2, .section-level3, .section-level4');
+            sections.forEach(s => {
+                const t = s.textContent.trim();
+                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+                    text += t + '。';
+                }
+            });
+            return text;
+        }
+    });
+});
+
+function toggleSection(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '▼';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '▶';
+    }
+}
+
+function toggleScripture(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '收起经文';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '展开经文';
+    }
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025秋季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+
+</body>
+</html>

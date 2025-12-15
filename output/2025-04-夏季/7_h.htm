@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <title>第7篇 - 听抄</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 14px;
+            color: var(--text);
+            margin: 15px 0;
+            padding: 12px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 15px;
+                padding: 15px;
+                line-height: 1.8;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 14px;
+            color: #444;
+            margin: 15px 0;
+            padding: 12px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 15px;
+                line-height: 1.8;
+                padding: 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 13px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        /* 底部控制栏的字体按钮 - 使用更高优先级 */
+        .bottom-control-bar .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .bottom-control-bar .font-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .speech-time {
+                font-size: 12px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>夏季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025夏季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="message-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="7_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="7_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="7_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="7_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="7_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第7篇 救恩的创始者（元帅）和先锋，领许多的儿子借着进入幔内并出到营外而进荣耀里去</h2>
+    
+    
+    <div class="scripture">读经：来二10~11，六19~20，十三13</div>
+    
+    
+    <div class="message-content">
+        
+        
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　神永远的目标，是要领许多的儿子进荣耀里去
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">神永远的目标，是要领许多的儿子进荣耀里去。这是一件非常美妙的事。我们能听见这样的话，是何等蒙福！</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　神为着自己的荣耀创造、塑造甚至造作我们；
+我们对神最高的事奉，乃是在荣耀里彰显祂
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">神为着自己的荣耀创造、塑造甚至造作我们；这荣耀是神的彰显，也就是彰显出来的神；我们对神最高的事奉，乃是在荣耀里彰显祂（赛四三7，林前六20，十31，林后三8~9、18，四1、5，出四十34）。在以赛亚四十三章七节，神说，“凡称为我名下的人，是我为自己的荣耀所创造、所塑造的，更是我所造作的。”这里所列其他的经节都说到荣耀，包括团体的一面和个人的一面。</p>
+                
+                <p class="message-text">倪柝声弟兄在“干犯圣所的罪”这篇信息中指出，一般人只犯生活上的罪；但在民数记十八章，摩西说到“干犯圣所的罪孽”（1），那是指在事奉上所犯的罪。我们为主作工时有可能犯罪，但愿我们不要犯那样的罪。倪弟兄在信息中说，“在神的工作上有三件要紧的事，绝不可忘记。第一，神工作的起头乃是神的旨意；第二，神工作的进行乃是神的能力，不是自己的能力；第三，神工作的结局乃是神的荣耀。”（倪柝声文集第二辑第二十二册，一五三页）我们对神的事奉，必须根据神的旨意为起头，凭基督作神的能力（林前一24）而进行，目的是要荣耀神，就是使祂得着彰显。罗马十一章三十六节正好把倪弟兄所说神工作的三个要点结合在一起：“万有都是本于祂、借着祂、并归于祂；愿荣耀归与祂，直到永远。阿们。”“本于祂”意即神工作的起头是照着神的旨意；“借着祂”意即神工作的进行是凭着神的能力；“归与祂”意即神工作的结局是为着神的荣耀。我们不愿意在对主的事奉上犯罪，而愿意一切都是本于祂、借着祂并归于祂；愿荣耀归与祂，直到永永远远。</p>
+                
+                <p class="message-text">倪弟兄曾说过一个故事：“当主耶稣骑着驴驹进耶路撒冷时，众人都喊着：‘和散那！在主名里来的，是当受颂赞的！’（可十一8~10）。驴驹听到人喊‘和散那’，又看见人砍下树枝铺在地上让它走过，或者转过头来向主说，‘这是向你喊，还是向我喊？’……许多神的仆人，也许常是这样的愚昧。”（倪柝声文集第三辑第一册，二七二页）我们乃是背负基督的驴驹，不应该以为人是因着我们兴高采烈。我们顶多是一头驴驹，怎么能问说，“这是向你喊，还是向我喊？”骄傲是一件非常可怕的事。</p>
+                
+                <p class="message-text">李弟兄在他职事的晚期，说到基督丰满职事的三个时期。他用比方说，高峰真理如同“水饺”，又说，“北方的中国人吃水饺时常配上大蒜和醋。……大蒜和醋使水饺不仅变得美味，也变得安全。我不能供应你高峰真理，而不供应‘大蒜’。我必须供应你大蒜和醋。”（李常受文集一九九四至一九九七年第五册，四九至五一页）大蒜和醋是指十字架。李弟兄释放了高峰真理的信息之后，说到要提防野心，提防骄傲等，就是要我们经历十字架。在《如何作同工与长老，并如何履行同工与长老的义务》一书，他列出十六个关于骄傲的点（六八至七四页）。盼望我们能根据那些点，向主有简短的祷告。按照我们与生俱来的天然性情，我们都是骄傲的；这是从路西弗（撒但）来的。他说，“我要升到天上；我要高举我的宝座在神众星以上。”（赛十四13）他要神下宝座。什么是罪？罪就是叫神下宝座而自己登宝座。要知道，我们能在这里是因着主的怜悯。我们在主恢复里多年的人，看过一些备受敬重的弟兄离开了这恢复；这应当成为我们的鉴戒。我们必须天天对付骄傲；每一天都要让十字架治死我们的骄傲。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　神永远的定旨，
+是要借着祂所救赎的人，团体地彰显祂自己
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">神永远的定旨，是要借着祂所救赎的人，团体地彰显祂自己（创一26，弗三16~17上、21）。以弗所三章十六至十七节是保罗非常美妙的祷告。盼望在我们个人的祷告生活中，常常向父有这样的祷告，求父照着祂荣耀的丰富，借着祂的灵，用大能使我们得以加强到里面的人（即我们的灵）里，使基督借着信，安家在我们心里。保罗的祷告结束于：“愿在召会中，并在基督耶稣里，荣耀归与祂，直到世世代代，永永远远。阿们。”（21）首先神的荣耀作到我们里面，然后神的荣耀又归回到神那里，使祂得荣耀。二十一节第四注说，“这荣耀同着神到我们这里来，在作到我们里面之后，要同着我们回到神那里。”在创世记二十四章以撒婚娶的故事里，就有这样一幅美妙的图画。老仆人带着以撒的财富给了利百加，作她的装饰，至终这些财富又随着利百加，回到以撒那里作他的荣耀。在此以撒是预表基督，利百加预表召会。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　有神荣耀的新耶路撒冷，是神团体的彰显
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　神作为光，在作为灯的羔羊里面并借着羔羊照耀出来，
+使城显出神自己的样子
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">有神荣耀的新耶路撒冷，是神团体的彰显。神作为光，在作为灯的羔羊里面并借着羔羊照耀出来，至终透过整座城照耀出来，使城显出神自己的样子（启二一10~11、18、23，四3）。这里所列的经节说到圣城新耶路撒冷的荣耀。我们正在成为这座圣城，成为永远的至圣所。启示录二十一章十一节上半说，“城中有神的荣耀。”我们所成为的那座城，乃是我们整个三部分人与神的联结、调和、合并，其中有神的荣耀。十一节下半说，“城的光辉如同极贵的宝石，好像碧玉，明如水晶。”四章三节第一注说，“碧玉……是深绿色的，表征丰盛的生命。这里的碧玉，就如二十一章十一节所指明的，表征神在祂丰富生命里可传输的荣耀。”荣耀是可以传输的。我们成为神，但无分于祂的神格，然而我们可以彰显神；神的荣耀在祂生命的丰富里是可以传输的。四章三节给我们看见，宝座上的神“显出来的样子好像碧玉”；到了二十一章十一节又说，“城中有神的荣耀；城的光辉如同极贵的宝石，好像碧玉。”所以整座城，乃是有神显出来的样子。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　神的彰显—在灯里的光透过碧玉照耀出来
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我们看新耶路撒冷，就看见神的彰显—在灯里的光透过碧玉照耀出来。这是何等美妙的一幅图画。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　基督是我们进入荣耀之
+完满救恩的创始者（元帅）
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　耶稣是神圣荣耀的种子，落在地里死了，
+并在复活里长起来，在荣耀里开花
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">基督是我们进入荣耀之完满救恩的创始者（元帅）（来二3、10）。耶稣是神圣荣耀的种子，落在地里死了，并在复活里长起来，在荣耀里开花（约十二23~24，路二四26，林前十五36、43上）。耶稣在复活里开花，这实在是美妙。在约翰十二章二十三节之前，所有的人都在欢迎主耶稣，门徒也很兴奋，甚至希利尼人也寻求想要见祂。然而，主耶稣却说，“人子得荣耀的时候到了。”（23）门徒以为主得荣耀是指祂要高升，他们也要与祂一同高升；事实并非如此。主的得荣耀不是往上去，而是先往下去，然后又再往上升。主说，“我实实在在地告诉你们，一粒麦子不落在地里死了，仍旧是一粒；若是死了，就结出许多子粒来。”（24）我们若要跟从主，就要跟从祂落在地里死了。祂的死乃是释放生命的死。我们要向己死，使我们里面的生命能释放出来，结出许多子粒。路加二十四章二十六节说，“基督受这些害，又进入祂的荣耀，岂不是应当的么？”基督从死里复活，就进入了荣耀，这就是祂在复活里开花。林前十五章三十六节说，“愚昧的人，你所种的，若不死就不能生。”你要生么？那就要先死。有位弟兄的办公室里放了一个字框，上面写着：“我是天天死。”我们应当天天死，每天至少死一次。当我们否认己，向己死，就能生。这就是四十三节所说的：“在羞辱中所种的，在荣耀中复活。”</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　借着祂的生长，祂的全人，
+都被带进神荣耀的彰显里；
+祂甚至就是神的彰显、神的荣耀
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">借着祂的生长，祂的全人，包括祂的人性和属人的性情，都被带进神荣耀的彰显里。祂是在荣耀里的那人，就是在神彰显里的人，这人甚至就是神的彰显、神的荣耀（补充本诗歌二七首）。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　基督为创始者、元帅、开拓者、先锋，
+已领先进入荣耀；现今我们这些跟从祂的人，
+也要被带进神为我们所命定同样的荣耀里
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">基督为创始者、元帅、开拓者、先锋（来六20），已领先进入荣耀；现今我们这些跟从祂的人，正在同一条路上，也要被带进神为我们所命定同样的荣耀里（林前二7，帖前二12）。保罗在林前二章七节说，“我们讲的，乃是从前所隐藏，神奥秘中的智慧，就是神在万世以前，为使我们得荣耀所预定的。”这是神为我们所命定的荣耀。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　救恩的创始者（元帅），
+就是在荣耀里的那人，是神荣耀的那人，
+乃是在我们里面荣耀的种子
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">救恩的创始者（元帅），就是在荣耀里的那人，是神荣耀的那人，乃是在我们里面荣耀的种子（西一27，约壹三9）。当我们敞开自己接受主，主就把祂自己作为神圣荣耀的种子，撒播到我们灵里。我们里面这神圣的种子，乃是神圣荣耀的种子。歌罗西一章二十七节说，“基督在你们里面成了荣耀的盼望。”约壹三章九节说，“凡从神生的，就不犯罪，因为神的种子住在他里面。”当我们从神生，神的种子就住在我们里面。神的种子就是神的基因（参“马可福音生命读经”，一五五页）；这意思是，我们有神的基因在我们里面。一切遗传因素都在基因里，一个人的长成与他的基因有关。有弟兄告诉我，我其中一个儿子讲话的声音、表情、动作都与我一模一样；这就是基因的作用。甚至动物也是这样。我们家最近收养了一只年幼的黄金猎犬，它已经能快速的把人抛掷的玩具捡回来，因为它有猎犬的基因。请记得，我们有三一神的基因在我们的灵里，所以我们要祷告，使神圣的生命在我们里面天天长大，神圣的基因在我们里面得以发展。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　我们的救主领先争战进入了荣耀；
+祂的一生乃是为着荣耀争战的过程
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我们的救主领先争战进入了荣耀；祂的一生乃是为着荣耀争战的过程（路十二49~50）。主耶稣说，“我来要把火丢在地上，若是已经着起来，那是我所愿意的。我有当受的浸，还没有成就，我是何等的困迫！”（49~50）这里的浸是指主的死；主要受死的浸，祂是何等的困迫。祂必须经过死的浸，神圣生命的火才能从祂里面释放出来。不管我们的感觉如何，我们必须根据神的话，相信我们灵里有一把火。也许你从不认为自己里面有火，然而，就如只要把瓦斯打开，瓦斯炉就会有火点起来；当你向主祷告：“主耶稣，赞美你，主啊，我爱你，”这火就要在你里面着起来。</p>
+                
+                <p class="message-text">这火指属灵生命的冲力，出于主所释放的神圣生命（49注1）。冲力就是一种冲击的能力。乃是属灵生命的火所产生属灵生命的冲击力，把许多青年圣徒带到全时间训练里。一九九〇年代，有些圣徒开展到俄国去。这是由于从主里面释放出来神圣生命的火，产生一股冲击力，迫使圣徒们愿意前往严寒的俄国。一九九三年，我也曾到俄国访问，那是我在召会生活中非常荣耀的一段经历。当时刚进入主恢复的一些弟兄们，如今还与我们一同在这里；这是主的怜悯，是出于祂生命的火！</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　在我们里面荣耀种子的长大，乃是个争战的过程；
+荣耀乃是神圣的元素从我们里面开花；
+我们所要进入的荣耀，乃是作为种子之神圣元素的荣耀
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">在我们里面荣耀种子的长大，乃是个争战的过程。荣耀乃是神圣的元素从我们里面开花。我们所要进入的荣耀，乃是那已经撒在我们里面作为种子之神圣元素的荣耀（帖后一9）。一面来说，这个荣耀要从外面来临。彼前一章七节说到“耶稣基督显现的时候”。主的回来就是主的显现，祂要公开被所有人看见；那是祂从外面来临。同时，祂也要从我们里面出来。帖后一章九节说，“在那日，当主来，在祂圣徒身上得荣耀，并在一切信的人身上显为希奇的时候。”在那日，不信的人要看见主在我们身上显为希奇。主要在我们身上得荣耀，那就是神圣的生命在我们身上开花了。所以，当主来的时候，一面祂是从我们身外来，一面祂也是从我们里面出来。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　我们是借着受苦的过程得拯救进入荣耀；
+我们的一切苦难帮助我们，
+使我们成为基督荣耀的新妇
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我们是借着受苦的过程得拯救进入荣耀，就是神的彰显里；我们的一切苦难都在我们往锡安的大道上帮助我们，使我们变化，从荣耀到荣耀，使我们成为基督荣耀的新妇（来十32~35，林后四16~18，诗八四5~7，林后三18，罗八17~18、21）。林后四章十六至十七节说，“所以我们不丧胆，反而我们外面的人虽然在毁坏，我们里面的人却日日在更新。因为我们这短暂轻微的苦楚，要极尽超越的为我们成就永远重大的荣耀。”在此，“短暂”与“永远”对比，“轻微”与“重大”对比，“苦楚”与“荣耀”对比。这样短暂轻微的苦楚，要极尽超越的为我们成就永远重大的荣耀。四章的结语是：“我们原不是顾念所见的，乃是顾念所不见的，因为所见的是暂时的，所不见的才是永远的。”（18）这实在太美妙了。</p>
+                
+                <p class="message-text">诗篇八十四篇五节说，“因你有力量，心中想往锡安大道的，这人便为有福。”“因你”是因着主，我们因主而有力量，心中想往锡安大道。锡安大道表征我们想要进入作为神殿的召会，并寻求那成为肉体之三一神所完成的。一面，我们已进入神里面；另一面，我们还在进入神的大道上。大道在我们心中，意思是我们需要在里面接受召会的路，而不仅是外面的接受（5注1）。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　作我们救恩创始者（元帅）的基督，
+借着作我们的大祭司，
+为我们祷告并将神供应到我们里面，
+尽祂的职责，领我们进入荣耀
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">作我们救恩创始者（元帅）的基督，借着作我们的大祭司，为我们祷告并将神供应到我们里面，尽祂的职责，领我们进入荣耀（来二16~18，七25，八2）。主在诸天之上作我们的大祭司，有个人一面与团体一面的讲究。祂正为我们每一个人祷告，同时也为所有的人祷告；这就是祂的职事。希伯来七章二十五节说，“那借着祂来到神面前的人，祂都能拯救到底；因为祂是长远活着，为他们代求。”现今祂正在为我们代求，这就是为什么我们能在这里。我们一生之久，都在经历祂为我们代求。</p>
+                
+                <p class="message-text">在主被捉拿以前，彼得对主说，“我就是必须和你同死，也绝不会否认你。”（太二六35，参路二二33）但主对他说，“西门，西门，看哪，撒但想要得着你们，好筛你们像麦子一样。但我已经为你祈求，叫你不至于失了信心，你回转过来，要坚固你的弟兄。”（31~32）主告诉彼得，当他从退后中得恢复时，要记得与他同作门徒的人。我们都知道，彼得认为自己比其他门徒更爱主（参太二六33）。事实上，彼得的爱是天然的，他是凭着天然的力量爱主。彼得三次否认主之后，就灰心失望，决定回到自己的本业去。他对门徒们说，“我打鱼去。”他们说，“我们也和你同去。”他们就出去，上了船，那一夜并没有打着什么（约二一3）。他们是职业渔夫，深夜是最好打鱼的时候，但他们在加利利海整夜打鱼，却一无所获。天将亮的时候，耶稣站在岸上对他们说，“孩子们，你们有鱼吃么？”他们回答祂说，“没有。”耶稣对他们说，“把网撒在船的右边，就必得着。”他们便撒下网去，竟拉不上来，因为鱼甚多，共有一百五十三条。约翰对彼得说，“是主！”彼得一听见是主，就束上外衣，迫不及待的跳进海里（4~7、11）。</p>
+                
+                <p class="message-text">吃完了早饭，主三次问彼得：“你爱我比这些更深么？……你爱我么？……你爱我么？”彼得对祂说，“主啊，……你知道我爱你。”主说，“你喂养我的小羊……，你牧养我的羊……，你喂养我的羊。”（15~17）彼得必须经过十字架，认识他凭天然的生命无法爱主。唯有当主把祂自己注入我们里面，成为我们的爱，我们才能用这样的爱来爱祂。主为彼得代求，也为我们代求。今天我们所以能在这里，是因祂为我们祷告，甚至现在祂仍在为我们祷告。希伯来八章说到，祂是真帐幕的执事（2）。如今祂不仅为我们祷告，更将神供应到我们里面。行传六章四节的记载很有意义。在那里彼得带头说，“我们要坚定持续地祷告，并尽话语的职事。”这正是主在诸天界里所作的，祂正在祷告，并且尽职事把祂自己供应到我们里面。所以我们愿意与主是一，坚定持续地祷告，并尽话语的职事。</p>
+                
+                <p class="message-text">希伯来二章十六节说到神救援亚伯拉罕的后裔。这里的“救援”，与行传二十六章二十二节保罗在亚基帕王面前作见证时所说的“帮助”，意义相近：“我蒙神的帮助，直到今日还得站住。”该节的注解对“帮助”的解释是：“或，协助。原文原意联合。这含示使徒与神联合，并体认神在这联合中的协助。”（注1）这就如同今天我们所说的“盟友”。我们有三一神作我们的盟友，救援、帮助、协助我们，实在美妙。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　作救恩创始者（元帅）的基督，借着圣别，
+生机地拯救神许多的儿子，而领他们进入荣耀
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">作救恩创始者（元帅）的基督，借着圣别，生机地拯救神许多的儿子，而领他们进入荣耀，就是神团体的彰显里；这神圣的圣别是由圣别人的那灵在我们灵里实施的（来二10~11，弗一4~5，帖前五23，罗五10，十五16，弗五26）。主乃是借着圣别，生机地拯救我们，而领我们进入荣耀。我们要来看希伯来二章十至十一节，以及以弗所一章四至五节。希伯来二章十节说到主要领许多的儿子进荣耀里去。然后十一节说到主是那圣别人的，我们是那些被圣别的。主如何领我们进入荣耀？乃是借着圣别我们。这里的圣别是指性情上的圣别，意即我们被祂浸透。这给我们看见，圣别乃是为着儿子的名分，圣别就是神子化我们。主是借着性情上的圣别，领我们进荣耀里去。</p>
+                
+                <p class="message-text">《经过过程的神圣三一之分赐与超越基督之输供的结果》一书，收录了李弟兄一九九三年感恩节特会的信息。这本书包括整个以弗所一章，说到召会乃是经过过程之神圣三一的分赐，与超越基督之输供的结果。李弟兄在这本书里说，“希伯来二章十节说，主是神救恩的元帅，要领许多的儿子进荣耀里去。然后十一节说到那圣别人的和那些被圣别的。当我思想这两节时，我的眼睛被开启，看见圣别是为着儿子的名分。这是新的亮光。”（二二页）我们不该将这真理视为理所当然，也不该以为自己已经得着了。圣别是为着“子化”，为着儿子的名分。以弗所一章四节启示，神在创立世界以前，在基督里拣选了我们，使我们成为圣别。五节接着说到，祂预定我们得儿子的名分。四节说到“成为圣别”，五节说到“得儿子的名分”。这给我们看见，圣别是为着儿子的名分。祂在创立世界以前，已经定意要圣别我们，使我们得着儿子的名分，如今这事仍在继续。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　为着神圣儿子名分之神圣的圣别，
+乃是神圣经纶的中心，也是新约里启示的中心思想
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">为着神圣儿子名分之神圣的圣别，乃是神圣经纶的中心，也是新约里启示的中心思想。在《经过过程的神圣三一之分赐与超越基督之输供的结果》一书中，关于为着神圣儿子名分之神圣的圣别，有详细的说明（二一至二三页）。我们众人都需要借着透彻、简短的祷告，进入其中的内容。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　神圣的圣别，在完成神圣的经纶上，是主持的线，
+为要神圣的使我们“子化”
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">神圣的圣别，在完成神圣的经纶上，是主持的线，为要神圣的使我们“子化”，成为神的儿子，在生命和性情上与神一样（但无分于祂的神格），作神的彰显。这意思是，神经纶的每一步，神在我们里面工作的每一步，都是要圣化我们，使我们成为圣别。所以圣别是神经纶的主持线。这是时代的职事独特的发表。在《那灵同我们的灵》一书中，对“完成神圣经纶的主持线”有详尽的解释（一三八至一四二页）。我们可以用钓鱼为例来说明。我们原在人类的“大海”中，主是那位钓鱼者，借着神圣圣别的线临到我们，我们就被主“钩”住了。我们就随着这条线被带到船上，进入三一神里面，经历完全的子化。这条钓鱼线，这条主持的线，就是神圣的圣别，要完全子化我们。</p>
+                
+                <p class="message-text">寻找的圣别，也就是初步的圣别，
+是为着叫我们悔改，把我们带回归神</p>
+                
+                <p class="message-text">寻找的圣别，也就是初步的圣别，是为着叫我们悔改，把我们带回归神（彼前一2，路十五8~10、17~21）。当你钓鱼而鱼上钩的当下，你会感觉有东西被钩子钩住。若那条鱼用力反抗，你会故意把线放出去，等机会再把线收回来。这个比方有助于我们理解主在我们身上寻找的圣别。寻找的圣别乃是圣别的第一方面。接着有地位上的圣别，就是借着基督的血而有的圣别，这是圣别的第二方面。然后有第三方面，就是性情上的圣别，是借着基督作圣别的生命而完成的。以上是圣别的三方面。彼前一章二节清楚给我们看见寻找的圣别，路加十五章主的比喻也给我们看见这事。</p>
+                
+                <p class="message-text">在路加十五章，主说了三个比喻：失迷的羊，失落的银币，和失而复得的儿子；这些都是指失丧的罪人。主为那失迷的羊成功救赎，把它得回。失落银币的比喻是关于寻找的圣别：“一个妇人有十个银币，若失落一个，岂不点上灯，打扫屋子，细细地找，直到找着么？”（8）“直到”意即主不会放弃任何人。因此我们为人祷告，必须直到找着。“妇人”是指圣灵；点上灯，“灯”是指神的话（诗一一九105），要光照我们。那灵点上灯，打扫屋子；意即主细细地找，来洁净我们里面的各部分。寻找的结果见于浪子比喻里浪子的醒悟（路十五11~17）。小儿子往远方去，生活放荡，挥霍家产，耗尽了一切，又遭遇饥荒，他就醒悟过来。当我们为人祷告并盼望他得救时，主会打发饥荒使他醒悟过来。浪子的醒悟，是指那灵寻找的圣别所产生的结果。</p>
+                
+                <p class="message-text">浪子醒悟过来，就说，“我要起来，到我父亲那里去。”他也想好要对父亲说，“父亲，我犯罪得罪了天，并得罪了你。我不配再称为你的儿子，把我当作一个雇工吧。”于是起来往他父亲那里去。相离还远，他父亲看见，就动了慈心（18~20上）。我们若热切等待一个熟人，就算他还在远处，我们也能认出他来。父亲动了慈心，就“跑去抱着他的颈项，热切地与他亲嘴”（20下）这是整本新约里唯一一次说到父“跑去”。当我们悔改回到父那里时，祂就是这样跑过来，热切地与我们亲嘴。</p>
+                
+                <p class="message-text">当小儿子开始要说道歉的话时，父亲却打断他的话，吩咐奴仆把那上好的袍子拿出来给他穿，把戒指戴在他手上，把鞋穿在他脚上（路十五21~22）。浪子必定觉得很惊讶，那上好的袍子竟然已经预备好，只等他回来。可见父亲是日复一日在那里期待、等待着他。上好的袍子表征基督作为那满足神的义，遮盖悔改的罪人；戒指预表盖印的灵；鞋表征神救恩的能力，将信徒从污秽之地分别出来。然而，浪子这时仍是饥饿的，所以父亲继续说，“把那肥牛犊牵来宰了，让我们吃喝快乐。”（23）召会的聚会该是这样，不是天然的快乐，而是我们聚在一起吃喝基督作肥牛读，就欢喜快乐。肥牛犊表征丰富的基督，在十字架上为作信徒的享受而被杀。我们许多人都是这样醒悟过来的，这就是我们经历了那灵寻找的圣别。</p>
+                
+                <p class="message-text">救赎的圣别，也就是地位上的圣别，
+是借着基督的血，把我们从亚当里迁到基督里</p>
+                
+                <p class="message-text">救赎的圣别，也就是地位上的圣别，是借着基督的血，把我们从亚当里迁到基督里（来十三12）。那灵的圣别应该有三方面：寻找的圣别、地位上的圣别、性情上的圣别。甚至在我们重生以前，那灵已经在寻找我们，直到我们醒悟过来。我们回想自己的经历，都会觉得希奇。我读书时得过全额奖学金，但这并不叫我夸耀。有一次我在球队里，看着队友打球，把球丢进篮框里，就想：“这就是我人生的意义么？”其实这是那灵寻找的圣别，叫我有这样的想法，而醒悟过来，后来我就信主得救了。</p>
+                
+                <p class="message-text">重生的圣别，也就是在性情上圣别的开始，
+从我们的灵更新我们，使我们这些罪人成为神的儿子</p>
+                
+                <p class="message-text">重生的圣别，也就是在性情上圣别的开始，从我们的灵更新我们，使我们这些罪人成为神的儿子（林后五17，约一12~13）。在《基督的三个时期—成肉体、总括与加强》这本书里，末了一章的题目是“神人的神圣权利—有分于神的神性”。我们不能有分于神的神格，但我们能有分于神的神性，意思是我们有分于神的生命；有分是为着享受（参四三页）。启示录二十二章十四节说，“那些洗净自己袍子的有福了，可得权柄到生命树那里。”在基督的血里洗净袍子是指地位上的圣别，吃生命树是联于性情上的圣别；地位上的圣别是为着性情上的圣别。这就是我们继救赎的圣别之后，经历重生的圣别，使我们这些罪人成为神的儿子。</p>
+                
+                <p class="message-text">更新的圣别，也就是在性情上圣别的继续，
+更新我们的魂，使我们的魂成为神新造的一部分；
+变化的圣别，也就是日常的圣别，
+用基督的元素新陈代谢地把我们重新构成</p>
+                
+                <p class="message-text">更新的圣别，也就是在性情上圣别的继续，从我们的心思到我们魂的各部分，更新我们的魂，使我们的魂成为神新造的一部分（罗十二2中，弗四23，加六15）。变化的圣别，也就是日常的圣别，用基督的元素新陈代谢地把我们重新构成，使我们成为新的构成，作基督生机身体的一部分（林后四16，林前三12）。我们已经得着神的生命，现今在心思的灵里得更新，就有分于神的心思；然后我们有变化的圣别，事实上就是有分于神的所是。</p>
+                
+                <p class="message-text">模成的圣别，也就是成形的圣别，
+以荣耀之基督的形像使我们成形</p>
+                
+                <p class="message-text">模成的圣别，也就是成形的圣别，以荣耀之基督的形像使我们成形，使我们成为基督的彰显（罗八28~29，林后三18）。罗马八章二十八至二十九节说，“万有都互相效力，叫爱神的人得益处，就是按祂旨意被召的人。因为神所预知的人，祂也预定他们模成神儿子的形像，使祂儿子在许多弟兄中作长子。”爱神的人所得的益处，就是模成神儿子的形像。李弟兄末了一次特会（一九九七年华语特会）的总题是“经历神生机的救恩等于在基督的生命中作王”。信息中说到：“我们被模成，乃是我们在神圣生命上的成熟，借此我们完满地有分于神的神性，而在具有祂的神圣成分上，得到具体。”（三五页）</p>
+                
+                <p class="message-text">得荣的圣别，也就是终极完成的圣别，
+借着把我们的身体改变形状，而救赎我们的身体</p>
+                
+                <p class="message-text">得荣的圣别，也就是终极完成的圣别，借着把我们的身体改变形状，而救赎我们的身体，使我们在荣耀里完满地成为基督的彰显（腓三21，罗八23）。这实在非常美妙。第五篇信息曾提过圣别的这七步，这里我们看见每一步的细节。我们是这样地被圣别，直到我们成为圣城。在已过的永远里，我们蒙拣选为着成为圣别；至终在要来的永远里，我们成为圣城，不仅分别出来归于神，更是完全被神这圣别者浸透。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　希伯来书的目标，就是最终的结论，
+乃是我们要进入幔内，并出到营外
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">希伯来书的目标，就是最终的结论，乃是我们要进入幔内，并出到营外（来六18下~20，十三13，诗歌四一四首）。诗歌四百一十四首的内容，是根据希伯来六章十八节下半至二十节：“叫我们这逃往避难所，持定摆在前头盼望的人，可以得着有力的鼓励；我们有这盼望如同魂的锚，又牢靠又坚固，且通入幔内；作先锋的耶稣……为我们进入幔内。”这里说到我们要“逃”，如提后二章二十二节所说的：“你要逃避青年人的私欲，同那清心呼求主的人，竭力追求公义、信、爱、和平。”我们要如此逃往避难所，进入幔内。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　进入幔内，意即进入至圣所；
+出到营外，意即脱离宗教
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">进入幔内，意即进入主已在其中，在荣耀里登宝座的至圣所；出到营外，意即脱离主曾从其中被人弃绝、驱逐的宗教。营表征属地又属人的宗教组织。一切宗教都是属人的组织，也是属地的范围，使人远离神的经纶。宗教就是敬拜神，事奉神，要讨神喜悦，却没有神，没有基督；我们为神所作的一切，若离了基督，就是宗教。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　我们必须在我们的灵里，
+从经历说，那里是今天实际的至圣所；
+我们也必须出到宗教之外，那里是今天实际的营
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我们必须在我们的灵里，从经历说，那里是今天实际的至圣所；我们也必须出到宗教之外，那里是今天实际的营。我们越在灵里享受天上的基督，就越出到宗教的营外，跟随受苦的耶稣。我们越留在灵里接触这位在荣耀里天上的基督，就越出到宗教的营外，就了卑微的耶稣去，与祂一同受苦。保罗劝勉希伯来信徒要进入幔内，出到营外，是根据出埃及三十二至三十三章。以色列人拜金牛犊，成了拜偶像的营，所以摩西把他的帐棚迁到营外，离开百姓的营（三三7）。主在地上时，犹太教也成了宗教的营，用嘴唇尊敬神，心却远离神（太十五8）。但愿我们都不会成为这样的人。</p>
+                
+                <p class="message-text">真正新约的职事，带我们进入灵里，就是进入幔内，对基督有享受，并加强我们跟随耶稣出到营外，为着祂身体的缘故，交通于祂的受苦（林后十一2~3、23~33）。在幔内，我们有分于天上基督的职事，使我们得着装备，能将祂供应给营外干渴的灵。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　进入幔内就是进到我们的灵里
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　我们必须借着将我们的灵如火挑旺起来、
+将我们的心思置于灵并辨明我们的灵与魂，
+而操练、运用并使用我们的灵
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">进入幔内就是进到我们的灵里；当我们转向我们的灵并操练我们的灵，我们就进入幔内（提前四7~8）。我们必须借着将我们的灵如火挑旺起来、将我们的心思置于灵并辨明我们的灵与魂，而操练、运用并使用我们的灵（提后一6~7，罗八5~6，来四12）。保罗嘱咐提摩太：“将……你里面神的恩赐，再如火挑旺起来。”（提后一6）接着又说，“因为神赐给我们的，不是胆怯的灵。”（7）这证明神的恩赐就是神所赐给我们的灵；我们要将这灵如火挑旺起来，也要将心思置于灵，就是留意我们的灵。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　我们必须操练我们的灵，好进入幔内；
+在幔内我们享受祂作隐藏的吗哪、发芽的杖和生命之律
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我们必须操练我们的灵，好进入幔内，直接接触天上的基督这位在荣耀里的人，观看祂，好被祂灌输并注入，使我们成为祂团体的复制品（林后三18）。在幔内就是在至圣所里，在这个范围里，我们有分于基督，并享受祂作隐藏的吗哪、发芽的杖和生命之律，结果带进神团体的彰显，以完成神永远的定旨（来九3~4）。至圣所里的约柜表征基督作三一神的具体化身，在约柜里有隐藏的吗哪、发芽的杖和见证的版。吗哪存在金罐里，金表征父神圣的性情，父乃是生命的源头；发芽的杖预表复活的基督；见证的版（律法）表征生命的灵作内里的律。这给我们看见，在基督这三一神的具体化身里，有父、子和灵。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　以色列人拜了金牛犊后，摩西就迁到营外，
+凡求问主的，就出到那里与他相会
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">以色列人拜了金牛犊后，摩西就迁到营外一个地方，凡求问主的，就出到那里与他相会，因为主的同在和说话都在那里（出三三7~ 11，参民十二6~8）。我们要回顾以色列人的历史。当摩西上山与神同在，领受帐幕的样式时，以色列人不知道摩西遭遇了什么事，就要亚伦为他们造神像。“亚伦对他们说，把你们妻子、儿子、女儿耳上的金环摘下，拿来给我。众百姓就把他们耳上的金环摘下，拿来给亚伦。亚伦从他们手里接过来，铸了一只牛犊，是用雕刻的工具作成的。他们就说，以色列啊，这是领你从埃及地上来的神。”（出三二2~4）希伯来书告诉我们，百姓存着不信的恶心（三12）。诗篇一百零六篇二十四至二十五节论到以色列人，说“他们……不信祂的话；反倒在自己帐棚内发怨言，不听耶和华的声音”。发怨言是一件严重的事，即使我们是在自己家里小声地发怨言，神也会听见。在民数记十四章，以色列人发怨言说，“耶和华为什么把我们领到这地，使我们倒在刀下？”（3）这就是不信的恶心。</p>
+                
+                <p class="message-text">摩西领受了帐幕的样式，与约书亚一同下山后，看见的就是以色列人敬拜金牛犊，并且坐下吃喝，起来玩耍（出三二6、15~19）。“摩西对亚伦说，这百姓向你作了什么，你竟使他们陷在这样大的罪里？亚伦说，……他们对我说，你为我们造神像，可以在我们前面引路；……所以我对他们说，凡有金环的，可以摘下来，他们就给了我。我把金环扔在火中，这牛犊便出来了。”（21~24）这是谎言；牛犊不是自己从火中出来的，乃是亚伦“用雕刻的工具作成的”（4）。我们都该受以色列人失败的历史所警戒。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　我们需要受金牛犊偶像的原则所警戒
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">我们需要受金牛犊偶像的原则所警戒，这偶像乃是神所救赎之人所作的，使他们成了拜偶像的营（林前十5~7，结十四3，约壹五21并注3第一段）。以色列人拜金牛犊后，摩西就将他的帐棚迁到营外。凡求问耶和华的，就出到营外的会幕那里，因为神的同在和说话都在那里。保罗在林前十章说到这段历史，引用了出埃及三十二章六节，说以色列人“坐下吃喝，起来玩耍”（林前十7）。玩耍的意思就是嬉闹。我们聚会不该玩耍、嬉闹；不错，我们聚会是为了享受主，但我们对主的享受该是圣别的。“我们的歌唱该是为着敬拜，不是为着娱乐。我们在聚会中歌唱，需要有真正敬拜的灵。我们的歌唱若变得只是娱乐，那就是拜偶像。召会聚会中的歌唱不可成为玩耍；那必须是献给神真正的敬拜。”（哥林多前书生命读经，五〇〇页）我们的确是在享受主，但我们该是严肃的，不是松散、嬉闹的。</p>
+                
+                <p class="message-text">自我妆饰导致拜偶像（出三二1~3，三三5~6，创三五2~4，参出二八2，赛六十21）。拜偶像乃是撒但篡夺了神所赐给我们的，以致将其糟蹋；这是我们滥用神所赐给我们的，而不为着神的定旨使用神在物质和属灵上的赐与。金子本该是为着建造神的帐幕，却被以色列人作成耳环，为着自我妆饰。拜偶像就是敬拜我们所享受的东西，就是敬拜享受、消遣和娱乐（出三二6、18~19，参诗三六8~9）。我们享受的该是主自己，而不是娱乐和消遣；神是我们真正的娱乐和消遣。拜偶像伴随着敬拜真神的装假（出三二4~6，王上十二26~30）。拜偶像伴随着在敬拜上的搀杂（出三二4~6、21~ 24）。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　摩西把他的帐棚迁移，支搭在离营一段距离的地方；
+营表征属宗教的人，敬拜并寻求主自己以外的东西
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">摩西因为晓得主的同在不再在百姓中间，就把他的帐棚迁移，支搭在离营一段距离的地方；他的帐棚于是成了神的帐棚（三三7）。营表征属宗教的人，他们按名是属主的，事实上却是拜偶像的，敬拜并寻求主自己以外的东西。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　摩西迁移他的帐棚，远离拜偶像的营之后，
+主与他面对面说话，好像人与同伴说话一般
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="message-text">摩西迁移他的帐棚，远离拜偶像的营之后，主与他面对面说话，好像人与同伴说话一般（11）。愿我们都向主有这样的祷告：“主，把我作成你的同伴；我要你与我面对面说话，好像人与同伴说话一般。”</p>
+                
+                <p class="message-text">神与摩西是同伴、伙伴、同伙，同有一个事业，并在一个伟大事业中有共同的权益。因为摩西与神是亲密的，所以他是一个懂得神心、照着神心并能摸着神心的人（14）。我们要求主把我们作成这样一个与神亲密，懂得神心、照着神心并能摸着神心的人。主喜悦这样的祷告，祂会带我们往前，使我们成为与神亲密，有神同在的人。神应允摩西：“我的同在必和你同去，我必使你得安息。”（14）“我的同在”，直译是“我的面”；摩西有神的同在，到最完满的地步。我们需要进入幔内并出到拜偶像的营外，与主有最亲、最密的交通，使我们能成为与神有共同权益的人，能被神使用，执行祂在地上的事业。（E. M.）</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+    </div>
+</div>
+
+<style>
+.message-page {
+    padding: 0;
+}
+
+.scripture {
+    font-size: 15px;
+    color: #555;
+    margin: 0 0 20px 0;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #667eea;
+    line-height: 1.8;
+}
+
+.message-content {
+    margin-top: 20px;
+    line-height: 2;
+}
+
+/* 章节结构样式 */
+.section {
+    margin: 25px 0;
+}
+
+.section-level1 {
+    font-weight: 700;
+    font-size: 18px;
+    margin: 28px 0 18px 0;
+    padding: 14px 18px;
+    color: #1a202c;
+    line-height: 1.6;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf9 100%);
+    border-left: 5px solid #667eea;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.section-level2 {
+    font-weight: 700;
+    font-size: 17px;
+    margin: 22px 0 14px 0;
+    padding: 12px 16px 12px 24px;
+    color: #2d3748;
+    line-height: 1.6;
+    background: #f8f9ff;
+    border-left: 4px solid #7c8df0;
+    border-radius: 6px;
+}
+
+.section-level3 {
+    font-weight: 600;
+    font-size: 16px;
+    margin: 18px 0 12px 0;
+    padding: 10px 14px 10px 32px;
+    color: #374151;
+    line-height: 1.6;
+    background: #fafbff;
+    border-left: 3px solid #9ca9f0;
+    border-radius: 4px;
+}
+
+.section-level4 {
+    font-weight: 600;
+    font-size: 15px;
+    margin: 16px 0 10px 0;
+    padding: 8px 12px 8px 40px;
+    color: #4b5563;
+    line-height: 1.6;
+    background: #fcfcff;
+    border-left: 2px solid #b8c3f0;
+}
+
+.section-content {
+    margin: 12px 0 16px 0;
+    padding-left: 10px;
+}
+
+.subsections {
+    margin-left: 0;
+}
+
+.message-text {
+    text-indent: 2em;
+    margin: 16px 0;
+    font-size: 16px;
+    color: #374151;
+    line-height: 2;
+    text-align: justify;
+    padding: 8px 12px;
+}
+
+/* 移动端优化 */
+@media (max-width: 767px) {
+    .section-level1 {
+        font-size: 17px;
+        padding: 12px 14px;
+        margin: 24px 0 16px 0;
+    }
+    
+    .section-level2 {
+        font-size: 16px;
+        padding: 10px 12px 10px 20px;
+        margin: 20px 0 12px 0;
+    }
+    
+    .section-level3 {
+        font-size: 15px;
+        padding: 8px 10px 8px 24px;
+        margin: 16px 0 10px 0;
+    }
+    
+    .section-level4 {
+        font-size: 14px;
+        padding: 6px 8px 6px 28px;
+        margin: 14px 0 8px 0;
+    }
+    
+    .message-text {
+        font-size: 15px;
+        line-height: 1.9;
+        padding: 6px 8px;
+        margin: 14px 0;
+    }
+    
+    .section-content {
+        padding-left: 5px;
+    }
+}
+
+/* 平板优化 */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .section-level1 {
+        font-size: 18px;
+        padding: 13px 16px;
+    }
+    
+    .section-level2 {
+        font-size: 17px;
+        padding: 11px 14px 11px 22px;
+    }
+    
+    .section-level3 {
+        font-size: 16px;
+        padding: 9px 12px 9px 28px;
+    }
+    
+    .message-text {
+        font-size: 16px;
+        line-height: 2;
+    }
+}
+
+.no-content {
+    color: #999;
+    font-style: italic;
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 15px;
+}
+
+@media (min-width: 768px) {
+    .message-page {
+        padding: 10px 0;
+    }
+    
+    .message-content {
+        margin-top: 20px;
+    }
+    
+    .message-text {
+        margin: 15px 0;
+        font-size: 15px;
+        padding: 0;
+    }
+    
+    .no-content {
+        padding: 50px 20px;
+    }
+}
+
+@media (max-width: 768px) {
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const paragraphs = document.querySelectorAll('.message-text');
+            paragraphs.forEach(p => {
+                const t = p.textContent.trim();
+                if (t) text += t + '。';
+            });
+            return text;
+        }
+    });
+});
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025夏季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+
+</body>
+</html>

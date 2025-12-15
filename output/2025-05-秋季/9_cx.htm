@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <title>第9篇 - 晨兴</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 14px;
+            color: var(--text);
+            margin: 15px 0;
+            padding: 12px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 15px;
+                padding: 15px;
+                line-height: 1.8;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 14px;
+            color: #444;
+            margin: 15px 0;
+            padding: 12px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 15px;
+                line-height: 1.8;
+                padding: 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 13px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        /* 底部控制栏的字体按钮 - 使用更高优先级 */
+        .bottom-control-bar .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .bottom-control-bar .font-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .speech-time {
+                font-size: 12px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>国　际 长老及负责弟兄训练</h1>
+            <div class="subtitle">总题：马太福音五至七章极重要的方面</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025秋季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="9_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="9_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="9_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="9_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="9_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+    <a href="9_zs.htm" class="nav-link" title="职事">职事</a>
+    
+</div>
+
+    <h2 class="chapter-title">第9篇 实行父的旨意，使我们得以在“那日”，就是基督审判台的日子，进入父的国</h2>
+    
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container">
+        
+        <div class="day-page" data-day="1" data-page="0" style="display: block;">
+            <h3 class="day-title">周一</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">壹</span>
+                    <span class="outline-text">“我们的主，我们的神，你是配得荣耀、尊贵、能力的，因为你创造了万有，并且万有是因你的旨意存在并被创造的”—启四11：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">神是一位有定旨的神，有照着祂自己喜悦的旨意：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">祂为着自己的旨意，创造了万有，好成就并完成祂的定旨。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">启示录这卷书揭示神宇宙的行政，给我们看见神的定旨。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">当二十四位长老为着神的创造而赞美时，说出祂的创造与祂的旨意有关。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">神的意愿（旨意）乃是神的愿望；神的意愿是祂所想要作的—弗一9：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">神的喜悦是出于祂的意愿，并且具体表现在祂的意愿里，所以祂的意愿在先—5节。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">神借着祂在基督里的启示，就是借着基督的成为肉体、钉十字架、复活并升天，使我们知道祂意愿的奥秘—9节，三9。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">神乃是按祂意愿所决议的，行作万事。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">4</span>
+                            <span class="outline-text">神的意愿指祂的目的；而神的决议指祂的思量，要怎样完成祂的意愿或目的—一11。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">启四9~11	每逢四活物将荣耀、尊贵、感谢，归与那坐在宝座上……者的时候，那二十四位长老，就俯伏在坐宝座的面前，敬拜……，又把他们的冠冕投在宝座前，说，我们的主，我们的神，你是配得荣耀、尊贵、能力的，因为你创造了万有，并且万有是因你的旨意存在并被创造的。</p>
+                
+                <p class="content-paragraph">在启示录四章八至十一节，我们看见对神的敬拜。……这里由四活物代表所有受造之物（8~9），以及二十四位长老代表所有天使（10~11），来向神敬拜。在这景象里，一切受造之物都在敬拜神。在八节，四活物……三次说到圣哉，与以赛亚六章三节者同，含示神是三一的。用三种时态说到神的存在，也含示神是三一的。四活物（启四9）和二十四位长老（10~11）的赞美，都由三件事组成，含示他们是在赞美三一神。在两处的赞美中，前两项荣耀、尊贵是相同的……。在四活物的赞美中，最后一项是感谢，因为他们是蒙救赎的，对神恩典的救赎心存感激；但在二十四位长老的赞美中，最后一项是能力，因为他们不是蒙救赎的受造之物，乃是靠神的能力管理宇宙的，所以他们珍赏神的能力（启示录生命读经，二六五至二六六页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">神是一位有定旨的神，有祂自己喜悦的旨意。祂为着自己的旨意，创造了万有，好成就并完成祂的定旨。〔启示录〕这卷书揭示神宇宙的行政，给我们看见神的定旨。</p>
+                
+                <p class="content-paragraph">〔在四章里〕这二十四位天使的长老，乃是宇宙中神行政的执行者，在他们的赞美中，说出了神在创造中的旨意。人很容易认识神的创造，但是难得有人知道神在创造中的旨意和定旨。</p>
+                
+                <p class="content-paragraph">天使长老的赞美，乃是〔启示录〕内容的介言，这卷书启示出神在创造中的旨意和定旨，乃是要得到一个永远的居所，就是圣城新耶路撒冷，作为神的满足和彰显。神创造的旨意，要在新耶路撒冷里得到完全的启示和完成。在新耶路撒冷里，并借着新耶路撒冷，神得到心满意足，也得到完满的彰显。这是神在创造里的旨意，也是启示录这卷书的目标（启示录生命读经，二六六页）。</p>
+                
+                <p class="content-paragraph">神的意愿〔旨意〕乃是神的愿望，神的渴望。神的意愿是祂所愿望要作的，和祂所想要作的。神的喜悦是出于神的意愿。以弗所一章五节说到“祂意愿所喜悦的”。祂的喜悦具体表现在祂的意愿里，所以祂的意愿在先。神的意愿隐藏在神里面，是一个奥秘，因此九节说到“祂意愿的奥秘”。在永远里，神定了一个意愿。这意愿隐藏在祂里面；因此，这意愿是个奥秘。神的意愿，就是隐藏在神里面的奥秘，结果带来神的经纶，安排（三9）。从神的意愿，借着神的定旨、喜悦和决议，出来了一个结果，就是神的经纶（李常受文集一九九一至一九九二年第一册，四四九页）。</p>
+                
+                <p class="content-paragraph">以弗所一章九节说，神已经使我们知道祂意愿的奥秘。使我们知道祂意愿的奥秘，乃是神智慧和明达的一项。在永远里神计划了一个意愿，这意愿是隐藏在祂里面的，因此是个奥秘。神用祂的智慧和明达，借着祂在基督里的启示，就是借着基督的成为肉体、钉十字架、复活并升天，使我们知道这隐藏的奥秘。使我们知道神意愿的奥秘，乃是神心中的喜悦。</p>
+                
+                <p class="content-paragraph">神的喜悦乃是祂心里所切望的，就是要得着召会；神启示祂隐藏的意愿，是照着祂这个心中的愿望。这是照着祂的喜悦（以弗所书生命读经，八○至八一页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1" style="display: none;">
+            <h3 class="day-title">周二</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">三</span>
+                    <span class="outline-text">神的旨意集中于基督，并为着基督；在神的旨意中，基督是一切—西一9：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">在九节，神的旨意是指基督；神的旨意是深奥的，与我们认识、经历并活这位包罗万有、延展无限的基督息息相关，祂是神、人以及宇宙中一切正面事物的实际—二9、16~17。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">基督是居首位者，在凡事上都居第一位—一18。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">包罗万有、延展无限的基督，乃是神经纶的中心与普及，中心与圆周—15~27节，弗一10：</span>
+                            
+                            
+                            <div class="outline-children">
+                                
+                                <div class="outline-item level-2">
+                                    <span class="outline-level">a</span>
+                                    <span class="outline-text">在神的经纶里，基督是一切；神要的是基督，并且祂只要基督，就是那奇妙、居首位、包罗万有的基督，祂是一切，又在一切之内—太十七5，西三10~11。</span>
+                                </div>
+                                
+                                <div class="outline-item level-2">
+                                    <span class="outline-level">b</span>
+                                    <span class="outline-text">神经纶的目的，乃是要将这位奇妙、包罗万有、延展无限的基督作到我们里面，作我们的生命和一切，使我们成为三一神团体的彰显—一27，三4、10~11。</span>
+                                </div>
+                                
+                            </div>
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">4</span>
+                            <span class="outline-text">神的旨意是要包罗万有、延展无限的基督成为我们的分—一9、12。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">5</span>
+                            <span class="outline-text">神的旨意乃是要我们认识基督、经历基督、享受基督、被基督浸透并得着基督作我们的人位和生命—三4、11。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">西一9　	所以，我们自从听见的日子，也就为你们不住地祷告祈求，愿你们在一切属灵的智慧和悟性上，充分认识神的旨意。</p>
+                
+                <p class="content-paragraph">二2　	要叫他们的心得安慰，在爱里结合一起，以致丰丰富富地在悟性上有充分的确信，能以完全认识神的奥秘，就是基督。</p>
+                
+                <p class="content-paragraph">歌罗西书是一卷关于神旨意的书。……智慧是在我们的灵里，以领会、感觉并察知属灵的事物；悟性是在我们的心思里，以翻译我们所察知的〔一9〕。我们需要一切属灵的智慧和悟性，以充分认识神的旨意。……这里所提到神的旨意，乃是神永远的旨意，神伟大的旨意，与我们日常生活的事无关，乃是与神的定旨，神的意愿有关。我们要明白神的旨意，需要有充分的认识，以及一切属灵的智慧和悟性。</p>
+                
+                <p class="content-paragraph">神照着祂的心意、意愿，在全宇宙中，在创造中，在救赎中，在要来的世代，以及在永远里的旨意是什么？……我们若读〔歌罗西书〕，就会明白答案乃是基督自己。神的旨意是在基督里，集中于基督，并为着基督。在神的旨意中，基督是一切。我们必须用属灵的智慧，并用我们清明、更新之心思的悟性，来明白并认识这事（李常受文集一九六四年第二册，四三九至四四○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">在歌罗西一章，保罗和他的同工们祷告，愿歌罗西人认识神的旨意，而在末了一章，基督的奴仆以巴弗为同一件事，在祷告中为召会竭力奋斗〔四12〕。因此，歌罗西书是向我们启示神在宇宙中永远旨意的一卷书。</p>
+                
+                <p class="content-paragraph">歌罗西书说到与神旨意有关之神的奥秘。我们要说到一个人的心意，就必须明白他心里所要的是什么。……神有一个奥秘，并且祂就是一个奥秘。我们知道神存在，但任何人要认识祂，显然是不容易的。不仅神自己是个奥秘，连祂所想要的和所要作的，也是一个奥秘。</p>
+                
+                <p class="content-paragraph">“神的奥秘”这辞见于二章二节。……使徒在这里使用了一些属灵的辞，如“丰丰富富的”，“在悟性上有充分的确信”，和“完全认识”。神的奥秘太奥秘、太深奥、太伟大了，需要丰丰富富地在悟性上有充分的确信。……我们凭着自己，无法完全解释神是什么，以及神要作什么；答案乃是在歌罗西这卷书里（李常受文集一九六四年第二册，四四○至四四一页）。</p>
+                
+                <p class="content-paragraph">神的旨意是深奥的，与我们认识、经历并活这位包罗万有的基督息息相关。保罗在歌罗西一章九节的祷告，不是叫歌罗西的圣徒知道与谁结婚，住在哪里，或是该有怎样的职业。他的心不是被这些琐事占据。在这一节里，神的旨意是指基督说的。神的旨意不是要歌罗西的圣徒去遵守犹太教的礼仪、外邦人的规条或人的哲学。不仅如此，神的旨意也不是要他们实行禁欲主义，苦待己身，为要克制肉体的放纵。神对歌罗西人的旨意乃是认识基督、经历基督、享受基督、活基督，并使基督成为他们的生命和人位。神今天对我们的旨意也完全一样。</p>
+                
+                <p class="content-paragraph">我们若认识神的旨意乃是叫我们被基督浸透，我们对神的旨意就有正确的认识。我们无论作什么，都该行在神的旨意中。我们应当在基督里结婚，在基督里工作，在基督里行动。基督该是我们的生命，我们的人位。这就是神的旨意（歌罗西书生命读经，二四至二五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2" style="display: none;">
+            <h3 class="day-title">周三</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">四</span>
+                    <span class="outline-text">神的旨意是要得着召会作基督的身体—弗一9，西一18，二19，三15：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">神的旨意乃是要为基督得着一个身体，作祂的丰满，就是祂的彰显—罗十二2、5，弗一5、9、11、22~23，四16：</span>
+                            
+                            
+                            <div class="outline-children">
+                                
+                                <div class="outline-item level-2">
+                                    <span class="outline-level">a</span>
+                                    <span class="outline-text">过身体的生活，就是“验证何为神……的旨意”—罗十二2、4~5。</span>
+                                </div>
+                                
+                                <div class="outline-item level-2">
+                                    <span class="outline-level">b</span>
+                                    <span class="outline-text">如果我们是身体上正确的肢体，在召会生活里活动并尽功用，我们就会是在神旨意里的人—林前一1~2，弗一1，五17，罗十二2、4~5。</span>
+                                </div>
+                                
+                            </div>
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">召会是基督的身体，就是由三一神和祂所拣选并救赎之人所构成的实体—弗一22~23，四4~6。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">基督是身体的头，我们是祂身体的肢体—西一18上，二19，弗四15~16：</span>
+                            
+                            
+                            <div class="outline-children">
+                                
+                                <div class="outline-item level-2">
+                                    <span class="outline-level">a</span>
+                                    <span class="outline-text">活在身体里，就是在头之下与众肢体同过团体的生活—15节，西二19。</span>
+                                </div>
+                                
+                                <div class="outline-item level-2">
+                                    <span class="outline-level">b</span>
+                                    <span class="outline-text">我们要过身体的生活，就必须在头之下，并以头为我们的生命，为我们全人的主体和中心—一18上，二19。</span>
+                                </div>
+                                
+                            </div>
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">4</span>
+                            <span class="outline-text">身体以神的增长而长大；基督身体的长大在于我们里面神的增长，神的加添，神的增多—19节，弗四16。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">罗十二2	不要模仿这世代，反要借着心思的更新而变化，叫你们验证何为神那美好、可喜悦、并纯全的旨意。</p>
+                
+                <p class="content-paragraph">5　	我们这许多人，在基督里是一个身体，并且各个互相作肢体，也是如此。</p>
+                
+                <p class="content-paragraph">新约中的〔一项〕大启示，乃是基督的身体（弗一22~23）。……头一次提到身体是在罗马十二章五节。……我们必须为着基督奥秘的身体（5），献上我们肉身的身体（1）。当我们献上我们肉身的身体，并在心思里得更新的时候，我们就看见、分辨并验证，神的旨意乃是要为基督得着一个身体，作祂的丰满和彰显（2）（李常受文集一九九一至一九九二年第一册，七三一至七三二页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">〔罗马十二章二节〕说到神的旨意，……神没有许多旨意，神只有一个旨意。……严格来说，……神的旨意一点不差就是要得着召会，也就是为祂的儿子得着身体。当我们看见这个，我们会为此牺牲一切，因为我们会领悟到，这是那唯一的旨意。……不论我们多好，不论我们作多少事，我们若不在召会里，不实行召会生活，不为召会活着，我们就不在神的旨意里。我很笃定地这样说，即使我们在为神作事，我们还是在神的旨意之外。</p>
+                
+                <p class="content-paragraph">因此，要验证神的旨意是什么，就要实行召会生活。如果我们是身体上正确的肢体，在召会生活里活动并尽功用，我们就会有其他的一切。我们将是在神旨意里的人（李常受文集一九六四年第二册，三一八至三一九页）。</p>
+                
+                <p class="content-paragraph">严格地说，照新约圣经的启示来看，一个真正摸着神心坎，作神眼中得胜者的人，乃是活在身体里，过身体生活的人。他不是个人属灵，也不是个人得胜，而是清楚地领会他是身体上的一个肢体。</p>
+                
+                <p class="content-paragraph">没有一个肢体可以脱开身体而生活。但是，我们几乎都过着反常的生活。我们认为只要自己不爱世界，不贪恋罪恶，就很可以交待了。但事实上这还不够，最要紧的是我们有没有活在身体里。我们的爱主、属灵、成圣、得胜，是在我们自己里面，还是在身体里面？若是在我们自己里面，那并没有多少价值。……从神永远经纶的眼光来看，若不在身体里，属灵和不属灵，犯罪和不犯罪都没有多少价值。神不是要得着一群属灵、不犯罪的人，乃是要得着一个身体。只有在身体里，在神看来才有永远的价值。</p>
+                
+                <p class="content-paragraph">身体的生活就是在头之下，与众肢体同过团体的生活（西一18）。我们过身体的生活，首先，要在头之下，以头为生命、为主体、为中心（弗四15~16）。……我们若要有身体的生活，无论想什么，作什么，都要受基督这头的支配，并以祂为全人的中心。其次，要与众肢体配搭活出彰显头的生活（罗十二5）。我们要学习在身体里过生活，一直服在头之下，且顾到身体的感觉，与众肢体共同生活。我们不是以自己的属灵、圣别、得胜为中心，那会叫自己显得独特、超群，而要求、定罪别人；我们也不是遵守一些规条，使自己和别人相同；我们乃是活在灵中，生机且配搭地显出基督（李常受文集一九九○年第二册，一一二至一一四页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3" style="display: none;">
+            <h3 class="day-title">周四</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">五</span>
+                    <span class="outline-text">凡实行父旨意的，就是主耶稣的亲人—太十二50：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">基督这位属天的君王，总是降服于父的旨意，接受神的旨意作祂的分，不抵抗任何事—十一28~30，二六39。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">凡实行父旨意的，就是帮助主耶稣的弟兄，同情祂的姊妹，以及柔和慈爱的母亲。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">六</span>
+                    <span class="outline-text">国度完全是神旨意的事，并全然完成了神的旨意；事实上，国度就是神的旨意—六10：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">诸天之国宪法的终极结果，乃是天父的旨意—七21。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">我们是国度的子民，在地上实行神的旨意—十二50。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">七</span>
+                    <span class="outline-text">国度子民需要祷告，愿父的旨意行在地上，如同行在天上；这就是将诸天的国带到地上—六10。</span>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">太十二49~50　	〔耶稣〕就伸手指着门徒说，看哪，我的母亲，我的弟兄！因为凡实行我在诸天之上父旨意的，就是我的弟兄、姊妹和母亲了。</p>
+                
+                <p class="content-paragraph">主耶稣还对群众说话的时候，祂的母亲和兄弟站在外面，要找祂说话。有人对祂说，“看哪，你的母亲和兄弟站在外面，要找你说话。”（太十二46~47）……主说，“谁是我的母亲？谁是我的弟兄？”就伸手指着门徒说，“看哪，我的母亲，我的弟兄！因为凡实行我在诸天之上父旨意的，就是我的弟兄、姊妹和母亲了。”（48~50）这指明属天的王放弃了祂和犹太人肉身的关系。在马太十二章里，犹太人弃绝基督达到极峰，以致基督完全放弃他们。此时，他们开始与基督决裂，而与基督隔绝了（罗十一17、19~20）。基督与犹太人决裂以后，就转向外邦人。此后，祂与跟从之人的关系，不再是在肉身里，乃是在灵里。凡实行祂父旨意的，就是帮助祂的弟兄，同情祂的姊妹，以及柔和慈爱的母亲（马太福音生命读经，四七六页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">在马太十二章四十六至五十节我们看见一大转换，甚至是时代的转换。从此以后，耶稣与人的关系不再是基于天然的出生，乃是基于属灵的出生。凡实行在诸天之上父旨意的，就是耶稣的亲属。换句话说，在十二章末了，主有力地指明，祂已经放弃了整个以色列族。此后，祂与人的关系必须基于属灵的事。所有实行父旨意的人，都是祂的亲属。阿利路亚，我们不仅是基督的亲属，也是祂的肢体！我们是祂的肢体，不是凭着天然的血缘或天然的出生，乃是凭着我们灵里属灵的出生。那与主联合的，便是与主成为一灵（林前六17）。如今我们不仅是祂的弟兄姊妹；我们也与祂是一灵，在祂里面是一个身体，在祂里面是一个新人。</p>
+                
+                <p class="content-paragraph">在马太十二章末了，主耶稣向全宇宙明确的宣告，按着天然的血缘说，祂和以色列人的关系结束了。因此，罗马十一章说，以色列人被折下来了。这个折下来发生在马太十二章末了。罗马十一章也说，外邦人被接上去了。这也发生在马太十二章末了。</p>
+                
+                <p class="content-paragraph">在七章二十一节，主不是说，“你们……父”，乃是说，“我……父”。这里主似乎说，“我是人子，是神子，我一直实行我父的旨意。你们也是神的儿子，是我的弟兄。因此，你们必须是我的同伴，并走我所走的路。现在你们不是实行你们父的旨意，乃是实行我父的旨意。你们是我的弟兄、我的同伴、我的同伙。你们和我走同样的路，实行同样的旨意。你们照着我父的旨意与我同活。”在〔国度〕宪法的最后一段，不再是论到消极的方面，诸如我们的脾气、情欲、己、肉体和忧虑；而完全是论到积极的方面，就是实行天父的旨意。……要实行父的旨意，我们需要走狭路。在属世哲学家的教训里，既没有神圣的生命、神圣的性情，也没有神圣的路。但在这里，诸天之国宪法的终极结果，乃是天父的旨意。这就是说，我们有一位天父，我们是父的儿子。……我们的父有一个旨意要成就，但这旨意只能借着祂的生命才能成就。我们需要活在天父的生命里，并且凭着这生命而活。这种生活乃是为着实行父的旨意（马太福音生命读经，四七六至四七七、三三六至三三七页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4" style="display: none;">
+            <h3 class="day-title">周五</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">贰</span>
+                    <span class="outline-text">“不是每一个对我说，主啊，主啊的人，都能进诸天的国，唯独实行我诸天之上父旨意的人，才能进去”—七21：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">呼求主够叫我们得救，但要进诸天的国，还需要实行天父的旨意—罗十13，十二2，太十二50，弗五17，西一9。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">进诸天的国，既然还要实行天父的旨意，就显然与借着重生进神的国不同—约三3、5。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">三</span>
+                    <span class="outline-text">进诸天的国是借着神圣生命的生活—一12~13，三5~6，太七21，十二50。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">四</span>
+                    <span class="outline-text">主耶稣斥责那些在祂的名里预言过，赶鬼过，并行过许多异能的人，因为他们这些“行不法的人”作那些事，是出于他们自己，不是因顺从神的旨意而作—七22~23：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">宇宙中有两个原则：一是神权柄的原则，一是撒但背叛的原则—徒一7，赛十四13~14。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">我们不能一面事奉神，一面又走背叛的路。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">我们必须脱离不法的原则，不走背叛的路—太二八18，犹11。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">4</span>
+                            <span class="outline-text">事奉神的对面就是祂的权柄。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">5</span>
+                            <span class="outline-text">权柄的问题若没有好好解决，就在事奉上，各种样的难处都会发生。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">五</span>
+                    <span class="outline-text">愿主保守我们的事奉，乃是在服从神的权柄与父的旨意的原则里—徒一7，太七21，十二50。</span>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">太七21~22	不是每一个对我说，主啊，主啊的人，都能进诸天的国，唯独实行我诸天之上父旨意的人，才能进去。当那日，许多人要对我说，主啊，主啊，我们不是在你的名里预言过，在你的名里赶鬼过，并在你的名里行过许多异能么？</p>
+                
+                <p class="content-paragraph">马太七章二十一节……不是指今天诸天之国的实际，乃是指将来国度的实现。我们要进诸天的国，需要作两件事：呼求主，并实行天父的旨意。呼求主够叫我们得救（罗十13），但要进诸天的国，还需要实行天父的旨意。因此，不是每一个说，主啊，主啊的人，都能进诸天的国，唯独那些呼求主，且实行天父旨意的人，才能进去。</p>
+                
+                <p class="content-paragraph">进诸天的国，既然还要实行天父的旨意，就显然与借着重生进神的国不同（约三3、5）。进神的国是借着神圣生命的出生，进诸天的国是借着神圣生命的生活（马太福音生命读经，三三六页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">〔在马太七章〕二十二节……“那日”一辞是指基督审判台的日子（林前三13，四5，林后五10）。在审判的日子，所有的信徒都要站在基督的审判台前，许多人要对主说，他们在主的名里预言过、赶鬼过并且行过异能，但他们要被主拒绝。</p>
+                
+                <p class="content-paragraph">马太七章二十三节说，“那时，我要向他们宣告：我从来不认识你们，你们这些行不法的人，离开我去吧。”这里的认识，意思是称许。罗马七章十五节将同一字译为认可。在这一节保罗说，“因为我所行出来的，我不认可。”主从来不称许那些在祂的名里，却不照着天父的旨意（太七21）预言、赶鬼并行许多异能的人（22）。主不否认他们作了那些事，但祂认为那些事是不法的，因为不是照着天父的旨意作的，与神圣的旨意不一致。主似乎说，“你们在我的名里预言过，在我的名里赶鬼过，并在我的名里行过许多异能，但我从来不认可你们作那些事。我从来不称许你们，因为你们不法地作那一切的事。你们在己里，在自己的欲望里，照着自己的心意，不照着我父的旨意作那些事。”因此，他们即使在主的名里作了那些事，也不能进诸天的国，却要“离开”主，就是在来世被拒于国度的实现之外，不能得国度的赏赐。</p>
+                
+                <p class="content-paragraph">有些工作也许是在主的名里作的，却不是照着神的旨意作的。……我们谈了许多去校园的事，但我们去那里是作一种工作，还是实行我们天父的旨意？青年弟兄姊妹们，你们要怎么回答这问题？……我们无论作什么，都必须确信我们在实行天父的旨意。否则，主耶稣会对我们说，“行不法的人。”甚至在主的名里，却不照着父的旨意预言，也是一种不法。不仅如此，在主的名里，却不照着神的旨意赶鬼、行异能，在属天的王眼中也视为不法。</p>
+                
+                <p class="content-paragraph">你也许跑得比别人快，但你若跑出你跑道的线外，你就不被承认了。这种赛跑会被视为不法。你必须在跑道上赛跑，这就是说，你必须跑在狭路上（马太福音生命读经，三三八至三三九页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5" style="display: none;">
+            <h3 class="day-title">周六</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">贰</span>
+                    <span class="outline-text">“不是每一个对我说，主啊，主啊的人，都能进诸天的国，唯独实行我诸天之上父旨意的人，才能进去”—七21：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">呼求主够叫我们得救，但要进诸天的国，还需要实行天父的旨意—罗十13，十二2，太十二50，弗五17，西一9。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">进诸天的国，既然还要实行天父的旨意，就显然与借着重生进神的国不同—约三3、5。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">三</span>
+                    <span class="outline-text">进诸天的国是借着神圣生命的生活—一12~13，三5~6，太七21，十二50。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">四</span>
+                    <span class="outline-text">主耶稣斥责那些在祂的名里预言过，赶鬼过，并行过许多异能的人，因为他们这些“行不法的人”作那些事，是出于他们自己，不是因顺从神的旨意而作—七22~23：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">宇宙中有两个原则：一是神权柄的原则，一是撒但背叛的原则—徒一7，赛十四13~14。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">我们不能一面事奉神，一面又走背叛的路。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">我们必须脱离不法的原则，不走背叛的路—太二八18，犹11。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">4</span>
+                            <span class="outline-text">事奉神的对面就是祂的权柄。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">5</span>
+                            <span class="outline-text">权柄的问题若没有好好解决，就在事奉上，各种样的难处都会发生。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">五</span>
+                    <span class="outline-text">愿主保守我们的事奉，乃是在服从神的权柄与父的旨意的原则里—徒一7，太七21，十二50。</span>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">太七23　	那时，我要向他们宣告：我从来不认识你们，你们这些行不法的人，离开我去吧。</p>
+                
+                <p class="content-paragraph">约壹三4　	凡犯罪的，也行不法；罪就是不法。</p>
+                
+                <p class="content-paragraph">马太七章二十一至二十三节，主责备那些奉祂名传道、赶鬼、行异能的人。为什么人奉主的名行这些事，还受主的责备呢？这乃是因为他们是出于他们自己，不是因顺从神的旨意而作。所以主接着就说，“唯独实行我诸天之上父旨意的人，才能进〔诸天的国〕去。”〔21〕现今的时代，乃是充满不法，充满背叛。……罪就是不法，罪也就是悖逆〔约壹三4〕。……不法的意思就是没有律法；没有律法就是罪。撒但是干犯权柄而犯罪；人是有律法就犯律法，没有律法就随意，同样也是罪；换句话说，同样的也是不在权柄之下。……干犯律法是行为问题，固然是罪；不法，乃是存心问题，也是罪。不只不服在权柄之下，乃是没有权柄。在这末后的时代，因着不法者在这里，堕落的人要把一切的权柄都推翻，随己意作事，不法要掌权。……从撒但犯罪的起头，从人类犯罪的起头，一直到世代的末了，撒但一直与神的权柄作对，人也一直与神的权柄作对。神设立了权柄，人是一直反对权柄。背叛乃是这世界的原则。我们如果要事奉神，就要碰着权柄。我们必须脱离这世界的这两个原则：不法与背叛（倪柝声文集第三辑第十三册，一一九页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">我们要看见，宇宙中有两个原则：一是神权柄的原则，一是撒但背叛的原则。我们不能一面事奉神，一面又走背叛的路……。背叛的人虽能讲道，但撒但要在那里笑，因为这人里头有撒但的原则。事奉的对面就是权柄。权柄的问题若没有好好解决，就在事奉、生活上，各种样的问题、难处都会发生。我们要问：我们是不是服神的权柄？我们要事奉神的人，必须得着一个基本的启示，就是认识神的权柄。我们的路要看得准，要看得直。我们要知道，任何的悖逆都是顺着撒但而来的。没有遇见权柄的人，就自己拆毁自己的工作。……我们没有碰着权柄，没有碰着里头的根，就神在各地没有工作，在中国没有工作，在世界也没有工作。背叛的根不除掉，我们就没有前途，没有工作。求神怜悯我们，叫我们实在碰见权柄，脱离背叛的原则，不走背叛的路。愿主保守我们的事奉，乃是在顺服权柄的原则里（倪柝声文集第三辑第十三册，一一九至一二○页）。</p>
+                
+                <p class="content-paragraph">我们不该看重预言、赶鬼或行异能。我们只该顾到实行我们天父的旨意。你也许不知道，我们如何能认识父的旨意？我们凭着我们里面父的生命和性情，就能知道父的旨意。……你若照着神圣的性情，并且在跑道内奔跑，神圣的性情就会指明：“是，不错，继续往前。”但你若不照着神圣的性情奔跑，或跑出线外，神圣的性情就会说，“别跑这边。”不需要任何人告诉你要作什么，因为规律、限制、神圣的性情就在你里面。这性情告诉你，你在哪里（马太福音生命读经，三四○页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const totalPages = 6;
+    if (totalPages === 0) return;
+    
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    const pagesContainer = document.querySelector('.pages-container');
+    
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach(page => page.style.display = 'none');
+        
+        // 显示目标页面
+        pages[pageIndex].style.display = 'block';
+        
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 仅在用户手动切换时滚动到顶部
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（仅水平滑动）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    
+    pagesContainer.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    
+    pagesContainer.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const swipeThreshold = 80; // 增加最小滑动距离
+        const diffX = touchStartX - touchEndX;
+        const diffY = touchStartY - touchEndY;
+        
+        // 只有当水平滑动距离大于垂直滑动距离时才触发翻页
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > swipeThreshold) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    // 初始加载时不滚动
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', function() {
+        initFromHash(false);
+    });
+    
+    // 初始化（不滚动）
+    initFromHash(true);
+})();
+
+// 朗读功能（共享脚本）
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page[style*="display: block"]') || document.querySelector('.day-page');
+            if (!activePage) return '';
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = item.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-paragraph');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-paragraph');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+});
+</script>
+
+<style>
+.morning-revival-page {
+    padding: 5px;
+    max-width: 820px;
+    margin: 0 auto;
+}
+
+/* 天导航栏 */
+.day-navigation {
+    display: flex;
+    gap: 8px;
+    margin: 15px 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.day-link {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 12px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.day-link:active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.day-link.active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+    font-weight: 700;
+}
+
+/* 分页容器 */
+.pages-container {
+    position: relative;
+    min-height: 400px;
+    touch-action: pan-y;
+}
+
+.day-page {
+    background: #fff;
+    padding: 0;
+}
+
+.day-section {
+    margin: 20px 0;
+    background: #fff;
+    padding: 0;
+}
+
+.day-title {
+    font-size: 17px;
+    font-weight: bold;
+    color: #2d3748;
+    margin: 16px 0 14px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+    line-height: 1.6;
+}
+
+/* 纲目样式 - 优化层级视觉差异 */
+.outline-section {
+    margin: 16px 0;
+    line-height: 2.0;
+}
+
+.outline-item {
+    margin: 8px 0;
+    color: #2d3748;
+    font-size: 16px;
+    line-height: 1.8;
+}
+
+/* Level 1: 大纲 (壹贰叁、I II III、A B C) - 最突出 */
+.outline-item.level-1 {
+    margin-top: 16px;
+    margin-bottom: 12px;
+    font-size: 1.0625em; /* 17px -> 1.0625em */
+    font-weight: 800;
+    color: var(--brand-1);
+    padding: 8px 0;
+    border-bottom: 2px solid rgba(var(--brand-1-rgb), 0.2);
+}
+
+.outline-item.level-1 > .outline-level {
+    font-size: 1.125em; /* 18px -> 1.125em */
+    font-weight: 800;
+    color: var(--brand-1);
+    background: var(--brand-soft-bg);
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-right: 8px;
+}
+
+.outline-item.level-1 > .outline-text {
+    color: var(--text);
+    font-weight: 700;
+}
+
+/* Level 2: 中纲 (一二三、a b c) - 中等突出 */
+.outline-item.level-2 {
+    padding-left: 1.8em;
+    font-size: 1em; /* 16px -> 1em */
+    margin-top: 8px;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.outline-item.level-2 > .outline-level {
+    font-weight: 700;
+    color: var(--brand-2);
+    background: rgba(var(--brand-2-rgb), 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+}
+
+.outline-item.level-2 > .outline-text {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* Level 3: 小纲 (1 2 3) - 普通样式 */
+.outline-item.level-3 {
+    padding-left: 3.2em;
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    margin-top: 4px;
+    margin-bottom: 3px;
+    font-weight: 500;
+}
+
+.outline-item.level-3 > .outline-level {
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 5px;
+}
+
+.outline-item.level-3 > .outline-text {
+    color: var(--text);
+    font-weight: 400;
+}
+
+.outline-children {
+    margin-left: 0;
+}
+
+.outline-level {
+    margin-right: 5px;
+}
+
+.outline-text {
+    color: #333;
+}
+
+@media (min-width: 768px) {
+    .outline-item {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
+    }
+
+    .outline-item.level-1 {
+        margin-top: 15px;
+        font-size: 1em; /* 16px -> 1em */
+    }
+
+    .outline-item.level-1 > .outline-level {
+        font-size: 1.0625em; /* 17px -> 1.0625em */
+    }
+}
+
+/* 内容分隔线 */
+.content-separator {
+    height: 1px;
+    background: #ddd;
+    margin: 20px 0;
+}
+
+/* 晨兴喂养和信息选读 */
+.feeding-section,
+.reading-section {
+    margin: 20px 0;
+}
+
+.feeding-section h4,
+.reading-section h4 {
+    font-size: 17px;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 16px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.content-paragraph {
+    margin: 14px 0;
+    text-indent: 2em;
+    line-height: 2.1;
+    color: #4a5568;
+    font-size: 16px;
+}
+
+/* 翻页控制 */
+.page-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0 15px 0;
+    padding: 10px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.prev-btn,
+.next-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 44px;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    color: #333;
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    cursor: pointer;
+    transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.prev-btn:active:not(:disabled),
+.next-btn:active:not(:disabled) {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.55);
+}
+
+.prev-btn:disabled,
+.next-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.page-indicator {
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    color: var(--text-muted);
+    font-weight: 800;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .morning-revival-page {
+        padding: 5px;
+    }
+    
+    .day-navigation {
+        gap: 5px;
+        padding: 8px;
+    }
+    
+    .day-link {
+        padding: 5px 10px;
+        font-size: 0.8125em; /* 13px -> 0.8125em */
+    }
+    
+    .day-title {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
+    }
+    
+    .outline-item,
+    .content-paragraph {
+        font-size: 0.875em; /* 14px -> 0.875em */
+        line-height: 1.8;
+    }
+    
+    .feeding-section h4,
+    .reading-section h4 {
+        font-size: 0.875em; /* 14px -> 0.875em */
+    }
+    
+    .page-controls {
+        padding: 10px;
+        margin: 20px 0 10px 0;
+    }
+    
+    .prev-btn,
+    .next-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .btn-text {
+        display: none;
+    }
+    
+    .page-indicator {
+        font-size: 13px;
+    }
+}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025秋季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+
+</body>
+</html>

@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <title>第3篇 - 晨兴</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+
+        :root {
+            --brand-1: #667eea;
+            --brand-2: #764ba2;
+            --brand-1-rgb: 102, 126, 234;
+            --brand-2-rgb: 118, 75, 162;
+            --bg: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+            --surface: #ffffff;
+            --surface-muted: #f8f9fa;
+            --border: #e6e8f0;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --link: var(--brand-1);
+            --shadow: 0 10px 30px rgba(0,0,0,0.10);
+            --radius: 14px;
+
+            --brand-soft-bg: linear-gradient(135deg, rgba(var(--brand-1-rgb), 0.08) 0%, rgba(var(--brand-2-rgb), 0.06) 100%);
+            --brand-soft-border: rgba(var(--brand-1-rgb), 0.22);
+            --brand-soft-track: rgba(var(--brand-1-rgb), 0.18);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 2.0;
+            color: var(--text);
+            background: #f7fafc;
+            min-height: 100vh;
+            padding: 12px;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 16px;
+            background: #667eea;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+        
+        @media (min-width: 768px) {
+            .header {
+                margin-bottom: 30px;
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em; /* 24px -> 1.5em */
+                margin-bottom: 10px;
+            }
+        }
+        
+        .header .subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+        
+        .nav {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav a {
+            color: var(--link);
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+        
+        .nav a:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav span {
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+        
+        .content {
+            margin-top: 0;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 页面间跳转导航 */
+        .page-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+            padding: 12px;
+            background: var(--surface-muted);
+            border-radius: 8px;
+        }
+        
+        .page-navigation .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-navigation .nav-link:active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .page-navigation .nav-link.active {
+            background: var(--bg);
+            color: #ffffff;
+            border-color: var(--brand-1);
+            font-weight: 600;
+        }
+
+        ::selection {
+            background: rgba(102, 126, 234, 0.22);
+        }
+        
+        /* 统一的章节标题样式 */
+        .chapter-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 25px 0;
+            color: #2d3748;
+            line-height: 1.5;
+            text-align: center;
+            padding: 18px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        @media (min-width: 768px) {
+            .chapter-title {
+                font-size: 21px;
+                padding: 20px 18px;
+            }
+        }
+        
+        /* 统一的字体大小控制样式 */
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f0f4ff;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .font-btn:active {
+            transform: translateY(0);
+        }
+
+        .font-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hymn-number {
+            font-size: 0.875em; /* 14px -> 0.875em */
+            color: #666;
+            margin: 12px 0;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .scripture {
+            font-size: 14px;
+            color: var(--text);
+            margin: 15px 0;
+            padding: 12px;
+            background: #f7f8ff;
+            border-left: 4px solid var(--brand-1);
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture {
+                font-size: 15px;
+                padding: 15px;
+                line-height: 1.8;
+            }
+        }
+        
+        .scripture-verses {
+            font-size: 14px;
+            color: #444;
+            margin: 15px 0;
+            padding: 12px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .scripture-verses {
+                font-size: 15px;
+                line-height: 1.8;
+                padding: 15px;
+            }
+        }
+        
+        .verse-line {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin: 18px 0;
+        }
+        
+        @media (min-width: 768px) {
+            .section {
+                margin: 20px 0;
+            }
+        }
+        
+        .section-level1 {
+            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-weight: 600;
+            margin: 15px 0 10px 0;
+            color: #222;
+            line-height: 1.7;
+            padding-left: 8px;
+            border-left: 3px solid var(--brand-1);
+        }
+        
+        @media (min-width: 768px) {
+            .section-level1 {
+                font-size: 1.0625em; /* 17px -> 1.0625em */
+                margin: 18px 0 12px 0;
+                padding-left: 10px;
+            }
+        }
+        
+        .section-level2 {
+            font-size: 1em; /* 16px -> 1em */
+            font-weight: 600;
+            margin: 12px 0 8px 15px;
+            color: #333;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level2 {
+                font-size: 1em; /* 16px -> 1em */
+                margin: 15px 0 10px 20px;
+            }
+        }
+        
+        .section-level3 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 10px 0 8px 30px;
+            color: #444;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level3 {
+                font-size: 0.9375em; /* 15px -> 0.9375em */
+                margin: 12px 0 10px 40px;
+            }
+        }
+        
+        .section-level4 {
+            font-size: 0.9375em; /* 15px -> 0.9375em */
+            margin: 8px 0 6px 45px;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+            .section-level4 {
+                font-size: 0.875em; /* 14px -> 0.875em */
+                margin: 10px 0 8px 60px;
+            }
+        }
+        
+        .content-text {
+            margin: 16px 0;
+            padding-left: 16px;
+            text-indent: 2em;
+            color: #4a5568;
+            line-height: 2.1;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 8px;
+            margin-right: 5px;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        
+        .toggle-btn:active {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed {
+            max-height: 0;
+        }
+        
+        .expanded {
+            max-height: 10000px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        /* 固定底部控制栏 */
+        body {
+            padding-bottom: 85px; /* 为底部控制栏留出空间 */
+        }
+        
+        .bottom-control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* 适配刘海屏 */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-control-bar {
+                background: rgba(30, 30, 30, 0.95);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        .control-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-pause-btn {
+            font-size: 18px;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .progress-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            cursor: grab;
+            border: none;
+            box-shadow: 0 2px 4px rgba(var(--brand-1-rgb), 0.3);
+        }
+        
+        .progress-bar::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+        }
+        
+        .speech-time {
+            font-size: 13px;
+            color: var(--link);
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        /* 底部控制栏的字体按钮 - 使用更高优先级 */
+        .bottom-control-bar .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .bottom-control-bar .font-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .control-select {
+            min-width: 60px;
+            min-height: 44px;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--surface);
+            color: var(--link);
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 75px;
+            }
+            
+            .bottom-control-bar {
+                gap: 8px;
+                padding: 8px 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .play-pause-btn {
+                font-size: 16px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .speech-time {
+                font-size: 12px;
+            }
+            
+            .control-select {
+                min-width: 55px;
+                min-height: 40px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .control-group {
+                gap: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .bottom-control-bar {
+                gap: 6px;
+                padding: 6px 8px;
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+            
+            .control-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .play-pause-btn {
+                font-size: 15px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
+            .control-select {
+                min-width: 50px;
+                min-height: 36px;
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>夏季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="nav">
+            <a href="../index.html">主页</a>
+            <a href="index.html">目录</a>
+            <span>2025夏季训</span>
+        </div>
+        
+        <div class="content">
+            
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="3_dg.htm" class="nav-link" title="大纲">大纲</a>
+    <a href="3_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="3_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="3_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="3_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+    <h2 class="chapter-title">第3篇 享受包罗万有的基督作美地—我们所分得的分</h2>
+    
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container">
+        
+        <div class="day-page" data-day="1" data-page="0" style="display: block;">
+            <h3 class="day-title">周一</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">壹</span>
+                    <span class="outline-text">基督作居首位和包罗万有者，乃是众圣徒所分得的分—西一12：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">“所分得的分”是指业分，如以色列人分得迦南美地之分，作他们的产业—书十四1。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">新约信徒所分得的分，不是物质的土地，乃是包罗万有的基督作为赐生命的灵—西二6~7，加三14：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">美地的丰富预表基督那追测不尽之丰富的不同方面，在祂的灵里作祂信徒全备的供应—申八7~10，弗三8，腓一19。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">在基督里的信徒享受那地的丰富，借此被建造成为祂的身体，作神的家与神的国—弗一22~23，二21~22，提前三15，太十六18~19，罗十四17。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">西一12~13	感谢父，叫你们够资格在光中同得所分给众圣徒的分；祂拯救了我们脱离黑暗的权势，把我们迁入祂爱子的国里。</p>
+                
+                <p class="content-paragraph">保罗写歌罗西二章时，乃是想到旧约中美地的图画，这美地就是包罗万有之基督的预表。一章十二节含示这点，保罗在这节说到基督是众圣徒的分。然后，保罗在二章七节告诉我们，要在基督里行事为人。这含示基督是我们能在其中行事为人的美地，领域，范围。不仅如此，他在七节说到在基督里生根，这也指明他想到那美地。我们要在基督里生根，祂就必须成为我们的地土，我们的土壤。这些全都指明歌罗西书所启示的基督乃是我们的美地（歌罗西书生命读经，一九九至二○○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">保罗……知道神的选民在旧约时代享受美地作他们的分。不仅如此，他也知道美地是他们的一切。借着美地，他们才能敬拜神，并且建造圣殿，作神的见证，并作神独一的居所。借着美地，以色列人才能完成神的定旨。保罗十分清楚美地对神的选民有什么意义，所以他写信给歌罗西人时，乃是想着美地的这幅图画。因此，我们若要经历这卷书中所启示之包罗万有的基督，我们就需要看见，这样一位基督乃是迦南美地所预表的。这位由美地所预表的基督，乃是经过过程的三一神成了赐生命的灵。</p>
+                
+                <p class="content-paragraph">在约书亚五章十一至十二节，我们看到一个提示，美地接续吗哪作基督的预表。十一节说到以色列的百姓吃美地的出产。十二节说得特别清楚：“他们吃了那地的出产，当日吗哪就止住了，以色列人也不再有吗哪了；那一年，他们却吃迦南地的出产。”吗哪预表基督是神百姓生命的供应。正如约书亚记中这二节所指明，美地的出产乃是吗哪的延续。因此，吗哪若是预表基督，美地的出产必定也是预表祂。借着旷野中吗哪的供应，神的百姓就能建立会幕作神的居所。同样的原则，因着那地丰富出产的供应，他们就能建造圣殿作神更稳固的居所。毫无疑问，以色列子民所享受的美地，乃是基督一个重大的预表，因为乃是借着享受美地，圣殿才得以建立。</p>
+                
+                <p class="content-paragraph">地是旧约圣经的紧要中心。……神呼召亚伯拉罕出来，告诉他要把他带到一个地方，那个地方就是迦南美地。想想看，从创世记十二章到旧约末了，有多少次神提到那地。事实上，旧约的中心乃是在美地上所建造之城里的圣殿。……美地乃是包罗万有之基督的图画，预表基督之于我们乃是一切（歌罗西书生命读经，二○○、二○二至二○四页）。</p>
+                
+                <p class="content-paragraph">以色列人在美地上的经历，预表今天我们对基督的享受。基督是我们的美地，基督丰富的各方面由那地的出产所预表。我们若享受基督丰富的供应，就能活基督。我们也会得着加力，击败仇敌。仇敌总是在我们享受基督的时候被击败。不但如此，借着享受基督的丰富，神的国就在召会中被建立，殿也被建造，作神的居所。这一切事—过基督徒生活、击败仇敌、建立神的国并建造神的居所—都出于对基督丰富的享受（哥林多前书生命读经，五三二页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1" style="display: none;">
+            <h3 class="day-title">周二</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">贰</span>
+                    <span class="outline-text">神呼召的目的，是要将神所拣选的人带进对流奶与蜜的美地所预表包罗万有之基督的享受里—出三8，参林前一9：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">奶和蜜是动物生命与植物生命的调和，是基督生命的两面—救赎的一面和生产的一面—申八8，二六9，参约一29，十二24：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">基督的生命救赎这一面是为着我们法理的救赎，基督的生命生产这一面是为着我们生机的拯救—一29，十二24，启二7，罗五10。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">主桌子的表记之物，表征基督的生命救赎与生产这两面，为着神完整的救恩；因此，美地成了给我们享受的桌子，筵席—太二六26~28，林前十17。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">我们必须“在光中”，好在包罗万有之基督救赎与生产这两面享受祂作美地—西一12，彼前二9，赛二5：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">神是光—约壹一5。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">神的话是光—诗一一九105、130。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">基督是光—约八12，九5。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">4</span>
+                            <span class="outline-text">基督的生命是光—一4。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">5</span>
+                            <span class="outline-text">信徒是光—太五14，腓二15。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">6</span>
+                            <span class="outline-text">召会是灯台发光照耀—启一20，诗七三16~17。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">出三8　	我下来要救他们……，领他们从那地出来，上到美好、宽阔、流奶与蜜之地……。</p>
+                
+                <p class="content-paragraph">约一29　	……看哪，神的羔羊，除去世人之罪的！</p>
+                
+                <p class="content-paragraph">十二24	我实实在在的告诉你们，一粒麦子不落在地里死了，仍旧是一粒；若是死了，就结出许多子粒来。</p>
+                
+                <p class="content-paragraph">奶产自吃草的牛，蜜由蜜蜂采花蜜而成。因此，奶与蜜表征基督的丰富来自祂生命的两方面：动物生命所预表祂救赎的生命（约一29），以及植物生命所预表祂生产的生命（十二24）。包罗万有的基督极其丰富，为要给我们享受（李常受文集一九六九年第三册，五六九页）。</p>
+                
+                <p class="content-paragraph">每当我们来到主的桌子前享受基督这包罗万有的一位，在我们的经历中，我们就在美地享受那地的丰富。这就是说，美地成了桌子，筵席，给我们享受。在这桌子，这筵席前，我们得着满足，神也得着满足。我们若看见这点，就会领悟，进入美地就是来到主的桌子前。</p>
+                
+                <p class="content-paragraph">这桌子是给我们享受的筵席。……我们领会来到这桌子前就是享受基督作美地，这是很要紧的（哥林多前书生命读经，五三一至五三二页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">保罗在歌罗西一章十二节说，父叫我们够资格“在光中同得所分给众圣徒的分”。许多人读到这一节，也许没有注意“在光中”这辞。我们的分—基督—乃是我们在光中所享受的。</p>
+                
+                <p class="content-paragraph">在约翰八章十二节，主耶稣说，祂是世界的光，跟从祂的，就绝不在黑暗里行，必要得着生命的光。……约壹一章五节说，神就是光。唯有祂是光的源头。神的话、基督、基督的生命、信徒和召会都能够是光，因为有神作其源头。</p>
+                
+                <p class="content-paragraph">诗篇一百一十九篇一百零五节说，神的话是我们脚前的灯，是我们路上的光；一百三十节说，神的言语一解开，就发出亮光。神的话是光，因为神的话包含了神。如果圣经不包含神，圣经的话就不能光照我们。圣经的源头是神，而神就是光。所以，圣经的话乃是光的照耀。</p>
+                
+                <p class="content-paragraph">在约翰九章五节，主耶稣说，“我在世界的时候，是世界的光。”神与基督原是一。神既是光，基督也就是光。基督以非常明确的方式作世界的光。五节的“世界”，乃是指社会、人类。因此，基督不是以笼统的方式，乃是以明确的方式，作社会、人类的光。</p>
+                
+                <p class="content-paragraph">基督的生命也是光〔一4〕。……我们接受基督作生命的时候，这生命就成了我们里面的光，照耀我们，并且从里面光照我们。</p>
+                
+                <p class="content-paragraph">凡相信基督的人也是光。主耶稣论到信徒说，“你们是世上的光。”（太五14）在腓立比二章十五节，保罗说，信徒“好像发光之体显在世界里”。发光之体，原文指返照太阳光的光体。光体本身没有光，却返照从别的光源而来的光。信徒们乃是发光之体。我们在自己里面没有光。光是从我们里面焚烧的油（就是那灵）来的。我们的光源不是我们自己，乃是作为那灵的基督。</p>
+                
+                <p class="content-paragraph">在启示录一章二十节，我们看见召会是灯台，托住并支持焚烧的灯。这灯就是基督，有神在祂里面作光（二一23）。在宇宙中只有一种光，就是神自己。三一神乃是独一的光（歌罗西书生命读经，六四至六八页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2" style="display: none;">
+            <h3 class="day-title">周三</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">三</span>
+                    <span class="outline-text">我们必须吃神的话，好在包罗万有之基督救赎与生产这两面享受祂作美地；神的话是奶给我们喝，是蜜给我们吃—约六57、63、68，彼前二2，诗一一九103，结三3。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">四</span>
+                    <span class="outline-text">我们借着享受基督作流奶与蜜之地，就被祂这奶与蜜所构成—“我新妇，你的嘴唇滴下新蜜；你的舌下有蜜有奶”—歌四11上：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">蜜叫衰颓的人得着苏醒，奶喂养新蒙恩的人。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">寻求者里面所蕴藏的是这样大量的丰富，好像食物在舌下，可以随时将基督的丰富分给需要的人—赛五十4，太十二35~36，路四22，弗四29~30。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">3</span>
+                            <span class="outline-text">这一种甘甜，并非在短时间内就可以产生的，乃是经过长时间的采集，经过里面的运动，并且谨慎地收藏，才有的—歌四16，林后十二7~9。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">彼前二2　		像才生的婴孩一样，切慕那纯净的话奶，叫你们靠此长大，以致得救。</p>
+                
+                <p class="content-paragraph">诗一一九103	你的言语在我上膛何等甘美！在我口中比蜜更甜！</p>
+                
+                <p class="content-paragraph">植物生命的大麦饼象征基督生命生产的一面，鱼象征祂生命救赎的一面。作为生产的生命，基督长在陆地，神所创造的地上；作为救赎的生命，基督活在海中，撒但所败坏的世界里。为着重生我们，祂长在神所造的地上，为着繁殖生命；但为着救赎我们，祂活在撒但罪恶的世界里。鱼怎样能活在盐水中，却不是咸的，基督照样能活在罪恶的世界里，却没有罪，也不受世界的影响。……所以，祂用大麦饼和鱼喂养人是很有意义的。这指明祂用生产的生命和救赎的生命，就是胜过死亡的生命，来喂养他们。</p>
+                
+                <p class="content-paragraph">主由大麦饼和鱼所象征，因祂是植物生命以繁殖我们，也是动物生命以救赎我们。至终，凭基督复活生命的喂养，带进永远的生命（新约总论第三册，一九三至一九四页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">信徒借着重生（彼前一3、23），出生为婴孩，就能靠着灵奶的滋养，在生命里长大，……为着神的建造。……话奶不是为着身体，乃是为着魂，就是里面的人。这奶是在神的话里传输出来，借我们理性心思的领会，且由我们心思机能的吸收，滋养我们里面的人（彼得前书生命读经，一五○至一五一页）。</p>
+                
+                <p class="content-paragraph">雅歌四章十一节说，“我新妇，你的嘴唇滴下新蜜；你的舌下有蜜有奶；你衣服的香气如同利巴嫩的香气。”……一切人世的、天然的香品，没有一样是赶得上女子身上膏油的香气的。这就自然能够叫她嘴唇能以滴蜜。蜜，是甜美的，是叫衰颓的人能够得着苏醒的。但是这一种甘甜，并非在短时间内就可以产生的。乃是经过长时期的采集，经过里面的运动，并且谨慎地收藏，才有的。这是一个常在神面前受教的人所独有的。所以，从这女子口中所发出来的，并非闲话、笑话、冒失的话，乃是甘甜、使人苏醒的话。她的话语，并非像山洪暴发的往外倾泻，乃是一滴一滴的像蜂房的滴蜜。这是一种最慢的滴。有的人，他们必须说话，他们说话像溪水奔流一样。就是他们所说的是关系属灵的事，但他们那一种说法就已经够显明，他们是没有经过恩典更深的工作的。这里不只注意到她的嘴唇如何慢慢地滴出甘甜的蜜来，这里也注意到她里面所收藏的是什么，所以说，“你的舌下有蜜有奶。”舌上，是人咽食物的地方；舌下，是人藏食物的地方。意即她里面收藏了这些东西，里面是丰丰富富地有这些东西。这可见她自己的粮食是有余的。蜜是为着复兴软弱的人，奶是为着喂养幼稚的人。她里面所蕴藏的是这样的丰富，好像食物在舌下，可以随时分给需要的人。但是，她并不倾吐她所有的一切，像有的人里面有多少，外面也拿出多少一样。蜜和奶还是在她的舌下，不都是在她的唇边（倪柝声文集第二辑第三册，八三至八四页）。</p>
+                
+                <p class="content-paragraph">祂享受从她嘴唇所出的话如同新蜜（为着复兴软弱的人），并她舌下的话如同蜜和奶（为着复兴软弱的人，并喂养未成熟的人）。祂也享受她行为的香气，如同升天的香气（雅歌生命读经，四一页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3" style="display: none;">
+            <h3 class="day-title">周四</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-1">
+                    <span class="outline-level">叁</span>
+                    <span class="outline-text">基督是我们活的土地和丰富的土壤，我们既在祂里面已经生根，就能在祂里面行事为人并吸取祂，使我们能凭着从这土壤所吸取的元素而长大—西二6~7，参林前三6、9，西二19：</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">一</span>
+                    <span class="outline-text">歌罗西二章八至十五节，对基督作为土壤有完满的描述和说明，在这土壤中我们一无所缺；当我们花时间吸取祂这包罗万有的土地时，这几节经文里的事实就成为我们的经历：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">基督这土壤，乃是神格一切的丰满都有形有体地居住在祂里面的那一位—9节：</span>
+                            
+                            
+                            <div class="outline-children">
+                                
+                                <div class="outline-item level-2">
+                                    <span class="outline-level">a</span>
+                                    <span class="outline-text">“丰满”不是指神的丰富，乃是指神丰富的彰显；那居住在基督里的，不仅是神格的丰富，更是神所是之丰富的彰显—9节，一15、19，三10~11。</span>
+                                </div>
+                                
+                                <div class="outline-item level-2">
+                                    <span class="outline-level">b</span>
+                                    <span class="outline-text">当我们生根在基督这土壤里，我们就在祂里面得了丰满；我们被一切神圣的丰富所充满，而成为祂的彰显—弗三8、19。</span>
+                                </div>
+                                
+                                <div class="outline-item level-2">
+                                    <span class="outline-level">c</span>
+                                    <span class="outline-text">在作土壤的基督里，我们被充满、得完备、被成全、得满足并彻底得着供应；我们一无所缺—参腓一19。</span>
+                                </div>
+                                
+                                <div class="outline-item level-2">
+                                    <span class="outline-level">d</span>
+                                    <span class="outline-text">基督这土壤，乃是神的历史与奥秘，含有祂身位和所经过过程的一切丰富—西二2。</span>
+                                </div>
+                                
+                            </div>
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">作土壤的基督，乃是一切执政掌权者的元首—10节。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">西二6~7	你们既然接受了基督，就是主耶稣，在祂里面已经生根，并正被建造，且照着你们所受的教导，在信心上得以坚固，洋溢着感谢，就要在祂里面行事为人。</p>
+                
+                <p class="content-paragraph">9~10	因为神格一切的丰满，都有形有体地居住在基督里面，你们在祂里面也得了丰满。祂是一切执政掌权者的元首。</p>
+                
+                <p class="content-paragraph">歌罗西二章八至十五节这一段……有许多的要点。这许多点都是关于基督是美地，是我们已经在其中生根的丰富土壤。七节里“已经生根”这话含示土壤的意思。……我们既然在土壤里生根，就借着从土壤里所吸收的元素长大。我们知道，作为土壤的基督乃是在我们的灵里。现在我们必须往前看见，八至十五节乃是描述我们在其中生根的土壤。这些经文对这土壤有完满的描述和说明（歌罗西书生命读经，五七四页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">这块特殊土壤的头一方面是在歌罗西二章九节：“因为神格一切的丰满，都有形有体地居住在基督里面。”神格一切的丰满，都有形有体地居住在祂里面，我们在这一位里面已经生根。我们不该让人把我们从这样的土壤中移开。从这块土壤中移开，就是被拔除。……信徒已经在基督这块美地上生根；神格一切的丰满都居住在这一位里面。我们不可让人把我们从这土壤中移开，我们必须一直生根在其中。……〔在十节〕我们对基督这土壤更多的实质有进一步的看见。土壤的一方面是神格的丰满；另一方面乃是基督是一切执政掌权者的元首。在基督这美地上，有许多不同的元素。头一个元素是神格一切的丰满，第二个元素是一切执政掌权者的元首。</p>
+                
+                <p class="content-paragraph">我们在作土壤的基督里生根时，头一件发生的事就是，我们在祂里面得了丰满（10）。“得了丰满”……这个希腊字含示完备、完全、满足和完满的完成。在基督这土壤里，我们被充满、得完备、被成全、得满足并彻底得着供应。……土壤的头一个元素乃是神格的丰满。当我们从土壤里将丰富的养分吸收进来，我们就享受这丰满。然后这丰满使我们得了丰满，使我们完备，使我们完全，使我们满足，为我们成就一切，并彻底供应我们每一样的需要。</p>
+                
+                <p class="content-paragraph">这丰满是取用不竭的。……神已将我们栽种于丰富的土地上。这土地的头一面乃是神格的丰满，就是神在旧造和新造里的彰显。……我们既栽种在这样丰富的土壤中，就从土壤里吸收养分。土壤的丰富，头一个元素就是丰满。我们在这丰满里，便得了丰满。因此，我们一无所缺。</p>
+                
+                <p class="content-paragraph">保罗要歌罗西的信徒晓得，他们既在基督里得了丰满，就不需要敬拜天使。基督是一切执政掌权者的元首；天使不过是神造物中的一项罢了。在这丰满里我们已经得了丰满、完备和完全。一切必需的事都成就了，我们已经得着供应，并且已经满足了。哦，这丰满乃是包罗万有的，包括了公义、称义、圣别、成圣以及我们所需要的一切。我们既栽种在这丰满里，就该从其中吸取滋养。我们这样作，就会发现我们一无所缺。钉十字架和复活的经历都在这丰满里。赞美主，我们可以享受宇宙的、永远的、延展无限的、包罗万有的丰满！这丰满有形有体地居住在基督里面。基督既是我们已经生根于其中的美地，我们在这丰满里就已经生根了；我们在其中已经得了丰满、完备并完全。我们什么都不缺（歌罗西书生命读经，五七四至五七八页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4" style="display: none;">
+            <h3 class="day-title">周五</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-3">
+                    <span class="outline-level">3</span>
+                    <span class="outline-text">在作土壤的基督里，有一种元素有杀死的能力，将肉体治死—11节。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-3">
+                    <span class="outline-level">4</span>
+                    <span class="outline-text">在作土壤的基督里，有一种元素使我们被埋葬—12节上。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-3">
+                    <span class="outline-level">5</span>
+                    <span class="outline-text">在作土壤的基督里，有一种元素使我们复活—12节下。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-3">
+                    <span class="outline-level">6</span>
+                    <span class="outline-text">在作土壤的基督里，有一种元素使我们活过来—13节。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-3">
+                    <span class="outline-level">7</span>
+                    <span class="outline-text">在作土壤的基督里，有一种元素涂抹规条上所写的字据—14节。</span>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">西二12~14	在受浸中与祂一同埋葬，也在受浸中，借着那叫祂从死人中复活之神所运行的信心，与祂一同复活。你们从前……死了，神赦免了你们一切的过犯，叫你们一同与基督活过来；涂抹了规条上所写，……反对我们的字据，并且把它撤去，钉在十字架上。</p>
+                
+                <p class="content-paragraph">我们在歌罗西二章十一至十五节能看见〔在基督这土壤里〕更多的元素。十一节说，“你们在祂里面也受了非人手所行的割礼，乃是在基督的割礼里，脱去了肉体的身体。”土壤还包含基督的割礼，表明割除和杀死。……十二节说，我们在受浸中与基督一同埋葬，指明土壤也包含埋葬的元素。……我们埋葬以后，又复活。在十二节，保罗说到那叫基督从死人中复活的神。这说法指明在基督这土壤里，有一个叫我们复活的元素。按照十三节来看，我们也活过来了。在土壤里有一个元素赐我们生命，点活我们。在林前十五章四十五节，保罗说到赐生命的灵。在歌罗西二章十三节，他用同样的希腊字说到赐人生命，叫人活过来，但是用过去式。基督作为土壤，已叫我们活过来，祂已赐给我们生命（歌罗西书生命读经，五七五页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">在歌罗西二章十四至十五节，……我们看见，在基督这土壤里更多的元素。涂抹了在规条上所写的字据，是在土壤里的一种元素；将一切执政的和掌权的脱下，把他们公然示众，仗着十字架在凯旋中向他们夸胜，也是如此。……赞美主，祂是这样丰富的土壤！我们在这土壤里已经生根；一天过一天，我们的根需要更加深入到基督这独一的土壤里。</p>
+                
+                <p class="content-paragraph">然而，十一至十五节指明，在消极方面有肉体、规条以及执政掌权者。我们男、女、老、幼、有文化的、没有文化的，都受这三类反面事物的搅扰。我们都有肉体，都有某种规条，也都服从空中邪恶的掌权者。罪、世界、过犯的根源都在这些反面的事物里。赞美主，在基督这土壤里有割礼的元素，将肉体治死！在基督这土壤里有杀死的能力。……我们在其中所生根的美地，其上的土壤乃是割礼的“盐”。这种元素不能使任何作物生长，但对于杀菌却很有果效。它割除肉体，并杀死肉体。</p>
+                
+                <p class="content-paragraph">杀死以后，就需要埋葬。在作土壤的基督里，有一种元素使我们被埋葬。不仅如此，还有另一种元素使我们复活。……在作土壤的基督里，我们被治死、埋葬、复活并得着生命。杀死和埋葬将反面的事物从我们身上带走，而复活将我们带离反面的事物。然后土壤里赐人生命的元素，就使我们活着。因此，在作土壤的基督里面，有杀死我们、埋葬我们、使我们复活并使我们活着的元素。</p>
+                
+                <p class="content-paragraph">根据十四节，在规条上所写，攻击我们、反对我们的字据，已经被涂抹，已经被钉在十字架上。在这土壤里，也有涂抹规条的元素。……我们在日常行事为人的方式上，都有某种的规条。这些规条也许不是成文的，却是刻在我们的头脑里。也许你从来不觉得，但规条却拦阻你在生命里长大。你要长得合式，这些规条就必须涂抹掉，钉在十字架上。我能作见证，当我从基督这土壤里吸收滋养，我的规条就被涂抹了。今天我们不需要规条，我们只需要从土壤里吸收丰富，使我们长大，并且被建造（歌罗西书生命读经，五七五至五七六、五七九至五八○页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5" style="display: none;">
+            <h3 class="day-title">周六</h3>
+            
+            
+            <div class="outline-section">
+                
+                <div class="outline-item level-3">
+                    <span class="outline-level">8</span>
+                    <span class="outline-text">在作土壤的基督里，有一种元素胜过空中的邪灵—15节。</span>
+                    
+                    
+                </div>
+                
+                <div class="outline-item level-2">
+                    <span class="outline-level">二</span>
+                    <span class="outline-text">我们必须花时间享受主这包罗一切的土地，使基督这丰富土壤的一切元素，都能被吸取到我们里面，好叫我们在经历中，在祂里面得了丰满—10节上，四2：</span>
+                    
+                    
+                    <div class="outline-children">
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">1</span>
+                            <span class="outline-text">我们若要吸取作土壤之基督的丰富，就需要细嫩、新长的根—参林后四16。</span>
+                            
+                            
+                        </div>
+                        
+                        <div class="outline-item level-3">
+                            <span class="outline-level">2</span>
+                            <span class="outline-text">我们需要忘掉我们的环境、我们的光景、我们的失败以及我们的软弱，单单花时间吸取主；当我们花时间吸取祂，我们就以神在我们里面的增长而长大，为着建造基督的身体—路八13，太十四22~23，六6，西二7上、19。</span>
+                            
+                            
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                <p class="content-paragraph">西二7	在祂里面已经生根，并正被建造，且照着你们所受的教导，在信心上得以坚固，洋溢着感谢，就要在祂里面行事为人。</p>
+                
+                <p class="content-paragraph">15	既将执政的和掌权的脱下，神就把他们公然示众，仗着十字架在凯旋中向他们夸胜。</p>
+                
+                <p class="content-paragraph">土壤里面还有一个元素，就是脱下执政的和掌权的，而在凯旋中向他们夸胜（西二15）；这元素胜过空中的邪灵。信徒和不信的人都觉察到，有邪恶的事物围绕着他们。人想要行善，却有个东西使他们作恶。……我们若想要凭自己与空中的黑暗权势争战，就必失败。但在作土壤的基督里面，有一种击败邪灵的元素。当我们在土壤里生根，并且吸取土壤丰富的元素时，诸天界里执政的和掌权的就必被脱下。土壤里面有一个脱下黑暗权势的元素。我们已经栽种在这土壤里面，现今必须享受其中一切的丰富（歌罗西书生命读经，五八○至五八一页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-paragraph">我们已经在基督这丰富、肥沃的土壤里生了根。我们既在祂里面生根，就应当继续吸取祂的丰富。树木如何经由根从土壤里吸取滋养的元素，我们也该把基督的丰富吸收进来。……一棵树的长大在于经由根所吸收的养分。我们既已生根到基督里面，就该天天实际地留在祂里面。我们在经历中，必须一直在基督里生根。然而，我们若在饮食这样的事上忘了基督，在经历上就没有生根于基督。我们进餐的时候，也许忘了基督。饭后，我们可能花一点时间祷告。但甚至在祷告的开头，我们还没有在实际并经历上在基督里生根，因为我们可能祷告许多不必要的事物。但在主的怜悯和忍耐里，祂一直等到我们开始真正的祷告；然后我们就在经历上吸取基督的丰富。然而，我们祷告的时间结束之后，也许没有继续消化我们从祂所吸收的。照着主在约翰十五章所说的，就是我们可能没有住在祂里面。</p>
+                
+                <p class="content-paragraph">许多圣徒早晨花时间与主同在。然而，虽然他们花了一点时间与主同在，却没有吸取多少祂的丰富；原因在于他们太匆忙了。我们若要把基督的丰富吸收进来作养分，就不该匆匆忙忙的。</p>
+                
+                <p class="content-paragraph">我们若要吸取作土壤之基督的丰富，就需要细嫩、新长的根。不要让自己老化了，乃要天天新鲜而更新。要向主祷告：“主，我要让我的奉献是新鲜的，我要重新向你敞开。我要我的根是细嫩的，好吸取你的丰富。主，不要让我的根老化。”如果我们的根细嫩新鲜，吸取基督的丰富，我们就自然会因着所吸取的丰富而长大。这就是天天、时时主观地享受基督并经历祂。</p>
+                
+                <p class="content-paragraph">你若看见我们在基督这丰富的土壤里生根，就会得着安慰和鼓励。不要被你的软弱所困扰。……在这土壤里，你岂不是有丰满、割礼、埋葬、复活、生命的分赐、规条的涂抹和黑暗权势的脱下么？……要花时间吸取祂，从祂这土壤里吸收丰富的元素。倘若你花时间吸取主，你就能见证，你在基督里一无所缺。</p>
+                
+                <p class="content-paragraph">我们每天早晨需要花足够的时间吸取主。十分钟虽然好，但……倘若你早晨花半小时吸取主、享受主，你在一天当中，就不会受到反面事物的搅扰。“苍蝇”和“蝎子”不会来烦扰你，因为土壤里的元素会驱逐它们（歌罗西书生命读经，六○三至六○四、五八二至五八三页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const totalPages = 6;
+    if (totalPages === 0) return;
+    
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    const pagesContainer = document.querySelector('.pages-container');
+    
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach(page => page.style.display = 'none');
+        
+        // 显示目标页面
+        pages[pageIndex].style.display = 'block';
+        
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 仅在用户手动切换时滚动到顶部
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（仅水平滑动）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    
+    pagesContainer.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    
+    pagesContainer.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const swipeThreshold = 80; // 增加最小滑动距离
+        const diffX = touchStartX - touchEndX;
+        const diffY = touchStartY - touchEndY;
+        
+        // 只有当水平滑动距离大于垂直滑动距离时才触发翻页
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > swipeThreshold) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    // 初始加载时不滚动
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', function() {
+        initFromHash(false);
+    });
+    
+    // 初始化（不滚动）
+    initFromHash(true);
+})();
+
+// 朗读功能（共享脚本）
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page[style*="display: block"]') || document.querySelector('.day-page');
+            if (!activePage) return '';
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = item.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-paragraph');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-paragraph');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+});
+</script>
+
+<style>
+.morning-revival-page {
+    padding: 5px;
+    max-width: 820px;
+    margin: 0 auto;
+}
+
+/* 天导航栏 */
+.day-navigation {
+    display: flex;
+    gap: 8px;
+    margin: 15px 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.day-link {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 12px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.day-link:active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.day-link.active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+    font-weight: 700;
+}
+
+/* 分页容器 */
+.pages-container {
+    position: relative;
+    min-height: 400px;
+    touch-action: pan-y;
+}
+
+.day-page {
+    background: #fff;
+    padding: 0;
+}
+
+.day-section {
+    margin: 20px 0;
+    background: #fff;
+    padding: 0;
+}
+
+.day-title {
+    font-size: 17px;
+    font-weight: bold;
+    color: #2d3748;
+    margin: 16px 0 14px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+    line-height: 1.6;
+}
+
+/* 纲目样式 - 优化层级视觉差异 */
+.outline-section {
+    margin: 16px 0;
+    line-height: 2.0;
+}
+
+.outline-item {
+    margin: 8px 0;
+    color: #2d3748;
+    font-size: 16px;
+    line-height: 1.8;
+}
+
+/* Level 1: 大纲 (壹贰叁、I II III、A B C) - 最突出 */
+.outline-item.level-1 {
+    margin-top: 16px;
+    margin-bottom: 12px;
+    font-size: 1.0625em; /* 17px -> 1.0625em */
+    font-weight: 800;
+    color: var(--brand-1);
+    padding: 8px 0;
+    border-bottom: 2px solid rgba(var(--brand-1-rgb), 0.2);
+}
+
+.outline-item.level-1 > .outline-level {
+    font-size: 1.125em; /* 18px -> 1.125em */
+    font-weight: 800;
+    color: var(--brand-1);
+    background: var(--brand-soft-bg);
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-right: 8px;
+}
+
+.outline-item.level-1 > .outline-text {
+    color: var(--text);
+    font-weight: 700;
+}
+
+/* Level 2: 中纲 (一二三、a b c) - 中等突出 */
+.outline-item.level-2 {
+    padding-left: 1.8em;
+    font-size: 1em; /* 16px -> 1em */
+    margin-top: 8px;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.outline-item.level-2 > .outline-level {
+    font-weight: 700;
+    color: var(--brand-2);
+    background: rgba(var(--brand-2-rgb), 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+}
+
+.outline-item.level-2 > .outline-text {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* Level 3: 小纲 (1 2 3) - 普通样式 */
+.outline-item.level-3 {
+    padding-left: 3.2em;
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    margin-top: 4px;
+    margin-bottom: 3px;
+    font-weight: 500;
+}
+
+.outline-item.level-3 > .outline-level {
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 5px;
+}
+
+.outline-item.level-3 > .outline-text {
+    color: var(--text);
+    font-weight: 400;
+}
+
+.outline-children {
+    margin-left: 0;
+}
+
+.outline-level {
+    margin-right: 5px;
+}
+
+.outline-text {
+    color: #333;
+}
+
+@media (min-width: 768px) {
+    .outline-item {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
+    }
+
+    .outline-item.level-1 {
+        margin-top: 15px;
+        font-size: 1em; /* 16px -> 1em */
+    }
+
+    .outline-item.level-1 > .outline-level {
+        font-size: 1.0625em; /* 17px -> 1.0625em */
+    }
+}
+
+/* 内容分隔线 */
+.content-separator {
+    height: 1px;
+    background: #ddd;
+    margin: 20px 0;
+}
+
+/* 晨兴喂养和信息选读 */
+.feeding-section,
+.reading-section {
+    margin: 20px 0;
+}
+
+.feeding-section h4,
+.reading-section h4 {
+    font-size: 17px;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 16px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.content-paragraph {
+    margin: 14px 0;
+    text-indent: 2em;
+    line-height: 2.1;
+    color: #4a5568;
+    font-size: 16px;
+}
+
+/* 翻页控制 */
+.page-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0 15px 0;
+    padding: 10px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.prev-btn,
+.next-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 44px;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    color: #333;
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    cursor: pointer;
+    transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.prev-btn:active:not(:disabled),
+.next-btn:active:not(:disabled) {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.55);
+}
+
+.prev-btn:disabled,
+.next-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.page-indicator {
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    color: var(--text-muted);
+    font-weight: 800;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .morning-revival-page {
+        padding: 5px;
+    }
+    
+    .day-navigation {
+        gap: 5px;
+        padding: 8px;
+    }
+    
+    .day-link {
+        padding: 5px 10px;
+        font-size: 0.8125em; /* 13px -> 0.8125em */
+    }
+    
+    .day-title {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
+    }
+    
+    .outline-item,
+    .content-paragraph {
+        font-size: 0.875em; /* 14px -> 0.875em */
+        line-height: 1.8;
+    }
+    
+    .feeding-section h4,
+    .reading-section h4 {
+        font-size: 0.875em; /* 14px -> 0.875em */
+    }
+    
+    .page-controls {
+        padding: 10px;
+        margin: 20px 0 10px 0;
+    }
+    
+    .prev-btn,
+    .next-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .btn-text {
+        display: none;
+    }
+    
+    .page-indicator {
+        font-size: 13px;
+    }
+}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>2025夏季训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+        
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    
+    
+
+</body>
+</html>

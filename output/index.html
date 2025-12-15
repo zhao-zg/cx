@@ -236,20 +236,46 @@
         
         <div class="content">
             <div class="trainings-grid">
-                {% for training in trainings %}
+                
                 <div class="training-card">
-                    <a href="{{ training.path }}/index.html" class="training-link">
-                        <div class="year-season">{{ training.year }}年{{ training.season }}</div>
-                        <div class="title">{{ training.title }}</div>
-                        <div class="info">📖 共 {{ training.chapter_count }} 篇 <span class="arrow">→</span></div>
+                    <a href="2025-06-感恩节/index.html" class="training-link">
+                        <div class="year-season">2025年感恩节</div>
+                        <div class="title">二〇二五年感恩节相调特会</div>
+                        <div class="info">📖 共 6 篇 <span class="arrow">→</span></div>
                     </a>
                     <div class="training-cache">
-                        <button class="mini-cache-btn" data-training="{{ training.path }}" data-chapters="{{ training.chapter_count }}">
+                        <button class="mini-cache-btn" data-training="2025-06-感恩节" data-chapters="6">
                             <span class="cache-icon">📥</span> 缓存
                         </button>
                     </div>
                 </div>
-                {% endfor %}
+                
+                <div class="training-card">
+                    <a href="2025-05-秋季/index.html" class="training-link">
+                        <div class="year-season">2025年秋季</div>
+                        <div class="title">国　际 长老及负责弟兄训练</div>
+                        <div class="info">📖 共 9 篇 <span class="arrow">→</span></div>
+                    </a>
+                    <div class="training-cache">
+                        <button class="mini-cache-btn" data-training="2025-05-秋季" data-chapters="9">
+                            <span class="cache-icon">📥</span> 缓存
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="training-card">
+                    <a href="2025-04-夏季/index.html" class="training-link">
+                        <div class="year-season">2025年夏季</div>
+                        <div class="title">夏季训练</div>
+                        <div class="info">📖 共 12 篇 <span class="arrow">→</span></div>
+                    </a>
+                    <div class="training-cache">
+                        <button class="mini-cache-btn" data-training="2025-04-夏季" data-chapters="12">
+                            <span class="cache-icon">📥</span> 缓存
+                        </button>
+                    </div>
+                </div>
+                
             </div>
         </div>
         
@@ -273,7 +299,7 @@
         <div class="footer">
             <p>本站内容仅供主恢复圣徒交通使用</p>
             <p style="margin-top: 10px; font-size: 0.9em;">
-                生成时间: {{ generation_time }}
+                生成时间: 2025年12月16日 00:17
             </p>
         </div>
     </div>
