@@ -116,30 +116,6 @@
             border-top: 1px solid #e0e0e0;
         }
         
-        .stats {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        
-        .stat-item {
-            text-align: center;
-        }
-        
-        .stat-number {
-            font-size: 2.5em;
-            color: #667eea;
-            font-weight: bold;
-        }
-        
-        .stat-label {
-            color: #666;
-            font-size: 0.95em;
-            margin-top: 5px;
-        }
-        
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.8em;
@@ -164,17 +140,6 @@
         </div>
         
         <div class="content">
-            <div class="stats">
-                <div class="stat-item">
-                    <div class="stat-number">{{ trainings|length }}</div>
-                    <div class="stat-label">训练批次</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number">{{ total_chapters }}</div>
-                    <div class="stat-label">篇章总数</div>
-                </div>
-            </div>
-            
             <div class="trainings-grid">
                 {% for training in trainings %}
                 <a href="{{ training.path }}/index.html" class="training-card">

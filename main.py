@@ -160,7 +160,6 @@ def process_batch(batch_folder, config):
     
     # 解析文档
     output_dir = os.path.join(batch_config['output_dir'], batch_name)
-    print("开始解析Word文档...")
     try:
         training_data = parse_training_docs_improved(
             outline_path=scripture_doc,
@@ -173,14 +172,7 @@ def process_batch(batch_folder, config):
             season=batch_config['season'],
             output_dir=output_dir
         )
-        print(f"✓ 成功解析 {len(training_data.chapters)} 个篇章")
-        
-        for chapter in training_data.chapters:
-            outline_count = len(chapter.outline_sections)
-            detail_count = len(chapter.detail_sections)
-            print(f"  第{chapter.number}篇: {chapter.title} (纲目{outline_count}个大点, 详情{detail_count}个大点)")
-        
-        print()
+        print(f"✓ 解析完成: {len(training_data.chapters)} 篇章")
     except Exception as e:
         print(f"✗ 文档解析失败: {e}")
         import traceback
@@ -188,24 +180,19 @@ def process_batch(batch_folder, config):
         return 1
     
     # 生成HTML (使用已定义的 output_dir)
-    print(f"开始生成HTML文件到: {output_dir}")
     try:
         generator = HTMLGenerator(
             template_dir=config['template_dir'],
             output_dir=output_dir
         )
         generator.generate_all(training_data)
-        print()
     except Exception as e:
         print(f"✗ HTML生成失败: {e}")
         import traceback
         traceback.print_exc()
         return 1
     
-    print("="*60)
-    print(f"✓ {batch_name} 所有文件已生成到: {output_dir}")
-    print(f"✓ 打开 {output_dir}/index.html 查看结果")
-    print("="*60)
+    print(f"✓ 完成: {output_dir}/index.html")
     
     return 0
 

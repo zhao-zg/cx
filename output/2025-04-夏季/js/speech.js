@@ -132,6 +132,9 @@
       }
     }
 
+    // 用于跳过 cancel 导致的 onerror
+    var isSeekingInternal = false;
+
     function startSpeakingFromPercent(percent) {
       if (!fullText) return;
 
@@ -146,6 +149,8 @@
       var segmentText = safeText(fullText.slice(charIndex));
       if (!segmentText) return;
 
+      // 标记正在跳转，防止 cancel 触发的 onerror 重置状态
+      isSeekingInternal = true;
       safeCancel();
       stopProgressUpdate();
 
@@ -153,33 +158,42 @@
       utterance.lang = lang;
       utterance.rate = rate;
 
-      // Reset timing
-      elapsedOffset = targetSeconds;
-      startTime = 0;
-      pauseStartedAt = 0;
-
       utterance.onstart = function () {
-        isPaused = false;
-        updateButtonState(true);
+        isSeekingInternal = false;
+        // 在 onstart 中设置时间状态
+        elapsedOffset = targetSeconds;
         startTime = Date.now();
+        pauseStartedAt = 0;
+        isPaused = false;
+        
+        updateButtonState(true);
         startProgressUpdate();
       };
 
       utterance.onend = function () {
+        isSeekingInternal = false;
         resetState(false);
       };
 
       utterance.onerror = function (event) {
         var err = event && event.error;
         if (err === 'interrupted' || err === 'cancelled') {
-          // Treat as normal cancel (page switch / rate change)
+          // 如果是跳转导致的 cancel，不重置状态
+          if (isSeekingInternal) {
+            return;
+          }
           resetState(true);
           return;
         }
+        isSeekingInternal = false;
         console.error('朗读错误:', event);
         resetState(false);
         speechTime.textContent = '错误';
       };
+
+      // 立即更新进度条显示
+      progressBar.value = String(p);
+      speechTime.textContent = formatTime(targetSeconds) + ' / ' + formatTime(totalDuration);
 
       window.speechSynthesis.speak(utterance);
     }
@@ -194,40 +208,50 @@
     // Show controls on supported browsers
     controlsDiv.style.display = 'flex';
 
-    // Seek UI - 修复进度条拖动功能
-    progressBar.addEventListener('input', function (event) {
-      isSeeking = true;
-      if (!totalDuration) {
-        speechTime.textContent = '00:00 / 00:00';
-        return;
-      }
-      var p = clamp(Number(event.target.value) || 0, 0, 100);
-      var target = (p / 100) * totalDuration;
-      speechTime.textContent = formatTime(target) + ' / ' + formatTime(totalDuration);
-    });
-
-    progressBar.addEventListener('change', function (event) {
-      isSeeking = false;
-      if (!fullText) return;
-      var p = clamp(Number(event.target.value) || 0, 0, 100);
-      startSpeakingFromPercent(p);
-    });
-    
-    // 添加触摸和鼠标事件支持
+    // Seek UI - 进度条拖动功能
     progressBar.addEventListener('mousedown', function() {
       isSeeking = true;
-    });
-    
-    progressBar.addEventListener('mouseup', function() {
-      isSeeking = false;
+      stopProgressUpdate();
     });
     
     progressBar.addEventListener('touchstart', function() {
       isSeeking = true;
+      stopProgressUpdate();
     });
     
-    progressBar.addEventListener('touchend', function() {
+    progressBar.addEventListener('input', function () {
+      if (!totalDuration) {
+        progressBar.value = '0';
+        speechTime.textContent = '00:00 / 00:00';
+        return;
+      }
+      // 拖动时实时更新时间显示
+      var p = clamp(Number(progressBar.value) || 0, 0, 100);
+      var target = (p / 100) * totalDuration;
+      speechTime.textContent = formatTime(target) + ' / ' + formatTime(totalDuration);
+    });
+    
+    // 使用 change 事件来处理拖动结束（比 mouseup 更可靠）
+    progressBar.addEventListener('change', function () {
+      var p = clamp(Number(progressBar.value) || 0, 0, 100);
       isSeeking = false;
+      
+      if (fullText) {
+        startSpeakingFromPercent(p);
+      }
+    });
+    
+    // 在 document 上监听 mouseup/touchend，确保能捕获到
+    document.addEventListener('mouseup', function() {
+      if (isSeeking) {
+        isSeeking = false;
+      }
+    });
+    
+    document.addEventListener('touchend', function() {
+      if (isSeeking) {
+        isSeeking = false;
+      }
     });
 
     // Play / Pause
@@ -274,17 +298,51 @@
     // Rate change: restart from current progress
     rateSelect.addEventListener('change', function () {
       if (!fullText) return;
-      // Recalculate total duration for display and mapping
+      
+      // 保存当前的实际播放时间（秒数）
+      var currentElapsed = currentElapsedSeconds();
+      
+      // 重新计算新倍速下的总时长
+      var oldTotalDuration = totalDuration;
       totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 1);
-
-      var currentPercent = Number(progressBar.value) || 0;
-      currentPercent = clamp(currentPercent, 0, 100);
-
-      startSpeakingFromPercent(currentPercent);
+      
+      // 根据实际播放时间计算新的百分比
+      var newPercent = 0;
+      if (oldTotalDuration > 0) {
+        // 保持相同的文本位置，而不是相同的时间百分比
+        newPercent = clamp((currentElapsed / oldTotalDuration) * 100, 0, 100);
+      }
+      
+      // 更新进度条显示
+      progressBar.value = String(newPercent);
+      
+      // 从新的百分比位置开始播放
+      startSpeakingFromPercent(newPercent);
     });
 
     // Init UI
     resetState(true);
+    
+    // 页面卸载时停止朗读
+    window.addEventListener('beforeunload', function() {
+      safeCancel();
+      resetState(false);
+    });
+    
+    // 页面隐藏时暂停朗读（可选）
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden && utterance && !isPaused) {
+        try {
+          window.speechSynthesis.pause();
+          isPaused = true;
+          updateButtonState(false);
+          pauseStartedAt = Date.now();
+          stopProgressUpdate();
+        } catch (e) {
+          // ignore
+        }
+      }
+    });
   }
 
   window.CXSpeech = window.CXSpeech || {};

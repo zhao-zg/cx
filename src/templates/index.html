@@ -4,13 +4,27 @@
 
 {% block content %}
 <div class="index-page">
-    {% for chapter in training.chapters %}
-    <a href="{{ chapter.number }}_cv.htm" class="chapter-item">
-        <div class="chapter-number">{{ chapter.number }}</div>
-        <div class="chapter-title">{{ chapter.title }}</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    {% endfor %}
+    <div class="toc-list">
+        {% for chapter in training.chapters %}
+        <a href="{{ chapter.number }}_cx.htm" class="toc-item" data-chapter="{{ chapter.number }}">
+            <span class="toc-num">第{{ chapter.number }}篇</span>
+            <span class="toc-title">{{ chapter.title }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    
+    <!-- 离线缓存按钮 -->
+    <div class="cache-section" id="cacheSection">
+        <button class="cache-btn" id="cacheBtn">
+            <span class="cache-icon">📥</span>
+            <span class="cache-text">缓存离线使用</span>
+        </button>
+        <button class="cache-btn clear-btn" id="clearCacheBtn" style="display:none;">
+            <span class="cache-icon">🗑</span>
+            <span class="cache-text">清空缓存</span>
+        </button>
+        <div class="cache-status" id="cacheStatus"></div>
+    </div>
 </div>
 
 <style>
@@ -18,83 +32,231 @@
     padding: 0;
 }
 
-.chapter-item {
+.toc-list {
     display: flex;
-    align-items: center;
-    gap: 14px;
-    margin: 0 0 14px 0;
-    padding: 18px 16px;
+    flex-direction: column;
+    gap: 1px;
+    background: #e8ecf0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.toc-item {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 14px 16px;
     background: #fff;
-    border-radius: 8px;
-    border-left: 4px solid #667eea;
     text-decoration: none;
     color: inherit;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: background 0.15s;
 }
 
-.chapter-item:active {
-    background: #f7fafc;
+.toc-item:active {
+    background: #f0f4ff;
 }
 
-.chapter-number {
+.toc-num {
     flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #667eea;
-    color: #fff;
-    border-radius: 50%;
-    font-weight: 600;
     font-size: 15px;
+    font-weight: 600;
+    color: #667eea;
+    white-space: nowrap;
 }
 
-.chapter-title {
+.toc-title {
     flex: 1;
     font-size: 16px;
-    line-height: 1.7;
+    line-height: 1.6;
     color: #2d3748;
     font-weight: 500;
 }
 
-.chapter-arrow {
-    flex-shrink: 0;
-    color: #667eea;
-    font-size: 18px;
-    font-weight: 700;
-    justify-content: center;
-    font-weight: 600;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.chapter-links a:active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #ffffff;
-    border-color: #667eea;
-    transform: scale(0.96);
-}
-
+/* 桌面端优化 */
 @media (min-width: 768px) {
-    .chapter-links a {
-        padding: 6px 14px;
-        min-height: auto;
+    .toc-list {
+        gap: 0;
+        border-radius: 12px;
     }
     
-    .chapter-links a:hover {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #ffffff;
-        border-color: #667eea;
-        transform: translateY(-1px);
-        box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+    .toc-item {
+        padding: 16px 20px;
+        gap: 14px;
+    }
+    
+    .toc-item:hover {
+        background: #f0f4ff;
+    }
+    
+    .toc-num {
+        font-size: 16px;
+    }
+    
+    .toc-title {
+        font-size: 17px;
     }
 }
 
-.chapter-links::after {
-    content: none;
+/* 缓存按钮 */
+.cache-section {
+    margin-top: 20px;
+    text-align: center;
 }
 
-@media (min-width: 768px) {
+.cache-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 44px;
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+}
+
+.cache-btn:active {
+    transform: scale(0.97);
+}
+
+.cache-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.cache-btn.cached {
+    background: #48bb78;
+}
+
+.clear-btn {
+    background: #e53e3e;
+    margin-left: 10px;
+}
+
+.cache-icon {
+    font-size: 18px;
+}
+
+.cache-status {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+}
+
+.cache-status.success {
+    color: #48bb78;
+}
+
+.cache-status.error {
+    color: #e53e3e;
 }
 </style>
+
+<script>
+// 根据星期几决定跳转目标
+document.addEventListener('DOMContentLoaded', function() {
+    var dayOfWeek = new Date().getDay(); // 0=周日, 1=周一, ..., 6=周六
+    var dayAnchors = ['', 'day1', 'day2', 'day3', 'day4', 'day5', 'day6']; // 周一到周六
+    
+    var tocItems = document.querySelectorAll('.toc-item');
+    tocItems.forEach(function(item) {
+        var chapterNum = item.getAttribute('data-chapter');
+        
+        if (dayOfWeek === 0) {
+            // 周日：跳转到纲目页
+            item.href = chapterNum + '_cv.htm';
+        } else {
+            // 周一到周六：跳转到晨兴页对应的天
+            item.href = chapterNum + '_cx.htm#' + dayAnchors[dayOfWeek];
+        }
+    });
+    
+    // 缓存功能
+    var cacheBtn = document.getElementById('cacheBtn');
+    var cacheStatus = document.getElementById('cacheStatus');
+    var cacheSection = document.getElementById('cacheSection');
+    
+    if (!('serviceWorker' in navigator)) {
+        cacheSection.style.display = 'none';
+        return;
+    }
+    
+    var clearCacheBtn = document.getElementById('clearCacheBtn');
+    
+    function showCachedState() {
+        cacheBtn.innerHTML = '<span class="cache-icon">🔄</span><span class="cache-text">重新缓存</span>';
+        cacheBtn.classList.add('cached');
+        clearCacheBtn.style.display = 'inline-flex';
+    }
+    
+    function showUncachedState() {
+        cacheBtn.innerHTML = '<span class="cache-icon">📥</span><span class="cache-text">缓存离线使用</span>';
+        cacheBtn.classList.remove('cached');
+        clearCacheBtn.style.display = 'none';
+    }
+    
+    // 检查是否已缓存
+    caches.keys().then(function(keys) {
+        if (keys.length > 0) {
+            showCachedState();
+        }
+    });
+    
+    // 监听 SW 消息
+    navigator.serviceWorker.addEventListener('message', function(event) {
+        if (event.data.type === 'cached') {
+            cacheBtn.disabled = false;
+            if (event.data.success) {
+                showCachedState();
+                cacheStatus.textContent = '缓存完成，可离线使用';
+                cacheStatus.className = 'cache-status success';
+            } else {
+                cacheStatus.textContent = '缓存失败: ' + (event.data.error || '未知错误');
+                cacheStatus.className = 'cache-status error';
+            }
+        }
+    });
+    
+    // 点击缓存按钮
+    cacheBtn.addEventListener('click', function() {
+        cacheBtn.disabled = true;
+        cacheBtn.innerHTML = '<span class="cache-icon">⏳</span><span class="cache-text">缓存中...</span>';
+        cacheStatus.textContent = '';
+        
+        navigator.serviceWorker.ready.then(function(reg) {
+            reg.active.postMessage('cache-all');
+        }).catch(function(err) {
+            cacheBtn.disabled = false;
+            showUncachedState();
+            cacheStatus.textContent = '缓存失败: ' + err.message;
+            cacheStatus.className = 'cache-status error';
+        });
+    });
+    
+    // 点击清空缓存按钮
+    clearCacheBtn.addEventListener('click', function() {
+        clearCacheBtn.disabled = true;
+        cacheStatus.textContent = '清空中...';
+        
+        caches.keys().then(function(keys) {
+            return Promise.all(keys.map(function(key) {
+                return caches.delete(key);
+            }));
+        }).then(function() {
+            showUncachedState();
+            clearCacheBtn.disabled = false;
+            cacheStatus.textContent = '缓存已清空';
+            cacheStatus.className = 'cache-status success';
+        }).catch(function(err) {
+            clearCacheBtn.disabled = false;
+            cacheStatus.textContent = '清空失败: ' + err.message;
+            cacheStatus.className = 'cache-status error';
+        });
+    });
+});
+</script>
 {% endblock %}

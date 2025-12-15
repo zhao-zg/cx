@@ -121,16 +121,17 @@ class HTMLGenerator:
         Args:
             training_data: 训练数据对象
         """
-        print(f"开始生成HTML文件到: {self.output_dir}")
-        
         # 生成首页
         self.generate_index(training_data)
+        
+        # 生成 PWA 文件
+        self._generate_pwa_files(training_data)
         
         # 为每个篇章生成页面
         for chapter in training_data.chapters:
             self.generate_chapter_pages(chapter, training_data)
         
-        print("HTML文件生成完成!")
+        print(f"✓ 已生成 {len(training_data.chapters)} 篇章的所有页面")
     
     def generate_index(self, training_data: TrainingData):
         """生成首页"""
@@ -140,8 +141,6 @@ class HTMLGenerator:
         output_path = os.path.join(self.output_dir, 'index.html')
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
-        
-        print(f"✓ 生成首页: index.html")
     
     def generate_chapter_pages(self, chapter: Chapter, training_data: TrainingData):
         """
@@ -197,8 +196,6 @@ class HTMLGenerator:
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
-        
-        print(f"✓ 生成第{num}篇{page_name}: {filename}")
     
     def _generate_ministry_page(self, num: int, chapter: dict, training: dict):
         """生成职事信息摘录页（_zs.htm）"""
@@ -209,8 +206,6 @@ class HTMLGenerator:
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
-        
-        print(f"✓ 生成第{num}篇职事信息摘录: {filename}")
     
     def _generate_scripture_page(self, num: int, chapter: dict, training: dict):
         """生成经文页（_jw.htm）"""
@@ -221,8 +216,6 @@ class HTMLGenerator:
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
-        
-        print(f"✓ 生成第{num}篇经文: {filename}")
     
     def _generate_hymn_page(self, num: int, chapter: dict, training: dict):
         """生成诗歌页（_sg.htm）"""
@@ -233,28 +226,9 @@ class HTMLGenerator:
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
-        
-        print(f"✓ 生成第{num}篇诗歌: {filename}")
     
     def _generate_morning_revival_page(self, num: int, chapter: dict, training: dict):
         """生成晨兴页（_cx.htm）"""
-        
-        # Debug: 检查第一章的周六纲目数据
-        if num == 1:
-            print(f"*** Debug Chapter {num} morning revival data:")
-            morning_revivals = chapter.get('morning_revivals', [])
-            print(f"  Morning revivals count: {len(morning_revivals)}")
-            
-            if len(morning_revivals) >= 6:
-                saturday_data = morning_revivals[5]  # 周六
-                saturday_outline = saturday_data.get('outline', [])
-                print(f"  Saturday outline count: {len(saturday_outline)}")
-                print(f"  Saturday outline data: {saturday_outline}")
-                
-                if saturday_outline:
-                    first_outline = saturday_outline[0]
-                    print(f"  First outline item: {first_outline}")
-        
         template = self.env.get_template('morning_revival.html')
         html = template.render(chapter=chapter, training=training, page_type='cx')
         
@@ -262,8 +236,6 @@ class HTMLGenerator:
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
-        
-        print(f"✓ 生成第{num}篇晨兴: {filename}")
     
     def _generate_details_page(self, num: int, chapter: dict, training: dict):
         """生成详情页（_ts.htm）- 显示详细内容"""
@@ -274,8 +246,6 @@ class HTMLGenerator:
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
-        
-        print(f"✓ 生成第{num}篇详情: {filename}")
     
     def _generate_message_page(self, num: int, chapter: dict, training: dict):
         """生成听抄页（_h.htm）- 显示职事信息"""
@@ -286,5 +256,21 @@ class HTMLGenerator:
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
+    
+    def _generate_pwa_files(self, training_data: TrainingData):
+        """生成 PWA 相关文件（manifest.json 和 sw.js）"""
+        training_dict = training_data.to_dict()
         
-        print(f"✓ 生成第{num}篇听抄: {filename}")
+        # 生成 manifest.json
+        manifest_template = self.env.get_template('manifest.json')
+        manifest_content = manifest_template.render(training=training_dict)
+        manifest_path = os.path.join(self.output_dir, 'manifest.json')
+        with open(manifest_path, 'w', encoding='utf-8') as f:
+            f.write(manifest_content)
+        
+        # 生成 sw.js
+        sw_template = self.env.get_template('sw.js')
+        sw_content = sw_template.render(training=training_dict)
+        sw_path = os.path.join(self.output_dir, 'sw.js')
+        with open(sw_path, 'w', encoding='utf-8') as f:
+            f.write(sw_content)

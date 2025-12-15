@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="manifest.json">
     <title>夏季训练</title>
     <style>
         * {
@@ -542,7 +544,7 @@
         }
         
         .speech-time {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--link);
             font-family: 'Courier New', monospace;
             font-weight: 600;
@@ -554,6 +556,28 @@
             display: flex;
             gap: 6px;
             flex-shrink: 0;
+        }
+        
+        /* 底部控制栏的字体按钮 - 使用更高优先级 */
+        .bottom-control-bar .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .bottom-control-bar .font-btn:active {
+            transform: scale(0.95);
         }
         
         .control-select {
@@ -593,8 +617,15 @@
                 font-size: 16px;
             }
             
+            .bottom-control-bar .font-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
             .speech-time {
-                font-size: 10px;
+                font-size: 12px;
             }
             
             .control-select {
@@ -628,6 +659,13 @@
                 font-size: 15px;
             }
             
+            .bottom-control-bar .font-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
+            }
+            
             .control-select {
                 min-width: 50px;
                 min-height: 36px;
@@ -654,79 +692,82 @@
         <div class="content">
             
 <div class="index-page">
+    <div class="toc-list">
+        
+        <a href="1_cx.htm" class="toc-item" data-chapter="1">
+            <span class="toc-num">第1篇</span>
+            <span class="toc-title">基督为我们的美德、神的平安、我们的秘诀和那加我们能力者</span>
+        </a>
+        
+        <a href="2_cx.htm" class="toc-item" data-chapter="2">
+            <span class="toc-num">第2篇</span>
+            <span class="toc-title">认识基督作我们的榜样并以祂为榜样</span>
+        </a>
+        
+        <a href="3_cx.htm" class="toc-item" data-chapter="3">
+            <span class="toc-num">第3篇</span>
+            <span class="toc-title">享受包罗万有的基督作美地—我们所分得的分</span>
+        </a>
+        
+        <a href="4_cx.htm" class="toc-item" data-chapter="4">
+            <span class="toc-num">第4篇</span>
+            <span class="toc-title">神的奥秘—基督</span>
+        </a>
+        
+        <a href="5_cx.htm" class="toc-item" data-chapter="5">
+            <span class="toc-num">第5篇</span>
+            <span class="toc-title">使我们在圣别上无可指摘的原因，并使我们的灵、魂、体完全圣别的原因</span>
+        </a>
+        
+        <a href="6_cx.htm" class="toc-item" data-chapter="6">
+            <span class="toc-num">第6篇</span>
+            <span class="toc-title">在三一神里的召会</span>
+        </a>
+        
+        <a href="7_cx.htm" class="toc-item" data-chapter="7">
+            <span class="toc-num">第7篇</span>
+            <span class="toc-title">救恩的创始者（元帅）和先锋，领许多的儿子借着进入幔内并出到营外而进荣耀里去</span>
+        </a>
+        
+        <a href="8_cx.htm" class="toc-item" data-chapter="8">
+            <span class="toc-num">第8篇</span>
+            <span class="toc-title">望断以及于耶稣，就是我们信心的创始者与成终者</span>
+        </a>
+        
+        <a href="9_cx.htm" class="toc-item" data-chapter="9">
+            <span class="toc-num">第9篇</span>
+            <span class="toc-title">对基督无上宝贝的异象、经历、享受与彰显，为着真正的召会生活</span>
+        </a>
+        
+        <a href="10_cx.htm" class="toc-item" data-chapter="10">
+            <span class="toc-num">第10篇</span>
+            <span class="toc-title">按着神牧养</span>
+        </a>
+        
+        <a href="11_cx.htm" class="toc-item" data-chapter="11">
+            <span class="toc-num">第11篇</span>
+            <span class="toc-title">永远生命的交通—在基督身体里生活的实际</span>
+        </a>
+        
+        <a href="12_cx.htm" class="toc-item" data-chapter="12">
+            <span class="toc-num">第12篇</span>
+            <span class="toc-title">那真实者</span>
+        </a>
+        
+    </div>
     
-    <a href="1_cv.htm" class="chapter-item">
-        <div class="chapter-number">1</div>
-        <div class="chapter-title">基督为我们的美德、神的平安、我们的秘诀和那加我们能力者</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    
-    <a href="2_cv.htm" class="chapter-item">
-        <div class="chapter-number">2</div>
-        <div class="chapter-title">认识基督作我们的榜样并以祂为榜样</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    
-    <a href="3_cv.htm" class="chapter-item">
-        <div class="chapter-number">3</div>
-        <div class="chapter-title">享受包罗万有的基督作美地—我们所分得的分</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    
-    <a href="4_cv.htm" class="chapter-item">
-        <div class="chapter-number">4</div>
-        <div class="chapter-title">神的奥秘—基督</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    
-    <a href="5_cv.htm" class="chapter-item">
-        <div class="chapter-number">5</div>
-        <div class="chapter-title">使我们在圣别上无可指摘的原因，并使我们的灵、魂、体完全圣别的原因</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    
-    <a href="6_cv.htm" class="chapter-item">
-        <div class="chapter-number">6</div>
-        <div class="chapter-title">在三一神里的召会</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    
-    <a href="7_cv.htm" class="chapter-item">
-        <div class="chapter-number">7</div>
-        <div class="chapter-title">救恩的创始者（元帅）和先锋，领许多的儿子借着进入幔内并出到营外而进荣耀里去</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    
-    <a href="8_cv.htm" class="chapter-item">
-        <div class="chapter-number">8</div>
-        <div class="chapter-title">望断以及于耶稣，就是我们信心的创始者与成终者</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    
-    <a href="9_cv.htm" class="chapter-item">
-        <div class="chapter-number">9</div>
-        <div class="chapter-title">对基督无上宝贝的异象、经历、享受与彰显，为着真正的召会生活</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    
-    <a href="10_cv.htm" class="chapter-item">
-        <div class="chapter-number">10</div>
-        <div class="chapter-title">按着神牧养</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    
-    <a href="11_cv.htm" class="chapter-item">
-        <div class="chapter-number">11</div>
-        <div class="chapter-title">永远生命的交通—在基督身体里生活的实际</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    
-    <a href="12_cv.htm" class="chapter-item">
-        <div class="chapter-number">12</div>
-        <div class="chapter-title">那真实者</div>
-        <div class="chapter-arrow">→</div>
-    </a>
-    
+    <!-- 离线缓存按钮 -->
+    <div class="cache-section" id="cacheSection">
+        <button class="cache-btn" id="cacheBtn">
+            <span class="cache-icon">📥</span>
+            <span class="cache-text">缓存离线使用</span>
+        </button>
+        <button class="cache-btn clear-btn" id="clearCacheBtn" style="display:none;">
+            <span class="cache-icon">🗑</span>
+            <span class="cache-text">清空缓存</span>
+        </button>
+        <div class="cache-status" id="cacheStatus"></div>
+    </div>
 </div>
 
 <style>
@@ -734,85 +775,233 @@
     padding: 0;
 }
 
-.chapter-item {
+.toc-list {
     display: flex;
-    align-items: center;
-    gap: 14px;
-    margin: 0 0 14px 0;
-    padding: 18px 16px;
+    flex-direction: column;
+    gap: 1px;
+    background: #e8ecf0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.toc-item {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 14px 16px;
     background: #fff;
-    border-radius: 8px;
-    border-left: 4px solid #667eea;
     text-decoration: none;
     color: inherit;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: background 0.15s;
 }
 
-.chapter-item:active {
-    background: #f7fafc;
+.toc-item:active {
+    background: #f0f4ff;
 }
 
-.chapter-number {
+.toc-num {
     flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #667eea;
-    color: #fff;
-    border-radius: 50%;
-    font-weight: 600;
     font-size: 15px;
+    font-weight: 600;
+    color: #667eea;
+    white-space: nowrap;
 }
 
-.chapter-title {
+.toc-title {
     flex: 1;
     font-size: 16px;
-    line-height: 1.7;
+    line-height: 1.6;
     color: #2d3748;
     font-weight: 500;
 }
 
-.chapter-arrow {
-    flex-shrink: 0;
-    color: #667eea;
-    font-size: 18px;
-    font-weight: 700;
-    justify-content: center;
-    font-weight: 600;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.chapter-links a:active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #ffffff;
-    border-color: #667eea;
-    transform: scale(0.96);
-}
-
+/* 桌面端优化 */
 @media (min-width: 768px) {
-    .chapter-links a {
-        padding: 6px 14px;
-        min-height: auto;
+    .toc-list {
+        gap: 0;
+        border-radius: 12px;
     }
     
-    .chapter-links a:hover {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #ffffff;
-        border-color: #667eea;
-        transform: translateY(-1px);
-        box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+    .toc-item {
+        padding: 16px 20px;
+        gap: 14px;
+    }
+    
+    .toc-item:hover {
+        background: #f0f4ff;
+    }
+    
+    .toc-num {
+        font-size: 16px;
+    }
+    
+    .toc-title {
+        font-size: 17px;
     }
 }
 
-.chapter-links::after {
-    content: none;
+/* 缓存按钮 */
+.cache-section {
+    margin-top: 20px;
+    text-align: center;
 }
 
-@media (min-width: 768px) {
+.cache-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 44px;
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+}
+
+.cache-btn:active {
+    transform: scale(0.97);
+}
+
+.cache-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.cache-btn.cached {
+    background: #48bb78;
+}
+
+.clear-btn {
+    background: #e53e3e;
+    margin-left: 10px;
+}
+
+.cache-icon {
+    font-size: 18px;
+}
+
+.cache-status {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+}
+
+.cache-status.success {
+    color: #48bb78;
+}
+
+.cache-status.error {
+    color: #e53e3e;
 }
 </style>
+
+<script>
+// 根据星期几决定跳转目标
+document.addEventListener('DOMContentLoaded', function() {
+    var dayOfWeek = new Date().getDay(); // 0=周日, 1=周一, ..., 6=周六
+    var dayAnchors = ['', 'day1', 'day2', 'day3', 'day4', 'day5', 'day6']; // 周一到周六
+    
+    var tocItems = document.querySelectorAll('.toc-item');
+    tocItems.forEach(function(item) {
+        var chapterNum = item.getAttribute('data-chapter');
+        
+        if (dayOfWeek === 0) {
+            // 周日：跳转到纲目页
+            item.href = chapterNum + '_cv.htm';
+        } else {
+            // 周一到周六：跳转到晨兴页对应的天
+            item.href = chapterNum + '_cx.htm#' + dayAnchors[dayOfWeek];
+        }
+    });
+    
+    // 缓存功能
+    var cacheBtn = document.getElementById('cacheBtn');
+    var cacheStatus = document.getElementById('cacheStatus');
+    var cacheSection = document.getElementById('cacheSection');
+    
+    if (!('serviceWorker' in navigator)) {
+        cacheSection.style.display = 'none';
+        return;
+    }
+    
+    var clearCacheBtn = document.getElementById('clearCacheBtn');
+    
+    function showCachedState() {
+        cacheBtn.innerHTML = '<span class="cache-icon">🔄</span><span class="cache-text">重新缓存</span>';
+        cacheBtn.classList.add('cached');
+        clearCacheBtn.style.display = 'inline-flex';
+    }
+    
+    function showUncachedState() {
+        cacheBtn.innerHTML = '<span class="cache-icon">📥</span><span class="cache-text">缓存离线使用</span>';
+        cacheBtn.classList.remove('cached');
+        clearCacheBtn.style.display = 'none';
+    }
+    
+    // 检查是否已缓存
+    caches.keys().then(function(keys) {
+        if (keys.length > 0) {
+            showCachedState();
+        }
+    });
+    
+    // 监听 SW 消息
+    navigator.serviceWorker.addEventListener('message', function(event) {
+        if (event.data.type === 'cached') {
+            cacheBtn.disabled = false;
+            if (event.data.success) {
+                showCachedState();
+                cacheStatus.textContent = '缓存完成，可离线使用';
+                cacheStatus.className = 'cache-status success';
+            } else {
+                cacheStatus.textContent = '缓存失败: ' + (event.data.error || '未知错误');
+                cacheStatus.className = 'cache-status error';
+            }
+        }
+    });
+    
+    // 点击缓存按钮
+    cacheBtn.addEventListener('click', function() {
+        cacheBtn.disabled = true;
+        cacheBtn.innerHTML = '<span class="cache-icon">⏳</span><span class="cache-text">缓存中...</span>';
+        cacheStatus.textContent = '';
+        
+        navigator.serviceWorker.ready.then(function(reg) {
+            reg.active.postMessage('cache-all');
+        }).catch(function(err) {
+            cacheBtn.disabled = false;
+            showUncachedState();
+            cacheStatus.textContent = '缓存失败: ' + err.message;
+            cacheStatus.className = 'cache-status error';
+        });
+    });
+    
+    // 点击清空缓存按钮
+    clearCacheBtn.addEventListener('click', function() {
+        clearCacheBtn.disabled = true;
+        cacheStatus.textContent = '清空中...';
+        
+        caches.keys().then(function(keys) {
+            return Promise.all(keys.map(function(key) {
+                return caches.delete(key);
+            }));
+        }).then(function() {
+            showUncachedState();
+            clearCacheBtn.disabled = false;
+            cacheStatus.textContent = '缓存已清空';
+            cacheStatus.className = 'cache-status success';
+        }).catch(function(err) {
+            clearCacheBtn.disabled = false;
+            cacheStatus.textContent = '清空失败: ' + err.message;
+            cacheStatus.className = 'cache-status error';
+        });
+    });
+});
+</script>
 
         </div>
         
@@ -855,5 +1044,12 @@
     <script src="js/font-control.js"></script>
     
     
+    
+    <script>
+    // 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(function() {});
+    }
+    </script>
 </body>
 </html>

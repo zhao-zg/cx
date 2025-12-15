@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="manifest.json">
     <title>第12篇 - 职事信息摘录</title>
     <style>
         * {
@@ -542,7 +544,7 @@
         }
         
         .speech-time {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--link);
             font-family: 'Courier New', monospace;
             font-weight: 600;
@@ -554,6 +556,28 @@
             display: flex;
             gap: 6px;
             flex-shrink: 0;
+        }
+        
+        /* 底部控制栏的字体按钮 - 使用更高优先级 */
+        .bottom-control-bar .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .bottom-control-bar .font-btn:active {
+            transform: scale(0.95);
         }
         
         .control-select {
@@ -593,8 +617,15 @@
                 font-size: 16px;
             }
             
+            .bottom-control-bar .font-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
             .speech-time {
-                font-size: 10px;
+                font-size: 12px;
             }
             
             .control-select {
@@ -626,6 +657,13 @@
             
             .play-pause-btn {
                 font-size: 15px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
             }
             
             .control-select {
@@ -701,23 +739,21 @@
     min-width: 46px;
     min-height: 46px;
     padding: 10px 14px;
-    background: linear-gradient(135deg, #f8f9ff 0%, #e8ecf9 100%);
-    border: 1.5px solid #d0d7f0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
     border-radius: 23px;
     font-size: 15px;
     font-weight: 700;
-    color: #667eea;
+    color: #ffffff;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
 }
 
 .font-btn:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #ffffff;
-    border-color: #667eea;
     transform: translateY(-2px);
-    box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
 }
 
 .font-btn:active {
@@ -779,28 +815,6 @@
 }
 
 @media (max-width: 768px) {
-    .speech-controls {
-        padding: 8px 10px;
-        gap: 8px;
-        margin: 8px 0;
-    }
-    
-    .speech-btn {
-        min-width: 40px;
-        min-height: 40px;
-        padding: 8px;
-        font-size: 16px;
-    }
-    
-    .speech-time {
-        font-size: 12px;
-    }
-    
-    .speech-rate-select {
-        padding: 6px 8px;
-        font-size: 12px;
-    }
-    
     .font-size-controls {
         padding: 6px 10px;
         gap: 6px;
@@ -880,5 +894,12 @@ window.addEventListener('DOMContentLoaded', function() {
     <script src="js/font-control.js"></script>
     
     
+    
+    <script>
+    // 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(function() {});
+    }
+    </script>
 </body>
 </html>

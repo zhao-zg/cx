@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="manifest.json">
     <title>{% block title %}{{ training.title }}{% endblock %}</title>
     <style>
         * {
@@ -542,7 +544,7 @@
         }
         
         .speech-time {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--link);
             font-family: 'Courier New', monospace;
             font-weight: 600;
@@ -554,6 +556,28 @@
             display: flex;
             gap: 6px;
             flex-shrink: 0;
+        }
+        
+        /* 底部控制栏的字体按钮 - 使用更高优先级 */
+        .bottom-control-bar .font-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+            background: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(var(--brand-1-rgb), 0.25);
+            font-weight: 600;
+        }
+        
+        .bottom-control-bar .font-btn:active {
+            transform: scale(0.95);
         }
         
         .control-select {
@@ -593,8 +617,15 @@
                 font-size: 16px;
             }
             
+            .bottom-control-bar .font-btn {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 8px;
+                font-size: 14px;
+            }
+            
             .speech-time {
-                font-size: 10px;
+                font-size: 12px;
             }
             
             .control-select {
@@ -626,6 +657,13 @@
             
             .play-pause-btn {
                 font-size: 15px;
+            }
+            
+            .bottom-control-bar .font-btn {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 6px;
+                font-size: 13px;
             }
             
             .control-select {
@@ -694,5 +732,12 @@
     <script src="js/font-control.js"></script>
     
     {% block extra_scripts %}{% endblock %}
+    
+    <script>
+    // 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(function() {});
+    }
+    </script>
 </body>
 </html>
