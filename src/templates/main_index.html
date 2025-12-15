@@ -375,9 +375,17 @@
     </div>
     
     <script>
-    // 页面记忆功能 - 恢复上次访问的页面
+    // 页面记忆功能 - 恢复上次访问的页面（仅在 PWA 模式下）
     (function() {
         try {
+            // 检查是否在 PWA 模式下运行
+            var isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                        window.navigator.standalone === true;
+            
+            if (!isPWA) {
+                return; // 非 PWA 模式不启用记忆功能
+            }
+            
             var lastPage = localStorage.getItem('cx_last_page');
             var lastPageTime = localStorage.getItem('cx_last_page_time');
             
@@ -391,7 +399,7 @@
                     var isExternalEntry = !document.referrer || !document.referrer.startsWith(window.location.origin);
                     
                     // 只在外部进入时恢复（避免用户主动点击主页时也跳转）
-                    if (isExternalEntry && window.location.pathname === '/' || window.location.pathname.endsWith('/index.html')) {
+                    if (isExternalEntry && (window.location.pathname === '/' || window.location.pathname.endsWith('/index.html'))) {
                         console.log('恢复上次访问的页面:', lastPage);
                         window.location.replace(lastPage);
                         return;
