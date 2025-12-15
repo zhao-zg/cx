@@ -13,8 +13,8 @@
       return; // 字体控件不存在(如诗歌页面)
     }
 
-    const fontSizes = [12, 14, 15, 16, 18, 20, 22, 24];
-    const defaultSizeIndex = 2; // 默认15px
+    const fontSizes = [14, 16, 18, 20, 22, 24, 26, 28];
+    const defaultSizeIndex = 2; // 默认18px
     let currentSizeIndex = defaultSizeIndex;
 
     // 从localStorage恢复字体大小

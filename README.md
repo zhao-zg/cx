@@ -221,29 +221,37 @@ python main.py
 - **Jinja2**: HTML模板引擎
 - **PyYAML**: 配置文件解析
 
-## 部署到 Cloudflare Pages
+## 🚀 一键部署到 Cloudflare Pages
 
-本项目支持自动部署到 Cloudflare Pages。详细步骤请查看 [DEPLOYMENT.md](DEPLOYMENT.md)。
+本项目支持一键自动部署到 Cloudflare Pages（免费、全球 CDN、自动 HTTPS）。
 
-### 快速部署
+### 快速开始
 
-1. 按照 [DEPLOYMENT.md](DEPLOYMENT.md) 完成初次设置
-2. 运行部署脚本：
-   ```bash
-   # Windows CMD
-   deploy.bat
-   
-   # PowerShell
-   .\deploy.ps1
-   ```
-3. GitHub Actions 会自动构建并部署到 Cloudflare Pages
+**首次设置（3 步）：**
+1. 推送代码到 GitHub
+2. 在 Cloudflare 连接 GitHub 仓库
+3. 配置构建命令：`python main.py`
+
+详细步骤查看 [QUICK_START.md](QUICK_START.md)
+
+**日常使用（一键部署）：**
+```bash
+# Windows
+deploy.bat
+
+# PowerShell
+.\deploy.ps1
+```
 
 ### 自动化流程
 
-每次推送到 `main` 分支时：
-1. GitHub Actions 自动运行 `python main.py` 生成静态文件
-2. 将 `output` 文件夹部署到 Cloudflare Pages
-3. 网站自动更新
+每次推送到 GitHub 后，Cloudflare Pages 会自动：
+1. 检测到代码更新
+2. 运行 `python main.py` 生成静态文件
+3. 部署 `output` 文件夹到全球 CDN
+4. 网站自动更新（2-5 分钟）
+
+**无需配置 GitHub Actions，Cloudflare 直接连接 GitHub！**
 
 ## 许可证
 

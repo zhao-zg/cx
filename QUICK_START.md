@@ -1,13 +1,11 @@
-# 快速开始指南
+# 快速开始指南 - 一键部署
 
-## 第一次部署到 Cloudflare Pages
+## 🚀 第一次设置（只需 3 步）
 
 ### 步骤 1: 推送代码到 GitHub
 
-如果还没有推送到 GitHub：
-
 ```bash
-# 如果还没有远程仓库，先创建一个
+# 如果还没有远程仓库，先在 GitHub 创建一个
 # 然后添加远程仓库
 git remote add origin https://github.com/你的用户名/你的仓库名.git
 
@@ -15,74 +13,34 @@ git remote add origin https://github.com/你的用户名/你的仓库名.git
 git push -u origin main
 ```
 
-如果已经有远程仓库：
-
-```bash
-git push origin main
-```
-
-### 步骤 2: 在 Cloudflare 创建 Pages 项目
+### 步骤 2: 在 Cloudflare 连接 GitHub
 
 1. 访问 https://dash.cloudflare.com/
-2. 点击左侧菜单的 **Workers & Pages**
-3. 点击 **Create application** → **Pages** → **Connect to Git**
-4. 选择你的 GitHub 仓库
+2. 点击 **Workers & Pages** → **Create application**
+3. 选择 **Pages** → **Connect to Git**
+4. 授权并选择你的 GitHub 仓库
 5. 配置构建设置：
-   - **Framework preset**: None
-   - **Build command**: `python main.py`
-   - **Build output directory**: `output`
-6. 点击 **Save and Deploy**
+   ```
+   Production branch: main
+   Build command: python main.py
+   Build output directory: output
+   ```
+6. 添加环境变量（可选）：
+   ```
+   PYTHON_VERSION = 3.9
+   ```
+7. 点击 **Save and Deploy**
 
-### 步骤 3: 获取 Cloudflare API Token 和 Account ID
+### 步骤 3: 等待部署完成 ✅
 
-#### 获取 API Token:
-1. 在 Cloudflare Dashboard，点击右上角头像
-2. 选择 **My Profile** → **API Tokens**
-3. 点击 **Create Token**
-4. 选择 **Edit Cloudflare Workers** 模板
-5. 或者创建自定义 token，权限设置：
-   - Account - Cloudflare Pages - Edit
-6. 复制生成的 API Token
-
-#### 获取 Account ID:
-1. 在 Cloudflare Dashboard 主页
-2. 右侧可以看到 **Account ID**
-3. 复制这个 ID
-
-### 步骤 4: 在 GitHub 设置 Secrets
-
-1. 进入你的 GitHub 仓库
-2. 点击 **Settings** → **Secrets and variables** → **Actions**
-3. 点击 **New repository secret**
-4. 添加两个 secrets：
-
-**Secret 1:**
-- Name: `CLOUDFLARE_API_TOKEN`
-- Value: 粘贴你的 API Token
-
-**Secret 2:**
-- Name: `CLOUDFLARE_ACCOUNT_ID`
-- Value: 粘贴你的 Account ID
-
-### 步骤 5: 修改工作流配置
-
-编辑 `.github/workflows/deploy.yml`，修改项目名称：
-
-```yaml
-projectName: 你的项目名称  # 改成你在 Cloudflare 创建的项目名称
+首次部署需要 2-5 分钟。完成后你会得到一个 URL：
+```
+https://你的项目名.pages.dev
 ```
 
-### 步骤 6: 提交并推送
+## 📝 日常使用 - 一键部署
 
-```bash
-git add .github/workflows/deploy.yml
-git commit -m "配置 Cloudflare Pages 项目名称"
-git push origin main
-```
-
-## 日常使用
-
-### 方法 1: 使用部署脚本（推荐）
+### 方法 1: 使用部署脚本（推荐）⭐
 
 **Windows CMD:**
 ```bash
@@ -95,40 +53,43 @@ deploy.bat
 ```
 
 脚本会自动：
-1. 运行 `python main.py` 生成文件
+1. 运行 `python main.py` 生成文件（可选）
 2. 添加所有更改到 Git
 3. 提示输入提交信息
 4. 推送到 GitHub
-5. 触发自动部署
+5. **Cloudflare 自动检测并部署** 🎉
 
 ### 方法 2: 手动操作
 
 ```bash
-# 1. 生成文件（可选，CI 会自动生成）
-python main.py
-
-# 2. 添加更改
+# 1. 添加更改
 git add .
 
-# 3. 提交
+# 2. 提交
 git commit -m "更新内容"
 
-# 4. 推送
+# 3. 推送（Cloudflare 会自动部署）
 git push origin main
 ```
 
-## 查看部署状态
+就这么简单！推送后 Cloudflare 会自动：
+- 检测到推送
+- 运行 `python main.py`
+- 部署 `output` 文件夹
 
-### GitHub Actions
-1. 进入 GitHub 仓库
-2. 点击 **Actions** 标签
-3. 查看最新的工作流运行状态
+## 📊 查看部署状态
 
-### Cloudflare Pages
-1. 进入 Cloudflare Dashboard
+### Cloudflare Pages（推荐）
+1. 访问 https://dash.cloudflare.com/
 2. 点击 **Workers & Pages**
 3. 选择你的项目
-4. 查看部署历史和日志
+4. 查看 **Deployments** 标签
+   - 🟢 绿色勾号 = 部署成功
+   - 🟡 黄色圆圈 = 正在部署
+   - 🔴 红色叉号 = 部署失败（点击查看日志）
+
+### 部署通知
+Cloudflare 会发送邮件通知部署状态（可在设置中配置）
 
 ## 常见问题
 
@@ -157,7 +118,17 @@ git push origin main
 
 ### Q: 本地生成的 output 文件夹需要提交吗？
 
-**A:** 不需要。`.gitignore` 已经配置忽略 output 文件夹，因为 CI 会自动生成。
+**A:** 不需要。`.gitignore` 已配置忽略 `output` 文件夹，Cloudflare 会在云端重新生成。
+
+### Q: 为什么选择 Cloudflare Pages？
+
+**A:** 
+- ✅ 完全免费（无限带宽）
+- ✅ 全球 CDN 加速
+- ✅ 自动 HTTPS
+- ✅ 自动构建和部署
+- ✅ 支持自定义域名
+- ✅ 每次推送自动部署
 
 ## 高级配置
 

@@ -9,10 +9,10 @@
 - ✅ 语速设置持久化（localStorage）
 
 ### 2. 部署配置
-- ✅ 创建 GitHub Actions 工作流 (`.github/workflows/deploy.yml`)
-- ✅ 配置自动构建和部署到 Cloudflare Pages
+- ✅ 配置 Cloudflare Pages 直接连接 GitHub（无需 GitHub Actions）
 - ✅ 添加 `.cfignore` 文件
 - ✅ 更新 `.gitignore` 忽略 output 文件夹
+- ✅ 一键部署脚本
 
 ### 3. 文档和脚本
 - ✅ 创建详细部署文档 (`DEPLOYMENT.md`)
@@ -31,36 +31,33 @@
 git push origin main
 ```
 
-### 步骤 2: 在 Cloudflare 设置 Pages 项目
+### 步骤 2: 在 Cloudflare 连接 GitHub（只需 3 步）
 
-详细步骤请查看 `QUICK_START.md` 或 `DEPLOYMENT.md`
+详细步骤请查看 `QUICK_START.md`
 
-**关键信息：**
-1. 在 Cloudflare Dashboard 创建 Pages 项目
-2. 获取 API Token 和 Account ID
-3. 在 GitHub 设置 Secrets：
-   - `CLOUDFLARE_API_TOKEN`
-   - `CLOUDFLARE_ACCOUNT_ID`
-4. 修改 `.github/workflows/deploy.yml` 中的项目名称
+**简单配置：**
+1. 在 Cloudflare Dashboard 选择 **Connect to Git**
+2. 授权并选择你的 GitHub 仓库
+3. 配置构建命令：`python main.py`，输出目录：`output`
 
-### 步骤 3: 测试自动部署
+**无需配置 API Token 和 Secrets！**
 
-推送代码后，GitHub Actions 会自动：
-1. 安装 Python 依赖
-2. 运行 `python main.py` 生成静态文件
-3. 部署到 Cloudflare Pages
+### 步骤 3: 享受自动部署
+
+推送代码后，Cloudflare Pages 会自动：
+1. 检测到推送
+2. 安装 Python 依赖
+3. 运行 `python main.py` 生成静态文件
+4. 部署到全球 CDN
 
 ## 📁 新增文件列表
 
 ```
-.github/
-  └── workflows/
-      └── deploy.yml          # GitHub Actions 工作流
 .cfignore                     # Cloudflare Pages 忽略文件
 DEPLOYMENT.md                 # 详细部署文档
-QUICK_START.md               # 快速开始指南
-deploy.bat                   # Windows 部署脚本
-deploy.ps1                   # PowerShell 部署脚本
+QUICK_START.md               # 快速开始指南（推荐先看）
+deploy.bat                   # Windows 一键部署脚本
+deploy.ps1                   # PowerShell 一键部署脚本
 SETUP_SUMMARY.md            # 本文件
 ```
 
@@ -107,14 +104,20 @@ git push origin main
 
 ## ⚠️ 注意事项
 
-1. **output 文件夹**: 已在 `.gitignore` 中忽略，CI 会自动生成
-2. **Secrets 安全**: 不要将 API Token 提交到代码库
-3. **项目名称**: 记得修改工作流中的 `projectName`
-4. **首次部署**: 需要在 Cloudflare 手动创建项目
+1. **output 文件夹**: 已在 `.gitignore` 中忽略，Cloudflare 会自动生成
+2. **无需 API Token**: Cloudflare Pages 直接连接 GitHub，无需配置 Secrets
+3. **首次部署**: 在 Cloudflare 连接 GitHub 仓库即可
+4. **自动部署**: 每次推送自动触发，无需手动操作
 
-## 🎉 完成！
+## 🎉 完成！一键部署已就绪
 
-所有配置已就绪，现在可以：
-1. 推送代码到 GitHub
-2. 按照 `QUICK_START.md` 完成 Cloudflare 设置
-3. 享受自动部署的便利！
+所有配置已完成，现在可以：
+1. 推送代码到 GitHub：`git push origin main`
+2. 按照 `QUICK_START.md` 在 Cloudflare 连接 GitHub（只需 3 步）
+3. 以后使用 `deploy.bat` 一键部署！
+
+**优势：**
+- ✅ 无需配置 GitHub Actions
+- ✅ 无需管理 API Token
+- ✅ Cloudflare 直接连接 GitHub
+- ✅ 推送即部署，简单快捷
