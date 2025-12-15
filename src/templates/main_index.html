@@ -42,13 +42,13 @@
         }
         
         .header h1 {
-            font-size: 22px;
-            margin-bottom: 6px;
+            font-size: 24px;
+            margin-bottom: 8px;
             font-weight: 600;
         }
         
         .header p {
-            font-size: 14px;
+            font-size: 15px;
             opacity: 0.9;
         }
         
@@ -70,11 +70,19 @@
             overflow: hidden;
         }
         
+        .training-card-wrapper {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+        }
+        
         .training-link {
             display: block;
-            padding: 12px 16px;
+            padding: 10px 12px;
             text-decoration: none;
             color: inherit;
+            flex: 1;
+            min-width: 0;
         }
         
         .training-link:active {
@@ -135,19 +143,23 @@
         }
         
         .training-cache {
-            padding: 8px 16px;
+            padding: 10px 12px;
             background: #fff;
             display: none;
+            border-left: 1px solid #f0f0f0;
+            flex-shrink: 0;
         }
         
         .training-cache.show {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 4px;
         }
         
         .mini-cache-btn {
-            padding: 5px 10px;
+            padding: 6px 10px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
             border: none;
@@ -155,8 +167,8 @@
             font-size: 11px;
             font-weight: 600;
             cursor: pointer;
-            min-height: 28px;
-            flex-shrink: 0;
+            min-height: 32px;
+            white-space: nowrap;
         }
         
         .mini-cache-btn:active {
@@ -177,9 +189,11 @@
         }
         
         .cache-progress {
-            font-size: 11px;
+            font-size: 10px;
             color: #666;
-            flex: 1;
+            text-align: center;
+            max-width: 80px;
+            line-height: 1.2;
         }
         
         .footer {
@@ -188,7 +202,6 @@
             color: #999;
             background: #f5f7fa;
             border-top: 1px solid #e0e0e0;
-            font-size: 13px;
         }
         
         @media (max-width: 768px) {
@@ -310,23 +323,25 @@
             <div class="trainings-grid">
                 {% for training in trainings %}
                 <div class="training-card">
-                    <a href="{{ training.path }}/index.html" class="training-link">
-                        <div class="training-info">
-                            <div class="training-header">
-                                <div class="year-season">{{ training.year }}年{{ training.season }}</div>
-                                <div class="info">共 {{ training.chapter_count }} 篇</div>
+                    <div class="training-card-wrapper">
+                        <a href="{{ training.path }}/index.html" class="training-link">
+                            <div class="training-info">
+                                <div class="training-header">
+                                    <div class="year-season">{{ training.year }}年{{ training.season }}</div>
+                                    <div class="info">共 {{ training.chapter_count }} 篇</div>
+                                </div>
+                                <div class="training-title-row">
+                                    <div class="title">{{ training.title }}</div>
+                                    <span class="arrow">→</span>
+                                </div>
                             </div>
-                            <div class="training-title-row">
-                                <div class="title">{{ training.title }}</div>
-                                <span class="arrow">→</span>
-                            </div>
+                        </a>
+                        <div class="training-cache">
+                            <button class="mini-cache-btn" data-training="{{ training.path }}" data-chapters="{{ training.chapter_count }}">
+                                <span class="cache-icon">📥</span> <span class="cache-text">缓存</span>
+                            </button>
+                            <span class="cache-progress"></span>
                         </div>
-                    </a>
-                    <div class="training-cache">
-                        <button class="mini-cache-btn" data-training="{{ training.path }}" data-chapters="{{ training.chapter_count }}">
-                            <span class="cache-icon">📥</span> <span class="cache-text">缓存</span>
-                        </button>
-                        <span class="cache-progress"></span>
                     </div>
                 </div>
                 {% endfor %}
