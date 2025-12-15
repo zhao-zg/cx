@@ -80,4 +80,3 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: cx
           directory: output
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
