@@ -109,21 +109,26 @@
         }
         
         .training-cache {
-            padding: 10px 16px;
+            padding: 8px 12px;
             background: #f8f9fa;
             border-top: 1px solid #e2e8f0;
+            display: none;
+        }
+        
+        .training-cache.show {
+            display: block;
         }
         
         .mini-cache-btn {
-            padding: 8px 14px;
+            padding: 6px 12px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
             border: none;
-            border-radius: 6px;
-            font-size: 13px;
+            border-radius: 5px;
+            font-size: 12px;
             font-weight: 600;
             cursor: pointer;
-            min-height: 36px;
+            min-height: 32px;
         }
         
         .mini-cache-btn:active {
@@ -163,26 +168,32 @@
         
         /* 缓存按钮 */
         .cache-section {
-            padding: 20px;
+            padding: 16px;
             text-align: center;
             background: #f8f9fa;
             border-top: 1px solid #e2e8f0;
+            display: none;
+        }
+        
+        .cache-section.show {
+            display: block;
         }
         
         .cache-btn {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
+            gap: 6px;
+            padding: 10px 16px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
             border: none;
-            border-radius: 10px;
-            font-size: 15px;
+            border-radius: 8px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            min-height: 44px;
-            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+            min-height: 40px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            margin: 4px;
         }
         
         .cache-btn:active {
@@ -200,22 +211,21 @@
         
         .clear-btn {
             background: #e53e3e;
-            margin-left: 10px;
         }
         
         .install-btn {
             background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
-            margin-right: 10px;
         }
         
         .cache-icon {
-            font-size: 18px;
+            font-size: 16px;
         }
         
         .cache-status {
-            margin-top: 10px;
-            font-size: 14px;
+            margin-top: 8px;
+            font-size: 13px;
             color: #666;
+            padding: 0 16px;
         }
         
         .cache-status.success {
@@ -224,6 +234,28 @@
         
         .cache-status.error {
             color: #e53e3e;
+        }
+        
+        @media (max-width: 480px) {
+            .cache-section {
+                padding: 12px 8px;
+            }
+            
+            .cache-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+                min-height: 36px;
+                margin: 3px;
+            }
+            
+            .cache-icon {
+                font-size: 14px;
+            }
+            
+            .cache-status {
+                font-size: 12px;
+                padding: 0 8px;
+            }
         }
     </style>
 </head>
@@ -253,17 +285,17 @@
             </div>
         </div>
         
-        <!-- 安装和缓存按钮 -->
-        <div class="cache-section" id="cacheSection">
+        <!-- 安装和缓存按钮区域 -->
+        <div class="cache-section" id="installSection">
             <button class="cache-btn install-btn" id="installBtn" style="display:none;">
                 <span class="cache-icon">📲</span>
                 <span class="cache-text">安装到桌面</span>
             </button>
-            <button class="cache-btn" id="cacheBtn">
-                <span class="cache-icon">📥</span>
-                <span class="cache-text">缓存全部内容</span>
-            </button>
-            <button class="cache-btn clear-btn" id="clearCacheBtn" style="display:none;">
+            <div class="cache-status" id="installStatus"></div>
+        </div>
+        
+        <div class="cache-section" id="cacheSection">
+            <button class="cache-btn clear-btn" id="clearCacheBtn">
                 <span class="cache-icon">🗑</span>
                 <span class="cache-text">清空缓存</span>
             </button>
@@ -279,9 +311,52 @@
     </div>
     
     <script>
-    // 注册 Service Worker
+    // 注册 Service Worker 并自动更新
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(function() {});
+        var isInstalling = false;
+        
+        navigator.serviceWorker.register('./sw.js').then(function(reg) {
+            // 检查更新
+            reg.update();
+            
+            // 监听安装进度
+            if (reg.installing) {
+                trackInstalling(reg.installing);
+            }
+            
+            // 监听更新
+            reg.addEventListener('updatefound', function() {
+                var newWorker = reg.installing;
+                trackInstalling(newWorker);
+                
+                newWorker.addEventListener('statechange', function() {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // 新版本已安装，提示用户刷新
+                        if (confirm('发现新版本，是否立即更新？')) {
+                            newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            window.location.reload();
+                        }
+                    }
+                });
+            });
+        }).catch(function() {});
+        
+        // 监听 SW 控制器变化
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+            window.location.reload();
+        });
+        
+        // 跟踪安装进度
+        function trackInstalling(worker) {
+            if (isInstalling) return;
+            isInstalling = true;
+            
+            var cacheStatus = document.getElementById('cacheStatus');
+            if (cacheStatus) {
+                cacheStatus.textContent = '正在缓存资源...';
+                cacheStatus.className = 'cache-status';
+            }
+        }
     }
     
     // PWA 安装功能
@@ -296,30 +371,37 @@
     });
     
     document.addEventListener('DOMContentLoaded', function() {
-        var cacheBtn = document.getElementById('cacheBtn');
         var cacheStatus = document.getElementById('cacheStatus');
         var cacheSection = document.getElementById('cacheSection');
+        var installSection = document.getElementById('installSection');
         var clearCacheBtn = document.getElementById('clearCacheBtn');
         var installBtn = document.getElementById('installBtn');
+        var installStatus = document.getElementById('installStatus');
         
         if (!('serviceWorker' in navigator)) {
-            cacheSection.style.display = 'none';
-            document.querySelectorAll('.training-cache').forEach(function(el) {
-                el.style.display = 'none';
-            });
             return;
         }
         
         // 检查是否在 PWA 模式下运行（已安装）
         var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
         
-        // 如果不是 PWA 模式，隐藏缓存相关按钮
-        if (!isStandalone) {
-            cacheBtn.style.display = 'none';
-            clearCacheBtn.style.display = 'none';
+        // 只在 PWA 模式下显示缓存相关功能
+        if (isStandalone) {
+            cacheSection.classList.add('show');
             document.querySelectorAll('.training-cache').forEach(function(el) {
-                el.style.display = 'none';
+                el.classList.add('show');
             });
+            
+            // 检查缓存状态
+            caches.keys().then(function(keys) {
+                if (keys.length > 0) {
+                    cacheStatus.textContent = '已缓存 ' + keys.length + ' 个训练';
+                    cacheStatus.className = 'cache-status success';
+                }
+            });
+        } else {
+            // 非 PWA 模式，显示安装区域
+            installSection.classList.add('show');
         }
         
         // 生成单个训练的资源列表
@@ -360,12 +442,30 @@
                 e.stopPropagation();
                 
                 btn.disabled = true;
-                btn.innerHTML = '<span class="cache-icon">⏳</span> 缓存中...';
+                var originalText = btn.innerHTML;
                 
                 var resources = getTrainingResources(path, chapters);
+                var total = resources.length;
+                var loaded = 0;
+                
+                btn.innerHTML = '<span class="cache-icon">⏳</span> 0%';
                 
                 caches.open(cacheKey).then(function(cache) {
-                    return cache.addAll(resources);
+                    // 逐个缓存以显示进度
+                    var promises = resources.map(function(url) {
+                        return fetch(url).then(function(response) {
+                            if (response.ok) {
+                                loaded++;
+                                var percent = Math.round((loaded / total) * 100);
+                                btn.innerHTML = '<span class="cache-icon">⏳</span> ' + percent + '%';
+                                return cache.put(url, response);
+                            }
+                        }).catch(function() {
+                            // 忽略单个文件失败
+                            loaded++;
+                        });
+                    });
+                    return Promise.all(promises);
                 }).then(function() {
                     btn.innerHTML = '<span class="cache-icon">✓</span> 已缓存';
                     btn.classList.add('cached');
@@ -373,84 +473,32 @@
                 }).catch(function(err) {
                     btn.innerHTML = '<span class="cache-icon">❌</span> 失败';
                     btn.disabled = false;
+                    setTimeout(function() {
+                        btn.innerHTML = originalText;
+                    }, 2000);
                     console.error('缓存失败:', err);
                 });
             });
         });
         
-        function showCachedState() {
-            cacheBtn.innerHTML = '<span class="cache-icon">🔄</span><span class="cache-text">重新缓存全部</span>';
-            cacheBtn.classList.add('cached');
-            // 只在 PWA 模式下显示清空按钮
-            if (isStandalone) {
-                clearCacheBtn.style.display = 'inline-flex';
-            }
-        }
-        
-        function showUncachedState() {
-            cacheBtn.innerHTML = '<span class="cache-icon">📥</span><span class="cache-text">缓存全部内容</span>';
-            cacheBtn.classList.remove('cached');
-            clearCacheBtn.style.display = 'none';
-        }
-        
-        // 检查是否已缓存（只在 PWA 模式下更新状态）
-        if (isStandalone) {
-            caches.keys().then(function(keys) {
-                if (keys.length > 0) {
-                    showCachedState();
-                }
-            });
-        }
-        
-        // 监听 SW 消息
-        navigator.serviceWorker.addEventListener('message', function(event) {
-            if (event.data.type === 'cached') {
-                cacheBtn.disabled = false;
-                if (event.data.success) {
-                    showCachedState();
-                    cacheStatus.textContent = '全部缓存完成';
-                    cacheStatus.className = 'cache-status success';
-                    // 更新所有单独按钮状态
-                    document.querySelectorAll('.mini-cache-btn').forEach(function(btn) {
-                        btn.innerHTML = '<span class="cache-icon">✓</span> 已缓存';
-                        btn.classList.add('cached');
-                    });
-                } else {
-                    cacheStatus.textContent = '缓存失败: ' + (event.data.error || '未知错误');
-                    cacheStatus.className = 'cache-status error';
-                }
-            }
-        });
-        
-        // 点击缓存全部按钮
-        cacheBtn.addEventListener('click', function() {
-            cacheBtn.disabled = true;
-            cacheBtn.innerHTML = '<span class="cache-icon">⏳</span><span class="cache-text">缓存中...</span>';
-            cacheStatus.textContent = '';
-            
-            navigator.serviceWorker.ready.then(function(reg) {
-                reg.active.postMessage('cache-all');
-            }).catch(function(err) {
-                cacheBtn.disabled = false;
-                showUncachedState();
-                cacheStatus.textContent = '缓存失败: ' + err.message;
-                cacheStatus.className = 'cache-status error';
-            });
-        });
-        
         // 点击清空缓存按钮
         clearCacheBtn.addEventListener('click', function() {
+            if (!confirm('确定要清空所有缓存吗？清空后需要重新缓存才能离线使用。')) {
+                return;
+            }
+            
             clearCacheBtn.disabled = true;
             cacheStatus.textContent = '清空中...';
+            cacheStatus.className = 'cache-status';
             
             caches.keys().then(function(keys) {
                 return Promise.all(keys.map(function(key) {
                     return caches.delete(key);
                 }));
             }).then(function() {
-                showUncachedState();
+                clearCacheBtn.style.display = 'none';
                 clearCacheBtn.disabled = false;
-                cacheStatus.textContent = '缓存已清空';
+                cacheStatus.textContent = '缓存已清空，刷新页面后将重新自动缓存';
                 cacheStatus.className = 'cache-status success';
                 // 重置所有单独按钮状态
                 document.querySelectorAll('.mini-cache-btn').forEach(function(btn) {
@@ -471,8 +519,8 @@
             installBtn.style.display = 'inline-flex';
             installBtn.innerHTML = '<span class="cache-icon">📲</span><span class="cache-text">添加到主屏幕</span>';
             installBtn.addEventListener('click', function() {
-                cacheStatus.innerHTML = '请点击浏览器底部 <strong>分享按钮 ↑</strong>，然后选择 <strong>"添加到主屏幕"</strong>';
-                cacheStatus.className = 'cache-status';
+                installStatus.innerHTML = '请点击浏览器底部 <strong>分享按钮 ↑</strong>，然后选择 <strong>"添加到主屏幕"</strong>';
+                installStatus.className = 'cache-status';
             });
         } else if (installBtn) {
             installBtn.addEventListener('click', function() {
@@ -480,7 +528,11 @@
                     deferredPrompt.prompt();
                     deferredPrompt.userChoice.then(function(result) {
                         if (result.outcome === 'accepted') {
-                            installBtn.style.display = 'none';
+                            installStatus.textContent = '安装成功！刷新页面后可使用离线功能';
+                            installStatus.className = 'cache-status success';
+                            setTimeout(function() {
+                                installBtn.style.display = 'none';
+                            }, 2000);
                         }
                         deferredPrompt = null;
                     });

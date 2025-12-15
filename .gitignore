@@ -40,8 +40,8 @@ config_test_summer.yaml
 *.docx
 !resource/**/*.docx
 
-# 输出目录（可选，根据需求调整）
-# output/
+# 输出目录（本地生成的文件，CI会重新生成）
+output/
 
 # IDE
 .vscode/

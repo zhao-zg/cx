@@ -55,6 +55,12 @@
     var playIcon = playPauseBtn.querySelector('.play-icon');
     var pauseIcon = playPauseBtn.querySelector('.pause-icon');
 
+    // 从localStorage恢复语速设置
+    var savedRate = localStorage.getItem('speechRate');
+    if (savedRate) {
+      rateSelect.value = savedRate;
+    }
+
     // State
     var fullText = '';
     var utterance = null;
@@ -139,7 +145,7 @@
       if (!fullText) return;
 
       var p = clamp(Number(percent) || 0, 0, 100);
-      var rate = Number(rateSelect.value) || 1;
+      var rate = Number(rateSelect.value) || 0.5;
 
       // Use totalDuration for time mapping; slice text proportionally for approximate seek.
       var targetSeconds = totalDuration ? (p / 100) * totalDuration : 0;
@@ -260,7 +266,7 @@
         fullText = safeText(getText());
         if (!fullText) return;
 
-        totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 1);
+        totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
         elapsedOffset = 0;
         progressBar.value = '0';
         speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
@@ -295,8 +301,11 @@
       }
     });
 
-    // Rate change: restart from current progress
+    // Rate change: restart from current progress and save to localStorage
     rateSelect.addEventListener('change', function () {
+      // 保存语速设置
+      localStorage.setItem('speechRate', rateSelect.value);
+      
       if (!fullText) return;
       
       // 保存当前的实际播放时间（秒数）
@@ -304,7 +313,7 @@
       
       // 重新计算新倍速下的总时长
       var oldTotalDuration = totalDuration;
-      totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 1);
+      totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
       
       // 根据实际播放时间计算新的百分比
       var newPercent = 0;

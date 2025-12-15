@@ -1,5 +1,6 @@
 // Service Worker for 主恢复训练合集
-const CACHE_NAME = 'cx-main-v1';
+const CACHE_VERSION = '{{ cache_version }}';
+const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
 
 // 所有需要缓存的资源
 const RESOURCES = [
@@ -67,7 +68,7 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// 接收消息 - 手动缓存
+// 接收消息 - 手动缓存和跳过等待
 self.addEventListener('message', event => {
   if (event.data === 'cache-all') {
     event.waitUntil(
@@ -83,5 +84,7 @@ self.addEventListener('message', event => {
         });
       })
     );
+  } else if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
 });
