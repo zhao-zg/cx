@@ -75,14 +75,14 @@
         .control-btn{min-width:36px;min-height:36px;padding:5px;background:var(--bg);border:none;border-radius:6px;font-size:14px;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 4px rgba(102,126,234,.2);font-weight:600}
         .control-btn:active{transform:scale(.95)}
         .play-pause-btn{font-size:16px}
-        .progress-section{flex:1;min-width:80px;display:flex;flex-direction:column;gap:2px}
-        .progress-row{display:flex;align-items:center;gap:6px}
-        .progress-bar{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:var(--border);border-radius:2px;outline:none;cursor:pointer;touch-action:none}
+        .progress-section{flex:1;min-width:80px;display:flex;gap:6px;align-items:stretch}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:2px;justify-content:center}
+        .progress-bar{width:100%;height:4px;-webkit-appearance:none;appearance:none;background:var(--border);border-radius:2px;outline:none;cursor:pointer;touch-action:none}
         .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 4px rgba(102,126,234,.3)}
         .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.15)}
         .progress-bar::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 4px rgba(102,126,234,.3)}
         .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.15)}
-        .speech-time{font-size:11px;color:var(--brand);font-family:'Courier New',monospace;font-weight:600;white-space:nowrap;text-align:center;display:block}
+        .speech-time{font-size:11px;color:var(--brand);font-family:'Courier New',monospace;font-weight:600;white-space:nowrap;display:block}
         .control-group{display:flex;gap:4px;flex-shrink:0}
         .bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:5px;background:var(--bg);border:none;border-radius:6px;font-size:13px;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 4px rgba(102,126,234,.2);font-weight:600}
         .bottom-control-bar .font-btn:active{transform:scale(.95)}
@@ -133,19 +133,19 @@
         </button>
         
         <div class="progress-section">
-            <div class="progress-row">
+            <div class="progress-column">
                 <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
-                <select id="rateSelect" class="control-select" title="语速">
-                    <option value="0.5">0.5x</option>
-                    <option value="0.75">0.75x</option>
-                    <option value="0.8" selected>0.8x</option>
-                    <option value="1">1x</option>
-                    <option value="1.25">1.25x</option>
-                    <option value="1.5">1.5x</option>
-                    <option value="2">2x</option>
-                </select>
+                <span class="speech-time" id="speechTime">00:00 / 00:00</span>
             </div>
-            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+            <select id="rateSelect" class="control-select" title="语速">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="0.8" selected>0.8x</option>
+                <option value="1">1x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+            </select>
         </div>
         
         <div class="control-group">
