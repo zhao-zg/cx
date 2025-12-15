@@ -22,7 +22,7 @@
     <div class="pages-container">
         {% for revival in chapter.morning_revivals %}
         <div class="day-page" data-day="{{ loop.index }}" data-page="{{ loop.index0 }}" style="display: {% if loop.index0 == 0 %}block{% else %}none{% endif %};">
-            <h3 class="day-title">{{ revival.day|extract_day }}</h3>
+            <h3 class="chapter-title">{{ revival.day|extract_day }}</h3>
             
             {% if revival.outline %}
             <div class="outline-section">
@@ -350,14 +350,6 @@ window.addEventListener('DOMContentLoaded', function() {
     margin: 20px 0;
     background: #fff;
     padding: 0;
-}
-
-.day-title {
-    font-size: 1.0625em;
-    font-weight: bold;
-    color: #2d3748;
-    margin: 16px 0 14px 0;
-    line-height: 1.6;
 }
 
 /* 纲目样式 - 优化层级视觉差异 */
