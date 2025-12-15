@@ -72,13 +72,10 @@
         }
         
         .training-link {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            display: block;
             padding: 12px 16px;
             text-decoration: none;
             color: inherit;
-            gap: 12px;
         }
         
         .training-link:active {
@@ -86,15 +83,29 @@
         }
         
         .training-info {
-            flex: 1;
-            min-width: 0;
+            position: relative;
+        }
+        
+        .training-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            gap: 8px;
         }
         
         .training-card .year-season {
             font-size: 13px;
             color: #667eea;
             font-weight: 600;
-            margin-bottom: 4px;
+            flex-shrink: 0;
+        }
+        
+        .training-card .info {
+            color: #718096;
+            font-size: 12px;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         
         .training-card .title {
@@ -109,16 +120,12 @@
             -webkit-box-orient: vertical;
         }
         
-        .training-card .info {
-            color: #718096;
-            font-size: 13px;
-            margin-top: 4px;
-        }
-        
         .training-card .arrow {
+            position: absolute;
+            right: 0;
+            bottom: 0;
             color: #667eea;
             font-size: 1.2em;
-            flex-shrink: 0;
         }
         
         .training-cache {
@@ -285,11 +292,13 @@
                 <div class="training-card">
                     <a href="{{ training.path }}/index.html" class="training-link">
                         <div class="training-info">
-                            <div class="year-season">{{ training.year }}年{{ training.season }}</div>
+                            <div class="training-header">
+                                <div class="year-season">{{ training.year }}年{{ training.season }}</div>
+                                <div class="info">共 {{ training.chapter_count }} 篇</div>
+                            </div>
                             <div class="title">{{ training.title }}</div>
-                            <div class="info">📖 共 {{ training.chapter_count }} 篇</div>
+                            <span class="arrow">→</span>
                         </div>
-                        <span class="arrow">→</span>
                     </a>
                     <div class="training-cache">
                         <button class="mini-cache-btn" data-training="{{ training.path }}" data-chapters="{{ training.chapter_count }}">
@@ -301,21 +310,13 @@
             </div>
         </div>
         
-        <!-- 安装和缓存按钮区域 -->
+        <!-- 安装按钮区域 -->
         <div class="cache-section" id="installSection">
             <button class="cache-btn install-btn" id="installBtn" style="display:none;">
                 <span class="cache-icon">📲</span>
                 <span class="cache-text">安装到桌面</span>
             </button>
             <div class="cache-status" id="installStatus"></div>
-        </div>
-        
-        <div class="cache-section" id="cacheSection">
-            <button class="cache-btn clear-btn" id="clearCacheBtn">
-                <span class="cache-icon">🗑</span>
-                <span class="cache-text">清空缓存</span>
-            </button>
-            <div class="cache-status" id="cacheStatus"></div>
         </div>
         
         <div class="footer">
@@ -387,10 +388,7 @@
     });
     
     document.addEventListener('DOMContentLoaded', function() {
-        var cacheStatus = document.getElementById('cacheStatus');
-        var cacheSection = document.getElementById('cacheSection');
         var installSection = document.getElementById('installSection');
-        var clearCacheBtn = document.getElementById('clearCacheBtn');
         var installBtn = document.getElementById('installBtn');
         var installStatus = document.getElementById('installStatus');
         
@@ -401,19 +399,10 @@
         // 检查是否在 PWA 模式下运行（已安装）
         var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
         
-        // 只在 PWA 模式下显示缓存相关功能
+        // 只在 PWA 模式下显示单独缓存按钮
         if (isStandalone) {
-            cacheSection.classList.add('show');
             document.querySelectorAll('.training-cache').forEach(function(el) {
                 el.classList.add('show');
-            });
-            
-            // 检查缓存状态
-            caches.keys().then(function(keys) {
-                if (keys.length > 0) {
-                    cacheStatus.textContent = '已缓存 ' + keys.length + ' 个训练';
-                    cacheStatus.className = 'cache-status success';
-                }
             });
         } else {
             // 非 PWA 模式，显示安装区域
@@ -497,37 +486,7 @@
             });
         });
         
-        // 点击清空缓存按钮
-        clearCacheBtn.addEventListener('click', function() {
-            if (!confirm('确定要清空所有缓存吗？清空后需要重新缓存才能离线使用。')) {
-                return;
-            }
-            
-            clearCacheBtn.disabled = true;
-            cacheStatus.textContent = '清空中...';
-            cacheStatus.className = 'cache-status';
-            
-            caches.keys().then(function(keys) {
-                return Promise.all(keys.map(function(key) {
-                    return caches.delete(key);
-                }));
-            }).then(function() {
-                clearCacheBtn.style.display = 'none';
-                clearCacheBtn.disabled = false;
-                cacheStatus.textContent = '缓存已清空，刷新页面后将重新自动缓存';
-                cacheStatus.className = 'cache-status success';
-                // 重置所有单独按钮状态
-                document.querySelectorAll('.mini-cache-btn').forEach(function(btn) {
-                    btn.innerHTML = '<span class="cache-icon">📥</span> 缓存';
-                    btn.classList.remove('cached');
-                });
-            }).catch(function(err) {
-                clearCacheBtn.disabled = false;
-                cacheStatus.textContent = '清空失败: ' + err.message;
-                cacheStatus.className = 'cache-status error';
-            });
-        });
-        
+
         // iOS 安装提示
         var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         
