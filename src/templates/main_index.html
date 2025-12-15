@@ -381,7 +381,10 @@
         function showCachedState() {
             cacheBtn.innerHTML = '<span class="cache-icon">🔄</span><span class="cache-text">重新缓存全部</span>';
             cacheBtn.classList.add('cached');
-            clearCacheBtn.style.display = 'inline-flex';
+            // 只在 PWA 模式下显示清空按钮
+            if (isStandalone) {
+                clearCacheBtn.style.display = 'inline-flex';
+            }
         }
         
         function showUncachedState() {
@@ -390,12 +393,14 @@
             clearCacheBtn.style.display = 'none';
         }
         
-        // 检查是否已缓存
-        caches.keys().then(function(keys) {
-            if (keys.length > 0) {
-                showCachedState();
-            }
-        });
+        // 检查是否已缓存（只在 PWA 模式下更新状态）
+        if (isStandalone) {
+            caches.keys().then(function(keys) {
+                if (keys.length > 0) {
+                    showCachedState();
+                }
+            });
+        }
         
         // 监听 SW 消息
         navigator.serviceWorker.addEventListener('message', function(event) {
@@ -461,7 +466,6 @@
         
         // iOS 安装提示
         var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
         
         if (isIOS && !isStandalone) {
             installBtn.style.display = 'inline-flex';
