@@ -34,7 +34,11 @@ const ALL_RESOURCES = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(CORE_RESOURCES);
+      return cache.addAll(CORE_RESOURCES).catch(err => {
+        console.error('缓存核心资源失败:', err);
+        // 即使失败也继续安装，避免阻塞
+        return Promise.resolve();
+      });
     })
   );
   self.skipWaiting();
@@ -84,11 +88,38 @@ self.addEventListener('fetch', event => {
           }
           return response;
         }).catch(err => {
-          // 网络失败，返回离线页面提示
+          // 网络失败，返回友好的离线页面
           console.log('离线或网络超时:', normalizedRequest.url);
-          return new Response('离线模式：请先缓存此页面', {
-            status: 503,
-            statusText: 'Service Unavailable',
+          return new Response(`
+            <!DOCTYPE html>
+            <html lang="zh-CN">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>离线模式</title>
+              <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; 
+                       display: flex; align-items: center; justify-content: center; 
+                       min-height: 100vh; margin: 0; background: #f7fafc; }
+                .container { text-align: center; padding: 20px; }
+                h1 { color: #667eea; margin-bottom: 20px; }
+                p { color: #666; line-height: 1.8; }
+                button { margin-top: 20px; padding: 12px 24px; background: #667eea; 
+                         color: white; border: none; border-radius: 6px; cursor: pointer; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>📱 离线模式</h1>
+                <p>当前处于离线状态，此页面尚未缓存。</p>
+                <p>请连接网络后重新访问。</p>
+                <button onclick="location.reload()">重新加载</button>
+              </div>
+            </body>
+            </html>
+          `, {
+            status: 200,
+            statusText: 'OK',
             headers: new Headers({
               'Content-Type': 'text/html; charset=utf-8'
             })
@@ -117,11 +148,38 @@ self.addEventListener('fetch', event => {
         }
         return response;
       }).catch(err => {
-        // 网络失败，返回离线页面提示
+        // 网络失败，返回友好的离线页面
         console.log('离线或网络超时:', event.request.url);
-        return new Response('离线模式：请先缓存此页面', {
-          status: 503,
-          statusText: 'Service Unavailable',
+        return new Response(`
+          <!DOCTYPE html>
+          <html lang="zh-CN">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>离线模式</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; 
+                     display: flex; align-items: center; justify-content: center; 
+                     min-height: 100vh; margin: 0; background: #f7fafc; }
+              .container { text-align: center; padding: 20px; }
+              h1 { color: #667eea; margin-bottom: 20px; }
+              p { color: #666; line-height: 1.8; }
+              button { margin-top: 20px; padding: 12px 24px; background: #667eea; 
+                       color: white; border: none; border-radius: 6px; cursor: pointer; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>📱 离线模式</h1>
+              <p>当前处于离线状态，此页面尚未缓存。</p>
+              <p>请连接网络后重新访问。</p>
+              <button onclick="location.reload()">重新加载</button>
+            </div>
+          </body>
+          </html>
+        `, {
+          status: 200,
+          statusText: 'OK',
           headers: new Headers({
             'Content-Type': 'text/html; charset=utf-8'
           })
