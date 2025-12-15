@@ -2,8 +2,8 @@
 const CACHE_VERSION = '{{ cache_version }}';
 const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
 
-// 所有需要缓存的资源
-const RESOURCES = [
+// 初始安装时只缓存核心资源（主页和各训练目录页）
+const CORE_RESOURCES = [
   './',
   './index.html',
   './manifest.json',
@@ -12,6 +12,13 @@ const RESOURCES = [
   './{{ training.path }}/manifest.json',
   './{{ training.path }}/js/speech.js',
   './{{ training.path }}/js/font-control.js',
+{% endfor %}
+];
+
+// 所有资源列表（用于手动缓存）
+const ALL_RESOURCES = [
+  ...CORE_RESOURCES,
+{% for training in trainings %}
 {% for i in range(1, training.chapter_count + 1) %}
   './{{ training.path }}/{{ i }}_cv.htm',
   './{{ training.path }}/{{ i }}_dg.htm',
@@ -24,11 +31,11 @@ const RESOURCES = [
 {% endfor %}
 ];
 
-// 安装事件 - 预缓存资源
+// 安装事件 - 只预缓存核心资源
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(RESOURCES);
+      return cache.addAll(CORE_RESOURCES);
     })
   );
   self.skipWaiting();
@@ -73,7 +80,7 @@ self.addEventListener('message', event => {
   if (event.data === 'cache-all') {
     event.waitUntil(
       caches.open(CACHE_NAME).then(cache => {
-        return cache.addAll(RESOURCES).then(() => {
+        return cache.addAll(ALL_RESOURCES).then(() => {
           self.clients.matchAll().then(clients => {
             clients.forEach(client => client.postMessage({ type: 'cached', success: true }));
           });
