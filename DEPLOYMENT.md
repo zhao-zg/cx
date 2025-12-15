@@ -22,13 +22,26 @@ git push origin main
 6. 配置构建设置：
    - **Production branch**: `main`
    - **Framework preset**: `None`
-   - **Build command**: `python main.py`
+   - **Build command**: `chmod +x install-deps.sh && ./install-deps.sh`
    - **Build output directory**: `output`
    - **Root directory**: `/` (保持默认)
+   
+   **可选优化**：如果看到 "Build output directory" 前有命令输入框，可以分离构建和部署：
+   - **Build command**: `chmod +x install-deps.sh && ./install-deps.sh`（安装依赖）
+   - **Deploy command**: `chmod +x generate.sh && ./generate.sh`（生成文件）
+   - **Build output directory**: `output`
+   
+   这样可以利用 Cloudflare 的缓存机制，依赖只需安装一次，提高构建速度。
+
 7. 展开 **Environment variables (advanced)**，添加：
-   - Variable name: `PYTHON_VERSION`
-   - Value: `3.9`
+   - Variable name: `PYTHON_VERSION`, Value: `3.9`
+   - Variable name: `DEBIAN_FRONTEND`, Value: `noninteractive`
 8. 点击 **Save and Deploy**
+
+**注意**：
+- 构建脚本会自动检测并安装 LibreOffice（用于转换 `.doc` 文件）
+- 如果你的文档都是 `.docx` 格式，LibreOffice 不是必需的
+- 在 Cloudflare Pages 的 Linux 环境中，会使用 apt 自动安装 LibreOffice
 
 ### 步骤 3: 等待首次部署完成
 

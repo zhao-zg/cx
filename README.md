@@ -227,12 +227,26 @@ python main.py
 
 ### 快速开始
 
-**首次设置（3 步）：**
+**首次设置（一键完成）：**
+```bash
+# Windows CMD
+setup-cloudflare.bat
+
+# PowerShell
+.\setup-cloudflare.ps1
+```
+
+脚本会自动推送代码并打开 Cloudflare 设置页面，按照提示配置即可！
+
+**或手动设置（3 步）：**
 1. 推送代码到 GitHub
 2. 在 Cloudflare 连接 GitHub 仓库
-3. 配置构建命令：`python main.py`
+3. 配置构建命令（优化版）：
+   - 构建命令: `chmod +x install-deps.sh && ./install-deps.sh`
+   - 部署命令: `chmod +x generate.sh && ./generate.sh`
+   - 输出目录: `output`
 
-详细步骤查看 [QUICK_START.md](QUICK_START.md)
+详细步骤查看 [QUICK_START.md](QUICK_START.md) 或 [一键部署说明.md](一键部署说明.md)
 
 **日常使用（一键部署）：**
 ```bash
@@ -247,11 +261,18 @@ deploy.bat
 
 每次推送到 GitHub 后，Cloudflare Pages 会自动：
 1. 检测到代码更新
-2. 运行 `python main.py` 生成静态文件
-3. 部署 `output` 文件夹到全球 CDN
-4. 网站自动更新（2-5 分钟）
+2. 安装依赖（首次或依赖变更时，会被缓存）
+3. 运行 `python main.py` 生成静态文件
+4. 部署 `output` 文件夹到全球 CDN
+5. 网站自动更新（首次 3-5 分钟，后续 10-30 秒）
 
-**无需配置 GitHub Actions，Cloudflare 直接连接 GitHub！**
+**优势**：
+- ✅ 无需配置 GitHub Actions
+- ✅ Cloudflare 直接连接 GitHub
+- ✅ 依赖缓存，构建速度快 5-10 倍
+- ✅ 完全免费，无限带宽
+
+详细优化说明查看 [Cloudflare构建优化说明.md](Cloudflare构建优化说明.md)
 
 ## 许可证
 

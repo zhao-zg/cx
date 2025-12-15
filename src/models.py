@@ -60,12 +60,10 @@ class Chapter:
     
     def to_dict(self):
         """转换为字典，便于模板渲染"""
-        print(f"*** to_dict called for Chapter {self.number}, morning_revivals count: {len(self.morning_revivals)}")
         
         # Debug: 检查第一章的周六内容
         if self.number == 1 and len(self.morning_revivals) >= 6:
             saturday_revival = self.morning_revivals[5]  # 周六(index 5)
-            print(f"*** Saturday outline has {len(saturday_revival.outline)} items")
             if saturday_revival.outline:
                 print(f"    First outline item: level={saturday_revival.outline[0].level}, children={len(saturday_revival.outline[0].children)}")
         
@@ -93,7 +91,6 @@ class Chapter:
     
     def _sections_to_dict_debug(self, contents: List[Content], context=""):
         """递归转换内容节点为字典 - 调试版本"""
-        print(f"*** _sections_to_dict_debug called for {context}: {len(contents)} items")
         result = []
         for i, content in enumerate(contents):
             print(f"  Item {i}: level={content.level}, title={content.title[:50]}..., children={len(content.children)}")
@@ -105,8 +102,6 @@ class Chapter:
                 'children': self._sections_to_dict_debug(content.children, f"{context} child {i}") if content.children else []
             }
             result.append(content_dict)
-        
-        print(f"*** _sections_to_dict_debug returning {len(result)} items for {context}")
         return result
     
     def _sections_to_dict(self, contents: List[Content]):
@@ -124,7 +119,6 @@ class Chapter:
             
             # Debug: 检查周六相关的内容
             if content.level == '贰' or len(contents) == 1:
-                print(f"*** _sections_to_dict processing: level={content.level}, title={content.title[:50]}, children={len(content.children)}")
                 if content.children:
                     print(f"    Has {len(content.children)} children:")
                     for i, child in enumerate(content.children):

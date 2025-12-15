@@ -783,21 +783,14 @@ class ImprovedParser:
                 if para.style and para.style.name:
                     style_counts[para.style.name] = style_counts.get(para.style.name, 0) + 1
         
-        print(f"*** Style counts: {style_counts}")
-        
         # 夏季样式标记
         has_summer_styles = any(s in style_counts for s in ['第一周', '第一周右', '周期', '１綱要大點壹'])
         
-        print(f"*** has_summer_styles: {has_summer_styles}")
-        print(f"*** Summer style markers found: {[s for s in ['第一周', '第一周右', '周期', '１綱要大點壹'] if s in style_counts]}")
-        
         if has_summer_styles:
             # 使用基于样式的解析（夏季）
-            print("*** Using _parse_morning_revival_by_styles (夏季)")
             self._parse_morning_revival_by_styles(doc, chapters)
         else:
             # 使用基于文本的解析（秋季）
-            print("*** Using _parse_morning_revival_by_text (秋季)")
             paragraphs = [para.text.strip() for para in doc.paragraphs]
             self._parse_morning_revival_by_text(paragraphs, chapters)
     
@@ -805,8 +798,6 @@ class ImprovedParser:
         """
         基于文本模式的晨兴文档解析（秋季 .docx）
         """
-        
-        print(f"*** _parse_morning_revival_by_text called with {len(paragraphs)} paragraphs")
         
         current_week = 0
         current_day = None
@@ -1100,7 +1091,6 @@ class ImprovedParser:
         # 检查是否有已存在的晨兴内容（即这是第二个晨兴文档）
         existing_chapters_with_revivals = sum(1 for c in chapters if c.morning_revivals)
         if existing_chapters_with_revivals > 0:
-            print(f"*** This is the second morning revival document, starting from chapter {existing_chapters_with_revivals + 1}")
             chapter_index = existing_chapters_with_revivals
         
         original_week_to_new_week = {}  # 原始周数到新周数的映射（夏季训练重新编号）
@@ -1150,7 +1140,6 @@ class ImprovedParser:
                             # 如果是第二个文档，从已有章节数+1开始编号
                             renumbered_week = len(original_week_to_new_week) + 1 + chapter_index
                             original_week_to_new_week[new_week] = renumbered_week
-                            print(f"*** Summer training renumbering: original week {new_week} -> new week {renumbered_week}")
                         new_week = original_week_to_new_week[new_week]
 
                     if new_week > 0 and new_week != current_week:
@@ -1162,7 +1151,6 @@ class ImprovedParser:
                             else:
                                 # 新建纲目映射
                                 all_weeks_outlines[current_week] = day_outlines.copy()
-                            print(f"*** Saved outlines for week {current_week}: {list(all_weeks_outlines[current_week].keys())}")
                         
                         # 保存上一周最后一组纲目（非常重要！在清空day_outlines之前保存）
                         if current_day_key and pending_outline:
@@ -1179,7 +1167,6 @@ class ImprovedParser:
                             else:
                                 # 新建纲目映射
                                 all_weeks_outlines[current_week] = day_outlines.copy()
-                            print(f"*** Final save for week {current_week}: {list(all_weeks_outlines[current_week].keys())}")
                         
                         # 保存上一周的数据
                         if current_revival and current_week in week_to_chapter_map:
@@ -1260,7 +1247,6 @@ class ImprovedParser:
                             # 如果是第二个文档，从已有章节数+1开始编号
                             renumbered_week = len(original_week_to_new_week) + 1 + chapter_index
                             original_week_to_new_week[original_week] = renumbered_week
-                            print(f"*** Summer training day renumbering: original week {original_week} -> new week {renumbered_week}")
                         mapped_week = original_week_to_new_week[original_week]
                     else:
                         mapped_week = original_week
@@ -1396,11 +1382,9 @@ class ImprovedParser:
             else:
                 # 新建纲目映射
                 all_weeks_outlines[current_week] = day_outlines.copy()
-            print(f"*** Final save for last week {current_week}: {list(all_weeks_outlines[current_week].keys())}")
         
         # 【重要修复】为所有章节分配纲目，不仅仅是最后一章
         for chapter_idx, chapter in enumerate(chapters, 1):
-            print(f"*** Processing Chapter {chapter_idx}, has {len(chapter.morning_revivals)} revivals")
             
             # 显示每个revival的基本信息
             for day_num, revival in enumerate(chapter.morning_revivals, 1):
@@ -1424,7 +1408,6 @@ class ImprovedParser:
                 
             if week_num in all_weeks_outlines:
                 week_day_outlines = all_weeks_outlines[week_num]
-                print(f"*** Found saved outlines for week {week_num}: {list(week_day_outlines.keys())}")
                 
                 # 将day_outlines保存到chapter对象
                 converted_outlines = {}
@@ -1443,24 +1426,19 @@ class ImprovedParser:
                         if day_num in converted_outlines:
                             outline_lines = converted_outlines[day_num]
                             last_outline_lines = outline_lines
-                            print(f"*** Assigning outline to Chapter {chapter_idx}, Day {day_num}, {len(outline_lines)} lines")
                             parsed_outline = self._parse_outline_content(outline_lines)
                             revival.outline = parsed_outline
                             
                             # 特别针对第一章第六天添加详细debug
                             if chapter_idx == 1 and day_num == 6:
-                                print(f"*** FIXED: Chapter 1, Day 6 now has {len(parsed_outline)} outline items!")
                                 for i, content in enumerate(parsed_outline):
                                     print(f"      Content {i}: {content.level} - {content.title[:50]}")
                         elif last_outline_lines:
-                            print(f"*** Using previous outline for Chapter {chapter_idx}, Day {day_num}")
                             revival.outline = self._parse_outline_content(last_outline_lines)
             else:
-                print(f"*** No saved outlines found for week {week_num}")
             
             # 特别处理第一章
             if chapter_idx == 1:
-                print(f"*** Chapter 1 final check:")
                 for day_num, revival in enumerate(chapter.morning_revivals, 1):
                     outline_count = len(revival.outline) if revival.outline else 0
                     print(f"    Day {day_num} ({revival.day.replace('•', ' ')}): {outline_count} outline items")
