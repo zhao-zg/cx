@@ -7,10 +7,10 @@ const BASE_URL = self.location.origin + self.location.pathname.replace(/\/[^\/]*
 
 // 初始安装时只缓存核心资源（主页和各训练目录页）
 const CORE_RESOURCES = [
-  BASE_URL,
+  BASE_URL,  // 主页 (/)，访问 /index.html 时会自动规范化为 /
   BASE_URL + 'manifest.json',
 {% for training in trainings %}
-  BASE_URL + '{{ training.path }}/',
+  BASE_URL + '{{ training.path }}/',  // 训练目录页，访问 /path/index.html 时会自动规范化为 /path/
   BASE_URL + '{{ training.path }}/manifest.json',
 {% endfor %}
 ];
