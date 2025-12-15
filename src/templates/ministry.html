@@ -21,7 +21,7 @@
                         <h3 class="ministry-subtitle">{{ paragraph.strip() }}</h3>
                     {% else %}
                         {# 长文本作为段落 #}
-                        <p class="ministry-paragraph">{{ paragraph }}</p>
+                        <p class="content-text">{{ paragraph }}</p>
                     {% endif %}
                 {% endif %}
             {% endfor %}
@@ -87,14 +87,7 @@
     text-align: center;
 }
 
-/* 使用 base.html 的统一样式 */
-.ministry-paragraph {
-    margin: 16px 0;
-    padding-left: 16px;
-    text-indent: 2em;
-    color: #4a5568;
-    line-height: 2.1;
-}
+/* 使用 base.html 的统一 .content-text 样式 */
 
 .no-content {
     color: #999;
@@ -119,27 +112,12 @@
         font-size: 1.1em;
     }
     
-
-    
     .no-content {
         padding: 40px 0;
     }
 }
 
-@media (max-width: 768px) {
-    .font-size-controls {
-        padding: 6px 10px;
-        gap: 6px;
-        margin: 8px 0;
-    }
-    
-    .font-btn {
-        min-width: 36px;
-        min-height: 36px;
-        padding: 6px 10px;
-        font-size: 0.8125em; /* 13px -> 0.8125em */
-    }
-}
+/* 移动端样式继承 base.html */
 </style>
 
 <script>
@@ -154,7 +132,7 @@ window.addEventListener('DOMContentLoaded', function() {
             const scriptureElem = document.querySelector('.scripture');
             if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
 
-            const paragraphs = document.querySelectorAll('.ministry-paragraph');
+            const paragraphs = document.querySelectorAll('.content-text');
             paragraphs.forEach(p => {
                 const t = p.textContent.trim();
                 if (t) text += t + '。';

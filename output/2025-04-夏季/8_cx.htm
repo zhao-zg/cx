@@ -1176,6 +1176,7 @@ window.addEventListener('DOMContentLoaded', function() {
     text-indent: 2em;
     color: #4a5568;
     line-height: 2.1;
+    font-size: 1em; /* 明确设置为 18px，与 body 一致 */
 }
 
 /* 翻页控制 */
@@ -1252,9 +1253,9 @@ window.addEventListener('DOMContentLoaded', function() {
         line-height: 1.8;
     }
     
+    /* 确保内容段落在移动端也保持统一的字体大小 */
     .content-paragraph {
-        font-size: 0.9375em; /* 15px -> 0.9375em */
-        line-height: 1.9;
+        font-size: 1em; /* 明确保持 18px */
     }
     
     .feeding-section h4,

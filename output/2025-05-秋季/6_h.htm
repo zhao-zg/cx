@@ -886,6 +886,7 @@
     text-indent: 2em;
     color: #4a5568;
     line-height: 2.1;
+    font-size: 1em;
 }
 
 .no-content {
@@ -907,6 +908,14 @@
     
     .section {
         margin-bottom: 30px;
+    }
+}
+
+/* 移动端样式 - 确保与晨兴页面完全一致 */
+@media (max-width: 768px) {
+    /* 确保内容段落在移动端也保持统一的字体大小 */
+    .message-text {
+        font-size: 1em; /* 明确保持 18px */
     }
 }
 </style>

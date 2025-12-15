@@ -63,7 +63,7 @@
             <div class="feeding-section">
                 <h4>晨兴喂养</h4>
                 {% for para in revival.morning_feeding %}
-                <p class="content-paragraph">{{ para }}</p>
+                <p class="content-text">{{ para }}</p>
                 {% endfor %}
             </div>
             {% endif %}
@@ -72,7 +72,7 @@
             <div class="reading-section">
                 <h4>信息选读</h4>
                 {% for para in revival.message_reading %}
-                <p class="content-paragraph">{{ para }}</p>
+                <p class="content-text">{{ para }}</p>
                 {% endfor %}
             </div>
             {% endif %}
@@ -262,7 +262,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
             const feedingSection = activePage.querySelector('.feeding-section');
             if (feedingSection) {
-                const paragraphs = feedingSection.querySelectorAll('.content-paragraph');
+                const paragraphs = feedingSection.querySelectorAll('.content-text');
                 paragraphs.forEach(p => {
                     const t = p.textContent.trim();
                     if (t) text += t + '。';
@@ -271,7 +271,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
             const readingSection = activePage.querySelector('.reading-section');
             if (readingSection) {
-                const paragraphs = readingSection.querySelectorAll('.content-paragraph');
+                const paragraphs = readingSection.querySelectorAll('.content-text');
                 paragraphs.forEach(p => {
                     const t = p.textContent.trim();
                     if (t) text += t + '。';
@@ -486,15 +486,7 @@ window.addEventListener('DOMContentLoaded', function() {
     border-bottom: 2px solid #e2e8f0;
 }
 
-/* 使用 base.html 的统一样式 */
-.content-paragraph {
-    margin: 16px 0;
-    padding-left: 16px;
-    text-indent: 2em;
-    color: #4a5568;
-    line-height: 2.1;
-    font-size: 1em; /* 明确设置为 18px，与 body 一致 */
-}
+/* 使用 base.html 的统一 .content-text 样式 */
 
 /* 翻页控制 */
 .page-controls {
@@ -570,10 +562,7 @@ window.addEventListener('DOMContentLoaded', function() {
         line-height: 1.8;
     }
     
-    /* 确保内容段落在移动端也保持统一的字体大小 */
-    .content-paragraph {
-        font-size: 1em; /* 明确保持 18px */
-    }
+    /* 移动端样式继承 base.html 的 .content-text */
     
     .feeding-section h4,
     .reading-section h4 {
