@@ -31,6 +31,9 @@ const ALL_RESOURCES = [
   BASE_URL + '{{ training.path }}/{{ i }}_h.htm',
 {% endfor %}
 {% endfor %}
+{% for image_path in image_paths %}
+  BASE_URL + '{{ image_path }}',
+{% endfor %}
 ];
 
 // 安装事件 - 只预缓存核心资源

@@ -254,8 +254,23 @@ def generate_main_index(config, batch_results):
     
     # sw.js - 使用时间戳作为版本号
     cache_version = datetime.now().strftime('%Y%m%d%H%M%S')
+    
+    # 收集所有图片路径
+    image_paths = []
+    for training in trainings:
+        training_dir = os.path.join(output_dir, training['path'])
+        images_dir = os.path.join(training_dir, 'images')
+        if os.path.exists(images_dir):
+            for filename in os.listdir(images_dir):
+                if filename.endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                    image_paths.append(f"{training['path']}/images/{filename}")
+    
     sw_template = env.get_template('main_sw.js')
-    sw_content = sw_template.render(trainings=trainings, cache_version=cache_version)
+    sw_content = sw_template.render(
+        trainings=trainings, 
+        cache_version=cache_version,
+        image_paths=image_paths
+    )
     sw_path = os.path.join(output_dir, 'sw.js')
     with open(sw_path, 'w', encoding='utf-8') as f:
         f.write(sw_content)
