@@ -1,5 +1,5 @@
 // Service Worker for 主恢复训练合集
-const CACHE_VERSION = '20251215144310';
+const CACHE_VERSION = '20251215145011';
 const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
 
 // 初始安装时只缓存核心资源（主页和各训练目录页）
@@ -276,6 +276,38 @@ self.addEventListener('activate', event => {
 
 // 请求拦截 - 缓存优先策略
 self.addEventListener('fetch', event => {
+  // 规范化 URL：将 index.html 请求重定向到目录
+  let requestUrl = new URL(event.request.url);
+  if (requestUrl.pathname.endsWith('/index.html')) {
+    requestUrl.pathname = requestUrl.pathname.replace(/\/index\.html$/, '/');
+    const normalizedRequest = new Request(requestUrl.toString(), {
+      method: event.request.method,
+      headers: event.request.headers,
+      mode: event.request.mode,
+      credentials: event.request.credentials,
+      redirect: event.request.redirect
+    });
+    event.respondWith(
+      caches.match(normalizedRequest).then(cached => {
+        if (cached) {
+          return cached;
+        }
+        return fetch(normalizedRequest).then(response => {
+          if (response.ok && normalizedRequest.method === 'GET') {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(normalizedRequest, clone);
+            });
+          }
+          return response;
+        });
+      }).catch(() => {
+        return caches.match('./');
+      })
+    );
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) {
@@ -291,7 +323,7 @@ self.addEventListener('fetch', event => {
         return response;
       });
     }).catch(() => {
-      return caches.match('./index.html');
+      return caches.match('./');
     })
   );
 });

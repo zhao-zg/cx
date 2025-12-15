@@ -13,7 +13,12 @@
         {% endfor %}
     </div>
     
-
+    <div class="index-footer-nav">
+        <a href="../" class="footer-nav-btn">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text">返回主页</span>
+        </a>
+    </div>
 </div>
 
 <style>
@@ -28,6 +33,41 @@
     background: #e8ecf0;
     border-radius: 10px;
     overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.index-footer-nav {
+    display: flex;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.footer-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.footer-nav-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.nav-icon {
+    font-size: 20px;
+}
+
+.nav-text {
+    font-size: 15px;
 }
 
 .toc-item {
