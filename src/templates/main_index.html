@@ -508,21 +508,32 @@
                         var cachePromises = [];
                         var successCount = 0;
                         resources.forEach(function(url) {
-                            var promise = fetch(url).then(function(response) {
+                            var promise = fetch(url, {
+                                redirect: 'follow',  // 自动跟随重定向（默认行为）
+                                cache: 'no-cache'    // 不使用浏览器缓存，确保获取最新内容
+                            }).then(function(response) {
                                 loaded++;
                                 var percent = Math.round((loaded / total) * 100);
                                 btn.querySelector('.cache-text').textContent = percent + '%';
                                 
-                                // 只缓存成功的响应（状态码 200-299）
+                                // 检查响应类型和状态
+                                // response.type 可能是 'basic', 'cors', 'opaque' 等
+                                // 重定向后的响应仍然是 'basic' 类型
                                 if (response.ok && response.status >= 200 && response.status < 300) {
                                     successCount++;
                                     if (progressSpan) {
                                         progressSpan.textContent = '正在缓存 ' + successCount + '/' + total;
                                     }
-                                    return cache.put(url, response);
+                                    // 克隆响应，因为响应体只能读取一次
+                                    return cache.put(url, response.clone());
+                                } else if (response.type === 'opaqueredirect') {
+                                    // 不透明重定向，无法访问内容
+                                    console.warn('遇到不透明重定向:', url);
+                                    loaded++;
+                                    return Promise.resolve();
                                 } else {
                                     // 失败的响应不缓存
-                                    console.warn('跳过缓存失败的资源:', url, 'status:', response.status);
+                                    console.warn('跳过缓存失败的资源:', url, 'status:', response.status, 'type:', response.type);
                                     if (progressSpan) {
                                         progressSpan.textContent = '正在缓存 ' + successCount + '/' + total + ' (跳过 ' + (loaded - successCount) + ' 个失败)';
                                     }
