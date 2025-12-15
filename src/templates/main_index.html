@@ -59,16 +59,22 @@
         .trainings-grid {
             display: flex;
             flex-direction: column;
-            gap: 1px;
+            gap: 0;
             margin-top: 20px;
-            background: #e2e8f0;
+            background: #fff;
             border-radius: 8px;
             overflow: hidden;
+            border: 1px solid #e2e8f0;
         }
         
         .training-card {
             background: #fff;
             overflow: hidden;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .training-card:last-child {
+            border-bottom: none;
         }
         
         .training-link {
