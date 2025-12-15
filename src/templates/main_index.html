@@ -379,6 +379,11 @@
     if ('serviceWorker' in navigator) {
         var isInstalling = false;
         
+        // 等待 Service Worker 就绪
+        navigator.serviceWorker.ready.then(function() {
+            console.log('Service Worker 已就绪');
+        });
+        
         navigator.serviceWorker.register('./sw.js').then(function(reg) {
             // 检查更新
             reg.update();
