@@ -93,3 +93,4 @@ jobs:
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: '部署到 GitHub Pages'
+          cname: cx.zhaozg.dpdns.org
