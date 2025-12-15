@@ -500,13 +500,12 @@
         // 生成单个训练的资源列表
         function getTrainingResources(path, chapters) {
             var resources = [
-                './' + path + '/',
+                './' + path + '/index.html',
                 './' + path + '/js/speech.js',
                 './' + path + '/js/font-control.js'
             ];
             for (var i = 1; i <= chapters; i++) {
                 resources.push('./' + path + '/' + i + '_cv.htm');
-                resources.push('./' + path + '/' + i + '_dg.htm');
                 resources.push('./' + path + '/' + i + '_cx.htm');
                 resources.push('./' + path + '/' + i + '_sg.htm');
                 resources.push('./' + path + '/' + i + '_ts.htm');
