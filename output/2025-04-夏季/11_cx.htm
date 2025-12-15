@@ -1364,6 +1364,30 @@ window.addEventListener('DOMContentLoaded', function() {
     <script src="js/speech.js"></script>
     <script src="js/font-control.js"></script>
     
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                // 只保存非主页的页面
+                if (window.location.pathname !== '/' && !window.location.pathname.endsWith('/index.html')) {
+                    localStorage.setItem('cx_last_page', window.location.href);
+                    localStorage.setItem('cx_last_page_time', Date.now());
+                }
+            } catch (e) {
+                console.log('无法保存页面记忆:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+    })();
+    </script>
+    
     
 
 </body>

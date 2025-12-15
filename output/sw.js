@@ -1,5 +1,5 @@
 // Service Worker for 主恢复训练合集
-const CACHE_VERSION = '20251215163642';
+const CACHE_VERSION = '20251215165158';
 const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
 
 // 获取 Service Worker 的基础 URL
@@ -331,13 +331,20 @@ self.addEventListener('activate', event => {
       return Promise.all(
         keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
       );
+    }).then(() => {
+      // 清理完成后立即接管所有客户端
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
 // 请求拦截 - 缓存优先策略（离线优先）
 self.addEventListener('fetch', event => {
+  // 只处理 GET 请求
+  if (event.request.method !== 'GET') {
+    return;
+  }
+  
   // 如果请求设置了 cache: 'no-cache' 或 'reload'，跳过缓存直接请求网络
   if (event.request.cache === 'no-cache' || event.request.cache === 'reload') {
     event.respondWith(

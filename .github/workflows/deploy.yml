@@ -1,4 +1,4 @@
-name: 构建并部署到 Cloudflare Pages
+name: 构建并部署到 Cloudflare Pages 和 GitHub Pages
 
 on:
   push:
@@ -8,6 +8,8 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 允许推送到 gh-pages 分支
     
     steps:
       - name: 检出代码
@@ -80,3 +82,14 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: cx
           directory: output
+      
+      - name: 部署到 GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./output
+          publish_branch: gh-pages
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: '部署到 GitHub Pages'

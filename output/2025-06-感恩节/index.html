@@ -269,6 +269,37 @@
 </style>
 
 <script>
+// 页面记忆功能 - 恢复上次访问的页面
+(function() {
+    try {
+        var lastPage = localStorage.getItem('cx_last_page');
+        var lastPageTime = localStorage.getItem('cx_last_page_time');
+        
+        // 如果有保存的页面，且在7天内访问过，则恢复
+        if (lastPage && lastPageTime) {
+            var timeDiff = Date.now() - parseInt(lastPageTime);
+            var hours24 = 7 * 24 * 60 * 60 * 1000;
+            
+            if (timeDiff < hours24) {
+                // 检查上次访问的页面是否属于当前训练
+                var currentPath = window.location.pathname.replace(/\/[^\/]*$/, '/');
+                if (lastPage.indexOf(currentPath) !== -1) {
+                    // 检查是否是从外部链接进入
+                    var isExternalEntry = !document.referrer || !document.referrer.startsWith(window.location.origin);
+                    
+                    if (isExternalEntry) {
+                        console.log('恢复上次访问的页面:', lastPage);
+                        window.location.replace(lastPage);
+                        return;
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.log('无法恢复页面记忆:', e);
+    }
+})();
+
 // 根据星期几决定跳转目标
 document.addEventListener('DOMContentLoaded', function() {
     var dayOfWeek = new Date().getDay(); // 0=周日, 1=周一, ..., 6=周六
@@ -331,6 +362,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <script src="js/speech.js"></script>
     <script src="js/font-control.js"></script>
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                // 只保存非主页的页面
+                if (window.location.pathname !== '/' && !window.location.pathname.endsWith('/index.html')) {
+                    localStorage.setItem('cx_last_page', window.location.href);
+                    localStorage.setItem('cx_last_page_time', Date.now());
+                }
+            } catch (e) {
+                console.log('无法保存页面记忆:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+    })();
+    </script>
     
     
 

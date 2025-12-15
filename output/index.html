@@ -415,15 +415,48 @@
         <div class="footer">
             <p>本站内容仅供主恢复圣徒交通使用</p>
             <p style="margin-top: 10px; font-size: 0.9em;">
-                生成时间: 2025年12月15日 16:36
+                生成时间: 2025年12月15日 16:51
             </p>
         </div>
     </div>
     
     <script>
+    // 页面记忆功能 - 恢复上次访问的页面
+    (function() {
+        try {
+            var lastPage = localStorage.getItem('cx_last_page');
+            var lastPageTime = localStorage.getItem('cx_last_page_time');
+            
+            // 如果有保存的页面，且在7天内访问过，则恢复
+            if (lastPage && lastPageTime) {
+                var timeDiff = Date.now() - parseInt(lastPageTime);
+                var hours24 = 7 * 24 * 60 * 60 * 1000;
+                
+                if (timeDiff < hours24) {
+                    // 检查是否是从外部链接进入（没有 referrer 或 referrer 不是本站）
+                    var isExternalEntry = !document.referrer || !document.referrer.startsWith(window.location.origin);
+                    
+                    // 只在外部进入时恢复（避免用户主动点击主页时也跳转）
+                    if (isExternalEntry && window.location.pathname === '/' || window.location.pathname.endsWith('/index.html')) {
+                        console.log('恢复上次访问的页面:', lastPage);
+                        window.location.replace(lastPage);
+                        return;
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('无法恢复页面记忆:', e);
+        }
+    })();
+    
     // 注册 Service Worker 并自动更新
     if ('serviceWorker' in navigator) {
         var isInstalling = false;
+        
+        // 等待 Service Worker 就绪
+        navigator.serviceWorker.ready.then(function() {
+            console.log('Service Worker 已就绪');
+        });
         
         navigator.serviceWorker.register('./sw.js').then(function(reg) {
             // 检查更新
