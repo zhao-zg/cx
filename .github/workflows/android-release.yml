@@ -238,33 +238,26 @@ jobs:
         keyPassword=tehui2024
         EOF
         
-        # 在 build.gradle 中添加签名配置
-        cat >> android/app/build.gradle << 'EOF'
+        # 修改 build.gradle，在 android 块中添加签名配置
+        # 找到 android { 后插入签名配置
+        sed -i '/android {/a\
+    signingConfigs {\
+        release {\
+            storeFile file("../my-release-key.keystore")\
+            storePassword "tehui2024"\
+            keyAlias "tehui"\
+            keyPassword "tehui2024"\
+        }\
+    }' android/app/build.gradle
         
-        def keystorePropertiesFile = rootProject.file("../keystore.properties")
-        def keystoreProperties = new Properties()
-        if (keystorePropertiesFile.exists()) {
-            keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-            
-            android {
-                signingConfigs {
-                    release {
-                        storeFile file(keystoreProperties['storeFile'])
-                        storePassword keystoreProperties['storePassword']
-                        keyAlias keystoreProperties['keyAlias']
-                        keyPassword keystoreProperties['keyPassword']
-                    }
-                }
-                buildTypes {
-                    release {
-                        signingConfig signingConfigs.release
-                    }
-                }
-            }
-        }
-        EOF
+        # 在 buildTypes.release 中添加 signingConfig
+        sed -i '/buildTypes {/,/release {/a\
+            signingConfig signingConfigs.release' android/app/build.gradle
         
         echo "✓ 签名配置完成"
+        echo ""
+        echo "=== build.gradle 签名部分 ==="
+        grep -A 10 "signingConfigs" android/app/build.gradle || echo "未找到签名配置"
       
     - name: 授予 Gradle 执行权限
       run: chmod +x android/gradlew
