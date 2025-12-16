@@ -149,13 +149,20 @@
                 'https://cx.xzdjx.dynv6.net/',
                 'https://zhao-zg.github.io/cx/'
             ],
+            // APK 更新检查地址（GitHub API）
+            APK_UPDATE_URL: 'https://api.github.com/repos/zhao-zg/cx/releases/latest',
+            // 当前 APK 版本
+            CURRENT_APK_VERSION: '1.0.0',
             // 本地存储键
             STORAGE_KEY: 'cx_content_version',
             STORAGE_URL_KEY: 'cx_selected_url',
+            STORAGE_APK_CHECK_KEY: 'cx_last_apk_check',
             // 点击次数触发更新检查
             CLICK_COUNT_TRIGGER: 10,
             // 连接超时时间（毫秒）
-            TIMEOUT: 5000
+            TIMEOUT: 5000,
+            // APK 检查间隔（毫秒，24小时）
+            APK_CHECK_INTERVAL: 24 * 60 * 60 * 1000
         };
         
         // 获取当前使用的 URL
@@ -226,6 +233,8 @@
             
             if (clickCount >= CONFIG.CLICK_COUNT_TRIGGER) {
                 clickCount = 0;
+                // 同时检查 APK 和内容更新
+                checkApkUpdate(true);
                 checkForUpdates(true);
             }
         });
@@ -256,6 +265,95 @@
                 longPressTimer = null;
             }
         });
+        
+        // 检查 APK 更新
+        async function checkApkUpdate(force = false) {
+            try {
+                // 检查上次检查时间
+                const lastCheck = localStorage.getItem(CONFIG.STORAGE_APK_CHECK_KEY);
+                const now = Date.now();
+                
+                if (!force && lastCheck && (now - parseInt(lastCheck)) < CONFIG.APK_CHECK_INTERVAL) {
+                    return; // 24小时内已检查过
+                }
+                
+                // 获取最新版本信息
+                const response = await fetch(CONFIG.APK_UPDATE_URL);
+                if (!response.ok) return;
+                
+                const release = await response.json();
+                const latestVersion = release.tag_name.replace('v', '');
+                
+                // 保存检查时间
+                localStorage.setItem(CONFIG.STORAGE_APK_CHECK_KEY, now.toString());
+                
+                // 比较版本
+                if (compareVersion(latestVersion, CONFIG.CURRENT_APK_VERSION) > 0) {
+                    showApkUpdateDialog(release);
+                }
+            } catch (error) {
+                console.error('APK 更新检查失败:', error);
+            }
+        }
+        
+        // 版本比较
+        function compareVersion(v1, v2) {
+            const parts1 = v1.split('.').map(Number);
+            const parts2 = v2.split('.').map(Number);
+            
+            for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+                const p1 = parts1[i] || 0;
+                const p2 = parts2[i] || 0;
+                if (p1 > p2) return 1;
+                if (p1 < p2) return -1;
+            }
+            return 0;
+        }
+        
+        // 显示 APK 更新对话框
+        function showApkUpdateDialog(release) {
+            const apkAsset = release.assets.find(a => a.name.endsWith('.apk'));
+            if (!apkAsset) return;
+            
+            const html = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;" id="apkUpdateDialog">
+                    <div style="background: white; border-radius: 12px; padding: 24px; max-width: 90%; max-height: 80%; overflow-y: auto;">
+                        <h3 style="color: #667eea; margin-bottom: 15px;">🎉 发现新版本</h3>
+                        <div style="color: #333; margin-bottom: 20px;">
+                            <p style="margin-bottom: 10px;">
+                                <strong>当前版本：</strong>v${CONFIG.CURRENT_APK_VERSION}<br>
+                                <strong>最新版本：</strong>${release.tag_name}
+                            </p>
+                            <div style="background: #f5f5f5; padding: 12px; border-radius: 8px; font-size: 14px; max-height: 200px; overflow-y: auto;">
+                                ${release.body ? release.body.replace(/\n/g, '<br>') : '查看更新日志'}
+                            </div>
+                        </div>
+                        <button style="width: 100%; padding: 12px; margin-bottom: 10px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;" onclick="downloadApk('${apkAsset.browser_download_url}')">
+                            立即下载更新
+                        </button>
+                        <button style="width: 100%; padding: 12px; background: #f0f0f0; color: #666; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;" onclick="closeApkUpdateDialog()">
+                            稍后提醒
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
+        
+        // 下载 APK
+        window.downloadApk = function(url) {
+            window.open(url, '_blank');
+            closeApkUpdateDialog();
+        };
+        
+        // 关闭 APK 更新对话框
+        window.closeApkUpdateDialog = function() {
+            const dialog = document.getElementById('apkUpdateDialog');
+            if (dialog) {
+                dialog.remove();
+            }
+        };
         
         // 显示服务器选择器
         function showServerSelector() {
@@ -434,7 +532,10 @@
         
         // 页面加载时执行
         window.addEventListener('load', function() {
-            // 自动检查更新（静默）
+            // 检查 APK 更新（每24小时一次）
+            checkApkUpdate(false);
+            
+            // 自动检查内容更新（静默）
             checkForUpdates(false);
             
             // 加载内容
