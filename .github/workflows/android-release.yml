@@ -220,7 +220,10 @@ jobs:
         cat capacitor.config.json
         echo ""
         echo "=== Android Manifest ==="
-        cat android/app/src/main/AndroidManifest.xml | head -20
+        cat android/app/src/main/AndroidManifest.xml | head -30
+        echo ""
+        echo "=== build.gradle (app) ==="
+        cat android/app/build.gradle | grep -A 5 "defaultConfig\|compileSdk\|minSdk\|targetSdk" || true
         
     - name: 构建 APK
       run: |
@@ -286,10 +289,29 @@ jobs:
         ls -lh TeHui-*.apk
         
         # 验证 APK 完整性
+        echo ""
+        echo "=== APK 详细信息 ==="
         for apk in TeHui-*.apk; do
           if [ -f "$apk" ]; then
-            echo "验证: $apk"
-            unzip -l "$apk" | head -20
+            echo "----------------------------------------"
+            echo "文件: $apk"
+            echo "大小: $(du -h "$apk" | cut -f1)"
+            echo "MD5: $(md5sum "$apk" | cut -d' ' -f1)"
+            echo "内容预览:"
+            unzip -l "$apk" | head -30
+            echo ""
+            # 检查关键文件
+            if unzip -l "$apk" | grep -q "AndroidManifest.xml"; then
+              echo "✓ AndroidManifest.xml 存在"
+            else
+              echo "✗ AndroidManifest.xml 缺失"
+            fi
+            if unzip -l "$apk" | grep -q "classes.dex"; then
+              echo "✓ classes.dex 存在"
+            else
+              echo "✗ classes.dex 缺失"
+            fi
+            echo "----------------------------------------"
           fi
         done
         

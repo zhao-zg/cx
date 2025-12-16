@@ -1,16 +1,14 @@
 {
-  "appId": "com.conference.info",
-  "appName": "特会信息",
+  "appId": "com.tehui.app",
+  "appName": "TeHui",
   "webDir": "output",
   "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https",
-    "hostname": "app.conference.info"
+    "androidScheme": "https"
   },
   "android": {
     "allowMixedContent": true,
     "captureInput": true,
-    "webContentsDebuggingEnabled": false,
-    "minWebViewVersion": 55
+    "webContentsDebuggingEnabled": false
   }
 }
