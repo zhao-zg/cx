@@ -11,11 +11,9 @@
 适用于测试和内部分发。
 
 ```bash
-# 1. 创建并推送标签
+# 创建并推送标签
 git tag v1.0.0
 git push origin v1.0.0
-
-# 2. GitHub Actions 会自动构建并发布到 Releases
 ```
 
 ### 方式 2: 签名 APK（正式发布）
@@ -66,9 +64,9 @@ git push origin release-v1.0.0
 ### 方式 3: 手动触发构建
 
 1. 进入 GitHub 仓库的 Actions 页面
-2. 选择 "构建安卓APK" 或 "构建签名APK"
+2. 选择 "构建安卓APK"
 3. 点击 "Run workflow"
-4. 选择分支并运行
+4. 选择是否签名并运行
 
 ## 📦 构建产物
 
@@ -159,20 +157,12 @@ apksigner verify --print-certs your-app.apk
 
 ## 📊 工作流说明
 
-### android-release.yml
-- 触发：推送 `v*` 标签
-- 构建：未签名 APK
-- 发布：自动创建 Release
-
-### android-signed.yml
-- 触发：推送 `release-v*` 标签
-- 构建：签名 APK（如果配置了密钥）
-- 发布：自动创建 Release
-
-### android-build-pr.yml
-- 触发：PR 或推送到主分支
-- 构建：测试构建
-- 不发布：仅上传到 Artifacts
+### android-release.yml（唯一工作流）
+- 触发方式：
+  - 推送 `v*` 标签 → 构建未签名 APK
+  - 推送 `release-v*` 标签 → 构建签名 APK（需配置密钥）
+  - 手动触发 → 可选择是否签名
+- 自动发布到 GitHub Releases
 
 ## 🎯 最佳实践
 

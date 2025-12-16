@@ -3,8 +3,18 @@ name: 构建安卓APK
 on:
   push:
     tags:
-      - 'v*'  # 当推送 v1.0.0 这样的标签时触发
+      - 'v*'  # 推送 v1.0.0 触发未签名版本
+      - 'release-v*'  # 推送 release-v1.0.0 触发签名版本
   workflow_dispatch:  # 允许手动触发
+    inputs:
+      sign_apk:
+        description: '是否签名APK'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   build:
@@ -51,6 +61,39 @@ jobs:
     - name: 同步到安卓项目
       run: npx cap sync
       
+    - name: 解码密钥库（如果需要签名）
+      if: startsWith(github.ref, 'refs/tags/release-') || github.event.inputs.sign_apk == 'true'
+      run: |
+        if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > my-release-key.keystore
+          cat > android/keystore.properties << EOF
+        storeFile=../../my-release-key.keystore
+        storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+        keyAlias=${{ secrets.KEY_ALIAS }}
+        keyPassword=${{ secrets.KEY_PASSWORD }}
+        EOF
+          
+          cat >> android/app/build.gradle << 'EOF'
+        
+        def keystorePropertiesFile = rootProject.file("keystore.properties")
+        def keystoreProperties = new Properties()
+        if (keystorePropertiesFile.exists()) {
+            keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+            
+            android.signingConfigs {
+                release {
+                    storeFile file(keystoreProperties['storeFile'])
+                    storePassword keystoreProperties['storePassword']
+                    keyAlias keystoreProperties['keyAlias']
+                    keyPassword keystoreProperties['keyPassword']
+                }
+            }
+            
+            android.buildTypes.release.signingConfig = android.signingConfigs.release
+        }
+        EOF
+        fi
+      
     - name: 授予 Gradle 执行权限
       run: chmod +x android/gradlew
       
@@ -61,12 +104,22 @@ jobs:
         
     - name: 重命名 APK
       run: |
-        VERSION=${GITHUB_REF#refs/tags/v}
+        VERSION=${GITHUB_REF#refs/tags/release-v}
+        if [ -z "$VERSION" ]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        fi
         if [ -z "$VERSION" ]; then
           VERSION=$(date +%Y%m%d-%H%M%S)
         fi
-        mv android/app/build/outputs/apk/release/app-release-unsigned.apk \
-           lord-recovery-training-${VERSION}.apk
+        
+        # 检查是否是签名版本
+        if [ -f "android/app/build/outputs/apk/release/app-release.apk" ]; then
+          mv android/app/build/outputs/apk/release/app-release.apk \
+             lord-recovery-training-${VERSION}-signed.apk
+        else
+          mv android/app/build/outputs/apk/release/app-release-unsigned.apk \
+             lord-recovery-training-${VERSION}.apk
+        fi
         
     - name: 上传 APK 到 Artifacts
       uses: actions/upload-artifact@v4
@@ -80,19 +133,21 @@ jobs:
       with:
         files: lord-recovery-training-*.apk
         body: |
-          ## 📱 安卓应用发布
+          ## 📱 主恢复训练 - 安卓应用
           
-          ### 安装说明
+          ### 📥 安装说明
           1. 下载下方的 APK 文件
           2. 在安卓设备上启用"未知来源"安装
           3. 安装 APK
           
-          ### 更新内容
-          - 自动构建版本
-          - 包含最新的训练内容
-          
-          ### 技术信息
+          ### 📝 版本信息
+          - 版本: ${{ github.ref_name }}
+          - 签名状态: ${{ startsWith(github.ref, 'refs/tags/release-') && '✅ 已签名' || '⚠️ 未签名（测试版）' }}
           - 构建时间: ${{ github.event.head_commit.timestamp }}
           - 提交: ${{ github.sha }}
+          
+          ### 💡 提示
+          - 未签名版本适合测试使用
+          - 签名版本适合正式发布
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
