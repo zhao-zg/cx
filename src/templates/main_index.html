@@ -346,7 +346,7 @@
                             </div>
                         </a>
                         <div class="training-cache">
-                            <button class="mini-cache-btn" data-training="{{ training.path }}" data-chapters="{{ training.chapter_count }}" data-images="{{ training.images|tojson|escape }}">
+                            <button class="mini-cache-btn" data-training="{{ training.path }}" data-chapters="{{ training.chapter_count }}" data-images='{{ training.images|tojson }}'>
                                 <span class="cache-icon">📥</span> <span class="cache-text">缓存</span>
                             </button>
                             <span class="cache-progress"></span>
