@@ -19,6 +19,8 @@ const CORE_RESOURCES = [
 const ALL_RESOURCES = [
   ...CORE_RESOURCES,
 {% for training in trainings %}
+  BASE_URL + '{{ training.path }}/js/speech.js',
+  BASE_URL + '{{ training.path }}/js/font-control.js',
 {% for i in range(1, training.chapter_count + 1) %}
   BASE_URL + '{{ training.path }}/{{ i }}_cv.htm',
   BASE_URL + '{{ training.path }}/{{ i }}_cx.htm',
