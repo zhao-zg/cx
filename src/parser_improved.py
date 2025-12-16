@@ -1742,13 +1742,7 @@ class ImprovedParser:
         current_text_clean = current_text.strip()
         
         # 如果前一行以完整句子标点结尾，通常不需要合并
-        if prev_text_clean.endswith(('。', '！', '？', '；', '：', '）', '"', '"')):
-            return False
-        
-        # 如果前一行是经文（以书卷名+章节开头），不合并
-        # 经文格式：太二4~6、约壹一6~7、林后十三14等
-        scripture_pattern = re.compile(r'^[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提多门彼犹启壹贰叁前后]{1,2}[一二三四五六七八九十\d]+[:：]?\d+')
-        if scripture_pattern.match(prev_text_clean):
+        if prev_text_clean.endswith(('。', '！', '？', '；', '：', '）', '"', '”')):
             return False
             
         # 如果当前行很短，可能是标题或独立内容，不合并
