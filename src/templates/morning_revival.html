@@ -59,9 +59,14 @@
             <div class="content-separator"></div>
             {% endif %}
             
-            {% if revival.morning_feeding %}
+            {% if revival.feeding_scriptures or revival.morning_feeding %}
             <div class="feeding-section">
                 <h4>晨兴喂养</h4>
+                {% if revival.feeding_scriptures %}
+                {% for scripture in revival.feeding_scriptures %}
+                <div class="feeding-scripture">{{ scripture }}</div>
+                {% endfor %}
+                {% endif %}
                 {% for para in revival.morning_feeding %}
                 <p class="content-text">{{ para }}</p>
                 {% endfor %}
@@ -354,113 +359,9 @@ window.addEventListener('DOMContentLoaded', function() {
     padding: 0;
 }
 
-/* 纲目样式 - 优化层级视觉差异 */
+/* 纲目样式 - 使用 base.html 的公共样式 */
 .outline-section {
-    margin: 16px 0;
-    line-height: 2.0;
-}
-
-.outline-item {
-    margin: 8px 0;
-    color: #2d3748;
-    font-size: 0.9375em;
-    line-height: 1.8;
-}
-
-/* Level 1: 大纲 (壹贰叁、I II III、A B C) - 最突出 */
-.outline-item.level-1 {
-    margin-top: 16px;
-    margin-bottom: 12px;
-    font-size: 1.0625em; /* 17px -> 1.0625em */
-    font-weight: 800;
-    color: var(--brand-1);
-    padding: 8px 0;
-    border-bottom: 2px solid rgba(var(--brand-1-rgb), 0.2);
-}
-
-.outline-item.level-1 > .outline-level {
-    font-size: 1.125em; /* 18px -> 1.125em */
-    font-weight: 800;
-    color: var(--brand-1);
-    background: var(--brand-soft-bg);
-    padding: 4px 8px;
-    border-radius: 6px;
-    margin-right: 8px;
-}
-
-.outline-item.level-1 > .outline-text {
-    color: var(--text);
-    font-weight: 700;
-}
-
-/* Level 2: 中纲 (一二三、a b c) - 中等突出 */
-.outline-item.level-2 {
-    padding-left: 1.8em;
-    font-size: 1em; /* 16px -> 1em */
-    margin-top: 8px;
-    margin-bottom: 6px;
-    font-weight: 600;
-}
-
-.outline-item.level-2 > .outline-level {
-    font-weight: 700;
-    color: var(--brand-2);
-    background: rgba(var(--brand-2-rgb), 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-right: 6px;
-}
-
-.outline-item.level-2 > .outline-text {
-    color: var(--text);
-    font-weight: 600;
-}
-
-/* Level 3: 小纲 (1 2 3) - 普通样式 */
-.outline-item.level-3 {
-    padding-left: 3.2em;
-    font-size: 0.9375em; /* 15px -> 0.9375em */
-    margin-top: 4px;
-    margin-bottom: 3px;
-    font-weight: 500;
-}
-
-.outline-item.level-3 > .outline-level {
-    font-weight: 600;
-    color: var(--text-muted);
-    margin-right: 5px;
-}
-
-.outline-item.level-3 > .outline-text {
-    color: var(--text);
-    font-weight: 400;
-}
-
-.outline-children {
-    margin-left: 0;
-}
-
-.outline-level {
-    margin-right: 5px;
-}
-
-.outline-text {
-    color: #333;
-}
-
-@media (min-width: 768px) {
-    .outline-item {
-        font-size: 0.9375em; /* 15px -> 0.9375em */
-    }
-
-    .outline-item.level-1 {
-        margin-top: 15px;
-        font-size: 1em; /* 16px -> 1em */
-    }
-
-    .outline-item.level-1 > .outline-level {
-        font-size: 1.0625em; /* 17px -> 1.0625em */
-    }
+    margin: 18px 0;
 }
 
 /* 内容分隔线 */
@@ -474,7 +375,6 @@ window.addEventListener('DOMContentLoaded', function() {
 .feeding-section,
 .reading-section {
     margin: 20px 0;
-    font-size: 1em; /* 明确设置为 18px，确保与 body 一致 */
 }
 
 .feeding-section h4,
@@ -487,7 +387,30 @@ window.addEventListener('DOMContentLoaded', function() {
     border-bottom: 2px solid #e2e8f0;
 }
 
-/* 使用 base.html 的统一 .content-text 样式 */
+/* 晨兴喂养的经文样式 - 作为小标题显示 */
+.feeding-scripture {
+    margin: 10px 0;
+    padding: 10px 14px;
+    background: #f7f8ff;
+    border-left: 3px solid #667eea;
+    border-radius: 4px;
+    font-size: 1em;
+    color: #4a5568;
+    line-height: 1.7;
+    font-weight: 500;
+}
+
+@media (min-width: 768px) {
+    .feeding-section h4,
+    .reading-section h4 {
+        font-size: 1.125em;
+    }
+    
+    .feeding-scripture {
+        font-size: 1.0625em;
+        padding: 12px 16px;
+    }
+}
 
 /* 翻页控制 */
 .page-controls {
@@ -563,12 +486,7 @@ window.addEventListener('DOMContentLoaded', function() {
         line-height: 1.8;
     }
     
-    /* 移动端样式继承 base.html 的 .content-text */
-    
-    .feeding-section h4,
-    .reading-section h4 {
-        font-size: 0.9375em; /* 15px -> 0.9375em */
-    }
+
     
     .page-controls {
         padding: 10px;

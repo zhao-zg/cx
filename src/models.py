@@ -30,6 +30,7 @@ class MorningRevival:
     """晨兴内容（按天）"""
     day: str  # 周一、周二...
     outline: List[Content] = field(default_factory=list)  # 大纲部分
+    feeding_scriptures: List[str] = field(default_factory=list)  # 晨兴喂养的经文部分
     morning_feeding: List[str] = field(default_factory=list)  # 晨兴喂养
     message_reading: List[str] = field(default_factory=list)  # 信息选读
 
@@ -82,12 +83,37 @@ class Chapter:
                 {
                     'day': mr.day,
                     'outline': self._sections_to_dict_debug(mr.outline, f"MorningRevival {mr.day}"),
-                    'morning_feeding': mr.morning_feeding,
+                    'feeding_scriptures': self._extract_feeding_scriptures(mr.morning_feeding)[0],
+                    'morning_feeding': self._extract_feeding_scriptures(mr.morning_feeding)[1],
                     'message_reading': mr.message_reading
                 }
                 for mr in self.morning_revivals
             ]
         }
+    
+    def _extract_feeding_scriptures(self, paragraphs: List[str]) -> tuple:
+        """
+        从晨兴喂养段落中分离经文
+        
+        Returns:
+            (scriptures, content) 元组
+        """
+        import re
+        scriptures = []
+        content = []
+        
+        # 经文格式：书卷+章节+经文内容（支持全角和半角空格）
+        scripture_pattern = re.compile(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提多门彼约犹启][一二三四五六七八九十\d]+[:：]?\d+)[\s　]+')
+        
+        for i, para in enumerate(paragraphs):
+            if scripture_pattern.match(para):
+                scriptures.append(para)
+            else:
+                # 一旦遇到非经文段落，后面的都是正文
+                content = paragraphs[i:]
+                break
+        
+        return (scriptures, content)
     
     def _sections_to_dict_debug(self, contents: List[Content], context=""):
         """递归转换内容节点为字典 - 调试版本"""

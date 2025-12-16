@@ -4,10 +4,12 @@
 
 {% block content %}
 <div class="index-page">
-    <div class="index-header-nav">
-        <a href="../index.html" class="header-nav-btn">
-            <span class="nav-icon">🏠</span>
-            <span class="nav-text">返回主页</span>
+    <div class="back-home-wrapper">
+        <a href="../index.html" class="back-home">
+            <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            <span class="back-text">返回主页</span>
         </a>
     </div>
     
@@ -26,40 +28,49 @@
     padding: 0;
 }
 
-.index-header-nav {
-    display: flex;
-    justify-content: center;
-    padding: 0 0 15px 0;
-    margin-bottom: 15px;
+.back-home-wrapper {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
     border-bottom: 1px solid #e8ecf0;
 }
 
-.header-nav-btn {
+.back-home {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 16px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #fff;
+    padding: 8px 14px 8px 10px;
+    color: #667eea;
     text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
     border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
-    transition: transform 0.2s, box-shadow 0.2s;
+    background: #f8f9ff;
+    border: 1px solid #e0e4ff;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(102, 126, 234, 0.08);
 }
 
-.header-nav-btn:active {
-    transform: translateY(1px);
-    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.25);
+.back-home:active {
+    background: #eef1ff;
+    border-color: #667eea;
+    transform: translateX(-2px);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.15);
 }
 
-.header-nav-btn .nav-icon {
-    font-size: 16px;
+.back-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
 }
 
-.header-nav-btn .nav-text {
-    font-size: 13px;
+.back-home:active .back-icon {
+    transform: translateX(-2px);
+}
+
+.back-text {
+    line-height: 1;
+    letter-spacing: 0.3px;
 }
 
 .toc-list {
@@ -105,6 +116,32 @@
 
 /* 桌面端优化 */
 @media (min-width: 768px) {
+    .back-home-wrapper {
+        margin-bottom: 24px;
+        padding-bottom: 18px;
+    }
+    
+    .back-home {
+        font-size: 15px;
+        padding: 10px 16px 10px 12px;
+    }
+    
+    .back-home:hover {
+        background: #eef1ff;
+        border-color: #667eea;
+        transform: translateX(-2px);
+        box-shadow: 0 2px 6px rgba(102, 126, 234, 0.15);
+    }
+    
+    .back-home:hover .back-icon {
+        transform: translateX(-2px);
+    }
+    
+    .back-icon {
+        width: 20px;
+        height: 20px;
+    }
+    
     .toc-list {
         gap: 0;
         border-radius: 12px;

@@ -1545,6 +1545,7 @@ class ImprovedParser:
         
         return result
     
+
     def _read_doc_with_win32com(self, doc_path: str, return_doc: bool = False):
         """
         使用win32com读取.doc格式文档

@@ -12,8 +12,6 @@ const CORE_RESOURCES = [
 {% for training in trainings %}
   BASE_URL + '{{ training.path }}/',
   BASE_URL + '{{ training.path }}/manifest.json',
-  BASE_URL + '{{ training.path }}/js/speech.js',
-  BASE_URL + '{{ training.path }}/js/font-control.js',
 {% endfor %}
 ];
 
