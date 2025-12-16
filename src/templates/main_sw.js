@@ -104,123 +104,11 @@ self.addEventListener('fetch', event => {
       redirect: event.request.redirect
     });
     
-    event.respondWith(
-      // 优先从缓存返回
-      caches.match(normalizedRequest).then(cached => {
-        // 如果有缓存，立即返回
-        if (cached) {
-          return cached;
-        }
-        
-        // 没有缓存时，尝试网络请求（带超时）
-        return fetchWithTimeout(normalizedRequest, 5000).then(response => {
-          if (response.ok && response.status >= 200 && response.status < 300 && normalizedRequest.method === 'GET') {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put(normalizedRequest, clone);
-            });
-          }
-          return response;
-        }).catch(err => {
-          // 网络失败，返回友好的离线页面
-          console.log('离线或网络超时:', normalizedRequest.url);
-          return new Response(`
-            <!DOCTYPE html>
-            <html lang="zh-CN">
-            <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>离线模式</title>
-              <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; 
-                       display: flex; align-items: center; justify-content: center; 
-                       min-height: 100vh; margin: 0; background: #f7fafc; }
-                .container { text-align: center; padding: 20px; }
-                h1 { color: #667eea; margin-bottom: 20px; }
-                p { color: #666; line-height: 1.8; }
-                button { margin-top: 20px; padding: 12px 24px; background: #667eea; 
-                         color: white; border: none; border-radius: 6px; cursor: pointer; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <h1>📱 离线模式</h1>
-                <p>当前处于离线状态，此页面尚未缓存。</p>
-                <p>请连接网络后重新访问。</p>
-                <button onclick="location.reload()">重新加载</button>
-              </div>
-            </body>
-            </html>
-          `, {
-            status: 200,
-            statusText: 'OK',
-            headers: new Headers({
-              'Content-Type': 'text/html; charset=utf-8'
-            })
-          });
-        });
-      })
-    );
+    event.respondWith(handleRequest(normalizedRequest));
     return;
   }
   
-  event.respondWith(
-    // 优先从缓存返回
-    caches.match(event.request).then(cached => {
-      // 如果有缓存，立即返回
-      if (cached) {
-        return cached;
-      }
-      
-      // 没有缓存时，尝试网络请求（带超时）
-      return fetchWithTimeout(event.request, 5000).then(response => {
-        if (response.ok && response.status >= 200 && response.status < 300 && event.request.method === 'GET') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, clone);
-          });
-        }
-        return response;
-      }).catch(err => {
-        // 网络失败，返回友好的离线页面
-        console.log('离线或网络超时:', event.request.url);
-        return new Response(`
-          <!DOCTYPE html>
-          <html lang="zh-CN">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>离线模式</title>
-            <style>
-              body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; 
-                     display: flex; align-items: center; justify-content: center; 
-                     min-height: 100vh; margin: 0; background: #f7fafc; }
-              .container { text-align: center; padding: 20px; }
-              h1 { color: #667eea; margin-bottom: 20px; }
-              p { color: #666; line-height: 1.8; }
-              button { margin-top: 20px; padding: 12px 24px; background: #667eea; 
-                       color: white; border: none; border-radius: 6px; cursor: pointer; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h1>📱 离线模式</h1>
-              <p>当前处于离线状态，此页面尚未缓存。</p>
-              <p>请连接网络后重新访问。</p>
-              <button onclick="location.reload()">重新加载</button>
-            </div>
-          </body>
-          </html>
-        `, {
-          status: 200,
-          statusText: 'OK',
-          headers: new Headers({
-            'Content-Type': 'text/html; charset=utf-8'
-          })
-        });
-      });
-    })
-  );
+  event.respondWith(handleRequest(event.request));
 });
 
 // 带超时的 fetch 函数
@@ -231,6 +119,73 @@ function fetchWithTimeout(request, timeout) {
       setTimeout(() => reject(new Error('网络请求超时')), timeout)
     )
   ]);
+}
+
+// 生成离线页面响应
+function createOfflineResponse() {
+  return new Response(`
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>离线模式</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; 
+               display: flex; align-items: center; justify-content: center; 
+               min-height: 100vh; margin: 0; background: #f7fafc; padding: 20px; }
+        .container { text-align: center; max-width: 400px; }
+        h1 { color: #667eea; margin-bottom: 16px; font-size: 24px; }
+        p { color: #666; line-height: 1.8; margin: 12px 0; }
+        .buttons { margin-top: 24px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        button { padding: 12px 24px; background: #667eea; 
+                 color: white; border: none; border-radius: 8px; cursor: pointer; 
+                 font-size: 14px; font-weight: 600; }
+        button:active { transform: scale(0.95); }
+        .secondary { background: #e2e8f0; color: #4a5568; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>📱 离线模式</h1>
+        <p>当前处于离线状态，此页面尚未缓存。</p>
+        <p>请连接网络后重新访问，或返回主页查看已缓存的内容。</p>
+        <div class="buttons">
+          <button onclick="location.reload()">重新加载</button>
+          <button class="secondary" onclick="location.href='/'">返回主页</button>
+        </div>
+      </div>
+    </body>
+    </html>
+  `, {
+    status: 200,
+    statusText: 'OK',
+    headers: new Headers({
+      'Content-Type': 'text/html; charset=utf-8'
+    })
+  });
+}
+
+// 处理缓存和网络请求的通用函数
+function handleRequest(request) {
+  return caches.match(request).then(cached => {
+    if (cached) {
+      return cached;
+    }
+    
+    return fetchWithTimeout(request, 5000).then(response => {
+      if (response.ok && response.status >= 200 && response.status < 300) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(request, clone);
+        });
+      }
+      return response;
+    }).catch(err => {
+      console.log('离线或网络超时:', request.url);
+      return createOfflineResponse();
+    });
+  });
 }
 
 // 接收消息 - 手动缓存和跳过等待
