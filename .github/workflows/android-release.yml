@@ -64,8 +64,12 @@ jobs:
       run: npx cap sync
       
     - name: 解码密钥库（如果配置了签名）
-      if: github.event.inputs.sign_apk == 'true' && secrets.KEYSTORE_BASE64 != ''
+      if: github.event.inputs.sign_apk == 'true'
       run: |
+        if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "⚠️ 未配置签名密钥，将构建未签名版本"
+          exit 0
+        fi
         echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > my-release-key.keystore
         cat > android/keystore.properties << EOF
         storeFile=../../my-release-key.keystore
