@@ -75,10 +75,10 @@ self.addEventListener('fetch', event => {
   let requestUrl = new URL(event.request.url);
   if (requestUrl.pathname.endsWith('/index.html')) {
     requestUrl.pathname = requestUrl.pathname.replace(/\/index\.html$/, '/');
+    // 创建规范化的请求，但不能使用 mode: 'navigate'
     const normalizedRequest = new Request(requestUrl.toString(), {
       method: event.request.method,
       headers: event.request.headers,
-      mode: event.request.mode,
       credentials: event.request.credentials,
       redirect: event.request.redirect
     });
