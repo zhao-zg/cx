@@ -203,12 +203,13 @@
     }, { passive: true });
     
     function handleSwipe() {
-        const swipeThreshold = 80; // 增加最小滑动距离
+        const swipeThreshold = 120; // 最小滑动距离（增加到120像素）
+        const verticalTolerance = 1.5; // 垂直容忍度：水平滑动必须是垂直滑动的1.5倍
         const diffX = touchStartX - touchEndX;
         const diffY = touchStartY - touchEndY;
         
-        // 只有当水平滑动距离大于垂直滑动距离时才触发翻页
-        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > swipeThreshold) {
+        // 只有当水平滑动距离明显大于垂直滑动距离，且超过阈值时才触发翻页
+        if (Math.abs(diffX) > Math.abs(diffY) * verticalTolerance && Math.abs(diffX) > swipeThreshold) {
             if (diffX > 0) {
                 // 向左滑动 - 下一页
                 nextBtn.click();
