@@ -1,7 +1,7 @@
 # 通用批量处理配置
 batch_processing:
   enabled: true
-  skip_existing: false  
+  skip_existing: false
   # specific_trainings: []  # 注释掉此行，默认生成所有可用训练
 
 # 全局配置
