@@ -130,7 +130,7 @@ jobs:
         }
         EOF
         
-        # 检查并更新 app/build.gradle 中的版本信息
+        # 确保 build.gradle 中有正确的版本信息
         if grep -q "versionCode" android/app/build.gradle; then
           sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
           sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" android/app/build.gradle
@@ -139,11 +139,16 @@ jobs:
           sed -i "/defaultConfig {/a\        versionCode $VERSION_CODE\n        versionName \"$VERSION\"" android/app/build.gradle
         fi
         
+        # 确保 namespace 存在（Android Gradle Plugin 7.0+ 需要）
+        if ! grep -q "namespace" android/app/build.gradle; then
+          sed -i "/android {/a\    namespace 'com.tehui.app'" android/app/build.gradle
+        fi
+        
         echo "✓ 版本配置完成: versionCode=$VERSION_CODE, versionName=$VERSION"
         
         # 显示配置结果
         echo "=== build.gradle 版本信息 ==="
-        grep -A 2 "versionCode\|versionName" android/app/build.gradle || echo "未找到版本信息"
+        grep -A 2 "versionCode\|versionName\|namespace" android/app/build.gradle || echo "未找到版本信息"
       
     - name: 构建在线版（空壳）
       run: |
@@ -218,13 +223,26 @@ jobs:
       run: |
         echo "=== 构建离线版 APK ==="
         
-        # 临时替换 output 为完整内容
-        mv output output-online
-        mv output-full output
+        # 备份原始配置
+        cp capacitor.config.json capacitor.config.json.bak
         
-        # 更新 capacitor 配置为离线版
-        sed -i 's/"appId": "com.tehui.app"/"appId": "com.tehui.offline"/' capacitor.config.json
-        sed -i 's/"appName": "TeHui"/"appName": "TeHui离线版"/' capacitor.config.json
+        # 创建离线版配置
+        cat > capacitor.config.json << 'EOF'
+        {
+          "appId": "com.tehui.offline",
+          "appName": "TeHui离线版",
+          "webDir": "output-full",
+          "bundledWebRuntime": false,
+          "server": {
+            "androidScheme": "https"
+          },
+          "android": {
+            "allowMixedContent": true,
+            "captureInput": true,
+            "webContentsDebuggingEnabled": false
+          }
+        }
+        EOF
         
         # 同步离线版
         npx cap sync
@@ -232,13 +250,31 @@ jobs:
         # 备份 android 目录为离线版
         cp -r android android-offline
         
-        # 恢复配置和目录
-        sed -i 's/"appId": "com.tehui.offline"/"appId": "com.tehui.app"/' capacitor.config.json
-        sed -i 's/"appName": "TeHui离线版"/"appName": "TeHui"/' capacitor.config.json
-        mv output output-full
-        mv output-online output
+        # 恢复原始配置
+        mv capacitor.config.json.bak capacitor.config.json
         
         echo "✓ 离线版准备完成"
+        
+    - name: 验证 Android 项目配置
+      run: |
+        echo "=== 验证在线版配置 ==="
+        if [ -f "android-online/app/src/main/AndroidManifest.xml" ]; then
+          echo "✓ 在线版 AndroidManifest.xml 存在"
+          grep "package=" android-online/app/src/main/AndroidManifest.xml || echo "⚠️ 未找到 package"
+        else
+          echo "✗ 在线版 AndroidManifest.xml 不存在"
+          exit 1
+        fi
+        
+        echo ""
+        echo "=== 验证离线版配置 ==="
+        if [ -f "android-offline/app/src/main/AndroidManifest.xml" ]; then
+          echo "✓ 离线版 AndroidManifest.xml 存在"
+          grep "package=" android-offline/app/src/main/AndroidManifest.xml || echo "⚠️ 未找到 package"
+        else
+          echo "✗ 离线版 AndroidManifest.xml 不存在"
+          exit 1
+        fi
         
     - name: 授予 Gradle 执行权限
       run: |
