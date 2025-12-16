@@ -147,6 +147,7 @@ function createOfflineResponse() {
 
 // 处理缓存和网络请求的通用函数
 function handleRequest(request) {
+  // 使用 caches.match() 而不是指定缓存名称，这样会搜索所有缓存
   return caches.match(request).then(cached => {
     if (cached) {
       return cached;
@@ -155,6 +156,7 @@ function handleRequest(request) {
     return fetchWithTimeout(request, 5000).then(response => {
       if (response.ok && response.status >= 200 && response.status < 300) {
         const clone = response.clone();
+        // 只将新请求的资源缓存到主缓存
         caches.open(CACHE_NAME).then(cache => {
           cache.put(request, clone);
         });

@@ -674,6 +674,7 @@
                                     
                                     if (response.ok && response.status >= 200 && response.status < 300) {
                                         successCount++;
+                                        console.log('缓存成功:', url);
                                         return cache.put(url, response.clone());
                                     } else if (response.type === 'opaqueredirect') {
                                         console.warn('遇到不透明重定向:', url);
