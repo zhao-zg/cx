@@ -168,33 +168,39 @@ jobs:
         echo "=== AndroidManifest.xml 内容 ==="
         cat android/app/src/main/AndroidManifest.xml
       
-    - name: 生成自签名密钥库
-      run: |
-        echo "=== 生成自签名密钥库 ==="
-        
-        # 生成密钥库（用于测试，密码简单）
-        keytool -genkey -v \
-          -keystore my-release-key.keystore \
-          -alias tehui \
-          -keyalg RSA \
-          -keysize 2048 \
-          -validity 10000 \
-          -storepass tehui123 \
-          -keypass tehui123 \
-          -dname "CN=TeHui, OU=Development, O=TeHui, L=City, ST=State, C=CN"
-        
-        echo "✓ 密钥库已生成"
-        
-    - name: 配置签名
+    - name: 配置签名密钥
       run: |
         echo "=== 配置 APK 签名 ==="
+        
+        # 从 Secrets 解码密钥库（如果存在）
+        if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "使用 GitHub Secrets 中的签名密钥"
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > my-release-key.keystore
+          STORE_PASSWORD="${{ secrets.KEYSTORE_PASSWORD }}"
+          KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
+          KEY_PASSWORD="${{ secrets.KEY_PASSWORD }}"
+        else
+          echo "⚠️ 未配置签名密钥，生成临时密钥（每次构建都不同）"
+          keytool -genkey -v \
+            -keystore my-release-key.keystore \
+            -alias tehui \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass tehui123 \
+            -keypass tehui123 \
+            -dname "CN=TeHui, OU=Development, O=TeHui, L=Beijing, ST=Beijing, C=CN"
+          STORE_PASSWORD="tehui123"
+          KEY_ALIAS="tehui"
+          KEY_PASSWORD="tehui123"
+        fi
         
         # 创建签名配置文件
         cat > android/keystore.properties << EOF
         storeFile=../my-release-key.keystore
-        storePassword=tehui123
-        keyAlias=tehui
-        keyPassword=tehui123
+        storePassword=$STORE_PASSWORD
+        keyAlias=$KEY_ALIAS
+        keyPassword=$KEY_PASSWORD
         EOF
         
         # 在 build.gradle 中添加签名配置
