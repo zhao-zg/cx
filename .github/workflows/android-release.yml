@@ -61,11 +61,11 @@ jobs:
         # 提取版本号
         VERSION=${GITHUB_REF#refs/tags/v}
         if [ -z "$VERSION" ]; then
-          VERSION="1.0.0"
+          VERSION="0.1.0"
         fi
         
         # 替换版本号并复制
-        sed "s/CURRENT_APK_VERSION: '1.0.0'/CURRENT_APK_VERSION: '$VERSION'/g" \
+        sed "s/CURRENT_APK_VERSION: '0.1.0'/CURRENT_APK_VERSION: '$VERSION'/g" \
           src/templates/app_index.html > output/index.html
         
         # 创建简单的 manifest.json
@@ -103,7 +103,7 @@ jobs:
         # 提取版本号
         VERSION=${GITHUB_REF#refs/tags/v}
         if [ -z "$VERSION" ]; then
-          VERSION="1.0.0"
+          VERSION="0.1.0"
         fi
         
         # 计算 versionCode (将 1.0.0 转换为 10000)
