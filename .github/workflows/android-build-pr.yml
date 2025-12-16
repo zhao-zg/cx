@@ -30,6 +30,11 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
         
+    - name: 安装 LibreOffice
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libreoffice
+        
     - name: 安装 Python 依赖
       run: |
         pip install -r requirements.txt
