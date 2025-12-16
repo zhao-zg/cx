@@ -1,5 +1,11 @@
 {
-  "remote_url": "https://zhao-zg.github.io/cx/",
+  "remote_urls": [
+    "https://cx.zhaozg.dpdns.org/",
+    "https://cx.zhaozg.cloudns.org/",
+    "https://cx.07170501.dynv6.net/",
+    "https://cx.xzdjx.dynv6.net/",
+    "https://zhao-zg.github.io/cx/"
+  ],
   "app_name": "特会信息",
   "app_id": "com.conference.info",
   "version": "1.0.0"

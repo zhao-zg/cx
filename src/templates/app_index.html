@@ -141,17 +141,81 @@
     <script>
         // 配置
         const CONFIG = {
-            // 远程内容地址（GitHub Pages 或其他静态托管）
-            // 请在构建时替换为实际地址
-            REMOTE_URL: 'https://YOUR_USERNAME.github.io/YOUR_REPO/',
+            // 多个远程内容地址（按优先级排序）
+            REMOTE_URLS: [
+                'https://cx.zhaozg.dpdns.org/',
+                'https://cx.zhaozg.cloudns.org/',
+                'https://cx.07170501.dynv6.net/',
+                'https://cx.xzdjx.dynv6.net/',
+                'https://zhao-zg.github.io/cx/'
+            ],
             // 本地存储键
             STORAGE_KEY: 'cx_content_version',
+            STORAGE_URL_KEY: 'cx_selected_url',
             // 点击次数触发更新检查
-            CLICK_COUNT_TRIGGER: 10
+            CLICK_COUNT_TRIGGER: 10,
+            // 连接超时时间（毫秒）
+            TIMEOUT: 5000
         };
+        
+        // 获取当前使用的 URL
+        function getCurrentUrl() {
+            const saved = localStorage.getItem(CONFIG.STORAGE_URL_KEY);
+            if (saved && CONFIG.REMOTE_URLS.includes(saved)) {
+                return saved;
+            }
+            return CONFIG.REMOTE_URLS[0];
+        }
+        
+        // 设置当前 URL
+        function setCurrentUrl(url) {
+            localStorage.setItem(CONFIG.STORAGE_URL_KEY, url);
+        }
+        
+        // 测试 URL 是否可用
+        async function testUrl(url, timeout = CONFIG.TIMEOUT) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            
+            try {
+                const response = await fetch(url + 'version.json?t=' + Date.now(), {
+                    signal: controller.signal,
+                    method: 'HEAD'
+                });
+                clearTimeout(timeoutId);
+                return response.ok;
+            } catch (error) {
+                clearTimeout(timeoutId);
+                return false;
+            }
+        }
+        
+        // 查找可用的 URL
+        async function findAvailableUrl() {
+            const currentUrl = getCurrentUrl();
+            
+            // 先测试当前 URL
+            if (await testUrl(currentUrl)) {
+                return currentUrl;
+            }
+            
+            // 测试其他 URL
+            for (const url of CONFIG.REMOTE_URLS) {
+                if (url === currentUrl) continue;
+                
+                if (await testUrl(url)) {
+                    setCurrentUrl(url);
+                    return url;
+                }
+            }
+            
+            // 都不可用，返回第一个
+            return CONFIG.REMOTE_URLS[0];
+        }
         
         let clickCount = 0;
         let isUpdating = false;
+        let longPressTimer = null;
         
         // Logo 点击计数
         document.getElementById('logo').addEventListener('click', function() {
@@ -165,6 +229,86 @@
                 checkForUpdates(true);
             }
         });
+        
+        // Logo 长按显示服务器选择
+        document.getElementById('logo').addEventListener('touchstart', function(e) {
+            longPressTimer = setTimeout(() => {
+                showServerSelector();
+            }, 1000);
+        });
+        
+        document.getElementById('logo').addEventListener('touchend', function(e) {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        });
+        
+        document.getElementById('logo').addEventListener('mousedown', function(e) {
+            longPressTimer = setTimeout(() => {
+                showServerSelector();
+            }, 1000);
+        });
+        
+        document.getElementById('logo').addEventListener('mouseup', function(e) {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        });
+        
+        // 显示服务器选择器
+        function showServerSelector() {
+            const currentUrl = getCurrentUrl();
+            const urls = CONFIG.REMOTE_URLS;
+            
+            const html = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center;" id="serverSelector">
+                    <div style="background: white; border-radius: 12px; padding: 20px; max-width: 90%; max-height: 80%; overflow-y: auto;">
+                        <h3 style="color: #667eea; margin-bottom: 15px;">选择内容服务器</h3>
+                        ${urls.map((url, index) => `
+                            <div style="padding: 12px; margin: 8px 0; border: 2px solid ${url === currentUrl ? '#667eea' : '#ddd'}; border-radius: 8px; cursor: pointer; color: #333;" onclick="selectServer('${url}')">
+                                <div style="font-weight: ${url === currentUrl ? 'bold' : 'normal'}; color: ${url === currentUrl ? '#667eea' : '#333'};">
+                                    ${url === currentUrl ? '✓ ' : ''}服务器 ${index + 1}
+                                </div>
+                                <div style="font-size: 12px; color: #666; margin-top: 4px; word-break: break-all;">
+                                    ${url}
+                                </div>
+                            </div>
+                        `).join('')}
+                        <button style="width: 100%; padding: 12px; margin-top: 15px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;" onclick="closeServerSelector()">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
+        
+        // 选择服务器
+        window.selectServer = function(url) {
+            setCurrentUrl(url);
+            closeServerSelector();
+            
+            // 提示并重新加载
+            const updateInfo = document.getElementById('updateInfo');
+            const updateMsg = document.getElementById('updateMsg');
+            updateInfo.classList.add('show');
+            updateMsg.textContent = '已切换服务器，正在重新加载...';
+            
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        };
+        
+        // 关闭服务器选择器
+        window.closeServerSelector = function() {
+            const selector = document.getElementById('serverSelector');
+            if (selector) {
+                selector.remove();
+            }
+        };
         
         // 检查更新
         async function checkForUpdates(manual = false) {
@@ -180,8 +324,13 @@
             progressBar.style.width = '10%';
             
             try {
+                // 查找可用的服务器
+                const remoteUrl = await findAvailableUrl();
+                updateMsg.textContent = '连接到服务器...';
+                progressBar.style.width = '20%';
+                
                 // 获取远程版本信息
-                const response = await fetch(CONFIG.REMOTE_URL + 'version.json?t=' + Date.now());
+                const response = await fetch(remoteUrl + 'version.json?t=' + Date.now());
                 if (!response.ok) throw new Error('无法连接到服务器');
                 
                 const remoteVersion = await response.json();
@@ -194,7 +343,7 @@
                     progressBar.style.width = '50%';
                     
                     // 下载并缓存新内容
-                    await cacheContent(remoteVersion);
+                    await cacheContent(remoteVersion, remoteUrl);
                     
                     progressBar.style.width = '100%';
                     updateMsg.textContent = '更新完成！';
@@ -224,7 +373,7 @@
         }
         
         // 缓存内容
-        async function cacheContent(versionInfo) {
+        async function cacheContent(versionInfo, remoteUrl) {
             if (!('serviceWorker' in navigator)) return;
             
             const registration = await navigator.serviceWorker.ready;
@@ -232,9 +381,9 @@
             
             // 缓存主要文件
             const filesToCache = [
-                CONFIG.REMOTE_URL,
-                CONFIG.REMOTE_URL + 'index.html',
-                ...(versionInfo.files || [])
+                remoteUrl,
+                remoteUrl + 'index.html',
+                ...(versionInfo.files || []).map(f => remoteUrl + f)
             ];
             
             await cache.addAll(filesToCache);
@@ -248,33 +397,37 @@
             const errorMsg = document.getElementById('errorMsg');
             
             try {
+                // 查找可用的服务器
+                status.textContent = '正在连接服务器...';
+                const remoteUrl = await findAvailableUrl();
+                
                 // 首先尝试从缓存加载
                 const cache = await caches.open('cx-content');
-                const cachedResponse = await cache.match(CONFIG.REMOTE_URL + 'index.html');
+                const cachedResponse = await cache.match(remoteUrl + 'index.html');
                 
                 if (cachedResponse) {
                     // 有缓存，直接跳转
-                    window.location.href = CONFIG.REMOTE_URL + 'index.html';
+                    window.location.href = remoteUrl + 'index.html';
                     return;
                 }
                 
                 // 没有缓存，从网络加载
                 status.textContent = '首次加载，请稍候...';
                 
-                const response = await fetch(CONFIG.REMOTE_URL + 'index.html');
+                const response = await fetch(remoteUrl + 'index.html');
                 if (!response.ok) throw new Error('无法加载内容');
                 
                 // 缓存内容
-                await cache.put(CONFIG.REMOTE_URL + 'index.html', response.clone());
+                await cache.put(remoteUrl + 'index.html', response.clone());
                 
                 // 跳转
-                window.location.href = CONFIG.REMOTE_URL + 'index.html';
+                window.location.href = remoteUrl + 'index.html';
                 
             } catch (err) {
                 console.error('加载失败:', err);
                 spinner.style.display = 'none';
                 status.style.display = 'none';
-                errorMsg.textContent = '加载失败: ' + err.message;
+                errorMsg.textContent = '加载失败: ' + err.message + '\n\n长按 Logo 可切换服务器';
                 error.classList.add('show');
             }
         }

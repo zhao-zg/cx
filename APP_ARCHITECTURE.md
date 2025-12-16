@@ -23,9 +23,20 @@
 - 如果有新版本，自动下载并缓存
 
 ### 手动更新
-- 点击 Logo 图标 **10 次**
-- 触发强制更新检查
-- 显示更新进度
+- 点击 Logo 图标 **10 次** - 触发强制更新检查
+- **长按** Logo 图标 - 显示服务器选择器，可切换内容源
+
+### 多服务器支持
+应用内置多个内容服务器地址：
+1. https://cx.zhaozg.dpdns.org/
+2. https://cx.zhaozg.cloudns.org/
+3. https://cx.07170501.dynv6.net/
+4. https://cx.xzdjx.dynv6.net/
+5. https://zhao-zg.github.io/cx/
+
+- 自动选择最快的服务器
+- 长按 Logo 可手动切换
+- 自动故障转移
 
 ## 📂 文件结构
 
@@ -83,16 +94,24 @@ git push origin v1.0.1
 
 ### 修改远程内容地址
 
-编辑 `app_config.json`：
+编辑 `app_config.json`（仅用于文档说明，实际配置在 `src/templates/app_index.html` 中）：
 
 ```json
 {
-  "remote_url": "https://你的用户名.github.io/你的仓库/",
+  "remote_urls": [
+    "https://cx.zhaozg.dpdns.org/",
+    "https://cx.zhaozg.cloudns.org/",
+    "https://cx.07170501.dynv6.net/",
+    "https://cx.xzdjx.dynv6.net/",
+    "https://zhao-zg.github.io/cx/"
+  ],
   "app_name": "特会信息",
   "app_id": "com.conference.info",
   "version": "1.0.0"
 }
 ```
+
+要添加或修改服务器地址，编辑 `src/templates/app_index.html` 中的 `CONFIG.REMOTE_URLS` 数组。
 
 ### 启用 GitHub Pages
 

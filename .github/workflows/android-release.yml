@@ -58,12 +58,8 @@ jobs:
       run: |
         mkdir -p output
         
-        # 读取配置
-        REMOTE_URL=$(python3 -c "import json; print(json.load(open('app_config.json'))['remote_url'])")
-        
-        # 替换配置并复制
-        sed "s|https://YOUR_USERNAME.github.io/YOUR_REPO/|$REMOTE_URL|g" \
-          src/templates/app_index.html > output/index.html
+        # 直接复制（配置已内置在 HTML 中）
+        cp src/templates/app_index.html output/index.html
         
         # 创建简单的 manifest.json
         cat > output/manifest.json << 'EOF'
