@@ -150,16 +150,11 @@ function handleRequest(request) {
   // 使用 caches.match() 会搜索所有缓存（包括手动缓存的训练）
   return caches.match(request).then(cached => {
     if (cached) {
-      console.log('✅ 从缓存返回:', request.url);
+      console.log('从缓存返回:', request.url);
       return cached;
     }
     
-    console.log('❌ 缓存未命中，尝试网络:', request.url);
-    // 调试：列出所有缓存名称
-    caches.keys().then(keys => {
-      console.log('  当前缓存列表:', keys);
-    });
-    
+    console.log('缓存未命中，尝试网络:', request.url);
     return fetchWithTimeout(request, 5000).then(response => {
       if (response.ok && response.status >= 200 && response.status < 300) {
         const clone = response.clone();

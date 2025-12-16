@@ -529,8 +529,9 @@
             var images = [];
             try {
                 images = imagesData ? JSON.parse(imagesData) : [];
+                console.log('训练:', path, '图片数量:', images.length, '图片列表:', images);
             } catch (e) {
-                console.warn('解析图片数据失败:', e);
+                console.warn('解析图片数据失败:', e, 'imagesData:', imagesData);
             }
             var cacheKey = 'cx-' + path;
             var progressSpan = btn.parentElement.querySelector('.cache-progress');
@@ -564,21 +565,6 @@
             }
             
             checkCacheStatus();
-            
-            // 调试：双击按钮查看缓存内容
-            btn.addEventListener('dblclick', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                caches.open(cacheKey).then(function(cache) {
-                    return cache.keys();
-                }).then(function(requests) {
-                    console.log('=== 缓存内容 (' + cacheKey + ') ===');
-                    requests.forEach(function(request) {
-                        console.log(request.url);
-                    });
-                    console.log('=== 共 ' + requests.length + ' 项 ===');
-                });
-            });
             
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
