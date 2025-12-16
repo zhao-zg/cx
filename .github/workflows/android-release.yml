@@ -1,0 +1,93 @@
+name: 构建安卓APK
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送 v1.0.0 这样的标签时触发
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置 Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: 设置 Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 设置 Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: 安装 Python 依赖
+      run: |
+        pip install -r requirements.txt
+        
+    - name: 安装 Node.js 依赖
+      run: npm install
+      
+    - name: 生成静态网站
+      run: python main.py
+      
+    - name: 添加安卓平台
+      run: npx cap add android
+      
+    - name: 同步到安卓项目
+      run: npx cap sync
+      
+    - name: 授予 Gradle 执行权限
+      run: chmod +x android/gradlew
+      
+    - name: 构建 APK
+      run: |
+        cd android
+        ./gradlew assembleRelease
+        
+    - name: 重命名 APK
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        if [ -z "$VERSION" ]; then
+          VERSION=$(date +%Y%m%d-%H%M%S)
+        fi
+        mv android/app/build/outputs/apk/release/app-release-unsigned.apk \
+           lord-recovery-training-${VERSION}.apk
+        
+    - name: 上传 APK 到 Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apk
+        path: lord-recovery-training-*.apk
+        
+    - name: 创建 Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: lord-recovery-training-*.apk
+        body: |
+          ## 📱 安卓应用发布
+          
+          ### 安装说明
+          1. 下载下方的 APK 文件
+          2. 在安卓设备上启用"未知来源"安装
+          3. 安装 APK
+          
+          ### 更新内容
+          - 自动构建版本
+          - 包含最新的训练内容
+          
+          ### 技术信息
+          - 构建时间: ${{ github.event.head_commit.timestamp }}
+          - 提交: ${{ github.sha }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

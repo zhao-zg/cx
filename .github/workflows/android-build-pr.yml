@@ -1,0 +1,62 @@
+name: 测试构建APK
+
+on:
+  pull_request:
+    branches: [ main, master ]
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置 Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: 设置 Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 设置 Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: 安装 Python 依赖
+      run: |
+        pip install -r requirements.txt
+        
+    - name: 安装 Node.js 依赖
+      run: npm install
+      
+    - name: 生成静态网站
+      run: python main.py
+      
+    - name: 添加安卓平台
+      run: npx cap add android
+      
+    - name: 同步到安卓项目
+      run: npx cap sync
+      
+    - name: 授予 Gradle 执行权限
+      run: chmod +x android/gradlew
+      
+    - name: 构建 APK (测试)
+      run: |
+        cd android
+        ./gradlew assembleRelease
+        
+    - name: 上传测试 APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-apk
+        path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+        retention-days: 7

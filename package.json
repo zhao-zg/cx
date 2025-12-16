@@ -1,0 +1,19 @@
+{
+  "name": "lord-recovery-training",
+  "version": "1.0.0",
+  "description": "主恢复训练合集 - 安卓应用",
+  "scripts": {
+    "build": "python main.py",
+    "cap:init": "npx cap init",
+    "cap:add": "npx cap add android",
+    "cap:sync": "npx cap sync",
+    "cap:open": "npx cap open android",
+    "android:build": "npm run build && npm run cap:sync && cd android && ./gradlew assembleRelease",
+    "android:dev": "npm run build && npm run cap:sync && npm run cap:open"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^5.5.1",
+    "@capacitor/core": "^5.5.1",
+    "@capacitor/android": "^5.5.1"
+  }
+}
