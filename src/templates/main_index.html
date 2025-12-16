@@ -600,8 +600,8 @@
                                 // 重定向后的响应仍然是 'basic' 类型
                                 if (response.ok && response.status >= 200 && response.status < 300) {
                                     successCount++;
-                                    // 克隆响应，因为响应体只能读取一次
-                                    return cache.put(url, response.clone());
+                                    // 使用 response.url（实际请求的URL，已编码）而不是原始url
+                                    return cache.put(response.url, response.clone());
                                 } else if (response.type === 'opaqueredirect') {
                                     // 不透明重定向，无法访问内容
                                     console.warn('遇到不透明重定向:', url);
@@ -674,8 +674,9 @@
                                     
                                     if (response.ok && response.status >= 200 && response.status < 300) {
                                         successCount++;
-                                        console.log('缓存成功:', url);
-                                        return cache.put(url, response.clone());
+                                        console.log('缓存成功:', response.url);
+                                        // 使用 response.url（实际请求的URL，已编码）而不是原始url
+                                        return cache.put(response.url, response.clone());
                                     } else if (response.type === 'opaqueredirect') {
                                         console.warn('遇到不透明重定向:', url);
                                         loaded++;
