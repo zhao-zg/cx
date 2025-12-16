@@ -1,4 +1,4 @@
-// Service Worker for 主恢复训练合集
+// Service Worker for 特会信息合集
 const CACHE_VERSION = '{{ cache_version }}';
 const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
 

@@ -112,25 +112,25 @@ jobs:
         # 检查是否是签名版本
         if [ -f "android/app/build/outputs/apk/release/app-release.apk" ]; then
           mv android/app/build/outputs/apk/release/app-release.apk \
-             主恢复训练-v${VERSION}-signed.apk
+             特会信息-v${VERSION}-signed.apk
         else
           mv android/app/build/outputs/apk/release/app-release-unsigned.apk \
-             主恢复训练-v${VERSION}.apk
+             特会信息-v${VERSION}.apk
         fi
         
     - name: 上传 APK 到 Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: android-apk
-        path: 主恢复训练-*.apk
+        path: 特会信息-*.apk
         
     - name: 创建 Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: 主恢复训练-*.apk
+        files: 特会信息-*.apk
         body: |
-          ## 📱 主恢复训练 - 安卓应用
+          ## 📱 特会信息 - 安卓应用
           
           ### 📥 安装说明
           1. 下载下方的 APK 文件

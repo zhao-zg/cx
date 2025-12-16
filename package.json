@@ -1,7 +1,7 @@
 {
-  "name": "lord-recovery-training",
+  "name": "conference-info",
   "version": "1.0.0",
-  "description": "主恢复训练合集 - 安卓应用",
+  "description": "特会信息合集 - 安卓应用",
   "scripts": {
     "build": "python main.py",
     "cap:init": "npx cap init",

@@ -1,7 +1,7 @@
 {
-  "name": "主恢复训练合集",
-  "short_name": "训练合集",
-  "description": "主恢复训练合集 - 所有训练总览",
+  "name": "特会信息合集",
+  "short_name": "特会信息",
+  "description": "特会信息合集 - 所有训练总览",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",

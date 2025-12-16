@@ -1,6 +1,6 @@
 {
-  "appId": "com.lordrecovery.training",
-  "appName": "主恢复训练",
+  "appId": "com.conference.info",
+  "appName": "特会信息",
   "webDir": "output",
   "bundledWebRuntime": false,
   "server": {
