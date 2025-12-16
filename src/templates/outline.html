@@ -32,9 +32,11 @@
         {% macro render_section(section, depth=1, show_scripture=True, parent_id='') %}
         {% set section_id = parent_id ~ '-' ~ section.level if parent_id else section.level %}
         <div class="section" id="section-{{ section_id }}">
-            <div class="section-level{{ depth }}">
+            <div class="outline-item {{ section.level|outline_level_class }}">
                 {% if section.children %}
-                <button class="toggle-btn" onclick="toggleSection('subsection-{{ section_id }}')">{% if default_collapsed %}▶{% else %}▼{% endif %}</button>
+                <button class="toggle-btn{% if not default_collapsed %} expanded{% endif %}" onclick="toggleSection('subsection-{{ section_id }}')">
+                    <span class="toggle-icon"></span>
+                </button>
                 {% endif %}
                 {{ section.level }}　{{ section.title }}
                 {% if section.scripture and section.scripture.strip() and show_scripture %}
@@ -115,25 +117,7 @@
     display: block;
 }
 
-.toggle-btn {
-    background: none;
-    border: none;
-    color: var(--brand-1);
-    cursor: pointer;
-    font-size: 0.875em; /* 14px -> 0.875em */
-    min-width: 36px;
-    min-height: 36px;
-    padding: 6px;
-    margin-right: 5px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.toggle-btn:active {
-    color: var(--brand-2);
-}
+/* toggle-btn 样式已在 base.html 中定义 */
 
 .scripture-toggle-btn {
     background: rgba(102, 126, 234, 0.1);
@@ -215,7 +199,7 @@ window.addEventListener('DOMContentLoaded', function() {
             const scriptureElem = document.querySelector('.scripture');
             if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
 
-            const sections = document.querySelectorAll('.section-level1, .section-level2, .section-level3, .section-level4');
+            const sections = document.querySelectorAll('.section-level');
             sections.forEach(s => {
                 const t = s.textContent.trim();
                 if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
@@ -236,10 +220,10 @@ function toggleSection(id) {
 
     if (element.style.display === 'none' || element.style.display === '') {
         element.style.display = 'block';
-        if (button) button.textContent = '▼';
+        if (button) button.classList.add('expanded');
     } else {
         element.style.display = 'none';
-        if (button) button.textContent = '▶';
+        if (button) button.classList.remove('expanded');
     }
 }
 
