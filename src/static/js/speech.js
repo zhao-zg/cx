@@ -32,10 +32,6 @@
   }
 
   function init(options) {
-    if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
-      return;
-    }
-
     var getText = options && typeof options.getText === 'function' ? options.getText : null;
     if (!getText) return;
 
@@ -50,6 +46,36 @@
 
     if (!playPauseBtn || !rateSelect || !speechTime || !progressBar || !controlsDiv) {
       return;
+    }
+
+    // 检查是否支持语音合成
+    var speechSupported = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+    
+    // 始终显示控制栏（包含字体控制）
+    controlsDiv.style.display = 'flex';
+    
+    if (!speechSupported) {
+      // 不支持朗读时，隐藏朗读控件，显示提示信息
+      playPauseBtn.style.display = 'none';
+      progressBar.style.display = 'none';
+      rateSelect.style.display = 'none';
+      
+      // 将时间显示区域改为提示信息
+      speechTime.textContent = '浏览器不支持朗读';
+      speechTime.style.color = '#999';
+      speechTime.style.fontSize = '11px';
+      speechTime.style.textAlign = 'center';
+      speechTime.style.padding = '0';
+      speechTime.style.marginTop = '0';
+      
+      // 调整进度区域的布局，让提示居中
+      var progressSection = speechTime.parentElement;
+      if (progressSection) {
+        progressSection.style.justifyContent = 'center';
+        progressSection.style.alignItems = 'center';
+      }
+      
+      return; // 不初始化朗读功能
     }
 
     var playIcon = playPauseBtn.querySelector('.play-icon');
