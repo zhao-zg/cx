@@ -84,7 +84,7 @@ class HTMLGenerator:
             level_str: 纲目序号,如"壹","一","1","a","I","II","A","B"等
             
         Returns:
-            CSS类名: "level-1", "level-2", 或 "level-3"
+            CSS类名: "level-1", "level-2", "level-3", 或 "level-4"
         """
         if not level_str:
             return "level-1"
@@ -107,11 +107,15 @@ class HTMLGenerator:
         if all(c in '一二三四五六七八九十百' for c in level_str):
             return "level-2"
         
-        # 小写字母 a b c d e -> level-2 (中纲)
-        if len(level_str) == 1 and level_str.islower() and level_str.isalpha():
-            return "level-2"
-        
         # 数字 1 2 3 4 -> level-3 (小纲)
+        if level_str.isdigit():
+            return "level-3"
+        
+        # 小写字母 a b c d e -> level-4 (细纲)
+        if len(level_str) == 1 and level_str.islower() and level_str.isalpha():
+            return "level-4"
+        
+        # 其他情况默认为 level-3
         return "level-3"
     
     def generate_all(self, training_data: TrainingData):
