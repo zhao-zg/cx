@@ -24,34 +24,17 @@
         <div class="day-page" data-day="{{ loop.index }}" data-page="{{ loop.index0 }}" style="display: {% if loop.index0 == 0 %}block{% else %}none{% endif %};">
             {% if revival.outline %}
             <div class="outline-section">
-                {% for section in revival.outline %}
-                <div class="outline-item {{ section.level|outline_level_class }}">
-                    <span class="outline-level">{{ section.level }}</span>
-                    <span class="outline-text">{{ section.title }}</span>
-                    
-                    {% if section.children %}
-                    <div class="outline-children">
-                        {% for child in section.children %}
-                        <div class="outline-item {{ child.level|outline_level_class }}">
-                            <span class="outline-level">{{ child.level }}</span>
-                            <span class="outline-text">{{ child.title }}</span>
-                            
-                            {% if child.children %}
-                            <div class="outline-children">
-                                {% for grandchild in child.children %}
-                                <div class="outline-item {{ grandchild.level|outline_level_class }}">
-                                    <span class="outline-level">{{ grandchild.level }}</span>
-                                    <span class="outline-text">{{ grandchild.title }}</span>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
+                {% macro render_outline(items) %}
+                    {% for item in items %}
+                    <div class="outline-item {{ item.level|outline_level_class }}">
+                        {{ item.level }}　{{ item.title }}
                     </div>
+                    {% if item.children %}
+                        {{ render_outline(item.children) }}
                     {% endif %}
-                </div>
-                {% endfor %}
+                    {% endfor %}
+                {% endmacro %}
+                {{ render_outline(revival.outline) }}
             </div>
             {% endif %}
             

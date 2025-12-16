@@ -55,21 +55,22 @@
             .scripture,.scripture-verses{font-size:1.00em;padding:15px;line-height:1.6}
             .section{margin:20px 0}
         }
-        .section-level1,.outline-item.level-1{font-size:1.15em;font-weight:600;margin:15px 0 10px;color:#222;line-height:1.6;padding-left:4px;border-left:3px solid var(--brand)}
-        .section-level2,.outline-item.level-2{font-size:1.09em;font-weight:560;margin:12px 0 8px 18px;color:#333;line-height:1.6}
-        .section-level3,.outline-item.level-3{font-size:1.02em;font-weight:530;margin:10px 0 8px 18px;color:#444;line-height:1.6}
-        .section-level4,.outline-item.level-4{font-size:0.95em;font-weight:normal;margin:8px 0 6px 18px;color:#555;line-height:1.6}
+        .section-level1,.outline-item.level-1{font-size:1.15em;font-weight:600;margin:15px 0 10px;color:#222;line-height:1.6;margin-left:10px}
+        .section-level2,.outline-item.level-2{font-size:1.09em;font-weight:560;margin:12px 0 8px;color:#333;line-height:1.6;margin-left:20px}
+        .section-level3,.outline-item.level-3{font-size:1.02em;font-weight:530;margin:10px 0 8px;color:#444;line-height:1.6;margin-left:30px}
+        .section-level4,.outline-item.level-4{font-size:0.95em;font-weight:normal;margin:8px 0 6px;color:#555;line-height:1.6;margin-left:40px}
         .outline-item .outline-level,.outline-item .outline-text{display:inline}
         .outline-children{margin-left:0}
         .content-text{margin:16px 0;padding-left:8px;text-indent:2em;color:#4a5568;line-height:1.6;font-size:1.00em}
         @media(min-width:768px){
-            .content-text{padding-left:16px;font-size:1.05em}
-            .section-level1,.outline-item.level-1{margin:18px 0 16px;padding-left:5px;font-size:1.20em}
-            .section-level2,.outline-item.level-2{margin:15px 0 10px 16px;font-size:1.14em}
-            .section-level3,.outline-item.level-3{margin:12px 0 10px 16px;font-size:1.07em}
-            .section-level4,.outline-item.level-4{font-size:1.0em;margin:10px 0 8px 40px}
+            .content-text{padding-left:8px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.20em;margin-left:10px}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.14em;margin-left:24px}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:38px}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.0em;margin-left:52px}
         }
-        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:8px;margin-right:5px;min-height:44px;min-width:44px;border-radius:6px;vertical-align:middle;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-32px;top:2px}
         .toggle-btn:active{background:rgba(102,126,234,.1)}
         .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
         .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
