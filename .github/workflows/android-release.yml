@@ -273,9 +273,40 @@ jobs:
       run: |
         echo "=== 构建 APK ==="
         cd android
-        ./gradlew clean assembleRelease --stacktrace --info
+        
+        # 设置 Gradle 属性，增加下载超时时间
+        mkdir -p ~/.gradle
+        cat > ~/.gradle/gradle.properties << 'EOF'
+        org.gradle.daemon=false
+        org.gradle.parallel=true
+        org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m
+        systemProp.http.connectionTimeout=60000
+        systemProp.http.socketTimeout=60000
+        EOF
+        
+        # 构建 APK，添加重试机制
+        MAX_RETRIES=3
+        RETRY_COUNT=0
+        
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          echo "尝试构建 APK (第 $((RETRY_COUNT + 1)) 次)..."
+          
+          if ./gradlew clean assembleRelease --stacktrace --no-daemon; then
+            echo "✓ APK 构建成功"
+            cd ..
+            exit 0
+          else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+              echo "⚠️ 构建失败，30秒后重试..."
+              sleep 30
+            fi
+          fi
+        done
+        
+        echo "✗ APK 构建失败，已重试 $MAX_RETRIES 次"
         cd ..
-        echo "✓ APK 构建完成"
+        exit 1
         
     - name: 验证和重命名 APK
       run: |
