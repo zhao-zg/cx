@@ -214,10 +214,18 @@ jobs:
         
         echo "✓ 多架构配置完成"
         
+    - name: 显示构建配置
+      run: |
+        echo "=== Capacitor 配置 ==="
+        cat capacitor.config.json
+        echo ""
+        echo "=== Android Manifest ==="
+        cat android/app/src/main/AndroidManifest.xml | head -20
+        
     - name: 构建 APK
       run: |
         cd android
-        ./gradlew clean assembleRelease --stacktrace --info
+        ./gradlew clean assembleRelease --stacktrace
         
     - name: 验证 APK
       run: |
@@ -266,16 +274,24 @@ jobs:
               SIGN="-signed"
             fi
             
-            # 重命名
-            NEW_NAME="特会信息-APK-v${VERSION}-${ARCH}${SIGN}.apk"
-            mv "$apk" "../../../../../../$NEW_NAME"
-            echo "✓ 已重命名: $NEW_NAME"
+            # 重命名（使用英文避免编码问题）
+            NEW_NAME="TeHui-v${VERSION}-${ARCH}${SIGN}.apk"
+            cp "$apk" "../../../../../../$NEW_NAME"
+            echo "✓ 已重命名: $NEW_NAME ($(du -h "$apk" | cut -f1))"
           fi
         done
         
         cd ../../../../../../
         echo "=== 所有 APK 文件 ==="
-        ls -lh 特会信息-APK-*.apk
+        ls -lh TeHui-*.apk
+        
+        # 验证 APK 完整性
+        for apk in TeHui-*.apk; do
+          if [ -f "$apk" ]; then
+            echo "验证: $apk"
+            unzip -l "$apk" | head -20
+          fi
+        done
         
     - name: 生成在线内容包
       run: |
@@ -298,31 +314,31 @@ jobs:
         
         # 打包在线内容
         cd output
-        zip -r ../特会信息-在线内容包-v${VERSION}.zip .
+        zip -r ../TeHui-Content-v${VERSION}.zip .
         cd ..
         
         echo "✓ 在线内容包已生成"
-        ls -lh 特会信息-在线内容包-*.zip
+        ls -lh TeHui-Content-*.zip
         
     - name: 上传 APK 到 Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: android-apk
-        path: 特会信息-APK-*.apk
+        path: TeHui-*.apk
         
     - name: 上传在线内容包到 Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: online-content
-        path: 特会信息-在线内容包-*.zip
+        path: TeHui-Content-*.zip
         
     - name: 创建 Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          特会信息-APK-*.apk
-          特会信息-在线内容包-*.zip
+          TeHui-*.apk
+          TeHui-Content-*.zip
         body: |
           ## �  特会信息 ${{ github.ref_name }}
           
@@ -345,10 +361,18 @@ jobs:
           - 安装：启用"未知来源"后直接安装
           
           #### 2. 在线内容包（完整网站）
-          - 文件名：`特会信息-在线内容包-${{ github.ref_name }}.zip`
+          - 文件名：`TeHui-Content-${{ github.ref_name }}.zip`
           - 用途：部署到你的服务器
           - 内容：所有训练文档的 HTML 页面
           - 部署：解压后上传到服务器根目录
+          
+          ### ⚠️ 安装提示
+          
+          如果安装时提示"解析包出现问题"：
+          1. 确认下载完整（检查文件大小）
+          2. 尝试下载通用版
+          3. 清除旧版本后重新安装
+          4. 确保安卓版本 ≥ 5.1（API 22）
           
           ### 📝 版本信息
           - 版本号: ${{ github.ref_name }}
