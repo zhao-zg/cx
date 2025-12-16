@@ -145,8 +145,23 @@ jobs:
         echo "=== build.gradle 版本信息 ==="
         grep -A 2 "versionCode\|versionName" android/app/build.gradle || echo "未找到版本信息"
       
-    - name: 同步到安卓项目
-      run: npx cap sync
+    - name: 同步到安卓项目（在线版）
+      run: |
+        mv android-online android
+        npx cap sync
+        mv android android-online
+        echo "✓ 在线版同步完成"
+        
+    - name: 同步到安卓项目（离线版）
+      run: |
+        mv output output-temp
+        mv output-full output
+        mv android-offline android
+        npx cap sync
+        mv android android-offline
+        mv output output-full
+        mv output-temp output
+        echo "✓ 离线版同步完成"
       
     - name: 解码密钥库（如果配置了签名）
       if: github.event.inputs.sign_apk == 'true'
@@ -225,23 +240,36 @@ jobs:
         echo "=== build.gradle (app) ==="
         cat android/app/build.gradle | grep -A 5 "defaultConfig\|compileSdk\|minSdk\|targetSdk" || true
         
-    - name: 构建 APK
+    - name: 构建在线版 APK
       run: |
+        echo "=== 构建在线版 APK ==="
+        mv android-online android
         cd android
         ./gradlew clean assembleRelease --stacktrace
+        cd ..
+        mv android android-online
+        echo "✓ 在线版构建完成"
+        
+    - name: 构建离线版 APK
+      run: |
+        echo "=== 构建离线版 APK ==="
+        mv android-offline android
+        cd android
+        ./gradlew clean assembleRelease --stacktrace
+        cd ..
+        mv android android-offline
+        echo "✓ 离线版构建完成"
         
     - name: 验证 APK
       run: |
-        echo "=== 构建的 APK 文件 ==="
-        ls -lh android/app/build/outputs/apk/release/
+        echo "=== 在线版 APK ==="
+        ls -lh android-online/app/build/outputs/apk/release/
         
-        # 检查是否有 APK 文件
-        if [ -z "$(ls -A android/app/build/outputs/apk/release/*.apk 2>/dev/null)" ]; then
-          echo "✗ 没有找到 APK 文件"
-          exit 1
-        fi
+        echo ""
+        echo "=== 离线版 APK ==="
+        ls -lh android-offline/app/build/outputs/apk/release/
         
-        echo "✓ APK 构建成功"
+        echo "✓ 所有 APK 构建成功"
         
     - name: 重命名 APK
       run: |
@@ -250,48 +278,56 @@ jobs:
           VERSION=$(date +%Y%m%d-%H%M%S)
         fi
         
-        cd android/app/build/outputs/apk/release/
-        
-        # 重命名各个架构的 APK
+        # 处理在线版
+        cd android-online/app/build/outputs/apk/release/
         for apk in *.apk; do
           if [ -f "$apk" ]; then
-            # 提取架构信息
             if [[ "$apk" == *"arm64-v8a"* ]]; then
               ARCH="arm64"
             elif [[ "$apk" == *"armeabi-v7a"* ]]; then
               ARCH="arm32"
-            elif [[ "$apk" == *"x86_64"* ]]; then
-              ARCH="x86_64"
-            elif [[ "$apk" == *"x86"* ]]; then
-              ARCH="x86"
             elif [[ "$apk" == *"universal"* ]]; then
-              ARCH="通用版"
+              ARCH="universal"
             else
-              ARCH="未知"
+              ARCH="unknown"
             fi
             
-            # 检查是否签名
-            if [[ "$apk" == *"unsigned"* ]]; then
-              SIGN=""
-            else
-              SIGN="-signed"
-            fi
-            
-            # 重命名（使用英文避免编码问题）
-            NEW_NAME="TeHui-v${VERSION}-${ARCH}${SIGN}.apk"
+            NEW_NAME="TeHui-Online-v${VERSION}-${ARCH}.apk"
             cp "$apk" "../../../../../../$NEW_NAME"
-            echo "✓ 已重命名: $NEW_NAME ($(du -h "$apk" | cut -f1))"
+            echo "✓ 在线版: $NEW_NAME ($(du -h "$apk" | cut -f1))"
           fi
         done
-        
         cd ../../../../../../
+        
+        # 处理离线版
+        cd android-offline/app/build/outputs/apk/release/
+        for apk in *.apk; do
+          if [ -f "$apk" ]; then
+            if [[ "$apk" == *"arm64-v8a"* ]]; then
+              ARCH="arm64"
+            elif [[ "$apk" == *"armeabi-v7a"* ]]; then
+              ARCH="arm32"
+            elif [[ "$apk" == *"universal"* ]]; then
+              ARCH="universal"
+            else
+              ARCH="unknown"
+            fi
+            
+            NEW_NAME="TeHui-Offline-v${VERSION}-${ARCH}.apk"
+            cp "$apk" "../../../../../../$NEW_NAME"
+            echo "✓ 离线版: $NEW_NAME ($(du -h "$apk" | cut -f1))"
+          fi
+        done
+        cd ../../../../../../
+        
+        echo ""
         echo "=== 所有 APK 文件 ==="
         ls -lh TeHui-*.apk
         
-        # 验证 APK 完整性
+        # 验证 APK 完整性（只检查通用版）
         echo ""
         echo "=== APK 详细信息 ==="
-        for apk in TeHui-*.apk; do
+        for apk in TeHui-*-universal.apk; do
           if [ -f "$apk" ]; then
             echo "----------------------------------------"
             echo "文件: $apk"
@@ -315,26 +351,33 @@ jobs:
           fi
         done
         
-    - name: 生成在线内容包
+    - name: 生成完整内容（用于离线版）
       run: |
-        echo "=== 生成在线内容包 ==="
+        echo "=== 生成完整内容 ==="
         
         # 检查是否有 resource 文件夹
         if [ ! -d "resource" ] || [ -z "$(ls -A resource)" ]; then
           echo "⚠️ resource 文件夹为空，跳过内容生成"
-          mkdir -p output
-          echo "<h1>内容待添加</h1>" > output/index.html
+          mkdir -p output-full
+          echo "<h1>内容待添加</h1>" > output-full/index.html
         else
           python main.py
           python generate_version.py
+          
+          # 复制一份用于离线版
+          cp -r output output-full
         fi
         
+        echo "✓ 完整内容已生成"
+        du -sh output output-full
+        
+    - name: 打包在线内容包
+      run: |
         VERSION=${GITHUB_REF#refs/tags/v}
         if [ -z "$VERSION" ]; then
           VERSION=$(date +%Y%m%d-%H%M%S)
         fi
         
-        # 打包在线内容
         cd output
         zip -r ../TeHui-Content-v${VERSION}.zip .
         cd ..
@@ -342,11 +385,17 @@ jobs:
         echo "✓ 在线内容包已生成"
         ls -lh TeHui-Content-*.zip
         
-    - name: 上传 APK 到 Artifacts
+    - name: 上传在线版 APK 到 Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: android-apk
-        path: TeHui-*.apk
+        name: android-apk-online
+        path: TeHui-Online-*.apk
+        
+    - name: 上传离线版 APK 到 Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apk-offline
+        path: TeHui-Offline-*.apk
         
     - name: 上传在线内容包到 Artifacts
       uses: actions/upload-artifact@v4
@@ -359,7 +408,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          TeHui-*.apk
+          TeHui-Online-*.apk
+          TeHui-Offline-*.apk
           TeHui-Content-*.zip
         body: |
           ## �  特会信息 ${{ github.ref_name }}

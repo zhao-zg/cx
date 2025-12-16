@@ -36,9 +36,8 @@
 应用内置多个内容服务器地址：
 1. https://cx.zhaozg.dpdns.org/
 2. https://cx.zhaozg.cloudns.org/
-3. https://cx.07170501.dynv6.net/
-4. https://cx.xzdjx.dynv6.net/
-5. https://zhao-zg.github.io/cx/
+3. https://cx.xzdjx.dynv6.net/
+4. https://zhao-zg.github.io/cx/
 
 - **自动选择**最快的服务器
 - **长按 Logo** 可手动切换
@@ -108,7 +107,6 @@ git push origin v1.0.1
   "remote_urls": [
     "https://cx.zhaozg.dpdns.org/",
     "https://cx.zhaozg.cloudns.org/",
-    "https://cx.07170501.dynv6.net/",
     "https://cx.xzdjx.dynv6.net/",
     "https://zhao-zg.github.io/cx/"
   ],
