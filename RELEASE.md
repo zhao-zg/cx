@@ -6,21 +6,30 @@
 
 ## 📋 发布方式
 
-### 方式 1: 未签名 APK（快速发布）
+### 方式 1: 发布版本（推荐）
 
-适用于测试和内部分发。
+只在发布正式版本时才构建 APK，平时的代码提交不会触发构建。
 
 ```bash
-# 创建并推送标签
+# 创建并推送版本标签（必须是 v1.0.0 这样的格式）
 git tag v1.0.0
 git push origin v1.0.0
+
+# GitHub Actions 会自动构建并发布 APK
 ```
 
-### 方式 2: 签名 APK（正式发布）
+### 方式 2: 手动触发（可选签名）
 
-适用于公开发布和应用商店。
+适用于临时构建或需要签名的版本。
 
-#### 首次配置（只需一次）
+1. 进入 GitHub 仓库的 Actions 页面
+2. 选择 "构建安卓APK"
+3. 点击 "Run workflow"
+4. 选择是否签名并运行
+
+### 签名配置（可选）
+
+如果需要签名版本（用于应用商店），首次需要配置：
 
 1. **生成密钥库**
 
@@ -31,8 +40,6 @@ keytool -genkey -v -keystore my-release-key.keystore \
   -keysize 2048 \
   -validity 10000
 ```
-
-记住你设置的密码和别名！
 
 2. **转换为 Base64**
 
@@ -46,27 +53,16 @@ base64 my-release-key.keystore > keystore.txt
 
 3. **在 GitHub 设置 Secrets**
 
-进入仓库 Settings > Secrets and variables > Actions，添加以下 secrets：
+进入仓库 Settings > Secrets and variables > Actions，添加：
 
-- `KEYSTORE_BASE64`: keystore.txt 的内容（整个文件内容）
+- `KEYSTORE_BASE64`: keystore.txt 的内容
 - `KEYSTORE_PASSWORD`: 密钥库密码
-- `KEY_ALIAS`: 密钥别名（例如 my-key-alias）
+- `KEY_ALIAS`: 密钥别名
 - `KEY_PASSWORD`: 密钥密码
 
-4. **发布签名版本**
+4. **手动触发并选择签名**
 
-```bash
-# 创建并推送 release 标签
-git tag release-v1.0.0
-git push origin release-v1.0.0
-```
-
-### 方式 3: 手动触发构建
-
-1. 进入 GitHub 仓库的 Actions 页面
-2. 选择 "构建安卓APK"
-3. 点击 "Run workflow"
-4. 选择是否签名并运行
+在 Actions 页面手动触发工作流，选择"是否签名APK"为 true
 
 ## 📦 构建产物
 
@@ -84,8 +80,11 @@ git push origin release-v1.0.0
 
 ### 版本号规则
 
-- `v1.0.0` - 未签名测试版
-- `release-v1.0.0` - 签名正式版
+使用语义化版本号：`v主版本.次版本.修订号`
+
+- `v1.0.0` - 第一个正式版本
+- `v1.1.0` - 新增功能
+- `v1.1.1` - 修复bug
 
 ### 更新版本号
 
@@ -157,12 +156,11 @@ apksigner verify --print-certs your-app.apk
 
 ## 📊 工作流说明
 
-### android-release.yml（唯一工作流）
-- 触发方式：
-  - 推送 `v*` 标签 → 构建未签名 APK
-  - 推送 `release-v*` 标签 → 构建签名 APK（需配置密钥）
-  - 手动触发 → 可选择是否签名
-- 自动发布到 GitHub Releases
+### android-release.yml
+- **自动触发**：推送 `v*.*.*` 格式的标签（如 v1.0.0, v2.1.3）
+- **手动触发**：在 Actions 页面手动运行，可选择是否签名
+- **输出**：自动发布到 GitHub Releases
+- **特点**：只在发布版本时构建，不影响日常开发
 
 ## 🎯 最佳实践
 
