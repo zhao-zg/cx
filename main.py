@@ -295,6 +295,12 @@ def main():
     print("="*60)
     print()
     
+    # 导入版本生成模块
+    try:
+        from generate_version import generate_version_file
+    except ImportError:
+        generate_version_file = None
+    
     # 加载配置
     try:
         config = load_config()
@@ -461,6 +467,15 @@ def main():
     if failed_count > 0:
         print(f"✗ 失败: {failed_count} 个批次")
     print(f"\n所有输出文件位于: {config['output_dir']}/")
+    
+    # 生成版本信息文件
+    if generate_version_file:
+        try:
+            print("\n生成版本信息...")
+            generate_version_file(config['output_dir'])
+        except Exception as e:
+            print(f"⚠ 版本信息生成失败: {e}")
+    
     print("="*60)
     
     return 0 if failed_count == 0 else 1

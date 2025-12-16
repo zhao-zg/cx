@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="特会信息 - 加载中">
+    <meta name="theme-color" content="#667eea">
+    <title>特会信息</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .logo {
+            font-size: 64px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .loading {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-top: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .error.show {
+            display: block;
+        }
+        
+        .btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .update-info {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            font-size: 14px;
+        }
+        
+        .update-info.show {
+            display: block;
+        }
+        
+        .progress {
+            background: rgba(255, 255, 255, 0.2);
+            height: 4px;
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            background: white;
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo" id="logo">📖</div>
+        <h1>特会信息</h1>
+        <div class="loading" id="status">正在加载...</div>
+        <div class="spinner" id="spinner"></div>
+        
+        <div class="error" id="error">
+            <p id="errorMsg">加载失败</p>
+            <button class="btn" onclick="location.reload()">重试</button>
+        </div>
+        
+        <div class="update-info" id="updateInfo">
+            <p id="updateMsg">检查更新中...</p>
+            <div class="progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 配置
+        const CONFIG = {
+            // 远程内容地址（GitHub Pages 或其他静态托管）
+            // 请在构建时替换为实际地址
+            REMOTE_URL: 'https://YOUR_USERNAME.github.io/YOUR_REPO/',
+            // 本地存储键
+            STORAGE_KEY: 'cx_content_version',
+            // 点击次数触发更新检查
+            CLICK_COUNT_TRIGGER: 10
+        };
+        
+        let clickCount = 0;
+        let isUpdating = false;
+        
+        // Logo 点击计数
+        document.getElementById('logo').addEventListener('click', function() {
+            if (isUpdating) return;
+            
+            clickCount++;
+            console.log('点击次数:', clickCount);
+            
+            if (clickCount >= CONFIG.CLICK_COUNT_TRIGGER) {
+                clickCount = 0;
+                checkForUpdates(true);
+            }
+        });
+        
+        // 检查更新
+        async function checkForUpdates(manual = false) {
+            if (isUpdating) return;
+            isUpdating = true;
+            
+            const updateInfo = document.getElementById('updateInfo');
+            const updateMsg = document.getElementById('updateMsg');
+            const progressBar = document.getElementById('progressBar');
+            
+            updateInfo.classList.add('show');
+            updateMsg.textContent = '检查更新中...';
+            progressBar.style.width = '10%';
+            
+            try {
+                // 获取远程版本信息
+                const response = await fetch(CONFIG.REMOTE_URL + 'version.json?t=' + Date.now());
+                if (!response.ok) throw new Error('无法连接到服务器');
+                
+                const remoteVersion = await response.json();
+                const localVersion = localStorage.getItem(CONFIG.STORAGE_KEY);
+                
+                progressBar.style.width = '30%';
+                
+                if (localVersion !== remoteVersion.version || manual) {
+                    updateMsg.textContent = '发现新版本，正在下载...';
+                    progressBar.style.width = '50%';
+                    
+                    // 下载并缓存新内容
+                    await cacheContent(remoteVersion);
+                    
+                    progressBar.style.width = '100%';
+                    updateMsg.textContent = '更新完成！';
+                    
+                    // 保存版本号
+                    localStorage.setItem(CONFIG.STORAGE_KEY, remoteVersion.version);
+                    
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    progressBar.style.width = '100%';
+                    updateMsg.textContent = '已是最新版本';
+                    setTimeout(() => {
+                        updateInfo.classList.remove('show');
+                        isUpdating = false;
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('更新检查失败:', error);
+                updateMsg.textContent = '更新检查失败: ' + error.message;
+                setTimeout(() => {
+                    updateInfo.classList.remove('show');
+                    isUpdating = false;
+                }, 3000);
+            }
+        }
+        
+        // 缓存内容
+        async function cacheContent(versionInfo) {
+            if (!('serviceWorker' in navigator)) return;
+            
+            const registration = await navigator.serviceWorker.ready;
+            const cache = await caches.open('cx-content-' + versionInfo.version);
+            
+            // 缓存主要文件
+            const filesToCache = [
+                CONFIG.REMOTE_URL,
+                CONFIG.REMOTE_URL + 'index.html',
+                ...(versionInfo.files || [])
+            ];
+            
+            await cache.addAll(filesToCache);
+        }
+        
+        // 加载内容
+        async function loadContent() {
+            const status = document.getElementById('status');
+            const spinner = document.getElementById('spinner');
+            const error = document.getElementById('error');
+            const errorMsg = document.getElementById('errorMsg');
+            
+            try {
+                // 首先尝试从缓存加载
+                const cache = await caches.open('cx-content');
+                const cachedResponse = await cache.match(CONFIG.REMOTE_URL + 'index.html');
+                
+                if (cachedResponse) {
+                    // 有缓存，直接跳转
+                    window.location.href = CONFIG.REMOTE_URL + 'index.html';
+                    return;
+                }
+                
+                // 没有缓存，从网络加载
+                status.textContent = '首次加载，请稍候...';
+                
+                const response = await fetch(CONFIG.REMOTE_URL + 'index.html');
+                if (!response.ok) throw new Error('无法加载内容');
+                
+                // 缓存内容
+                await cache.put(CONFIG.REMOTE_URL + 'index.html', response.clone());
+                
+                // 跳转
+                window.location.href = CONFIG.REMOTE_URL + 'index.html';
+                
+            } catch (err) {
+                console.error('加载失败:', err);
+                spinner.style.display = 'none';
+                status.style.display = 'none';
+                errorMsg.textContent = '加载失败: ' + err.message;
+                error.classList.add('show');
+            }
+        }
+        
+        // 页面加载时执行
+        window.addEventListener('load', function() {
+            // 自动检查更新（静默）
+            checkForUpdates(false);
+            
+            // 加载内容
+            setTimeout(loadContent, 1000);
+        });
+    </script>
+</body>
+</html>

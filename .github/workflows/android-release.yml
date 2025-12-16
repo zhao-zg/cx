@@ -54,8 +54,35 @@ jobs:
     - name: 安装 Node.js 依赖
       run: npm install
       
-    - name: 生成静态网站
-      run: python main.py
+    - name: 创建应用启动页
+      run: |
+        mkdir -p output
+        
+        # 读取配置
+        REMOTE_URL=$(python3 -c "import json; print(json.load(open('app_config.json'))['remote_url'])")
+        
+        # 替换配置并复制
+        sed "s|https://YOUR_USERNAME.github.io/YOUR_REPO/|$REMOTE_URL|g" \
+          src/templates/app_index.html > output/index.html
+        
+        # 创建简单的 manifest.json
+        cat > output/manifest.json << 'EOF'
+        {
+          "name": "特会信息",
+          "short_name": "特会信息",
+          "start_url": "./",
+          "display": "standalone",
+          "background_color": "#667eea",
+          "theme_color": "#667eea",
+          "icons": [
+            {
+              "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23667eea' width='100' height='100' rx='20'/><text x='50' y='65' font-size='40' text-anchor='middle' fill='white'>特</text></svg>",
+              "sizes": "any",
+              "type": "image/svg+xml"
+            }
+          ]
+        }
+        EOF
       
     - name: 添加安卓平台
       run: npx cap add android

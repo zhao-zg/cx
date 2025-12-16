@@ -1,0 +1,53 @@
+name: 部署网站内容
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'resource/**'
+      - 'src/**'
+      - 'main.py'
+      - 'config.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置 Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: 安装 LibreOffice
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libreoffice
+        
+    - name: 安装 Python 依赖
+      run: |
+        pip install -r requirements.txt
+        
+    - name: 生成静态网站
+      run: python main.py
+      
+    - name: 生成版本信息
+      run: python generate_version.py
+      
+    - name: 部署到 GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./output
+        publish_branch: gh-pages
+        force_orphan: true
