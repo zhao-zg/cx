@@ -5,20 +5,18 @@ const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
 // 获取 Service Worker 的基础 URL
 const BASE_URL = self.location.origin + self.location.pathname.replace(/\/[^\/]*$/, '/');
 
-// 初始安装时只缓存核心资源（主页和各训练目录页）
+// 初始安装时只缓存核心资源（仅主页）
 const CORE_RESOURCES = [
   BASE_URL,  // 主页 (/)，访问 /index.html 时会自动规范化为 /
   BASE_URL + 'manifest.json',
-{% for training in trainings %}
-  BASE_URL + '{{ training.path }}/',  // 训练目录页，访问 /path/index.html 时会自动规范化为 /path/
-  BASE_URL + '{{ training.path }}/manifest.json',
-{% endfor %}
 ];
 
 // 所有资源列表（用于手动缓存）
 const ALL_RESOURCES = [
   ...CORE_RESOURCES,
 {% for training in trainings %}
+  BASE_URL + '{{ training.path }}/',  // 训练目录页
+  BASE_URL + '{{ training.path }}/manifest.json',
   BASE_URL + '{{ training.path }}/js/speech.js',
   BASE_URL + '{{ training.path }}/js/font-control.js',
 {% for i in range(1, training.chapter_count + 1) %}
