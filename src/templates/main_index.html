@@ -565,6 +565,21 @@
             
             checkCacheStatus();
             
+            // 调试：双击按钮查看缓存内容
+            btn.addEventListener('dblclick', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                caches.open(cacheKey).then(function(cache) {
+                    return cache.keys();
+                }).then(function(requests) {
+                    console.log('=== 缓存内容 (' + cacheKey + ') ===');
+                    requests.forEach(function(request) {
+                        console.log(request.url);
+                    });
+                    console.log('=== 共 ' + requests.length + ' 项 ===');
+                });
+            });
+            
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
