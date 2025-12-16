@@ -168,40 +168,62 @@ jobs:
         echo "=== AndroidManifest.xml 内容 ==="
         cat android/app/src/main/AndroidManifest.xml
       
-    - name: 解码密钥库（如果配置了签名）
-      if: github.event.inputs.sign_apk == 'true'
+    - name: 生成自签名密钥库
       run: |
-        if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-          echo "⚠️ 未配置签名密钥，将构建未签名版本"
-          exit 0
-        fi
-        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > my-release-key.keystore
+        echo "=== 生成自签名密钥库 ==="
+        
+        # 生成密钥库（用于测试，密码简单）
+        keytool -genkey -v \
+          -keystore my-release-key.keystore \
+          -alias tehui \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -storepass tehui123 \
+          -keypass tehui123 \
+          -dname "CN=TeHui, OU=Development, O=TeHui, L=City, ST=State, C=CN"
+        
+        echo "✓ 密钥库已生成"
+        
+    - name: 配置签名
+      run: |
+        echo "=== 配置 APK 签名 ==="
+        
+        # 创建签名配置文件
         cat > android/keystore.properties << EOF
-        storeFile=../../my-release-key.keystore
-        storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-        keyAlias=${{ secrets.KEY_ALIAS }}
-        keyPassword=${{ secrets.KEY_PASSWORD }}
+        storeFile=../my-release-key.keystore
+        storePassword=tehui123
+        keyAlias=tehui
+        keyPassword=tehui123
         EOF
         
+        # 在 build.gradle 中添加签名配置
         cat >> android/app/build.gradle << 'EOF'
         
-        def keystorePropertiesFile = rootProject.file("keystore.properties")
+        def keystorePropertiesFile = rootProject.file("../keystore.properties")
         def keystoreProperties = new Properties()
         if (keystorePropertiesFile.exists()) {
             keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
             
-            android.signingConfigs {
-                release {
-                    storeFile file(keystoreProperties['storeFile'])
-                    storePassword keystoreProperties['storePassword']
-                    keyAlias keystoreProperties['keyAlias']
-                    keyPassword keystoreProperties['keyPassword']
+            android {
+                signingConfigs {
+                    release {
+                        storeFile file(keystoreProperties['storeFile'])
+                        storePassword keystoreProperties['storePassword']
+                        keyAlias keystoreProperties['keyAlias']
+                        keyPassword keystoreProperties['keyPassword']
+                    }
+                }
+                buildTypes {
+                    release {
+                        signingConfig signingConfigs.release
+                    }
                 }
             }
-            
-            android.buildTypes.release.signingConfig = android.signingConfigs.release
         }
         EOF
+        
+        echo "✓ 签名配置完成"
       
     - name: 授予 Gradle 执行权限
       run: chmod +x android/gradlew
