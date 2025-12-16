@@ -195,6 +195,25 @@ jobs:
         echo "=== build.gradle 内容（前50行）==="
         head -50 android/app/build.gradle
         
+    - name: 配置多架构构建
+      run: |
+        # 修改 build.gradle 支持多架构
+        cat >> android/app/build.gradle << 'EOF'
+        
+        android {
+            splits {
+                abi {
+                    enable true
+                    reset()
+                    include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+                    universalApk true
+                }
+            }
+        }
+        EOF
+        
+        echo "✓ 多架构配置完成"
+        
     - name: 构建 APK
       run: |
         cd android
@@ -202,14 +221,16 @@ jobs:
         
     - name: 验证 APK
       run: |
-        APK_PATH="android/app/build/outputs/apk/release/app-release-unsigned.apk"
-        if [ -f "$APK_PATH" ]; then
-          echo "✓ APK 构建成功"
-          ls -lh "$APK_PATH"
-        else
-          echo "✗ APK 文件不存在"
+        echo "=== 构建的 APK 文件 ==="
+        ls -lh android/app/build/outputs/apk/release/
+        
+        # 检查是否有 APK 文件
+        if [ -z "$(ls -A android/app/build/outputs/apk/release/*.apk 2>/dev/null)" ]; then
+          echo "✗ 没有找到 APK 文件"
           exit 1
         fi
+        
+        echo "✓ APK 构建成功"
         
     - name: 重命名 APK
       run: |
@@ -218,42 +239,143 @@ jobs:
           VERSION=$(date +%Y%m%d-%H%M%S)
         fi
         
-        # 检查是否是签名版本
-        if [ -f "android/app/build/outputs/apk/release/app-release.apk" ]; then
-          mv android/app/build/outputs/apk/release/app-release.apk \
-             特会信息-v${VERSION}-signed.apk
+        cd android/app/build/outputs/apk/release/
+        
+        # 重命名各个架构的 APK
+        for apk in *.apk; do
+          if [ -f "$apk" ]; then
+            # 提取架构信息
+            if [[ "$apk" == *"arm64-v8a"* ]]; then
+              ARCH="arm64"
+            elif [[ "$apk" == *"armeabi-v7a"* ]]; then
+              ARCH="arm32"
+            elif [[ "$apk" == *"x86_64"* ]]; then
+              ARCH="x86_64"
+            elif [[ "$apk" == *"x86"* ]]; then
+              ARCH="x86"
+            elif [[ "$apk" == *"universal"* ]]; then
+              ARCH="通用版"
+            else
+              ARCH="未知"
+            fi
+            
+            # 检查是否签名
+            if [[ "$apk" == *"unsigned"* ]]; then
+              SIGN=""
+            else
+              SIGN="-signed"
+            fi
+            
+            # 重命名
+            NEW_NAME="特会信息-APK-v${VERSION}-${ARCH}${SIGN}.apk"
+            mv "$apk" "../../../../../../$NEW_NAME"
+            echo "✓ 已重命名: $NEW_NAME"
+          fi
+        done
+        
+        cd ../../../../../../
+        echo "=== 所有 APK 文件 ==="
+        ls -lh 特会信息-APK-*.apk
+        
+    - name: 生成在线内容包
+      run: |
+        echo "=== 生成在线内容包 ==="
+        
+        # 检查是否有 resource 文件夹
+        if [ ! -d "resource" ] || [ -z "$(ls -A resource)" ]; then
+          echo "⚠️ resource 文件夹为空，跳过内容生成"
+          mkdir -p output
+          echo "<h1>内容待添加</h1>" > output/index.html
         else
-          mv android/app/build/outputs/apk/release/app-release-unsigned.apk \
-             特会信息-v${VERSION}.apk
+          python main.py
+          python generate_version.py
         fi
+        
+        VERSION=${GITHUB_REF#refs/tags/v}
+        if [ -z "$VERSION" ]; then
+          VERSION=$(date +%Y%m%d-%H%M%S)
+        fi
+        
+        # 打包在线内容
+        cd output
+        zip -r ../特会信息-在线内容包-v${VERSION}.zip .
+        cd ..
+        
+        echo "✓ 在线内容包已生成"
+        ls -lh 特会信息-在线内容包-*.zip
         
     - name: 上传 APK 到 Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: android-apk
-        path: 特会信息-*.apk
+        path: 特会信息-APK-*.apk
+        
+    - name: 上传在线内容包到 Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: online-content
+        path: 特会信息-在线内容包-*.zip
         
     - name: 创建 Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: 特会信息-*.apk
+        files: |
+          特会信息-APK-*.apk
+          特会信息-在线内容包-*.zip
         body: |
-          ## 📱 特会信息 - 安卓应用
+          ## �  特会信息 ${{ github.ref_name }}
           
-          ### 📥 安装说明
-          1. 下载下方的 APK 文件
-          2. 在安卓设备上启用"未知来源"安装
-          3. 安装 APK
+          ### 📦 下载说明
+          
+          #### 1. APK 包（应用壳 - 约 5-10 MB）
+          
+          根据你的设备选择对应的 APK：
+          
+          - **arm64** - 64位ARM设备（推荐，适用于大多数新手机）
+          - **arm32** - 32位ARM设备（老手机）
+          - **x86_64** - 64位x86设备（模拟器）
+          - **x86** - 32位x86设备（老模拟器）
+          - **通用版** - 包含所有架构（体积较大，兼容性最好）
+          
+          不确定选哪个？下载 **通用版** 或 **arm64** 版本。
+          
+          - 用途：安装到安卓设备
+          - 功能：提供应用框架，自动从服务器获取内容
+          - 安装：启用"未知来源"后直接安装
+          
+          #### 2. 在线内容包（完整网站）
+          - 文件名：`特会信息-在线内容包-${{ github.ref_name }}.zip`
+          - 用途：部署到你的服务器
+          - 内容：所有训练文档的 HTML 页面
+          - 部署：解压后上传到服务器根目录
           
           ### 📝 版本信息
-          - 版本: ${{ github.ref_name }}
-          - 签名状态: ${{ github.event.inputs.sign_apk == 'true' && '✅ 已签名' || '⚠️ 未签名' }}
+          - 版本号: ${{ github.ref_name }}
+          - 签名状态: ${{ github.event.inputs.sign_apk == 'true' && '✅ 已签名' || '⚠️ 未签名（测试版）' }}
           - 构建时间: ${{ github.event.head_commit.timestamp }}
           - 提交: ${{ github.sha }}
           
+          ### 🚀 使用流程
+          
+          1. **首次使用**
+             - 下载并安装 APK
+             - 下载在线内容包，部署到服务器
+             - 打开应用，自动从服务器加载内容
+          
+          2. **更新内容**
+             - 只需下载新的在线内容包
+             - 部署到服务器
+             - 应用会自动检测并更新
+             - 无需重新安装 APK
+          
+          3. **更新应用**
+             - 下载新的 APK
+             - 安装覆盖旧版本
+          
           ### 💡 提示
-          - 未签名版本适合测试使用
-          - 如需签名版本，请手动触发工作流并选择签名选项
+          - APK 很少需要更新
+          - 内容可以随时更新
+          - 支持多服务器部署
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
