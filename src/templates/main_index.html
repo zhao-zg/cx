@@ -662,7 +662,11 @@
                             resources.forEach(function(url) {
                                 var promise = fetch(url, {
                                     redirect: 'follow',
-                                    cache: 'no-cache'
+                                    cache: 'reload',  // 使用 reload 而不是 no-cache，强制从网络获取
+                                    headers: {
+                                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                        'Pragma': 'no-cache'
+                                    }
                                 }).then(function(response) {
                                     loaded++;
                                     var percent = Math.round((loaded / total) * 100);
