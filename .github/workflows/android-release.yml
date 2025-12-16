@@ -60,6 +60,44 @@ jobs:
     - name: 添加安卓平台
       run: npx cap add android
       
+    - name: 配置安卓项目版本信息
+      run: |
+        # 提取版本号
+        VERSION=${GITHUB_REF#refs/tags/v}
+        if [ -z "$VERSION" ]; then
+          VERSION="1.0.0"
+        fi
+        
+        # 计算 versionCode (将 1.0.0 转换为 10000)
+        IFS='.' read -ra PARTS <<< "$VERSION"
+        VERSION_CODE=$((${PARTS[0]} * 10000 + ${PARTS[1]:-0} * 100 + ${PARTS[2]:-0}))
+        
+        # 创建 variables.gradle
+        cat > android/variables.gradle << 'EOF'
+        ext {
+            minSdkVersion = 22
+            compileSdkVersion = 34
+            targetSdkVersion = 34
+            androidxActivityVersion = '1.8.0'
+            androidxAppCompatVersion = '1.6.1'
+            androidxCoordinatorLayoutVersion = '1.2.0'
+            androidxCoreVersion = '1.12.0'
+            androidxFragmentVersion = '1.6.2'
+            coreSplashScreenVersion = '1.0.1'
+            androidxWebkitVersion = '1.9.0'
+            junitVersion = '4.13.2'
+            androidxJunitVersion = '1.1.5'
+            androidxEspressoCoreVersion = '3.5.1'
+            cordovaAndroidVersion = '10.1.1'
+        }
+        EOF
+        
+        # 更新 app/build.gradle 中的版本信息
+        sed -i "s/versionCode 1/versionCode $VERSION_CODE/" android/app/build.gradle
+        sed -i "s/versionName \"1.0\"/versionName \"$VERSION\"/" android/app/build.gradle
+        
+        echo "✓ 版本配置完成: versionCode=$VERSION_CODE, versionName=$VERSION"
+      
     - name: 同步到安卓项目
       run: npx cap sync
       
@@ -104,7 +142,18 @@ jobs:
     - name: 构建 APK
       run: |
         cd android
-        ./gradlew assembleRelease
+        ./gradlew clean assembleRelease --stacktrace
+        
+    - name: 验证 APK
+      run: |
+        APK_PATH="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+        if [ -f "$APK_PATH" ]; then
+          echo "✓ APK 构建成功"
+          ls -lh "$APK_PATH"
+        else
+          echo "✗ APK 文件不存在"
+          exit 1
+        fi
         
     - name: 重命名 APK
       run: |
