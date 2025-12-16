@@ -191,11 +191,6 @@ jobs:
         }
         EOF
       
-    - name: 授予 Gradle 执行权限
-      run: |
-        chmod +x android-online/gradlew
-        chmod +x android-offline/gradlew
-        
     - name: 生成完整内容（离线版）
       run: |
         echo "=== 生成完整内容 ==="
@@ -244,6 +239,11 @@ jobs:
         mv output-online output
         
         echo "✓ 离线版准备完成"
+        
+    - name: 授予 Gradle 执行权限
+      run: |
+        chmod +x android-online/gradlew
+        chmod +x android-offline/gradlew
         
     - name: 构建在线版 APK
       run: |
