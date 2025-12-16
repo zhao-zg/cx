@@ -541,7 +541,15 @@
                 caches.open(cacheKey).then(function(cache) {
                     var resources = getTrainingResources(path, chapters, images);
                     return Promise.all(resources.map(function(url) {
-                        return cache.match(url);
+                        // 创建 Request 对象，让浏览器自动编码 URL
+                        // 这样可以匹配缓存时使用的 response.url（已编码）
+                        try {
+                            var request = new Request(url);
+                            return cache.match(request);
+                        } catch (e) {
+                            // 如果创建 Request 失败，直接用 URL 字符串
+                            return cache.match(url);
+                        }
                     })).then(function(responses) {
                         var cachedCount = responses.filter(function(r) { return r; }).length;
                         var total = resources.length;
