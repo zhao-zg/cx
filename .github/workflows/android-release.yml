@@ -68,24 +68,28 @@ jobs:
         sed "s/CURRENT_APK_VERSION: '0.1.0'/CURRENT_APK_VERSION: '$VERSION'/g" \
           src/templates/app_index.html > output/index.html
         
-        # 创建简单的 manifest.json
+        # 创建 manifest.json
         cat > output/manifest.json << 'EOF'
         {
-          "name": "特会信息",
-          "short_name": "特会信息",
-          "start_url": "./",
+          "name": "TeHui",
+          "short_name": "TeHui",
+          "start_url": "./index.html",
           "display": "standalone",
           "background_color": "#667eea",
           "theme_color": "#667eea",
           "icons": [
             {
               "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23667eea' width='100' height='100' rx='20'/><text x='50' y='65' font-size='40' text-anchor='middle' fill='white'>特</text></svg>",
-              "sizes": "any",
-              "type": "image/svg+xml"
+              "sizes": "512x512",
+              "type": "image/svg+xml",
+              "purpose": "any maskable"
             }
           ]
         }
         EOF
+        
+        echo "✓ 应用启动页已创建"
+        ls -lh output/
       
     - name: 添加安卓平台
       run: |
@@ -150,16 +154,19 @@ jobs:
         echo "=== build.gradle 版本信息 ==="
         grep -A 2 "versionCode\|versionName\|namespace" android/app/build.gradle || echo "未找到版本信息"
       
-    - name: 构建在线版（空壳）
+    - name: 同步 Capacitor
       run: |
-        echo "=== 构建在线版 APK ==="
+        echo "=== 同步 Capacitor ==="
+        npx cap sync android
+        echo "✓ 同步完成"
         
-        # 同步在线版（使用当前的 output，只有启动页）
-        npx cap sync
-        
-        # 备份 android 目录为在线版
-        cp -r android android-online
-        echo "✓ 在线版准备完成"
+        # 显示生成的文件
+        echo ""
+        echo "=== Android 项目结构 ==="
+        ls -la android/
+        echo ""
+        echo "=== AndroidManifest.xml 内容 ==="
+        cat android/app/src/main/AndroidManifest.xml
       
     - name: 解码密钥库（如果配置了签名）
       if: github.event.inputs.sign_apk == 'true'
@@ -196,218 +203,53 @@ jobs:
         }
         EOF
       
-    - name: 生成完整内容（离线版）
-      run: |
-        echo "=== 生成完整内容 ==="
-        
-        # 检查是否有 resource 文件夹
-        if [ ! -d "resource" ] || [ -z "$(ls -A resource)" ]; then
-          echo "⚠️ resource 文件夹为空，跳过完整内容生成"
-          mkdir -p output-full
-          cp output/index.html output-full/
-          cp output/manifest.json output-full/
-        else
-          # 生成完整的静态网站
-          python main.py
-          python generate_version.py
-          
-          # 复制到 output-full
-          cp -r output output-full
-        fi
-        
-        echo "✓ 完整内容已生成"
-        echo "在线版大小: $(du -sh output | cut -f1)"
-        echo "离线版大小: $(du -sh output-full | cut -f1)"
-        
-    - name: 构建离线版（完整内容）
-      run: |
-        echo "=== 构建离线版 APK ==="
-        
-        # 备份原始配置
-        cp capacitor.config.json capacitor.config.json.bak
-        
-        # 创建离线版配置
-        cat > capacitor.config.json << 'EOF'
-        {
-          "appId": "com.tehui.offline",
-          "appName": "TeHui离线版",
-          "webDir": "output-full",
-          "bundledWebRuntime": false,
-          "server": {
-            "androidScheme": "https"
-          },
-          "android": {
-            "allowMixedContent": true,
-            "captureInput": true,
-            "webContentsDebuggingEnabled": false
-          }
-        }
-        EOF
-        
-        # 同步离线版
-        npx cap sync
-        
-        # 备份 android 目录为离线版
-        cp -r android android-offline
-        
-        # 恢复原始配置
-        mv capacitor.config.json.bak capacitor.config.json
-        
-        echo "✓ 离线版准备完成"
-        
-    - name: 验证 Android 项目配置
-      run: |
-        echo "=== 验证在线版配置 ==="
-        if [ -f "android-online/app/src/main/AndroidManifest.xml" ]; then
-          echo "✓ 在线版 AndroidManifest.xml 存在"
-          grep "package=" android-online/app/src/main/AndroidManifest.xml || echo "⚠️ 未找到 package"
-        else
-          echo "✗ 在线版 AndroidManifest.xml 不存在"
-          exit 1
-        fi
-        
-        echo ""
-        echo "=== 验证离线版配置 ==="
-        if [ -f "android-offline/app/src/main/AndroidManifest.xml" ]; then
-          echo "✓ 离线版 AndroidManifest.xml 存在"
-          grep "package=" android-offline/app/src/main/AndroidManifest.xml || echo "⚠️ 未找到 package"
-        else
-          echo "✗ 离线版 AndroidManifest.xml 不存在"
-          exit 1
-        fi
-        
     - name: 授予 Gradle 执行权限
-      run: |
-        chmod +x android-online/gradlew
-        chmod +x android-offline/gradlew
+      run: chmod +x android/gradlew
         
-    - name: 构建在线版 APK
+    - name: 构建 APK
       run: |
-        echo "=== 构建在线版 APK ==="
-        cd android-online
-        ./gradlew clean assembleRelease --stacktrace
+        echo "=== 构建 APK ==="
+        cd android
+        ./gradlew clean assembleRelease --stacktrace --info
         cd ..
-        echo "✓ 在线版 APK 构建完成"
+        echo "✓ APK 构建完成"
         
-    - name: 构建离线版 APK
-      run: |
-        echo "=== 构建离线版 APK ==="
-        cd android-offline
-        ./gradlew clean assembleRelease --stacktrace
-        cd ..
-        echo "✓ 离线版 APK 构建完成"
-        
-    - name: 验证 APK
-      run: |
-        echo "=== 在线版 APK ==="
-        ls -lh android-online/app/build/outputs/apk/release/
-        
-        echo ""
-        echo "=== 离线版 APK ==="
-        ls -lh android-offline/app/build/outputs/apk/release/
-        
-        # 验证在线版
-        if [ -z "$(ls -A android-online/app/build/outputs/apk/release/*.apk 2>/dev/null)" ]; then
-          echo "✗ 在线版 APK 未找到"
-          exit 1
-        fi
-        
-        # 验证离线版
-        if [ -z "$(ls -A android-offline/app/build/outputs/apk/release/*.apk 2>/dev/null)" ]; then
-          echo "✗ 离线版 APK 未找到"
-          exit 1
-        fi
-        
-        echo "✓ 所有 APK 构建成功"
-        
-    - name: 重命名和收集 APK
+    - name: 验证和重命名 APK
       run: |
         VERSION=${GITHUB_REF#refs/tags/v}
         if [ -z "$VERSION" ]; then
           VERSION=$(date +%Y%m%d-%H%M%S)
         fi
         
-        echo "=== 处理在线版 APK ==="
-        cd android-online/app/build/outputs/apk/release/
+        echo "=== 构建的 APK ==="
+        ls -lh android/app/build/outputs/apk/release/
+        
+        if [ -z "$(ls -A android/app/build/outputs/apk/release/*.apk 2>/dev/null)" ]; then
+          echo "✗ 没有找到 APK 文件"
+          exit 1
+        fi
+        
+        cd android/app/build/outputs/apk/release/
         for apk in *.apk; do
           if [ -f "$apk" ]; then
-            NEW_NAME="TeHui-Online-v${VERSION}.apk"
+            NEW_NAME="TeHui-v${VERSION}.apk"
             cp "$apk" "../../../../../../$NEW_NAME"
-            echo "✓ 在线版: $NEW_NAME"
+            echo "✓ APK: $NEW_NAME"
             echo "  大小: $(du -h "$apk" | cut -f1)"
             echo "  MD5: $(md5sum "$apk" | cut -d' ' -f1)"
-            break
-          fi
-        done
-        cd ../../../../../../
-        
-        echo ""
-        echo "=== 处理离线版 APK ==="
-        cd android-offline/app/build/outputs/apk/release/
-        for apk in *.apk; do
-          if [ -f "$apk" ]; then
-            NEW_NAME="TeHui-Offline-v${VERSION}.apk"
-            cp "$apk" "../../../../../../$NEW_NAME"
-            echo "✓ 离线版: $NEW_NAME"
-            echo "  大小: $(du -h "$apk" | cut -f1)"
-            echo "  MD5: $(md5sum "$apk" | cut -d' ' -f1)"
-            break
-          fi
-        done
-        cd ../../../../../../
-        
-        echo ""
-        echo "=== 所有 APK 文件 ==="
-        ls -lh TeHui-*.apk
-        
-        # 验证 APK 完整性
-        echo ""
-        echo "=== APK 详细信息 ==="
-        for apk in TeHui-*.apk; do
-          if [ -f "$apk" ]; then
-            echo "----------------------------------------"
-            echo "文件: $apk"
-            echo "大小: $(du -h "$apk" | cut -f1)"
-            echo "MD5: $(md5sum "$apk" | cut -d' ' -f1)"
             
             # 使用 aapt 验证
-            if $ANDROID_HOME/build-tools/*/aapt dump badging "$apk" | head -5; then
-              echo "✓ APK 结构有效"
-            else
-              echo "✗ APK 结构无效"
-            fi
-            echo "----------------------------------------"
+            echo ""
+            echo "=== APK 信息 ==="
+            $ANDROID_HOME/build-tools/*/aapt dump badging "$apk" | head -10
+            break
           fi
         done
+        cd ../../../../../../
         
-    - name: 生成完整内容（用于离线版）
-      run: |
-        echo "=== 生成完整内容 ==="
-        
-        # 检查是否有 resource 文件夹
-        if [ ! -d "resource" ] || [ -z "$(ls -A resource)" ]; then
-          echo "⚠️ resource 文件夹为空，跳过内容生成"
-        else
-          python main.py
-          python generate_version.py
-        fi
-        
-        echo "✓ 完整内容已生成"
-        du -sh output
-        
-    - name: 打包内容包
-      run: |
-        VERSION=${GITHUB_REF#refs/tags/v}
-        if [ -z "$VERSION" ]; then
-          VERSION=$(date +%Y%m%d-%H%M%S)
-        fi
-        
-        cd output
-        zip -r ../TeHui-Content-v${VERSION}.zip .
-        cd ..
-        
-        echo "✓ 内容包已生成"
-        ls -lh TeHui-Content-*.zip
+        echo ""
+        echo "=== 最终 APK ==="
+        ls -lh TeHui-*.apk
         
     - name: 上传 APK 到 Artifacts
       uses: actions/upload-artifact@v4
@@ -415,43 +257,25 @@ jobs:
         name: android-apk
         path: TeHui-*.apk
         
-    - name: 上传内容包到 Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: content-package
-        path: TeHui-Content-*.zip
-        
     - name: 创建 Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
         files: |
           TeHui-*.apk
-          TeHui-Content-*.zip
         body: |
           ## �  特会信息 ${{ github.ref_name }}
           
           ### 📦 下载说明
           
-          #### 1. 在线版 APK（推荐，约 5-10 MB）
-          - 文件名：`TeHui-Online-${{ github.ref_name }}.apk`
-          - 特点：体积小，内容从服务器动态加载
-          - 优势：更新内容无需重装 APK
-          - 适合：网络条件好的用户
-          
-          #### 2. 离线版 APK（约 50-100 MB）
-          - 文件名：`TeHui-Offline-${{ github.ref_name }}.apk`
-          - 特点：包含所有内容，完全离线使用
-          - 优势：无需网络即可使用
-          - 适合：网络不稳定或需要离线使用的用户
-          
-          #### 3. 内容包（完整网站）
-          - 文件名：`TeHui-Content-${{ github.ref_name }}.zip`
-          - 用途：部署到你的服务器，供在线版使用
-          - 内容：所有训练文档的 HTML 页面
-          - 部署：解压后上传到服务器根目录
-          
-          > **注意**：两个 APK 包名不同，可以同时安装
+          #### APK 包（约 3-5 MB）
+          - 文件名：`TeHui-${{ github.ref_name }}.apk`
+          - 特点：轻量级应用壳，从服务器动态加载内容
+          - 功能：
+            - 支持多服务器切换（长按 Logo）
+            - 自动检查更新（点击 Logo 10 次）
+            - PWA 缓存，支持离线浏览
+          - 要求：安卓 5.1 或更高版本（API 22+）
           
           ### ⚠️ 安装提示
           
@@ -460,31 +284,24 @@ jobs:
           2. 清除旧版本后重新安装
           3. 确保安卓版本 ≥ 5.1（API 22）
           4. 尝试在设置中清除下载管理器的缓存
+          5. 检查是否启用了"未知来源"安装权限
           
           ### 📝 版本信息
           - 版本号: ${{ github.ref_name }}
+          - 包名: com.tehui.app
           - 签名状态: ${{ github.event.inputs.sign_apk == 'true' && '✅ 已签名' || '⚠️ 未签名（测试版）' }}
           - 构建时间: ${{ github.event.head_commit.timestamp }}
-          - 提交: ${{ github.sha }}
           
-          ### 🚀 使用流程
+          ### 🚀 使用说明
           
-          #### 方案一：在线版（推荐）
-          1. 下载并安装 `TeHui-Online-${{ github.ref_name }}.apk`
-          2. 下载内容包，部署到服务器
-          3. 打开应用，自动从服务器加载内容
-          4. 更新内容时，只需更新服务器上的内容包，无需重装 APK
-          
-          #### 方案二：离线版
-          1. 下载并安装 `TeHui-Offline-${{ github.ref_name }}.apk`
-          2. 打开应用，直接使用（无需网络）
-          3. 更新内容时，需要重新下载并安装新版 APK
+          1. 下载并安装 APK
+          2. 打开应用，自动从服务器加载内容
+          3. 长按 Logo 可切换服务器
+          4. 点击 Logo 10 次可检查 APK 更新
+          5. 内容会自动缓存，支持离线浏览
           
           ### 💡 提示
-          - 在线版和离线版可以同时安装（包名不同）
-          - 在线版支持多服务器部署，长按 Logo 可切换服务器
-          - 点击 Logo 10 次可检查 APK 更新
-          - 在线版 APK 很少需要更新，主要更新内容包
-          - 离线版每次内容更新都需要重装 APK
+          - 这是测试版本，用于验证基础功能
+          - 如果安装成功，后续版本会添加离线版支持
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
