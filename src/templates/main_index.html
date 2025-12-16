@@ -530,9 +530,8 @@
             var images = [];
             try {
                 images = imagesData ? JSON.parse(imagesData) : [];
-                console.log('训练:', path, '图片数量:', images.length, '图片列表:', images);
             } catch (e) {
-                console.warn('解析图片数据失败:', e, 'imagesData:', imagesData);
+                console.warn('解析图片数据失败:', e);
             }
             var cacheKey = 'cx-' + path;
             var progressSpan = btn.parentElement.querySelector('.cache-progress');
@@ -676,7 +675,6 @@
                                     
                                     if (response.ok && response.status >= 200 && response.status < 300) {
                                         successCount++;
-                                        console.log('缓存成功:', response.url);
                                         // 使用 response.url（实际请求的URL，已编码）而不是原始url
                                         return cache.put(response.url, response.clone());
                                     } else if (response.type === 'opaqueredirect') {
