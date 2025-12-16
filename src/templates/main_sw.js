@@ -11,27 +11,6 @@ const CORE_RESOURCES = [
   BASE_URL + 'manifest.json',
 ];
 
-// 所有资源列表（用于手动缓存）
-const ALL_RESOURCES = [
-  ...CORE_RESOURCES,
-{% for training in trainings %}
-  BASE_URL + '{{ training.path }}/',  // 训练目录页
-  BASE_URL + '{{ training.path }}/js/speech.js',
-  BASE_URL + '{{ training.path }}/js/font-control.js',
-{% for i in range(1, training.chapter_count + 1) %}
-  BASE_URL + '{{ training.path }}/{{ i }}_cv.htm',
-  BASE_URL + '{{ training.path }}/{{ i }}_cx.htm',
-  BASE_URL + '{{ training.path }}/{{ i }}_sg.htm',
-  BASE_URL + '{{ training.path }}/{{ i }}_ts.htm',
-  BASE_URL + '{{ training.path }}/{{ i }}_zs.htm',
-  BASE_URL + '{{ training.path }}/{{ i }}_h.htm',
-{% endfor %}
-{% endfor %}
-{% for image_path in image_paths %}
-  BASE_URL + '{{ image_path }}',
-{% endfor %}
-];
-
 // 安装事件 - 只预缓存核心资源
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -188,23 +167,9 @@ function handleRequest(request) {
   });
 }
 
-// 接收消息 - 手动缓存和跳过等待
+// 接收消息 - 跳过等待
 self.addEventListener('message', event => {
-  if (event.data === 'cache-all') {
-    event.waitUntil(
-      caches.open(CACHE_NAME).then(cache => {
-        return cache.addAll(ALL_RESOURCES).then(() => {
-          self.clients.matchAll().then(clients => {
-            clients.forEach(client => client.postMessage({ type: 'cached', success: true }));
-          });
-        });
-      }).catch(err => {
-        self.clients.matchAll().then(clients => {
-          clients.forEach(client => client.postMessage({ type: 'cached', success: false, error: err.message }));
-        });
-      })
-    );
-  } else if (event.data && event.data.type === 'SKIP_WAITING') {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
