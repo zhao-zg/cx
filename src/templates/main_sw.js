@@ -45,21 +45,24 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// 请求拦截 - 网络优先策略
+// 请求拦截 - 缓存优先策略
 self.addEventListener('fetch', event => {
   event.respondWith(
-    fetch(event.request).then(response => {
-      if (response.ok && event.request.method === 'GET') {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, clone);
-        });
+    caches.match(event.request).then(cached => {
+      if (cached) {
+        return cached;
       }
-      return response;
-    }).catch(() => {
-      return caches.match(event.request).then(cached => {
-        return cached || caches.match('./index.html');
+      return fetch(event.request).then(response => {
+        if (response.ok && event.request.method === 'GET') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, clone);
+          });
+        }
+        return response;
       });
+    }).catch(() => {
+      return caches.match('./index.html');
     })
   );
 });

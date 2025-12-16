@@ -261,7 +261,7 @@
         }
         
         .hymn-number {
-            font-size: 0.875em; /* 14px -> 0.875em */
+            font-size: 0.875em;
             color: #666;
             margin: 12px 0;
             text-align: center;
@@ -271,7 +271,7 @@
         }
         
         .scripture {
-            font-size: 14px;
+            font-size: 0.875em;
             color: var(--text);
             margin: 15px 0;
             padding: 12px;
@@ -283,14 +283,14 @@
         
         @media (min-width: 768px) {
             .scripture {
-                font-size: 15px;
+                font-size: 0.9375em;
                 padding: 15px;
                 line-height: 1.8;
             }
         }
         
         .scripture-verses {
-            font-size: 14px;
+            font-size: 0.875em;
             color: #444;
             margin: 15px 0;
             padding: 12px;
@@ -302,7 +302,7 @@
         
         @media (min-width: 768px) {
             .scripture-verses {
-                font-size: 15px;
+                font-size: 0.9375em;
                 line-height: 1.8;
                 padding: 15px;
             }
@@ -323,7 +323,7 @@
         }
         
         .section-level1 {
-            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-size: 1em;
             font-weight: 600;
             margin: 15px 0 10px 0;
             color: #222;
@@ -334,14 +334,14 @@
         
         @media (min-width: 768px) {
             .section-level1 {
-                font-size: 1.0625em; /* 17px -> 1.0625em */
+                font-size: 1em;
                 margin: 18px 0 12px 0;
                 padding-left: 10px;
             }
         }
         
         .section-level2 {
-            font-size: 1em; /* 16px -> 1em */
+            font-size: 0.9375em;
             font-weight: 600;
             margin: 12px 0 8px 15px;
             color: #333;
@@ -350,13 +350,13 @@
         
         @media (min-width: 768px) {
             .section-level2 {
-                font-size: 1em; /* 16px -> 1em */
+                font-size: 0.9375em;
                 margin: 15px 0 10px 20px;
             }
         }
         
         .section-level3 {
-            font-size: 0.9375em; /* 15px -> 0.9375em */
+            font-size: 0.9375em;
             margin: 10px 0 8px 30px;
             color: #444;
             line-height: 1.7;
@@ -364,13 +364,13 @@
         
         @media (min-width: 768px) {
             .section-level3 {
-                font-size: 0.9375em; /* 15px -> 0.9375em */
+                font-size: 0.9375em;
                 margin: 12px 0 10px 40px;
             }
         }
         
         .section-level4 {
-            font-size: 0.9375em; /* 15px -> 0.9375em */
+            font-size: 0.9375em;
             margin: 8px 0 6px 45px;
             color: #555;
             line-height: 1.7;
@@ -378,7 +378,7 @@
         
         @media (min-width: 768px) {
             .section-level4 {
-                font-size: 0.875em; /* 14px -> 0.875em */
+                font-size: 0.875em;
                 margin: 10px 0 8px 60px;
             }
         }
@@ -389,7 +389,7 @@
             text-indent: 2em;
             color: #4a5568;
             line-height: 2.1;
-            font-size: 16px;
+            font-size: 1em;
         }
         
         .toggle-btn {
@@ -1636,7 +1636,7 @@ window.addEventListener('DOMContentLoaded', function() {
 }
 
 .day-title {
-    font-size: 17px;
+    font-size: 1.0625em;
     font-weight: bold;
     color: #2d3748;
     margin: 16px 0 14px 0;
@@ -1654,7 +1654,7 @@ window.addEventListener('DOMContentLoaded', function() {
 .outline-item {
     margin: 8px 0;
     color: #2d3748;
-    font-size: 16px;
+    font-size: 0.9375em;
     line-height: 1.8;
 }
 
@@ -1769,7 +1769,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
 .feeding-section h4,
 .reading-section h4 {
-    font-size: 17px;
+    font-size: 1.0625em;
     font-weight: 600;
     color: #2d3748;
     margin: 16px 0 12px 0;
@@ -1780,9 +1780,9 @@ window.addEventListener('DOMContentLoaded', function() {
 .content-paragraph {
     margin: 14px 0;
     text-indent: 2em;
-    line-height: 2.1;
+    line-height: 2.0;
     color: #4a5568;
-    font-size: 16px;
+    font-size: 0.9375em;
 }
 
 /* 翻页控制 */
@@ -1854,15 +1854,19 @@ window.addEventListener('DOMContentLoaded', function() {
         font-size: 0.9375em; /* 15px -> 0.9375em */
     }
     
-    .outline-item,
-    .content-paragraph {
-        font-size: 0.875em; /* 14px -> 0.875em */
+    .outline-item {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
         line-height: 1.8;
+    }
+    
+    .content-paragraph {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
+        line-height: 1.9;
     }
     
     .feeding-section h4,
     .reading-section h4 {
-        font-size: 0.875em; /* 14px -> 0.875em */
+        font-size: 0.9375em; /* 15px -> 0.9375em */
     }
     
     .page-controls {

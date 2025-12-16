@@ -261,7 +261,7 @@
         }
         
         .hymn-number {
-            font-size: 0.875em; /* 14px -> 0.875em */
+            font-size: 0.875em;
             color: #666;
             margin: 12px 0;
             text-align: center;
@@ -271,7 +271,7 @@
         }
         
         .scripture {
-            font-size: 14px;
+            font-size: 0.875em;
             color: var(--text);
             margin: 15px 0;
             padding: 12px;
@@ -283,14 +283,14 @@
         
         @media (min-width: 768px) {
             .scripture {
-                font-size: 15px;
+                font-size: 0.9375em;
                 padding: 15px;
                 line-height: 1.8;
             }
         }
         
         .scripture-verses {
-            font-size: 14px;
+            font-size: 0.875em;
             color: #444;
             margin: 15px 0;
             padding: 12px;
@@ -302,7 +302,7 @@
         
         @media (min-width: 768px) {
             .scripture-verses {
-                font-size: 15px;
+                font-size: 0.9375em;
                 line-height: 1.8;
                 padding: 15px;
             }
@@ -323,7 +323,7 @@
         }
         
         .section-level1 {
-            font-size: 1.0625em; /* 17px -> 1.0625em */
+            font-size: 1em;
             font-weight: 600;
             margin: 15px 0 10px 0;
             color: #222;
@@ -334,14 +334,14 @@
         
         @media (min-width: 768px) {
             .section-level1 {
-                font-size: 1.0625em; /* 17px -> 1.0625em */
+                font-size: 1em;
                 margin: 18px 0 12px 0;
                 padding-left: 10px;
             }
         }
         
         .section-level2 {
-            font-size: 1em; /* 16px -> 1em */
+            font-size: 0.9375em;
             font-weight: 600;
             margin: 12px 0 8px 15px;
             color: #333;
@@ -350,13 +350,13 @@
         
         @media (min-width: 768px) {
             .section-level2 {
-                font-size: 1em; /* 16px -> 1em */
+                font-size: 0.9375em;
                 margin: 15px 0 10px 20px;
             }
         }
         
         .section-level3 {
-            font-size: 0.9375em; /* 15px -> 0.9375em */
+            font-size: 0.9375em;
             margin: 10px 0 8px 30px;
             color: #444;
             line-height: 1.7;
@@ -364,13 +364,13 @@
         
         @media (min-width: 768px) {
             .section-level3 {
-                font-size: 0.9375em; /* 15px -> 0.9375em */
+                font-size: 0.9375em;
                 margin: 12px 0 10px 40px;
             }
         }
         
         .section-level4 {
-            font-size: 0.9375em; /* 15px -> 0.9375em */
+            font-size: 0.9375em;
             margin: 8px 0 6px 45px;
             color: #555;
             line-height: 1.7;
@@ -378,7 +378,7 @@
         
         @media (min-width: 768px) {
             .section-level4 {
-                font-size: 0.875em; /* 14px -> 0.875em */
+                font-size: 0.875em;
                 margin: 10px 0 8px 60px;
             }
         }
@@ -389,7 +389,7 @@
             text-indent: 2em;
             color: #4a5568;
             line-height: 2.1;
-            font-size: 16px;
+            font-size: 1em;
         }
         
         .toggle-btn {
@@ -1364,81 +1364,52 @@
 
 <style>
 .message-page {
-    padding: 0;
-}
-
-.scripture {
-    font-size: 15px;
-    color: #555;
-    margin: 0 0 20px 0;
-    padding: 12px 15px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 3px solid #667eea;
-    line-height: 1.8;
+    padding: 5px;
 }
 
 .message-content {
-    margin-top: 20px;
-    line-height: 2;
+    margin-top: 15px;
+    line-height: 1.8;
 }
 
-/* 章节结构样式 */
+/* 章节结构样式 - 与 details.html 统一 */
 .section {
-    margin: 25px 0;
+    margin-bottom: 18px;
+}
+
+.section-level1, .section-level2, .section-level3, .section-level4 {
+    font-weight: 600;
+    margin: 20px 0 12px 0;
+    line-height: 1.8;
+    color: #2d3748;
 }
 
 .section-level1 {
-    font-weight: 700;
-    font-size: 18px;
-    margin: 28px 0 18px 0;
-    padding: 14px 18px;
-    color: #1a202c;
-    line-height: 1.6;
-    background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf9 100%);
-    border-left: 5px solid #667eea;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    font-size: 1em;
+    color: #667eea;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
 }
 
 .section-level2 {
-    font-weight: 700;
-    font-size: 17px;
-    margin: 22px 0 14px 0;
-    padding: 12px 16px 12px 24px;
-    color: #2d3748;
-    line-height: 1.6;
-    background: #f8f9ff;
-    border-left: 4px solid #7c8df0;
-    border-radius: 6px;
+    font-size: 0.9375em;
+    padding-left: 10px;
+    border-left: 3px solid #667eea;
 }
 
 .section-level3 {
-    font-weight: 600;
-    font-size: 16px;
-    margin: 18px 0 12px 0;
-    padding: 10px 14px 10px 32px;
-    color: #374151;
-    line-height: 1.6;
-    background: #fafbff;
-    border-left: 3px solid #9ca9f0;
-    border-radius: 4px;
+    font-size: 0.9375em;
+    padding-left: 16px;
 }
 
 .section-level4 {
-    font-weight: 600;
-    font-size: 15px;
-    margin: 16px 0 10px 0;
-    padding: 8px 12px 8px 40px;
-    color: #4b5563;
-    line-height: 1.6;
-    background: #fcfcff;
-    border-left: 2px solid #b8c3f0;
+    font-size: 0.9375em;
+    padding-left: 24px;
+    color: #4a5568;
 }
 
 .section-content {
     margin: 12px 0 16px 0;
-    padding-left: 10px;
 }
 
 .subsections {
@@ -1446,74 +1417,12 @@
 }
 
 .message-text {
+    margin: 14px 0;
+    padding-left: 14px;
+    color: #4a5568;
     text-indent: 2em;
-    margin: 16px 0;
-    font-size: 16px;
-    color: #374151;
-    line-height: 2;
-    text-align: justify;
-    padding: 8px 12px;
-}
-
-/* 移动端优化 */
-@media (max-width: 767px) {
-    .section-level1 {
-        font-size: 17px;
-        padding: 12px 14px;
-        margin: 24px 0 16px 0;
-    }
-    
-    .section-level2 {
-        font-size: 16px;
-        padding: 10px 12px 10px 20px;
-        margin: 20px 0 12px 0;
-    }
-    
-    .section-level3 {
-        font-size: 15px;
-        padding: 8px 10px 8px 24px;
-        margin: 16px 0 10px 0;
-    }
-    
-    .section-level4 {
-        font-size: 14px;
-        padding: 6px 8px 6px 28px;
-        margin: 14px 0 8px 0;
-    }
-    
-    .message-text {
-        font-size: 15px;
-        line-height: 1.9;
-        padding: 6px 8px;
-        margin: 14px 0;
-    }
-    
-    .section-content {
-        padding-left: 5px;
-    }
-}
-
-/* 平板优化 */
-@media (min-width: 768px) and (max-width: 1024px) {
-    .section-level1 {
-        font-size: 18px;
-        padding: 13px 16px;
-    }
-    
-    .section-level2 {
-        font-size: 17px;
-        padding: 11px 14px 11px 22px;
-    }
-    
-    .section-level3 {
-        font-size: 16px;
-        padding: 9px 12px 9px 28px;
-    }
-    
-    .message-text {
-        font-size: 16px;
-        line-height: 2;
-    }
+    line-height: 2.0;
+    font-size: 0.9375em;
 }
 
 .no-content {
@@ -1521,30 +1430,21 @@
     font-style: italic;
     text-align: center;
     padding: 40px 20px;
-    font-size: 15px;
+    font-size: 0.9375em;
 }
 
 @media (min-width: 768px) {
     .message-page {
-        padding: 10px 0;
+        padding: 20px 0;
     }
     
     .message-content {
-        margin-top: 20px;
+        margin-top: 30px;
     }
     
-    .message-text {
-        margin: 15px 0;
-        font-size: 15px;
-        padding: 0;
+    .section {
+        margin-bottom: 30px;
     }
-    
-    .no-content {
-        padding: 50px 20px;
-    }
-}
-
-@media (max-width: 768px) {
 }
 </style>
 
@@ -1561,11 +1461,32 @@ window.addEventListener('DOMContentLoaded', function() {
             const scriptureElem = document.querySelector('.scripture');
             if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
 
-            const paragraphs = document.querySelectorAll('.message-text');
-            paragraphs.forEach(p => {
-                const t = p.textContent.trim();
-                if (t) text += t + '。';
+            // 获取所有 section 标题和内容
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => {
+                // 读取 section 标题
+                const levelElem = section.querySelector('.section-level1, .section-level2, .section-level3, .section-level4');
+                if (levelElem) {
+                    const t = levelElem.textContent.trim();
+                    if (t) text += t + '。';
+                }
+                // 读取 section 内容
+                const paragraphs = section.querySelectorAll(':scope > .section-content > .message-text');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
             });
+
+            // 如果没有 section 结构，直接读取所有 message-text
+            if (sections.length === 0) {
+                const paragraphs = document.querySelectorAll('.message-text');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
             return text;
         }
     });
