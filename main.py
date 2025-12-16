@@ -216,12 +216,22 @@ def generate_main_index(config, batch_results):
     total_chapters = 0
     
     for result in batch_results:
+        # 收集该训练的图片列表
+        training_images = []
+        training_dir = os.path.join(output_dir, result['name'])
+        images_dir = os.path.join(training_dir, 'images')
+        if os.path.exists(images_dir):
+            for filename in os.listdir(images_dir):
+                if filename.endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                    training_images.append(f"images/{filename}")
+        
         trainings.append({
             'year': result['year'],
             'season': result['season'],
             'title': result['title'],
             'chapter_count': result['chapter_count'],
-            'path': result['name']  # 相对路径
+            'path': result['name'],  # 相对路径
+            'images': training_images  # 图片列表
         })
         total_chapters += result['chapter_count']
     

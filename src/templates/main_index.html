@@ -346,7 +346,7 @@
                             </div>
                         </a>
                         <div class="training-cache">
-                            <button class="mini-cache-btn" data-training="{{ training.path }}" data-chapters="{{ training.chapter_count }}">
+                            <button class="mini-cache-btn" data-training="{{ training.path }}" data-chapters="{{ training.chapter_count }}" data-images="{{ training.images|tojson|escape }}">
                                 <span class="cache-icon">📥</span> <span class="cache-text">缓存</span>
                             </button>
                             <span class="cache-progress"></span>
@@ -498,7 +498,7 @@
         }
         
         // 生成单个训练的资源列表
-        function getTrainingResources(path, chapters) {
+        function getTrainingResources(path, chapters, images) {
             var resources = [
                 './' + path + '/',
                 './' + path + '/js/speech.js',
@@ -512,6 +512,12 @@
                 resources.push('./' + path + '/' + i + '_zs.htm');
                 resources.push('./' + path + '/' + i + '_h.htm');
             }
+            // 添加图片
+            if (images && images.length > 0) {
+                images.forEach(function(img) {
+                    resources.push('./' + path + '/' + img);
+                });
+            }
             return resources;
         }
         
@@ -519,13 +525,20 @@
         document.querySelectorAll('.mini-cache-btn').forEach(function(btn) {
             var path = btn.getAttribute('data-training');
             var chapters = parseInt(btn.getAttribute('data-chapters'), 10);
+            var imagesData = btn.getAttribute('data-images');
+            var images = [];
+            try {
+                images = imagesData ? JSON.parse(imagesData) : [];
+            } catch (e) {
+                console.warn('解析图片数据失败:', e);
+            }
             var cacheKey = 'cx-' + path;
             var progressSpan = btn.parentElement.querySelector('.cache-progress');
             
             // 检查是否已完全缓存
             function checkCacheStatus() {
                 caches.open(cacheKey).then(function(cache) {
-                    var resources = getTrainingResources(path, chapters);
+                    var resources = getTrainingResources(path, chapters, images);
                     return Promise.all(resources.map(function(url) {
                         return cache.match(url);
                     })).then(function(responses) {
@@ -560,7 +573,7 @@
                 var isRefresh = btn.classList.contains('refresh');
                 
                 btn.disabled = true;
-                var resources = getTrainingResources(path, chapters);
+                var resources = getTrainingResources(path, chapters, images);
                 var total = resources.length;
                 var loaded = 0;
                 
