@@ -539,20 +539,32 @@
             // 检查是否已完全缓存
             function checkCacheStatus() {
                 caches.open(cacheKey).then(function(cache) {
-                    var resources = getTrainingResources(path, chapters, images);
-                    return Promise.all(resources.map(function(url) {
-                        // 创建 Request 对象，让浏览器自动编码 URL
-                        // 这样可以匹配缓存时使用的 response.url（已编码）
-                        try {
-                            var request = new Request(url);
-                            return cache.match(request);
-                        } catch (e) {
-                            // 如果创建 Request 失败，直接用 URL 字符串
-                            return cache.match(url);
-                        }
-                    })).then(function(responses) {
-                        var cachedCount = responses.filter(function(r) { return r; }).length;
+                    // 获取缓存中的所有 URL
+                    return cache.keys().then(function(cachedRequests) {
+                        var cachedUrls = cachedRequests.map(function(req) { 
+                            return req.url; 
+                        });
+                        
+                        var resources = getTrainingResources(path, chapters, images);
                         var total = resources.length;
+                        
+                        // 检查每个资源是否在缓存中
+                        var cachedCount = 0;
+                        resources.forEach(function(url) {
+                            // 将相对 URL 转换为绝对 URL 进行比较
+                            var absoluteUrl = new URL(url, window.location.href).href;
+                            // 检查是否有匹配的缓存（考虑 URL 编码）
+                            var isCached = cachedUrls.some(function(cachedUrl) {
+                                // 比较解码后的 URL
+                                try {
+                                    return decodeURIComponent(cachedUrl) === decodeURIComponent(absoluteUrl) ||
+                                           cachedUrl === absoluteUrl;
+                                } catch (e) {
+                                    return cachedUrl === absoluteUrl;
+                                }
+                            });
+                            if (isCached) cachedCount++;
+                        });
                         
                         if (cachedCount === total) {
                             // 全部已缓存
