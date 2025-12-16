@@ -111,9 +111,37 @@ class Chapter:
         # 匹配：二1 或 十三14 或 二二1
         short_pattern = re.compile(r'^[一二三四五六七八九十\d]+[:：]?\d+([~～\-]\d+)?[\s　]+')
         
+        # 经文段落的最大长度（超过这个长度可能包含了正文内容）
+        MAX_SCRIPTURE_LENGTH = 800
+        
         for i, para in enumerate(paragraphs):
-            if full_pattern.match(para) or short_pattern.match(para):
-                scriptures.append(para)
+            # 检查是否匹配经文格式
+            if (full_pattern.match(para) or short_pattern.match(para)):
+                # 如果段落太长，可能包含了正文，需要分割
+                if len(para) > MAX_SCRIPTURE_LENGTH:
+                    # 尝试在段落中找到经文结束的位置
+                    # 通常经文后面会有"……"或者明显的正文开始标志
+                    split_markers = ['……但', '……然而', '……可是', '……这', '……那', '耶稣生在']
+                    split_pos = -1
+                    for marker in split_markers:
+                        pos = para.find(marker)
+                        if pos > 0:
+                            split_pos = pos
+                            break
+                    
+                    if split_pos > 0:
+                        # 分割段落：前半部分是经文，后半部分是正文
+                        scripture_part = para[:split_pos].strip()
+                        content_part = para[split_pos:].strip()
+                        scriptures.append(scripture_part)
+                        # 将剩余部分和后续段落作为正文
+                        content = [content_part] + paragraphs[i+1:]
+                        break
+                    else:
+                        # 无法分割，整段作为经文（可能是真的很长的经文）
+                        scriptures.append(para)
+                else:
+                    scriptures.append(para)
             else:
                 # 一旦遇到非经文段落，后面的都是正文
                 content = paragraphs[i:]
