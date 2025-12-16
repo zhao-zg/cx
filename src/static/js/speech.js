@@ -189,26 +189,6 @@
       utterance = new SpeechSynthesisUtterance(segmentText);
       utterance.lang = lang;
       utterance.rate = rate;
-      
-      // 尝试使用本地语音（如果可用）
-      try {
-        var voices = window.speechSynthesis.getVoices();
-        // 优先选择中文本地语音
-        var localVoice = voices.find(function(v) {
-          return v.lang.indexOf('zh') !== -1 && v.localService === true;
-        });
-        // 如果没有本地中文语音，选择任何中文语音
-        if (!localVoice) {
-          localVoice = voices.find(function(v) {
-            return v.lang.indexOf('zh') !== -1;
-          });
-        }
-        if (localVoice) {
-          utterance.voice = localVoice;
-        }
-      } catch (e) {
-        // 忽略语音选择错误，使用默认语音
-      }
 
       utterance.onstart = function () {
         isSeekingInternal = false;
@@ -275,46 +255,6 @@
 
     // Show controls on supported browsers
     controlsDiv.style.display = 'flex';
-    
-    // 预加载语音列表（某些浏览器需要这样做）
-    function logVoiceInfo() {
-      var voices = window.speechSynthesis.getVoices();
-      console.log('=== 语音合成诊断信息 ===');
-      console.log('在线状态:', navigator.onLine ? '在线' : '离线');
-      console.log('可用语音数量:', voices.length);
-      
-      var zhVoices = voices.filter(function(v) { return v.lang.indexOf('zh') !== -1; });
-      console.log('中文语音数量:', zhVoices.length);
-      
-      var localZhVoices = zhVoices.filter(function(v) { return v.localService === true; });
-      console.log('本地中文语音数量:', localZhVoices.length);
-      
-      if (localZhVoices.length > 0) {
-        console.log('本地中文语音列表:');
-        localZhVoices.forEach(function(v) {
-          console.log('  -', v.name, '(' + v.lang + ')');
-        });
-      } else {
-        console.log('⚠️ 没有本地中文语音，离线朗读可能不可用');
-      }
-      
-      if (!navigator.onLine && localZhVoices.length === 0) {
-        console.log('❌ 当前离线且无本地语音，朗读功能不可用');
-        console.log('💡 建议：');
-        console.log('  - iOS: 需要联网才能使用朗读');
-        console.log('  - Android: 在设置中下载中文语音包');
-        console.log('  - 桌面: 通常自带本地语音');
-      }
-      console.log('=======================');
-    }
-    
-    if (window.speechSynthesis.getVoices().length === 0) {
-      window.speechSynthesis.addEventListener('voiceschanged', function() {
-        logVoiceInfo();
-      }, { once: true });
-    } else {
-      logVoiceInfo();
-    }
 
     // Seek UI - 进度条拖动功能
     progressBar.addEventListener('mousedown', function() {
@@ -362,53 +302,8 @@
       }
     });
 
-    // 检查语音可用性
-    function checkVoiceAvailability() {
-      var voices = window.speechSynthesis.getVoices();
-      var hasLocalVoice = voices.some(function(v) {
-        return v.lang.indexOf('zh') !== -1 && v.localService === true;
-      });
-      var hasAnyVoice = voices.some(function(v) {
-        return v.lang.indexOf('zh') !== -1;
-      });
-      
-      return {
-        hasVoices: voices.length > 0,
-        hasLocalVoice: hasLocalVoice,
-        hasAnyVoice: hasAnyVoice,
-        voiceCount: voices.length
-      };
-    }
-    
     // Play / Pause
     playPauseBtn.addEventListener('click', function () {
-      // 检查是否离线
-      if (!navigator.onLine) {
-        var voiceInfo = checkVoiceAvailability();
-        
-        if (!voiceInfo.hasLocalVoice) {
-          // 离线且没有本地语音
-          if (speechTime) {
-            speechTime.textContent = '离线需本地语音';
-            speechTime.style.color = '#e53e3e';
-            setTimeout(function() {
-              speechTime.textContent = '00:00 / 00:00';
-              speechTime.style.color = '';
-            }, 3000);
-          }
-          // 仍然尝试播放，可能某些浏览器会工作
-        } else {
-          // 有本地语音，显示提示但继续
-          if (speechTime) {
-            speechTime.textContent = '使用本地语音';
-            speechTime.style.color = '#48bb78';
-            setTimeout(function() {
-              speechTime.style.color = '';
-            }, 2000);
-          }
-        }
-      }
-      
       if (!utterance || !fullText) {
         fullText = safeText(getText());
         if (!fullText) return;
