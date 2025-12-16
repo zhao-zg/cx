@@ -15,7 +15,8 @@
         
         {% if chapter.hymn_image %}
         <div class="hymn-image">
-            <img src="{{ chapter.hymn_image }}" alt="诗歌内容">
+            <img src="{{ chapter.hymn_image }}" alt="诗歌内容" class="hymn-img-clickable" onclick="openImageViewer(this.src)">
+            <p class="click-hint">👆 点击图片放大查看</p>
         </div>
         {% endif %}
     </div>
@@ -68,6 +69,89 @@
     margin: 0 auto;
     border-radius: 5px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.hymn-image img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.hymn-image img:active {
+    transform: scale(0.98);
+}
+
+.click-hint {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #999;
+    text-align: center;
+}
+
+/* 图片查看器 */
+.image-viewer-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    animation: fadeIn 0.2s;
+}
+
+.image-viewer-overlay.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.image-viewer-content {
+    max-width: 95%;
+    max-height: 95%;
+    position: relative;
+}
+
+.image-viewer-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    width: auto;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.image-viewer-close {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    font-size: 24px;
+    color: #333;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    z-index: 10000;
+}
+
+.image-viewer-close:active {
+    transform: scale(0.95);
+    background: rgba(255, 255, 255, 0.8);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .hymn-note {
@@ -146,4 +230,44 @@
 }
 </style>
 
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- 图片查看器 -->
+<div id="imageViewer" class="image-viewer-overlay" onclick="closeImageViewer(event)">
+    <button class="image-viewer-close" onclick="closeImageViewer(event)" aria-label="关闭">✕</button>
+    <div class="image-viewer-content">
+        <img id="viewerImage" src="" alt="诗歌内容">
+    </div>
+</div>
+
+<script>
+function openImageViewer(src) {
+    const viewer = document.getElementById('imageViewer');
+    const img = document.getElementById('viewerImage');
+    img.src = src;
+    viewer.classList.add('show');
+    document.body.style.overflow = 'hidden'; // 防止背景滚动
+}
+
+function closeImageViewer(event) {
+    // 只在点击背景或关闭按钮时关闭，不在点击图片时关闭
+    if (event.target.id === 'imageViewer' || event.target.classList.contains('image-viewer-close') || event.target.textContent === '✕') {
+        const viewer = document.getElementById('imageViewer');
+        viewer.classList.remove('show');
+        document.body.style.overflow = ''; // 恢复滚动
+    }
+}
+
+// ESC 键关闭
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const viewer = document.getElementById('imageViewer');
+        if (viewer.classList.contains('show')) {
+            viewer.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+    }
+});
+</script>
 {% endblock %}

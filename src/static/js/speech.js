@@ -163,6 +163,26 @@
       utterance = new SpeechSynthesisUtterance(segmentText);
       utterance.lang = lang;
       utterance.rate = rate;
+      
+      // 尝试使用本地语音（如果可用）
+      try {
+        var voices = window.speechSynthesis.getVoices();
+        // 优先选择中文本地语音
+        var localVoice = voices.find(function(v) {
+          return v.lang.indexOf('zh') !== -1 && v.localService === true;
+        });
+        // 如果没有本地中文语音，选择任何中文语音
+        if (!localVoice) {
+          localVoice = voices.find(function(v) {
+            return v.lang.indexOf('zh') !== -1;
+          });
+        }
+        if (localVoice) {
+          utterance.voice = localVoice;
+        }
+      } catch (e) {
+        // 忽略语音选择错误，使用默认语音
+      }
 
       utterance.onstart = function () {
         isSeekingInternal = false;
@@ -193,8 +213,24 @@
         }
         isSeekingInternal = false;
         console.error('朗读错误:', event);
+        
+        // 提供更友好的错误提示
+        var errorMsg = '错误';
+        if (err === 'network') {
+          errorMsg = '需要网络';
+        } else if (err === 'synthesis-unavailable') {
+          errorMsg = '语音不可用';
+        } else if (err === 'synthesis-failed') {
+          errorMsg = '播放失败';
+        }
+        
         resetState(false);
-        speechTime.textContent = '错误';
+        speechTime.textContent = errorMsg;
+        speechTime.style.color = '#e53e3e';
+        setTimeout(function() {
+          speechTime.textContent = '00:00 / 00:00';
+          speechTime.style.color = '';
+        }, 3000);
       };
 
       // 立即更新进度条显示
@@ -213,6 +249,13 @@
 
     // Show controls on supported browsers
     controlsDiv.style.display = 'flex';
+    
+    // 预加载语音列表（某些浏览器需要这样做）
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.addEventListener('voiceschanged', function() {
+        // 语音列表已加载
+      }, { once: true });
+    }
 
     // Seek UI - 进度条拖动功能
     progressBar.addEventListener('mousedown', function() {
@@ -262,6 +305,19 @@
 
     // Play / Pause
     playPauseBtn.addEventListener('click', function () {
+      // 检查是否离线（仅作为提示，不阻止尝试）
+      if (!navigator.onLine) {
+        // 显示提示但仍然尝试播放（某些设备可能有离线语音）
+        if (speechTime) {
+          var originalText = speechTime.textContent;
+          speechTime.textContent = '离线模式';
+          speechTime.style.color = '#ff9800';
+          setTimeout(function() {
+            speechTime.style.color = '';
+          }, 2000);
+        }
+      }
+      
       if (!utterance || !fullText) {
         fullText = safeText(getText());
         if (!fullText) return;
