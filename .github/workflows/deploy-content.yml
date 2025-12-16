@@ -6,7 +6,15 @@ on:
       - main
     paths:
       - 'resource/**'
-      - 'src/**'
+      - 'src/generator.py'
+      - 'src/models.py'
+      - 'src/parser.py'
+      - 'src/parser_improved.py'
+      - 'src/templates/base.html'
+      - 'src/templates/main_*.html'
+      - 'src/templates/morning_revival.html'
+      - 'src/templates/outline.html'
+      - 'src/templates/scripture.html'
       - 'main.py'
       - 'config.yaml'
   workflow_dispatch:
