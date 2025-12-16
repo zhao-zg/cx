@@ -16,6 +16,9 @@ on:
           - 'true'
           - 'false'
 
+permissions:
+  contents: write  # 允许创建 Release 和上传文件
+
 jobs:
   build:
     runs-on: ubuntu-latest
