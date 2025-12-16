@@ -210,24 +210,22 @@ jobs:
         echo "=== build.gradle 内容（前50行）==="
         head -50 android/app/build.gradle
         
+    - name: 检查 Cordova 文件
+      run: |
+        echo "=== 检查 output 目录 ==="
+        ls -lah output/
+        echo ""
+        echo "=== 检查关键文件 ==="
+        if [ -f "output/index.html" ]; then
+          echo "✓ index.html 存在 ($(du -h output/index.html | cut -f1))"
+        else
+          echo "✗ index.html 不存在"
+        fi
+        
     - name: 配置多架构构建
       run: |
-        # 修改 build.gradle 支持多架构
-        cat >> android/app/build.gradle << 'EOF'
-        
-        android {
-            splits {
-                abi {
-                    enable true
-                    reset()
-                    include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
-                    universalApk true
-                }
-            }
-        }
-        EOF
-        
-        echo "✓ 多架构配置完成"
+        # 只构建通用版，避免多架构问题
+        echo "✓ 使用默认配置（通用版）"
         
     - name: 显示构建配置
       run: |
@@ -324,10 +322,10 @@ jobs:
         echo "=== 所有 APK 文件 ==="
         ls -lh TeHui-*.apk
         
-        # 验证 APK 完整性（只检查通用版）
+        # 验证 APK 完整性
         echo ""
         echo "=== APK 详细信息 ==="
-        for apk in TeHui-*-universal.apk; do
+        for apk in TeHui-*.apk; do
           if [ -f "$apk" ]; then
             echo "----------------------------------------"
             echo "文件: $apk"
