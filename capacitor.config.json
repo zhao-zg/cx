@@ -4,11 +4,13 @@
   "webDir": "output",
   "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "hostname": "app.conference.info"
   },
   "android": {
     "allowMixedContent": true,
     "captureInput": true,
-    "webContentsDebuggingEnabled": true
+    "webContentsDebuggingEnabled": false,
+    "minWebViewVersion": 55
   }
 }
