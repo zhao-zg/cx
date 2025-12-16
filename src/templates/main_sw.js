@@ -30,7 +30,11 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        keys.filter(key => {
+          // 只删除旧版本的主缓存 (cx-main-*)
+          // 保留训练缓存 (cx-2025-*)
+          return key.startsWith('cx-main-') && key !== CACHE_NAME;
+        }).map(key => caches.delete(key))
       );
     }).then(() => {
       // 清理完成后立即接管所有客户端
