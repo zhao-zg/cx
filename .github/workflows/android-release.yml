@@ -246,31 +246,20 @@ jobs:
         cp my-release-key.keystore android/
         
         # 在 build.gradle 的 android 块中插入签名配置
-        # 找到 "android {" 行，在其后插入签名配置
-        awk '
-        /^android \{/ {
-            print
-            print "    signingConfigs {"
-            print "        release {"
-            print "            storeFile file(\"../my-release-key.keystore\")"
-            print "            storePassword \"tehui2024\""
-            print "            keyAlias \"tehui\""
-            print "            keyPassword \"tehui2024\""
-            print "        }"
-            print "    }"
-            next
-        }
-        /buildTypes \{/ {
-            print
-            getline
-            print
-            print "            signingConfig signingConfigs.release"
-            next
-        }
-        { print }
-        ' android/app/build.gradle > android/app/build.gradle.tmp
+        # 使用 sed 在 android { 后插入
+        sed -i '/^android {/a\
+    signingConfigs {\
+        release {\
+            storeFile file("../my-release-key.keystore")\
+            storePassword "tehui2024"\
+            keyAlias "tehui"\
+            keyPassword "tehui2024"\
+        }\
+    }' android/app/build.gradle
         
-        mv android/app/build.gradle.tmp android/app/build.gradle
+        # 在 release { 后插入 signingConfig
+        sed -i '/release {/a\
+            signingConfig signingConfigs.release' android/app/build.gradle
         
         echo "✓ 签名配置完成"
         echo ""
