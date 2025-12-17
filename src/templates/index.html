@@ -247,6 +247,22 @@
     }
 })();
 
+// 确保训练目录页面不注册 Service Worker
+// 如果有旧的 Service Worker 注册，注销它
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        registrations.forEach(function(registration) {
+            // 只注销当前作用域的 Service Worker（训练目录）
+            var scope = registration.scope;
+            var currentPath = window.location.pathname.replace(/\/[^\/]*$/, '/');
+            if (scope.includes(currentPath) && !scope.endsWith('/')) {
+                console.log('[训练目录] 注销错误的 Service Worker:', scope);
+                registration.unregister();
+            }
+        });
+    });
+}
+
 // 根据星期几决定跳转目标
 document.addEventListener('DOMContentLoaded', function() {
     var dayOfWeek = new Date().getDay(); // 0=周日, 1=周一, ..., 6=周六
