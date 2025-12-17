@@ -544,34 +544,39 @@
             html += '<strong>最新版本：</strong>' + release.tag_name;
             html += '</p>';
             
-            // 只在有新版本时显示下载按钮
-            if (comparison > 0 || currentVersion === '未知') {
-                if (onlineApk) {
-                    html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.open(\'' + onlineApk.browser_download_url + '\', \'_blank\')">';
-                    html += '🌐 下载在线版 (' + (onlineApk.size / 1024 / 1024).toFixed(1) + ' MB)';
-                    html += '</button>';
-                }
-                
-                if (offlineApk) {
-                    html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.open(\'' + offlineApk.browser_download_url + '\', \'_blank\')">';
-                    html += '💾 下载离线版 (' + (offlineApk.size / 1024 / 1024).toFixed(1) + ' MB)';
-                    html += '</button>';
-                }
-                
-                html += '<div style="background: #f5f5f5; padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 10px; line-height: 1.5;">';
-                html += '<strong>说明：</strong><br>';
-                html += '• 在线版：轻量级，需要网络<br>';
-                html += '• 离线版：完整内容，无需网络';
+            // 显示版本状态提示
+            if (comparison === 0) {
+                html += '<div style="background: #e6f7ed; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: #48bb78; margin-bottom: 15px;">';
+                html += '✨ 您使用的已经是最新版本';
                 html += '</div>';
-            } else if (comparison === 0) {
-                html += '<div style="background: #e6f7ed; padding: 12px; border-radius: 8px; font-size: 14px; text-align: center; color: #48bb78; margin-top: 10px;">';
-                html += '✨ 您使用的已经是最新版本！';
+            } else if (comparison > 0) {
+                html += '<div style="background: #fff3cd; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: #856404; margin-bottom: 15px;">';
+                html += '🎉 发现新版本可更新';
                 html += '</div>';
-            } else {
-                html += '<div style="background: #fff3cd; padding: 12px; border-radius: 8px; font-size: 13px; text-align: center; color: #856404; margin-top: 10px;">';
-                html += '⚠️ 您的版本比最新版本还新<br>可能是测试版本';
+            } else if (currentVersion !== '未知') {
+                html += '<div style="background: #fff3cd; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: #856404; margin-bottom: 15px;">';
+                html += '⚠️ 您的版本比最新版本还新（测试版）';
                 html += '</div>';
             }
+            
+            // 始终显示下载按钮（用户可能想下载另一个版本）
+            if (onlineApk) {
+                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.open(\'' + onlineApk.browser_download_url + '\', \'_blank\')">';
+                html += '🌐 下载在线版 (' + (onlineApk.size / 1024 / 1024).toFixed(1) + ' MB)';
+                html += '</button>';
+            }
+            
+            if (offlineApk) {
+                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.open(\'' + offlineApk.browser_download_url + '\', \'_blank\')">';
+                html += '💾 下载离线版 (' + (offlineApk.size / 1024 / 1024).toFixed(1) + ' MB)';
+                html += '</button>';
+            }
+            
+            html += '<div style="background: #f5f5f5; padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 5px; line-height: 1.5;">';
+            html += '<strong>说明：</strong><br>';
+            html += '• 在线版：轻量级（~5MB），需要网络<br>';
+            html += '• 离线版：完整内容（~50MB），无需网络';
+            html += '</div>';
             
             html += '</div>';
             html += '<button style="width: 100%; padding: 12px; background: #f0f0f0; color: #666; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="document.getElementById(\'apkUpdateDialog\').remove()">关闭</button>';
