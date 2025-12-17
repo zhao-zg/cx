@@ -4,7 +4,13 @@
   "webDir": "output",
   "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "allowNavigation": [
+      "https://cx.zhaozg.dpdns.org",
+      "https://cx.zhaozg.cloudns.org",
+      "https://cx.xzdjx.dynv6.net",
+      "https://zhao-zg.github.io"
+    ]
   },
   "android": {
     "allowMixedContent": true,

@@ -507,9 +507,9 @@
                 // 保存当前使用的 URL
                 localStorage.setItem('cx_remote_url', remoteUrl);
                 
-                // 直接跳转到远程 URL（让远程的 Service Worker 处理缓存）
+                // 在 WebView 内部加载远程 URL（不触发外部浏览器）
                 status.textContent = '正在加载内容...';
-                window.location.href = remoteUrl;
+                window.location.replace(remoteUrl);
                 
             } catch (err) {
                 console.error('加载失败:', err);
@@ -518,7 +518,7 @@
                 const lastUrl = localStorage.getItem('cx_remote_url');
                 if (lastUrl) {
                     console.log('尝试使用上次的 URL:', lastUrl);
-                    window.location.href = lastUrl;
+                    window.location.replace(lastUrl);
                     return;
                 }
                 
