@@ -18,11 +18,6 @@ on:
       - 'src/static/icons/**'
       - 'main.py'
       - 'config.yaml'
-    paths-ignore:
-      - '.github/workflows/**'
-      - 'src/templates/app_*.html'
-      - 'capacitor.config.json'
-      - 'package.json'
   workflow_dispatch:
 
 permissions:
