@@ -14,7 +14,6 @@ const CONFIG = {
   // 核心资源 (安装时立即缓存)
   CORE_RESOURCES: [
     './', // 相对路径更安全
-    './index.html',
     './manifest.json',
     './icons/icon.svg'
   ]
