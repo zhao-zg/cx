@@ -9,34 +9,64 @@ const BASE_URL = self.location.origin + self.location.pathname.replace(/\/[^\/]*
 const CORE_RESOURCES = [
   BASE_URL,  // 主页 (/)，访问 /index.html 时会自动规范化为 /
   BASE_URL + 'manifest.json',
+  BASE_URL + 'icons/icon.svg',  // 预缓存图标，加快安装后的首次启动
 ];
 
 // 安装事件 - 只预缓存核心资源
 self.addEventListener('install', event => {
+  console.log('[SW] 开始安装，版本:', CACHE_VERSION);
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(CORE_RESOURCES).catch(err => {
-        console.error('缓存核心资源失败:', err);
-        // 即使失败也继续安装，避免阻塞
-        return Promise.resolve();
+      console.log('[SW] 开始缓存核心资源');
+      // 使用 Promise.allSettled 而不是 addAll，避免单个资源失败导致整体失败
+      return Promise.allSettled(
+        CORE_RESOURCES.map(url => 
+          fetch(url, { cache: 'reload' })
+            .then(response => {
+              if (response.ok) {
+                return cache.put(url, response);
+              }
+              console.warn('[SW] 资源响应失败:', url, response.status);
+              return Promise.resolve();
+            })
+            .catch(err => {
+              console.warn('[SW] 缓存资源失败:', url, err);
+              return Promise.resolve();
+            })
+        )
+      ).then(results => {
+        const successCount = results.filter(r => r.status === 'fulfilled').length;
+        console.log('[SW] 核心资源缓存完成:', successCount, '/', CORE_RESOURCES.length);
       });
+    }).catch(err => {
+      console.error('[SW] 打开缓存失败:', err);
+      return Promise.resolve();
     })
   );
+  // 立即激活，不等待旧 SW
   self.skipWaiting();
 });
 
 // 激活事件 - 清理旧缓存
 self.addEventListener('activate', event => {
+  console.log('[SW] 激活，版本:', CACHE_VERSION);
   event.waitUntil(
     caches.keys().then(keys => {
+      const oldCaches = keys.filter(key => {
+        // 只删除旧版本的主缓存 (cx-main-*)
+        // 保留训练缓存 (cx-2025-*)
+        return key.startsWith('cx-main-') && key !== CACHE_NAME;
+      });
+      
+      if (oldCaches.length > 0) {
+        console.log('[SW] 清理旧缓存:', oldCaches);
+      }
+      
       return Promise.all(
-        keys.filter(key => {
-          // 只删除旧版本的主缓存 (cx-main-*)
-          // 保留训练缓存 (cx-2025-*)
-          return key.startsWith('cx-main-') && key !== CACHE_NAME;
-        }).map(key => caches.delete(key))
+        oldCaches.map(key => caches.delete(key))
       );
     }).then(() => {
+      console.log('[SW] 接管所有客户端');
       // 清理完成后立即接管所有客户端
       return self.clients.claim();
     })

@@ -648,15 +648,17 @@
     // 注册 Service Worker 并自动更新
     if ('serviceWorker' in navigator) {
         var isInstalling = false;
+        var installStartTime = Date.now();
         
-        // 等待 Service Worker 就绪
-        navigator.serviceWorker.ready.then(function() {
-            console.log('Service Worker 已就绪');
-        });
+        console.log('[主页] 开始注册 Service Worker');
         
         navigator.serviceWorker.register('./sw.js').then(function(reg) {
-            // 检查更新
-            reg.update();
+            console.log('[主页] Service Worker 注册成功');
+            
+            // 检查更新（但不阻塞）
+            reg.update().catch(function(err) {
+                console.log('[主页] 检查更新失败:', err);
+            });
             
             // 监听安装进度
             if (reg.installing) {
@@ -665,23 +667,35 @@
             
             // 监听更新
             reg.addEventListener('updatefound', function() {
+                console.log('[主页] 发现更新');
                 var newWorker = reg.installing;
                 trackInstalling(newWorker);
                 
                 newWorker.addEventListener('statechange', function() {
+                    console.log('[主页] SW 状态变化:', newWorker.state);
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // 新版本已安装，提示用户刷新
-                        if (confirm('发现新版本，是否立即更新？')) {
-                            newWorker.postMessage({ type: 'SKIP_WAITING' });
-                            window.location.reload();
-                        }
+                        // 新版本已安装，静默更新（不打扰用户）
+                        console.log('[主页] 新版本已就绪，下次访问时生效');
+                        newWorker.postMessage({ type: 'SKIP_WAITING' });
                     }
                 });
             });
-        }).catch(function() {});
+            
+            // 等待 Service Worker 就绪
+            return navigator.serviceWorker.ready;
+        }).then(function() {
+            var installTime = Date.now() - installStartTime;
+            console.log('[主页] Service Worker 已就绪，耗时:', installTime, 'ms');
+        }).catch(function(err) {
+            console.error('[主页] Service Worker 注册失败:', err);
+        });
         
-        // 监听 SW 控制器变化
+        // 监听 SW 控制器变化（静默刷新）
+        var refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', function() {
+            if (refreshing) return;
+            refreshing = true;
+            console.log('[主页] Service Worker 已更新，刷新页面');
             window.location.reload();
         });
         
@@ -689,12 +703,7 @@
         function trackInstalling(worker) {
             if (isInstalling) return;
             isInstalling = true;
-            
-            var cacheStatus = document.getElementById('cacheStatus');
-            if (cacheStatus) {
-                cacheStatus.textContent = '正在缓存资源...';
-                cacheStatus.className = 'cache-status';
-            }
+            console.log('[主页] Service Worker 正在安装');
         }
     }
     
@@ -1067,14 +1076,27 @@
         } else if (installBtn) {
             installBtn.addEventListener('click', function() {
                 if (deferredPrompt) {
+                    installStatus.textContent = '正在准备安装...';
+                    installStatus.className = 'cache-status';
+                    
                     deferredPrompt.prompt();
                     deferredPrompt.userChoice.then(function(result) {
                         if (result.outcome === 'accepted') {
-                            installStatus.textContent = '安装成功！刷新页面后可使用离线功能';
+                            installStatus.textContent = '✓ 安装成功！PWA 已添加到主屏幕';
                             installStatus.className = 'cache-status success';
+                            
+                            // 等待 Service Worker 就绪
+                            if ('serviceWorker' in navigator) {
+                                navigator.serviceWorker.ready.then(function() {
+                                    installStatus.textContent = '✓ 安装完成！离线功能已启用';
+                                });
+                            }
+                            
                             setTimeout(function() {
                                 installBtn.style.display = 'none';
-                            }, 2000);
+                            }, 3000);
+                        } else {
+                            installStatus.textContent = '';
                         }
                         deferredPrompt = null;
                     });
