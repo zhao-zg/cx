@@ -325,7 +325,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏠 特会信息合集</h1>
+            <h1 id="mainLogo" style="cursor: pointer; user-select: none;">🏠 特会信息合集</h1>
             <p>Conference Information Collections</p>
         </div>
         
@@ -376,6 +376,96 @@
     </div>
     
     <script>
+    // APK 检测和更新功能
+    (function() {
+        var isAndroid = /Android/i.test(navigator.userAgent);
+        var isInApp = window.matchMedia('(display-mode: standalone)').matches || 
+                      window.navigator.standalone === true;
+        
+        // 如果是安卓设备且在 APP 内（从 APK 打开）
+        if (isAndroid && isInApp) {
+            var clickCount = 0;
+            var clickTimer = null;
+            var logo = document.getElementById('mainLogo');
+            
+            if (logo) {
+                logo.addEventListener('click', function() {
+                    clickCount++;
+                    
+                    if (clickTimer) clearTimeout(clickTimer);
+                    clickTimer = setTimeout(function() {
+                        clickCount = 0;
+                    }, 5000);
+                    
+                    // 点击 10 次触发 APK 更新检查
+                    if (clickCount >= 10) {
+                        clickCount = 0;
+                        if (clickTimer) clearTimeout(clickTimer);
+                        checkApkUpdate();
+                    }
+                });
+            }
+        }
+        
+        // 检查 APK 更新
+        function checkApkUpdate() {
+            fetch('https://api.github.com/repos/zhao-zg/cx/releases/latest')
+                .then(function(response) {
+                    if (!response.ok) throw new Error('无法获取版本信息');
+                    return response.json();
+                })
+                .then(function(release) {
+                    // 查找 APK 文件
+                    var onlineApk = release.assets.find(function(a) {
+                        return a.name.includes('Online') && a.name.endsWith('.apk');
+                    });
+                    var offlineApk = release.assets.find(function(a) {
+                        return a.name.includes('Offline') && a.name.endsWith('.apk');
+                    });
+                    
+                    if (onlineApk || offlineApk) {
+                        showApkUpdateDialog(release, onlineApk, offlineApk);
+                    }
+                })
+                .catch(function(error) {
+                    console.error('检查更新失败:', error);
+                });
+        }
+        
+        // 显示 APK 更新对话框
+        function showApkUpdateDialog(release, onlineApk, offlineApk) {
+            var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="apkUpdateDialog">';
+            html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto;">';
+            html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px;">📱 APK 下载</h3>';
+            html += '<div style="color: #333; margin-bottom: 20px; font-size: 14px; line-height: 1.6;">';
+            html += '<p style="margin-bottom: 10px;"><strong>最新版本：</strong>' + release.tag_name + '</p>';
+            
+            if (onlineApk) {
+                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.open(\'' + onlineApk.browser_download_url + '\', \'_blank\')">';
+                html += '🌐 下载在线版 (' + (onlineApk.size / 1024 / 1024).toFixed(1) + ' MB)';
+                html += '</button>';
+            }
+            
+            if (offlineApk) {
+                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.open(\'' + offlineApk.browser_download_url + '\', \'_blank\')">';
+                html += '💾 下载离线版 (' + (offlineApk.size / 1024 / 1024).toFixed(1) + ' MB)';
+                html += '</button>';
+            }
+            
+            html += '<div style="background: #f5f5f5; padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 10px; line-height: 1.5;">';
+            html += '<strong>说明：</strong><br>';
+            html += '• 在线版：轻量级，需要网络<br>';
+            html += '• 离线版：完整内容，无需网络';
+            html += '</div>';
+            
+            html += '</div>';
+            html += '<button style="width: 100%; padding: 12px; background: #f0f0f0; color: #666; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="document.getElementById(\'apkUpdateDialog\').remove()">关闭</button>';
+            html += '</div></div>';
+            
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
+    })();
+    
     // 页面记忆功能 - 恢复上次访问的页面（仅在 PWA 模式下）
     (function() {
         try {
