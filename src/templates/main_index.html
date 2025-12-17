@@ -1232,43 +1232,55 @@
                 console.error('[清理] 清理 localStorage 失败:', e);
             }
             
-            // 2. 清理所有 Cache Storage
-            if ('caches' in window) {
-                caches.keys().then(function(keys) {
-                    console.log('[清理] 找到缓存:', keys);
+            // 2. 注销所有 Service Worker
+            var unregisterPromise = Promise.resolve();
+            if ('serviceWorker' in navigator) {
+                unregisterPromise = navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    console.log('[清理] 找到 Service Worker:', registrations.length, '个');
                     return Promise.all(
-                        keys.map(function(key) {
-                            console.log('[清理] 删除缓存:', key);
-                            return caches.delete(key);
+                        registrations.map(function(registration) {
+                            console.log('[清理] 注销 Service Worker:', registration.scope);
+                            return registration.unregister();
                         })
                     );
-                }).then(function() {
-                    console.log('[清理] 所有缓存已清理');
-                    
-                    // 3. 通知 Service Worker 清理缓存
-                    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage({
-                            type: 'CLEAR_ALL_CACHES'
-                        });
-                    }
-                    
-                    if (installStatus) {
-                        installStatus.textContent = '✓ 清理完成！页面将在 3 秒后刷新';
-                        installStatus.className = 'cache-status success';
-                    }
-                    
-                    // 4. 刷新页面
-                    setTimeout(function() {
-                        window.location.reload(true);
-                    }, 3000);
-                }).catch(function(err) {
-                    console.error('[清理] 清理缓存失败:', err);
-                    if (installStatus) {
-                        installStatus.textContent = '✗ 清理失败: ' + err.message;
-                        installStatus.className = 'cache-status error';
-                    }
                 });
-            } else {
+            }
+            
+            // 3. 清理所有 Cache Storage
+            unregisterPromise.then(function() {
+                if ('caches' in window) {
+                    return caches.keys().then(function(keys) {
+                        console.log('[清理] 找到缓存:', keys);
+                        return Promise.all(
+                            keys.map(function(key) {
+                                console.log('[清理] 删除缓存:', key);
+                                return caches.delete(key);
+                            })
+                        );
+                    });
+                }
+                return Promise.resolve();
+            }).then(function() {
+                console.log('[清理] 所有缓存和 Service Worker 已清理');
+                
+                if (installStatus) {
+                    installStatus.textContent = '✓ 清理完成！页面将在 3 秒后刷新';
+                    installStatus.className = 'cache-status success';
+                }
+                
+                // 4. 刷新页面
+                setTimeout(function() {
+                    window.location.reload(true);
+                }, 3000);
+            }).catch(function(err) {
+                console.error('[清理] 清理失败:', err);
+                if (installStatus) {
+                    installStatus.textContent = '✗ 清理失败: ' + err.message;
+                    installStatus.className = 'cache-status error';
+                }
+            });
+            
+            if (!('caches' in window) && !('serviceWorker' in navigator)) {
                 console.log('[清理] 浏览器不支持 Cache Storage');
                 if (installStatus) {
                     installStatus.textContent = '✓ localStorage 已清理，页面将在 3 秒后刷新';
