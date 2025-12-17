@@ -53,6 +53,14 @@
     var useWebSpeech = !useCapacitorTTS && ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
     var speechSupported = useCapacitorTTS || useWebSpeech;
     
+    console.log('[TTS] 环境检测:', {
+      hasCapacitor: !!window.Capacitor,
+      hasCapacitorPlugins: !!(window.Capacitor && window.Capacitor.Plugins),
+      hasTextToSpeech: useCapacitorTTS,
+      hasWebSpeech: useWebSpeech,
+      speechSupported: speechSupported
+    });
+    
     // 始终显示控制栏（包含字体控制）
     controlsDiv.style.display = 'flex';
     
@@ -207,29 +215,7 @@
         // 使用 Capacitor TTS
         var TextToSpeech = window.Capacitor.Plugins.TextToSpeech;
         
-        TextToSpeech.speak({
-          text: segmentText,
-          lang: lang,
-          rate: rate,
-          pitch: 1.0,
-          volume: 1.0,
-          category: 'ambient'
-        }).then(function() {
-          isSeekingInternal = false;
-          resetState(false);
-        }).catch(function(error) {
-          isSeekingInternal = false;
-          console.error('Capacitor TTS 错误:', error);
-          resetState(false);
-          speechTime.textContent = '播放失败';
-          speechTime.style.color = '#e53e3e';
-          setTimeout(function() {
-            speechTime.textContent = '00:00 / 00:00';
-            speechTime.style.color = '';
-          }, 3000);
-        });
-        
-        // Capacitor TTS 没有 onstart 事件，手动设置状态
+        // Capacitor TTS 没有 onstart 事件，先设置状态
         isSeekingInternal = false;
         elapsedOffset = targetSeconds;
         startTime = Date.now();
@@ -239,6 +225,31 @@
         
         updateButtonState(true);
         startProgressUpdate();
+        
+        console.log('[TTS] 开始播放，文本长度:', segmentText.length, '语速:', rate);
+        
+        TextToSpeech.speak({
+          text: segmentText,
+          lang: lang,
+          rate: rate,
+          pitch: 1.0,
+          volume: 1.0,
+          category: 'ambient'
+        }).then(function() {
+          console.log('[TTS] 播放完成');
+          isSeekingInternal = false;
+          resetState(false);
+        }).catch(function(error) {
+          console.error('[TTS] 播放错误:', error);
+          isSeekingInternal = false;
+          resetState(false);
+          speechTime.textContent = '播放失败';
+          speechTime.style.color = '#e53e3e';
+          setTimeout(function() {
+            speechTime.textContent = '00:00 / 00:00';
+            speechTime.style.color = '';
+          }, 3000);
+        });
         
       } else {
         // 使用 Web Speech API
