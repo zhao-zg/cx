@@ -79,9 +79,9 @@ jobs:
         echo "=== 备份离线版内容 ==="
         cp -r output output-offline
         
-        # 清空 output，创建在线版
+        # 完全删除 output 目录并重新创建（确保干净）
         echo "=== 创建在线版（空壳）==="
-        rm -rf output/*
+        rm -rf output
         mkdir -p output/icons
         
         # 替换版本号并复制在线版启动页
@@ -113,7 +113,9 @@ jobs:
         
         echo "✓ 在线版启动页已创建"
         echo ""
-        echo "=== 在线版大小 ==="
+        echo "=== 在线版内容 ==="
+        ls -lah output/
+        find output/ -type f
         du -sh output/
         echo ""
         echo "=== 离线版大小 ==="
