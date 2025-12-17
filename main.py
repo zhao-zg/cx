@@ -5,6 +5,7 @@ Word文档静态网站生成器 - 主程序
 import os
 import sys
 import yaml
+import shutil
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from src.parser_improved import parse_training_docs_improved
