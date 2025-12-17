@@ -252,7 +252,7 @@ jobs:
             print
             print "    signingConfigs {"
             print "        release {"
-            print "            storeFile file(\"my-release-key.keystore\")"
+            print "            storeFile file(\"../my-release-key.keystore\")"
             print "            storePassword \"tehui2024\""
             print "            keyAlias \"tehui\""
             print "            keyPassword \"tehui2024\""
