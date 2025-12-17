@@ -293,6 +293,13 @@ def generate_main_index(config, batch_results):
     with open(sw_path, 'w', encoding='utf-8') as f:
         f.write(sw_content)
     
+    # 复制 _headers 文件（用于 Cloudflare Pages 和 GitHub Pages 的 MIME 类型配置）
+    headers_src = os.path.join(template_dir, '_headers')
+    if os.path.exists(headers_src):
+        headers_dst = os.path.join(output_dir, '_headers')
+        shutil.copy2(headers_src, headers_dst)
+        print(f"✓ _headers 文件已复制")
+    
     print(f"\n✓ 总主页已生成: {index_path}")
 
 
