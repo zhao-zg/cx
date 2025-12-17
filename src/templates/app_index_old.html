@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="特会信息">
+    <meta name="theme-color" content="#667eea">
+    <title>特会信息</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 9999;
+            transition: opacity 0.3s;
+        }
+        
+        #loading.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-content {
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #content-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: none;
+        }
+        
+        #content-frame.show {
+            display: block;
+        }
+        
+        .update-info.show {
+            display: block;
+        }
+        
+        .progress {
+            background: rgba(255, 255, 255, 0.2);
+            height: 4px;
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            background: white;
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo" id="logo">📖</div>
+        <h1>特会信息</h1>
+        <div class="loading" id="status">正在加载...</div>
+        <div class="spinner" id="spinner"></div>
+        
+        <div class="error" id="error">
+            <p id="errorMsg">加载失败</p>
+            <button class="btn" onclick="location.reload()">重试</button>
+        </div>
+        
+        <div class="update-info" id="updateInfo">
+            <p id="updateMsg">检查更新中...</p>
+            <div class="progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 配置
+        const CONFIG = {
+            // 多个远程内容地址（按优先级排序）
+            REMOTE_URLS: [
+                'https://cx.zhaozg.dpdns.org/',
+                'https://cx.zhaozg.cloudns.org/',
+                'https://cx.xzdjx.dynv6.net/',
+                'https://zhao-zg.github.io/cx/'
+            ],
+            // APK 更新检查地址（GitHub API）
+            APK_UPDATE_URL: 'https://api.github.com/repos/zhao-zg/cx/releases/latest',
+            // 当前 APK 版本
+            CURRENT_APK_VERSION: '0.1.0',
+            // 本地存储键
+            STORAGE_KEY: 'cx_content_version',
+            STORAGE_URL_KEY: 'cx_selected_url',
+            STORAGE_APK_CHECK_KEY: 'cx_last_apk_check',
+            // 点击次数触发更新检查
+            CLICK_COUNT_TRIGGER: 10,
+            // 连接超时时间（毫秒）
+            TIMEOUT: 5000,
+            // APK 检查间隔（毫秒，24小时）
+            APK_CHECK_INTERVAL: 24 * 60 * 60 * 1000
+        };
+        
+        // 获取当前使用的 URL
+        function getCurrentUrl() {
+            const saved = localStorage.getItem(CONFIG.STORAGE_URL_KEY);
+            if (saved && CONFIG.REMOTE_URLS.includes(saved)) {
+                return saved;
+            }
+            return CONFIG.REMOTE_URLS[0];
+        }
+        
+        // 设置当前 URL
+        function setCurrentUrl(url) {
+            localStorage.setItem(CONFIG.STORAGE_URL_KEY, url);
+        }
+        
+        // 测试 URL 是否可用
+        async function testUrl(url, timeout = CONFIG.TIMEOUT) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            
+            try {
+                const response = await fetch(url + 'version.json?t=' + Date.now(), {
+                    signal: controller.signal,
+                    method: 'HEAD'
+                });
+                clearTimeout(timeoutId);
+                return response.ok;
+            } catch (error) {
+                clearTimeout(timeoutId);
+                return false;
+            }
+        }
+        
+        // 查找可用的 URL
+        async function findAvailableUrl() {
+            const currentUrl = getCurrentUrl();
+            
+            // 先测试当前 URL
+            if (await testUrl(currentUrl)) {
+                return currentUrl;
+            }
+            
+            // 测试其他 URL
+            for (const url of CONFIG.REMOTE_URLS) {
+                if (url === currentUrl) continue;
+                
+                if (await testUrl(url)) {
+                    setCurrentUrl(url);
+                    return url;
+                }
+            }
+            
+            // 都不可用，返回第一个
+            return CONFIG.REMOTE_URLS[0];
+        }
+        
+        let clickCount = 0;
+        let isUpdating = false;
+        let longPressTimer = null;
+        let clickTimer = null;
+        
+        // Logo 点击计数（隐藏式，不显示任何反馈）
+        document.getElementById('logo').addEventListener('click', function() {
+            if (isUpdating) return;
+            
+            clickCount++;
+            
+            // 5秒内没有继续点击，重置计数
+            if (clickTimer) clearTimeout(clickTimer);
+            clickTimer = setTimeout(() => {
+                clickCount = 0;
+            }, 5000);
+            
+            if (clickCount >= CONFIG.CLICK_COUNT_TRIGGER) {
+                clickCount = 0;
+                if (clickTimer) clearTimeout(clickTimer);
+                // 静默检查 APK 更新（不检查内容更新）
+                checkApkUpdate(true);
+            }
+        });
+        
+        // Logo 长按显示服务器选择
+        document.getElementById('logo').addEventListener('touchstart', function(e) {
+            longPressTimer = setTimeout(() => {
+                showServerSelector();
+            }, 1000);
+        });
+        
+        document.getElementById('logo').addEventListener('touchend', function(e) {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        });
+        
+        document.getElementById('logo').addEventListener('mousedown', function(e) {
+            longPressTimer = setTimeout(() => {
+                showServerSelector();
+            }, 1000);
+        });
+        
+        document.getElementById('logo').addEventListener('mouseup', function(e) {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        });
+        
+        // 检查 APK 更新
+        async function checkApkUpdate(force = false) {
+            try {
+                // 检查上次检查时间
+                const lastCheck = localStorage.getItem(CONFIG.STORAGE_APK_CHECK_KEY);
+                const now = Date.now();
+                
+                if (!force && lastCheck && (now - parseInt(lastCheck)) < CONFIG.APK_CHECK_INTERVAL) {
+                    return; // 24小时内已检查过
+                }
+                
+                // 获取最新版本信息
+                const response = await fetch(CONFIG.APK_UPDATE_URL);
+                if (!response.ok) return;
+                
+                const release = await response.json();
+                const latestVersion = release.tag_name.replace('v', '');
+                
+                // 保存检查时间
+                localStorage.setItem(CONFIG.STORAGE_APK_CHECK_KEY, now.toString());
+                
+                // 比较版本
+                if (compareVersion(latestVersion, CONFIG.CURRENT_APK_VERSION) > 0) {
+                    showApkUpdateDialog(release);
+                }
+            } catch (error) {
+                console.error('APK 更新检查失败:', error);
+            }
+        }
+        
+        // 版本比较
+        function compareVersion(v1, v2) {
+            const parts1 = v1.split('.').map(Number);
+            const parts2 = v2.split('.').map(Number);
+            
+            for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+                const p1 = parts1[i] || 0;
+                const p2 = parts2[i] || 0;
+                if (p1 > p2) return 1;
+                if (p1 < p2) return -1;
+            }
+            return 0;
+        }
+        
+        // 显示 APK 更新对话框
+        function showApkUpdateDialog(release) {
+            const apkAsset = release.assets.find(a => a.name.endsWith('.apk'));
+            if (!apkAsset) return;
+            
+            const html = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;" id="apkUpdateDialog">
+                    <div style="background: white; border-radius: 12px; padding: 24px; max-width: 90%; max-height: 80%; overflow-y: auto;">
+                        <h3 style="color: #667eea; margin-bottom: 15px;">🎉 发现新版本</h3>
+                        <div style="color: #333; margin-bottom: 20px;">
+                            <p style="margin-bottom: 10px;">
+                                <strong>当前版本：</strong>v${CONFIG.CURRENT_APK_VERSION}<br>
+                                <strong>最新版本：</strong>${release.tag_name}
+                            </p>
+                            <div style="background: #f5f5f5; padding: 12px; border-radius: 8px; font-size: 14px; max-height: 200px; overflow-y: auto;">
+                                ${release.body ? release.body.replace(/\n/g, '<br>') : '查看更新日志'}
+                            </div>
+                        </div>
+                        <button style="width: 100%; padding: 12px; margin-bottom: 10px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;" onclick="downloadApk('${apkAsset.browser_download_url}')">
+                            立即下载更新
+                        </button>
+                        <button style="width: 100%; padding: 12px; background: #f0f0f0; color: #666; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;" onclick="closeApkUpdateDialog()">
+                            稍后提醒
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
+        
+        // 下载 APK
+        window.downloadApk = function(url) {
+            window.open(url, '_blank');
+            closeApkUpdateDialog();
+        };
+        
+        // 关闭 APK 更新对话框
+        window.closeApkUpdateDialog = function() {
+            const dialog = document.getElementById('apkUpdateDialog');
+            if (dialog) {
+                dialog.remove();
+            }
+        };
+        
+        // 显示服务器选择器
+        function showServerSelector() {
+            const currentUrl = getCurrentUrl();
+            const urls = CONFIG.REMOTE_URLS;
+            
+            const html = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center;" id="serverSelector">
+                    <div style="background: white; border-radius: 12px; padding: 20px; max-width: 90%; max-height: 80%; overflow-y: auto;">
+                        <h3 style="color: #667eea; margin-bottom: 15px;">选择内容服务器</h3>
+                        ${urls.map((url, index) => `
+                            <div style="padding: 12px; margin: 8px 0; border: 2px solid ${url === currentUrl ? '#667eea' : '#ddd'}; border-radius: 8px; cursor: pointer; color: #333;" onclick="selectServer('${url}')">
+                                <div style="font-weight: ${url === currentUrl ? 'bold' : 'normal'}; color: ${url === currentUrl ? '#667eea' : '#333'};">
+                                    ${url === currentUrl ? '✓ ' : ''}服务器 ${index + 1}
+                                </div>
+                                <div style="font-size: 12px; color: #666; margin-top: 4px; word-break: break-all;">
+                                    ${url}
+                                </div>
+                            </div>
+                        `).join('')}
+                        <button style="width: 100%; padding: 12px; margin-top: 15px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;" onclick="closeServerSelector()">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
+        
+        // 选择服务器
+        window.selectServer = function(url) {
+            setCurrentUrl(url);
+            closeServerSelector();
+            
+            // 提示并重新加载
+            const updateInfo = document.getElementById('updateInfo');
+            const updateMsg = document.getElementById('updateMsg');
+            updateInfo.classList.add('show');
+            updateMsg.textContent = '已切换服务器，正在重新加载...';
+            
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        };
+        
+        // 关闭服务器选择器
+        window.closeServerSelector = function() {
+            const selector = document.getElementById('serverSelector');
+            if (selector) {
+                selector.remove();
+            }
+        };
+        
+        // 检查更新
+        async function checkForUpdates(manual = false) {
+            if (isUpdating) return;
+            isUpdating = true;
+            
+            const updateInfo = document.getElementById('updateInfo');
+            const updateMsg = document.getElementById('updateMsg');
+            const progressBar = document.getElementById('progressBar');
+            
+            updateInfo.classList.add('show');
+            updateMsg.textContent = '检查更新中...';
+            progressBar.style.width = '10%';
+            
+            try {
+                // 查找可用的服务器
+                const remoteUrl = await findAvailableUrl();
+                updateMsg.textContent = '连接到服务器...';
+                progressBar.style.width = '20%';
+                
+                // 获取远程版本信息
+                const response = await fetch(remoteUrl + 'version.json?t=' + Date.now());
+                if (!response.ok) throw new Error('无法连接到服务器');
+                
+                const remoteVersion = await response.json();
+                const localVersion = localStorage.getItem(CONFIG.STORAGE_KEY);
+                
+                progressBar.style.width = '30%';
+                
+                if (localVersion !== remoteVersion.version || manual) {
+                    updateMsg.textContent = '发现新版本，正在下载...';
+                    progressBar.style.width = '50%';
+                    
+                    // 下载并缓存新内容
+                    await cacheContent(remoteVersion, remoteUrl);
+                    
+                    progressBar.style.width = '100%';
+                    updateMsg.textContent = '更新完成！';
+                    
+                    // 保存版本号
+                    localStorage.setItem(CONFIG.STORAGE_KEY, remoteVersion.version);
+                    
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    progressBar.style.width = '100%';
+                    updateMsg.textContent = '已是最新版本';
+                    setTimeout(() => {
+                        updateInfo.classList.remove('show');
+                        isUpdating = false;
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('更新检查失败:', error);
+                updateMsg.textContent = '更新检查失败: ' + error.message;
+                setTimeout(() => {
+                    updateInfo.classList.remove('show');
+                    isUpdating = false;
+                }, 3000);
+            }
+        }
+        
+        // 缓存内容
+        async function cacheContent(versionInfo, remoteUrl) {
+            if (!('serviceWorker' in navigator)) return;
+            
+            const registration = await navigator.serviceWorker.ready;
+            const cache = await caches.open('cx-content-' + versionInfo.version);
+            
+            // 缓存主要文件
+            const filesToCache = [
+                remoteUrl,
+                remoteUrl + 'index.html',
+                ...(versionInfo.files || []).map(f => remoteUrl + f)
+            ];
+            
+            await cache.addAll(filesToCache);
+        }
+        
+        // 加载内容到 iframe
+        async function loadContent() {
+            const status = document.getElementById('status');
+            const spinner = document.getElementById('spinner');
+            const error = document.getElementById('error');
+            const errorMsg = document.getElementById('errorMsg');
+            
+            try {
+                // 保存当前 APK 版本到 localStorage（供远程页面使用）
+                localStorage.setItem('cx_apk_version', CONFIG.CURRENT_APK_VERSION);
+                
+                // 检测 APK 类型（在线版 or 离线版）
+                // 通过检查 Capacitor 的 appId 或包名
+                var apkType = 'online'; // 默认在线版
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                    // 尝试获取包名
+                    window.Capacitor.Plugins.App.getInfo().then(function(info) {
+                        if (info.id && info.id.includes('offline')) {
+                            apkType = 'offline';
+                        }
+                        localStorage.setItem('cx_apk_type', apkType);
+                        console.log('检测到 APK 类型:', apkType, 'Package:', info.id);
+                    }).catch(function(err) {
+                        console.log('无法获取 App 信息:', err);
+                    });
+                } else {
+                    // 后备方案：通过 appName 判断
+                    var appName = document.title || '';
+                    if (appName.includes('离线')) {
+                        apkType = 'offline';
+                    }
+                    localStorage.setItem('cx_apk_type', apkType);
+                    console.log('通过 appName 检测 APK 类型:', apkType);
+                }
+                
+                // 查找可用的服务器
+                status.textContent = '正在连接服务器...';
+                const remoteUrl = await findAvailableUrl();
+                
+                // 保存当前使用的 URL
+                localStorage.setItem('cx_remote_url', remoteUrl);
+                
+                // 在 WebView 内部加载远程 URL（不触发外部浏览器）
+                // 在 URL 中传递版本号和类型（作为备用）
+                status.textContent = '正在加载内容...';
+                const urlWithParams = remoteUrl + 
+                    (remoteUrl.includes('?') ? '&' : '?') + 
+                    'apk_version=' + CONFIG.CURRENT_APK_VERSION + 
+                    '&apk_type=' + apkType;
+                window.location.replace(urlWithParams);
+                
+            } catch (err) {
+                console.error('加载失败:', err);
+                
+                // 尝试使用上次成功的 URL
+                const lastUrl = localStorage.getItem('cx_remote_url');
+                if (lastUrl) {
+                    console.log('尝试使用上次的 URL:', lastUrl);
+                    var apkType = localStorage.getItem('cx_apk_type') || 'online';
+                    const urlWithParams = lastUrl + 
+                        (lastUrl.includes('?') ? '&' : '?') + 
+                        'apk_version=' + CONFIG.CURRENT_APK_VERSION + 
+                        '&apk_type=' + apkType;
+                    window.location.replace(urlWithParams);
+                    return;
+                }
+                
+                // 完全失败
+                spinner.style.display = 'none';
+                status.style.display = 'none';
+                errorMsg.textContent = '加载失败: ' + err.message + '\n\n长按 Logo 可切换服务器';
+                error.classList.add('show');
+            }
+        }
+        
+        // 页面加载时执行
+        window.addEventListener('load', function() {
+            // 输出环境信息（调试用）
+            console.log('=== 在线版启动页环境信息 ===');
+            console.log('URL:', window.location.href);
+            console.log('Protocol:', window.location.protocol);
+            console.log('Hostname:', window.location.hostname);
+            console.log('Pathname:', window.location.pathname);
+            console.log('Capacitor:', window.Capacitor ? 'Yes' : 'No');
+            console.log('User Agent:', navigator.userAgent);
+            
+            // 在页面上也显示（便于没有调试工具时查看）
+            var status = document.getElementById('status');
+            if (status) {
+                status.innerHTML = '当前 URL: ' + window.location.protocol + '//' + window.location.hostname + window.location.pathname;
+            }
+            
+            // 不自动检查 APK 更新，只保留手动触发（点击 Logo 10 次）
+            
+            // 加载内容（会跳转到远程网站，远程网站有自己的 Service Worker）
+            setTimeout(loadContent, 1000);
+        });
+    </script>
+</body>
+</html>
