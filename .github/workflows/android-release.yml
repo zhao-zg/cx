@@ -54,22 +54,41 @@ jobs:
     - name: 安装 Node.js 依赖
       run: npm install
       
-    - name: 创建应用启动页
+    - name: 生成完整静态网站（用于离线版）
       run: |
-        mkdir -p output
+        echo "=== 生成完整静态网站 ==="
+        python main.py
+        echo "✓ 静态网站生成完成"
         
+        # 显示生成的文件大小
+        echo ""
+        echo "=== 生成的文件 ==="
+        du -sh output/
+        find output/ -type f | wc -l
+        echo "文件总数"
+    
+    - name: 创建在线版启动页
+      run: |
         # 提取版本号
         VERSION=${GITHUB_REF#refs/tags/v}
         if [ -z "$VERSION" ]; then
           VERSION="0.1.0"
         fi
         
-        # 替换版本号并复制
+        # 备份完整网站到 output-offline
+        echo "=== 备份离线版内容 ==="
+        cp -r output output-offline
+        
+        # 清空 output，创建在线版
+        echo "=== 创建在线版（空壳）==="
+        rm -rf output/*
+        mkdir -p output/icons
+        
+        # 替换版本号并复制在线版启动页
         sed "s/CURRENT_APK_VERSION: '0.1.0'/CURRENT_APK_VERSION: '$VERSION'/g" \
           src/templates/app_index.html > output/index.html
         
         # 复制静态图标
-        mkdir -p output/icons
         cp src/static/icons/icon.svg output/icons/
         
         # 创建 manifest.json（使用静态图标）
@@ -92,19 +111,92 @@ jobs:
         }
         EOF
         
-        echo "✓ 应用启动页已创建"
-        ls -lh output/
+        echo "✓ 在线版启动页已创建"
+        echo ""
+        echo "=== 在线版大小 ==="
+        du -sh output/
+        echo ""
+        echo "=== 离线版大小 ==="
+        du -sh output-offline/
       
-    - name: 添加安卓平台
+    - name: 构建在线版 APK
       run: |
+        echo "=== 构建在线版 APK ==="
+        
+        # 添加安卓平台（使用在线版内容）
         npx cap add android
         
-        # 确保 android 目录存在
         if [ ! -d "android" ]; then
           echo "✗ Android 平台添加失败"
           exit 1
         fi
-        echo "✓ Android 平台添加成功"
+        
+        # 备份在线版 android 目录
+        mv android android-online
+        echo "✓ 在线版 Android 平台准备完成"
+        
+    - name: 构建离线版 APK
+      run: |
+        echo "=== 构建离线版 APK ==="
+        
+        # 切换到离线版内容
+        rm -rf output
+        mv output-offline output
+        
+        # 创建离线版的 capacitor 配置（修改应用名称以区分）
+        cat > capacitor.config.json << 'EOF'
+        {
+          "appId": "com.tehui.app",
+          "appName": "TeHui离线版",
+          "webDir": "output",
+          "bundledWebRuntime": false,
+          "server": {
+            "androidScheme": "https"
+          },
+          "android": {
+            "allowMixedContent": true,
+            "captureInput": true,
+            "webContentsDebuggingEnabled": false
+          }
+        }
+        EOF
+        
+        # 添加安卓平台（使用离线版内容）
+        npx cap add android
+        
+        if [ ! -d "android" ]; then
+          echo "✗ Android 平台添加失败"
+          exit 1
+        fi
+        
+        # 重命名为离线版
+        mv android android-offline
+        
+        # 恢复在线版目录和配置
+        mv android-online android
+        
+        # 恢复在线版的 capacitor 配置
+        cat > capacitor.config.json << 'EOF'
+        {
+          "appId": "com.tehui.app",
+          "appName": "TeHui",
+          "webDir": "output",
+          "bundledWebRuntime": false,
+          "server": {
+            "androidScheme": "https"
+          },
+          "android": {
+            "allowMixedContent": true,
+            "captureInput": true,
+            "webContentsDebuggingEnabled": false
+          }
+        }
+        EOF
+        
+        echo "✓ 离线版 Android 平台准备完成"
+        echo ""
+        echo "=== 两个版本都已准备 ==="
+        ls -ld android android-offline
       
     - name: 配置安卓项目版本信息
       run: |
@@ -158,19 +250,20 @@ jobs:
         echo "=== build.gradle 版本信息 ==="
         grep -A 2 "versionCode\|versionName\|namespace" android/app/build.gradle || echo "未找到版本信息"
       
-    - name: 同步 Capacitor
+    - name: 同步两个版本
       run: |
-        echo "=== 同步 Capacitor ==="
+        echo "=== 同步在线版 ==="
         npx cap sync android
-        echo "✓ 同步完成"
+        echo "✓ 在线版同步完成"
         
-        # 显示生成的文件
         echo ""
-        echo "=== Android 项目结构 ==="
-        ls -la android/
+        echo "=== 同步离线版 ==="
+        npx cap sync android-offline
+        echo "✓ 离线版同步完成"
+        
         echo ""
-        echo "=== AndroidManifest.xml 内容 ==="
-        cat android/app/src/main/AndroidManifest.xml
+        echo "=== 验证两个版本 ==="
+        ls -la android/ android-offline/
       
     - name: 创建固定签名密钥
       run: |
@@ -230,63 +323,68 @@ jobs:
         
         echo "✓ 固定密钥已创建"
         
-    - name: 配置签名
+    - name: 配置签名（两个版本）
       run: |
         echo "=== 配置 APK 签名 ==="
         
-        # 创建签名配置文件
-        cat > android/keystore.properties << EOF
-        storeFile=my-release-key.keystore
-        storePassword=tehui2024
-        keyAlias=tehui
-        keyPassword=tehui2024
-        EOF
-        
-        # 复制密钥文件到 android 目录
-        cp my-release-key.keystore android/
-        
         # 创建 Python 脚本来插入签名配置
-        cat > insert_signing.py << 'EOF'
+        cat > insert_signing.py << 'PYTHON_EOF'
         import re
+        import sys
         
-        with open('android/app/build.gradle', 'r') as f:
+        gradle_file = sys.argv[1]
+        
+        with open(gradle_file, 'r') as f:
             content = f.read()
         
         # 在 android { 后插入 signingConfigs
-        signing_config = "\n    signingConfigs {\n        release {\n            storeFile file(\"../my-release-key.keystore\")\n            storePassword \"tehui2024\"\n            keyAlias \"tehui\"\n            keyPassword \"tehui2024\"\n        }\n    }\n"
+        signing_config = '''
+            signingConfigs {
+                release {
+                    storeFile file("../my-release-key.keystore")
+                    storePassword "tehui2024"
+                    keyAlias "tehui"
+                    keyPassword "tehui2024"
+                }
+            }
+        '''
         content = re.sub(r'(android\s*\{)', r'\1' + signing_config, content, count=1)
         
         # 在 buildTypes.release { 后插入 signingConfig
         content = re.sub(r'(buildTypes\s*\{[^}]*release\s*\{)', r'\1\n            signingConfig signingConfigs.release', content, count=1)
         
-        with open('android/app/build.gradle', 'w') as f:
+        with open(gradle_file, 'w') as f:
             f.write(content)
         
-        print("✓ 签名配置已插入")
-        EOF
+        print(f"✓ {gradle_file} 签名配置已插入")
+        PYTHON_EOF
         
-        python3 insert_signing.py
+        # 复制密钥文件到两个目录
+        cp my-release-key.keystore android/
+        cp my-release-key.keystore android-offline/
         
-        echo "✓ 签名配置完成"
+        # 配置在线版签名
+        echo "=== 配置在线版签名 ==="
+        python3 insert_signing.py android/app/build.gradle
+        
+        # 配置离线版签名
+        echo "=== 配置离线版签名 ==="
+        python3 insert_signing.py android-offline/app/build.gradle
+        
         echo ""
-        echo "=== 验证密钥文件 ==="
-        ls -lh android/my-release-key.keystore
-        echo ""
-        echo "=== build.gradle 开头部分（查找 android 块）==="
-        head -50 android/app/build.gradle | grep -A 10 "android"
-        echo ""
-        echo "=== build.gradle 签名部分 ==="
-        grep -A 20 "signingConfigs" android/app/build.gradle || echo "未找到 signingConfigs"
+        echo "✓ 两个版本签名配置完成"
       
     - name: 授予 Gradle 执行权限
-      run: chmod +x android/gradlew
-        
-    - name: 构建 APK
       run: |
-        echo "=== 构建 APK ==="
+        chmod +x android/gradlew
+        chmod +x android-offline/gradlew
+        
+    - name: 构建在线版 APK
+      run: |
+        echo "=== 构建在线版 APK ==="
         cd android
         
-        # 设置 Gradle 属性，增加下载超时时间
+        # 设置 Gradle 属性
         mkdir -p ~/.gradle
         cat > ~/.gradle/gradle.properties << 'EOF'
         org.gradle.daemon=false
@@ -296,29 +394,30 @@ jobs:
         systemProp.http.socketTimeout=60000
         EOF
         
-        # 构建 APK，添加重试机制
-        MAX_RETRIES=1
-        RETRY_COUNT=0
+        # 构建在线版 APK
+        if ./gradlew clean assembleRelease --stacktrace --no-daemon; then
+          echo "✓ 在线版 APK 构建成功"
+          cd ..
+        else
+          echo "✗ 在线版 APK 构建失败"
+          cd ..
+          exit 1
+        fi
         
-        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-          echo "尝试构建 APK (第 $((RETRY_COUNT + 1)) 次)..."
-          
-          if ./gradlew clean assembleRelease --stacktrace --no-daemon; then
-            echo "✓ APK 构建成功"
-            cd ..
-            exit 0
-          else
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-              echo "⚠️ 构建失败，30秒后重试..."
-              sleep 30
-            fi
-          fi
-        done
+    - name: 构建离线版 APK
+      run: |
+        echo "=== 构建离线版 APK ==="
+        cd android-offline
         
-        echo "✗ APK 构建失败，已重试 $MAX_RETRIES 次"
-        cd ..
-        exit 1
+        # 构建离线版 APK
+        if ./gradlew clean assembleRelease --stacktrace --no-daemon; then
+          echo "✓ 离线版 APK 构建成功"
+          cd ..
+        else
+          echo "✗ 离线版 APK 构建失败"
+          cd ..
+          exit 1
+        fi
         
     - name: 验证和重命名 APK
       run: |
@@ -327,35 +426,43 @@ jobs:
           VERSION=$(date +%Y%m%d-%H%M%S)
         fi
         
-        echo "=== 构建的 APK ==="
-        ls -lh android/app/build/outputs/apk/release/
-        
-        if [ -z "$(ls -A android/app/build/outputs/apk/release/*.apk 2>/dev/null)" ]; then
-          echo "✗ 没有找到 APK 文件"
-          exit 1
-        fi
-        
+        echo "=== 处理在线版 APK ==="
         cd android/app/build/outputs/apk/release/
         for apk in *.apk; do
           if [ -f "$apk" ]; then
-            NEW_NAME="TeHui-v${VERSION}.apk"
-            cp "$apk" "../../../../../../$NEW_NAME"
-            echo "✓ APK: $NEW_NAME"
+            ONLINE_NAME="TeHui-Online-v${VERSION}.apk"
+            cp "$apk" "../../../../../../$ONLINE_NAME"
+            echo "✓ 在线版: $ONLINE_NAME"
             echo "  大小: $(du -h "$apk" | cut -f1)"
             echo "  MD5: $(md5sum "$apk" | cut -d' ' -f1)"
-            
-            # 使用 aapt 验证
-            echo ""
-            echo "=== APK 信息 ==="
-            $ANDROID_HOME/build-tools/*/aapt dump badging "$apk" | head -10
             break
           fi
         done
         cd ../../../../../../
         
         echo ""
-        echo "=== 最终 APK ==="
+        echo "=== 处理离线版 APK ==="
+        cd android-offline/app/build/outputs/apk/release/
+        for apk in *.apk; do
+          if [ -f "$apk" ]; then
+            OFFLINE_NAME="TeHui-Offline-v${VERSION}.apk"
+            cp "$apk" "../../../../../../$OFFLINE_NAME"
+            echo "✓ 离线版: $OFFLINE_NAME"
+            echo "  大小: $(du -h "$apk" | cut -f1)"
+            echo "  MD5: $(md5sum "$apk" | cut -d' ' -f1)"
+            break
+          fi
+        done
+        cd ../../../../../../
+        
+        echo ""
+        echo "=== 最终生成的 APK ==="
         ls -lh TeHui-*.apk
+        
+        echo ""
+        echo "=== 大小对比 ==="
+        du -h TeHui-Online-*.apk
+        du -h TeHui-Offline-*.apk
         
     - name: 上传 APK 到 Artifacts
       uses: actions/upload-artifact@v4
@@ -370,18 +477,31 @@ jobs:
         files: |
           TeHui-*.apk
         body: |
-          ## �  特会信息 ${{ github.ref_name }}
+          ## 📱 特会信息 ${{ github.ref_name }}
           
           ### 📦 下载说明
           
-          #### APK 包（约 3-5 MB）
-          - 文件名：`TeHui-${{ github.ref_name }}.apk`
+          本版本提供两种 APK 包，请根据需求选择：
+          
+          #### 🌐 在线版（推荐）- 约 3-5 MB
+          - 文件名：`TeHui-Online-${{ github.ref_name }}.apk`
           - 特点：轻量级应用壳，从服务器动态加载内容
-          - 功能：
+          - 优势：
+            - 安装包小，下载快
+            - 内容自动更新，无需重装 APK
             - 支持多服务器切换（长按 Logo）
-            - 自动检查更新（点击 Logo 10 次）
-            - PWA 缓存，支持离线浏览
-          - 要求：安卓 5.1 或更高版本（API 22+）
+            - 自动检查 APK 更新（点击 Logo 10 次）
+            - PWA 缓存，支持离线浏览已加载内容
+          - 适合：网络条件良好，希望随时获取最新内容
+          
+          #### 💾 离线版 - 约 50-100 MB
+          - 文件名：`TeHui-Offline-${{ github.ref_name }}.apk`
+          - 特点：包含所有内容，完全离线使用
+          - 优势：
+            - 无需网络即可使用
+            - 所有内容预装，打开即用
+            - 适合网络不稳定或无网络环境
+          - 注意：内容更新需要重新下载安装新版本 APK
           
           ### ⚠️ 安装提示
           
@@ -395,19 +515,26 @@ jobs:
           ### 📝 版本信息
           - 版本号: ${{ github.ref_name }}
           - 包名: com.tehui.app
-          - 签名状态: ${{ github.event.inputs.sign_apk == 'true' && '✅ 已签名' || '⚠️ 未签名（测试版）' }}
+          - 签名状态: ✅ 已签名（可覆盖安装）
           - 构建时间: ${{ github.event.head_commit.timestamp }}
+          - 要求：安卓 5.1 或更高版本（API 22+）
           
           ### 🚀 使用说明
           
-          1. 下载并安装 APK
+          **在线版：**
+          1. 下载并安装 `TeHui-Online-*.apk`
           2. 打开应用，自动从服务器加载内容
           3. 长按 Logo 可切换服务器
           4. 点击 Logo 10 次可检查 APK 更新
           5. 内容会自动缓存，支持离线浏览
           
-          ### 💡 提示
-          - 这是测试版本，用于验证基础功能
-          - 如果安装成功，后续版本会添加离线版支持
+          **离线版：**
+          1. 下载并安装 `TeHui-Offline-*.apk`
+          2. 打开应用，直接使用预装内容
+          3. 无需网络连接
+          
+          ### 💡 选择建议
+          - ✅ 推荐在线版：适合大多数用户，体积小，内容自动更新
+          - 💾 选择离线版：网络不稳定或需要完全离线使用时
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
