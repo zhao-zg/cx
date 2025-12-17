@@ -94,9 +94,9 @@ jobs:
         rm -rf output
         mkdir -p output/icons
         
-        # 替换版本号并复制在线版启动页
-        sed "s/CURRENT_APK_VERSION: '0.1.0'/CURRENT_APK_VERSION: '$VERSION'/g" \
-          src/templates/app_index.html > output/index.html
+        # 替换版本号并复制在线版启动页（使用简化版本）
+        sed "s/CURRENT_APK_VERSION/$VERSION/g" \
+          src/templates/app_index_simple.html > output/index.html
         
         # 复制静态图标
         cp src/static/icons/icon.svg output/icons/

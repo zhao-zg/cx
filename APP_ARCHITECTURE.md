@@ -34,8 +34,8 @@
 
 ### 内容更新
 应用内置多个内容服务器地址：
-1. https://cx.zhaozg.dpdns.org/
-2. https://cx.zhaozg.cloudns.org/
+1. https://cx.zhaozg.cloudns.org/
+2. https://cx.zhaozg.dpdns.org/
 3. https://cx.xzdjx.dynv6.net/
 4. https://zhao-zg.github.io/cx/
 
