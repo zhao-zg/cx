@@ -1173,7 +1173,7 @@
             });
         }
         
-        // 清理所有缓存和记忆功能（通过长按 Logo 10 次触发）
+        // 清理所有缓存和记忆功能（通过点击 Logo 5 次触发）
         var clearClickCount = 0;
         var clearClickTimer = null;
         var logo = document.getElementById('mainLogo');
@@ -1188,8 +1188,8 @@
                     clearClickCount = 0;
                 }, 3000);
                 
-                // 点击 10 次触发清理所有缓存和记忆
-                if (clearClickCount >= 10) {
+                // 点击 5 次触发清理所有缓存和记忆
+                if (clearClickCount >= 5) {
                     clearClickCount = 0;
                     if (clearClickTimer) clearTimeout(clearClickTimer);
                     
