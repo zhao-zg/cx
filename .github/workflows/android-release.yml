@@ -119,9 +119,14 @@ jobs:
         echo "=== 离线版大小 ==="
         du -sh output-offline/
       
-    - name: 构建在线版 APK
+    - name: 构建在线版 Android 项目
       run: |
-        echo "=== 构建在线版 APK ==="
+        echo "=== 构建在线版 Android 项目 ==="
+        
+        # 确认当前 output 是在线版（空壳）
+        echo "当前 output 内容："
+        ls -lh output/
+        du -sh output/
         
         # 添加安卓平台（使用在线版内容）
         npx cap add android
@@ -131,17 +136,28 @@ jobs:
           exit 1
         fi
         
+        # 显示在线版 Android 项目的资源大小
+        echo ""
+        echo "=== 在线版 Android 资源 ==="
+        du -sh android/app/src/main/assets/
+        
         # 备份在线版 android 目录
         mv android android-online
         echo "✓ 在线版 Android 平台准备完成"
         
-    - name: 构建离线版 APK
+    - name: 构建离线版 Android 项目
       run: |
-        echo "=== 构建离线版 APK ==="
+        echo "=== 构建离线版 Android 项目 ==="
         
         # 切换到离线版内容
         rm -rf output
         mv output-offline output
+        
+        # 确认离线版内容
+        echo "离线版 output 内容："
+        du -sh output/
+        find output/ -type f | wc -l
+        echo "文件总数"
         
         # 创建离线版的 capacitor 配置（修改应用名称以区分）
         cat > capacitor.config.json << 'EOF'
@@ -168,6 +184,11 @@ jobs:
           echo "✗ Android 平台添加失败"
           exit 1
         fi
+        
+        # 显示离线版 Android 项目的资源大小
+        echo ""
+        echo "=== 离线版 Android 资源 ==="
+        du -sh android/app/src/main/assets/
         
         # 重命名为离线版
         mv android android-offline
@@ -197,6 +218,12 @@ jobs:
         echo ""
         echo "=== 两个版本都已准备 ==="
         ls -ld android android-offline
+        echo ""
+        echo "=== 资源大小对比 ==="
+        echo "在线版："
+        du -sh android/app/src/main/assets/
+        echo "离线版："
+        du -sh android-offline/app/src/main/assets/
       
     - name: 配置安卓项目版本信息
       run: |
