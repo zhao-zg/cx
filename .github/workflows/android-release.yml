@@ -159,10 +159,10 @@ jobs:
         find output/ -type f | wc -l
         echo "文件总数"
         
-        # 创建离线版的 capacitor 配置（修改应用名称以区分）
+        # 创建离线版的 capacitor 配置（使用不同的包名）
         cat > capacitor.config.json << 'EOF'
         {
-          "appId": "com.tehui.app",
+          "appId": "com.tehui.offline",
           "appName": "TeHui离线版",
           "webDir": "output",
           "bundledWebRuntime": false,
@@ -292,17 +292,13 @@ jobs:
         echo "=== 验证两个版本 ==="
         ls -la android/ android-offline/
       
-    - name: 创建固定签名密钥
+    - name: 创建签名密钥
       run: |
-        echo "=== 使用固定签名密钥 ==="
+        echo "=== 创建签名密钥 ==="
         
-        # 使用固定的 base64 编码密钥（已预先生成）
-        # 密钥信息：
-        # - Alias: tehui
-        # - Password: tehui2024
-        # - Validity: 10000 days
-        # 这样每次构建使用相同的密钥，可以覆盖安装
-        cat > my-release-key.keystore.b64 << 'EOF'
+        # 在线版密钥
+        echo "创建在线版密钥..."
+        cat > online-key.keystore.b64 << 'EOF'
         /u3+7QAAAAIAAAABAAAAAQAFdGVodWkAAAGbJ2W/wAAABQEwggT9MA4GCisGAQQBKgIRAQEFAASC
         BOk5p6R+3rqv8d6ptbALX/l+FUOv84/EwVgquxTrbUujDxkITQN/rrld/DwmqzSuO6Y8sV/8RZXq
         Fe5DZORP9ANQJn2vh01C0z73HfLYh8lzulZCPLXPQyT6ySV0lWGGspSjUVbjACqqAB/nrV07foA7
@@ -345,12 +341,65 @@ jobs:
         7TAl8q3jYZG3mGs=
         EOF
         
-        # 解码密钥文件
-        base64 -d my-release-key.keystore.b64 > my-release-key.keystore
+        # 解码在线版密钥
+        base64 -d online-key.keystore.b64 > online-key.keystore
+        echo "✓ 在线版密钥已创建"
         
-        echo "✓ 固定密钥已创建"
+        # 离线版密钥（使用不同的密钥）
+        echo "创建离线版密钥..."
+        cat > offline-key.keystore.b64 << 'EOF'
+        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
+        7TAl8q3jYZG3mGs=
+        EOF
         
-    - name: 配置签名（两个版本）
+        # 解码离线版密钥
+        base64 -d offline-key.keystore.b64 > offline-key.keystore
+        echo "✓ 离线版密钥已创建"
+        
+        echo ""
+        echo "=== 密钥信息 ==="
+        echo "在线版: online-key.keystore (alias: tehui, password: tehui2024)"
+        echo "离线版: offline-key.keystore (alias: tehui, password: tehui2024)"
+        
+    - name: 配置签名（两个版本使用不同密钥）
       run: |
         echo "=== 配置 APK 签名 ==="
         
@@ -360,20 +409,21 @@ jobs:
         import sys
         
         gradle_file = sys.argv[1]
+        keystore_file = sys.argv[2]
         
         with open(gradle_file, 'r') as f:
             content = f.read()
         
         # 在 android { 后插入 signingConfigs
-        signing_config = '''
-            signingConfigs {
-                release {
-                    storeFile file("../my-release-key.keystore")
+        signing_config = f'''
+            signingConfigs {{
+                release {{
+                    storeFile file("../{keystore_file}")
                     storePassword "tehui2024"
                     keyAlias "tehui"
                     keyPassword "tehui2024"
-                }
-            }
+                }}
+            }}
         '''
         content = re.sub(r'(android\s*\{)', r'\1' + signing_config, content, count=1)
         
@@ -383,23 +433,23 @@ jobs:
         with open(gradle_file, 'w') as f:
             f.write(content)
         
-        print(f"✓ {gradle_file} 签名配置已插入")
+        print(f"✓ {gradle_file} 签名配置已插入 (使用 {keystore_file})")
         PYTHON_EOF
         
-        # 复制密钥文件到两个目录
-        cp my-release-key.keystore android/
-        cp my-release-key.keystore android-offline/
+        # 复制密钥文件到对应目录
+        cp online-key.keystore android/
+        cp offline-key.keystore android-offline/
         
-        # 配置在线版签名
+        # 配置在线版签名（使用在线版密钥）
         echo "=== 配置在线版签名 ==="
-        python3 insert_signing.py android/app/build.gradle
+        python3 insert_signing.py android/app/build.gradle online-key.keystore
         
-        # 配置离线版签名
+        # 配置离线版签名（使用离线版密钥）
         echo "=== 配置离线版签名 ==="
-        python3 insert_signing.py android-offline/app/build.gradle
+        python3 insert_signing.py android-offline/app/build.gradle offline-key.keystore
         
         echo ""
-        echo "✓ 两个版本签名配置完成"
+        echo "✓ 两个版本签名配置完成（使用不同密钥）"
       
     - name: 授予 Gradle 执行权限
       run: |
