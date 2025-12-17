@@ -435,8 +435,8 @@
             console.log('APK 更新检查未启用（非安卓 APP 环境）');
         }
         
-        // 获取当前 APK 版本（从 URL 或 localStorage）
-        function getCurrentApkVersion() {
+        // 获取当前 APK 版本和类型（从 URL 或 localStorage）
+        function getCurrentApkInfo() {
             // 尝试从多个来源获取版本号
             var version = localStorage.getItem('cx_apk_version');
             if (!version) {
@@ -447,7 +447,31 @@
                     localStorage.setItem('cx_apk_version', version);
                 }
             }
-            return version || '未知';
+            
+            // 检测是在线版还是离线版
+            // 方法1: 检查包名（通过 Capacitor）
+            var isOnline = true; // 默认假设是在线版
+            if (window.Capacitor && window.Capacitor.getPlatform) {
+                // 可以通过其他方式检测，比如检查本地是否有完整内容
+                // 简单方法：检查 localStorage 中是否有标记
+                var apkType = localStorage.getItem('cx_apk_type');
+                if (apkType) {
+                    isOnline = apkType === 'online';
+                }
+            }
+            
+            // 方法2: 检查 URL 参数
+            var urlParams = new URLSearchParams(window.location.search);
+            var typeParam = urlParams.get('apk_type');
+            if (typeParam) {
+                isOnline = typeParam === 'online';
+                localStorage.setItem('cx_apk_type', typeParam);
+            }
+            
+            return {
+                version: version || '未知',
+                isOnline: isOnline
+            };
         }
         
         // 比较版本号
@@ -470,8 +494,8 @@
         function checkApkUpdate() {
             console.log('开始检查 APK 更新...');
             
-            var currentVersion = getCurrentApkVersion();
-            console.log('当前 APK 版本:', currentVersion);
+            var apkInfo = getCurrentApkInfo();
+            console.log('当前 APK 信息:', apkInfo);
             
             fetch('https://api.github.com/repos/zhao-zg/cx/releases/latest')
                 .then(function(response) {
@@ -506,17 +530,19 @@
                     }
                     
                     // 比较版本
-                    var latestVersion = release.tag_name;
+                    var latestVersion = release.tag_name.replace('v', '');
+                    var currentVersion = apkInfo.version.replace('v', '');
                     var comparison = compareVersion(latestVersion, currentVersion);
                     
                     console.log('版本比较:', {
                         current: currentVersion,
                         latest: latestVersion,
-                        comparison: comparison
+                        comparison: comparison,
+                        isOnline: apkInfo.isOnline
                     });
                     
-                    // 显示更新对话框（包含版本信息）
-                    showApkUpdateDialog(release, onlineApk, offlineApk, currentVersion, comparison);
+                    // 显示更新对话框（包含版本信息和类型）
+                    showApkUpdateDialog(release, onlineApk, offlineApk, apkInfo, comparison);
                 })
                 .catch(function(error) {
                     console.error('检查更新失败:', error);
@@ -552,7 +578,17 @@
         };
         
         // 显示 APK 更新对话框
-        function showApkUpdateDialog(release, onlineApk, offlineApk, currentVersion, comparison) {
+        function showApkUpdateDialog(release, onlineApk, offlineApk, apkInfo, comparison) {
+            var currentVersion = apkInfo.version;
+            var isOnline = apkInfo.isOnline;
+            var latestVersion = release.tag_name;
+            
+            // 确定当前使用的 APK 和另一个 APK
+            var currentApk = isOnline ? onlineApk : offlineApk;
+            var otherApk = isOnline ? offlineApk : onlineApk;
+            var currentTypeName = isOnline ? '在线版' : '离线版';
+            var otherTypeName = isOnline ? '离线版' : '在线版';
+            
             var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="apkUpdateDialog">';
             html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto;">';
             
@@ -562,13 +598,14 @@
             } else if (comparison === 0) {
                 html += '<h3 style="color: #48bb78; margin-bottom: 15px; font-size: 20px;">✅ 已是最新版本</h3>';
             } else {
-                html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px;">📱 APK 下载</h3>';
+                html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px;">📱 APK 信息</h3>';
             }
             
             html += '<div style="color: #333; margin-bottom: 20px; font-size: 14px; line-height: 1.6;">';
             html += '<p style="margin-bottom: 10px;">';
+            html += '<strong>当前类型：</strong>' + currentTypeName + '<br>';
             html += '<strong>当前版本：</strong>' + (currentVersion === '未知' ? '未知' : 'v' + currentVersion) + '<br>';
-            html += '<strong>最新版本：</strong>' + release.tag_name;
+            html += '<strong>最新版本：</strong>' + latestVersion;
             html += '</p>';
             
             // 显示版本状态提示
@@ -586,20 +623,30 @@
                 html += '</div>';
             }
             
-            // 始终显示下载按钮（用户可能想下载另一个版本）
-            if (onlineApk) {
-                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="downloadApk(\'' + onlineApk.browser_download_url + '\')">';
-                html += '🌐 下载在线版 (' + (onlineApk.size / 1024 / 1024).toFixed(1) + ' MB)';
+            // 如果有新版本，显示当前类型的下载按钮
+            if (comparison > 0 && currentApk) {
+                var bgColor = isOnline ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)';
+                var icon = isOnline ? '🌐' : '💾';
+                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: ' + bgColor + '; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="downloadApk(\'' + currentApk.browser_download_url + '\')">';
+                html += icon + ' 更新' + currentTypeName + ' (' + (currentApk.size / 1024 / 1024).toFixed(1) + ' MB)';
                 html += '</button>';
             }
             
-            if (offlineApk) {
-                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="downloadApk(\'' + offlineApk.browser_download_url + '\')">';
-                html += '💾 下载离线版 (' + (offlineApk.size / 1024 / 1024).toFixed(1) + ' MB)';
+            // 显示另一个类型的下载链接（折叠式）
+            if (otherApk) {
+                html += '<details style="margin-top: 10px; margin-bottom: 10px;">';
+                html += '<summary style="cursor: pointer; padding: 8px; background: #f5f5f5; border-radius: 6px; font-size: 13px; color: #666;">下载' + otherTypeName + '</summary>';
+                html += '<div style="padding: 10px 0;">';
+                var otherBgColor = isOnline ? 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                var otherIcon = isOnline ? '💾' : '🌐';
+                html += '<button style="width: 100%; padding: 12px; background: ' + otherBgColor + '; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="downloadApk(\'' + otherApk.browser_download_url + '\')">';
+                html += otherIcon + ' 下载' + otherTypeName + ' (' + (otherApk.size / 1024 / 1024).toFixed(1) + ' MB)';
                 html += '</button>';
+                html += '</div>';
+                html += '</details>';
             }
             
-            html += '<div style="background: #f5f5f5; padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 5px; line-height: 1.5;">';
+            html += '<div style="background: #f5f5f5; padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 10px; line-height: 1.5;">';
             html += '<strong>说明：</strong><br>';
             html += '• 在线版：轻量级（~5MB），需要网络<br>';
             html += '• 离线版：完整内容（~50MB），无需网络';
