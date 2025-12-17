@@ -644,6 +644,44 @@
         }
     })();
     
+    // 防乱码重定向 - 检测并修复双重编码的 URL
+    (function() {
+        try {
+            var currentPath = window.location.pathname;
+            
+            // 检测是否包含双重编码的特征
+            // 双重编码的 UTF-8 会包含 %C3%A 或 %C2% 等模式
+            var hasDoubleEncoding = /%C3%[89A]|%C2%[89A]/.test(currentPath);
+            
+            if (hasDoubleEncoding) {
+                console.log('[防乱码] 检测到双重编码的 URL:', currentPath);
+                
+                try {
+                    // 尝试解码一次，得到正确的 URL
+                    var decodedPath = decodeURIComponent(currentPath);
+                    console.log('[防乱码] 解码后的路径:', decodedPath);
+                    
+                    // 重定向到正确的 URL
+                    var correctUrl = window.location.origin + decodedPath + window.location.search + window.location.hash;
+                    console.log('[防乱码] 重定向到:', correctUrl);
+                    
+                    window.location.replace(correctUrl);
+                    return;
+                } catch (e) {
+                    console.error('[防乱码] 解码失败:', e);
+                    // 如果解码失败，尝试回到主页
+                    if (currentPath !== '/' && currentPath !== '/index.html') {
+                        console.log('[防乱码] 回到主页');
+                        window.location.replace('/');
+                        return;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('[防乱码] 错误:', e);
+        }
+    })();
+    
     // 页面记忆功能 - 恢复上次访问的页面（PWA 和 Capacitor APP）
     (function() {
         try {
