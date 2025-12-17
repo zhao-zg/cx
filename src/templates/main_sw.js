@@ -105,6 +105,34 @@ self.addEventListener('fetch', event => {
     return;
   }
   
+  // 规范化 URL：将 index.html 请求重定向到目录
+  // 注意：不进行 URL 规范化，直接使用原始请求，避免双重编码
+  // 让浏览器和服务器自然处理 /index.html 和 / 的映射
+  const requestUrl = event.request.url;
+  if (requestUrl.endsWith('/index.html')) {
+    // 不创建新的 Request，直接修改 URL 后使用 fetch
+    const normalizedUrl = requestUrl.replace(/\/index\.html$/, '/');
+    
+    // 直接 fetch 规范化的 URL，不使用 Request 对象
+    event.respondWith(
+      caches.match(normalizedUrl).then(cached => {
+        if (cached) {
+          return cached;
+        }
+        return fetch(normalizedUrl).then(response => {
+          if (response.ok && response.status >= 200 && response.status < 300) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(normalizedUrl, clone);
+            });
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+  
   event.respondWith(handleRequest(event.request));
 });
 
@@ -165,58 +193,24 @@ function createOfflineResponse() {
 
 // 处理缓存和网络请求的通用函数
 function handleRequest(request) {
-  // 对于 /xxx/index.html 的请求，也尝试查找 /xxx/ 的缓存
-  // 但不修改请求本身，避免 URL 编码问题
-  const requestUrl = request.url;
-  const isIndexHtml = requestUrl.endsWith('/index.html');
-  
-  // 调试日志
-  console.log('[SW] 处理请求:', requestUrl);
-  
-  // 先尝试匹配原始请求
+  // 使用 caches.match() 会搜索所有缓存（包括手动缓存的训练）
   return caches.match(request).then(cached => {
     if (cached) {
-      console.log('[SW] ✓ 缓存命中:', requestUrl);
       return cached;
     }
     
-    console.log('[SW] ✗ 缓存未命中:', requestUrl);
-    
-    // 如果是 index.html 请求且没有缓存，尝试查找目录的缓存
-    if (isIndexHtml) {
-      const dirUrl = requestUrl.replace(/\/index\.html$/, '/');
-      console.log('[SW] 尝试目录缓存:', dirUrl);
-      
-      return caches.match(dirUrl).then(dirCached => {
-        if (dirCached) {
-          console.log('[SW] ✓ 目录缓存命中:', dirUrl);
-          return dirCached;
-        }
-        console.log('[SW] ✗ 目录缓存未命中，从网络获取');
-        // 都没有缓存，从网络获取
-        return fetchFromNetwork(request);
-      });
-    }
-    
-    // 不是 index.html，直接从网络获取
-    console.log('[SW] 从网络获取');
-    return fetchFromNetwork(request);
-  });
-}
-
-// 从网络获取资源并缓存
-function fetchFromNetwork(request) {
-  return fetchWithTimeout(request, 5000).then(response => {
-    if (response.ok && response.status >= 200 && response.status < 300) {
-      const clone = response.clone();
-      // 只将新请求的资源缓存到主缓存
-      caches.open(CACHE_NAME).then(cache => {
-        cache.put(request, clone);
-      });
-    }
-    return response;
-  }).catch(err => {
-    return createOfflineResponse();
+    return fetchWithTimeout(request, 5000).then(response => {
+      if (response.ok && response.status >= 200 && response.status < 300) {
+        const clone = response.clone();
+        // 只将新请求的资源缓存到主缓存
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(request, clone);
+        });
+      }
+      return response;
+    }).catch(err => {
+      return createOfflineResponse();
+    });
   });
 }
 
