@@ -247,66 +247,6 @@
     }
 })();
 
-// 检测并修复双重编码的 URL
-(function() {
-    var currentPath = window.location.pathname;
-    
-    // 检测是否是双重编码（包含 %C3%）
-    if (currentPath.includes('%C3%')) {
-        console.log('[训练目录] 检测到双重编码的 URL:', currentPath);
-        
-        try {
-            // 尝试解码一次
-            var decodedPath = decodeURIComponent(currentPath);
-            console.log('[训练目录] 解码后的 URL:', decodedPath);
-            
-            // 替换当前 URL（不刷新页面）
-            window.history.replaceState(null, '', decodedPath);
-            console.log('[训练目录] ✓ URL 已修复');
-        } catch (e) {
-            console.error('[训练目录] URL 修复失败:', e);
-        }
-    }
-})();
-
-// 确保训练目录页面不注册 Service Worker
-// 如果有旧的 Service Worker 注册，注销它
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        var currentOrigin = window.location.origin;
-        var currentPath = window.location.pathname;
-        
-        // 获取当前训练目录的路径（如 /2025-06-感恩节/）
-        var trainingPath = currentPath.match(/^(\/[^\/]+\/)/);
-        
-        console.log('[训练目录] 当前路径:', currentPath);
-        console.log('[训练目录] 训练目录路径:', trainingPath ? trainingPath[1] : 'null');
-        console.log('[训练目录] 找到 Service Worker:', registrations.length, '个');
-        
-        registrations.forEach(function(registration) {
-            var scope = registration.scope;
-            console.log('[训练目录] 检查 SW scope:', scope);
-            
-            // 注销非主页的 Service Worker（训练目录不应该有 SW）
-            // 主页的 scope 应该是 origin + '/'
-            var isMainPageSW = scope === currentOrigin + '/' || scope === currentOrigin;
-            
-            if (!isMainPageSW) {
-                console.log('[训练目录] ✓ 注销非主页的 Service Worker:', scope);
-                registration.unregister().then(function() {
-                    console.log('[训练目录] ✓ 注销成功');
-                }).catch(function(err) {
-                    console.error('[训练目录] ✗ 注销失败:', err);
-                });
-            } else {
-                console.log('[训练目录] ✓ 保留主页的 Service Worker:', scope);
-            }
-        });
-    }).catch(function(err) {
-        console.error('[训练目录] 获取 Service Worker 失败:', err);
-    });
-}
-
 // 根据星期几决定跳转目标
 document.addEventListener('DOMContentLoaded', function() {
     var dayOfWeek = new Date().getDay(); // 0=周日, 1=周一, ..., 6=周六

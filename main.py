@@ -231,7 +231,7 @@ def generate_main_index(config, batch_results):
             'season': result['season'],
             'title': result['title'],
             'chapter_count': result['chapter_count'],
-            'path': result['name'],  # 保持原始路径，让浏览器自然编码
+            'path': result['name'],  # 相对路径
             'images': training_images  # 图片列表
         })
         total_chapters += result['chapter_count']
