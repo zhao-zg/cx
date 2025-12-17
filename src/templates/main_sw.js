@@ -105,25 +105,6 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // 规范化 URL：将 index.html 请求重定向到目录
-  // 注意：直接操作 URL 字符串，避免 new URL() 导致的双重编码问题
-  const requestUrl = event.request.url;
-  if (requestUrl.endsWith('/index.html')) {
-    // 直接替换字符串，不使用 URL 对象，避免编码问题
-    const normalizedUrl = requestUrl.replace(/\/index\.html$/, '/');
-    
-    // 创建规范化的请求
-    const normalizedRequest = new Request(normalizedUrl, {
-      method: event.request.method,
-      headers: event.request.headers,
-      credentials: event.request.credentials,
-      redirect: event.request.redirect
-    });
-    
-    event.respondWith(handleRequest(normalizedRequest));
-    return;
-  }
-  
   event.respondWith(handleRequest(event.request));
 });
 
@@ -184,24 +165,47 @@ function createOfflineResponse() {
 
 // 处理缓存和网络请求的通用函数
 function handleRequest(request) {
-  // 使用 caches.match() 会搜索所有缓存（包括手动缓存的训练）
+  // 对于 /xxx/index.html 的请求，也尝试查找 /xxx/ 的缓存
+  // 但不修改请求本身，避免 URL 编码问题
+  const requestUrl = request.url;
+  const isIndexHtml = requestUrl.endsWith('/index.html');
+  
+  // 先尝试匹配原始请求
   return caches.match(request).then(cached => {
     if (cached) {
       return cached;
     }
     
-    return fetchWithTimeout(request, 5000).then(response => {
-      if (response.ok && response.status >= 200 && response.status < 300) {
-        const clone = response.clone();
-        // 只将新请求的资源缓存到主缓存
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(request, clone);
-        });
-      }
-      return response;
-    }).catch(err => {
-      return createOfflineResponse();
-    });
+    // 如果是 index.html 请求且没有缓存，尝试查找目录的缓存
+    if (isIndexHtml) {
+      const dirUrl = requestUrl.replace(/\/index\.html$/, '/');
+      return caches.match(dirUrl).then(dirCached => {
+        if (dirCached) {
+          return dirCached;
+        }
+        // 都没有缓存，从网络获取
+        return fetchFromNetwork(request);
+      });
+    }
+    
+    // 不是 index.html，直接从网络获取
+    return fetchFromNetwork(request);
+  });
+}
+
+// 从网络获取资源并缓存
+function fetchFromNetwork(request) {
+  return fetchWithTimeout(request, 5000).then(response => {
+    if (response.ok && response.status >= 200 && response.status < 300) {
+      const clone = response.clone();
+      // 只将新请求的资源缓存到主缓存
+      caches.open(CACHE_NAME).then(cache => {
+        cache.put(request, clone);
+      });
+    }
+    return response;
+  }).catch(err => {
+    return createOfflineResponse();
   });
 }
 
