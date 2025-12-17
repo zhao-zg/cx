@@ -7,6 +7,7 @@ import sys
 import yaml
 import shutil
 from datetime import datetime
+from urllib.parse import quote
 from jinja2 import Environment, FileSystemLoader
 from src.parser_improved import parse_training_docs_improved
 from src.generator import HTMLGenerator
@@ -231,7 +232,8 @@ def generate_main_index(config, batch_results):
             'season': result['season'],
             'title': result['title'],
             'chapter_count': result['chapter_count'],
-            'path': result['name'],  # 相对路径
+            'path': quote(result['name'], safe=''),  # URL 编码路径，避免双重编码
+            'path_raw': result['name'],  # 保留原始路径用于其他用途
             'images': training_images  # 图片列表
         })
         total_chapters += result['chapter_count']
