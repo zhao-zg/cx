@@ -2,14 +2,9 @@
   "appId": "com.tehui.app",
   "appName": "TeHui",
   "webDir": "output",
-  "server": {
-    "allowNavigation": [
-      "*"
-    ]
-  },
   "android": {
     "allowMixedContent": true,
     "captureInput": true,
-    "webContentsDebuggingEnabled": false
+    "webContentsDebuggingEnabled": true
   }
 }
