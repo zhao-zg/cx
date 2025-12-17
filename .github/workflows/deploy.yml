@@ -60,6 +60,19 @@ jobs:
         run: |
           echo "🔨 生成静态文件..."
           python main.py
+          
+          echo "📋 检查生成的文件..."
+          ls -la output/
+          echo "📄 检查 sw.js 是否存在..."
+          if [ -f output/sw.js ]; then
+            echo "✓ sw.js 文件存在"
+            echo "文件大小: $(wc -c < output/sw.js) bytes"
+            echo "前 5 行内容:"
+            head -5 output/sw.js
+          else
+            echo "❌ sw.js 文件不存在！"
+            exit 1
+          fi
       
       - name: 检查并创建 Cloudflare Pages 项目
         run: |
