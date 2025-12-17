@@ -389,11 +389,27 @@ jobs:
           cp android-config/MainActivity.java android/app/src/main/java/com/tehui/app/
         fi
         
+        # 配置网络安全策略（允许 localhost 的明文 HTTP）
+        echo ""
+        echo "=== 配置在线版网络安全策略 ==="
+        mkdir -p android/app/src/main/res/xml
+        cat > android/app/src/main/res/xml/network_security_config.xml << 'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <network-security-config>
+            <domain-config cleartextTrafficPermitted="true">
+                <domain includeSubdomains="true">localhost</domain>
+            </domain-config>
+        </network-security-config>
+        EOF
+        
+        # 修改 AndroidManifest.xml 引用网络安全配置
+        sed -i 's/<application/<application android:networkSecurityConfig="@xml\/network_security_config"/' android/app/src/main/AndroidManifest.xml
+        
         echo "✓ 在线版同步完成"
         
         # 最终验证
         echo ""
-        echo "=== 验证在线版 MainActivity ==="
+        echo "=== 验证在线版配置 ==="
         if [ -f "android/app/src/main/java/com/tehui/app/MainActivity.java" ]; then
           echo "✓ MainActivity 存在"
           wc -l android/app/src/main/java/com/tehui/app/MainActivity.java
@@ -401,6 +417,17 @@ jobs:
           echo "✗ MainActivity 不存在！"
           exit 1
         fi
+        
+        if [ -f "android/app/src/main/res/xml/network_security_config.xml" ]; then
+          echo "✓ 网络安全配置已创建"
+        else
+          echo "✗ 网络安全配置创建失败！"
+          exit 1
+        fi
+        
+        echo ""
+        echo "=== AndroidManifest.xml 预览 ==="
+        grep -A 2 "application" android/app/src/main/AndroidManifest.xml | head -n 5
         
         echo ""
         echo "=== 手动同步离线版 ==="
@@ -414,6 +441,23 @@ jobs:
         
         # 复制离线版内容到 assets
         cp -r output/* android-offline/app/src/main/assets/public/
+        
+        # 配置离线版网络安全策略（允许 localhost 的明文 HTTP）
+        echo ""
+        echo "=== 配置离线版网络安全策略 ==="
+        mkdir -p android-offline/app/src/main/res/xml
+        cat > android-offline/app/src/main/res/xml/network_security_config.xml << 'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <network-security-config>
+            <domain-config cleartextTrafficPermitted="true">
+                <domain includeSubdomains="true">localhost</domain>
+            </domain-config>
+        </network-security-config>
+        EOF
+        
+        # 修改离线版 AndroidManifest.xml 引用网络安全配置
+        sed -i 's/<application/<application android:networkSecurityConfig="@xml\/network_security_config"/' android-offline/app/src/main/AndroidManifest.xml
+        
         echo "✓ 离线版同步完成"
         
         echo ""
