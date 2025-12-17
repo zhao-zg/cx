@@ -2,6 +2,9 @@
   "appId": "com.tehui.app",
   "appName": "TeHui",
   "webDir": "output",
+  "server": {
+    "androidScheme": "http"
+  },
   "android": {
     "allowMixedContent": true,
     "captureInput": true,

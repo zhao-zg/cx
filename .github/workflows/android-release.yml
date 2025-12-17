@@ -187,12 +187,15 @@ jobs:
         find output/ -type f | wc -l
         echo "文件总数"
         
-        # 创建离线版的 capacitor 配置（使用不同的包名，最简化配置）
+        # 创建离线版的 capacitor 配置（使用不同的包名）
         cat > capacitor.config.json << 'EOF'
         {
           "appId": "com.tehui.offline",
           "appName": "TeHui离线版",
           "webDir": "output",
+          "server": {
+            "androidScheme": "http"
+          },
           "android": {
             "allowMixedContent": true,
             "captureInput": true,
@@ -220,12 +223,15 @@ jobs:
         # 恢复在线版目录和配置
         mv android-online android
         
-        # 恢复在线版的 capacitor 配置（最简化配置）
+        # 恢复在线版的 capacitor 配置
         cat > capacitor.config.json << 'EOF'
         {
           "appId": "com.tehui.app",
           "appName": "TeHui",
           "webDir": "output",
+          "server": {
+            "androidScheme": "http"
+          },
           "android": {
             "allowMixedContent": true,
             "captureInput": true,
