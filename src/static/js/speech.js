@@ -49,8 +49,12 @@
     }
 
     // 检查是否支持 Capacitor TTS（优先）或 Web Speech API
-    var useCapacitorTTS = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
-    var useWebSpeech = !useCapacitorTTS && ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+    var hasCapacitor = !!(window.Capacitor && window.Capacitor.Plugins);
+    var useCapacitorTTS = hasCapacitor && window.Capacitor.Plugins.TextToSpeech;
+    var hasWebSpeech = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+    
+    // 优先使用 Capacitor TTS，如果不可用则使用 Web Speech API
+    var useWebSpeech = !useCapacitorTTS && hasWebSpeech;
     var speechSupported = useCapacitorTTS || useWebSpeech;
     
     console.log('[TTS] 环境检测:', {
