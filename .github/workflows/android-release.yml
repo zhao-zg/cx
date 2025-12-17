@@ -60,6 +60,9 @@ jobs:
         echo ""
         echo "=== 已安装的 Capacitor 插件 ==="
         npm list --depth=0 | grep capacitor || echo "无"
+        echo ""
+        echo "=== 已安装的插件详情 ==="
+        npm list @capacitor/browser @capacitor-community/text-to-speech || echo "插件列表获取失败"
       
     - name: 生成完整静态网站（用于离线版）
       run: |

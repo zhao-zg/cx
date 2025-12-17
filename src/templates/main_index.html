@@ -524,6 +524,33 @@
                 });
         }
         
+        // 下载 APK（使用系统浏览器或 Capacitor Browser）
+        window.downloadApk = async function(url) {
+            console.log('开始下载 APK:', url);
+            
+            try {
+                // 检查是否在 Capacitor 环境中
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
+                    console.log('使用 Capacitor Browser 打开下载链接');
+                    await window.Capacitor.Plugins.Browser.open({ url: url });
+                } else {
+                    console.log('使用 window.open 打开下载链接');
+                    // 后备方案：使用 window.open
+                    var link = document.createElement('a');
+                    link.href = url;
+                    link.target = '_blank';
+                    link.download = '';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            } catch (error) {
+                console.error('下载失败:', error);
+                // 最后的后备方案
+                window.open(url, '_blank');
+            }
+        };
+        
         // 显示 APK 更新对话框
         function showApkUpdateDialog(release, onlineApk, offlineApk, currentVersion, comparison) {
             var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="apkUpdateDialog">';
@@ -561,13 +588,13 @@
             
             // 始终显示下载按钮（用户可能想下载另一个版本）
             if (onlineApk) {
-                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.open(\'' + onlineApk.browser_download_url + '\', \'_blank\')">';
+                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="downloadApk(\'' + onlineApk.browser_download_url + '\')">';
                 html += '🌐 下载在线版 (' + (onlineApk.size / 1024 / 1024).toFixed(1) + ' MB)';
                 html += '</button>';
             }
             
             if (offlineApk) {
-                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.open(\'' + offlineApk.browser_download_url + '\', \'_blank\')">';
+                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="downloadApk(\'' + offlineApk.browser_download_url + '\')">';
                 html += '💾 下载离线版 (' + (offlineApk.size / 1024 / 1024).toFixed(1) + ' MB)';
                 html += '</button>';
             }
