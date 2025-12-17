@@ -500,6 +500,9 @@
             const errorMsg = document.getElementById('errorMsg');
             
             try {
+                // 保存当前 APK 版本到 localStorage（供远程页面使用）
+                localStorage.setItem('cx_apk_version', CONFIG.CURRENT_APK_VERSION);
+                
                 // 查找可用的服务器
                 status.textContent = '正在连接服务器...';
                 const remoteUrl = await findAvailableUrl();
@@ -508,8 +511,10 @@
                 localStorage.setItem('cx_remote_url', remoteUrl);
                 
                 // 在 WebView 内部加载远程 URL（不触发外部浏览器）
+                // 在 URL 中也传递版本号（作为备用）
                 status.textContent = '正在加载内容...';
-                window.location.replace(remoteUrl);
+                const urlWithVersion = remoteUrl + (remoteUrl.includes('?') ? '&' : '?') + 'apk_version=' + CONFIG.CURRENT_APK_VERSION;
+                window.location.replace(urlWithVersion);
                 
             } catch (err) {
                 console.error('加载失败:', err);
@@ -518,7 +523,8 @@
                 const lastUrl = localStorage.getItem('cx_remote_url');
                 if (lastUrl) {
                     console.log('尝试使用上次的 URL:', lastUrl);
-                    window.location.replace(lastUrl);
+                    const urlWithVersion = lastUrl + (lastUrl.includes('?') ? '&' : '?') + 'apk_version=' + CONFIG.CURRENT_APK_VERSION;
+                    window.location.replace(urlWithVersion);
                     return;
                 }
                 
