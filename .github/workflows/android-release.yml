@@ -245,39 +245,27 @@ jobs:
         # 复制密钥文件到 android 目录
         cp my-release-key.keystore android/
         
-        # 使用 Python 脚本插入签名配置
-        python3 << 'PYTHON_EOF'
+        # 创建 Python 脚本来插入签名配置
+        cat > insert_signing.py << 'EOF'
         import re
         
         with open('android/app/build.gradle', 'r') as f:
             content = f.read()
         
         # 在 android { 后插入 signingConfigs
-        signing_config = '''
-    signingConfigs {
-        release {
-            storeFile file("../my-release-key.keystore")
-            storePassword "tehui2024"
-            keyAlias "tehui"
-            keyPassword "tehui2024"
-        }
-    }
-'''
+        signing_config = "\n    signingConfigs {\n        release {\n            storeFile file(\"../my-release-key.keystore\")\n            storePassword \"tehui2024\"\n            keyAlias \"tehui\"\n            keyPassword \"tehui2024\"\n        }\n    }\n"
         content = re.sub(r'(android\s*\{)', r'\1' + signing_config, content, count=1)
         
         # 在 buildTypes.release { 后插入 signingConfig
-        content = re.sub(
-            r'(buildTypes\s*\{[^}]*release\s*\{)',
-            r'\1\n            signingConfig signingConfigs.release',
-            content,
-            count=1
-        )
+        content = re.sub(r'(buildTypes\s*\{[^}]*release\s*\{)', r'\1\n            signingConfig signingConfigs.release', content, count=1)
         
         with open('android/app/build.gradle', 'w') as f:
             f.write(content)
         
         print("✓ 签名配置已插入")
-        PYTHON_EOF
+        EOF
+        
+        python3 insert_signing.py
         
         echo "✓ 签名配置完成"
         echo ""
