@@ -150,6 +150,13 @@ jobs:
         echo "=== 在线版 Android 资源 ==="
         du -sh android/app/src/main/assets/
         
+        # 复制自定义 MainActivity 到在线版（防止跳转外部浏览器）
+        echo ""
+        echo "=== 配置在线版 MainActivity ==="
+        mkdir -p android/app/src/main/java/com/tehui/app
+        cp android-config/MainActivity.java android/app/src/main/java/com/tehui/app/
+        echo "✓ MainActivity 已配置"
+        
         # 备份在线版 android 目录
         mv android android-online
         echo "✓ 在线版 Android 平台准备完成"

@@ -392,15 +392,21 @@
                 logo.addEventListener('click', function() {
                     clickCount++;
                     
+                    // 显示点击次数（调试用）
+                    if (clickCount >= 3) {
+                        console.log('点击次数:', clickCount, '/5');
+                    }
+                    
                     if (clickTimer) clearTimeout(clickTimer);
                     clickTimer = setTimeout(function() {
                         clickCount = 0;
                     }, 5000);
                     
-                    // 点击 10 次触发 APK 更新检查
-                    if (clickCount >= 10) {
+                    // 点击 5 次触发 APK 更新检查（降低门槛）
+                    if (clickCount >= 5) {
                         clickCount = 0;
                         if (clickTimer) clearTimeout(clickTimer);
+                        console.log('触发 APK 更新检查');
                         checkApkUpdate();
                     }
                 });
