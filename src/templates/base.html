@@ -173,6 +173,8 @@
         function saveCurrentPage() {
             try {
                 var pathname = window.location.pathname;
+                var href = window.location.href;
+                
                 // 检查是否是主页（支持各种路径格式）
                 var isMainPage = pathname === '/' || 
                                 pathname === '/index.html' ||
@@ -182,13 +184,19 @@
                                 pathname === '/android_asset/public/index.html' ||
                                 pathname.includes('/public/index.html');
                 
-                // 只保存非主页的页面
-                if (!isMainPage) {
-                    localStorage.setItem('cx_last_page', window.location.href);
+                // 检查是否是训练目录页（路径包含训练文件夹且以 /index.html 结尾）
+                // 例如：/2025-04-夏季/index.html
+                var isTrainingIndex = !isMainPage && 
+                                     (pathname.match(/\/[^\/]+\/index\.html$/) || 
+                                      pathname.match(/\/[^\/]+\/$/) && !pathname.match(/^\/$/));
+                
+                // 只保存非主页且非训练目录的页面（即具体的内容页面）
+                if (!isMainPage && !isTrainingIndex) {
+                    localStorage.setItem('cx_last_page', href);
                     localStorage.setItem('cx_last_page_time', Date.now());
-                    console.log('[页面记忆] 保存页面:', window.location.href);
+                    console.log('[页面记忆] 保存页面:', href);
                 } else {
-                    console.log('[页面记忆] 主页不保存');
+                    console.log('[页面记忆] 跳过保存:', isMainPage ? '主页' : '训练目录');
                 }
             } catch (e) {
                 console.error('[页面记忆] 保存失败:', e);
