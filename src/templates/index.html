@@ -247,6 +247,28 @@
     }
 })();
 
+// 检查并修复 URL 双重编码问题
+(function() {
+    var currentPath = window.location.pathname;
+    
+    // 检测是否有双重编码（%C3 开头通常是双重编码的标志）
+    if (currentPath.includes('%C3%')) {
+        console.log('[训练目录] 检测到 URL 双重编码:', currentPath);
+        
+        try {
+            // 尝试解码一次，得到正确的 URL
+            var decodedPath = decodeURIComponent(currentPath);
+            console.log('[训练目录] 解码后的路径:', decodedPath);
+            
+            // 重定向到正确的 URL
+            window.location.replace(decodedPath);
+            return;
+        } catch (e) {
+            console.error('[训练目录] URL 解码失败:', e);
+        }
+    }
+})();
+
 // 确保训练目录页面不注册 Service Worker
 // 如果有旧的 Service Worker 注册，注销它
 if ('serviceWorker' in navigator) {
