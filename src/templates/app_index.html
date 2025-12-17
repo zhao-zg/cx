@@ -486,7 +486,7 @@
             await cache.addAll(filesToCache);
         }
         
-        // 加载内容
+        // 加载内容到 iframe
         async function loadContent() {
             const status = document.getElementById('status');
             const spinner = document.getElementById('spinner');
@@ -498,30 +498,25 @@
                 status.textContent = '正在连接服务器...';
                 const remoteUrl = await findAvailableUrl();
                 
-                // 首先尝试从缓存加载
-                const cache = await caches.open('cx-content');
-                const cachedResponse = await cache.match(remoteUrl + 'index.html');
+                // 保存当前使用的 URL
+                localStorage.setItem('cx_remote_url', remoteUrl);
                 
-                if (cachedResponse) {
-                    // 有缓存，直接跳转
-                    window.location.href = remoteUrl + 'index.html';
-                    return;
-                }
-                
-                // 没有缓存，从网络加载
-                status.textContent = '首次加载，请稍候...';
-                
-                const response = await fetch(remoteUrl + 'index.html');
-                if (!response.ok) throw new Error('无法加载内容');
-                
-                // 缓存内容
-                await cache.put(remoteUrl + 'index.html', response.clone());
-                
-                // 跳转
-                window.location.href = remoteUrl + 'index.html';
+                // 直接跳转到远程 URL（让远程的 Service Worker 处理缓存）
+                status.textContent = '正在加载内容...';
+                window.location.href = remoteUrl;
                 
             } catch (err) {
                 console.error('加载失败:', err);
+                
+                // 尝试使用上次成功的 URL
+                const lastUrl = localStorage.getItem('cx_remote_url');
+                if (lastUrl) {
+                    console.log('尝试使用上次的 URL:', lastUrl);
+                    window.location.href = lastUrl;
+                    return;
+                }
+                
+                // 完全失败
                 spinner.style.display = 'none';
                 status.style.display = 'none';
                 errorMsg.textContent = '加载失败: ' + err.message + '\n\n长按 Logo 可切换服务器';
@@ -534,10 +529,7 @@
             // 检查 APK 更新（每24小时一次）
             checkApkUpdate(false);
             
-            // 自动检查内容更新（静默）
-            checkForUpdates(false);
-            
-            // 加载内容
+            // 加载内容（会跳转到远程网站，远程网站有自己的 Service Worker）
             setTimeout(loadContent, 1000);
         });
     </script>
