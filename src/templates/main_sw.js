@@ -106,11 +106,14 @@ self.addEventListener('fetch', event => {
   }
   
   // 规范化 URL：将 index.html 请求重定向到目录
-  let requestUrl = new URL(event.request.url);
-  if (requestUrl.pathname.endsWith('/index.html')) {
-    requestUrl.pathname = requestUrl.pathname.replace(/\/index\.html$/, '/');
-    // 创建规范化的请求，但不能使用 mode: 'navigate'
-    const normalizedRequest = new Request(requestUrl.toString(), {
+  // 注意：直接操作 URL 字符串，避免 new URL() 导致的双重编码问题
+  const requestUrl = event.request.url;
+  if (requestUrl.endsWith('/index.html')) {
+    // 直接替换字符串，不使用 URL 对象，避免编码问题
+    const normalizedUrl = requestUrl.replace(/\/index\.html$/, '/');
+    
+    // 创建规范化的请求
+    const normalizedRequest = new Request(normalizedUrl, {
       method: event.request.method,
       headers: event.request.headers,
       credentials: event.request.credentials,
