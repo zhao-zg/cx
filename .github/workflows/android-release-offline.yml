@@ -193,8 +193,8 @@ jobs:
         # TTS 不需要特殊权限，但我们可以添加一些优化配置
         # 确保应用名称正确
         if grep -q "android:label=" android/app/src/main/AndroidManifest.xml; then
-          sed -i 's/android:label="[^"]*"/android:label="TeHui"/' android/app/src/main/AndroidManifest.xml
-          echo "✓ 应用名称已设置为 TeHui"
+          sed -i 's/android:label="[^"]*"/android:label="特会"/' android/app/src/main/AndroidManifest.xml
+          echo "✓ 应用名称已设置为 特会"
         fi
         
         # 显示 AndroidManifest.xml 的关键部分
@@ -328,7 +328,7 @@ jobs:
         cd android/app/build/outputs/apk/release/
         for apk in *.apk; do
           if [ -f "$apk" ]; then
-            APK_NAME="TeHui-v${VERSION}.apk"
+            APK_NAME="特会-v${VERSION}.apk"
             cp "$apk" "../../../../../../$APK_NAME"
             echo "✓ APK: $APK_NAME"
             echo "  大小: $(du -h "$apk" | cut -f1)"
@@ -340,27 +340,27 @@ jobs:
         
         echo ""
         echo "=== 最终生成的 APK ==="
-        ls -lh TeHui-*.apk
+        ls -lh 特会-*.apk
         
     - name: 上传 APK 到 Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: android-apk
-        path: TeHui-*.apk
+        path: 特会-*.apk
         
     - name: 创建 Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          TeHui-*.apk
+          特会-*.apk
         body: |
           ## 📱 特会信息 ${{ github.ref_name }}
           
           ### 📦 下载说明
           
           **离线版 APK** - 约 50-100 MB
-          - 文件名：`TeHui-${{ github.ref_name }}.apk`
+          - 文件名：`特会-${{ github.ref_name }}.apk`
           - 特点：包含所有内容，完全离线使用
           - 优势：
             - 无需网络即可使用
