@@ -181,12 +181,23 @@
         console.log('[训练目录] 环境检测:', {
             isPWA: isPWA,
             isCapacitor: isCapacitor,
-            isApp: isApp
+            isApp: isApp,
+            pathname: window.location.pathname,
+            referrer: document.referrer
         });
         
         if (!isApp) {
             console.log('[训练目录] 非 APP 环境，不启用记忆功能');
             return; // 非 APP 模式不启用记忆功能
+        }
+        
+        // 检查是否是从外部进入（没有 referrer 或 referrer 不是本站）
+        var isExternalEntry = !document.referrer || !document.referrer.startsWith(window.location.origin);
+        
+        // 如果不是外部进入（即用户主动点击进入训练目录），不恢复
+        if (!isExternalEntry) {
+            console.log('[训练目录] 用户主动访问目录（有 referrer），不启用恢复功能');
+            return;
         }
         
         var lastPage = localStorage.getItem('cx_last_page');
@@ -203,30 +214,27 @@
                 // 检查上次访问的页面是否属于当前训练（且不是训练目录本身）
                 var currentPath = window.location.pathname.replace(/\/[^\/]*$/, '/');
                 var isInCurrentTraining = lastPage.indexOf(currentPath) !== -1;
+                
+                // 更严格的检查：确保不是 index.html 结尾
                 var isNotIndexPage = !lastPage.match(/\/index\.html($|#|\?)/);
+                
+                // 额外检查：确保是具体的内容页（包含 _cx.htm, _cv.htm 等）
+                var isContentPage = lastPage.match(/\/\d+_[a-z]+\.htm/);
                 
                 console.log('[训练目录] 检查条件:', {
                     isInCurrentTraining: isInCurrentTraining,
                     isNotIndexPage: isNotIndexPage,
+                    isContentPage: isContentPage,
                     currentPath: currentPath,
                     lastPage: lastPage
                 });
                 
-                if (isInCurrentTraining && isNotIndexPage) {
-                    // 检查是否是从外部链接进入（没有 referrer 或 referrer 不是本站）
-                    var isExternalEntry = !document.referrer || !document.referrer.startsWith(window.location.origin);
-                    
-                    console.log('[训练目录] 是否外部进入:', isExternalEntry, 'referrer:', document.referrer);
-                    
-                    if (isExternalEntry) {
-                        console.log('[训练目录] 恢复上次访问的页面:', lastPage);
-                        window.location.replace(lastPage);
-                        return;
-                    } else {
-                        console.log('[训练目录] 用户主动访问目录，不恢复');
-                    }
+                if (isInCurrentTraining && isNotIndexPage && isContentPage) {
+                    console.log('[训练目录] ✓ 恢复上次访问的页面:', lastPage);
+                    window.location.replace(lastPage);
+                    return;
                 } else {
-                    console.log('[训练目录] 上次访问不属于当前训练或是目录页，不恢复');
+                    console.log('[训练目录] ✗ 不满足恢复条件，停留在目录');
                 }
             } else {
                 console.log('[训练目录] 上次访问时间过久，不恢复');
