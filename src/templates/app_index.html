@@ -222,19 +222,25 @@
         let clickCount = 0;
         let isUpdating = false;
         let longPressTimer = null;
+        let clickTimer = null;
         
-        // Logo 点击计数
+        // Logo 点击计数（隐藏式，不显示任何反馈）
         document.getElementById('logo').addEventListener('click', function() {
             if (isUpdating) return;
             
             clickCount++;
-            console.log('点击次数:', clickCount);
+            
+            // 5秒内没有继续点击，重置计数
+            if (clickTimer) clearTimeout(clickTimer);
+            clickTimer = setTimeout(() => {
+                clickCount = 0;
+            }, 5000);
             
             if (clickCount >= CONFIG.CLICK_COUNT_TRIGGER) {
                 clickCount = 0;
-                // 同时检查 APK 和内容更新
+                if (clickTimer) clearTimeout(clickTimer);
+                // 静默检查 APK 更新（不检查内容更新）
                 checkApkUpdate(true);
-                checkForUpdates(true);
             }
         });
         
@@ -526,8 +532,7 @@
         
         // 页面加载时执行
         window.addEventListener('load', function() {
-            // 检查 APK 更新（每24小时一次）
-            checkApkUpdate(false);
+            // 不自动检查 APK 更新，只保留手动触发（点击 Logo 10 次）
             
             // 加载内容（会跳转到远程网站，远程网站有自己的 Service Worker）
             setTimeout(loadContent, 1000);
