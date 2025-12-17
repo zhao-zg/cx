@@ -247,24 +247,24 @@
     }
 })();
 
-// 检查并修复 URL 双重编码问题
+// 检测并修复双重编码的 URL
 (function() {
     var currentPath = window.location.pathname;
     
-    // 检测是否有双重编码（%C3 开头通常是双重编码的标志）
+    // 检测是否是双重编码（包含 %C3%）
     if (currentPath.includes('%C3%')) {
-        console.log('[训练目录] 检测到 URL 双重编码:', currentPath);
+        console.log('[训练目录] 检测到双重编码的 URL:', currentPath);
         
         try {
-            // 尝试解码一次，得到正确的 URL
+            // 尝试解码一次
             var decodedPath = decodeURIComponent(currentPath);
-            console.log('[训练目录] 解码后的路径:', decodedPath);
+            console.log('[训练目录] 解码后的 URL:', decodedPath);
             
-            // 重定向到正确的 URL
-            window.location.replace(decodedPath);
-            return;
+            // 替换当前 URL（不刷新页面）
+            window.history.replaceState(null, '', decodedPath);
+            console.log('[训练目录] ✓ URL 已修复');
         } catch (e) {
-            console.error('[训练目录] URL 解码失败:', e);
+            console.error('[训练目录] URL 修复失败:', e);
         }
     }
 })();
