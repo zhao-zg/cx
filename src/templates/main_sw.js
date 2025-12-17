@@ -170,25 +170,36 @@ function handleRequest(request) {
   const requestUrl = request.url;
   const isIndexHtml = requestUrl.endsWith('/index.html');
   
+  // 调试日志
+  console.log('[SW] 处理请求:', requestUrl);
+  
   // 先尝试匹配原始请求
   return caches.match(request).then(cached => {
     if (cached) {
+      console.log('[SW] ✓ 缓存命中:', requestUrl);
       return cached;
     }
+    
+    console.log('[SW] ✗ 缓存未命中:', requestUrl);
     
     // 如果是 index.html 请求且没有缓存，尝试查找目录的缓存
     if (isIndexHtml) {
       const dirUrl = requestUrl.replace(/\/index\.html$/, '/');
+      console.log('[SW] 尝试目录缓存:', dirUrl);
+      
       return caches.match(dirUrl).then(dirCached => {
         if (dirCached) {
+          console.log('[SW] ✓ 目录缓存命中:', dirUrl);
           return dirCached;
         }
+        console.log('[SW] ✗ 目录缓存未命中，从网络获取');
         // 都没有缓存，从网络获取
         return fetchFromNetwork(request);
       });
     }
     
     // 不是 index.html，直接从网络获取
+    console.log('[SW] 从网络获取');
     return fetchFromNetwork(request);
   });
 }
