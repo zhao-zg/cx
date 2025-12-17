@@ -190,9 +190,10 @@ jobs:
           "appId": "com.tehui.offline",
           "appName": "TeHui离线版",
           "webDir": "output",
-          "bundledWebRuntime": false,
           "server": {
-            "androidScheme": "https"
+            "allowNavigation": [
+              "*"
+            ]
           },
           "android": {
             "allowMixedContent": true,
@@ -227,9 +228,10 @@ jobs:
           "appId": "com.tehui.app",
           "appName": "TeHui",
           "webDir": "output",
-          "bundledWebRuntime": false,
           "server": {
-            "androidScheme": "https"
+            "allowNavigation": [
+              "*"
+            ]
           },
           "android": {
             "allowMixedContent": true,
