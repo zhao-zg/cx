@@ -202,9 +202,32 @@ function handleRequest(request) {
   });
 }
 
-// 接收消息 - 跳过等待
+// 接收消息 - 跳过等待和清理缓存
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  
+  // 清理所有缓存（用于卸载 PWA 时）
+  if (event.data && event.data.type === 'CLEAR_ALL_CACHES') {
+    console.log('[SW] 收到清理所有缓存的请求');
+    event.waitUntil(
+      caches.keys().then(keys => {
+        console.log('[SW] 清理所有缓存:', keys);
+        return Promise.all(
+          keys.map(key => caches.delete(key))
+        );
+      }).then(() => {
+        console.log('[SW] 所有缓存已清理');
+        // 通知客户端清理完成
+        return self.clients.matchAll().then(clients => {
+          clients.forEach(client => {
+            client.postMessage({ type: 'CACHES_CLEARED' });
+          });
+        });
+      }).catch(err => {
+        console.error('[SW] 清理缓存失败:', err);
+      })
+    );
   }
 });

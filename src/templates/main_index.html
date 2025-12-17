@@ -1172,6 +1172,113 @@
                 }
             });
         }
+        
+        // 清理所有缓存和记忆功能（通过长按 Logo 10 次触发）
+        var clearClickCount = 0;
+        var clearClickTimer = null;
+        var logo = document.getElementById('mainLogo');
+        
+        if (logo) {
+            logo.addEventListener('click', function(e) {
+                // 如果已经有 APK 更新检查的点击计数器，不干扰
+                clearClickCount++;
+                
+                if (clearClickTimer) clearTimeout(clearClickTimer);
+                clearClickTimer = setTimeout(function() {
+                    clearClickCount = 0;
+                }, 3000);
+                
+                // 点击 10 次触发清理所有缓存和记忆
+                if (clearClickCount >= 10) {
+                    clearClickCount = 0;
+                    if (clearClickTimer) clearTimeout(clearClickTimer);
+                    
+                    if (confirm('确定要清理所有缓存和记忆吗？\n\n这将删除：\n• 所有训练的离线缓存\n• 页面记忆\n• 字体大小设置\n• 语速设置\n\n清理后需要重新缓存训练内容。')) {
+                        clearAllCachesAndMemory();
+                    }
+                }
+            });
+        }
+        
+        // 清理所有缓存和记忆的函数
+        function clearAllCachesAndMemory() {
+            console.log('[清理] 开始清理所有缓存和记忆');
+            
+            var installStatus = document.getElementById('installStatus');
+            if (installStatus) {
+                installStatus.textContent = '正在清理所有缓存和记忆...';
+                installStatus.className = 'cache-status';
+            }
+            
+            // 1. 清理 localStorage（页面记忆、字体设置、语速设置等）
+            try {
+                var keysToRemove = [];
+                for (var i = 0; i < localStorage.length; i++) {
+                    var key = localStorage.key(i);
+                    // 清理所有 cx_ 开头的键
+                    if (key && key.startsWith('cx_')) {
+                        keysToRemove.push(key);
+                    }
+                    // 清理字体和语速设置
+                    if (key === 'fontSize' || key === 'speechRate') {
+                        keysToRemove.push(key);
+                    }
+                }
+                keysToRemove.forEach(function(key) {
+                    localStorage.removeItem(key);
+                    console.log('[清理] 删除 localStorage:', key);
+                });
+            } catch (e) {
+                console.error('[清理] 清理 localStorage 失败:', e);
+            }
+            
+            // 2. 清理所有 Cache Storage
+            if ('caches' in window) {
+                caches.keys().then(function(keys) {
+                    console.log('[清理] 找到缓存:', keys);
+                    return Promise.all(
+                        keys.map(function(key) {
+                            console.log('[清理] 删除缓存:', key);
+                            return caches.delete(key);
+                        })
+                    );
+                }).then(function() {
+                    console.log('[清理] 所有缓存已清理');
+                    
+                    // 3. 通知 Service Worker 清理缓存
+                    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({
+                            type: 'CLEAR_ALL_CACHES'
+                        });
+                    }
+                    
+                    if (installStatus) {
+                        installStatus.textContent = '✓ 清理完成！页面将在 3 秒后刷新';
+                        installStatus.className = 'cache-status success';
+                    }
+                    
+                    // 4. 刷新页面
+                    setTimeout(function() {
+                        window.location.reload(true);
+                    }, 3000);
+                }).catch(function(err) {
+                    console.error('[清理] 清理缓存失败:', err);
+                    if (installStatus) {
+                        installStatus.textContent = '✗ 清理失败: ' + err.message;
+                        installStatus.className = 'cache-status error';
+                    }
+                });
+            } else {
+                console.log('[清理] 浏览器不支持 Cache Storage');
+                if (installStatus) {
+                    installStatus.textContent = '✓ localStorage 已清理，页面将在 3 秒后刷新';
+                    installStatus.className = 'cache-status success';
+                }
+                setTimeout(function() {
+                    window.location.reload(true);
+                }, 3000);
+            }
+        }
     });
     </script>
 </body>
