@@ -105,34 +105,9 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // 规范化 URL：将 index.html 请求重定向到目录
-  // 注意：不进行 URL 规范化，直接使用原始请求，避免双重编码
+  // 不进行任何 URL 规范化，直接使用原始请求
   // 让浏览器和服务器自然处理 /index.html 和 / 的映射
-  const requestUrl = event.request.url;
-  if (requestUrl.endsWith('/index.html')) {
-    // 不创建新的 Request，直接修改 URL 后使用 fetch
-    const normalizedUrl = requestUrl.replace(/\/index\.html$/, '/');
-    
-    // 直接 fetch 规范化的 URL，不使用 Request 对象
-    event.respondWith(
-      caches.match(normalizedUrl).then(cached => {
-        if (cached) {
-          return cached;
-        }
-        return fetch(normalizedUrl).then(response => {
-          if (response.ok && response.status >= 200 && response.status < 300) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put(normalizedUrl, clone);
-            });
-          }
-          return response;
-        });
-      })
-    );
-    return;
-  }
-  
+  // 这样可以完全避免 URL 编码问题
   event.respondWith(handleRequest(event.request));
 });
 
