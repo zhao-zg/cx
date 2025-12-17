@@ -376,6 +376,38 @@
     </div>
     
     <script>
+    // 自动设置 APK 版本和类型（用于离线版）
+    (function() {
+        // 检查 URL 参数（在线版会传递）
+        var urlParams = new URLSearchParams(window.location.search);
+        var versionParam = urlParams.get('apk_version');
+        var typeParam = urlParams.get('apk_type');
+        
+        // 如果 URL 参数中没有，且 localStorage 中也没有，则尝试自动检测
+        if (!versionParam && !localStorage.getItem('cx_apk_version')) {
+            // 检测是否在 Capacitor 环境中
+            if (window.Capacitor) {
+                // 尝试从 Capacitor App 插件获取版本信息
+                if (window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                    window.Capacitor.Plugins.App.getInfo().then(function(info) {
+                        if (info.version) {
+                            localStorage.setItem('cx_apk_version', info.version);
+                            console.log('从 Capacitor 获取版本:', info.version);
+                        }
+                        // 检测类型（通过包名）
+                        if (info.id) {
+                            var type = info.id.includes('offline') ? 'offline' : 'online';
+                            localStorage.setItem('cx_apk_type', type);
+                            console.log('从包名检测类型:', type, '(', info.id, ')');
+                        }
+                    }).catch(function(err) {
+                        console.log('无法获取 App 信息:', err);
+                    });
+                }
+            }
+        }
+    })();
+    
     // APK 检测和更新功能
     (function() {
         var isAndroid = /Android/i.test(navigator.userAgent);
