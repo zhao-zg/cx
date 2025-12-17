@@ -454,16 +454,39 @@
             console.log('APK 更新检查未启用（非安卓 APP 环境）');
         }
         
-        // 获取当前 APK 版本
+        // 获取当前 APK 版本（异步）
         function getCurrentApkVersion() {
-            var version = localStorage.getItem('cx_apk_version');
-            console.log('当前 APK 版本:', version || '未知');
-            return version || '未知';
+            return new Promise(function(resolve) {
+                // 先尝试从 localStorage 获取
+                var cachedVersion = localStorage.getItem('cx_apk_version');
+                
+                // 如果在 Capacitor 环境中，尝试实时获取
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                    window.Capacitor.Plugins.App.getInfo().then(function(info) {
+                        if (info.version) {
+                            localStorage.setItem('cx_apk_version', info.version);
+                            console.log('从 Capacitor 实时获取版本:', info.version, '包名:', info.id);
+                            resolve(info.version);
+                        } else {
+                            console.log('Capacitor 未返回版本号，使用缓存:', cachedVersion || '未知');
+                            resolve(cachedVersion || '未知');
+                        }
+                    }).catch(function(err) {
+                        console.log('获取 Capacitor 版本失败:', err, '使用缓存:', cachedVersion || '未知');
+                        resolve(cachedVersion || '未知');
+                    });
+                } else {
+                    // 非 Capacitor 环境，直接返回缓存
+                    console.log('非 Capacitor 环境，当前版本:', cachedVersion || '未知');
+                    resolve(cachedVersion || '未知');
+                }
+            });
         }
         
         // 比较版本号
+        // 返回值：1 = v1 > v2, -1 = v1 < v2, 0 = v1 == v2, null = 无法比较（版本未知）
         function compareVersion(v1, v2) {
-            if (v1 === '未知' || v2 === '未知') return 0;
+            if (v1 === '未知' || v2 === '未知') return null;
             
             var parts1 = v1.replace('v', '').split('.').map(Number);
             var parts2 = v2.replace('v', '').split('.').map(Number);
@@ -481,48 +504,51 @@
         function checkApkUpdate() {
             console.log('开始检查 APK 更新...');
             
-            var currentVersion = getCurrentApkVersion();
-            
-            fetch('https://api.github.com/repos/zhao-zg/cx/releases/latest')
-                .then(function(response) {
-                    console.log('GitHub API 响应状态:', response.status);
-                    if (!response.ok) throw new Error('无法获取版本信息: ' + response.status);
-                    return response.json();
-                })
-                .then(function(release) {
-                    console.log('获取到 Release 信息:', {
-                        tag: release.tag_name,
-                        assetsCount: release.assets.length
+            // 异步获取当前版本
+            getCurrentApkVersion().then(function(currentVersion) {
+                console.log('当前版本:', currentVersion);
+                
+                return fetch('https://api.github.com/repos/zhao-zg/cx/releases/latest')
+                    .then(function(response) {
+                        console.log('GitHub API 响应状态:', response.status);
+                        if (!response.ok) throw new Error('无法获取版本信息: ' + response.status);
+                        return response.json();
+                    })
+                    .then(function(release) {
+                        console.log('获取到 Release 信息:', {
+                            tag: release.tag_name,
+                            assetsCount: release.assets.length
+                        });
+                        
+                        // 查找离线版 APK 文件
+                        var apk = release.assets.find(function(a) {
+                            return a.name.endsWith('.apk');
+                        });
+                        
+                        if (!apk) {
+                            console.warn('未找到 APK 文件');
+                            alert('未找到可用的 APK 文件');
+                            return;
+                        }
+                        
+                        // 比较版本
+                        var latestVersion = release.tag_name.replace('v', '');
+                        var currentVersionClean = currentVersion.replace('v', '');
+                        var comparison = compareVersion(latestVersion, currentVersionClean);
+                        
+                        console.log('版本比较:', {
+                            current: currentVersion,
+                            latest: latestVersion,
+                            comparison: comparison
+                        });
+                        
+                        // 显示更新对话框
+                        showApkUpdateDialog(release, apk, currentVersion, comparison);
                     });
-                    
-                    // 查找离线版 APK 文件
-                    var apk = release.assets.find(function(a) {
-                        return a.name.endsWith('.apk');
-                    });
-                    
-                    if (!apk) {
-                        console.warn('未找到 APK 文件');
-                        alert('未找到可用的 APK 文件');
-                        return;
-                    }
-                    
-                    // 比较版本
-                    var latestVersion = release.tag_name.replace('v', '');
-                    var comparison = compareVersion(latestVersion, currentVersion.replace('v', ''));
-                    
-                    console.log('版本比较:', {
-                        current: currentVersion,
-                        latest: latestVersion,
-                        comparison: comparison
-                    });
-                    
-                    // 显示更新对话框
-                    showApkUpdateDialog(release, apk, currentVersion, comparison);
-                })
-                .catch(function(error) {
-                    console.error('检查更新失败:', error);
-                    alert('检查更新失败: ' + error.message);
-                });
+            }).catch(function(error) {
+                console.error('检查更新失败:', error);
+                alert('检查更新失败: ' + error.message);
+            });
         }
         
         // 下载 APK（使用系统浏览器或 Capacitor Browser）
@@ -555,12 +581,15 @@
         // 显示 APK 更新对话框
         function showApkUpdateDialog(release, apk, currentVersion, comparison) {
             var latestVersion = release.tag_name;
+            var isVersionUnknown = (currentVersion === '未知');
             
             var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="apkUpdateDialog">';
             html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto;">';
             
             // 标题根据版本情况变化
-            if (comparison > 0) {
+            if (isVersionUnknown) {
+                html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px;">📱 APK 下载</h3>';
+            } else if (comparison > 0) {
                 html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px;">🎉 发现新版本</h3>';
             } else if (comparison === 0) {
                 html += '<h3 style="color: #48bb78; margin-bottom: 15px; font-size: 20px;">✅ 已是最新版本</h3>';
@@ -570,12 +599,16 @@
             
             html += '<div style="color: #333; margin-bottom: 20px; font-size: 14px; line-height: 1.6;">';
             html += '<p style="margin-bottom: 10px;">';
-            html += '<strong>当前版本：</strong>' + (currentVersion === '未知' ? '未知' : 'v' + currentVersion) + '<br>';
+            html += '<strong>当前版本：</strong>' + (isVersionUnknown ? '未知' : 'v' + currentVersion) + '<br>';
             html += '<strong>最新版本：</strong>' + latestVersion;
             html += '</p>';
             
             // 显示版本状态提示
-            if (comparison === 0) {
+            if (isVersionUnknown) {
+                html += '<div style="background: #fff3cd; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: #856404; margin-bottom: 15px;">';
+                html += '⚠️ 无法获取当前版本号<br>建议下载最新版本';
+                html += '</div>';
+            } else if (comparison === 0) {
                 html += '<div style="background: #e6f7ed; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: #48bb78; margin-bottom: 15px;">';
                 html += '✨ 您使用的已经是最新版本';
                 html += '</div>';
@@ -583,19 +616,21 @@
                 html += '<div style="background: #fff3cd; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: #856404; margin-bottom: 15px;">';
                 html += '🎉 发现新版本可更新';
                 html += '</div>';
-            } else if (currentVersion !== '未知') {
+            } else if (comparison < 0) {
                 html += '<div style="background: #fff3cd; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: #856404; margin-bottom: 15px;">';
                 html += '⚠️ 您的版本比最新版本还新（测试版）';
                 html += '</div>';
             }
             
-            // 如果有新版本，显示下载按钮
-            if (comparison > 0) {
+            // 根据版本情况显示不同的按钮
+            if (isVersionUnknown || comparison > 0) {
+                // 版本未知或有新版本，显示"立即下载/更新"按钮
+                var btnText = isVersionUnknown ? '💾 立即下载' : '💾 立即更新';
                 html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="downloadApk(\'' + apk.browser_download_url + '\')">';
-                html += '💾 立即更新 (' + (apk.size / 1024 / 1024).toFixed(1) + ' MB)';
+                html += btnText + ' (' + (apk.size / 1024 / 1024).toFixed(1) + ' MB)';
                 html += '</button>';
             } else {
-                // 即使是最新版本，也提供下载链接（用于重新安装）
+                // 已是最新版本或更新的版本，显示"重新下载"按钮
                 html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="downloadApk(\'' + apk.browser_download_url + '\')">';
                 html += '💾 重新下载 (' + (apk.size / 1024 / 1024).toFixed(1) + ' MB)';
                 html += '</button>';
