@@ -167,7 +167,23 @@
         async function findAvailableUrl() {
             const status = document.getElementById('status');
             
+            // 优先使用上次成功的 URL（保留缓存）
+            const lastUrl = localStorage.getItem('cx_remote_url');
+            if (lastUrl && CONFIG.REMOTE_URLS.includes(lastUrl)) {
+                status.textContent = `正在连接上次的服务器...`;
+                console.log('测试上次的 URL:', lastUrl);
+                
+                if (await testUrl(lastUrl)) {
+                    console.log('✓ 上次的 URL 可用:', lastUrl);
+                    return lastUrl;
+                }
+                console.log('✗ 上次的 URL 不可用，尝试其他服务器');
+            }
+            
+            // 测试其他 URL
             for (const url of CONFIG.REMOTE_URLS) {
+                if (url === lastUrl) continue; // 跳过已测试的
+                
                 status.textContent = `正在测试: ${url}`;
                 console.log('测试 URL:', url);
                 
@@ -179,6 +195,7 @@
             }
             
             // 都不可用，返回第一个
+            console.log('所有服务器都不可用，使用默认服务器');
             return CONFIG.REMOTE_URLS[0];
         }
         
