@@ -437,36 +437,34 @@
         
         // 获取当前 APK 版本和类型（从 URL 或 localStorage）
         function getCurrentApkInfo() {
-            // 尝试从多个来源获取版本号
-            var version = localStorage.getItem('cx_apk_version');
-            if (!version) {
-                // 如果是从 app_index.html 跳转来的，可能在 URL 参数中
-                var urlParams = new URLSearchParams(window.location.search);
-                version = urlParams.get('apk_version');
-                if (version) {
-                    localStorage.setItem('cx_apk_version', version);
-                }
-            }
-            
-            // 检测是在线版还是离线版
-            // 方法1: 检查包名（通过 Capacitor）
-            var isOnline = true; // 默认假设是在线版
-            if (window.Capacitor && window.Capacitor.getPlatform) {
-                // 可以通过其他方式检测，比如检查本地是否有完整内容
-                // 简单方法：检查 localStorage 中是否有标记
-                var apkType = localStorage.getItem('cx_apk_type');
-                if (apkType) {
-                    isOnline = apkType === 'online';
-                }
-            }
-            
-            // 方法2: 检查 URL 参数
+            // 检查 URL 参数
             var urlParams = new URLSearchParams(window.location.search);
-            var typeParam = urlParams.get('apk_type');
-            if (typeParam) {
-                isOnline = typeParam === 'online';
-                localStorage.setItem('cx_apk_type', typeParam);
+            
+            // 获取版本号
+            var version = urlParams.get('apk_version') || localStorage.getItem('cx_apk_version');
+            if (version && !localStorage.getItem('cx_apk_version')) {
+                localStorage.setItem('cx_apk_version', version);
             }
+            
+            // 获取类型
+            var typeParam = urlParams.get('apk_type') || localStorage.getItem('cx_apk_type');
+            var isOnline = true; // 默认在线版
+            
+            if (typeParam) {
+                isOnline = (typeParam === 'online');
+                if (!localStorage.getItem('cx_apk_type')) {
+                    localStorage.setItem('cx_apk_type', typeParam);
+                }
+            }
+            
+            console.log('APK 信息检测:', {
+                version: version,
+                type: typeParam,
+                isOnline: isOnline,
+                urlParams: window.location.search,
+                localStorage_version: localStorage.getItem('cx_apk_version'),
+                localStorage_type: localStorage.getItem('cx_apk_type')
+            });
             
             return {
                 version: version || '未知',
@@ -645,12 +643,6 @@
                 html += '</div>';
                 html += '</details>';
             }
-            
-            html += '<div style="background: #f5f5f5; padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 10px; line-height: 1.5;">';
-            html += '<strong>说明：</strong><br>';
-            html += '• 在线版：轻量级（~5MB），需要网络<br>';
-            html += '• 离线版：完整内容（~50MB），无需网络';
-            html += '</div>';
             
             html += '</div>';
             html += '<button style="width: 100%; padding: 12px; background: #f0f0f0; color: #666; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="document.getElementById(\'apkUpdateDialog\').remove()">关闭</button>';
