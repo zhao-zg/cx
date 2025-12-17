@@ -538,6 +538,21 @@
         
         // 页面加载时执行
         window.addEventListener('load', function() {
+            // 输出环境信息（调试用）
+            console.log('=== 在线版启动页环境信息 ===');
+            console.log('URL:', window.location.href);
+            console.log('Protocol:', window.location.protocol);
+            console.log('Hostname:', window.location.hostname);
+            console.log('Pathname:', window.location.pathname);
+            console.log('Capacitor:', window.Capacitor ? 'Yes' : 'No');
+            console.log('User Agent:', navigator.userAgent);
+            
+            // 在页面上也显示（便于没有调试工具时查看）
+            var status = document.getElementById('status');
+            if (status) {
+                status.innerHTML = '当前 URL: ' + window.location.protocol + '//' + window.location.hostname + window.location.pathname;
+            }
+            
             // 不自动检查 APK 更新，只保留手动触发（点击 Logo 10 次）
             
             // 加载内容（会跳转到远程网站，远程网站有自己的 Service Worker）
