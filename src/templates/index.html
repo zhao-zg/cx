@@ -251,15 +251,37 @@
 // 如果有旧的 Service Worker 注册，注销它
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        var currentOrigin = window.location.origin;
+        var currentPath = window.location.pathname;
+        
+        // 获取当前训练目录的路径（如 /2025-06-感恩节/）
+        var trainingPath = currentPath.match(/^(\/[^\/]+\/)/);
+        
+        console.log('[训练目录] 当前路径:', currentPath);
+        console.log('[训练目录] 训练目录路径:', trainingPath ? trainingPath[1] : 'null');
+        console.log('[训练目录] 找到 Service Worker:', registrations.length, '个');
+        
         registrations.forEach(function(registration) {
-            // 只注销当前作用域的 Service Worker（训练目录）
             var scope = registration.scope;
-            var currentPath = window.location.pathname.replace(/\/[^\/]*$/, '/');
-            if (scope.includes(currentPath) && !scope.endsWith('/')) {
-                console.log('[训练目录] 注销错误的 Service Worker:', scope);
-                registration.unregister();
+            console.log('[训练目录] 检查 SW scope:', scope);
+            
+            // 注销非主页的 Service Worker（训练目录不应该有 SW）
+            // 主页的 scope 应该是 origin + '/'
+            var isMainPageSW = scope === currentOrigin + '/' || scope === currentOrigin;
+            
+            if (!isMainPageSW) {
+                console.log('[训练目录] ✓ 注销非主页的 Service Worker:', scope);
+                registration.unregister().then(function() {
+                    console.log('[训练目录] ✓ 注销成功');
+                }).catch(function(err) {
+                    console.error('[训练目录] ✗ 注销失败:', err);
+                });
+            } else {
+                console.log('[训练目录] ✓ 保留主页的 Service Worker:', scope);
             }
         });
+    }).catch(function(err) {
+        console.error('[训练目录] 获取 Service Worker 失败:', err);
     });
 }
 
