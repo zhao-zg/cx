@@ -155,7 +155,16 @@ jobs:
         echo "=== 配置在线版 MainActivity ==="
         mkdir -p android/app/src/main/java/com/tehui/app
         cp android-config/MainActivity.java android/app/src/main/java/com/tehui/app/
-        echo "✓ MainActivity 已配置"
+        
+        # 验证 MainActivity 是否存在
+        if [ -f "android/app/src/main/java/com/tehui/app/MainActivity.java" ]; then
+          echo "✓ MainActivity 已配置"
+          echo "MainActivity 内容预览:"
+          head -n 5 android/app/src/main/java/com/tehui/app/MainActivity.java
+        else
+          echo "✗ MainActivity 配置失败"
+          exit 1
+        fi
         
         # 备份在线版 android 目录
         mv android android-online
@@ -371,7 +380,26 @@ jobs:
         
         echo "=== 同步在线版 ==="
         npx cap sync android
+        
+        # 同步后再次确认 MainActivity（sync 可能会覆盖）
+        if [ ! -f "android/app/src/main/java/com/tehui/app/MainActivity.java" ]; then
+          echo "MainActivity 被覆盖，重新复制..."
+          mkdir -p android/app/src/main/java/com/tehui/app
+          cp android-config/MainActivity.java android/app/src/main/java/com/tehui/app/
+        fi
+        
         echo "✓ 在线版同步完成"
+        
+        # 最终验证
+        echo ""
+        echo "=== 验证在线版 MainActivity ==="
+        if [ -f "android/app/src/main/java/com/tehui/app/MainActivity.java" ]; then
+          echo "✓ MainActivity 存在"
+          wc -l android/app/src/main/java/com/tehui/app/MainActivity.java
+        else
+          echo "✗ MainActivity 不存在！"
+          exit 1
+        fi
         
         echo ""
         echo "=== 手动同步离线版 ==="

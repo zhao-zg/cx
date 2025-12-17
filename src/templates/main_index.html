@@ -382,23 +382,29 @@
         var isInApp = window.matchMedia('(display-mode: standalone)').matches || 
                       window.navigator.standalone === true;
         
+        console.log('APK 检测初始化:', {
+            isAndroid: isAndroid,
+            isInApp: isInApp,
+            userAgent: navigator.userAgent,
+            displayMode: window.matchMedia('(display-mode: standalone)').matches
+        });
+        
         // 如果是安卓设备且在 APP 内（从 APK 打开）
         if (isAndroid && isInApp) {
             var clickCount = 0;
             var clickTimer = null;
             var logo = document.getElementById('mainLogo');
             
+            console.log('APK 更新检查已启用，点击 Logo 5 次触发');
+            
             if (logo) {
                 logo.addEventListener('click', function() {
                     clickCount++;
-                    
-                    // 显示点击次数（调试用）
-                    if (clickCount >= 3) {
-                        console.log('点击次数:', clickCount, '/5');
-                    }
+                    console.log('Logo 点击:', clickCount, '/5');
                     
                     if (clickTimer) clearTimeout(clickTimer);
                     clickTimer = setTimeout(function() {
+                        console.log('点击计数重置');
                         clickCount = 0;
                     }, 5000);
                     
@@ -406,21 +412,34 @@
                     if (clickCount >= 5) {
                         clickCount = 0;
                         if (clickTimer) clearTimeout(clickTimer);
-                        console.log('触发 APK 更新检查');
+                        console.log('=== 触发 APK 更新检查 ===');
                         checkApkUpdate();
                     }
                 });
+            } else {
+                console.error('找不到 mainLogo 元素');
             }
+        } else {
+            console.log('APK 更新检查未启用（非安卓 APP 环境）');
         }
         
         // 检查 APK 更新
         function checkApkUpdate() {
+            console.log('开始检查 APK 更新...');
+            
             fetch('https://api.github.com/repos/zhao-zg/cx/releases/latest')
                 .then(function(response) {
-                    if (!response.ok) throw new Error('无法获取版本信息');
+                    console.log('GitHub API 响应状态:', response.status);
+                    if (!response.ok) throw new Error('无法获取版本信息: ' + response.status);
                     return response.json();
                 })
                 .then(function(release) {
+                    console.log('获取到 Release 信息:', {
+                        tag: release.tag_name,
+                        assetsCount: release.assets.length,
+                        assets: release.assets.map(function(a) { return a.name; })
+                    });
+                    
                     // 查找 APK 文件
                     var onlineApk = release.assets.find(function(a) {
                         return a.name.includes('Online') && a.name.endsWith('.apk');
@@ -429,12 +448,22 @@
                         return a.name.includes('Offline') && a.name.endsWith('.apk');
                     });
                     
+                    console.log('找到的 APK:', {
+                        online: onlineApk ? onlineApk.name : 'null',
+                        offline: offlineApk ? offlineApk.name : 'null'
+                    });
+                    
                     if (onlineApk || offlineApk) {
+                        console.log('显示更新对话框');
                         showApkUpdateDialog(release, onlineApk, offlineApk);
+                    } else {
+                        console.warn('未找到 APK 文件');
+                        alert('未找到可用的 APK 文件');
                     }
                 })
                 .catch(function(error) {
                     console.error('检查更新失败:', error);
+                    alert('检查更新失败: ' + error.message);
                 });
         }
         
