@@ -246,7 +246,9 @@ jobs:
         IFS='.' read -ra PARTS <<< "$VERSION"
         VERSION_CODE=$((${PARTS[0]} * 10000 + ${PARTS[1]:-0} * 100 + ${PARTS[2]:-0}))
         
-        # 创建 variables.gradle
+        echo "=== 配置在线版版本信息 ==="
+        
+        # 创建在线版 variables.gradle
         cat > android/variables.gradle << 'EOF'
         ext {
             minSdkVersion = 22
@@ -266,25 +268,61 @@ jobs:
         }
         EOF
         
-        # 确保 build.gradle 中有正确的版本信息
+        # 配置在线版版本
         if grep -q "versionCode" android/app/build.gradle; then
           sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
           sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" android/app/build.gradle
         else
-          # 如果没有版本信息，添加到 defaultConfig
           sed -i "/defaultConfig {/a\        versionCode $VERSION_CODE\n        versionName \"$VERSION\"" android/app/build.gradle
         fi
         
-        # 确保 namespace 存在（Android Gradle Plugin 7.0+ 需要）
         if ! grep -q "namespace" android/app/build.gradle; then
           sed -i "/android {/a\    namespace 'com.tehui.app'" android/app/build.gradle
         fi
         
-        echo "✓ 版本配置完成: versionCode=$VERSION_CODE, versionName=$VERSION"
+        echo "✓ 在线版版本配置完成: versionCode=$VERSION_CODE, versionName=$VERSION"
         
-        # 显示配置结果
-        echo "=== build.gradle 版本信息 ==="
-        grep -A 2 "versionCode\|versionName\|namespace" android/app/build.gradle || echo "未找到版本信息"
+        echo ""
+        echo "=== 配置离线版版本信息 ==="
+        
+        # 创建离线版 variables.gradle
+        cat > android-offline/variables.gradle << 'EOF'
+        ext {
+            minSdkVersion = 22
+            compileSdkVersion = 34
+            targetSdkVersion = 34
+            androidxActivityVersion = '1.8.0'
+            androidxAppCompatVersion = '1.6.1'
+            androidxCoordinatorLayoutVersion = '1.2.0'
+            androidxCoreVersion = '1.12.0'
+            androidxFragmentVersion = '1.6.2'
+            coreSplashScreenVersion = '1.0.1'
+            androidxWebkitVersion = '1.9.0'
+            junitVersion = '4.13.2'
+            androidxJunitVersion = '1.1.5'
+            androidxEspressoCoreVersion = '3.5.1'
+            cordovaAndroidVersion = '10.1.1'
+        }
+        EOF
+        
+        # 配置离线版版本
+        if grep -q "versionCode" android-offline/app/build.gradle; then
+          sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android-offline/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" android-offline/app/build.gradle
+        else
+          sed -i "/defaultConfig {/a\        versionCode $VERSION_CODE\n        versionName \"$VERSION\"" android-offline/app/build.gradle
+        fi
+        
+        if ! grep -q "namespace" android-offline/app/build.gradle; then
+          sed -i "/android {/a\    namespace 'com.tehui.offline'" android-offline/app/build.gradle
+        fi
+        
+        echo "✓ 离线版版本配置完成: versionCode=$VERSION_CODE, versionName=$VERSION"
+        
+        echo ""
+        echo "=== 版本信息汇总 ==="
+        echo "在线版 (com.tehui.app): v$VERSION ($VERSION_CODE)"
+        echo "离线版 (com.tehui.offline): v$VERSION ($VERSION_CODE)"
       
     - name: 同步两个版本
       run: |
