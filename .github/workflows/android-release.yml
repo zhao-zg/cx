@@ -281,18 +281,63 @@ jobs:
       
     - name: 同步两个版本
       run: |
+        # 注意：此时 output 目录是离线版的内容
+        # 需要先恢复在线版的 output，同步在线版，再切换回离线版
+        
+        echo "=== 备份当前 output（离线版）==="
+        mv output output-offline-temp
+        
+        echo "=== 恢复在线版 output ==="
+        # 重新创建在线版 output
+        VERSION=${GITHUB_REF#refs/tags/v}
+        if [ -z "$VERSION" ]; then
+          VERSION="0.1.0"
+        fi
+        
+        mkdir -p output/icons
+        sed "s/CURRENT_APK_VERSION: '0.1.0'/CURRENT_APK_VERSION: '$VERSION'/g" \
+          src/templates/app_index.html > output/index.html
+        cp src/static/icons/icon.svg output/icons/
+        cat > output/manifest.json << 'EOF'
+        {
+          "name": "TeHui",
+          "short_name": "TeHui",
+          "start_url": "./index.html",
+          "display": "standalone",
+          "background_color": "#667eea",
+          "theme_color": "#667eea",
+          "icons": [
+            {
+              "src": "./icons/icon.svg",
+              "sizes": "any",
+              "type": "image/svg+xml",
+              "purpose": "any maskable"
+            }
+          ]
+        }
+        EOF
+        
         echo "=== 同步在线版 ==="
         npx cap sync android
         echo "✓ 在线版同步完成"
         
         echo ""
+        echo "=== 恢复离线版 output ==="
+        rm -rf output
+        mv output-offline-temp output
+        
         echo "=== 同步离线版 ==="
         npx cap sync android-offline
         echo "✓ 离线版同步完成"
         
         echo ""
-        echo "=== 验证两个版本 ==="
-        ls -la android/ android-offline/
+        echo "=== 验证两个版本的资源大小 ==="
+        echo "在线版 assets:"
+        du -sh android/app/src/main/assets/
+        find android/app/src/main/assets/ -type f | wc -l
+        echo "离线版 assets:"
+        du -sh android-offline/app/src/main/assets/
+        find android-offline/app/src/main/assets/ -type f | wc -l
       
     - name: 创建签名密钥
       run: |
