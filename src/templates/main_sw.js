@@ -99,43 +99,52 @@ self.addEventListener('fetch', event => {
  * @param {Request} request 
  * @param {boolean} normalizeUrl 是否尝试规范化 URL
  */
-async function cacheFirstStrategy(request, normalizeUrl = false) {
-  let cachedResponse;
+async function cacheFirstStrategy(request) {
+  const url = new URL(request.url);
   
-  // 1. 尝试查找缓存
-  cachedResponse = await caches.match(request);
-  
-  // 1.1 如果启用了规范化且没找到，尝试查找目录根路径
-  if (!cachedResponse && normalizeUrl) {
-    const rootUrl = request.url.replace(/\/index\.html$/, '/');
-    cachedResponse = await caches.match(rootUrl);
-  }
-
-  if (cachedResponse) {
-    return cachedResponse;
-  }
-
-  // 2. 缓存未命中，发起网络请求
+  // 1. 构造一个“规范化”的 URL 列表进行尝试
+  // 解决中文乱码关键：使用 decodeURIComponent 还原真实路径
+  let normalizedPathname;
   try {
-    const networkResponse = await fetchWithTimeout(request, CONFIG.TIMEOUT);
+    normalizedPathname = decodeURIComponent(url.pathname);
+  } catch (e) {
+    normalizedPathname = url.pathname;
+  }
+
+  // 移除末尾的 index.html 统一为目录形式 /
+  const cleanPathname = normalizedPathname.replace(/\/index\.html$/, '/');
+  
+  // 2. 尝试匹配顺序：原始请求 -> 规范化后的路径 -> 根目录路径
+  const candidateUrls = [
+    request.url,                                      // 原始 URL
+    url.origin + cleanPathname,                       // 解码并去除了 index.html 的 URL
+    url.origin + cleanPathname + (cleanPathname.endsWith('/') ? '' : '/') // 补全斜杠
+  ];
+
+  // 逐个在缓存中匹配
+  for (const candidate of candidateUrls) {
+    const cached = await caches.match(candidate);
+    if (cached) return cached;
+  }
+
+  // 3. 缓存未命中，发起网络请求
+  try {
+    const response = await fetchWithTimeout(request, 5000);
     
-    // 3. 智能缓存：只有有效的响应才写入缓存
-    if (shouldCache(networkResponse)) {
-      const clone = networkResponse.clone();
-      caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+    if (response.ok && response.status === 200) {
+      const clone = response.clone();
+      caches.open(CACHE_NAME).then(cache => {
+        // 存储时：建议同时存原始 URL 和规范化后的 URL，确保下次一定能中
+        cache.put(request, clone);
+        // 如果路径以 /index.html 结尾，额外存一份 / 的映射
+        if (request.url.includes('index.html')) {
+            cache.put(request.url.replace(/\/index\.html$/, '/'), clone.clone());
+        }
+      });
     }
-    
-    return networkResponse;
+    return response;
   } catch (error) {
-    console.warn('[SW] 网络请求失败:', request.url, error);
-    
-    // 4. 离线处理：仅针对页面导航请求返回离线 HTML
-    // 避免图片/JS 失败时返回 HTML 导致页面报错
-    if (request.mode === 'navigate') {
-      return getOfflinePage();
-    }
-    
-    // 其他资源失败返回 undefined (浏览器会报网络错误) 或可返回占位图
+    if (request.mode === 'navigate') return getOfflinePage();
     throw error;
   }
 }
