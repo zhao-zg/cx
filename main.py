@@ -480,6 +480,8 @@ def main():
             print(f"⚠ 生成总主页失败: {e}")
             import traceback
             traceback.print_exc()
+            import traceback
+            traceback.print_exc()
     
     # 总结
     print("\n" + "="*60)
