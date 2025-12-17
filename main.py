@@ -255,6 +255,14 @@ def generate_main_index(config, batch_results):
         f.write(html_content)
     
     # 生成 PWA 文件
+    # 复制静态图标
+    icons_dir = os.path.join(output_dir, 'icons')
+    os.makedirs(icons_dir, exist_ok=True)
+    icon_src = os.path.join('src', 'static', 'icons', 'icon.svg')
+    icon_dst = os.path.join(icons_dir, 'icon.svg')
+    if os.path.exists(icon_src):
+        shutil.copy2(icon_src, icon_dst)
+    
     # manifest.json
     manifest_template = env.get_template('main_manifest.json')
     manifest_content = manifest_template.render()
