@@ -272,8 +272,11 @@ jobs:
         echo "=== 验证密钥文件 ==="
         ls -lh android/my-release-key.keystore
         echo ""
+        echo "=== build.gradle 开头部分（查找 android 块）==="
+        head -50 android/app/build.gradle | grep -A 10 "android"
+        echo ""
         echo "=== build.gradle 签名部分 ==="
-        tail -20 android/app/build.gradle
+        grep -A 20 "signingConfigs" android/app/build.gradle || echo "未找到 signingConfigs"
       
     - name: 授予 Gradle 执行权限
       run: chmod +x android/gradlew
