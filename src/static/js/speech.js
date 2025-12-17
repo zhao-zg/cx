@@ -60,13 +60,44 @@
       progressBar.style.display = 'none';
       rateSelect.style.display = 'none';
       
+      // 检测环境并给出更详细的提示
+      var isAndroid = /Android/i.test(navigator.userAgent);
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      var message = '浏览器不支持朗读';
+      
+      if (isAndroid) {
+        message = '需要安装中文语音包';
+      } else if (isIOS) {
+        message = '需要网络连接';
+      }
+      
       // 将时间显示区域改为提示信息
-      speechTime.textContent = '浏览器不支持朗读';
+      speechTime.textContent = message;
       speechTime.style.color = '#999';
       speechTime.style.fontSize = '11px';
       speechTime.style.textAlign = 'center';
       speechTime.style.padding = '0';
       speechTime.style.marginTop = '0';
+      speechTime.title = '点击查看详情';
+      speechTime.style.cursor = 'pointer';
+      
+      // 点击显示详细说明
+      speechTime.addEventListener('click', function() {
+        var detail = '朗读功能使用浏览器内置的语音合成API。\n\n';
+        if (isAndroid) {
+          detail += 'Android设备：\n';
+          detail += '1. 需要安装中文语音包\n';
+          detail += '2. 可能需要网络连接\n';
+          detail += '3. 在系统设置中检查TTS设置';
+        } else if (isIOS) {
+          detail += 'iOS设备：\n';
+          detail += '1. 必须连接网络才能使用\n';
+          detail += '2. 这是iOS系统的限制';
+        } else {
+          detail += '当前浏览器不支持Web Speech API';
+        }
+        alert(detail);
+      });
       
       // 调整进度区域的布局，让提示居中
       var progressSection = speechTime.parentElement;
