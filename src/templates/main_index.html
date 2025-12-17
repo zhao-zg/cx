@@ -364,6 +364,10 @@
                 <span class="cache-icon">📲</span>
                 <span class="cache-text">安装到桌面</span>
             </button>
+            <button class="cache-btn" id="androidApkBtn" style="display:none; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+                <span class="cache-icon">📱</span>
+                <span class="cache-text">下载安卓离线版</span>
+            </button>
             <div class="cache-status" id="installStatus"></div>
         </div>
         
@@ -708,10 +712,52 @@
     document.addEventListener('DOMContentLoaded', function() {
         var installSection = document.getElementById('installSection');
         var installBtn = document.getElementById('installBtn');
+        var androidApkBtn = document.getElementById('androidApkBtn');
         var installStatus = document.getElementById('installStatus');
         
         if (!('serviceWorker' in navigator)) {
             return;
+        }
+        
+        // 检查是否是安卓设备（非 APK 环境）
+        var isAndroid = /Android/i.test(navigator.userAgent);
+        var isInApp = window.matchMedia('(display-mode: standalone)').matches || 
+                      window.navigator.standalone === true;
+        var isCapacitor = window.Capacitor !== undefined;
+        
+        // 如果是安卓设备且不在 APP 内，显示 APK 下载按钮
+        if (isAndroid && !isInApp && !isCapacitor) {
+            installSection.classList.add('show');
+            androidApkBtn.style.display = 'inline-flex';
+            
+            androidApkBtn.addEventListener('click', function() {
+                installStatus.textContent = '正在获取最新版本...';
+                installStatus.className = 'cache-status';
+                
+                fetch('https://api.github.com/repos/zhao-zg/cx/releases/latest')
+                    .then(function(response) {
+                        if (!response.ok) throw new Error('无法获取版本信息');
+                        return response.json();
+                    })
+                    .then(function(release) {
+                        var apk = release.assets.find(function(a) {
+                            return a.name.endsWith('.apk');
+                        });
+                        
+                        if (apk) {
+                            installStatus.textContent = '正在下载 ' + release.tag_name + ' (' + (apk.size / 1024 / 1024).toFixed(1) + ' MB)...';
+                            installStatus.className = 'cache-status success';
+                            window.open(apk.browser_download_url, '_blank');
+                        } else {
+                            installStatus.textContent = '未找到 APK 文件';
+                            installStatus.className = 'cache-status error';
+                        }
+                    })
+                    .catch(function(error) {
+                        installStatus.textContent = '获取失败: ' + error.message;
+                        installStatus.className = 'cache-status error';
+                    });
+            });
         }
         
         // 检查是否在 PWA 模式下运行（已安装）
