@@ -1,5 +1,5 @@
 {
-  "appId": "com.tehui.app",
+  "appId": "com.tehui.offline",
   "appName": "TeHui",
   "webDir": "output",
   "android": {

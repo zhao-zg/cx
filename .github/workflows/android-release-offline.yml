@@ -1,0 +1,343 @@
+name: 构建离线版APK
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置 Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: 设置 Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 设置 Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: 安装 LibreOffice
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libreoffice
+        
+    - name: 安装 Python 依赖
+      run: pip install -r requirements.txt
+      
+    - name: 安装 Node.js 依赖
+      run: |
+        npm install
+        echo "✓ Node.js 依赖安装完成"
+        npm list --depth=0 | grep capacitor || echo "无"
+      
+    - name: 生成完整静态网站
+      run: |
+        echo "=== 生成完整静态网站 ==="
+        python main.py
+        echo "✓ 静态网站生成完成"
+        du -sh output/
+        find output/ -type f | wc -l
+        echo "文件总数"
+    
+    - name: 添加 Android 平台
+      run: |
+        echo "=== 添加 Android 平台 ==="
+        npx cap add android
+        
+        if [ ! -d "android" ]; then
+          echo "✗ Android 平台添加失败"
+          exit 1
+        fi
+        
+        echo "✓ Android 平台添加完成"
+        du -sh android/app/src/main/assets/
+      
+    - name: 配置版本信息
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        if [ -z "$VERSION" ]; then
+          VERSION="0.1.0"
+        fi
+        
+        echo "=== 配置版本信息 ==="
+        
+        # 计算 versionCode
+        IFS='.' read -ra PARTS <<< "$VERSION"
+        VERSION_CODE=$((${PARTS[0]} * 10000 + ${PARTS[1]:-0} * 100 + ${PARTS[2]:-0}))
+        
+        # 创建 variables.gradle
+        cat > android/variables.gradle << 'EOF'
+        ext {
+            minSdkVersion = 22
+            compileSdkVersion = 34
+            targetSdkVersion = 34
+            androidxActivityVersion = '1.8.0'
+            androidxAppCompatVersion = '1.6.1'
+            androidxCoordinatorLayoutVersion = '1.2.0'
+            androidxCoreVersion = '1.12.0'
+            androidxFragmentVersion = '1.6.2'
+            coreSplashScreenVersion = '1.0.1'
+            androidxWebkitVersion = '1.9.0'
+            junitVersion = '4.13.2'
+            androidxJunitVersion = '1.1.5'
+            androidxEspressoCoreVersion = '3.5.1'
+            cordovaAndroidVersion = '10.1.1'
+        }
+        EOF
+        
+        # 配置版本号
+        if grep -q "versionCode" android/app/build.gradle; then
+          sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" android/app/build.gradle
+        else
+          sed -i "/defaultConfig {/a\        versionCode $VERSION_CODE\n        versionName \"$VERSION\"" android/app/build.gradle
+        fi
+        
+        if ! grep -q "namespace" android/app/build.gradle; then
+          sed -i "/android {/a\    namespace 'com.tehui.offline'" android/app/build.gradle
+        fi
+        
+        echo "✓ 版本配置完成: versionCode=$VERSION_CODE, versionName=$VERSION"
+      
+    - name: 同步 Capacitor
+      run: |
+        echo "=== 同步 Capacitor ==="
+        npx cap sync android
+        echo "✓ 同步完成"
+        
+        echo ""
+        echo "=== 验证资源大小 ==="
+        du -sh android/app/src/main/assets/
+        find android/app/src/main/assets/ -type f | wc -l
+      
+    - name: 配置网络安全策略
+      run: |
+        echo "=== 配置网络安全策略 ==="
+        mkdir -p android/app/src/main/res/xml
+        cat > android/app/src/main/res/xml/network_security_config.xml << 'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <network-security-config>
+            <base-config cleartextTrafficPermitted="true">
+                <trust-anchors>
+                    <certificates src="system" />
+                </trust-anchors>
+            </base-config>
+        </network-security-config>
+        EOF
+        
+        if ! grep -q "networkSecurityConfig" android/app/src/main/AndroidManifest.xml; then
+          sed -i 's/<application/<application android:networkSecurityConfig="@xml\/network_security_config"/' android/app/src/main/AndroidManifest.xml
+        fi
+        
+        echo "✓ 网络安全配置完成"
+      
+    - name: 创建签名密钥
+      run: |
+        echo "=== 创建签名密钥 ==="
+        cat > offline-key.keystore.b64 << 'EOF'
+        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
+        7TAl8q3jYZG3mGs=
+        EOF
+        
+        base64 -d offline-key.keystore.b64 > offline-key.keystore
+        cp offline-key.keystore android/
+        echo "✓ 签名密钥已创建"
+      
+    - name: 配置签名
+      run: |
+        echo "=== 配置 APK 签名 ==="
+        
+        cat > insert_signing.py << 'PYTHON_EOF'
+        import re
+        import sys
+        
+        gradle_file = sys.argv[1]
+        keystore_file = sys.argv[2]
+        
+        with open(gradle_file, 'r') as f:
+            content = f.read()
+        
+        signing_config = f'''
+            signingConfigs {{
+                release {{
+                    storeFile file("../{keystore_file}")
+                    storePassword "tehui2024"
+                    keyAlias "tehui"
+                    keyPassword "tehui2024"
+                }}
+            }}
+        '''
+        content = re.sub(r'(android\s*\{)', r'\1' + signing_config, content, count=1)
+        content = re.sub(r'(buildTypes\s*\{[^}]*release\s*\{)', r'\1\n            signingConfig signingConfigs.release', content, count=1)
+        
+        with open(gradle_file, 'w') as f:
+            f.write(content)
+        
+        print(f"✓ {gradle_file} 签名配置已插入")
+        PYTHON_EOF
+        
+        python3 insert_signing.py android/app/build.gradle offline-key.keystore
+        echo "✓ 签名配置完成"
+      
+    - name: 授予 Gradle 执行权限
+      run: chmod +x android/gradlew
+        
+    - name: 构建 APK
+      run: |
+        echo "=== 构建 APK ==="
+        cd android
+        
+        mkdir -p ~/.gradle
+        cat > ~/.gradle/gradle.properties << 'EOF'
+        org.gradle.daemon=false
+        org.gradle.parallel=true
+        org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m
+        systemProp.http.connectionTimeout=60000
+        systemProp.http.socketTimeout=60000
+        EOF
+        
+        if ./gradlew clean assembleRelease --stacktrace --no-daemon; then
+          echo "✓ APK 构建成功"
+          cd ..
+        else
+          echo "✗ APK 构建失败"
+          cd ..
+          exit 1
+        fi
+        
+    - name: 验证和重命名 APK
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        if [ -z "$VERSION" ]; then
+          VERSION=$(date +%Y%m%d-%H%M%S)
+        fi
+        
+        echo "=== 处理 APK ==="
+        cd android/app/build/outputs/apk/release/
+        for apk in *.apk; do
+          if [ -f "$apk" ]; then
+            APK_NAME="TeHui-v${VERSION}.apk"
+            cp "$apk" "../../../../../../$APK_NAME"
+            echo "✓ APK: $APK_NAME"
+            echo "  大小: $(du -h "$apk" | cut -f1)"
+            echo "  MD5: $(md5sum "$apk" | cut -d' ' -f1)"
+            break
+          fi
+        done
+        cd ../../../../../../
+        
+        echo ""
+        echo "=== 最终生成的 APK ==="
+        ls -lh TeHui-*.apk
+        
+    - name: 上传 APK 到 Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apk
+        path: TeHui-*.apk
+        
+    - name: 创建 Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          TeHui-*.apk
+        body: |
+          ## 📱 特会信息 ${{ github.ref_name }}
+          
+          ### 📦 下载说明
+          
+          **离线版 APK** - 约 50-100 MB
+          - 文件名：`TeHui-${{ github.ref_name }}.apk`
+          - 特点：包含所有内容，完全离线使用
+          - 优势：
+            - 无需网络即可使用
+            - 所有内容预装，打开即用
+            - 适合网络不稳定或无网络环境
+          - 注意：内容更新需要重新下载安装新版本 APK
+          
+          ### 💡 在线版替代方案
+          
+          如果您想要轻量级的在线版本，推荐使用 **PWA（渐进式 Web 应用）**：
+          
+          1. 使用浏览器访问：https://cx.zhaozg.cloudns.org/
+          2. 点击浏览器菜单中的"添加到主屏幕"或"安装"
+          3. PWA 会像 APP 一样显示在主屏幕上
+          4. 优势：
+             - 轻量级（几 MB）
+             - 内容自动更新
+             - 支持离线浏览（Service Worker 缓存）
+             - 无需下载 APK
+          
+          ### ⚠️ 安装提示
+          
+          如果安装时提示"解析包出现问题"：
+          1. 确认下载完整（检查文件大小）
+          2. 清除旧版本后重新安装
+          3. 确保安卓版本 ≥ 5.1（API 22）
+          4. 尝试在设置中清除下载管理器的缓存
+          5. 检查是否启用了"未知来源"安装权限
+          
+          ### 📝 版本信息
+          - 版本号: ${{ github.ref_name }}
+          - 包名: com.tehui.offline
+          - 签名状态: ✅ 已签名（可覆盖安装）
+          - 构建时间: ${{ github.event.head_commit.timestamp }}
+          - 要求：安卓 5.1 或更高版本（API 22+）
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
