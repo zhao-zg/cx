@@ -232,11 +232,14 @@ jobs:
         
         # 创建签名配置文件
         cat > android/keystore.properties << EOF
-        storeFile=../my-release-key.keystore
+        storeFile=my-release-key.keystore
         storePassword=tehui2024
         keyAlias=tehui
         keyPassword=tehui2024
         EOF
+        
+        # 复制密钥文件到 android 目录
+        cp my-release-key.keystore android/
         
         # 创建签名配置脚本
         cat > add_signing.gradle << 'GRADLE_EOF'
@@ -244,7 +247,7 @@ jobs:
         android {
             signingConfigs {
                 release {
-                    storeFile file("../my-release-key.keystore")
+                    storeFile file("my-release-key.keystore")
                     storePassword "tehui2024"
                     keyAlias "tehui"
                     keyPassword "tehui2024"
