@@ -327,7 +327,7 @@ jobs:
     - name: 同步两个版本
       run: |
         # 注意：此时 output 目录是离线版的内容
-        # 需要先恢复在线版的 output，同步在线版，再切换回离线版
+        # 需要先恢复在线版的 output，同步在线版，再手动复制离线版
         
         echo "=== 备份当前 output（离线版）==="
         mv output output-offline-temp
@@ -367,12 +367,17 @@ jobs:
         echo "✓ 在线版同步完成"
         
         echo ""
-        echo "=== 恢复离线版 output ==="
+        echo "=== 手动同步离线版 ==="
+        # Capacitor 不支持自定义平台名，需要手动复制
+        rm -rf android-offline/app/src/main/assets/public
+        mkdir -p android-offline/app/src/main/assets/public
+        
+        # 恢复离线版 output
         rm -rf output
         mv output-offline-temp output
         
-        echo "=== 同步离线版 ==="
-        npx cap sync android-offline
+        # 复制离线版内容到 assets
+        cp -r output/* android-offline/app/src/main/assets/public/
         echo "✓ 离线版同步完成"
         
         echo ""

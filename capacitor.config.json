@@ -2,7 +2,6 @@
   "appId": "com.tehui.app",
   "appName": "TeHui",
   "webDir": "output",
-  "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https",
     "allowNavigation": [
