@@ -270,6 +270,9 @@ jobs:
         
         echo "✓ 签名配置完成"
         echo ""
+        echo "=== 验证密钥文件 ==="
+        ls -lh android/my-release-key.keystore
+        echo ""
         echo "=== build.gradle 签名部分 ==="
         tail -20 android/app/build.gradle
       
