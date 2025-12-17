@@ -48,8 +48,10 @@
       return;
     }
 
-    // 检查是否支持语音合成
-    var speechSupported = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+    // 检查是否支持 Capacitor TTS（优先）或 Web Speech API
+    var useCapacitorTTS = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+    var useWebSpeech = !useCapacitorTTS && ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+    var speechSupported = useCapacitorTTS || useWebSpeech;
     
     // 始终显示控制栏（包含字体控制）
     controlsDiv.style.display = 'flex';
@@ -60,44 +62,13 @@
       progressBar.style.display = 'none';
       rateSelect.style.display = 'none';
       
-      // 检测环境并给出更详细的提示
-      var isAndroid = /Android/i.test(navigator.userAgent);
-      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      var message = '浏览器不支持朗读';
-      
-      if (isAndroid) {
-        message = '需要安装中文语音包';
-      } else if (isIOS) {
-        message = '需要网络连接';
-      }
-      
       // 将时间显示区域改为提示信息
-      speechTime.textContent = message;
+      speechTime.textContent = '浏览器不支持朗读';
       speechTime.style.color = '#999';
       speechTime.style.fontSize = '11px';
       speechTime.style.textAlign = 'center';
       speechTime.style.padding = '0';
       speechTime.style.marginTop = '0';
-      speechTime.title = '点击查看详情';
-      speechTime.style.cursor = 'pointer';
-      
-      // 点击显示详细说明
-      speechTime.addEventListener('click', function() {
-        var detail = '朗读功能使用浏览器内置的语音合成API。\n\n';
-        if (isAndroid) {
-          detail += 'Android设备：\n';
-          detail += '1. 需要安装中文语音包\n';
-          detail += '2. 可能需要网络连接\n';
-          detail += '3. 在系统设置中检查TTS设置';
-        } else if (isIOS) {
-          detail += 'iOS设备：\n';
-          detail += '1. 必须连接网络才能使用\n';
-          detail += '2. 这是iOS系统的限制';
-        } else {
-          detail += '当前浏览器不支持Web Speech API';
-        }
-        alert(detail);
-      });
       
       // 调整进度区域的布局，让提示居中
       var progressSection = speechTime.parentElement;
@@ -108,6 +79,8 @@
       
       return; // 不初始化朗读功能
     }
+    
+    console.log('TTS 引擎:', useCapacitorTTS ? 'Capacitor TTS' : 'Web Speech API');
 
     var playIcon = playPauseBtn.querySelector('.play-icon');
     var pauseIcon = playPauseBtn.querySelector('.pause-icon');
@@ -188,10 +161,19 @@
     }
 
     function safeCancel() {
-      try {
-        window.speechSynthesis.cancel();
-      } catch (e) {
-        // ignore
+      if (useCapacitorTTS) {
+        try {
+          var TextToSpeech = window.Capacitor.Plugins.TextToSpeech;
+          TextToSpeech.stop();
+        } catch (e) {
+          // ignore
+        }
+      } else {
+        try {
+          window.speechSynthesis.cancel();
+        } catch (e) {
+          // ignore
+        }
       }
     }
 
@@ -217,64 +199,104 @@
       safeCancel();
       stopProgressUpdate();
 
-      utterance = new SpeechSynthesisUtterance(segmentText);
-      utterance.lang = lang;
-      utterance.rate = rate;
-
-      utterance.onstart = function () {
-        isSeekingInternal = false;
-        // 在 onstart 中设置时间状态
-        elapsedOffset = targetSeconds;
-        startTime = Date.now();
-        pauseStartedAt = 0;
-        isPaused = false;
-        
-        updateButtonState(true);
-        startProgressUpdate();
-      };
-
-      utterance.onend = function () {
-        isSeekingInternal = false;
-        resetState(false);
-      };
-
-      utterance.onerror = function (event) {
-        var err = event && event.error;
-        if (err === 'interrupted' || err === 'cancelled') {
-          // 如果是跳转导致的 cancel，不重置状态
-          if (isSeekingInternal) {
-            return;
-          }
-          resetState(true);
-          return;
-        }
-        isSeekingInternal = false;
-        console.error('朗读错误:', event);
-        
-        // 提供更友好的错误提示
-        var errorMsg = '错误';
-        if (err === 'network') {
-          errorMsg = '需要网络';
-        } else if (err === 'synthesis-unavailable') {
-          errorMsg = '语音不可用';
-        } else if (err === 'synthesis-failed') {
-          errorMsg = '播放失败';
-        }
-        
-        resetState(false);
-        speechTime.textContent = errorMsg;
-        speechTime.style.color = '#e53e3e';
-        setTimeout(function() {
-          speechTime.textContent = '00:00 / 00:00';
-          speechTime.style.color = '';
-        }, 3000);
-      };
-
       // 立即更新进度条显示
       progressBar.value = String(p);
       speechTime.textContent = formatTime(targetSeconds) + ' / ' + formatTime(totalDuration);
 
-      window.speechSynthesis.speak(utterance);
+      if (useCapacitorTTS) {
+        // 使用 Capacitor TTS
+        var TextToSpeech = window.Capacitor.Plugins.TextToSpeech;
+        
+        TextToSpeech.speak({
+          text: segmentText,
+          lang: lang,
+          rate: rate,
+          pitch: 1.0,
+          volume: 1.0,
+          category: 'ambient'
+        }).then(function() {
+          isSeekingInternal = false;
+          resetState(false);
+        }).catch(function(error) {
+          isSeekingInternal = false;
+          console.error('Capacitor TTS 错误:', error);
+          resetState(false);
+          speechTime.textContent = '播放失败';
+          speechTime.style.color = '#e53e3e';
+          setTimeout(function() {
+            speechTime.textContent = '00:00 / 00:00';
+            speechTime.style.color = '';
+          }, 3000);
+        });
+        
+        // Capacitor TTS 没有 onstart 事件，手动设置状态
+        isSeekingInternal = false;
+        elapsedOffset = targetSeconds;
+        startTime = Date.now();
+        pauseStartedAt = 0;
+        isPaused = false;
+        utterance = { capacitor: true }; // 标记为 Capacitor TTS
+        
+        updateButtonState(true);
+        startProgressUpdate();
+        
+      } else {
+        // 使用 Web Speech API
+        utterance = new SpeechSynthesisUtterance(segmentText);
+        utterance.lang = lang;
+        utterance.rate = rate;
+
+        utterance.onstart = function () {
+          isSeekingInternal = false;
+          // 在 onstart 中设置时间状态
+          elapsedOffset = targetSeconds;
+          startTime = Date.now();
+          pauseStartedAt = 0;
+          isPaused = false;
+          
+          updateButtonState(true);
+          startProgressUpdate();
+        };
+
+        utterance.onend = function () {
+          isSeekingInternal = false;
+          resetState(false);
+        };
+
+        utterance.onerror = function (event) {
+          var err = event && event.error;
+          if (err === 'interrupted' || err === 'cancelled') {
+            // 如果是跳转导致的 cancel，不重置状态
+            if (isSeekingInternal) {
+              return;
+            }
+            resetState(true);
+            return;
+          }
+          isSeekingInternal = false;
+          console.error('朗读错误:', event);
+          
+          // 提供更友好的错误提示
+          var errorMsg = '错误';
+          if (err === 'network') {
+            errorMsg = '需要网络';
+          } else if (err === 'synthesis-unavailable') {
+            errorMsg = '语音不可用';
+          } else if (err === 'synthesis-failed') {
+            errorMsg = '播放失败';
+          }
+          
+          resetState(false);
+          speechTime.textContent = errorMsg;
+          speechTime.style.color = '#e53e3e';
+          setTimeout(function() {
+            speechTime.textContent = '00:00 / 00:00';
+            speechTime.style.color = '';
+          }, 3000);
+        };
+
+        window.speechSynthesis.speak(utterance);
+      }
     }
 
     // Expose cancel for page navigation
@@ -349,28 +371,43 @@
       }
 
       if (isPaused) {
-        try {
-          window.speechSynthesis.resume();
-        } catch (e) {
-          // ignore
+        if (useCapacitorTTS) {
+          // Capacitor TTS 不支持暂停/恢复，需要重新开始
+          var currentPercent = progressBar.value;
+          startSpeakingFromPercent(currentPercent);
+        } else {
+          try {
+            window.speechSynthesis.resume();
+          } catch (e) {
+            // ignore
+          }
+          isPaused = false;
+          updateButtonState(true);
+          if (pauseStartedAt) {
+            startTime += (Date.now() - pauseStartedAt);
+            pauseStartedAt = 0;
+          }
+          startProgressUpdate();
         }
-        isPaused = false;
-        updateButtonState(true);
-        if (pauseStartedAt) {
-          startTime += (Date.now() - pauseStartedAt);
-          pauseStartedAt = 0;
-        }
-        startProgressUpdate();
       } else {
-        try {
-          window.speechSynthesis.pause();
-        } catch (e) {
-          // ignore
+        if (useCapacitorTTS) {
+          // Capacitor TTS 停止播放
+          safeCancel();
+          isPaused = true;
+          updateButtonState(false);
+          pauseStartedAt = Date.now();
+          stopProgressUpdate();
+        } else {
+          try {
+            window.speechSynthesis.pause();
+          } catch (e) {
+            // ignore
+          }
+          isPaused = true;
+          updateButtonState(false);
+          pauseStartedAt = Date.now();
+          stopProgressUpdate();
         }
-        isPaused = true;
-        updateButtonState(false);
-        pauseStartedAt = Date.now();
-        stopProgressUpdate();
       }
     });
 

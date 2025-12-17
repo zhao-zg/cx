@@ -52,7 +52,14 @@ jobs:
         pip install -r requirements.txt
         
     - name: 安装 Node.js 依赖
-      run: npm install
+      run: |
+        npm install
+        echo "✓ Node.js 依赖安装完成"
+        
+        # 显示已安装的 Capacitor 插件
+        echo ""
+        echo "=== 已安装的 Capacitor 插件 ==="
+        npm list --depth=0 | grep capacitor || echo "无"
       
     - name: 生成完整静态网站（用于离线版）
       run: |
