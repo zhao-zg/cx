@@ -185,6 +185,25 @@ jobs:
         fi
         
         echo "✓ 网络安全配置完成"
+        
+        echo ""
+        echo "=== 验证 AndroidManifest.xml ==="
+        echo "检查 TTS 相关配置..."
+        
+        # TTS 不需要特殊权限，但我们可以添加一些优化配置
+        # 确保应用名称正确
+        if grep -q "android:label=" android/app/src/main/AndroidManifest.xml; then
+          sed -i 's/android:label="[^"]*"/android:label="TeHui"/' android/app/src/main/AndroidManifest.xml
+          echo "✓ 应用名称已设置为 TeHui"
+        fi
+        
+        # 显示 AndroidManifest.xml 的关键部分
+        echo ""
+        echo "AndroidManifest.xml 关键配置:"
+        grep -A 3 "<application" android/app/src/main/AndroidManifest.xml | head -5
+        
+        echo ""
+        echo "✓ AndroidManifest 配置完成"
       
     - name: 创建签名密钥
       run: |
