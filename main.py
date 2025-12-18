@@ -62,6 +62,36 @@ def find_document_in_folder(folder_path, filename):
     return None
 
 
+def find_all_numbered_documents(folder_path, base_filename):
+    """
+    查找所有带编号的文档，如 晨兴.doc, 晨兴2.doc, 晨兴3.doc
+    
+    Args:
+        folder_path: 文件夹路径
+        base_filename: 基础文件名(如 '晨兴', '听抄')
+    
+    Returns:
+        文档路径列表，按编号排序
+    """
+    docs = []
+    
+    # 首先查找基础文件（不带编号）
+    base_doc = find_document_in_folder(folder_path, base_filename)
+    if base_doc:
+        docs.append(base_doc)
+    
+    # 查找带编号的文件（2, 3, 4...）
+    for num in range(2, 20):  # 最多支持到19个文件
+        numbered_doc = find_document_in_folder(folder_path, f"{base_filename}{num}")
+        if numbered_doc:
+            docs.append(numbered_doc)
+        else:
+            # 如果某个编号不存在，停止查找后续编号
+            break
+    
+    return docs
+
+
 def scan_resource_folders(resource_dir='resource'):
     """
     扫描 resource 目录下的子文件夹
@@ -134,8 +164,7 @@ def process_batch(batch_folder, config):
     # 查找文档
     listen_doc = find_document_in_folder(batch_folder, '听抄')
     scripture_doc = find_document_in_folder(batch_folder, '经文')
-    morning_revival_doc = find_document_in_folder(batch_folder, '晨兴')
-    morning_revival_doc2 = find_document_in_folder(batch_folder, '晨兴2')
+    morning_revival_docs = find_all_numbered_documents(batch_folder, '晨兴')
     
     if not listen_doc:
         print(f"⚠ 跳过 {batch_name}: 未找到听抄文档")
@@ -148,14 +177,10 @@ def process_batch(batch_folder, config):
     print(f"✓ 找到听抄文档: {os.path.basename(listen_doc)}")
     print(f"✓ 找到经文文档: {os.path.basename(scripture_doc)}")
     
-    morning_revival_docs = []
-    if morning_revival_doc:
-        morning_revival_docs.append(morning_revival_doc)
-        print(f"✓ 找到晨兴文档: {os.path.basename(morning_revival_doc)}")
-    if morning_revival_doc2:
-        morning_revival_docs.append(morning_revival_doc2)
-        print(f"✓ 找到晨兴2文档: {os.path.basename(morning_revival_doc2)}")
-    if not morning_revival_docs:
+    if morning_revival_docs:
+        for idx, doc in enumerate(morning_revival_docs, 1):
+            print(f"✓ 找到晨兴文档{idx}: {os.path.basename(doc)}")
+    else:
         print(f"⚠ 未找到晨兴文档，将跳过晨兴内容")
     print()
     
