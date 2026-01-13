@@ -41,37 +41,33 @@ jobs:
     - name: 安装 Python 依赖
       run: pip install -r requirements.txt
       
-    - name: 更新版本号到配置文件
+    - name: 提取并配置版本号
       run: |
         VERSION=${GITHUB_REF#refs/tags/v}
         if [ -z "$VERSION" ]; then
           VERSION="0.1.0"
         fi
         
-        echo "=== 更新版本号到 app_config.json ==="
-        echo "版本: $VERSION"
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "=== 版本号: $VERSION ==="
         
-        # 使用 Python 更新 app_config.json
+        # 更新 app_config.json
+        echo "更新 app_config.json..."
         python3 << PYTHON_EOF
         import json
         
-        # 读取配置文件
         with open('app_config.json', 'r', encoding='utf-8') as f:
             config = json.load(f)
         
-        # 更新版本号
         config['version'] = '$VERSION'
         
-        # 写回配置文件
         with open('app_config.json', 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=2)
         
-        print(f'✓ 版本号已更新为: $VERSION')
+        print(f'✓ app_config.json 版本号已更新为: $VERSION')
         PYTHON_EOF
         
-        # 验证更新
-        echo ""
-        echo "=== 验证 app_config.json ==="
+        # 验证
         cat app_config.json | grep version
         echo ""
       
@@ -103,14 +99,12 @@ jobs:
         echo "✓ Android 平台添加完成"
         du -sh android/app/src/main/assets/
       
-    - name: 配置版本信息
+    - name: 配置 Android 版本信息
       run: |
-        VERSION=${GITHUB_REF#refs/tags/v}
-        if [ -z "$VERSION" ]; then
-          VERSION="0.1.0"
-        fi
+        echo "=== 配置 Android 版本信息 ==="
         
-        echo "=== 配置版本信息 ==="
+        # 使用环境变量中的 VERSION
+        VERSION=${{ env.VERSION }}
         
         # 计算 versionCode
         IFS='.' read -ra PARTS <<< "$VERSION"
