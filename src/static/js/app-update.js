@@ -1,6 +1,6 @@
 /**
  * APK 内部更新功能
- * 支持检查更新、下载APK、安装更新
+ * 支持应用内下载和安装APK
  */
 (function() {
     'use strict';
@@ -8,24 +8,23 @@
     const AppUpdate = {
         // 配置
         config: {
-            // 版本信息URL（从app_config.json读取）
             versionUrl: null,
-            // 当前版本
             currentVersion: '0.7.3',
-            // 检查更新间隔（毫秒）
             checkInterval: 24 * 60 * 60 * 1000, // 24小时
-            // 存储键
             storageKey: 'cx_last_update_check'
         },
 
         // 是否在Capacitor环境中
         isCapacitor: false,
+        
+        // 下载状态
+        downloading: false,
+        downloadProgress: 0,
 
         /**
          * 初始化
          */
         init: function() {
-            // 检测是否在Capacitor环境
             this.isCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
             
             if (!this.isCapacitor) {
@@ -35,14 +34,10 @@
 
             console.log('[更新] 初始化更新检查');
             
-            // 加载配置
             this.loadConfig().then(function() {
-                // 检查是否需要检查更新
                 if (this.shouldCheckUpdate()) {
                     this.checkForUpdate();
                 }
-                
-                // 添加手动检查按钮
                 this.addUpdateButton();
             }.bind(this));
         },
@@ -57,12 +52,10 @@
                 })
                 .then(function(config) {
                     this.config.currentVersion = config.version || this.config.currentVersion;
-                    // 使用第一个远程URL作为版本检查地址
                     if (config.remote_urls && config.remote_urls.length > 0) {
                         this.config.versionUrl = config.remote_urls[0] + 'version.json';
                     }
                     console.log('[更新] 当前版本:', this.config.currentVersion);
-                    console.log('[更新] 版本检查URL:', this.config.versionUrl);
                 }.bind(this))
                 .catch(function(error) {
                     console.error('[更新] 加载配置失败:', error);
@@ -104,7 +97,6 @@
                 this.showMessage('正在检查更新...', 2000);
             }
 
-            // 记录检查时间
             localStorage.setItem(this.config.storageKey, Date.now().toString());
 
             fetch(this.config.versionUrl + '?t=' + Date.now())
@@ -114,7 +106,6 @@
                 .then(function(versionInfo) {
                     console.log('[更新] 服务器版本:', versionInfo);
                     
-                    // 比较版本
                     if (this.compareVersion(versionInfo.app_version, this.config.currentVersion) > 0) {
                         console.log('[更新] 发现新版本:', versionInfo.app_version);
                         this.showUpdateDialog(versionInfo);
@@ -135,7 +126,6 @@
 
         /**
          * 比较版本号
-         * @returns {number} 1: v1 > v2, 0: v1 == v2, -1: v1 < v2
          */
         compareVersion: function(v1, v2) {
             const parts1 = v1.split('.').map(function(n) { return parseInt(n) || 0; });
@@ -176,90 +166,255 @@
                 return;
             }
 
-            console.log('[更新] 开始下载:', apkUrl);
-            this.showMessage('正在下载更新...', 0);
-
-            // 使用Capacitor的文件系统和浏览器插件
-            if (window.Capacitor && window.Capacitor.Plugins) {
-                this.downloadWithCapacitor(apkUrl, versionInfo.app_version);
-            } else {
-                // 降级方案：直接打开下载链接
-                window.open(apkUrl, '_system');
-                this.showMessage('请在浏览器中完成下载和安装');
+            if (this.downloading) {
+                this.showMessage('正在下载中，请稍候...');
+                return;
             }
+
+            console.log('[更新] 开始下载:', apkUrl);
+            this.downloading = true;
+            this.downloadProgress = 0;
+            
+            // 显示下载进度
+            this.showDownloadProgress();
+
+            // 使用Capacitor Http插件下载
+            this.downloadWithCapacitor(apkUrl, versionInfo.app_version);
         },
 
         /**
          * 使用Capacitor下载APK
          */
         downloadWithCapacitor: function(url, version) {
-            const { Filesystem, Browser } = window.Capacitor.Plugins;
+            const { Filesystem, CapacitorHttp } = window.Capacitor.Plugins;
             
-            if (!Filesystem || !Browser) {
-                // 如果插件不可用，使用系统浏览器打开
-                window.open(url, '_system');
-                this.showMessage('请在浏览器中完成下载和安装');
+            if (!Filesystem) {
+                this.showMessage('文件系统不可用');
+                this.downloading = false;
                 return;
             }
 
-            // 下载文件
+            // 使用CapacitorHttp下载（支持进度）
+            if (CapacitorHttp) {
+                this.downloadWithHttp(url, version);
+            } else {
+                // 降级方案：使用fetch
+                this.downloadWithFetch(url, version);
+            }
+        },
+
+        /**
+         * 使用Http插件下载（支持进度）
+         */
+        downloadWithHttp: function(url, version) {
+            const { CapacitorHttp, Filesystem, Directory } = window.Capacitor.Plugins;
+            
+            console.log('[更新] 使用Http插件下载...');
+            
+            // 下载到临时文件
+            CapacitorHttp.downloadFile({
+                url: url,
+                filePath: 'tehui_v' + version + '.apk',
+                fileDirectory: Directory.Cache,
+                // 进度回调（如果支持）
+                progress: function(progressEvent) {
+                    if (progressEvent.lengthComputable) {
+                        this.downloadProgress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+                        this.updateDownloadProgress();
+                    }
+                }.bind(this)
+            }).then(function(result) {
+                console.log('[更新] 下载完成:', result.path);
+                this.downloading = false;
+                this.hideDownloadProgress();
+                this.showMessage('下载完成，准备安装...');
+                
+                // 安装APK
+                this.installApk(result.path, version);
+            }.bind(this)).catch(function(error) {
+                console.error('[更新] 下载失败:', error);
+                this.downloading = false;
+                this.hideDownloadProgress();
+                this.showMessage('下载失败: ' + (error.message || '未知错误'));
+            }.bind(this));
+        },
+
+        /**
+         * 使用Fetch下载（降级方案）
+         */
+        downloadWithFetch: function(url, version) {
+            console.log('[更新] 使用Fetch下载...');
+            
             fetch(url)
                 .then(function(response) {
-                    return response.blob();
-                })
+                    if (!response.ok) {
+                        throw new Error('下载失败: ' + response.status);
+                    }
+                    
+                    const contentLength = response.headers.get('content-length');
+                    if (!contentLength) {
+                        return response.blob();
+                    }
+                    
+                    // 支持进度的下载
+                    const total = parseInt(contentLength);
+                    let loaded = 0;
+                    
+                    const reader = response.body.getReader();
+                    const chunks = [];
+                    
+                    const self = this;
+                    function readChunk() {
+                        return reader.read().then(function(result) {
+                            if (result.done) {
+                                return new Blob(chunks);
+                            }
+                            
+                            chunks.push(result.value);
+                            loaded += result.value.length;
+                            self.downloadProgress = Math.round((loaded / total) * 100);
+                            self.updateDownloadProgress();
+                            
+                            return readChunk();
+                        });
+                    }
+                    
+                    return readChunk();
+                }.bind(this))
                 .then(function(blob) {
-                    return this.saveAndInstallApk(blob, version);
+                    console.log('[更新] 下载完成，保存文件...');
+                    return this.saveApkFile(blob, version);
+                }.bind(this))
+                .then(function(filePath) {
+                    this.downloading = false;
+                    this.hideDownloadProgress();
+                    this.showMessage('下载完成，准备安装...');
+                    this.installApk(filePath, version);
                 }.bind(this))
                 .catch(function(error) {
                     console.error('[更新] 下载失败:', error);
-                    this.showMessage('下载失败，请检查网络连接');
+                    this.downloading = false;
+                    this.hideDownloadProgress();
+                    this.showMessage('下载失败: ' + (error.message || '未知错误'));
                 }.bind(this));
         },
 
         /**
-         * 保存并安装APK
+         * 保存APK文件
          */
-        saveAndInstallApk: function(blob, version) {
-            const reader = new FileReader();
-            
-            reader.onloadend = function() {
-                const base64Data = reader.result.split(',')[1];
-                const fileName = 'tehui_v' + version + '.apk';
+        saveApkFile: function(blob, version) {
+            return new Promise(function(resolve, reject) {
+                const reader = new FileReader();
                 
-                // 保存到下载目录
-                const { Filesystem, Directory } = window.Capacitor.Plugins;
-                
-                Filesystem.writeFile({
-                    path: fileName,
-                    data: base64Data,
-                    directory: Directory.Cache
-                }).then(function(result) {
-                    console.log('[更新] APK已保存:', result.uri);
-                    this.showMessage('下载完成，准备安装...');
+                reader.onloadend = function() {
+                    const base64Data = reader.result.split(',')[1];
+                    const fileName = 'tehui_v' + version + '.apk';
+                    const { Filesystem, Directory } = window.Capacitor.Plugins;
                     
-                    // 打开APK进行安装
-                    this.installApk(result.uri);
-                }.bind(this)).catch(function(error) {
-                    console.error('[更新] 保存失败:', error);
-                    this.showMessage('保存失败: ' + error.message);
-                }.bind(this));
-            }.bind(this);
-            
-            reader.readAsDataURL(blob);
+                    Filesystem.writeFile({
+                        path: fileName,
+                        data: base64Data,
+                        directory: Directory.Cache
+                    }).then(function(result) {
+                        console.log('[更新] 文件已保存:', result.uri);
+                        resolve(result.uri);
+                    }).catch(function(error) {
+                        reject(error);
+                    });
+                };
+                
+                reader.onerror = function() {
+                    reject(new Error('读取文件失败'));
+                };
+                
+                reader.readAsDataURL(blob);
+            }.bind(this));
         },
 
         /**
          * 安装APK
          */
-        installApk: function(fileUri) {
-            // 使用系统浏览器打开APK文件
+        installApk: function(fileUri, version) {
+            console.log('[更新] 准备安装APK:', fileUri);
+            
+            // Android需要使用Intent打开APK
+            if (window.Capacitor.getPlatform() === 'android') {
+                // 使用Capacitor的App插件打开文件
+                const { App } = window.Capacitor.Plugins;
+                
+                if (App && App.openUrl) {
+                    App.openUrl({ url: fileUri }).then(function() {
+                        console.log('[更新] 已打开安装界面');
+                    }).catch(function(error) {
+                        console.error('[更新] 打开安装界面失败:', error);
+                        // 尝试使用Browser插件
+                        this.openWithBrowser(fileUri);
+                    }.bind(this));
+                } else {
+                    this.openWithBrowser(fileUri);
+                }
+            } else {
+                this.showMessage('当前平台不支持自动安装');
+            }
+        },
+
+        /**
+         * 使用浏览器打开（降级方案）
+         */
+        openWithBrowser: function(fileUri) {
             const { Browser } = window.Capacitor.Plugins;
             
             if (Browser) {
                 Browser.open({ url: fileUri }).catch(function(error) {
-                    console.error('[更新] 打开APK失败:', error);
-                    this.showMessage('无法打开安装程序');
+                    console.error('[更新] 打开失败:', error);
+                    this.showMessage('无法打开安装程序，请手动安装');
                 }.bind(this));
+            } else {
+                window.open(fileUri, '_system');
+            }
+        },
+
+        /**
+         * 显示下载进度
+         */
+        showDownloadProgress: function() {
+            const progressDiv = document.createElement('div');
+            progressDiv.id = 'downloadProgress';
+            progressDiv.className = 'download-progress';
+            progressDiv.innerHTML = `
+                <div class="progress-content">
+                    <div class="progress-text">正在下载更新...</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="progressBarFill"></div>
+                    </div>
+                    <div class="progress-percent" id="progressPercent">0%</div>
+                </div>
+            `;
+            document.body.appendChild(progressDiv);
+        },
+
+        /**
+         * 更新下载进度
+         */
+        updateDownloadProgress: function() {
+            const fill = document.getElementById('progressBarFill');
+            const percent = document.getElementById('progressPercent');
+            
+            if (fill) {
+                fill.style.width = this.downloadProgress + '%';
+            }
+            if (percent) {
+                percent.textContent = this.downloadProgress + '%';
+            }
+        },
+
+        /**
+         * 隐藏下载进度
+         */
+        hideDownloadProgress: function() {
+            const progressDiv = document.getElementById('downloadProgress');
+            if (progressDiv) {
+                progressDiv.remove();
             }
         },
 
@@ -267,7 +422,6 @@
          * 添加更新按钮
          */
         addUpdateButton: function() {
-            // 在主页添加检查更新按钮
             const isMainPage = window.location.pathname === '/' || 
                               window.location.pathname.endsWith('index.html');
             
@@ -283,7 +437,6 @@
                 this.checkForUpdate(true);
             }.bind(this);
 
-            // 插入到页面底部
             const footer = document.querySelector('.footer');
             if (footer) {
                 footer.insertBefore(updateBtn, footer.firstChild);
@@ -294,20 +447,17 @@
          * 显示消息
          */
         showMessage: function(message, duration) {
-            // 移除旧消息
             const oldMsg = document.getElementById('updateMessage');
             if (oldMsg) {
                 oldMsg.remove();
             }
 
-            // 创建新消息
             const msgDiv = document.createElement('div');
             msgDiv.id = 'updateMessage';
             msgDiv.className = 'update-message';
             msgDiv.textContent = message;
             document.body.appendChild(msgDiv);
 
-            // 自动隐藏
             if (duration !== 0) {
                 setTimeout(function() {
                     msgDiv.remove();
