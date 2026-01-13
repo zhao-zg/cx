@@ -144,6 +144,7 @@
             text-overflow: ellipsis;
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
             flex: 1;
             min-width: 0;
@@ -338,7 +339,7 @@
                         <a href="{{ training.path }}/index.html" class="training-link">
                             <div class="training-info">
                                 <div class="training-header">
-                                    <div class="year-season">{{ training.year }}年{{ training.season.split()[0] }}<br>{{ training.season.split()[1] if training.season.split()|length > 1 else '' }}</div>
+                                    <div class="year-season">{{ training.year }}年{{ training.season.split()[0] }}</div>
                                     <div class="info">共 {{ training.chapter_count }} 篇</div>
                                 </div>
                                 <div class="training-title-row">

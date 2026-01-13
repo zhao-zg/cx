@@ -35,7 +35,16 @@
         .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
         a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
         @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
-        .content{max-width:920px;margin:0 auto}        .page-navigation{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;margin:15px 0;padding:8px;background:var(--muted);border-radius:8px;font-size:0.83em;box-sizing:border-box}
+        .content{max-width:920px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:6px;padding:8px;background:#fff;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);border:1px solid var(--border)}
+        .highlight-color-btn{width:32px;height:32px;border:2px solid #fff;border-radius:6px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.1);transition:transform .2s}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;min-height:32px}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}        .page-navigation{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;margin:15px 0;padding:8px;background:var(--muted);border-radius:8px;font-size:0.83em;box-sizing:border-box}
         .page-navigation .nav-link{color:var(--text);text-decoration:none;padding:8px 6px;border-radius:6px;font-size:0.83em;background:#fff;border:1px solid var(--border);min-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1;max-width:120px;white-space:nowrap;box-sizing:border-box}
         .page-navigation .nav-link:active{background:rgba(102,126,234,.1);border-color:rgba(102,126,234,.3)}
         .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:600}
@@ -171,6 +180,7 @@
 
     <script src="js/speech.js"></script>
     <script src="js/font-control.js"></script>
+    <script src="js/highlight.js"></script>
     
     <!-- 页面记忆功能 -->
     <script>
