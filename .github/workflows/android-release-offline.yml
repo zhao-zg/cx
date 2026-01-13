@@ -41,6 +41,40 @@ jobs:
     - name: 安装 Python 依赖
       run: pip install -r requirements.txt
       
+    - name: 更新版本号到配置文件
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        if [ -z "$VERSION" ]; then
+          VERSION="0.1.0"
+        fi
+        
+        echo "=== 更新版本号到 app_config.json ==="
+        echo "版本: $VERSION"
+        
+        # 使用 Python 更新 app_config.json
+        python3 << PYTHON_EOF
+        import json
+        
+        # 读取配置文件
+        with open('app_config.json', 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        # 更新版本号
+        config['version'] = '$VERSION'
+        
+        # 写回配置文件
+        with open('app_config.json', 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        
+        print(f'✓ 版本号已更新为: $VERSION')
+        PYTHON_EOF
+        
+        # 验证更新
+        echo ""
+        echo "=== 验证 app_config.json ==="
+        cat app_config.json | grep version
+        echo ""
+      
     - name: 安装 Node.js 依赖
       run: |
         npm install

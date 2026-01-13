@@ -1885,12 +1885,23 @@ def parse_training_docs_improved(outline_path: str, listen_path: str,
         print("  解析晨兴内容2（晨兴2.doc）...")
         parser.parse_morning_revival_doc(morning_revival_path2, chapters)
     
-    # 4. 创建训练数据对象
+    # 4. 读取应用版本号
+    app_version = ""
+    try:
+        import json
+        with open('app_config.json', 'r', encoding='utf-8') as f:
+            app_config = json.load(f)
+            app_version = app_config.get('version', '')
+    except Exception as e:
+        print(f"  ⚠ 读取版本号失败: {e}")
+    
+    # 5. 创建训练数据对象
     training_data = TrainingData(
         title=title,
         subtitle=subtitle,
         year=year,
-        season=season
+        season=season,
+        app_version=app_version
     )
     
     for chapter in chapters:

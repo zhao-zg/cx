@@ -194,6 +194,7 @@ class TrainingData:
     subtitle: str  # 副标题
     year: int  # 年份
     season: str  # 季节
+    app_version: str = ""  # 应用版本号
     chapters: List[Chapter] = field(default_factory=list)  # 篇章列表
     
     def add_chapter(self, chapter: Chapter):
@@ -214,5 +215,6 @@ class TrainingData:
             'subtitle': self.subtitle,
             'year': self.year,
             'season': self.season,
+            'app_version': self.app_version,
             'chapters': [ch.to_dict() for ch in self.chapters]
         }

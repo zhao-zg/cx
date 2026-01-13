@@ -9,7 +9,7 @@
         // 配置
         config: {
             versionUrl: null,
-            currentVersion: '0.7.3',
+            currentVersion: null, // 从app_config.json动态读取
             checkInterval: 24 * 60 * 60 * 1000, // 24小时
             storageKey: 'cx_last_update_check'
         },
@@ -51,15 +51,31 @@
                     return response.json();
                 })
                 .then(function(config) {
-                    this.config.currentVersion = config.version || this.config.currentVersion;
+                    this.config.currentVersion = config.version;
                     if (config.remote_urls && config.remote_urls.length > 0) {
                         this.config.versionUrl = config.remote_urls[0] + 'version.json';
                     }
                     console.log('[更新] 当前版本:', this.config.currentVersion);
+                    console.log('[更新] 版本检查URL:', this.config.versionUrl);
                 }.bind(this))
                 .catch(function(error) {
                     console.error('[更新] 加载配置失败:', error);
-                });
+                    // 如果加载失败，尝试从meta标签读取
+                    this.loadVersionFromMeta();
+                }.bind(this));
+        },
+
+        /**
+         * 从meta标签加载版本（备用方案）
+         */
+        loadVersionFromMeta: function() {
+            const metaVersion = document.querySelector('meta[name="app-version"]');
+            if (metaVersion) {
+                this.config.currentVersion = metaVersion.getAttribute('content');
+                console.log('[更新] 从meta标签读取版本:', this.config.currentVersion);
+            } else {
+                console.warn('[更新] 无法获取版本号');
+            }
         },
 
         /**
