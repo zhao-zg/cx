@@ -10,8 +10,6 @@
         config: {
             versionUrl: null,
             currentVersion: null, // 从app_config.json动态读取
-            checkInterval: 24 * 60 * 60 * 1000, // 24小时
-            storageKey: 'cx_last_update_check'
         },
 
         // 是否在Capacitor环境中
@@ -32,14 +30,11 @@
                 return;
             }
 
-            console.log('[更新] 初始化更新检查');
+            console.log('[更新] 初始化更新模块');
             
-            this.loadConfig().then(function() {
-                if (this.shouldCheckUpdate()) {
-                    this.checkForUpdate();
-                }
-                // 注意：主页模板中已有Logo点击5次检查更新的逻辑，这里不再重复添加
-            }.bind(this));
+            // 只加载配置，不自动检查更新
+            // 用户可以通过主页Logo点击5次手动触发检查
+            this.loadConfig();
         },
 
         /**
@@ -79,23 +74,6 @@
         },
 
         /**
-         * 是否应该检查更新
-         */
-        shouldCheckUpdate: function() {
-            try {
-                const lastCheck = localStorage.getItem(this.config.storageKey);
-                if (!lastCheck) return true;
-                
-                const lastCheckTime = parseInt(lastCheck);
-                const now = Date.now();
-                
-                return (now - lastCheckTime) > this.config.checkInterval;
-            } catch (e) {
-                return true;
-            }
-        },
-
-        /**
          * 检查更新
          */
         checkForUpdate: function(manual) {
@@ -112,8 +90,6 @@
             if (manual) {
                 this.showMessage('正在检查更新...', 2000);
             }
-
-            localStorage.setItem(this.config.storageKey, Date.now().toString());
 
             fetch(this.config.versionUrl + '?t=' + Date.now())
                 .then(function(response) {
