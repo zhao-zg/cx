@@ -24,6 +24,9 @@
         
         // 当前选中的颜色
         currentColor: 'yellow',
+        
+        // 选择变化定时器
+        selectionTimeout: null,
 
         /**
          * 初始化
@@ -312,37 +315,27 @@
         setupEventListeners: function() {
             const self = this;
 
-            // 监听文本选择
+            // 监听文本选择（桌面端）
             document.addEventListener('mouseup', function(e) {
                 setTimeout(function() {
-                    const toolbar = document.getElementById('highlightToolbar');
-                    if (!toolbar) return;
-
-                    const selection = window.getSelection();
-                    if (!selection) {
-                        toolbar.style.display = 'none';
-                        return;
-                    }
-
-                    const selectedText = selection.toString().trim();
-
-                    if (selectedText.length > 0 && selection.rangeCount > 0) {
-                        try {
-                            // 显示工具栏
-                            const range = selection.getRangeAt(0);
-                            const rect = range.getBoundingClientRect();
-                            
-                            toolbar.style.display = 'flex';
-                            toolbar.style.left = rect.left + (rect.width / 2) - (toolbar.offsetWidth / 2) + 'px';
-                            toolbar.style.top = (rect.top - toolbar.offsetHeight - 10 + window.scrollY) + 'px';
-                        } catch (e) {
-                            console.warn('[划线] 无法显示工具栏:', e);
-                            toolbar.style.display = 'none';
-                        }
-                    } else {
-                        toolbar.style.display = 'none';
-                    }
+                    self.handleTextSelection(e);
                 }, 10);
+            });
+
+            // 监听文本选择（移动端）
+            document.addEventListener('touchend', function(e) {
+                setTimeout(function() {
+                    self.handleTextSelection(e);
+                }, 100); // 移动端需要更长的延迟
+            });
+
+            // 监听选择变化（移动端长按选择）
+            document.addEventListener('selectionchange', function() {
+                // 使用防抖，避免频繁触发
+                clearTimeout(self.selectionTimeout);
+                self.selectionTimeout = setTimeout(function() {
+                    self.handleTextSelection();
+                }, 300);
             });
 
             // 点击其他地方隐藏工具栏
@@ -350,6 +343,17 @@
                 const toolbar = document.getElementById('highlightToolbar');
                 if (toolbar && !toolbar.contains(e.target)) {
                     toolbar.style.display = 'none';
+                }
+            });
+
+            // 移动端触摸隐藏工具栏
+            document.addEventListener('touchstart', function(e) {
+                const toolbar = document.getElementById('highlightToolbar');
+                if (toolbar && !toolbar.contains(e.target)) {
+                    // 检查是否点击的是已划线的文本
+                    if (!e.target.classList.contains('cx-highlight')) {
+                        toolbar.style.display = 'none';
+                    }
                 }
             });
 
@@ -362,6 +366,81 @@
                     }
                 }
             });
+
+            // 移动端长按删除划线
+            let longPressTimer;
+            document.addEventListener('touchstart', function(e) {
+                if (e.target.classList.contains('cx-highlight')) {
+                    longPressTimer = setTimeout(function() {
+                        const id = e.target.dataset.highlightId;
+                        if (id && confirm('删除这个划线？')) {
+                            self.removeHighlight(id);
+                        }
+                    }, 800); // 长按800ms
+                }
+            });
+
+            document.addEventListener('touchend', function() {
+                clearTimeout(longPressTimer);
+            });
+
+            document.addEventListener('touchmove', function() {
+                clearTimeout(longPressTimer);
+            });
+        },
+
+        /**
+         * 处理文本选择
+         */
+        handleTextSelection: function(event) {
+            const toolbar = document.getElementById('highlightToolbar');
+            if (!toolbar) return;
+
+            const selection = window.getSelection();
+            if (!selection) {
+                toolbar.style.display = 'none';
+                return;
+            }
+
+            const selectedText = selection.toString().trim();
+
+            if (selectedText.length > 0 && selection.rangeCount > 0) {
+                try {
+                    // 检查选择是否在内容区域内
+                    const range = selection.getRangeAt(0);
+                    const container = document.querySelector('.content');
+                    if (!container || !container.contains(range.commonAncestorContainer)) {
+                        toolbar.style.display = 'none';
+                        return;
+                    }
+
+                    // 显示工具栏
+                    const rect = range.getBoundingClientRect();
+                    
+                    // 计算工具栏位置
+                    let top = rect.top - toolbar.offsetHeight - 10 + window.scrollY;
+                    let left = rect.left + (rect.width / 2) - (toolbar.offsetWidth / 2);
+                    
+                    // 确保工具栏不超出屏幕
+                    const maxLeft = window.innerWidth - toolbar.offsetWidth - 10;
+                    const minLeft = 10;
+                    left = Math.max(minLeft, Math.min(left, maxLeft));
+                    
+                    // 如果工具栏会超出顶部，显示在选择区域下方
+                    if (top < 10) {
+                        top = rect.bottom + 10 + window.scrollY;
+                    }
+                    
+                    toolbar.style.display = 'flex';
+                    toolbar.style.left = left + 'px';
+                    toolbar.style.top = top + 'px';
+                } catch (e) {
+                    console.warn('[划线] 无法显示工具栏:', e);
+                    toolbar.style.display = 'none';
+                }
+            } else {
+                toolbar.style.display = 'none';
+            }
         }
     };
 
