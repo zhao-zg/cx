@@ -428,7 +428,7 @@
             var clickTimer = null;
             var logo = document.getElementById('mainLogo');
             
-            console.log('APK 更新检查已启用，点击 Logo 5 次触发');
+            console.log('APK 更新检查已启用，点击 Logo 8 次触发');
             
             if (logo) {
                 logo.addEventListener('click', function() {
@@ -441,8 +441,8 @@
                         clickCount = 0;
                     }, 5000);
                     
-                    // 点击 5 次触发 APK 更新检查（降低门槛）
-                    if (clickCount >= 5) {
+                    // 点击 8 次触发 APK 更新检查（降低门槛）
+                    if (clickCount >= 8) {
                         clickCount = 0;
                         if (clickTimer) clearTimeout(clickTimer);
                         console.log('=== 触发 APK 更新检查 ===');
@@ -1242,30 +1242,71 @@
             });
         }
         
-        // 清理所有缓存和记忆功能（通过点击 Logo 5 次触发）
-        var clearClickCount = 0;
-        var clearClickTimer = null;
+        // 清理所有缓存和记忆功能（通过长按 Logo 触发）
         var logo = document.getElementById('mainLogo');
         
         if (logo) {
-            logo.addEventListener('click', function(e) {
-                // 如果已经有 APK 更新检查的点击计数器，不干扰
-                clearClickCount++;
-                
-                if (clearClickTimer) clearTimeout(clearClickTimer);
-                clearClickTimer = setTimeout(function() {
-                    clearClickCount = 0;
-                }, 3000);
-                
-                // 点击 5 次触发清理所有缓存和记忆
-                if (clearClickCount >= 5) {
-                    clearClickCount = 0;
-                    if (clearClickTimer) clearTimeout(clearClickTimer);
-                    
-                    if (confirm('确定要清理所有缓存和记忆吗？\n\n这将删除：\n• 所有训练的离线缓存\n• 页面记忆\n• 字体大小设置\n• 语速设置\n\n清理后需要重新缓存训练内容。')) {
+            var longPressTimer = null;
+            var isLongPress = false;
+            
+            // 触摸开始
+            logo.addEventListener('touchstart', function(e) {
+                isLongPress = false;
+                longPressTimer = setTimeout(function() {
+                    isLongPress = true;
+                    // 触发清理缓存
+                    if (confirm('确定要清理所有缓存和记忆吗？\n\n这将删除：\n• 所有训练的离线缓存\n• 页面记忆\n• 字体大小设置\n• 语速设置\n• 划线标记\n\n清理后需要重新缓存训练内容。')) {
                         clearAllCachesAndMemory();
                     }
+                }, 2000); // 长按2秒触发
+            });
+            
+            // 触摸结束
+            logo.addEventListener('touchend', function(e) {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
                 }
+                // 如果是长按，阻止点击事件
+                if (isLongPress) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+            
+            // 触摸移动（取消长按）
+            logo.addEventListener('touchmove', function(e) {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                }
+                isLongPress = false;
+            });
+            
+            // 桌面端：鼠标长按
+            logo.addEventListener('mousedown', function(e) {
+                isLongPress = false;
+                longPressTimer = setTimeout(function() {
+                    isLongPress = true;
+                    if (confirm('确定要清理所有缓存和记忆吗？\n\n这将删除：\n• 所有训练的离线缓存\n• 页面记忆\n• 字体大小设置\n• 语速设置\n• 划线标记\n\n清理后需要重新缓存训练内容。')) {
+                        clearAllCachesAndMemory();
+                    }
+                }, 2000);
+            });
+            
+            logo.addEventListener('mouseup', function(e) {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                }
+                if (isLongPress) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+            
+            logo.addEventListener('mouseleave', function(e) {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                }
+                isLongPress = false;
             });
         }
         
