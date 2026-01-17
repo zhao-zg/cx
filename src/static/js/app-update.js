@@ -38,7 +38,7 @@
                 if (this.shouldCheckUpdate()) {
                     this.checkForUpdate();
                 }
-                this.addUpdateButton();
+                // 注意：主页模板中已有Logo点击5次检查更新的逻辑，这里不再重复添加
             }.bind(this));
         },
 
@@ -404,45 +404,6 @@
             if (progressDiv) {
                 progressDiv.remove();
             }
-        },
-
-        /**
-         * 添加更新按钮（连续点击标题触发）
-         */
-        addUpdateButton: function() {
-            const isMainPage = window.location.pathname === '/' || 
-                              window.location.pathname.endsWith('index.html');
-            
-            if (!isMainPage) return;
-
-            // 在标题上添加连续点击检测
-            const header = document.querySelector('.header h1');
-            if (!header) return;
-
-            let clickCount = 0;
-            let clickTimer = null;
-
-            header.addEventListener('click', function() {
-                clickCount++;
-                
-                // 清除之前的计时器
-                if (clickTimer) {
-                    clearTimeout(clickTimer);
-                }
-                
-                // 连续点击5次触发更新检查
-                if (clickCount >= 5) {
-                    clickCount = 0;
-                    this.checkForUpdate(true);
-                }.bind(this);
-                
-                // 2秒内没有继续点击则重置计数
-                clickTimer = setTimeout(function() {
-                    clickCount = 0;
-                }, 2000);
-            }.bind(this));
-
-            console.log('[更新] 提示：连续点击标题5次可检查更新');
         },
 
         /**
