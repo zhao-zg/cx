@@ -202,7 +202,7 @@
          * 使用Capacitor下载APK
          */
         downloadWithCapacitor: function(url, version) {
-            const { Filesystem, CapacitorHttp } = window.Capacitor.Plugins;
+            const { Filesystem } = window.Capacitor.Plugins;
             
             if (!Filesystem) {
                 this.showMessage('文件系统不可用');
@@ -210,49 +210,21 @@
                 return;
             }
 
-            // 使用CapacitorHttp下载（支持进度）
-            if (CapacitorHttp) {
-                this.downloadWithHttp(url, version);
-            } else {
-                // 降级方案：使用fetch
-                this.downloadWithFetch(url, version);
-            }
+            // 使用fetch下载（Capacitor 6.0+推荐方式）
+            this.downloadWithFetch(url, version);
         },
 
         /**
          * 使用Http插件下载（支持进度）
          */
         downloadWithHttp: function(url, version) {
-            const { CapacitorHttp, Filesystem, Directory } = window.Capacitor.Plugins;
+            const { Filesystem, Directory } = window.Capacitor.Plugins;
             
-            console.log('[更新] 使用Http插件下载...');
+            console.log('[更新] 使用Fetch下载（Capacitor内置）...');
             
-            // 下载到临时文件
-            CapacitorHttp.downloadFile({
-                url: url,
-                filePath: 'tehui_v' + version + '.apk',
-                fileDirectory: Directory.Cache,
-                // 进度回调（如果支持）
-                progress: function(progressEvent) {
-                    if (progressEvent.lengthComputable) {
-                        this.downloadProgress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-                        this.updateDownloadProgress();
-                    }
-                }.bind(this)
-            }).then(function(result) {
-                console.log('[更新] 下载完成:', result.path);
-                this.downloading = false;
-                this.hideDownloadProgress();
-                this.showMessage('下载完成，准备安装...');
-                
-                // 安装APK
-                this.installApk(result.path, version);
-            }.bind(this)).catch(function(error) {
-                console.error('[更新] 下载失败:', error);
-                this.downloading = false;
-                this.hideDownloadProgress();
-                this.showMessage('下载失败: ' + (error.message || '未知错误'));
-            }.bind(this));
+            // Capacitor 6.0+ 使用内置的 CapacitorHttp
+            // 但下载大文件建议使用 fetch + Filesystem
+            this.downloadWithFetch(url, version);
         },
 
         /**

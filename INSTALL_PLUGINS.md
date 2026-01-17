@@ -10,8 +10,9 @@ npm install
 
 # 或者手动安装各个插件
 npm install @capacitor/filesystem@^6.0.0
-npm install @capacitor-community/http@^6.0.0
 ```
+
+**注意**: Capacitor 6.0+ 已经内置了HTTP功能，不需要额外安装HTTP插件。
 
 ## 同步到Android项目
 
