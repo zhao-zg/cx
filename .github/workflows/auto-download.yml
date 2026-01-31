@@ -7,10 +7,10 @@ on:
   workflow_dispatch: # 允许手动触发
 
 permissions:
-  contents: write  # 允许推送代码和创建release
+  contents: write  # 允许推送代码
 
 jobs:
-  download-and-update:
+  download-resources:
     runs-on: ubuntu-latest
     
     steps:
@@ -32,12 +32,6 @@ jobs:
           playwright install chromium
           playwright install-deps chromium
 
-      - name: Install LibreOffice
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libreoffice
-          echo "✓ LibreOffice 已安装"
-
       - name: Download resources
         run: |
           python down_resource.py
@@ -49,10 +43,11 @@ jobs:
           git add resource/
           if git diff --staged --quiet; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "No new resources downloaded"
+            echo "ℹ️ 没有新资源需要下载"
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "New resources detected"
+            echo "✅ 发现新资源"
+            git diff --staged --stat
           fi
 
       - name: Commit and push changes
@@ -60,87 +55,15 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -m "🤖 Auto-update: Download new resources $(date +'%Y-%m-%d %H:%M')"
+          git commit -m "🤖 自动下载: 新增训练资源 $(date +'%Y-%m-%d %H:%M')"
           git push
-
-      - name: Generate HTML
-        if: steps.check_changes.outputs.has_changes == 'true'
-        run: |
-          python main.py
-
-      - name: Get version
-        if: steps.check_changes.outputs.has_changes == 'true'
-        id: get_version
-        run: |
-          # 获取最新的 tag
-          LATEST_TAG=$(git tag -l "v*.*.*" | sort -V | tail -n 1)
-          if [ -z "$LATEST_TAG" ]; then
-            # 如果没有 tag，从 v1.0.0 开始
-            NEW_VERSION="v1.0.0"
-          else
-            # 解析版本号并递增 patch 版本
-            VERSION=${LATEST_TAG#v}
-            MAJOR=$(echo $VERSION | cut -d. -f1)
-            MINOR=$(echo $VERSION | cut -d. -f2)
-            PATCH=$(echo $VERSION | cut -d. -f3)
-            PATCH=$((PATCH + 1))
-            NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
-          fi
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "New version: $NEW_VERSION"
-
-      - name: Commit and tag
-        if: steps.check_changes.outputs.has_changes == 'true'
-        run: |
-          git add output/
-          if ! git diff --staged --quiet; then
-            git commit -m "🎨 Auto-update: Generate HTML for ${{ steps.get_version.outputs.version }}"
-          fi
-          git tag ${{ steps.get_version.outputs.version }}
-          git push
-          git push origin ${{ steps.get_version.outputs.version }}
-
-      - name: Compress output
-        if: steps.check_changes.outputs.has_changes == 'true'
-        run: |
-          cd output
-          tar -czf ../cx-output-${{ steps.get_version.outputs.version }}.tar.gz .
-          cd ..
-
-      - name: Create GitHub Release
-        if: steps.check_changes.outputs.has_changes == 'true'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.get_version.outputs.version }}
-          name: 训练资源 ${{ steps.get_version.outputs.version }}
-          body: |
-            ## 📦 自动生成的训练资源包
-            
-            **生成时间**: $(date +'%Y-%m-%d %H:%M:%S')
-            **版本号**: ${{ steps.get_version.outputs.version }}
-            
-            ### 📥 下载说明
-            下载 `cx-output-*.tar.gz` 文件，解压后即可使用。
-            
-            ### 📂 包含内容
-            - 所有训练的 HTML 页面
-            - 晨兴、听抄、经文等资源
-            - 图片和样式文件
-            
-            > 此版本由 GitHub Actions 自动生成
-          files: |
-            cx-output-${{ steps.get_version.outputs.version }}.tar.gz
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Summary
         if: always()
         run: |
           if [ "${{ steps.check_changes.outputs.has_changes }}" == "true" ]; then
-            echo "✅ 成功下载新资源并生成发布包"
-            echo "📦 Release: ${{ steps.get_version.outputs.version }}"
+            echo "✅ 成功下载并提交新资源"
+            echo "📝 资源已推送到仓库，可以手动触发部署工作流"
           else
             echo "ℹ️ 没有新资源需要更新"
           fi
