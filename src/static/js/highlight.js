@@ -414,26 +414,39 @@
                         return;
                     }
 
-                    // 显示工具栏
-                    const rect = range.getBoundingClientRect();
-                    
-                    // 计算工具栏位置
-                    let top = rect.top - toolbar.offsetHeight - 10 + window.scrollY;
-                    let left = rect.left + (rect.width / 2) - (toolbar.offsetWidth / 2);
-                    
-                    // 确保工具栏不超出屏幕
-                    const maxLeft = window.innerWidth - toolbar.offsetWidth - 10;
-                    const minLeft = 10;
-                    left = Math.max(minLeft, Math.min(left, maxLeft));
-                    
-                    // 如果工具栏会超出顶部，显示在选择区域下方
-                    if (top < 10) {
-                        top = rect.bottom + 10 + window.scrollY;
+                    // 移动端：固定在底部
+                    if (this.isMobile()) {
+                        toolbar.style.position = 'fixed';
+                        toolbar.style.bottom = '10px';
+                        toolbar.style.left = '50%';
+                        toolbar.style.top = 'auto';
+                        toolbar.style.transform = 'translateX(-50%)';
+                        toolbar.style.display = 'flex';
+                    } else {
+                        // 桌面端：显示在选择区域附近
+                        const rect = range.getBoundingClientRect();
+                        
+                        toolbar.style.position = 'absolute';
+                        toolbar.style.transform = 'none';
+                        
+                        // 计算工具栏位置
+                        let top = rect.top - toolbar.offsetHeight - 10 + window.scrollY;
+                        let left = rect.left + (rect.width / 2) - (toolbar.offsetWidth / 2);
+                        
+                        // 确保工具栏不超出屏幕
+                        const maxLeft = window.innerWidth - toolbar.offsetWidth - 10;
+                        const minLeft = 10;
+                        left = Math.max(minLeft, Math.min(left, maxLeft));
+                        
+                        // 如果工具栏会超出顶部，显示在选择区域下方
+                        if (top < 10) {
+                            top = rect.bottom + 10 + window.scrollY;
+                        }
+                        
+                        toolbar.style.display = 'flex';
+                        toolbar.style.left = left + 'px';
+                        toolbar.style.top = top + 'px';
                     }
-                    
-                    toolbar.style.display = 'flex';
-                    toolbar.style.left = left + 'px';
-                    toolbar.style.top = top + 'px';
                 } catch (e) {
                     console.warn('[划线] 无法显示工具栏:', e);
                     toolbar.style.display = 'none';
@@ -441,6 +454,14 @@
             } else {
                 toolbar.style.display = 'none';
             }
+        },
+
+        /**
+         * 检测是否为移动端
+         */
+        isMobile: function() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                || window.innerWidth <= 768;
         }
     };
 
