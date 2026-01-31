@@ -32,6 +32,12 @@ jobs:
           playwright install chromium
           playwright install-deps chromium
 
+      - name: Install LibreOffice
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libreoffice
+          echo "✓ LibreOffice 已安装"
+
       - name: Download resources
         run: |
           python down_resource.py
