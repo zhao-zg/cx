@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <meta name="app-version" content="0.7.1">
+    <title>第5篇 - 晨兴</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        :root{
+            --brand:#667eea;
+            --bg:linear-gradient(135deg,#667eea,#764ba2);
+            --surface:#fff;
+            --muted:#f8f9fa;
+            --border:#e6e8f0;
+            --text:#1f2937;
+            --text-muted:#6b7280;
+        }
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;color:var(--text);background:#f7fafc;min-height:100vh;padding:8px 8px 70px;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-radius:12px}
+        .header{text-align:center;margin-bottom:20px;padding:16px 12px;background:var(--brand);border-radius:8px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:30px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--muted);border-radius:8px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;font-size:0.88em}
+        .nav a{color:var(--brand);text-decoration:none;padding:10px 16px;border-radius:6px;font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--border);font-weight:600}
+        .nav a:active{background:rgba(102,126,234,.1);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:920px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px)}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;min-height:40px;min-width:60px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:10px;padding:12px 16px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease}
+            .highlight-color-btn{width:44px;height:44px}
+            .highlight-clear-btn{min-height:44px;min-width:70px;font-size:15px}
+        }
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }        .page-navigation{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;margin:15px 0;padding:8px;background:var(--muted);border-radius:8px;font-size:0.83em;box-sizing:border-box}
+        .page-navigation .nav-link{color:var(--text);text-decoration:none;padding:8px 6px;border-radius:6px;font-size:0.83em;background:#fff;border:1px solid var(--border);min-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1;max-width:120px;white-space:nowrap;box-sizing:border-box}
+        .page-navigation .nav-link:active{background:rgba(102,126,234,.1);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:600}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 25px;color:#2d3748;line-height:1.8;text-align:center;padding:18px 15px;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,.1);border-left:4px solid var(--brand)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid #ddd;border-radius:8px;background:#f0f4ff;color:var(--brand);font-size:16px;font-weight:600;cursor:pointer;user-select:none}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:#666;margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:15px 0;padding:12px;background:#f7f8ff;border-left:4px solid var(--brand);border-radius:6px;line-height:1.7}
+        .scripture-verses{font-size:0.97em;color:#444;margin:15px 0;padding:12px;background:#fafafa;border:1px solid #e8e8e8;border-radius:6px;line-height:1.7}
+        .verse-line{margin-bottom:10px}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:15px;line-height:1.6}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.10em;font-weight:600;margin:15px 0 10px;color:#222;line-height:1.6;margin-left:10px}
+        .section-level2,.outline-item.level-2{font-size:1.07em;font-weight:560;margin:12px 0 8px;color:#333;line-height:1.6;margin-left:20px}
+        .section-level3,.outline-item.level-3{font-size:1.04em;font-weight:530;margin:10px 0 8px;color:#444;line-height:1.6;margin-left:30px}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:normal;margin:8px 0 6px;color:#555;line-height:1.6;margin-left:40px}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:16px 0;padding-left:8px;text-indent:2em;color:#4a5568;line-height:1.6;font-size:1.00em}
+        @media(min-width:768px){
+            .content-text{padding-left:8px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:24px}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:38px}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:52px}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-32px;top:2px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--border);text-align:center;color:#999;font-size:0.83em}
+        .scripture-toggle-btn{background:rgba(102,126,234,.1);border:1px solid rgba(102,126,234,.3);color:var(--brand);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:6px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:rgba(102,126,234,.2);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:#f8f9fa;border-left:3px solid var(--brand);padding:10px 12px;margin:10px 0 10px 15px;font-size:0.94em;color:#555;line-height:1.8}
+        .scripture-ref{color:#7f8c8d;font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:2;color:#444}
+        .verse-line:last-child{margin-bottom:0}
+        .bottom-control-bar{position:fixed;bottom:0;left:0;right:0;z-index:1000;display:flex;align-items:center;gap:6px;padding:5px 12px max(5px,env(safe-area-inset-bottom));background:rgba(255,255,255,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+        @media(prefers-color-scheme:dark){.bottom-control-bar{background:rgba(30,30,30,.95);border-top-color:rgba(255,255,255,.1)}}
+        .control-btn{min-width:36px;min-height:36px;padding:5px;background:var(--bg);border:none;border-radius:6px;font-size:14px;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 4px rgba(102,126,234,.2);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-muted);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex-shrink:0}
+        .bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:5px;background:var(--bg);border:none;border-radius:6px;font-size:13px;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 4px rgba(102,126,234,.2);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:46px;min-height:32px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            body{padding:6px 6px 60px}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:6px}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:44px;min-height:30px;padding:4px 5px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:55px}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:34px;min-height:34px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:42px;min-height:28px;padding:3px 4px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>冬季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="content">
+            
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">目录</a>
+    <a href="5_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="5_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="5_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="5_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+    <h2 class="chapter-title">第5篇 生命树</h2>
+    
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container">
+        
+        <div class="day-page" data-day="1" data-page="0" style="display: block;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        壹　基督作为生命乃是生命树的实际，而生命树是宇宙的中心；生命是神创造的目标（创一26~28、31，二7~9），也是神完整救恩的目标（约十九34，罗五10，启二二1~2、14、19）：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　在圣经里，生命树总是指基督，就是神一切丰富的具体化身，作我们的食物；神将人安置在生命树跟前，指明神要人借着生机地吃祂，并新陈代谢地吸收祂，而接受祂作人的生命，使神成为人之所是的构成成分—西二9，创二9，约一4，十10，十四6，十五1，六35、57、63，林前十五45下。
+                    </div>
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">创二9	耶和华神使各样的树从地里长出来，可以悦人的眼目，也好作食物；园子当中有生命树，还有善恶知识树。</div>
+                
+                <div class="feeding-scripture">西三4	基督是我们的生命，祂显现的时候，你们也要与祂一同显现在荣耀里。</div>
+                
+                
+                
+                <p class="content-text">旧约论到创造，新约论到救赎。不论是在创造或救赎里，神的目的、中心都是在于生命。……虽然神造了千千万万、各式各样、形形色色的万物，但神所要达到的目的，祂所指向的目标，就是生命。若是我们熟读创世记头两章，并且安静下来，在神面前重新默想神的创造，我们立刻能看见，神的创造是因着生命，并且达于生命；祂的创造是以生命为中心，也是以生命为目标。所以在起头时，神从无创造出有（李常受文集一九五三年第一册，一四四页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">在神创造的程序里，祂先创造了无生物，然后创造有生物。并且，生物的创造乃是从较低等的开始，越造越高。最后，祂所造最高的生物就是人。或许有人会问，何以见得人是神最高的造物？因为圣经说，神造人的时候，是按着祂自己的形像，照着祂自己的样式造的（创一26~27）。……不只如此，神还把祂管理万有的权柄赐给人（26、28）。所以，在万有中，受造的人类像神，因为有神的形像；并且代表神，因为有神的权柄。神看一切所造的都甚好（31）。祂在广大的宇宙中，在形形色色的万物里，得着人有祂的形像，并有祂的权柄，能够彰显祂的荣耀，也能代表祂的权柄，祂是何等的满足。</p>
+                
+                <p class="content-text">创世记二章告诉我们，当神造物的工完毕后，就在第七日歇了祂一切的工，安息了（2）。许多人以为，至此神的工作已经完成，祂是真的安息、满足了。其实不然，神的创造至此并未达到其目的。若是我们再往下读，就会看见仍有许多问题。当神把人造好之后，便将人安置在伊甸园里（8），园子当中，也就是园子中心，有一棵生命树（9）。生命树是非常奇特的，圣经第一次提到“生命”，就是“生命”树。这给我们看见，虽然神什么都造好了，人也预备好，可以彰显祂、代表祂，但神还不能满意，因为神的目标还没有达到。神的目标是什么呢？神的目标乃是生命，神把创造好的人，带到生命树那里，祂把人摆在生命跟前。</p>
+                
+                <p class="content-text">神……将人带到生命树跟前，引导人、指示人，巴望人接触那棵树，好使生命能进到人里面。神这样作的目的，无非是要给我们看见，祂的创造乃是以生命作目标，以生命为目的。如果只有创造，人没有达到生命，生命没有进到人里面，神的创造就没有意义，没有目的，也没有结果。</p>
+                
+                <p class="content-text">整本圣经给我们看见生命这个目标。……我们基督徒乃是有基督作生命的人（西三4），祂在我们里面拯救我们，作我们的生命。这个生命就是基督自己，也就是神自己。这个生命要带领我们到永远，这意思是，在永远里仍是生命的故事。……启示录给我们看见，在永远里我们所接触的是生命河，所面对的是生命树（二二1~2上）。生命河从神和羔羊的宝座流出来，河的这边与那边有生命树。我们在永世里所接触、所面对的就是这个生命。……所有蒙恩的人，在生命里和神是相通的；在神的生命里，蒙恩的人与神成为一。换言之，那个生命怎样在神里面，也同样在我们里面（李常受文集一九五三年第一册，一四四至一四五、一四八至一四九页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-2">
+                        二　启示录二章七节的生命树是指钉十字架（由树，就是木头所含示—彼前二24）并复活（由神的生命所含示—约十一25）的基督；今天基督是在召会中，召会的终极完成乃是新耶路撒冷，在其中这位钉死并复活的基督是生命树，滋养神所有的赎民，直到永远（启二二2、14）。
+                    </div>
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启二7　	……得胜的，我必将神乐园中生命树的果子赐给他吃。</div>
+                
+                <div class="feeding-scripture">彼前二24	祂在木头上，在祂的身体里，亲自担当了我们的罪，使我们既然向罪死了，就得以向义活着……。</div>
+                
+                <div class="feeding-scripture">约十一25	耶稣对她说，我是复活，我是生命；信入我的人，虽然死了，也必复活。</div>
+                
+                
+                
+                <p class="content-text">为着正当的召会生活，和召会生活的恢复，也就是为着基督徒生命正确的长大，我们所需要的，不仅是在头脑里明白教训，更是在灵里吃主作我们生命的粮（约六57）。即使是圣经上的话，也不该仅仅当作道理教导我们的心思，乃该当作食物滋养我们的灵（太四4，来五12~14）。在〔启示录二章七节〕，主应许要给得胜者吃生命树的果子，这指回到创世记二章八至九节和十六节关于神所命定吃的事。在写给别迦摩召会的书信中，主应许要给得胜者吃那隐藏的吗哪（启二17），这是指以色列人在旷野吃吗哪的事（出十六14~16、31）。在写给老底嘉召会的书信中，主应许要与给祂开门的人一同坐席（启三20）。……这指明主渴望恢复神子民吃正确的食物，就是神所命定，由生命树、吗哪以及美地的出产所预表的，这一切都是基督在不同方面作我们食物的预表（启示录生命读经，一四七页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">〔启示录二章七节〕这里的“树”，原文不是一般所用的字，乃与彼前二章二十四节的木头同字。在圣经里，生命树总是指基督，就是神一切丰富的具体化身（西二9），作我们的食物（创二9，三22、24，启二二2、14、19）。这里是指钉十字架（由树，就是木头所含示—彼前二24）并复活（由神的生命所含示—约十一25）的基督，今天基督是在召会中，召会的终极完成乃是新耶路撒冷，在其中这位钉死并复活的基督是生命树，滋养神所有的赎民，直到永远（启二二2、14）。</p>
+                
+                <p class="content-text">主对以弗所召会得胜者的应许，是将神乐园中生命树的果子赐给他吃。生命树是在神的乐园中。……启示录二章七节神的乐园，乃是新耶路撒冷，……今天的召会就是这新耶路撒冷的预尝。……现今我们正在享受钉死并复活的基督作……生命树，成为我们今天在召会中的预尝。这种预尝的享受，要引我们进入新耶路撒冷，完满地享受……基督作生命树，……直到永远。主应许以弗所召会的得胜者得以吃生命树，指明他们要在今天的召会生活中吃基督，并在新耶路撒冷中吃祂作生命树，直到永远。我们的经历印证这事。</p>
+                
+                <p class="content-text">在新天新地的新耶路撒冷享受基督作生命树，是所有神的赎民永远共同的分；然而在要来千年国的新耶路撒冷里特别享受祂作生命树，乃是单单给得胜信徒时代的赏赐。如果今天我们在召会中，胜过召会堕落时一切的打岔，并享受基督作生命树，将来就要得着这样的赏赐。否则，我们虽然能在新天新地的新耶路撒冷里，永远享受基督作生命树，但在要来的国度里却要失去这分特别的享受。</p>
+                
+                <p class="content-text">生命树总是带我们回到起初。起初没有别的，只有神自己；起初没有工作、劳碌、忍耐，只有神自己。在召会生活中，我们需要一再回到起初，把一切都忘记，单单享受神自己作生命树（启示录生命读经，一四八至一五一页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        贰　我们需要看见神的生命在人里面所遇到的难处：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　神的生命在我们里面所遇到的第一个难处，就是我们不认识我们人的观念乃是黑暗的：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　我们需要看见，我们怎样对待在我们里面之活的基督，乃是基督徒生活中唯一值得关切的事—加一16，二20，四19，腓一19~21，弗四13，林后三18。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　作基督徒就是不以基督以外的任何事物为标的；许多人得救后，所以有属灵生命上的难处，都是因为他们不认识生命的道路，不以基督作生命。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　生命在我们里面所遇到的第二个难处，就是假冒—太六2、5，七5，二三13~29：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　一个人是否属灵，不在于外面的表现，乃在于他如何对待内住的基督。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　我们天然的良善乃是假冒的属灵，这是生命的一个大拦阻；生命的彰显就是不理睬我们的天性，不管我们的爱好，简单地让基督在我们里面运行，破碎我们。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　若是我们凡事都凭天性、天然去作，其结果无论是什么都是假冒。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        三　生命在我们里面所遇到的第三个难处，就是悖逆：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　基督在我们里面运行，给我们感动，叫我们明明知道祂要我们作什么，向我们要求什么，要带领我们什么，对付我们什么。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　然而我们若不顺服，一味地违反我们里面的感觉，不接受祂的带领，也不肯出代价，这样的反叛、顶撞，就是悖逆。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　我们所犯的罪，最多、最厉害的，还不是外面看得见的罪行，乃是里面那些违背基督所给我们感觉的罪恶；基督活在我们里面，祂一直给我们里面生命的感觉—罗八6，约壹二27。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        四　生命在我们里面所遇到的第四个难处，就是我们天然的干才：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　许多弟兄姊妹都非常爱主，也为主热心，实在是敬虔的；然而，他们身上最厉害的难处，就是他们的干才太大，本事太高，使得基督在他们身上没有地位，没有出路。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　我们可能有干才，有本能，却认为这不是罪恶，不是污秽；我们没有轻看这些天然的干才，反而宝贝这些干才；这在我们身上若是一直牢不可破，就会成为基督生命的难处。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        五　这些难处在我们身上，只有一个解决办法，就是我们必须经过十字架，让十字架来破碎；我们要基督的生命在我们里面不受限制，就必须经历十字架的破碎，让这些难处受到对付并被除掉—太十六24~25。
+                    </div>
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">加一15~16	……神，既然乐意将祂儿子启示在我里面……。</div>
+                
+                <div class="feeding-scripture">二20	我已经与基督同钉十字架；现在活着的，不再是我，乃是基督在我里面活着；并且我如今在肉身里所活的生命，是我在神儿子的信里，与祂联结所活的，祂是爱我，为我舍了自己。</div>
+                
+                
+                
+                <p class="content-text">神的生命在我们里面所遇到的头一个难处，就是我们不认识我们人的观念乃是黑暗的。……一般基督徒都以为，作了基督徒就该大发热心，撇下世界；这从人看条条是道，但实际上却是没有神，没有生命，且是行不通的。……你得救时，接受了一位活的基督，祂在你里面作了你的生命。</p>
+                
+                <p class="content-text">作基督徒不是以任何事物为对象，基督徒只该以基督为对象。许多人得救后，所以有生命上的难处，都是因为他们不认识生命的道路，不以基督作生命（李常受文集一九五三年第一册，一七一至一七二、一七五页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">其次，生命在我们里面所遇到的难处，就是假冒。……一个人是否属灵，不在于外面的表现，乃在于他如何对待基督。
+……什么叫作生命呢？就是不理睬你的天性，不管你的爱好，让你里面的基督，简单地在你里面运行，破碎你自己；这时，你凭着基督在你里面的运行所作的，就是生命。若是你凡事都凭天性、天然去作，其结果无论是什么都是假冒。</p>
+                
+                <p class="content-text">第三，生命在我们里面所遇到的难处，就是悖逆。比方基督在你里面运行，给你感动，给你感觉，叫你明明知道祂要你作什么，祂向你要求什么，要带领你什么，对付你什么，你却偏不顺服，一味地在那里违反你里面的感觉，不接受，也不肯出代价。你这样的反叛、顶撞，就是悖逆。</p>
+                
+                <p class="content-text">我们不照着祂的意思作，明显就是背叛。这是我们许多人天天都在犯的罪；我们所犯的罪，最多、最厉害的，还不是外面看得见的罪行，乃是里面那些违背基督所给我们的感觉的罪恶。我们里面的这位基督是活的，祂一直并随时给我们的，乃是祂在我们里面生命的感觉。我们应该顺从祂，然而我们却常不顺从。</p>
+                
+                <p class="content-text">我们人天然的干才，是生命在我们里面所遇到的第四个难处。无论是我们的天然，或是天性，或是我们的己，都是一种难处，使神的生命在我们里面，不容易出来。然而，我们天然的干才、本领，更是一种厉害的拦阻，使神的生命不容易从我们里面出来。有许多弟兄姊妹，他们都非常爱主，也为主热心，实在是敬虔的。然而，在他们身上有一个最厉害的难处，就是他们的干才太大，本事太高，使得基督在他们身上没有地位，没有出路。……这样的弟兄姊妹，在我们中间为数不少。他们有干才，有本能；他们认为这不是罪恶，不是污秽。他们甚至以为这是好的，是对召会有用的；他们以为，要事奉神，就需要这种干才和本能。他们不仅一点没有轻看这些干才，反而宝贝他们与生俱来的干才；这在他们身上牢不可破，以致成了基督生命的难处。</p>
+                
+                <p class="content-text">这些难处在我们身上，只有一条解决的路，就是经过十字架，让十字架来破碎。我们要基督的生命在我们里面不受限制，就必须经历十字架的破碎，让这些难处受到对付，被除掉，让基督的生命能从我们里面活出来（李常受文集一九五三年第一册，一七五至一七六、一七八至一八二页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        叁　我们要吃基督作生命树，就必须在凡事上让基督居首位，就是以起初的爱来爱祂，受祂爱的困迫，在我们的生活中以祂为一切，接受祂作一切—启二4~5，西一18下，林后五14~15，可十二30，诗七三25~26，八十17~19：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　以起初的爱爱主，在凡事上让祂居首位，乃是吃祂作生命树；吃基督作生命树，就是享受基督作我们生命的供应，该是召会生活中首要的事—启二7，约六57、63。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　召会生活的内容在于享受基督；我们越享受基督，召会生活的内容就越丰富；但我们若要吃基督作生命树，享受祂作我们生命的供应，就必须用起初的爱来爱祂—启二4~5。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        三　一面，严格地说，启示录二章七节里吃神乐园中生命树的果子，是指在要来千年国里的新耶路撒冷，特别享受基督作我们生命的供应。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        四　另一面，我们今天在召会中，正在享受钉死并复活的基督作生命树，就是在我们灵里生命的供应，作为预尝；每个地方召会都是神的乐园，在其中基督是生命树，给我们享受。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        五　当我们在凡事上让主居首位，并终日维持吃钉死并复活的基督作生命树，不管召会的情形怎样，召会要成为我们的乐园；因此，我们对召会的感觉和态度乃在于我们的光景。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        六　“我们今天在召会生活中若不享受基督作生命树，我们必不会在国度时代有分于生命树。根据我的经历，今天在安那翰的召会，对我乃是乐园”—李常受文集一九九四至一九九七年第五册，活力排，二一二页。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        七　召会荒凉和堕落的内在原因，乃是基督没有被神的子民高举；他们没有在凡事上让祂居首位，居第一位；神的子民什么时候高举基督，让祂在他们生活的每一面居首位，就有恢复和复兴—诗八十17~19。
+                    </div>
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启二4~5	然而有一件事我要责备你，就是你离弃了起初的爱。所以要回想你是从哪里坠落的，并要悔改，行起初所行的。不然，我就要临到你那里；你若不悔改，我就把你的灯台从原处挪去。</div>
+                
+                <div class="feeding-scripture">西一18	祂也是召会身体的头；祂是元始，是从死人中复活的首生者，使祂可以在万有中居首位。</div>
+                
+                
+                
+                <p class="content-text">神原初的心意是要人吃生命树（创二9、16）。因着人堕落了，生命树就向人封闭（三22~24）。借着基督的救赎，接触生命树（就是神自己在基督里作人生命）的路再次向人打开（来十19~20）。然而在召会的堕落中，宗教及其知识偷偷进来打岔在基督里的信徒，使他们不能吃祂这棵生命树。因此，主应许得胜者，要把祂自己这神乐园中生命树的果子给他们吃，作为赏赐。这是一种激励，叫他们离开宗教的知识，回来享受主自己。主这个应许，是要照着神的经纶，把召会恢复到神原初的心意里。主要得胜者作的，就是全召会在神的经纶里该作的。由于召会堕落了，主就来呼召得胜者，顶替召会完成神的经纶（新约总论第十四册，六九页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">吃生命树不仅是神原初对人的心意，也是神救赎的永远结果。所有神的赎民，都要享受生命树，就是基督连同一切神圣的丰富，作他们永远的分（启二二2、14、19）。……主的智慧把要来国度里对祂的享受当作赏赐，为要鼓励信徒在今天的召会生活中，胜过宗教打岔人之知识的教训，回到享受祂自己作生命的供应，以完成神的经纶。</p>
+                
+                <p class="content-text">吃生命树，就是享受基督作我们生命的供应，该是召会生活中首要的事。召会生活的内容在于享受基督……。我们若要享受基督，就必须用起初的爱爱祂。起初的爱要把我们带到生命树那里。……当我们把起初的爱归给主耶稣，祂就要将生命树给我们吃。……用起初的爱，就是上好的爱来爱祂，就是让主在凡事上居首位。我们要让祂居首位，就必须乐意被调整、被破碎，成为无有，好使主能有路在我们里面、借着我们并在我们中间，建造祂生机的身体。我们应该祷告：“主耶稣，我以起初的爱爱你，我以上好的爱爱你，我最上好的爱归属于你。哦，主耶稣，我把我的爱优先给你。”我们若离弃对主起初的爱，就要失去对基督的享受，并且会失去耶稣的见证；结果，灯台要从我们挪去。爱主、享受主以及成为主的见证，这三者乃是并行的。</p>
+                
+                <p class="content-text">当我们得胜，借着在各方面、在凡事上让基督居首位，而回到基督作我们起初的爱时，我们就享受祂作生命，并发出神圣的光，作为灯台，在我们所在的地方持守耶稣的见证（一9，十二17）。我们将见证基督的身位，祂是神也是人；也见证基督的人性生活、钉十字架、复活、升天、降下和第二次的显现。光的照耀乃是见证。在我们日常生活中的每一面，我们应当把基督照耀出去。这照耀就是灯台的照耀。我们需要爱、生命、光和灯台。这样，我们在祂里面的生活和所是，就要成为主给我们的赏赐（新约总论第十四册，六九至七一页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-2">
+                        八　基督不仅必须在我们的生活中，也必须在我们一切的信息中居首位；“我们不是传自己，乃是传基督耶稣为主，也传自己为耶稣的缘故，作你们的奴仆”—林后四5，参来一3，八1，十二2，诗八十1、17~19，一一○1~7：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　我们作工，该时常把人拖到中心来，叫他们看见“基督是主”；我们必须把主耶稣摆在宝座上—参歌一1~4，赛六1、3，约十二41。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　要传扬这样的信息，我们自己必须先被神打破摔碎，叫基督在我们身上居首位；我们的信息就是我们自己—林后四10~13，约十二24~26，参路十二49~50。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　主的“好”，胜过一切世人的赞美；天上的笑脸，胜过地上一切的怒脸；天上的安慰，胜过地上的眼泪—太二五21、23，耶一7~9、18~19，但四26。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        九　要在凡事上让基督居首位，我们对祂作我们的王就必须有情深的爱，我们的舌头就会是快手的笔，照着我们对祂一切所是的经历和享受，迅速写出我们对祂的爱和赞美—诗四五1~2，林后三3、6。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        十　以起初的爱爱主，在凡事上让祂居首位，乃是以祂为我们的中心—我们维系的中心，并以祂为我们的普及—我们的一切；我们需要以祂为我们个人宇宙的中心、内容和圆周—西一17下、18下。
+                    </div>
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">弗二10　	我们原是神的杰作，在基督耶稣里，为着神早先预备好，要我们行在其中的善良事工创造的。</div>
+                
+                <div class="feeding-scripture">林后四5	……我们不是传自己，乃是传基督耶稣为主，也传自己为耶稣的缘故，作你们的奴仆。</div>
+                
+                
+                
+                <p class="content-text">〔在以弗所二章十节，〕“善良事工”就是基督。神工作的目的，就是基督。我们当行走在这工作里。……许多时，我们是为兴趣而作工，不是为基督。许多时，人东跑西奔，作工得了名誉。他们作了工，却未事奉神。神从永世到永世作工，都是要叫祂儿子在万有中居首位。所以，我们作工，也当为着基督。神若未洗净我们的存心和动机，我们就不能蒙神的赐福。我们作工，不是为罪人，乃是为基督。我们工作的成功有多少，是看基督在里面有多少。……作工不当为自己的兴旺、自己的团体、自己的信息而作工，当为基督而作工。只要神有所得着，我们就当快乐。看见神有所得着，虽然不是借着我们所作的工，我们也当快乐（倪柝声文集第一辑第十一册，一一二至一一三页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">基督也当在我们的信息里居首位。我们“乃是传基督耶稣为主”（林后四5）。“只知道耶稣基督，并这位钉十字架的。”（林前二2）基督是神计划的中心，神目的的中心。十字架是神工作的中心。十字架的工作，是成功神的目的。十字架作工除去一切出于肉体的，好叫基督来居首位。我们中心的信息，不当是时代、预言、预表、国度、受浸、离宗派、说方言、守安息日、圣别……，当是基督。神的中心就是基督。……我们救人后，当叫他奉献自己，作基督的奴仆，接受基督为他万有的主。</p>
+                
+                <p class="content-text">全部圣经的真理，是有组织的，如车轮一样。其中有一个中心，就是基督。我们并非不传中心以外的真理。不过，需要把这些真理，和中心钩起来。我们当有两个知识：㈠知道这一个道，讲什么。㈡知道这个道，和中心的关系是什么。我们当注意中心。但是，不是不讲其余的真理。保罗说，“只知道耶稣基督，并这位钉十字架的。”以后，又说，“在长成的人中，我们也讲智慧。”（林前二2、6）人奉献了，接受了基督作他的主，我们才能对他讲造就的道。我们作工，该时常把人拖到中心来，叫他们看见“基督是主”。我们不能在客观上，作这样的工作。我们自己必须先被神打破摔碎，叫基督在我们身上居首位，才能领人接受基督作主，叫基督在他们身上居首位。我们必须活出让基督居首位的生活，才能传扬这个信息。信息就是我们自己。我们当叫基督在日常的小事上居首位，我们才能传扬基督中心的信息。“巴不得我们每一个人，都把主耶稣摆在宝座上！”……主的“好”，胜过一切世人的赞美。天上的笑脸，胜过地上一切的怒脸。天上的安慰，胜过地上的眼泪。隐藏的吗哪，是在永世里享受的（倪柝声文集第一辑第十一册，一一四至一一五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-2">
+                        十一　以起初的爱爱主，在凡事上让祂居首位，乃是瞻仰祂的荣美，并在我们基督徒生活与工作的每个细节上求耶和华指示—诗二七4，书九14，腓四6~7。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        十二　以起初的爱爱主，在凡事上让祂居首位，乃是受我们调和的灵所管理、管治、指引、引导和推动；借着作祂的俘虏并祷告：“主啊，征服我，使我作你的俘虏，绝不要让我得胜，要一直击败我”，而顾到我们灵里的安息—林后二13~14。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        十三　以起初的爱爱主，在凡事上让祂居首位，乃是有清明的天，像可畏的水晶，其上有神蓝宝石的宝座；这意思是我们与主之间没有阻隔，并且我们被祂管治同在的属天气氛、光景和情形所充满—以祂为我们的王，并让祂在我们里面管治并作王—结一22、26。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        十四　唯独作王的基督同着在王权上作祂帮助的得胜者在地上掌权，才能解决今天世界的问题（赛四二1~4）；基督的名要借着那些得胜并一同作王的圣徒，被万代记念并得着众民的赞美（诗四五16~17，启二26）。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        十五　锡安所预表的得胜者，乃是滩头堡，主要借以回来据有全地—诗四八2，但二34~35。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        十六　“众城门哪，你们要抬起头来；永久的门户啊，你们要被举起；荣耀的王将要进来。那荣耀的王是谁呢？就是刚强大能的耶和华，在争战中有大能的耶和华！……那荣耀的王是谁呢？万军之耶和华—祂是荣耀的王！”—诗二四7~8、10：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　众城门是列国的城门，门户是百姓的家门；基督是万国所羡慕的（该二7）；一般说来，万国都在期待基督来临，但基督不会照着我们人的观念很快就来（彼后三8~9）；因此，我们需要抬起头来，恒切地等候并期待祂的来临。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　荣耀的王是万军之耶和华，就是终极完成的三一神具体化身在得胜的基督里（路二一27，太二五31）；耶和华就是耶稣，耶稣就是成为肉体、钉十字架并复活的三一神，祂是刚强争战且得胜的一位（一21，启五5）。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　祂要在复活里同祂的得胜者回来据有全地作祂的国—但二34~35，七13~14，珥三11，启十一15，十九13~14。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        十七　宝座上的这位基督，显出来的样子好像红宝石（其红色表征救赎）和碧玉（其深绿色表征丰盛的生命）；因此，当我们服从基督的元首权柄并服在祂的宝座之下，我们就成为祂在法理救赎和生机拯救上一切所是的受益者，使我们在神丰富的生命中，显出与荣耀之神相同的样子—四3，二一10~11上，罗五10。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        十八　凡用基督救赎的血洗净自己袍子的人，在永世里都有权利在圣城，就是神的乐园，享受生命树作他们永远的分—启二二14，二7。
+                    </div>
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">诗四五16~17	你的子孙要接续你的列祖；你要立他们在全地作首领。我必叫你的名被万代记念；所以众民要永永远远赞美你。</div>
+                
+                
+                
+                <p class="content-text">〔诗篇四十五篇十六节〕的“列祖”表征基督在肉身里的先祖；“子孙”表征基督的得胜者。“首领”表征基督的得胜者，与基督一同作王，治理列国。</p>
+                
+                <p class="content-text">没有人能解决今天世界的问题。唯有作王的基督能解决这些问题。基督在地上作王掌权时，得胜者要在君王职分上作祂的帮助者，与祂一同作王。基督的子孙，就是得胜者，要作首领，与基督一同掌权，治理列国。</p>
+                
+                <p class="content-text">我们不仅需要看见基督在祂自己里面的美丽，和基督在召会里的美丽，也需要看见基督在祂所有后裔，所有肢体，就是众首领里的美丽。我们若看见基督在这三方面的美丽，我们对祂的美丽就会有完整的看见，完全的图画。</p>
+                
+                <p class="content-text">十七节……启示基督的名要借着得胜的圣徒，被万代记念；并且基督要借着祂得胜并同作王的圣徒，得着众民的赞美（诗篇生命读经，三二五至三二六页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">诗篇二十四篇七至十节……给我们看见，得胜的基督在神永远的国里作要来的王。七节说，“众城门哪，你们要抬起头来；永久的门户啊，你们要被举起；荣耀的王将要进来。”众城门是列国的城门，门户是百姓的家门，永久指明恒切地等候并期待（腓三20，林前一7）。这指明地上的人一直等候并期待基督再来。哈该书二章七节告诉我们，基督是万国所羡慕的。一般说来，万国都在期待基督来临，但基督不会照着我们人的观念很快就来；因此，我们需要恒切地等候并期待祂的来临。</p>
+                
+                <p class="content-text">因着我们必须恒切地等候祂的来临，我们很容易就垂头丧气。所以诗人说，“你们要抬起头来。”我们若期待我们所亲爱的人来，而他却不来，我们就会垂头丧气。但我们若接到他的电话，告诉我们他要来，我们就会抬起头来；那就是说，我们会受鼓励，期待他的来临。</p>
+                
+                <p class="content-text">我们必须抬起头来，因为荣耀的王将要进来（诗二四7、9，路二一27，太二五31）。我们必须预备好欢迎祂。诗篇二十四篇八节问：“那荣耀的王是谁呢？”荣耀的王就是“刚强大能的耶和华，在争战中有大能的耶和华”。耶和华就是耶稣，耶稣就是三一神在复活里的具体化身。祂是刚强争战且得胜的一位。</p>
+                
+                <p class="content-text">七节说，“你们要被举起”，但九节说，“你们要把头抬起。”被举起，意思是我们仍软弱，需要人推动我们。但把头抬起，意思是我们比较刚强了，我们能自己把头抬起来。我们所欢迎的荣耀之王，就是万军之耶和华。耶和华是成为肉体、钉十字架并复活的三一神。祂是在复活里的一位，要回来据有全地作祂的国。荣耀的王是万军之耶和华，就是终极完成的三一神具体化身在得胜且要来的基督里（10）。</p>
+                
+                <p class="content-text">我们看过，二十三篇启示基督在祂的复活里作牧者；二十四篇启示基督在神的国里作王。……阿利路亚，我们的基督今天是我们的牧者，将来是我们的王！（诗篇生命读经，一八四至一八五页）</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const totalPages = 6;
+    if (totalPages === 0) return;
+    
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    const pagesContainer = document.querySelector('.pages-container');
+    
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach(page => page.style.display = 'none');
+        
+        // 显示目标页面
+        pages[pageIndex].style.display = 'block';
+        
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 仅在用户手动切换时滚动到顶部
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（仅水平滑动）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    
+    document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const swipeThreshold = 80; // 最小滑动距离
+        const verticalTolerance = 1.5; // 垂直容忍度：水平滑动必须是垂直滑动的1.5倍
+        const diffX = touchStartX - touchEndX;
+        const diffY = touchStartY - touchEndY;
+        
+        // 只有当水平滑动距离明显大于垂直滑动距离，且超过阈值时才触发翻页
+        if (Math.abs(diffX) > Math.abs(diffY) * verticalTolerance && Math.abs(diffX) > swipeThreshold) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    // 初始加载时不滚动
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', function() {
+        initFromHash(false);
+    });
+    
+    // 初始化（不滚动）
+    initFromHash(true);
+})();
+
+// 朗读功能（共享脚本）
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page[style*="display: block"]') || document.querySelector('.day-page');
+            if (!activePage) return '';
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = item.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+});
+</script>
+
+<style>
+.morning-revival-page {
+    padding: 5px;
+    max-width: 820px;
+    margin: 0 auto;
+}
+
+/* 天导航栏 */
+.day-navigation {
+    display: flex;
+    gap: 6px;
+    margin: 15px 0;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    justify-content: center;
+    font-size: 0.88em;
+    box-sizing: border-box;
+}
+
+.day-link {
+    min-height: 40px;
+    padding: 8px 6px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.83em;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    max-width: 120px;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.day-link:active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.day-link.active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+    font-weight: 700;
+}
+
+/* 分页容器 */
+.pages-container {
+    position: relative;
+    min-height: 400px;
+    touch-action: pan-y;
+}
+
+.day-page {
+    background: #fff;
+    padding: 0;
+}
+
+.day-section {
+    margin: 20px 0;
+    background: #fff;
+    padding: 0;
+}
+
+/* 纲目样式 - 使用 base.html 的公共样式 */
+.outline-section {
+    margin: 18px 0;
+}
+
+/* 内容分隔线 */
+.content-separator {
+    height: 1px;
+    background: #ddd;
+    margin: 20px 0;
+}
+
+/* 晨兴喂养和信息选读 */
+.feeding-section,
+.reading-section {
+    margin: 20px 0;
+}
+
+/* 晨兴喂养/信息选读标题 - 与二级标题一样大 */
+.feeding-section h4,
+.reading-section h4 {
+    font-size: 1.05em;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 16px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+/* 晨兴喂养的经文样式 - 与三级标题一样大 */
+.feeding-scripture {
+    margin: 10px 0;
+    padding: 10px 14px;
+    background: #f7f8ff;
+    border-left: 3px solid #667eea;
+    border-radius: 4px;
+    font-size: 1.02em;
+    color: #4a5568;
+    line-height: 1.7;
+    font-weight: 550;
+}
+
+@media (min-width: 768px) {
+    /* 晨兴喂养/信息选读标题 - 与二级标题一样大 */
+    .feeding-section h4,
+    .reading-section h4 {
+        font-size: 1.08em;
+    }
+    
+    .feeding-scripture {
+        font-size: 1.05em;
+        padding: 12px 16px;
+    }
+}
+
+/* 翻页控制 */
+.page-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0 15px 0;
+    padding: 10px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.prev-btn,
+.next-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 44px;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    color: #333;
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    cursor: pointer;
+    transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.prev-btn:active:not(:disabled),
+.next-btn:active:not(:disabled) {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.55);
+}
+
+.prev-btn:disabled,
+.next-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.page-indicator {
+    font-size: 0.94em;
+    color: var(--text-muted);
+    font-weight: 800;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .morning-revival-page {
+        padding: 5px;
+    }
+    
+    .day-navigation {
+        gap: 5px;
+        padding: 8px;
+    }
+    
+    .day-link {
+        padding: 5px 10px;
+        font-size: 0.8125em; /* 13px -> 0.8125em */
+    }
+    
+    .day-title {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
+    }
+    
+    .page-controls {
+        padding: 10px;
+        margin: 20px 0 10px 0;
+    }
+    
+    .prev-btn,
+    .next-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .btn-text {
+        display: none;
+    }
+    
+    .page-indicator {
+        font-size: 13px;
+    }
+}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>202507 冬季训练训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-column">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+                <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+            </div>
+            <select id="rateSelect" class="control-select" title="语速">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    <script src="js/highlight.js"></script>
+    <script src="js/app-update.js"></script>
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var pathname = window.location.pathname;
+                var href = window.location.href;
+                
+                console.log('[页面记忆] 检查页面:', pathname);
+                
+                // 检查是否是主页（支持各种路径格式）
+                var isMainPage = pathname === '/' || 
+                                pathname === '/index.html' ||
+                                pathname === '' ||
+                                // Capacitor 可能使用特殊路径
+                                pathname === '/android_asset/public/index.html' ||
+                                pathname.includes('/public/index.html');
+                
+                // 检查是否是训练目录页
+                // 训练目录的特征：路径中有训练文件夹名（如 2025-04-夏季），且以 index.html 结尾或以 / 结尾
+                // 例如：/2025-04-夏季/index.html 或 /2025-04-夏季/
+                var isTrainingIndex = false;
+                if (!isMainPage) {
+                    // 匹配类似 /2025-04-夏季/index.html 或 /2025-04-夏季/ 的路径
+                    // 但不匹配 /2025-04-夏季/1_cx.htm 这样的内容页
+                    var trainingIndexPattern = /\/\d{4}-\d{2}-[^\/]+\/(index\.html)?$/;
+                    isTrainingIndex = trainingIndexPattern.test(pathname);
+                }
+                
+                console.log('[页面记忆] 页面类型:', {
+                    isMainPage: isMainPage,
+                    isTrainingIndex: isTrainingIndex,
+                    pathname: pathname
+                });
+                
+                // 只保存非主页且非训练目录的页面（即具体的内容页面）
+                if (!isMainPage && !isTrainingIndex) {
+                    localStorage.setItem('cx_last_page', href);
+                    localStorage.setItem('cx_last_page_time', Date.now());
+                    console.log('[页面记忆] ✓ 保存页面:', href);
+                } else {
+                    var reason = isMainPage ? '主页' : (isTrainingIndex ? '训练目录' : '未知');
+                    console.log('[页面记忆] ✗ 跳过保存:', reason);
+                }
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

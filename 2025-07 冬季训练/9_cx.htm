@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <meta name="app-version" content="0.7.1">
+    <title>第9篇 - 晨兴</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        :root{
+            --brand:#667eea;
+            --bg:linear-gradient(135deg,#667eea,#764ba2);
+            --surface:#fff;
+            --muted:#f8f9fa;
+            --border:#e6e8f0;
+            --text:#1f2937;
+            --text-muted:#6b7280;
+        }
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;color:var(--text);background:#f7fafc;min-height:100vh;padding:8px 8px 70px;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-radius:12px}
+        .header{text-align:center;margin-bottom:20px;padding:16px 12px;background:var(--brand);border-radius:8px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:30px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--muted);border-radius:8px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;font-size:0.88em}
+        .nav a{color:var(--brand);text-decoration:none;padding:10px 16px;border-radius:6px;font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--border);font-weight:600}
+        .nav a:active{background:rgba(102,126,234,.1);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:920px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px)}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;min-height:40px;min-width:60px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:10px;padding:12px 16px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease}
+            .highlight-color-btn{width:44px;height:44px}
+            .highlight-clear-btn{min-height:44px;min-width:70px;font-size:15px}
+        }
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }        .page-navigation{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;margin:15px 0;padding:8px;background:var(--muted);border-radius:8px;font-size:0.83em;box-sizing:border-box}
+        .page-navigation .nav-link{color:var(--text);text-decoration:none;padding:8px 6px;border-radius:6px;font-size:0.83em;background:#fff;border:1px solid var(--border);min-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1;max-width:120px;white-space:nowrap;box-sizing:border-box}
+        .page-navigation .nav-link:active{background:rgba(102,126,234,.1);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:600}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 25px;color:#2d3748;line-height:1.8;text-align:center;padding:18px 15px;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,.1);border-left:4px solid var(--brand)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid #ddd;border-radius:8px;background:#f0f4ff;color:var(--brand);font-size:16px;font-weight:600;cursor:pointer;user-select:none}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:#666;margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:15px 0;padding:12px;background:#f7f8ff;border-left:4px solid var(--brand);border-radius:6px;line-height:1.7}
+        .scripture-verses{font-size:0.97em;color:#444;margin:15px 0;padding:12px;background:#fafafa;border:1px solid #e8e8e8;border-radius:6px;line-height:1.7}
+        .verse-line{margin-bottom:10px}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:15px;line-height:1.6}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.10em;font-weight:600;margin:15px 0 10px;color:#222;line-height:1.6;margin-left:10px}
+        .section-level2,.outline-item.level-2{font-size:1.07em;font-weight:560;margin:12px 0 8px;color:#333;line-height:1.6;margin-left:20px}
+        .section-level3,.outline-item.level-3{font-size:1.04em;font-weight:530;margin:10px 0 8px;color:#444;line-height:1.6;margin-left:30px}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:normal;margin:8px 0 6px;color:#555;line-height:1.6;margin-left:40px}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:16px 0;padding-left:8px;text-indent:2em;color:#4a5568;line-height:1.6;font-size:1.00em}
+        @media(min-width:768px){
+            .content-text{padding-left:8px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:24px}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:38px}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:52px}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-32px;top:2px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--border);text-align:center;color:#999;font-size:0.83em}
+        .scripture-toggle-btn{background:rgba(102,126,234,.1);border:1px solid rgba(102,126,234,.3);color:var(--brand);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:6px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:rgba(102,126,234,.2);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:#f8f9fa;border-left:3px solid var(--brand);padding:10px 12px;margin:10px 0 10px 15px;font-size:0.94em;color:#555;line-height:1.8}
+        .scripture-ref{color:#7f8c8d;font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:2;color:#444}
+        .verse-line:last-child{margin-bottom:0}
+        .bottom-control-bar{position:fixed;bottom:0;left:0;right:0;z-index:1000;display:flex;align-items:center;gap:6px;padding:5px 12px max(5px,env(safe-area-inset-bottom));background:rgba(255,255,255,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+        @media(prefers-color-scheme:dark){.bottom-control-bar{background:rgba(30,30,30,.95);border-top-color:rgba(255,255,255,.1)}}
+        .control-btn{min-width:36px;min-height:36px;padding:5px;background:var(--bg);border:none;border-radius:6px;font-size:14px;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 4px rgba(102,126,234,.2);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-muted);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex-shrink:0}
+        .bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:5px;background:var(--bg);border:none;border-radius:6px;font-size:13px;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 4px rgba(102,126,234,.2);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:46px;min-height:32px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            body{padding:6px 6px 60px}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:6px}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:44px;min-height:30px;padding:4px 5px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:55px}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:34px;min-height:34px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:42px;min-height:28px;padding:3px 4px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>冬季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="content">
+            
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">目录</a>
+    <a href="9_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="9_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="9_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="9_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+    <h2 class="chapter-title">第9篇 得胜之初熟果子所跟随的羔羊</h2>
+    
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container">
+        
+        <div class="day-page" data-day="1" data-page="0" style="display: block;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        壹　启示录十四章一至五节启示，基督是得胜之初熟果子所跟随的羔羊：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　初熟的果子乃是活着的得胜者，他们在神的田地里是初熟的；因此他们要在庄稼收割以先被收割，作初熟的果子归与神和羔羊：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　初熟的果子要被提到天上的锡安山，到第三层天神的居所那里，得以在神与基督面前。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　被提的意思就是被接到主的同在里；我们要被接到主的同在里，今天就必须是在祂的同在里—路二一36，林后二10，何六2，提后四8，徒二六16。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　被提是为着击败仇敌，并使神满足；主固然需要男孩子与祂的仇敌争战，但祂更需要初熟的果子作祂的满足和享受—启十二5，十四1、4下。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　圣经启示被提的两面：得胜者在大灾难之前被提，以及大体信徒在大灾难末了被提—太二四40~41，路二一36，启三10，帖前四15~17，启十二5，十四1。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        三　在利未记二十三章十节，我们看到被提的预表，就是田里农作物成熟的预表—太十三24，启十四14~16：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　收割神的农作物，我们称之为被提；这收割指明信徒要从地上被取去—太十三30、39下。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　一部分农作物—初熟的果子—成熟在先，就先收割；其余部分的农作物—庄稼—成熟较晚，就后收割。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　根据启示录十四章，有两种的被提，就是初熟果子的被提和庄稼的被提—4节下、14~16节。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        四　初熟的果子是被提到锡安神的家中，作神新鲜的享受；这是为着神的满足—出二三19上，利二三10，参约二十17上。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        五　初熟的果子额上都写着羔羊的名和祂父的名，表明他们与羔羊和父是一，属于羔羊和父—启十四1下。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        六　初熟的果子是神农作物中最早成熟的一批—来五14~六1，林前二6，弗四13，腓三15：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　变化乃是在我们天然生命里有改变；成熟乃是被那改变我们的神圣生命所充满—罗十二2，弗三19下。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　要作神的彰显就需要成熟；唯有成熟的生命能有神的形像并施行祂的管治—创一26，罗五10、17、21。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启十四1	我又观看，看哪，羔羊站在锡安山上，同祂还有十四万四千人，额上都写着祂的名，和祂父的名。</div>
+                
+                
+                
+                <p class="content-text">4	这些人未曾与妇女在一起受到玷污，他们原是童身。羔羊无论往哪里去，他们都跟随祂。他们是从人间买来的，作初熟的果子归与神和羔羊。</p>
+                
+                <p class="content-text">启示录十四章一至四节启示作为羔羊的基督，乃是得胜的初熟果子所跟随的。在旧约的预表里，美地初熟庄稼的禾捆被带到殿里，直接献给神，让神享受。在新约的实际里，十四万四千得胜者将是神新造里的初熟果子，在天上的至圣所里，直接献给神，使神得满足（新约总论第十四册，二二二页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">这些早期的得胜者在神的田地里是初熟的，……这是说，得胜者要在庄稼收割以先被提到诸天之上，正如美地的初熟果子要在庄稼收割以先被收割，且被带到神的殿中（利二三10~11）。……启示录十四章六至十三节所记的事，都是发生在大灾难期间（太二四21）；这清楚地指明，且有力地证明，首批得胜者，就是启示录十四章一至五节所说初熟的果子，要在大灾难之前被提；十四至十六节的庄稼包括大体信徒，要在大灾难末了被提。</p>
+                
+                <p class="content-text">这十四万四千初熟的果子，不是被提到空中，乃是被提到天上，也就是天上的锡安山……。初熟之物是庄稼首先成熟的小部分。这表征神的选民在地上长大时，其中有一小部分将成为初熟果子，就是得胜者。</p>
+                
+                <p class="content-text">十四章的初熟果子是在神的宝座前，他们已经不在这地上。这意思是，他们已经被提了。他们是在天上的锡安山上，在宝座前。他们不是站在空中，乃是站在宝座前，在锡安山上。这是指诸天之上神所住的锡安山。因此，初熟的果子不是到空中……，乃是直接到第三层天上父的家里。</p>
+                
+                <p class="content-text">十四章一节指明那十四万四千人额上都写着羔羊的名，和祂父的名。他们与那些拜兽的人，额上写着兽的名相对（十三16~17）。这……表明〔得胜者〕与羔羊和父是一，属于羔羊和父。这也表征得胜者成了与羔羊和父一样。这与三章十二节相符，那节经文说，主耶稣要将祂的新名写在得胜者上面。这指明至终得胜者成为基督。照样，得胜者有羔羊基督和祂父的名，含示救赎的三一神与祂所救赎的人联结并调和。这是极深邃的。</p>
+                
+                <p class="content-text">初熟的果子是羔羊忠信的跟随者〔十四4〕。……羔羊无论往哪里去，得胜者都跟随祂，指明他们一直享受并经历祂。他们跟随耶稣，不被属地的事物玷污。</p>
+                
+                <p class="content-text">因为这些得胜者是一直跟随着羔羊。羔羊无论往哪里去，他们都跟随着祂〔1〕，……我们……看见他们与羔羊一同站在锡安山上。因为他们早已经在主的同在里，被提对他们而言就不是惊奇的事。他们今天是活在诸天之上，他们将来要与羔羊一同在诸天之上站在锡安山上（新约总论第十四册，二二二至二二七页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        壹　启示录十四章一至五节启示，基督是得胜之初熟果子所跟随的羔羊：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　初熟的果子乃是活着的得胜者，他们在神的田地里是初熟的；因此他们要在庄稼收割以先被收割，作初熟的果子归与神和羔羊：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　初熟的果子要被提到天上的锡安山，到第三层天神的居所那里，得以在神与基督面前。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　被提的意思就是被接到主的同在里；我们要被接到主的同在里，今天就必须是在祂的同在里—路二一36，林后二10，何六2，提后四8，徒二六16。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　被提是为着击败仇敌，并使神满足；主固然需要男孩子与祂的仇敌争战，但祂更需要初熟的果子作祂的满足和享受—启十二5，十四1、4下。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　圣经启示被提的两面：得胜者在大灾难之前被提，以及大体信徒在大灾难末了被提—太二四40~41，路二一36，启三10，帖前四15~17，启十二5，十四1。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        三　在利未记二十三章十节，我们看到被提的预表，就是田里农作物成熟的预表—太十三24，启十四14~16：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　收割神的农作物，我们称之为被提；这收割指明信徒要从地上被取去—太十三30、39下。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　一部分农作物—初熟的果子—成熟在先，就先收割；其余部分的农作物—庄稼—成熟较晚，就后收割。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　根据启示录十四章，有两种的被提，就是初熟果子的被提和庄稼的被提—4节下、14~16节。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        四　初熟的果子是被提到锡安神的家中，作神新鲜的享受；这是为着神的满足—出二三19上，利二三10，参约二十17上。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        五　初熟的果子额上都写着羔羊的名和祂父的名，表明他们与羔羊和父是一，属于羔羊和父—启十四1下。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        六　初熟的果子是神农作物中最早成熟的一批—来五14~六1，林前二6，弗四13，腓三15：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　变化乃是在我们天然生命里有改变；成熟乃是被那改变我们的神圣生命所充满—罗十二2，弗三19下。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　要作神的彰显就需要成熟；唯有成熟的生命能有神的形像并施行祂的管治—创一26，罗五10、17、21。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <p class="content-text">来六1	所以，我们既离开了那论到基督之开端的话，就当竭力前进，达到完全、成熟……。</p>
+                
+                <p class="content-text">弗四13	直到我们众人都达到了信仰上并对神儿子之完全认识上的一，达到了长成的人，达到了基督丰满之身材的度量。</p>
+                
+                <p class="content-text">在启示录十二章，争战抵挡神仇敌的男孩子被提，乃是为着在神面前所要尽的功用。神需要男孩子被提到天上，与祂的仇敌争战，使仇敌被打败摔到地上，以完成神的定旨。同样的原则，十四章的初熟果子不是仅仅享受被提，乃是满足了神的需要。神和羔羊需要享受。神是又饥又渴，切望尝到初熟果子而得满足。一面，男孩子打败神的仇敌，完成神的定旨；另一面，初熟的果子是为着使神满足。当初熟的果子在殿里献给神，使祂满足时，活着的得胜者享受这个被提，好顾到神的需要（新约总论第十四册，二三一页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们应当注意我们的成熟，好叫我们能作初熟的果子，满足神的心。……我们若仍是幼嫩，我们怎能成为初熟的果子而被提？</p>
+                
+                <p class="content-text">我们要作初熟的果子，就必须爱主耶稣。……我们应当把时间用来爱主，说，“主啊，注视你、与你交谈是我所享受的。主啊，我要使你满足，与你是一，停留在你的面前。”我们应当学着花时间亲密地爱主耶稣。……仅仅不犯罪还不够；仅仅很好、很对也不够，我们必须与主相爱。我们都必须与主耶稣相爱，告诉祂说，“哦，主耶稣，我爱你，你也知道我爱你。因为我爱你，主啊，有些事我就不去作。”这是作活着的得胜者的路。主固然需要男孩子去与祂的仇敌争战，但祂更需要初熟的果子，就是爱祂的人，作祂的满足。</p>
+                
+                <p class="content-text">我们该是初熟的果子，就是那些较早成熟，使主满足的人。我们需要说，“主啊，为着使你满足，我要早日成熟。……主啊，只要能让你满足，我无论在地上或在天上都无妨。”这是活着的得胜者的态度。</p>
+                
+                <p class="content-text">因为对初熟的果子来说，他们无论在哪里都无妨，所以圣经没有告诉我们，他们被提了；圣经只告诉我们，这十四万四千初熟的果子与羔羊一同站在锡安山上。……这必然不是地上的锡安山，乃是诸天之上的锡安山。……凡被提作初熟果子的人都不会有惊奇的感觉。他们反倒要说，“主耶稣，多年来我一直与你同在。主啊，无论我是在地上，或是在三层天上，都没有差别。我在这里并没有什么特别的感觉，因为我在你面前已经多年了。我活在这光景中已经很久了。”……我们若是真的爱主，活在与祂亲密的交通里，被提就不是令我们惊奇的事，而是寻常的经历。</p>
+                
+                <p class="content-text">初熟的果子是被主耶稣浸透的圣徒。他们是完全被基督占有，被基督接管，以至于成熟的人。我们该为许多主的儿女心痛，他们对于需要成熟这件事似乎有几分忽视、不在意并且是麻木的。……我们需要思想，我们成熟了多少。……我们需要严肃地接受这话，并且把这事带到主面前。</p>
+                
+                <p class="content-text">我们都需要祷告说，“主啊，怜悯我，使我成为初熟果子的一部分，使我成为得胜者。”我们需要看见神的定旨和意愿，我们需要看见我们的职责，好与祂合作。我们应当享受基督，有分于祂，将祂接受进来，直到我们成熟（新约总论第十四册，二三一至二三三、二三五至二三六页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        贰　我们要跟随羔羊并往前达到成熟，成为初熟的果子，就必须凭信与神同行，以逃避死亡并得着蒙神喜悦的见证：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　逃避死亡并得着蒙神喜悦之见证的路，乃是与神同行—创五22~24，来十一5~6：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　与神同行就是不越过神，不自以为是，不照着自己的观念和愿望行事，不照着今世的潮流行事，也不在神以外作任何事—参诗十九12~13，书九14下，路二四15。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　与神同行乃是以神为我们的中心和一切，生活行事照着神并同着神、照着祂的启示和引导，而与祂同作一切事—罗八4、13~14，加二2上，林后五14~15。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　与神同行的意思是我们生活不凭自己所是的或所能作的，乃凭不朽坏的生命，就是基督自己—4、9节。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        4　与神同行就是习惯地与神交通，不断地接触主，并在祂不断地注入之下—约壹一3，腓四6，林后三16、18。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        5　与神同行乃是不断地操练我们的灵，享受可称颂的神圣三一 —犹14、19~21。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        6　与神同行含示否认己并否认出于己的一切，使我们能与祂是一；这含示我们把自己交给祂，并愿意降服于祂，让祂引导—太十六24~25，林后二13~14。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　与神同行乃是凭信行事为人—五7，来十一5~6：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　信就是信神是—1~2、6节，林后四13、18：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-4">
+                        a　人非有信，就不能得神的喜悦，不能使神快乐—来十一6上。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        b　信神是，就是信祂是我们的一切，而我们一无所是—约八58，传一2。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        c　信神是，含示我们不是；祂必须在凡事上是唯一的一位，独一的一位，我们必须在凡事上什么也不是—创五24，来十一5。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        d　信神是，就是否认我们的己；在全宇宙中祂是，我们众人什么也不是—路九23。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        e　我应当什么都不是；我应当不存在；唯独祂应当存在—不再是我，乃是基督—加二20。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        f　大数的扫罗悔改信主时，主告诉他说，“我就是……耶稣”—徒九5：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        g　这就是信—“哦，何等喜乐，能够一无所有，一无所是，一无所见，唯见在荣耀里活的基督！并且一无所顾，唯顾祂在此地的权益”—达秘（J. N. Darby）。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　信的意思乃是我们信神赏赐那寻求（寻找出）祂的人—来十一6，创十五1，腓三8、14：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-4">
+                        a　以诺的赏赐，乃是生命最高的程度—逃避了死—来十一5上，林后五4，罗八6、10~11，五17。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        b　主是赏赐者，我们需要成为寻求主的人—诗二七4、8，四二1~2，四三4，七三25，一一九2、10。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        三　以诺作为第一个被提的人，乃是一切活着被提之得胜者的代表—太二四37~51，启十四1，路二一34~36：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　我们被提是在于我们与神同行，而在神圣的生命里成熟—来六1上。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　以诺与神同行三百年，昼夜不断上行，每天更接近神，更与神是一，直到“神将他取去，他就不在世〔直译，不是〕了”—创五24，参歌八5上。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">创五24　	以诺与神同行，神将他取去，他就不在世了。</div>
+                
+                
+                
+                <p class="content-text">来十一5	以诺因着信被接去，不至于见死，人也找不着他，因为神把他接去了；原来他被接去以前，已经得了蒙神喜悦的见证。</p>
+                
+                <p class="content-text">第七代的以诺发现了逃避人类堕落最终结局的路。以诺活一种生活，使他实在地，并且全然地避开了死。在以诺被神取去之先，当他还在地上生活行动时，死已经停止杀害他。</p>
+                
+                <p class="content-text">以诺是第一个被提的人。……因为圣经头一次提到一件事，就立定了那事的原则。在以诺身上既是第一次提到被提的事，就立定了被提的原则。被提的原则是什么？就是借着与神同行而在生命里成熟。以诺与神同行了三百年，然后神把他取去（创五22~24）（创世记生命读经，四三○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">你盼望被提么？若是，你就需要与神同行。我们不仅该呼求主名，还该与神同行。呼求之后必须接着同行。与神同行就是不越过神，不自以为是，不照着自己的观念和愿望行事，也不在神以外作任何事。与神同行乃是以神为我们的中心和一切，照着祂的启示和引导作事，并且与祂同作一切事。这不仅是为神生活，为神作事，更是照着神并同着神生活行事。以诺就是这样与神同行，照着神并同着神生活行事；他不照着自己的喜好或观念，也不照着当时的时代潮流。</p>
+                
+                <p class="content-text">请告诉我，是神与你同行呢，还是你与神同行？是神与以诺同行呢，还是以诺与神同行？圣经没有说神与以诺同行，乃是说以诺与神同行。</p>
+                
+                <p class="content-text">我们要与神同行，就必须与神同在。我们必须在思想、爱好和选择上，与祂是一。……与别人同行并不容易。假定我与你同行，而我有的看法和你不同，我对你说，“弟兄，我爱你，我要与你同行。但不要走那条路，请转到这条路。我不要走那条路。”我若这样说，我就不是与你同行，乃是与你辩论。然而，这正是许多爱主耶稣的人所作的。他们说，“主，我爱你，我愿意跟随你，我要与你同行。”然而，等实际的时刻临到时，许多人不与主同行，却与主辩论。与主同行，含示很多的事：否认自己，否认自己的思想和爱好，否认出于自己的一切。这含示你把自己交给祂，你愿意降服祂，让祂引导。……与主同行要杀死你。每当我的妻子与我同行，她就要受苦。你若要与我同行，就必须否认你自己；另一面，我若要与你同行，也必须忘掉我自己，定罪我自己，弃绝我自己，使我可以与你是一。我若不愿意这样作，我就不能与你，或与任何人同行。</p>
+                
+                <p class="content-text">以诺与神一同走上行路。不要以为以诺被神取去是突然发生的，他这一刻在地上，下一刻就在天上了。以诺不是与神走上又走下，也不是走曲折的路。他是一直往上走，直到摸着了天。他在三百六十五岁时，几乎已经摸着天，神就对他说，“亲爱的孩子，我在这里，来与我同在吧！”因此以诺被取去了（创世记生命读经，四三一、四三三、四三二页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        贰　我们要跟随羔羊并往前达到成熟，成为初熟的果子，就必须凭信与神同行，以逃避死亡并得着蒙神喜悦的见证：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　逃避死亡并得着蒙神喜悦之见证的路，乃是与神同行—创五22~24，来十一5~6：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　与神同行就是不越过神，不自以为是，不照着自己的观念和愿望行事，不照着今世的潮流行事，也不在神以外作任何事—参诗十九12~13，书九14下，路二四15。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　与神同行乃是以神为我们的中心和一切，生活行事照着神并同着神、照着祂的启示和引导，而与祂同作一切事—罗八4、13~14，加二2上，林后五14~15。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　与神同行的意思是我们生活不凭自己所是的或所能作的，乃凭不朽坏的生命，就是基督自己—4、9节。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        4　与神同行就是习惯地与神交通，不断地接触主，并在祂不断地注入之下—约壹一3，腓四6，林后三16、18。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        5　与神同行乃是不断地操练我们的灵，享受可称颂的神圣三一 —犹14、19~21。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        6　与神同行含示否认己并否认出于己的一切，使我们能与祂是一；这含示我们把自己交给祂，并愿意降服于祂，让祂引导—太十六24~25，林后二13~14。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　与神同行乃是凭信行事为人—五7，来十一5~6：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　信就是信神是—1~2、6节，林后四13、18：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-4">
+                        a　人非有信，就不能得神的喜悦，不能使神快乐—来十一6上。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        b　信神是，就是信祂是我们的一切，而我们一无所是—约八58，传一2。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        c　信神是，含示我们不是；祂必须在凡事上是唯一的一位，独一的一位，我们必须在凡事上什么也不是—创五24，来十一5。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        d　信神是，就是否认我们的己；在全宇宙中祂是，我们众人什么也不是—路九23。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        e　我应当什么都不是；我应当不存在；唯独祂应当存在—不再是我，乃是基督—加二20。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        f　大数的扫罗悔改信主时，主告诉他说，“我就是……耶稣”—徒九5：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        g　这就是信—“哦，何等喜乐，能够一无所有，一无所是，一无所见，唯见在荣耀里活的基督！并且一无所顾，唯顾祂在此地的权益”—达秘（J. N. Darby）。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　信的意思乃是我们信神赏赐那寻求（寻找出）祂的人—来十一6，创十五1，腓三8、14：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-4">
+                        a　以诺的赏赐，乃是生命最高的程度—逃避了死—来十一5上，林后五4，罗八6、10~11，五17。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        b　主是赏赐者，我们需要成为寻求主的人—诗二七4、8，四二1~2，四三4，七三25，一一九2、10。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        三　以诺作为第一个被提的人，乃是一切活着被提之得胜者的代表—太二四37~51，启十四1，路二一34~36：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　我们被提是在于我们与神同行，而在神圣的生命里成熟—来六1上。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　以诺与神同行三百年，昼夜不断上行，每天更接近神，更与神是一，直到“神将他取去，他就不在世〔直译，不是〕了”—创五24，参歌八5上。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <p class="content-text">来十一6	人非有信，就不能得神的喜悦；因为到神面前来的人，必须信有神〔直译，信神是〕，且信祂赏赐那寻求祂的人。</p>
+                
+                <p class="content-text">路九23　	……若有人要跟从我，就当否认己，天天背起他的十字架，并跟从我。</p>
+                
+                <p class="content-text">到神面前来的人，必须信神是（来十一6下，直译）。这是很简单的。神要你只信祂是。“是”这个动词，事实上乃是我们三一神的神圣名称。……摩西问神，祂的名是什么。神回答说，祂的名是我是那我是（出三13~14）。我们神的名乃是动词“是”。祂是“我是那我是”。祂是那独一的一位。</p>
+                
+                <p class="content-text">在整个宇宙中，……唯有祂是。祂是，因为祂是真实的。祂所造的一切，都不是真实的。这就是为什么智慧的王所罗门说，“凡事都是虚空。”（传一2）……太阳、月亮、活物、诸天和地，全都是虚空；唯有一位才是。这个“是”，这个动词“是”，含示存在。祂是那从前存在、现在存在、将来还要存在的一位（李常受文集一九九四至一九九七年第一册，三三九至三四○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">耶稣是那“伟大”的我是。祂告诉我们说，“我就是……生命。”（约十四6上）“我是复活。”（十一25）“我就是门。”（十7、9）“我是好牧人。”（11）“我就是生命的粮。”（六35）祂是真粮食。……祂是气（二十22）、活水（四10、14）和生命树（十五1，十四6上，启二7）。祂是神（约一1，二十28~29，罗九5）、父（赛九6，约十四9~10）、子（可一1，约二十31）、灵（林后三17，林前十五45下）。祂对我们乃是一切。……我们的生命是虚假的，……我们今天是，但至终明天就不是了。所以在整个宇宙中，我们什么也不是。</p>
+                
+                <p class="content-text">作丈夫的如果看见唯有神是，他自己不是，他就不会凭自己，并在自己里面来爱他的妻子。……弟兄们必须问自己：“是我，还是基督，作我妻子的丈夫？”……如果她的丈夫是基督，她就只有一个丈夫，就是那位独一的丈夫。唯独基督是丈夫，没有一个丈夫是真正的丈夫，所有的丈夫都是虚空。你要到神面前来么？你若回答是，你就必须信神是，这含示说，你什么也不是，你已经了了。……如果在婚礼上讲这样的话，那是多么的好。主婚人可以向这一对新人说，“你是亲爱的新妇，你是亲爱的新郎么？”新郎应当说，“不，我不是。基督才是。”新妇应当说，“我不是新妇。……我不美丽。基督才是荣美的一位。我不是新妇，祂才是。”这就是信徒。……当你像保罗一样说，“不再是我，乃是基督”，你就是信神是。信神是，……这含示你看见你不是，祂才是。“你不是”的意思是说，你不存在。这就是圣经所说否认己的意思。……一个将要结婚的信徒应当说，“主啊，我将要嫁给这个人。主，你知道我什么也不是。我不能作好妻子。主，我什么也不是。”……这是在凡事上否认己的福。</p>
+                
+                <p class="content-text">否认己等于信神是，信神是等于否认己。这是因为你信唯独祂才是。在整个宇宙中祂是，我们众人什么也不是。我应当什么都不是，我应当不存在；唯独祂应当是一切，唯独祂应当存在。所以保罗说，“我已经……钉十字架；……不再是我，乃是基督。”……我愿意……提到达秘所说的话：“哦，何等喜乐，能够一无所有，一无所是，一无所见，唯见在荣耀里活的基督！并且一无所顾，唯顾祂在此地的权益。”这就是信。我们什么也不顾，只顾祂的权益。我们应当一直地说，“不是我，不是我自己，不是我的；乃是祂，祂自己，祂的。祂是首先，祂是末后，祂也是中间的一切。”（李常受文集一九九四至一九九七年第一册，三四一至三四五页）</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        叁　我们要跟随羔羊并往前达到成熟，成为初熟的果子，就必须在主的使命上忠信服事，将神当作粮食分给祂的家人，使我们在要来的国度里，赢得基督作我们的赏赐—太二四45~51：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　神有一个家庭和家庭的行政，经纶，要将祂自己当作粮食分赐给祂的家人，使祂得着彰显—提前一4，三15，弗二19。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　神已经立了忠信精明的奴仆作管理祂家的家庭管理者、管家、供应的管道，好按时分粮给祂的子民—太二四45，林前九17，弗三2，林前四1，彼前四10，腓一25。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        三　“分粮给他们”，是指在召会里，将神的话和基督当作生命的供应，供应给信徒；作为赐生命之灵的基督是我们的粮食，具体化并实化在生命的话里—约六57、63、68，徒五20：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　我们要享受主作我们属灵的粮食，使我们能喂养别人，就必须祷告并默想祂的话，借着仔细揣摩而品尝、享受这话—弗六17~18，诗一一九15，结三1~4。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　我们必须专心祷告，并尽话语的职事—徒六4，林后三6、8，约七37~39，参来七25，八2。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">太二四45~47	这样，谁是那忠信又精明的奴仆，为主人所派，管理他的家人，按时分粮给他们？主人来到，看见他这样行，那奴仆就有福了。我实在告诉你们，主人要派他管理一切的家业。</div>
+                
+                
+                
+                <p class="content-text">马太二十四章四十五节所说的家人，指信徒（弗二19），即召会（提前三15）。分粮给他们，是指在召会里，将神的话和基督当作生命的供应，供应给信徒。我们都必须学习，如何按时将生命的供应，供应主的家人。……马太二十四章四十六、四十七节……的有福，是在国度的实现里，得着管理的权柄为赏赐。对于忠信的奴仆，主在诸天之国的实现里，要派他管理一切的家业，作为赏赐（马太福音生命读经，八一九至八二○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">在马太二十四章四十五至五十一节，……主嘱咐我们，托付我们，要供应祂的家人，就是供应召会里的信徒。……我们必须按时分粮，就是分配生命的供应给主的子民。不要说别人有教导的恩赐，能教导你神的话，供应你属灵的食物，但你没有那样的恩赐。……所有主的仆人都为着他们的使命，领受了恩赐。</p>
+                
+                <p class="content-text">供应食物的人知道要按时供餐。你若每天供应食物，你就必须作早餐、午餐和晚餐。……同样，每当我们聚在一起，这就是你按时供应合式的食物给主的家属的时间。……如果我在主的话上没有够多的殷勤劳苦，就来对你们说话，我就只能供应你们“一杯咖啡和几个甜甜圈”。烹煮一顿滋养、美味的早餐，需要你的殷勤。照二十五章十四至三十节这个比喻的上下文，忠信的人就是殷勤的人。忠信在此等于殷勤，懒惰等于怠惰。</p>
+                
+                <p class="content-text">我们必须殷勤寻求主的话，使我们预备好，来到聚会时能供应美好的食物。吃的时候就是“按时”；聚会的时候就是“按时”。在主日上午、主日晚上、周二晚上、周五晚上，我们都有指定的时候。聚会的时间，就是指定的时候，我们众人必须将一些生命的供应，供给神家的人，供给同作信徒的人。</p>
+                
+                <p class="content-text">照顾他们就是去喂养他们，把食物供应给他们。对于罪人，我们所供应合式的食物，乃是基督的福音。医院里的护士知道，他们必须用不同的食物供应病人。不同的食物供应给不同的病人，是为了应付他们特殊的需要。对我们来说也是一样。全地就是医院，满了疾病和各式各样有病的人。实在说来，甚至召会也是医院，满了有病的人。所以，我们必须按时供应不同的话语给他们。……信徒、召会甚至所有的罪人都在你身边。你的责任，你的职责，乃是供应食物给他们。他们若是罪人，你必须供应他们恩典的福音，作他们所需要的食物。他们若是信徒，患了某种疾病，那么你就要从圣经上供应适合他们情形的话，来喂养、医治、加强或唤醒他们。……当你进到办公室，必须领悟这就是指定的时候，让你供应合式的福音食物给不信的人（李常受文集一九八五年第五册，六二六、六三二、六三四至六三六页）。</p>
+                
+                <p class="content-text">在好几节经文里，诗篇一百一十九篇的作者告诉我们，他默想神的话（15、23、48、78、99、148）。默想话乃是借着仔细揣摩而品尝它。因此，默想是一种享受。我能见证，我所得着的光照，多半是借着清晨默想主的话来的。我默想主的话时，是以许多的揣摩来详细思考（诗篇生命读经，五六一页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-2">
+                        四　我们心里说，我们的主人必来得迟，这乃是爱现今邪恶的世代，不爱主的显现—太二四48，提后四8、10，参徒二六16：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　我们必须提防贪婪，不为自己积财，却要对神富足—路十二15~20，林后六10，弗三8。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　“你们要回想罗得的妻子”，这对贪爱世界的信徒是个严肃的警告—路十七31~32，参罗一21、25。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　我们必须儆醒并祈求，叫主来临的那日子不致如同网罗忽然临到我们—路二一34~36，参太二3。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        五　动手打那些和我们同作奴仆的，乃是虐待作我们同伴的信徒—二四49上，十八3~7，徒九4：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　我们不该审判、定罪作我们同伴的信徒，乃要以恩慈待他们，心存慈怜，饶恕他们，如同神在基督里饶恕了我们一样—路六37，弗四31~32。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　我们不可辱骂或批评我们的弟兄，乃要看他们比我们强—林前六10，腓二2~3、29：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-4">
+                        a　辱骂弟兄，就是用侮辱性的语言，粗鲁的批评他或贬低他。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        b　听毁谤的话，与说毁谤的话一样要负责任；这样的话破坏基督的身体。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        c　神绝不将权柄信托给那些本性就喜欢批评别人的人。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　我们不可作主辖管作我们同伴的信徒，乃要作奴仆服事他们，以复活的基督这赐生命的灵喂养他们—彼前五3，太二十25~28：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-4">
+                        a　作主辖管圣徒，意思是在圣徒的生活上取代主，为他们作决定，或告诉他们搬去哪里，因而干犯基督的元首身分和主权。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-4">
+                        b　我们若告诉别人他们该去哪里，却没有鼓励他们去祷告寻求主的引导，在身体里有合式的交通，这对主乃是极大的悔辱！
+                    </div>
+                    
+                    
+                
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        六　和酒醉的人一同吃喝，乃是与沉醉在属世事物里的世人为伴—太二四49下，参弗五18：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　因着信徒神圣的性情和圣别的地位，他们不该跟不信者同负一轭；这不只该应用在信徒与不信者之间的婚姻和事业上，也该应用在他们各种亲密的关系上—林后六14，林前十五33，参箴十三20。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　我们必须逃避青年人的私欲，同那清心呼求主的人，竭力追求包罗万有的基督—提后二22。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">太二十27~28	你们中间无论谁想要为首，就必作你们的奴仆。正如人子来，不是要受人的服事，乃是要服事人，并且要舍命，作多人的赎价。</div>
+                
+                <div class="feeding-scripture">彼前五3　		……不是作主辖管所委托你们的产业，乃是作群羊的榜样。</div>
+                
+                
+                
+                <p class="content-text">马太二十四章四十八节说，“若是那恶仆心里说，我的主人必来得迟。”恶仆是信徒，因他是主所派的（45）；他称主为“我的主人”；他相信主要来。四十九节说，那恶仆动手打那些和他同作奴仆的，又和酒醉的人一同吃喝。动手打同作奴仆的，就是虐待作同伴的信徒；和酒醉的人一同吃喝，就是与沉醉在属世事物里的世人为伴（马太福音生命读经，八二○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们众人都应该按时分粮给主的子民（太二四45），并且充分使用主的恩赐（二五20、22）。在消极一面，我们不该动手打那些和我们同作奴仆的人（二四49）。你可能没有尽你的责任去完成你的事奉，反而在批评，有时甚至强烈地和弟兄们作对。你不是在作工，乃是动手打同作奴仆的。有些姊妹总是忙于打电话。……当她们听见关于某些弟兄们（特别是长老们）不好的事，她们就忙于讲电话。……这些电话上的谈论都是在动手打人。</p>
+                
+                <p class="content-text">有些时候在祷告聚会里，为着一个在消极情形里的圣徒，你也许用一种巧妙的方式为他祷告。……你为人祷告，但你的祷告大约百分之十是一种论断。这就是动手打人。</p>
+                
+                <p class="content-text">你把你事奉的时间浪费在动手打人的事上。你没有事奉，反而动手打了弟兄，就是和你同作奴仆的。许多弟兄都能见证，他们从未听见我借着批评人或暴露人而动手打人。我唯一的负担乃是释放信息。虽然我无意暴露任何人，许多人却借着我所释放信息里的光被暴露。那不是我的工作，乃是主的工作。我们都必须停下我们的批评、论断、反对和怨言，那些都是在动手打人。我们必须花费我们的时间、我们的精力和我们的一切，为着主的权益有积极的事奉（李常受文集一九八五年第五册，六六四至六六六页）。</p>
+                
+                <p class="content-text">我们也不该给别人建议或指示。我们没有一个人够资格这么作。在使徒行传的时代，彼得、保罗和其他的使徒，都没有资格凭自己下断案或给人指示。那么我们如何？我们必须尊重主。我们不是主，不是主人，也不是庄稼的主。唯有主耶稣才是庄稼的主，祂是主人；我们必须尊重祂，而不凭自己下断案。……然而，我们已往在这方面都犯了错，因为在我们中间作了许多定规。有些是个人定规的，有些是团体定规的。在有些事例中，有的人甚至替别人作决定。但主在哪里？当我们这样作决定时，好像我们中间没有主，似乎我们没有那灵，只有我们自己可依赖。我们有所定规，也给人指示。我们不可以这么作，我们必须祷告、禁食、等候主。我们必须尊重主。祂是我们的主人，我们是祂的奴仆。我们应当对祂说，“主啊，你是我的主人。我没有资格，也没有地位和权柄作决定或吩咐别人。主，我等候你。我要知道你的旨意和心意。主，我要晓得你要我作什么，要我的同工作什么。主，我求问你，你要众召会作什么。”我们都必须有这种态度；否则，我们就会侮辱主，至终祂会把我们放弃（李常受文集一九七七年第二册，三七八至三七九页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const totalPages = 6;
+    if (totalPages === 0) return;
+    
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    const pagesContainer = document.querySelector('.pages-container');
+    
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach(page => page.style.display = 'none');
+        
+        // 显示目标页面
+        pages[pageIndex].style.display = 'block';
+        
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 仅在用户手动切换时滚动到顶部
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（仅水平滑动）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    
+    document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const swipeThreshold = 80; // 最小滑动距离
+        const verticalTolerance = 1.5; // 垂直容忍度：水平滑动必须是垂直滑动的1.5倍
+        const diffX = touchStartX - touchEndX;
+        const diffY = touchStartY - touchEndY;
+        
+        // 只有当水平滑动距离明显大于垂直滑动距离，且超过阈值时才触发翻页
+        if (Math.abs(diffX) > Math.abs(diffY) * verticalTolerance && Math.abs(diffX) > swipeThreshold) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    // 初始加载时不滚动
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', function() {
+        initFromHash(false);
+    });
+    
+    // 初始化（不滚动）
+    initFromHash(true);
+})();
+
+// 朗读功能（共享脚本）
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page[style*="display: block"]') || document.querySelector('.day-page');
+            if (!activePage) return '';
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = item.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+});
+</script>
+
+<style>
+.morning-revival-page {
+    padding: 5px;
+    max-width: 820px;
+    margin: 0 auto;
+}
+
+/* 天导航栏 */
+.day-navigation {
+    display: flex;
+    gap: 6px;
+    margin: 15px 0;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    justify-content: center;
+    font-size: 0.88em;
+    box-sizing: border-box;
+}
+
+.day-link {
+    min-height: 40px;
+    padding: 8px 6px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.83em;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    max-width: 120px;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.day-link:active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.day-link.active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+    font-weight: 700;
+}
+
+/* 分页容器 */
+.pages-container {
+    position: relative;
+    min-height: 400px;
+    touch-action: pan-y;
+}
+
+.day-page {
+    background: #fff;
+    padding: 0;
+}
+
+.day-section {
+    margin: 20px 0;
+    background: #fff;
+    padding: 0;
+}
+
+/* 纲目样式 - 使用 base.html 的公共样式 */
+.outline-section {
+    margin: 18px 0;
+}
+
+/* 内容分隔线 */
+.content-separator {
+    height: 1px;
+    background: #ddd;
+    margin: 20px 0;
+}
+
+/* 晨兴喂养和信息选读 */
+.feeding-section,
+.reading-section {
+    margin: 20px 0;
+}
+
+/* 晨兴喂养/信息选读标题 - 与二级标题一样大 */
+.feeding-section h4,
+.reading-section h4 {
+    font-size: 1.05em;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 16px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+/* 晨兴喂养的经文样式 - 与三级标题一样大 */
+.feeding-scripture {
+    margin: 10px 0;
+    padding: 10px 14px;
+    background: #f7f8ff;
+    border-left: 3px solid #667eea;
+    border-radius: 4px;
+    font-size: 1.02em;
+    color: #4a5568;
+    line-height: 1.7;
+    font-weight: 550;
+}
+
+@media (min-width: 768px) {
+    /* 晨兴喂养/信息选读标题 - 与二级标题一样大 */
+    .feeding-section h4,
+    .reading-section h4 {
+        font-size: 1.08em;
+    }
+    
+    .feeding-scripture {
+        font-size: 1.05em;
+        padding: 12px 16px;
+    }
+}
+
+/* 翻页控制 */
+.page-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0 15px 0;
+    padding: 10px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.prev-btn,
+.next-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 44px;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    color: #333;
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    cursor: pointer;
+    transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.prev-btn:active:not(:disabled),
+.next-btn:active:not(:disabled) {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.55);
+}
+
+.prev-btn:disabled,
+.next-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.page-indicator {
+    font-size: 0.94em;
+    color: var(--text-muted);
+    font-weight: 800;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .morning-revival-page {
+        padding: 5px;
+    }
+    
+    .day-navigation {
+        gap: 5px;
+        padding: 8px;
+    }
+    
+    .day-link {
+        padding: 5px 10px;
+        font-size: 0.8125em; /* 13px -> 0.8125em */
+    }
+    
+    .day-title {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
+    }
+    
+    .page-controls {
+        padding: 10px;
+        margin: 20px 0 10px 0;
+    }
+    
+    .prev-btn,
+    .next-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .btn-text {
+        display: none;
+    }
+    
+    .page-indicator {
+        font-size: 13px;
+    }
+}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>202507 冬季训练训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-column">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+                <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+            </div>
+            <select id="rateSelect" class="control-select" title="语速">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    <script src="js/highlight.js"></script>
+    <script src="js/app-update.js"></script>
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var pathname = window.location.pathname;
+                var href = window.location.href;
+                
+                console.log('[页面记忆] 检查页面:', pathname);
+                
+                // 检查是否是主页（支持各种路径格式）
+                var isMainPage = pathname === '/' || 
+                                pathname === '/index.html' ||
+                                pathname === '' ||
+                                // Capacitor 可能使用特殊路径
+                                pathname === '/android_asset/public/index.html' ||
+                                pathname.includes('/public/index.html');
+                
+                // 检查是否是训练目录页
+                // 训练目录的特征：路径中有训练文件夹名（如 2025-04-夏季），且以 index.html 结尾或以 / 结尾
+                // 例如：/2025-04-夏季/index.html 或 /2025-04-夏季/
+                var isTrainingIndex = false;
+                if (!isMainPage) {
+                    // 匹配类似 /2025-04-夏季/index.html 或 /2025-04-夏季/ 的路径
+                    // 但不匹配 /2025-04-夏季/1_cx.htm 这样的内容页
+                    var trainingIndexPattern = /\/\d{4}-\d{2}-[^\/]+\/(index\.html)?$/;
+                    isTrainingIndex = trainingIndexPattern.test(pathname);
+                }
+                
+                console.log('[页面记忆] 页面类型:', {
+                    isMainPage: isMainPage,
+                    isTrainingIndex: isTrainingIndex,
+                    pathname: pathname
+                });
+                
+                // 只保存非主页且非训练目录的页面（即具体的内容页面）
+                if (!isMainPage && !isTrainingIndex) {
+                    localStorage.setItem('cx_last_page', href);
+                    localStorage.setItem('cx_last_page_time', Date.now());
+                    console.log('[页面记忆] ✓ 保存页面:', href);
+                } else {
+                    var reason = isMainPage ? '主页' : (isTrainingIndex ? '训练目录' : '未知');
+                    console.log('[页面记忆] ✗ 跳过保存:', reason);
+                }
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

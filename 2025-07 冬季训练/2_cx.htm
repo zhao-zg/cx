@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <meta name="app-version" content="0.7.1">
+    <title>第2篇 - 晨兴</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        :root{
+            --brand:#667eea;
+            --bg:linear-gradient(135deg,#667eea,#764ba2);
+            --surface:#fff;
+            --muted:#f8f9fa;
+            --border:#e6e8f0;
+            --text:#1f2937;
+            --text-muted:#6b7280;
+        }
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;color:var(--text);background:#f7fafc;min-height:100vh;padding:8px 8px 70px;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-radius:12px}
+        .header{text-align:center;margin-bottom:20px;padding:16px 12px;background:var(--brand);border-radius:8px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:30px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--muted);border-radius:8px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;font-size:0.88em}
+        .nav a{color:var(--brand);text-decoration:none;padding:10px 16px;border-radius:6px;font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--border);font-weight:600}
+        .nav a:active{background:rgba(102,126,234,.1);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:920px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px)}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;min-height:40px;min-width:60px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:10px;padding:12px 16px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease}
+            .highlight-color-btn{width:44px;height:44px}
+            .highlight-clear-btn{min-height:44px;min-width:70px;font-size:15px}
+        }
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }        .page-navigation{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;margin:15px 0;padding:8px;background:var(--muted);border-radius:8px;font-size:0.83em;box-sizing:border-box}
+        .page-navigation .nav-link{color:var(--text);text-decoration:none;padding:8px 6px;border-radius:6px;font-size:0.83em;background:#fff;border:1px solid var(--border);min-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1;max-width:120px;white-space:nowrap;box-sizing:border-box}
+        .page-navigation .nav-link:active{background:rgba(102,126,234,.1);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:600}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 25px;color:#2d3748;line-height:1.8;text-align:center;padding:18px 15px;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,.1);border-left:4px solid var(--brand)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid #ddd;border-radius:8px;background:#f0f4ff;color:var(--brand);font-size:16px;font-weight:600;cursor:pointer;user-select:none}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:#666;margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:15px 0;padding:12px;background:#f7f8ff;border-left:4px solid var(--brand);border-radius:6px;line-height:1.7}
+        .scripture-verses{font-size:0.97em;color:#444;margin:15px 0;padding:12px;background:#fafafa;border:1px solid #e8e8e8;border-radius:6px;line-height:1.7}
+        .verse-line{margin-bottom:10px}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:15px;line-height:1.6}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.10em;font-weight:600;margin:15px 0 10px;color:#222;line-height:1.6;margin-left:10px}
+        .section-level2,.outline-item.level-2{font-size:1.07em;font-weight:560;margin:12px 0 8px;color:#333;line-height:1.6;margin-left:20px}
+        .section-level3,.outline-item.level-3{font-size:1.04em;font-weight:530;margin:10px 0 8px;color:#444;line-height:1.6;margin-left:30px}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:normal;margin:8px 0 6px;color:#555;line-height:1.6;margin-left:40px}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:16px 0;padding-left:8px;text-indent:2em;color:#4a5568;line-height:1.6;font-size:1.00em}
+        @media(min-width:768px){
+            .content-text{padding-left:8px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:24px}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:38px}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:52px}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-32px;top:2px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--border);text-align:center;color:#999;font-size:0.83em}
+        .scripture-toggle-btn{background:rgba(102,126,234,.1);border:1px solid rgba(102,126,234,.3);color:var(--brand);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:6px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:rgba(102,126,234,.2);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:#f8f9fa;border-left:3px solid var(--brand);padding:10px 12px;margin:10px 0 10px 15px;font-size:0.94em;color:#555;line-height:1.8}
+        .scripture-ref{color:#7f8c8d;font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:2;color:#444}
+        .verse-line:last-child{margin-bottom:0}
+        .bottom-control-bar{position:fixed;bottom:0;left:0;right:0;z-index:1000;display:flex;align-items:center;gap:6px;padding:5px 12px max(5px,env(safe-area-inset-bottom));background:rgba(255,255,255,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+        @media(prefers-color-scheme:dark){.bottom-control-bar{background:rgba(30,30,30,.95);border-top-color:rgba(255,255,255,.1)}}
+        .control-btn{min-width:36px;min-height:36px;padding:5px;background:var(--bg);border:none;border-radius:6px;font-size:14px;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 4px rgba(102,126,234,.2);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-muted);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex-shrink:0}
+        .bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:5px;background:var(--bg);border:none;border-radius:6px;font-size:13px;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 4px rgba(102,126,234,.2);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:46px;min-height:32px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            body{padding:6px 6px 60px}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:6px}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:44px;min-height:30px;padding:4px 5px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:55px}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:34px;min-height:34px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:42px;min-height:28px;padding:3px 4px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>冬季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="content">
+            
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">目录</a>
+    <a href="2_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="2_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="2_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="2_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+    <h2 class="chapter-title">第2篇 基督拿着死亡和阴间的钥匙</h2>
+    
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container">
+        
+        <div class="day-page" data-day="1" data-page="0" style="display: block;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        壹　“我是首先的，我是末后的，又是那活着的”—启一17下~18上：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　基督是首先的，也是末后的，含指祂所开始的事，祂必定完成。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　主耶稣不仅是首先的，也是初；不仅是末后的，也是终—二一6，二二13：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　“首先的”，指明没有人在祂以先；“末后的”，指明没有人在祂之后。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　“初”，意即祂是万有的起源；“终”，意即祂是万有的终结。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　这不仅指明，没有人在主耶稣之先，也没有人在主耶稣之后，也指明没有祂，就没有起源，也没有终结。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        三　基督不仅是首先的和末后的，也是初和终；这向我们保证，祂开始了召会生活以后，就必要完成—参提后四5：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　主耶稣永不会叫祂的工作半途而废—启十7，十五1、8。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　所有地方召会都必须相信，主耶稣是初又是终。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　祂必完成祂在恢复里所开始的工。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启二8　	你要写信给在士每拿的召会的使者，说，那首先的、末后的、死过又活的，这样说。</div>
+                
+                <div class="feeding-scripture">二二13	我是阿拉法，我是俄梅嘎；我是首先的，我是末后的；我是初，我是终。</div>
+                
+                
+                
+                <p class="content-text">主耶稣不仅是首先的，也是初；不仅是末后的，也是终。首先的，指明没有人在基督以先；末后的，指明没有人在祂之后。初，指明祂是万有的起源；终，指明祂是万有的终结。因此，这里不仅指明，没有人在主耶稣之先，也没有人在主耶稣之后；更指明没有祂，就没有起源，也没有终结。这向我们保证，主是刚强的，能应许、鼓励、加强我们。祂必成就祂在启示录所说的一切话（新约总论第十四册，三九六页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">主告诉在士每拿受苦的召会，祂是那首先的、末后的。这指明祂所经过的苦难无论多大，那些苦难都不能终结或破坏祂。……召会遭受苦难时，需要认识基督是那首先的、末后的，是永远存在、永不改变的一位。无论逼迫的环境如何，祂仍是一样。……凡事都在祂管治的界限之内。</p>
+                
+                <p class="content-text">主告诉在士每拿的召会，祂是那首先的、末后的，指明召会该是得胜的，不被任何苦难所击败（新约总论第二册，四八页）。</p>
+                
+                <p class="content-text">基督不仅是第一个，也是创始者；祂不仅是末一个，还是成终者。换句话说，在宇宙中，从始至终都是基督。……主耶稣不仅是首先的，也是初，是创始；祂不仅是末后的，也是终，是完成，没有留下什么给别人去作。祂占有整个宇宙；在时间上，在空间上，在每一件事上，祂都是一切。</p>
+                
+                <p class="content-text">基督不仅是首先的和末后的，也是初和终；这向我们保证，祂开始了召会生活以后，就必要完成。祂永不会叫祂的工作半途而废。所有在地方召会里的都必须相信，主耶稣是初又是终，祂必完成祂在恢复里所开始的工。</p>
+                
+                <p class="content-text">因着主是我们的一切，又因着祂是这样刚强，我们就不该推诿说，我们软弱，我们的环境太艰难。我们的环境越艰难，主对我们就越丰富；我们的情况越多试炼，主对我们就越刚强。我们必须运用我们的信心，相信这包罗万有的一位，祂是阿拉法，是俄梅嘎，是首先的，是末后的，是初，是终。在祂毫无问题。因此，我们需要浸没在祂里面，相信祂，并且安息于祂（新约总论第十四册，三九六至三九七页）。</p>
+                
+                <p class="content-text">起初定规的是神，末了成功的也是神。感谢神，祂是阿拉法，所有的起头都是祂。……一切都是神起头的〔创一1〕。同时，祂又是俄梅嘎。人可能失败，但祂是俄梅嘎。人可以说这个说那个，但最末后一句话还是神说的，因为祂是俄梅嘎。……祂要成功祂的计划，祂要达到祂的目的，祂要成功祂所起头的。我们承认，撒但的工作实在是打岔了神的工作，但是，我们更承认，神不只是起初定规的阿拉法，神并且是最后成功的俄梅嘎。神一点不放松。不管召会在经历上的情形是怎样，……召会……要穿上荣耀，……献给祂的儿子（倪柝声文集第二辑第十四册，一三九至一四○页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-2">
+                        四　这位行走在众召会中间，为众召会的头，并为众召会所属的基督，乃是那活着的；因此，祂的身体所显出来的各地方召会，也该是活而新鲜并刚强的—二1。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-1">
+                        贰　“我曾死过，看哪，现在又活了，直活到永永远远”— 一18上：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　主受过死的苦，但祂又活了—二8。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　基督曾进入死亡，但死亡不能拘禁祂（徒二24），因为祂是复活（约十一25）。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        三　复活是主的日子的延长；祂在祂的复活里要存到永永远远：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　耶稣基督今天是那活着的，就是那在复活里的一位。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　基督要分赐生命，就必须是那活着的。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        四　基督是那位活着的，重点乃是祂是永远活着的，并且活在我们里面：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　祂要我们脱离各样的死，起来成为活的召会。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　我们越活，就越是活的耶稣的见证—启十二11。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启一17~18	……我是首先的，我是末后的，又是那活着的；我曾死过，看哪，现在又活了，直活到永永远远，并且拿着死亡和阴间的钥匙。</div>
+                
+                <div class="feeding-scripture">徒二24	神却将死的痛苦解除，叫祂复活了，因为祂不能被死拘禁。</div>
+                
+                
+                
+                <p class="content-text">主受过死的苦，但祂又活了〔启一18〕。祂曾进入死亡，但死亡不能拘禁祂（徒二24），因为祂是复活（约十一25）。……复活是主的日子的延长；祂在祂的复活里要存到永永远远。……基督要分赐生命，就必须是那活着的，因为死人绝不能把生命分赐给别人（新约总论第十四册，四九页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">在我们里面那位活着的永远不死。祂的召会不该是死的或发死，反之，祂的召会必须一直是活的。我们必须学习享受基督这位活着的。祂活到永永远远，就是祂的见证，因为耶稣的见证总是与活着有关。一个地方召会若是不活，就没有耶稣的见证。我们越活，就越是活的耶稣的见证。</p>
+                
+                <p class="content-text">这位行走在众召会中间，为众召会的头，并为众召会所属的基督，乃是那活着的，祂满了生命。因此，作祂身体的各地方召会，也该是活而新鲜并刚强的。我们有一位活着的基督，祂已经胜过了死亡。我们的基督是复活的基督，活在我们里面，也活在我们中间，并且直活到永永远远。……在恢复里，所有的召会都应当像基督那样的活，满了生命，并胜过死亡（新约总论第十四册，四九至五○页）。</p>
+                
+                <p class="content-text">在行传二章二十四至三十二节，彼得说到主耶稣的复活。……彼得……说，神叫耶稣复活。他在十章四十至四十一节说同样的事，却加上“祂从死人中复活”。论到主是人，新约告诉我们，神叫祂从死人中复活（罗八11）；论到祂是神，新约告诉我们，祂自己从死人中复活（帖前四14）。这证明祂属人和神圣的双重身分。</p>
+                
+                <p class="content-text">行传二章二十四节说主不能被死拘禁；主是神，也是复活（约一1，十一25），有不能毁坏的生命（来七16）。祂既是这样一位永活者，死就不能拘禁祂。祂将自己交于死，死却无法扣住祂，反而被祂击败，祂就从死里复活了（使徒行传生命读经，八六页）。</p>
+                
+                <p class="content-text">约翰见证这位耶稣基督是那活着的；祂曾死过，现在又活了，直活到永永远远〔启一18〕。这是对召会说的话。今天祂是活在天上，在神宝座的右边；但那不是重点。祂活着的重点，乃是活在我们里面。祂是永远活着的，并且活在我们里面。祂告诉我们，今天祂还活着；所以祂要我们脱离各样的死，起来成为活的召会，这是启示录一章的思想。</p>
+                
+                <p class="content-text">我们当怎样凭祂而活？第一，你必须认识，你从前只有你自己的生命；但现在你不再是你自己，乃是主耶稣在你里面活着。所以今天，你是个双重的人：外面一重是你，里面一重是主耶稣；在你里面有两个生命。第二，神不要你凭自己原来的生命活着，神要你凭第二个生命（就是神自己）活着。第三，这第二个生命，乃是在你的灵里，所以，你若要凭这生命活着，你就必须凭你的灵活着。……这个生活的结果，乃是为了召会。因此，为着召会生活，我们都必须这样活在灵里，操练凭主而活（李常受文集一九八三年第三册，三二至三四页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        叁　“在这灵里，祂〔基督〕……曾去向那些在监狱里的灵……宣扬”—彼前三19~20上：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　这里的“灵”不是指留在阴间里死人的脱体之灵，乃是指挪亚时代因悖逆而堕落，并且被拘留在幽暗坑中，等候大日审判的天使（天使是灵—来一14）—彼后二4~5，犹6。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　基督在肉体里受死以后，在那作祂神性活的灵里到无底坑这些背叛的天使那里，宣扬神的得胜，就是神借着祂在基督里的成为肉体，以及基督在肉体里的死，胜过了撒但阻挠神圣计划的诡计。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        三　“监狱”（彼前三19）指他他拉，幽暗的深坑，拘留堕落天使的地方。
+                    </div>
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">彼前三18~20	……在肉体里祂〔基督〕被治死，在灵里祂却活着；在这灵里，祂也曾去向那些在监狱里的灵，就是向从前在挪亚预备方舟的日子，神恒忍热切等待的时候，那些悖逆者宣扬……。</div>
+                
+                
+                
+                <p class="content-text">彼前三章十九至二十节告诉我们，基督的肉体死了以后，立刻在灵里刚强活跃，去向那些在挪亚时代的悖逆者宣扬祂的得胜。“在灵里”（18）不是指圣灵，乃是指那作基督神性素质的灵（罗一4，参约四24上）（李常受文集一九八四年第三册，二一六至二一七页）。</p>
+                
+                <p class="content-text">基督被埋葬以后，在祂活的灵里，去向那些在监狱里的灵（背叛的天使），宣扬神的得胜，就是神借着祂在基督里的成为肉体，以及基督在肉体里的死，胜过了撒但阻挠神圣计划的诡计。</p>
+                
+                <p class="content-text">钉十字架不是在基督的灵里把祂治死，只是在祂的肉体里把祂治死，这肉体是祂成为肉体时所得着的。在十字架上，基督的肉体死了，祂的灵却没有死，反倒因着生命的新能力得以活泼地活着，以致在基督的肉体死后，在祂复活以前，祂在这得了加力的灵里向堕落的天使宣扬（新约总论第三册，二九三至二九四页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们不该将〔彼前三章十八节的〕“在灵里祂却活着”，解释为基督的复活。……这节乃是指明，基督埋葬在坟墓里的时候，在祂复活以前，祂在得了加力的灵里，到无底坑去，向背叛的天使宣扬神的得胜。</p>
+                
+                <p class="content-text">〔十九节的〕“在这灵里”一辞指十八节的灵，指明并证实基督在肉体里受死以后，在这灵里仍是活动的。在祂被点活的灵里，祂特别是去向那些在监狱里的灵宣扬。历代以来，各派教师对于在监狱里的灵，有种种不同的解释。照圣经看，最可接受的解释如下：这里的“灵”不是指留在阴间里死人的脱体之灵，乃是指挪亚时代因悖逆而堕落（彼前三20，……）并且被拘留在幽暗坑中，等候大日审判（彼后二4~5，犹6）的天使（天使是灵—来一14）。基督在肉体里受死以后，在祂活的灵里到这些背叛的天使那里（可能是到无底坑—罗十7），也许是去宣扬神的得胜，就是神借着祂在基督里的成为肉体，以及基督在肉体里的死，胜过了撒但阻挠神圣计划的诡计。</p>
+                
+                <p class="content-text">彼前三章十九节的“监狱”指他他拉，幽暗的深坑（彼后二4，犹6），拘留堕落天使的地方。〔彼前三章十九节的〕“宣扬”一辞不是传扬福音，乃是宣扬神所成功的得胜，……这宣扬是向“从前……那些悖逆者”（20）。……在监狱里的灵不是指留在阴间里死人的脱体之灵，乃是指挪亚时代因悖逆而堕落的天使。那些天使离开自己的地方，降到地上，并且利用人的身体与人的女儿犯淫乱，玷污人类，而产生了巨人（创六4）。</p>
+                
+                <p class="content-text">基督为着救赎我们死在十字架上。祂虽然在身体里被治死，在灵里却被点活且得加力，甚至在复活以前就如此。在这被点活且得加力的灵里，祂去向背叛的天使宣扬神胜过了撒但，就是他们的首领。因此，基督的死不仅为我们完成救赎，也赢得对撒但及其跟从者的胜利。基督在祂受死以后，复活以前，向撒但的跟从者宣扬神借着基督的钉十字架胜过了魔鬼。这是基督在祂的埋葬里的工作（新约总论第三册，二九四至二九五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        肆　“我……看见一个星从天落到地上，有无底坑的钥匙赐给他”—启九1~2，十一7，十七8，二十1、3：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　启示录九章一节的星是指撒但，他要从天上摔到地上：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　天使被比喻作星—伯三八7，启十二4。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　撒但是天使长，原是明亮之星—赛十四12。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　“‘谁要下到无底坑？’就是要领基督从死人中上来”—罗十7：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　“无底坑”这辞的原文是abyssos，阿比索斯。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　这辞在路加八章三十一节指鬼的住处—27、33、35、38节。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　这辞也在启示录九章一节、二节、十一节，指那些“蝗虫”出来的地方，它们的王名叫亚玻伦。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        4　在十一章七节，十七章八节，这辞指“兽”，就是敌基督，要上来的地方。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        5　在二十章一节、三节，这辞指千年国时，撒但要被扔进去受监禁的地方。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        6　罗马十章七节的无底坑是指基督在死后，复活前所去的地方；根据行传二章二十四节、二十七节，这地方就是阴间，因为这二节启示，基督死后下到阴间，复活时从那里起来。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        7　照圣经的用法，无底坑一辞乃是指死亡，以及撒但黑暗权势的地方，就是基督死后所降到地的低下之处（弗四9）；祂胜过了这地方，就在复活里从这地方上来。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启九1~2	第五位天使吹号，我就看见一个星从天落到地上，有无底坑的钥匙赐给他。他开了无底坑，便有烟从坑里往上冒，好像大火炉的烟，日头和天空都因这坑的烟昏暗了。</div>
+                
+                
+                
+                <p class="content-text">〔启示录九章一节〕的星是指撒但，他要从天上摔到地上。天使被比喻作星（伯三八7，启十二4）。撒但是天使长，原是明亮之星（赛十四12）。他在路加十章十八节已经受了审判。在启示录九章这里以及十二章九至十节，乃是那审判的执行。</p>
+                
+                <p class="content-text">〔十二章〕启示，男孩子被提到天上后，要与撒但争战。……按照这一章，撒但要在末了的三年半开始时，从天上落下去。……这一点强有力地证明，大灾难的开始，不会早过这时，因为在此以前，撒但仍在天上。</p>
+                
+                <p class="content-text">撒但从天上落到地上后，有无底坑的钥匙赐给他，使他可以打开无底坑，放出那些被鬼附的蝗虫，叫人受痛苦五个月（启示录生命读经，三四○至三四一页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">关于蝗虫，启示录九章十一节说，“有无底坑的使者作王管辖它们；他的名，希伯来话叫亚巴顿，希利尼话叫亚玻伦。”无底坑的使者就是兽，也就是敌基督，他要从无底坑里上来（十一7，十七8）。按希伯来话，无底坑的使者名叫亚巴顿，原文意毁坏，与约伯记二十六章六节，二十八章二十二节，箴言十五章十一节之灭亡、灭没同。按希利尼话，他的名字是亚玻伦，原文意毁坏者。敌基督是毁坏者，要行许多毁坏的事（但八23~25）。</p>
+                
+                <p class="content-text">再后撒但要放出蝗虫，在那兽的统帅下组成一支军队；兽就是敌基督，他是这支军队的王。这些蝗虫要使那些额上没有神印记的人，受痛苦五个月（启示录生命读经，三四三至三四四页）。</p>
+                
+                <p class="content-text">第五号吹响时，撒但从天上摔到地上，有无底坑的钥匙赐给他，他开了无底坑，有蝗虫从无底坑所冒出的烟中飞到地上（启九1~3）；这些定规是鬼，因鬼是住在无底坑里。这种怪物的尾巴像蝎子，又有毒刺，有能力伤人五个月（3~5、7~10）。那种痛苦仅仅使人痛，却不置人于死；因为六节说，“在那些日子，人要求死，却绝不得死；切望要死，死却远避他们。”头四号的灾祸是临到人外在的环境，但第五号的灾祸是临到人身上（李常受文集一九五五年第一册，六○四至六○五页）。</p>
+                
+                <p class="content-text">罗马十章七节所提的“无底坑”，原文这辞在路加八章三十一节指鬼的住处；这辞在启示录九章一节、二节、十一节，指那些“蝗虫”出来的地方，它们的王名叫亚玻伦（敌基督）；在十一章七节，十七章八节这辞指“兽”，就是敌基督要上来的地方；在二十章一节、三节，这辞指千年国时，撒但要被扔进去受监禁的地方。旧约七十士希腊文译本，在创世记一章二节用这辞指深渊。罗马十章七节的无底坑是指基督在死后，复活前所去的地方。根据行传二章二十四节、二十七节，这地方就是阴间，因为这二节启示，基督死后下到阴间，复活时从那里起来。因此，照圣经的用法，无底坑一辞乃是指死亡，以及撒但黑暗权势的地方，就是基督死后所降到地的低下之处（弗四9）。祂胜过了这地方，就在复活里从这地方上来（罗马书生命读经，三一九至三二○页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        伍　在启示录一章十八节下半主耶稣说，“我……拿着死亡和阴间的钥匙”：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　因着人堕落而有了罪，死就进来，如今在地上工作，将一切有罪的人聚拢到阴间，就是拘留死人的地方。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　然而，在召会生活里，我们不再受死亡和阴间的支配—腓三10~11。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        三　基督在十字架上废掉了死，并且在祂的复活里胜过了阴间：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　虽然死尽其所能要扣住基督，却没有能力这样作—徒二24。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　基督是神，也是复活（约一1，十一25），有不能毁坏的生命（来七16）。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　祂既是这样一位永活者，死就不能拘禁祂。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        4　基督将自己交于死，死却无法扣住祂，反而被祂击败，祂就从死里复活了。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        5　因此，对基督而言，死没有毒刺，阴间也没有能力。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        四　因为基督在召会里是那拿着死亡和阴间的钥匙者，死亡和阴间在我们身上就不该有任何能力。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        五　在召会生活里，死亡和阴间的钥匙是在主手中。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        六　我们不可能对付死：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　我们根本没有能力操纵死。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　每当死进来的时候，许多人就被死征服。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        七　我们若给主耶稣地位、机会和自由的路，在我们中间运行并行动，死亡和阴间就在祂控制之下—太十六18，启二十14：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　当主耶稣在召会里没有地位时，死亡立刻猖狂，阴间也成为有能力的，来扣住死了的人。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　我们看见基督拿着死亡和阴间的钥匙—权柄，这是很重要的—约五27，十七2，启十二10。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　死亡受祂的支配，阴间也在祂的控制之下。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        八　我们应当赞美主，基督拿着死亡和阴间的钥匙— 一18，来十三15，彼前一7，启十九5~6。
+                    </div>
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启一17~18	……我是首先的，我是末后的，又是那活着的；我曾死过，看哪，现在又活了，直活到永永远远，并且拿着死亡和阴间的钥匙。</div>
+                
+                <div class="feeding-scripture">腓三10~11	使我认识基督、并祂复活的大能、以及同祂受苦的交通，模成祂的死，或者我可以达到那从死人中杰出的复活。</div>
+                
+                
+                
+                <p class="content-text">因着人堕落而有了罪，死就进来，如今在地上工作，将一切有罪的人聚拢到阴间，就是拘留死人的地方。然而，在召会生活里，我们不再受死亡和阴间的支配。基督在十字架上废掉了死，并且在祂的复活里胜过了阴间。虽然死尽其所能要扣住祂，却没有能力这样作（徒二24）。基督是神，也是复活（约一1，十一25），有不能毁坏的生命（来七16）。因为祂是这样一位永活者，死就不能拘禁祂。祂将自己交于死，死却无法扣住祂；反而死被祂击败，祂就从死里复活了。因此，对基督而言，死没有毒刺，阴间也没有能力（新约总论第三册，一一八至一一九页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">因为基督在召会里是那拿着死亡和阴间的钥匙者，死亡和阴间在我们身上就不该有任何能力。在召会生活里，死亡和阴间的钥匙是在主手中。我们不可能对付死；我们根本没有能力操纵死。每当死进来的时候，许多人就被死征服。但我们若给主耶稣地位、机会和自由的路，在我们中间运行并行动，死亡和阴间就在祂控制之下。然而，每当主耶稣在召会里没有地位的时候，死亡立刻猖狂，阴间也成为有能力的，来扣住死了的人。我们看见基督拿着死亡和阴间的钥匙—权柄，这是很重要的。死亡受祂的支配，阴间也在祂的控制之下（新约总论第三册，一一九页）。</p>
+                
+                <p class="content-text">主受逼迫以至于死；但死不是终结，乃是进入复活的门。祂进入死亡，就进入了复活的门槛。这指明受苦的召会不该因逼迫而丧胆，也不该因预见要被杀而害怕；……因为召会一进入死亡，也就踏在复活的门槛上。</p>
+                
+                <p class="content-text">基督的复活也胜过了死、撒但、阴间和坟墓（徒二24）。撒但、死、阴间和坟墓形成一组。人子基督不仅由神表白，证明祂成就上的成功，也胜过了一切使我们十分忧虑并困扰的死、撒但、阴间和坟墓。人子胜过了死，并且废除了撒但（来二14）。死亡和阴间的钥匙现今在祂手里（启一18），祂也胜过了坟墓。这样的一位基督，正在祂的恢复里在作为金灯台的众地方召会中间行走，照顾众召会（新约总论第十四册，五○至五二页）。</p>
+                
+                <p class="content-text">在人类历史上，耶稣是唯一走进死里，又走出来的人。祂走进死里游历，为要亲自对死亡打量一番。祂在死里游历完毕，就直接从死里走出来。死亡不能拘禁祂。祂胜过死亡，征服死亡，并且从死里走出来。这就是基督的复活，这基督就是成肉体的神并救赎的神。借着祂走进死亡，又走出死亡，我们得蒙救赎（弗一7，罗四25），如今死在我们身上没有权势（林前十五54~55），因为我们在基督里，在这位救赎者里面（李常受文集一九七三至一九七四年第一册，六四七页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5" style="display: none;">
+            
+            <div class="outline-section">
+                
+                
+                    
+                    <div class="outline-item level-1">
+                        伍　在启示录一章十八节下半主耶稣说，“我……拿着死亡和阴间的钥匙”：
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        一　因着人堕落而有了罪，死就进来，如今在地上工作，将一切有罪的人聚拢到阴间，就是拘留死人的地方。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        二　然而，在召会生活里，我们不再受死亡和阴间的支配—腓三10~11。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        三　基督在十字架上废掉了死，并且在祂的复活里胜过了阴间：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　虽然死尽其所能要扣住基督，却没有能力这样作—徒二24。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　基督是神，也是复活（约一1，十一25），有不能毁坏的生命（来七16）。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　祂既是这样一位永活者，死就不能拘禁祂。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        4　基督将自己交于死，死却无法扣住祂，反而被祂击败，祂就从死里复活了。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        5　因此，对基督而言，死没有毒刺，阴间也没有能力。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        四　因为基督在召会里是那拿着死亡和阴间的钥匙者，死亡和阴间在我们身上就不该有任何能力。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        五　在召会生活里，死亡和阴间的钥匙是在主手中。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-2">
+                        六　我们不可能对付死：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　我们根本没有能力操纵死。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　每当死进来的时候，许多人就被死征服。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        七　我们若给主耶稣地位、机会和自由的路，在我们中间运行并行动，死亡和阴间就在祂控制之下—太十六18，启二十14：
+                    </div>
+                    
+                        
+                    
+                    <div class="outline-item level-3">
+                        1　当主耶稣在召会里没有地位时，死亡立刻猖狂，阴间也成为有能力的，来扣住死了的人。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        2　我们看见基督拿着死亡和阴间的钥匙—权柄，这是很重要的—约五27，十七2，启十二10。
+                    </div>
+                    
+                    
+                    <div class="outline-item level-3">
+                        3　死亡受祂的支配，阴间也在祂的控制之下。
+                    </div>
+                    
+                    
+                
+                    
+                    
+                    <div class="outline-item level-2">
+                        八　我们应当赞美主，基督拿着死亡和阴间的钥匙— 一18，来十三15，彼前一7，启十九5~6。
+                    </div>
+                    
+                    
+                
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">太十六18	……我要把我的召会建造在这磐石上，阴间的门不能胜过她。</div>
+                
+                <div class="feeding-scripture">启二十14	死亡和阴间也被扔在火湖里，这火湖就是第二次的死。</div>
+                
+                
+                
+                <p class="content-text">〔在马太十六章十八节，〕阴间的门乃是指撒但黑暗的权势或能力（西一13，徒二六18）。基督要在这关于祂自己启示的磐石上，并以彼得这样经过变化的人为石头，建造真正的召会，这样的召会是阴间的门不能胜过的。主这话也指明，撒但黑暗的权势要攻击召会；因此，召会（神的国）和撒但的权势（撒但的国），二者之间进行着属灵的争战。</p>
+                
+                <p class="content-text">罗马……圣彼得大教堂……的圆顶上写着马太十六章十八节的话：“我要把我的召会建造在这磐石上。”然而，这节的下半：“阴间的门不能胜过她”，没有写上去。……然而，主恢复里的召会的确是建造在关于基督的启示上，阴间的门不能胜过这召会（马太福音生命读经，六三三页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">〔在〕启示录二十章十四节，……火湖是整个宇宙的垃圾箱；一切消极的事物，包括死亡和阴间，都要被扔在其中。死亡是主最后所要毁灭的仇敌（林前十五26）。</p>
+                
+                <p class="content-text">堕落的人在第一次的死里，魂和灵与身体分开，并灭亡于阴间受苦的地方（路十六22~24）。在第二次的死里，魂和灵与复活的身体重新联结，然后与身体一同被扔进火湖里。这是说，不信者的全人—灵、魂、体—都要在火湖永远的痛苦里灭亡（启示录生命读经，七七五至七七六页）。</p>
+                
+                <p class="content-text">在四福音里，基督是温和、和蔼、仁慈的。每当祂看人，人就觉得被祂关爱。在约翰福音里，耶稣曾看着人而哭；祂实在是用祂爱的眼目将人夺取了（十一35，路二二61）。然而，这同一位基督在启示录里以不同的方式显现。祂有七眼，如同火焰（一14，五6），焚烧并照耀。在四福音中，祂最亲密的门徒甚至能侧身挨近祂的怀里（约十三23）。……然而，在启示录里，当约翰再看见祂时，他惧怕并仆倒在祂脚前，像死了一样（一17）。……路加四章二十二节说，祂口中出恩言；但启示录告诉我们，从祂口中出来一把两刃的利剑（一16，十九15）。不仅如此，在约翰一章二十九节，祂被介绍为神的羔羊；但在启示录五章五节，祂被称为犹大支派的狮子。启示录这卷书不是以寻常的方式，乃是以超特的方式向我们揭示基督。……启示录虽是延续福音书和书信，但启示录启示基督，不是按照福音书和书信。在启示录里，祂不是一位微小、温柔、慈爱、忍耐、安静或受苦的基督；祂乃是勇敢、厉害、丰富、焚烧且活的基督。我们若经历启示录中所揭示的基督，就会在生命里享受祂的得胜，赞美祂，并因喜乐而呼喊。</p>
+                
+                <p class="content-text">我们若思想启示录一章中基督的图画，就会看见这章陈明一位厉害的基督。祂的眼目如同火焰，祂的脚好像在炉中锻炼过的铜，祂的声音如同众水的声音，并且从祂口中出来一把两刃的利剑。我们对基督必须有一种新的印象。那位在众地方召会中间行走的人子基督是活而烧着的，并且是厉害的。祂是有恩惠的，但也是使人惧怕的。……因为日子太黑暗、太邪恶、太死了；我们需要一位厉害的基督。我们若接触启示录中的基督，就不会冷淡，乃会焚烧起来；不会安静，乃会呼喊赞美祂（新约总论第十四册，五二至五四页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const totalPages = 6;
+    if (totalPages === 0) return;
+    
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    const pagesContainer = document.querySelector('.pages-container');
+    
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach(page => page.style.display = 'none');
+        
+        // 显示目标页面
+        pages[pageIndex].style.display = 'block';
+        
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 仅在用户手动切换时滚动到顶部
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（仅水平滑动）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    
+    document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const swipeThreshold = 80; // 最小滑动距离
+        const verticalTolerance = 1.5; // 垂直容忍度：水平滑动必须是垂直滑动的1.5倍
+        const diffX = touchStartX - touchEndX;
+        const diffY = touchStartY - touchEndY;
+        
+        // 只有当水平滑动距离明显大于垂直滑动距离，且超过阈值时才触发翻页
+        if (Math.abs(diffX) > Math.abs(diffY) * verticalTolerance && Math.abs(diffX) > swipeThreshold) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    // 初始加载时不滚动
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', function() {
+        initFromHash(false);
+    });
+    
+    // 初始化（不滚动）
+    initFromHash(true);
+})();
+
+// 朗读功能（共享脚本）
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page[style*="display: block"]') || document.querySelector('.day-page');
+            if (!activePage) return '';
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = item.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+});
+</script>
+
+<style>
+.morning-revival-page {
+    padding: 5px;
+    max-width: 820px;
+    margin: 0 auto;
+}
+
+/* 天导航栏 */
+.day-navigation {
+    display: flex;
+    gap: 6px;
+    margin: 15px 0;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    justify-content: center;
+    font-size: 0.88em;
+    box-sizing: border-box;
+}
+
+.day-link {
+    min-height: 40px;
+    padding: 8px 6px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.83em;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    max-width: 120px;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.day-link:active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.day-link.active {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.5);
+    font-weight: 700;
+}
+
+/* 分页容器 */
+.pages-container {
+    position: relative;
+    min-height: 400px;
+    touch-action: pan-y;
+}
+
+.day-page {
+    background: #fff;
+    padding: 0;
+}
+
+.day-section {
+    margin: 20px 0;
+    background: #fff;
+    padding: 0;
+}
+
+/* 纲目样式 - 使用 base.html 的公共样式 */
+.outline-section {
+    margin: 18px 0;
+}
+
+/* 内容分隔线 */
+.content-separator {
+    height: 1px;
+    background: #ddd;
+    margin: 20px 0;
+}
+
+/* 晨兴喂养和信息选读 */
+.feeding-section,
+.reading-section {
+    margin: 20px 0;
+}
+
+/* 晨兴喂养/信息选读标题 - 与二级标题一样大 */
+.feeding-section h4,
+.reading-section h4 {
+    font-size: 1.05em;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 16px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+/* 晨兴喂养的经文样式 - 与三级标题一样大 */
+.feeding-scripture {
+    margin: 10px 0;
+    padding: 10px 14px;
+    background: #f7f8ff;
+    border-left: 3px solid #667eea;
+    border-radius: 4px;
+    font-size: 1.02em;
+    color: #4a5568;
+    line-height: 1.7;
+    font-weight: 550;
+}
+
+@media (min-width: 768px) {
+    /* 晨兴喂养/信息选读标题 - 与二级标题一样大 */
+    .feeding-section h4,
+    .reading-section h4 {
+        font-size: 1.08em;
+    }
+    
+    .feeding-scripture {
+        font-size: 1.05em;
+        padding: 12px 16px;
+    }
+}
+
+/* 翻页控制 */
+.page-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0 15px 0;
+    padding: 10px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.prev-btn,
+.next-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 44px;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    color: #333;
+    font-size: 0.9375em; /* 15px -> 0.9375em */
+    cursor: pointer;
+    transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.prev-btn:active:not(:disabled),
+.next-btn:active:not(:disabled) {
+    background: var(--bg);
+    color: #ffffff;
+    border-color: rgba(102, 126, 234, 0.55);
+}
+
+.prev-btn:disabled,
+.next-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.page-indicator {
+    font-size: 0.94em;
+    color: var(--text-muted);
+    font-weight: 800;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .morning-revival-page {
+        padding: 5px;
+    }
+    
+    .day-navigation {
+        gap: 5px;
+        padding: 8px;
+    }
+    
+    .day-link {
+        padding: 5px 10px;
+        font-size: 0.8125em; /* 13px -> 0.8125em */
+    }
+    
+    .day-title {
+        font-size: 0.9375em; /* 15px -> 0.9375em */
+    }
+    
+    .page-controls {
+        padding: 10px;
+        margin: 20px 0 10px 0;
+    }
+    
+    .prev-btn,
+    .next-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .btn-text {
+        display: none;
+    }
+    
+    .page-indicator {
+        font-size: 13px;
+    }
+}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>202507 冬季训练训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-column">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+                <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+            </div>
+            <select id="rateSelect" class="control-select" title="语速">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    <script src="js/highlight.js"></script>
+    <script src="js/app-update.js"></script>
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var pathname = window.location.pathname;
+                var href = window.location.href;
+                
+                console.log('[页面记忆] 检查页面:', pathname);
+                
+                // 检查是否是主页（支持各种路径格式）
+                var isMainPage = pathname === '/' || 
+                                pathname === '/index.html' ||
+                                pathname === '' ||
+                                // Capacitor 可能使用特殊路径
+                                pathname === '/android_asset/public/index.html' ||
+                                pathname.includes('/public/index.html');
+                
+                // 检查是否是训练目录页
+                // 训练目录的特征：路径中有训练文件夹名（如 2025-04-夏季），且以 index.html 结尾或以 / 结尾
+                // 例如：/2025-04-夏季/index.html 或 /2025-04-夏季/
+                var isTrainingIndex = false;
+                if (!isMainPage) {
+                    // 匹配类似 /2025-04-夏季/index.html 或 /2025-04-夏季/ 的路径
+                    // 但不匹配 /2025-04-夏季/1_cx.htm 这样的内容页
+                    var trainingIndexPattern = /\/\d{4}-\d{2}-[^\/]+\/(index\.html)?$/;
+                    isTrainingIndex = trainingIndexPattern.test(pathname);
+                }
+                
+                console.log('[页面记忆] 页面类型:', {
+                    isMainPage: isMainPage,
+                    isTrainingIndex: isTrainingIndex,
+                    pathname: pathname
+                });
+                
+                // 只保存非主页且非训练目录的页面（即具体的内容页面）
+                if (!isMainPage && !isTrainingIndex) {
+                    localStorage.setItem('cx_last_page', href);
+                    localStorage.setItem('cx_last_page_time', Date.now());
+                    console.log('[页面记忆] ✓ 保存页面:', href);
+                } else {
+                    var reason = isMainPage ? '主页' : (isTrainingIndex ? '训练目录' : '未知');
+                    console.log('[页面记忆] ✗ 跳过保存:', reason);
+                }
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

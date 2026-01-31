@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <meta name="app-version" content="0.7.1">
+    <title>第12篇 - 纲目</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        :root{
+            --brand:#667eea;
+            --bg:linear-gradient(135deg,#667eea,#764ba2);
+            --surface:#fff;
+            --muted:#f8f9fa;
+            --border:#e6e8f0;
+            --text:#1f2937;
+            --text-muted:#6b7280;
+        }
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;color:var(--text);background:#f7fafc;min-height:100vh;padding:8px 8px 70px;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-radius:12px}
+        .header{text-align:center;margin-bottom:20px;padding:16px 12px;background:var(--brand);border-radius:8px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:30px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--muted);border-radius:8px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;font-size:0.88em}
+        .nav a{color:var(--brand);text-decoration:none;padding:10px 16px;border-radius:6px;font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--border);font-weight:600}
+        .nav a:active{background:rgba(102,126,234,.1);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:920px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px)}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;min-height:40px;min-width:60px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:10px;padding:12px 16px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease}
+            .highlight-color-btn{width:44px;height:44px}
+            .highlight-clear-btn{min-height:44px;min-width:70px;font-size:15px}
+        }
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }        .page-navigation{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;margin:15px 0;padding:8px;background:var(--muted);border-radius:8px;font-size:0.83em;box-sizing:border-box}
+        .page-navigation .nav-link{color:var(--text);text-decoration:none;padding:8px 6px;border-radius:6px;font-size:0.83em;background:#fff;border:1px solid var(--border);min-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1;max-width:120px;white-space:nowrap;box-sizing:border-box}
+        .page-navigation .nav-link:active{background:rgba(102,126,234,.1);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:600}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 25px;color:#2d3748;line-height:1.8;text-align:center;padding:18px 15px;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,.1);border-left:4px solid var(--brand)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid #ddd;border-radius:8px;background:#f0f4ff;color:var(--brand);font-size:16px;font-weight:600;cursor:pointer;user-select:none}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:#666;margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:15px 0;padding:12px;background:#f7f8ff;border-left:4px solid var(--brand);border-radius:6px;line-height:1.7}
+        .scripture-verses{font-size:0.97em;color:#444;margin:15px 0;padding:12px;background:#fafafa;border:1px solid #e8e8e8;border-radius:6px;line-height:1.7}
+        .verse-line{margin-bottom:10px}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:15px;line-height:1.6}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.10em;font-weight:600;margin:15px 0 10px;color:#222;line-height:1.6;margin-left:10px}
+        .section-level2,.outline-item.level-2{font-size:1.07em;font-weight:560;margin:12px 0 8px;color:#333;line-height:1.6;margin-left:20px}
+        .section-level3,.outline-item.level-3{font-size:1.04em;font-weight:530;margin:10px 0 8px;color:#444;line-height:1.6;margin-left:30px}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:normal;margin:8px 0 6px;color:#555;line-height:1.6;margin-left:40px}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:16px 0;padding-left:8px;text-indent:2em;color:#4a5568;line-height:1.6;font-size:1.00em}
+        @media(min-width:768px){
+            .content-text{padding-left:8px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:24px}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:38px}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:52px}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-32px;top:2px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--border);text-align:center;color:#999;font-size:0.83em}
+        .scripture-toggle-btn{background:rgba(102,126,234,.1);border:1px solid rgba(102,126,234,.3);color:var(--brand);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:6px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:rgba(102,126,234,.2);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:#f8f9fa;border-left:3px solid var(--brand);padding:10px 12px;margin:10px 0 10px 15px;font-size:0.94em;color:#555;line-height:1.8}
+        .scripture-ref{color:#7f8c8d;font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:2;color:#444}
+        .verse-line:last-child{margin-bottom:0}
+        .bottom-control-bar{position:fixed;bottom:0;left:0;right:0;z-index:1000;display:flex;align-items:center;gap:6px;padding:5px 12px max(5px,env(safe-area-inset-bottom));background:rgba(255,255,255,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+        @media(prefers-color-scheme:dark){.bottom-control-bar{background:rgba(30,30,30,.95);border-top-color:rgba(255,255,255,.1)}}
+        .control-btn{min-width:36px;min-height:36px;padding:5px;background:var(--bg);border:none;border-radius:6px;font-size:14px;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 4px rgba(102,126,234,.2);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-muted);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex-shrink:0}
+        .bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:5px;background:var(--bg);border:none;border-radius:6px;font-size:13px;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 4px rgba(102,126,234,.2);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:46px;min-height:32px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            body{padding:6px 6px 60px}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:6px}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:44px;min-height:30px;padding:4px 5px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:55px}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:34px;min-height:34px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:42px;min-height:28px;padding:3px 4px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>冬季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="content">
+            
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">目录</a>
+    <a href="12_cv.htm" class="nav-link active" title="纲目">纲目</a>
+    <a href="12_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="12_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="12_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第12篇 基督要来施行赏罚，照在暗处的灯，以及基督要像晨星暗中向祂的得胜者显现</h2>
+    
+    
+    <div class="hymn-number">RK  诗歌：156</div>
+    
+    
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：启二二12、16，彼后一19</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+            
+                
+                <div class="verse-line">启22:12	看哪，我必快来！赏罚在我，我要照各人所行的报应他。</div>
+                
+            
+                
+                <div class="verse-line">启22:16	我耶稣差遣我的使者，为众召会将这些事向你们作见证。我是大卫的根，又是他的后裔，我是明亮的晨星。</div>
+                
+            
+                
+                <div class="verse-line">彼后1:19	我们并有申言者更确定的话，你们留意这话，如同留意照在暗处的灯，直等到天发亮，晨星在你们心里出现，你们就作得好了；</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="outline-content">
+        
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="outline-item level-1">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                壹　“看哪，我必快来！赏罚在我，我要照各人所行的报应他”—启二二12：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-一">
+            <div class="outline-item level-2">
+                
+                一　“我必快来”（三11，二二7），这是主再三的警告，叫我们重看在祂回来时的赏罚。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启3:11	我必快来，你要持守你所有的，免得有人夺去你的冠冕。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启22:7	看哪，我必快来！凡遵守这书上预言之话的有福了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二">
+            <div class="outline-item level-2">
+                
+                二　当主回来，信徒被提之后，各人都要在基督审判台前接受赏罚—林后五10，林前四5，罗十四10，太十六27。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后5:10	因为我们众人，必要在基督的审判台前显露出来，叫各人按着本身所行的，或善或恶，受到应得的报应。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前4:5	所以在那时以前，什么都不要论断，直等主来，祂要照出暗中的隐情，也要显明人心的意图，那时各人要从神那里得着称赞。</div>
+                    
+                    
+                    
+                    <div class="verse-line">罗14:10	你为什么审判你的弟兄？又为什么轻视你的弟兄？我们都要站在神的审判台前，</div>
+                    
+                    
+                    
+                    <div class="verse-line">太16:27	因为人子要在祂父的荣耀里，同着众天使来临，那时祂要照各人的行为报应各人。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-三">
+            <div class="outline-item level-2">
+                
+                三　启示录二十二章十二节的“赏罚”，原文意，“工价”。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-三" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启22:12	看哪，我必快来！赏罚在我，我要照各人所行的报应他。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四">
+            <div class="outline-item level-2">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-四')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                四　当主再来得着国度的时候，祂要赏赐或责罚一切属祂的人：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-四" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-四-1">
+            <div class="outline-item level-3">
+                
+                1　有些人要受祂的责罚，因为主的话说“赏罚在我”，含示不只有赏，也有罚。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四-2">
+            <div class="outline-item level-3">
+                
+                2　与此一致的，在启示录二十二章七节主宣告说，“我必快来！凡遵守这书上预言之话的有福了。”
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四-3">
+            <div class="outline-item level-3">
+                
+                3　凡遵守启示录预言之话的人有福了，因为他要得赏赐。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四-4">
+            <div class="outline-item level-3">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-四-4')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                4　当那日，我们所得的赏赐，与我们今天的态度很有关系：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-四-4" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-四-4-a">
+            <div class="outline-item level-4">
+                
+                a　林前三章八节说，我们要照自己的劳苦，得自己的赏赐。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-4-a')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四-4-a" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林前3:8	栽种的和浇灌的都是一样，但将来各人要照自己的劳苦，得自己的赏赐。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-四-4-b">
+            <div class="outline-item level-4">
+                
+                b　主耶稣在马太十六章二十七节说，当祂回来时，祂要照我们的行为报应我们。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-4-b')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-四-4-b" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太16:27	因为人子要在祂父的荣耀里，同着众天使来临，那时祂要照各人的行为报应各人。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-五">
+            <div class="outline-item level-2">
+                
+                五　永远的救恩与我们的行为无关，但国度的赏赐，却完全是照我们得救以后凭主生命而有的行为。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-六">
+            <div class="outline-item level-2">
+                
+                六　每一个得救的人，都要在基督的审判台前显露出来，好叫各人按着本身所行的，或善或恶，受到应得的报应；行善的要得赏赐，作恶的要受责罚—林后五10。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-六" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林后5:10	因为我们众人，必要在基督的审判台前显露出来，叫各人按着本身所行的，或善或恶，受到应得的报应。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-七">
+            <div class="outline-item level-2">
+                
+                七　我们都要站在审判台前，把我们过去的生活、行事、为人，统统向主交账；正是为这缘故，即使是使徒保罗都说，他不敢察验自己，但察验他的乃是主—林前四3~4。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-七')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-七" style="display: none;">
+                    
+                    
+                    <div class="verse-line">林前4:3	至于我被你们察验，或被人审判的日子察验，对我都是极小的事，连我也不察验自己。</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前4:4	我虽不觉得自己有错，却也不能因此得称义，但察验我的乃是主。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-八">
+            <div class="outline-item level-2">
+                
+                八　我们得救之后怎样事奉主，怎样为主作工，乃是个大的问题。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-九">
+            <div class="outline-item level-2">
+                
+                九　保罗说，“人在那根基上所建造的工程若存得住，他就要得赏赐”—三14。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-十">
+            <div class="outline-item level-2">
+                
+                十　主回来时，会有一个审判；在那个审判里，祂要决定我们得赏赐或受惩罚。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-十一">
+            <div class="outline-item level-2">
+                
+                十一　这个赏罚要决定于基督的审判台：“我们众人，必要在基督的审判台前显露出来，叫各人按着本身所行的，或善或恶，受到应得的报应”—林后五10。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="outline-item level-1">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                贰　“我们……有申言者更确定的话，你们留意这话，如同留意照在暗处的灯，直等到天发亮，晨星在你们心里出现，你们就作得好了”—彼后一19：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一">
+            <div class="outline-item level-2">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-一')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                一　彼得把经上预言的话比作照在暗处的灯：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-一" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一-1">
+            <div class="outline-item level-3">
+                
+                1　这指明今世乃是黑夜里的暗处（罗十三12），这世上的人都是在黑暗里行走、活动。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">罗13:12	黑夜已深，白昼将近，所以我们当脱去黑暗的行为，穿上光的兵器。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-一-2">
+            <div class="outline-item level-3">
+                
+                2　经上申言者的话犹如信徒的明灯，传输属灵的光（不仅供人心思理解的字句知识），照耀在他们的黑暗里，引导他们进入光明的白昼，甚至经过黑夜，直到主显现的那日，天发亮的时候。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-一-3">
+            <div class="outline-item level-3">
+                
+                3　在主这阳光显出以前，我们需要祂话的光，照耀我们的脚步。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二">
+            <div class="outline-item level-2">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-二')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                二　“天发亮”（彼后一19）是隐喻，说明满了亮光的时候即将来到，如同晴天破晓，有晨星于黎明前在那些蒙光照的信徒心里出现，这些信徒借着留意经上照亮人的预言之话，得了光照而被照明：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼后1:19	我们并有申言者更确定的话，你们留意这话，如同留意照在暗处的灯，直等到天发亮，晨星在你们心里出现，你们就作得好了；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-二" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-二-1">
+            <div class="outline-item level-3">
+                
+                1　在背道的时期，信徒留意这事，就作得好，使申言者的话如同明灯，照透背道的黑暗，直等到天这样向他们发亮。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-2">
+            <div class="outline-item level-3">
+                
+                2　这促使并鼓励他们切切寻求主的同在，并且儆醒，使他们当主在祂来临（巴路西亚）的隐密部分，像贼一样来到时，不至于见不到主。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-3">
+            <div class="outline-item level-3">
+                
+                3　这隐喻必是将来世，国度时代，比作那要在主显现（来临）时（16）发亮的天；那时主是公义的日头（玛四2），祂的光要照耀出来，冲破今世黑夜的幽暗。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">彼后1:16	我们曾将我们主耶稣基督的大能，和祂的来临告诉你们，并不是随从乖巧捏造的虚构无稽之事，乃是作祂威荣的亲眼见证人。</div>
+                    
+                    
+                    
+                    <div class="verse-line">玛4:2	但向你们敬畏我名的人，必有公义的日头升起，其翅膀有医治之能；你们必如圈里的肥牛犊出来跳跃。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-4">
+            <div class="outline-item level-3">
+                
+                4　在这之前，主要在黑夜最深时，像晨星一样（启二28，二二16），向那些儆醒渴望祂可爱显现的人显现（提后四8）。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-二-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启2:28	我又要把晨星赐给他。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启22:16	我耶稣差遣我的使者，为众召会将这些事向你们作见证。我是大卫的根，又是他的后裔，我是明亮的晨星。</div>
+                    
+                    
+                    
+                    <div class="verse-line">提后4:8	从此以后，有公义的冠冕为我存留，就是主，那公义的审判者，在那日要赏赐我的；不但赏赐我，也赏赐凡爱祂显现的人。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-5">
+            <div class="outline-item level-3">
+                
+                5　他们因着申言者之话的照耀蒙了光照，这话能把他们引到那要发亮的天。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-6">
+            <div class="outline-item level-3">
+                
+                6　圣经如灯照在暗处的话，我们若留意，会叫我们在基督作晨星实际显出前，就得着祂在我们心里出现，照耀在我们所处之背道的黑暗中。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-叁">
+            <div class="outline-item level-1">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                叁　“我是大卫的根，又是他的后裔，我是明亮的晨星”—启二二16下：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-一">
+            <div class="outline-item level-2">
+                
+                一　由天上光体所象征的基督，乃是明亮的晨星—16节下。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二">
+            <div class="outline-item level-2">
+                
+                二　基督再来时，对祂的百姓，是升起的日头（玛四2），这是一般的；但对儆醒爱祂的人，乃是晨星，这是特别的。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-二" style="display: none;">
+                    
+                    
+                    <div class="verse-line">玛4:2	但向你们敬畏我名的人，必有公义的日头升起，其翅膀有医治之能；你们必如圈里的肥牛犊出来跳跃。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三">
+            <div class="outline-item level-2">
+                
+                三　晨星将是得胜者的赏赐：“我又要把晨星赐给他”—启二28。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-四">
+            <div class="outline-item level-2">
+                
+                四　基督是大卫的根，也是大卫的后裔，与以色列人和国度有关；祂是明亮的晨星，与召会和被提有关。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-五">
+            <div class="outline-item level-2">
+                
+                五　晨星是在黎明前最黑暗的时刻前出现。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-六">
+            <div class="outline-item level-2">
+                
+                六　大灾难就是这最黑暗的时候，随后，国度的白昼就要破晓；这指明基督要在这世代临近结束前，在最黑暗的时候，出现如明亮的晨星。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-七">
+            <div class="outline-item level-2">
+                
+                七　在国度里，主要像日头，公开向祂的百姓显现；但在大灾难之前，祂要像晨星，暗中向祂的得胜者显现，将他们提走。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-八">
+            <div class="outline-item level-2">
+                
+                八　明亮的晨星，只向儆醒的人显现。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-九">
+            <div class="outline-item level-2">
+                
+                九　松懒的信徒将看不见晨星；他们只能看见在普通一面作日头的基督。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-十">
+            <div class="outline-item level-2">
+                
+                十　儆醒的人将优先尝到祂久离再临之同在的新鲜。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-十一">
+            <div class="outline-item level-2">
+                
+                十一　整本圣经结束于我们对主再来的渴望发表成为祷告。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-十二">
+            <div class="outline-item level-2">
+                
+                十二　使徒约翰在启示录二十二章二十节的祷告，乃是圣经中最后的祷告。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-十三">
+            <div class="outline-item level-2">
+                
+                十三　“见证这些事的说，是的，我必快来！阿们。主耶稣啊，我愿你来！”—20节。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.outline-page {
+    padding: 5px;
+}
+
+/* 字体大小控制 */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.font-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+}
+
+.outline-content {
+    margin-top: 20px;
+}
+
+/* section 样式使用 base.html 统一定义 */
+
+.subsections {
+    margin-left: 0;
+    display: block;
+}
+
+/* toggle-btn 样式已在 base.html 中定义 */
+
+/* 章节级别经文样式 */
+.scripture-section {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.chapter-scripture-content {
+    margin-top: 12px;
+    margin-left: 0;
+    background: white;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const hymnElem = document.querySelector('.hymn-number');
+            if (hymnElem) text += hymnElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const sections = document.querySelectorAll('.section-level');
+            sections.forEach(s => {
+                const t = s.textContent.trim();
+                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+                    text += t + '。';
+                }
+            });
+            return text;
+        }
+    });
+});
+
+function toggleSection(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.classList.add('expanded');
+    } else {
+        element.style.display = 'none';
+        if (button) button.classList.remove('expanded');
+    }
+}
+
+function toggleScripture(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '收起经文';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '展开经文';
+    }
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>202507 冬季训练训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-column">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+                <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+            </div>
+            <select id="rateSelect" class="control-select" title="语速">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    <script src="js/highlight.js"></script>
+    <script src="js/app-update.js"></script>
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var pathname = window.location.pathname;
+                var href = window.location.href;
+                
+                console.log('[页面记忆] 检查页面:', pathname);
+                
+                // 检查是否是主页（支持各种路径格式）
+                var isMainPage = pathname === '/' || 
+                                pathname === '/index.html' ||
+                                pathname === '' ||
+                                // Capacitor 可能使用特殊路径
+                                pathname === '/android_asset/public/index.html' ||
+                                pathname.includes('/public/index.html');
+                
+                // 检查是否是训练目录页
+                // 训练目录的特征：路径中有训练文件夹名（如 2025-04-夏季），且以 index.html 结尾或以 / 结尾
+                // 例如：/2025-04-夏季/index.html 或 /2025-04-夏季/
+                var isTrainingIndex = false;
+                if (!isMainPage) {
+                    // 匹配类似 /2025-04-夏季/index.html 或 /2025-04-夏季/ 的路径
+                    // 但不匹配 /2025-04-夏季/1_cx.htm 这样的内容页
+                    var trainingIndexPattern = /\/\d{4}-\d{2}-[^\/]+\/(index\.html)?$/;
+                    isTrainingIndex = trainingIndexPattern.test(pathname);
+                }
+                
+                console.log('[页面记忆] 页面类型:', {
+                    isMainPage: isMainPage,
+                    isTrainingIndex: isTrainingIndex,
+                    pathname: pathname
+                });
+                
+                // 只保存非主页且非训练目录的页面（即具体的内容页面）
+                if (!isMainPage && !isTrainingIndex) {
+                    localStorage.setItem('cx_last_page', href);
+                    localStorage.setItem('cx_last_page_time', Date.now());
+                    console.log('[页面记忆] ✓ 保存页面:', href);
+                } else {
+                    var reason = isMainPage ? '主页' : (isTrainingIndex ? '训练目录' : '未知');
+                    console.log('[页面记忆] ✗ 跳过保存:', reason);
+                }
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

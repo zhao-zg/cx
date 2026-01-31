@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#667eea">
+    <meta name="app-version" content="0.7.1">
+    <title>第6篇 - 纲目</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        :root{
+            --brand:#667eea;
+            --bg:linear-gradient(135deg,#667eea,#764ba2);
+            --surface:#fff;
+            --muted:#f8f9fa;
+            --border:#e6e8f0;
+            --text:#1f2937;
+            --text-muted:#6b7280;
+        }
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;color:var(--text);background:#f7fafc;min-height:100vh;padding:8px 8px 70px;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-radius:12px}
+        .header{text-align:center;margin-bottom:20px;padding:16px 12px;background:var(--brand);border-radius:8px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:30px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--muted);border-radius:8px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;font-size:0.88em}
+        .nav a{color:var(--brand);text-decoration:none;padding:10px 16px;border-radius:6px;font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--border);font-weight:600}
+        .nav a:active{background:rgba(102,126,234,.1);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:920px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px)}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;min-height:40px;min-width:60px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:10px;padding:12px 16px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease}
+            .highlight-color-btn{width:44px;height:44px}
+            .highlight-clear-btn{min-height:44px;min-width:70px;font-size:15px}
+        }
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }        .page-navigation{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;margin:15px 0;padding:8px;background:var(--muted);border-radius:8px;font-size:0.83em;box-sizing:border-box}
+        .page-navigation .nav-link{color:var(--text);text-decoration:none;padding:8px 6px;border-radius:6px;font-size:0.83em;background:#fff;border:1px solid var(--border);min-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1;max-width:120px;white-space:nowrap;box-sizing:border-box}
+        .page-navigation .nav-link:active{background:rgba(102,126,234,.1);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:600}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 25px;color:#2d3748;line-height:1.8;text-align:center;padding:18px 15px;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,.1);border-left:4px solid var(--brand)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid #ddd;border-radius:8px;background:#f0f4ff;color:var(--brand);font-size:16px;font-weight:600;cursor:pointer;user-select:none}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:#666;margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:15px 0;padding:12px;background:#f7f8ff;border-left:4px solid var(--brand);border-radius:6px;line-height:1.7}
+        .scripture-verses{font-size:0.97em;color:#444;margin:15px 0;padding:12px;background:#fafafa;border:1px solid #e8e8e8;border-radius:6px;line-height:1.7}
+        .verse-line{margin-bottom:10px}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:15px;line-height:1.6}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.10em;font-weight:600;margin:15px 0 10px;color:#222;line-height:1.6;margin-left:10px}
+        .section-level2,.outline-item.level-2{font-size:1.07em;font-weight:560;margin:12px 0 8px;color:#333;line-height:1.6;margin-left:20px}
+        .section-level3,.outline-item.level-3{font-size:1.04em;font-weight:530;margin:10px 0 8px;color:#444;line-height:1.6;margin-left:30px}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:normal;margin:8px 0 6px;color:#555;line-height:1.6;margin-left:40px}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:16px 0;padding-left:8px;text-indent:2em;color:#4a5568;line-height:1.6;font-size:1.00em}
+        @media(min-width:768px){
+            .content-text{padding-left:8px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:24px}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:38px}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:52px}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-32px;top:2px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--border);text-align:center;color:#999;font-size:0.83em}
+        .scripture-toggle-btn{background:rgba(102,126,234,.1);border:1px solid rgba(102,126,234,.3);color:var(--brand);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:6px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:rgba(102,126,234,.2);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:#f8f9fa;border-left:3px solid var(--brand);padding:10px 12px;margin:10px 0 10px 15px;font-size:0.94em;color:#555;line-height:1.8}
+        .scripture-ref{color:#7f8c8d;font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:2;color:#444}
+        .verse-line:last-child{margin-bottom:0}
+        .bottom-control-bar{position:fixed;bottom:0;left:0;right:0;z-index:1000;display:flex;align-items:center;gap:6px;padding:5px 12px max(5px,env(safe-area-inset-bottom));background:rgba(255,255,255,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+        @media(prefers-color-scheme:dark){.bottom-control-bar{background:rgba(30,30,30,.95);border-top-color:rgba(255,255,255,.1)}}
+        .control-btn{min-width:36px;min-height:36px;padding:5px;background:var(--bg);border:none;border-radius:6px;font-size:14px;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 4px rgba(102,126,234,.2);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-muted);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex-shrink:0}
+        .bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:5px;background:var(--bg);border:none;border-radius:6px;font-size:13px;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 4px rgba(102,126,234,.2);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:46px;min-height:32px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:11px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            body{padding:6px 6px 60px}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:6px}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:44px;min-height:30px;padding:4px 5px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:55px}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:34px;min-height:34px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:42px;min-height:28px;padding:3px 4px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>冬季训练</h1>
+            <div class="subtitle">总题：经历、享受并彰显基督</div>
+        </div>
+        
+        <div class="content">
+            
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">目录</a>
+    <a href="6_cv.htm" class="nav-link active" title="纲目">纲目</a>
+    <a href="6_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="6_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="6_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+    
+    <h2 class="chapter-title">第6篇 基督，永远的王，来据有全地并完成神的奥秘</h2>
+    
+    
+    <div class="hymn-number">JL  诗歌：756</div>
+    
+    
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：启十1~7，十一15~18</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+            
+                
+                <div class="verse-line">启10:1	我又看见另一位大力的天使，从天降下，披着云彩，头上有虹，脸面像日头，两脚像火柱，</div>
+                
+            
+                
+                <div class="verse-line">启10:2	手里拿着展开的小书卷，右脚踏在海上，左脚踏在地上，</div>
+                
+            
+                
+                <div class="verse-line">启10:3	大声呼喊，好像狮子吼叫，呼喊完了，就有七雷发声说话。</div>
+                
+            
+                
+                <div class="verse-line">启10:4	七雷说话的时候，我正要写出来，就听见从天上有声音说，七雷所说的你要封上，不可写出来。</div>
+                
+            
+                
+                <div class="verse-line">启10:5	我所看见那站在海上和地上的天使，向天举起右手来，</div>
+                
+            
+                
+                <div class="verse-line">启10:6	指着那创造天和天上之物、地和地上之物、海和海中之物，直活到永永远远的，起誓说，不再耽延了。</div>
+                
+            
+                
+                <div class="verse-line">启10:7	但在第七位天使发声的日子，要吹号的时候，神的奥秘就完成了，正如神所传给祂的奴仆众申言者的福音。</div>
+                
+            
+                
+                <div class="verse-line">启11:15	第七位天使吹号，天上就有大声音说，世上的国，成了我主和祂基督的国，祂要作王，直到永永远远。</div>
+                
+            
+                
+                <div class="verse-line">启11:16	在神面前，坐在自己宝座上的二十四位长老，就面伏于地敬拜神，说，</div>
+                
+            
+                
+                <div class="verse-line">启11:17	今是昔是的主神，全能者啊，我们感谢你，因你仗着你的大能作王了。</div>
+                
+            
+                
+                <div class="verse-line">启11:18	外邦发怒，你的忿怒也临到了，审判死人，和赏赐你的奴仆众申言者、和众圣徒、并敬畏你名的人，大的小的，以及败坏那些败坏地者的时候也到了。</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="outline-content">
+        
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="outline-item level-1">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                壹　启示录十一章十五至十八节和十二章十节指明，我们可以经历并享受基督作永远的王：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启11:15	第七位天使吹号，天上就有大声音说，世上的国，成了我主和祂基督的国，祂要作王，直到永永远远。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启11:16	在神面前，坐在自己宝座上的二十四位长老，就面伏于地敬拜神，说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">启11:17	今是昔是的主神，全能者啊，我们感谢你，因你仗着你的大能作王了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启11:18	外邦发怒，你的忿怒也临到了，审判死人，和赏赐你的奴仆众申言者、和众圣徒、并敬畏你名的人，大的小的，以及败坏那些败坏地者的时候也到了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启12:10	我听见天上有大声音说，我们神的救恩、能力、国度、并祂基督的权柄，现在都来到了，因为那在我们神面前昼夜控告我们弟兄们的控告者，已经被摔下去了。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-一">
+            <div class="outline-item level-2">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-一')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                一　“世上的国，成了我主和祂基督的国，祂要作王，直到永永远远”—十一15下：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-一" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-一-1">
+            <div class="outline-item level-3">
+                
+                1　在吹第七号的时候，不只大灾难要结束，这世代也要结束，神的奥秘要完成（十7），另一世代，就是国度世代（千年国）要开始。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启10:7	但在第七位天使发声的日子，要吹号的时候，神的奥秘就完成了，正如神所传给祂的奴仆众申言者的福音。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-一-2">
+            <div class="outline-item level-3">
+                
+                2　基督回来审判列国之后，世上的国就成了基督的国—但七13~14，二44~45。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">但7:13	我在夜间的异象中观看，见有一位像人子的，驾着天云而来；祂来到亘古常在者那里，被领近祂面前。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但7:14	权柄、荣耀、国度都给了祂，使各族、各国、各方言的人都事奉祂。祂的权柄是永远的权柄，不能废去，祂的国必不毁坏。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但2:44	当那列王在位的日子，天上的神必兴起一国，永不败灭，国权也不留归别民，却要打碎灭绝那一切国；这国必存到永远。</div>
+                    
+                    
+                    
+                    <div class="verse-line">但2:45	你既看见非人手凿出来的一块石头，从山而出，打碎铁、铜、泥、银、金，那就是至大的神把后来必发生的事给王指明。这梦准是这样，这讲解也是可信的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-一-3">
+            <div class="outline-item level-3">
+                
+                3　主要作王，直到永永远远，指主要在千年国和新天新地作王，直到永远—启二二5。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-一-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启22:5	不再有黑夜，他们也不需要灯光日光，因为主神要光照他们；他们要作王，直到永永远远。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二">
+            <div class="outline-item level-2">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-二')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                二　“耶和华啊，你存到永远，你的宝座，存到万代”—哀五19：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-壹-二" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-壹-二-1">
+            <div class="outline-item level-3">
+                
+                1　神永远的所是和祂的宝座，高于祂的慈爱、怜恤和信实—三22~23。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">哀3:22	我们不至消灭，是出于耶和华的慈爱，因祂的怜恤不至断绝；</div>
+                    
+                    
+                    
+                    <div class="verse-line">哀3:23	每早晨这些都是新的；你的信实，极其广大。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二-2">
+            <div class="outline-item level-3">
+                
+                2　神的慈爱和怜恤可能变动，但神的身位和祂的行政永不变动。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-壹-二-3">
+            <div class="outline-item level-3">
+                
+                3　在新耶路撒冷里，神要在祂的身位和行政上完全得着揭示：祂的身位是永远的王，祂的行政是祂那永远、不能震动的国（来十二28，启二二3）；这二者乃是神在对付祂子民的事上不可摇动的根基。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-壹-二-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">来12:28	所以我们既领受了不能震动的国，就当接受恩典，借此得以照神所喜悦的，以虔诚和畏惧事奉神；</div>
+                    
+                    
+                    
+                    <div class="verse-line">启22:3	一切咒诅必不再有。在城里有神和羔羊的宝座；祂的奴仆都要事奉祂，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="outline-item level-1">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                贰　在启示录十章一至七节，我们可以清楚看见基督要来据有全地：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启10:1	我又看见另一位大力的天使，从天降下，披着云彩，头上有虹，脸面像日头，两脚像火柱，</div>
+                    
+                    
+                    
+                    <div class="verse-line">启10:2	手里拿着展开的小书卷，右脚踏在海上，左脚踏在地上，</div>
+                    
+                    
+                    
+                    <div class="verse-line">启10:3	大声呼喊，好像狮子吼叫，呼喊完了，就有七雷发声说话。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启10:4	七雷说话的时候，我正要写出来，就听见从天上有声音说，七雷所说的你要封上，不可写出来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启10:5	我所看见那站在海上和地上的天使，向天举起右手来，</div>
+                    
+                    
+                    
+                    <div class="verse-line">启10:6	指着那创造天和天上之物、地和地上之物、海和海中之物，直活到永永远远的，起誓说，不再耽延了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启10:7	但在第七位天使发声的日子，要吹号的时候，神的奥秘就完成了，正如神所传给祂的奴仆众申言者的福音。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-一">
+            <div class="outline-item level-2">
+                
+                一　在这章里，基督是“另一位大力的天使”（1），如在七章二节，八章三节，十八章一节者。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-一" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启10:1	我又看见另一位大力的天使，从天降下，披着云彩，头上有虹，脸面像日头，两脚像火柱，</div>
+                    
+                    
+                    
+                    <div class="verse-line">启7:2	我又看见另一位天使，从日出之地上来，拿着活神的印；祂向那得着权柄要伤害地和海的四位天使，大声喊着说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">启8:3	另一位天使拿着金香炉，来站在祭坛旁边，有许多香赐给祂，好同众圣徒的祷告献在宝座前的金坛上。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启18:1	这些事以后，我看见另一位有大权柄的天使从天降下，地就因祂的荣耀发光。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二">
+            <div class="outline-item level-2">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-二')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                二　约翰看见另一位天使“从天降下”—十1上：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-二" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-二-1">
+            <div class="outline-item level-3">
+                
+                1　此时基督“从天降下”。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-二-2">
+            <div class="outline-item level-3">
+                
+                2　这异象暗示基督是在来地上的途中。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三">
+            <div class="outline-item level-2">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-三')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                三　基督“披着云彩”—1节中：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-三" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-三-1">
+            <div class="outline-item level-3">
+                
+                1　祂不是“驾着云”，如在十四章十四节，马太二十四章三十节，二十六章六十四节者。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启14:14	我又观看，看哪，有一片白云，云上坐着一位好像人子，头上戴着金冠冕，手里拿着快镰刀。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太24:30	那时，人子的兆头要显在天上，这地的各族都要哀哭；他们要看见人子，带着能力和大荣耀，驾着天上的云而来。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太26:64	耶稣对他说，你说的对了。然而我还要告诉你们，从此以后你们要看见人子，坐在那大能者的右边，驾着天上的云而来。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三-2">
+            <div class="outline-item level-3">
+                
+                2　“驾着云”是公开的来，“披着云彩”是隐密的来。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三-3">
+            <div class="outline-item level-3">
+                
+                3　基督会隐密地来临，直到启示录一章七节和马太二十四章三十节所说，地上的众支派都要看见祂，那时祂才公开地来临。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-三-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启1:7	看哪，祂驾云降临，众目要看见祂，连刺祂的人也要看见祂；地上的众支派都要因祂捶胸哀哭。是的，阿们。</div>
+                    
+                    
+                    
+                    <div class="verse-line">太24:30	那时，人子的兆头要显在天上，这地的各族都要哀哭；他们要看见人子，带着能力和大荣耀，驾着天上的云而来。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三-4">
+            <div class="outline-item level-3">
+                
+                4　甚至在启示录十章的时候，基督的来临仍是隐密的。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三-5">
+            <div class="outline-item level-3">
+                
+                5　祂要一直披裹在云彩里，直到十四章，那时祂要坐在云上，祂的来临就变为公开的。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-三-6">
+            <div class="outline-item level-3">
+                
+                6　借此我们看见，一般所说基督要在大灾难之前来临，是不正确的。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四">
+            <div class="outline-item level-2">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-四')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                四　“头上有虹”—十1下：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-四" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-四-1">
+            <div class="outline-item level-3">
+                
+                1　这里的虹指明基督在审判地并来据有地时，信守神与挪亚关于地所立的约—创九8~17。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">创9:8	神对挪亚和同他一起的儿子说，</div>
+                    
+                    
+                    
+                    <div class="verse-line">创9:9	看哪，我与你们和你们的后裔立约，</div>
+                    
+                    
+                    
+                    <div class="verse-line">创9:10	并与你们这里的一切活物，就是飞鸟、牲畜、走兽，凡从方舟出来地上的活物立约。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创9:11	我与你们立约，凡有血肉的，不再被洪水灭绝，也不再有洪水毁坏地了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创9:12	神说，这是我与你们，并你们这里各样活物所立之约的记号，直到万代：</div>
+                    
+                    
+                    
+                    <div class="verse-line">创9:13	我把虹放在云彩中，这就作我与地立约的记号。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创9:14	我使云彩遮地的时候，必有虹现在云彩中；</div>
+                    
+                    
+                    
+                    <div class="verse-line">创9:15	我便记念我与你们，和各样有血肉的活物所立的约，水就再不泛滥，毁灭一切有血肉的物了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创9:16	虹必现在云彩中，我必观看，记念我与地上各样有血肉的活物所立的永约。</div>
+                    
+                    
+                    
+                    <div class="verse-line">创9:17	神对挪亚说，这就是我与地上一切有血肉之物立约的记号。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-2">
+            <div class="outline-item level-3">
+                
+                2　这也指明基督执行审判，是照着那坐在有虹围绕之宝座上的神—启四2~3。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启4:2	我立刻就在灵里；看哪，有一个宝座安置在天上，又有一位坐在宝座上。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启4:3	那位坐着的，显出来的样子好像碧玉和红宝石，又有虹围着宝座，显出来的样子好像绿宝石。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-3">
+            <div class="outline-item level-3">
+                
+                3　启示录启示，神要审判地和其上一切的居民。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-4">
+            <div class="outline-item level-3">
+                
+                4　彩虹围着祂的宝座，表征神是立约的神，是信实的神，在祂审判地时，要遵守祂所立的约。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-四-5">
+            <div class="outline-item level-3">
+                
+                5　祂不再用洪水审判人，也不再将全人类灭绝，乃要保留一些人，成为新地上的列国荣耀祂—二一24、26。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-5')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-四-5" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启21:24	列国要借着城的光行走，地上的君王必将自己的荣耀带进那城。</div>
+                    
+                    
+                    
+                    <div class="verse-line">启21:26	人必将列国的荣耀尊贵带进那城。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-五">
+            <div class="outline-item level-2">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-五')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                五　“脸面像日头，两脚像火柱”—十1末：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-五" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-五-1">
+            <div class="outline-item level-3">
+                
+                1　在靠近向地上的人公开来临时，基督像日头，不再像在天明前极黑暗时，向爱慕、等候祂的人显为晨星。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-五-2">
+            <div class="outline-item level-3">
+                
+                2　一节的火表征神的圣别（出十九18，来十二29）；基督要照着神的圣别，在地上执行审判。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-五-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-五-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">启10:1	我又看见另一位大力的天使，从天降下，披着云彩，头上有虹，脸面像日头，两脚像火柱，</div>
+                    
+                    
+                    
+                    <div class="verse-line">出19:18	西乃全山冒烟，因为耶和华在火中降在山上。山的烟气上腾，如同烧窑的烟气一般；遍山大大地震动。</div>
+                    
+                    
+                    
+                    <div class="verse-line">来12:29	因为我们的神乃是烈火。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-六">
+            <div class="outline-item level-2">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-六')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                六　“右脚踏在海上，左脚踏在地上”—启十2下：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-六" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-六-1">
+            <div class="outline-item level-3">
+                
+                1　基督将脚踏在海上与地上，就是据有海与地—申十一24，书一3，诗八6~8。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-六-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-六-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">申11:24	凡你们脚掌所踏之地都必归你们；从旷野和利巴嫩，并伯拉河，直到西海，都要作你们的境界。</div>
+                    
+                    
+                    
+                    <div class="verse-line">书1:3	凡你们脚掌所踏之地，我都照着我所应许摩西的话赐给你们了。</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗8:6	你派祂管理你手所造的，使万物，</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗8:7	就是一切的牛羊并田野的兽，</div>
+                    
+                    
+                    
+                    <div class="verse-line">诗8:8	空中的鸟，海里的鱼，凡经行海道的，都服在祂的脚下。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-六-2">
+            <div class="outline-item level-3">
+                
+                2　这指明基督降临是来据有地。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-六-3">
+            <div class="outline-item level-3">
+                
+                3　只有祂配展开神经纶的书卷，也只有祂够资格据有地。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-七">
+            <div class="outline-item level-2">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-七')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                七　“大声呼喊，好像狮子吼叫”—启十3上：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-贰-七" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-贰-七-1">
+            <div class="outline-item level-3">
+                
+                1　狮子的吼叫，像王的忿怒—箴十九12，二十2。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-七-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-贰-七-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">箴19:12	王的忿怒好像狮子吼叫，他的恩宠却如草上的甘露。</div>
+                    
+                    
+                    
+                    <div class="verse-line">箴20:2	王的威吓，如同狮子吼叫；惹动他怒气的，是自害己命。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-贰-七-2">
+            <div class="outline-item level-3">
+                
+                2　这指明全地的王基督被激怒了。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section" id="section-叁">
+            <div class="outline-item level-1">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                叁　“神的奥秘就完成了”—启十7中：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-一">
+            <div class="outline-item level-2">
+                
+                一　从亚当到摩西，以及从摩西到基督这两个时代，每件事都是启示出来的，都是显明的，没有奥秘。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-二">
+            <div class="outline-item level-2">
+                
+                二　将来在千年国和新天新地时代，一切都是显明的，不再有奥秘。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三">
+            <div class="outline-item level-2">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁-三')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                三　从基督到千年国的时代—召会时代，恩典时代—一切都是奥秘：
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-三" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-三-1">
+            <div class="outline-item level-3">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁-三-1')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                1　基督的成为肉体，即奥秘时代的开始，乃是奥秘—提前三16：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三-1')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三-1" style="display: none;">
+                    
+                    
+                    <div class="verse-line">提前3:16	并且，大哉！敬虔的奥秘！这是众所公认的，就是：祂显现于肉体，被称义于灵里，被天使看见，被传于万邦，被信仰于世人中，被接去于荣耀里。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-三-1" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-三-1-a">
+            <div class="outline-item level-4">
+                
+                a　借着基督的成为肉体，无限的神被带进有限的人里面。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三-1-b">
+            <div class="outline-item level-4">
+                
+                b　整个神，不仅是子神，成了肉体；因此，基督成肉体时，乃是整个神显现于肉体。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三-2">
+            <div class="outline-item level-3">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁-三-2')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                2　基督是神的奥秘—西二2：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三-2')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三-2" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:2	要叫他们的心得安慰，在爱里结合一起，以致丰丰富富地在悟性上有充分的确信，能以完全认识神的奥秘，就是基督；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-三-2" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-三-2-a">
+            <div class="outline-item level-4">
+                
+                a　神是奥秘；基督作为神的具体化身彰显神，乃是神的奥秘。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三-2-b">
+            <div class="outline-item level-4">
+                
+                b　基督作为神的奥秘，乃是神的具体化身、解释和说明；神所要作的一切，都与基督有关。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三-2-c">
+            <div class="outline-item level-4">
+                
+                c　神格一切的丰满，都有形有体地居住在基督里；也就是说，三一神的丰满，以有形有体的样子居住在基督里—9节。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三-2-c')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三-2-c" style="display: none;">
+                    
+                    
+                    <div class="verse-line">西2:9	因为神格一切的丰满，都有形有体地居住在基督里面，</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三-3">
+            <div class="outline-item level-3">
+                
+                <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁-三-3')">
+                    <span class="toggle-icon"></span>
+                </button>
+                
+                3　召会是基督的奥秘—弗三4~6：
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三-3')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三-3" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗3:4	你们念了，就能借此明了我对基督的奥秘所有的领悟，</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗3:5	这奥秘在别的世代中，未曾给人们的子孙知道，像如今在灵里启示祂的圣使徒和申言者一样；</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗3:6	就是外邦人在基督耶稣里，借着福音得以同为后嗣，同为一个身体，并同为应许的分享者；</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+            <div class="subsections" id="subsection-叁-三-3" style="display: block;">
+                
+                
+        
+        <div class="section" id="section-叁-三-3-a">
+            <div class="outline-item level-4">
+                
+                a　基督是奥秘；召会作为基督的身体彰显基督，乃是基督的奥秘。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三-3-b">
+            <div class="outline-item level-4">
+                
+                b　这奥秘是神的经纶，就是将那作神具体化身的基督分赐到神所拣选的人里面，为要产生一个身体，作神在基督里具体化身的扩增，使神得着一个团体的彰显。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三-3-c">
+            <div class="outline-item level-4">
+                
+                c　基督与召会是一灵，乃是极大的奥秘—五32。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三-3-c')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三-3-c" style="display: none;">
+                    
+                    
+                    <div class="verse-line">弗5:32	这是极大的奥秘，但我是指着基督与召会说的。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三-4">
+            <div class="outline-item level-3">
+                
+                4　诸天的国（太十三11）、福音（弗六19）、基督的内住（西一27）以及作为奥秘时代结束的圣徒复活和改变形状（林前十五51~52），都是奥秘。
+                
+                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三-4')">展开经文</button>
+                <div class="scripture-content" id="scripture-叁-三-4" style="display: none;">
+                    
+                    
+                    <div class="verse-line">太13:11	祂回答说，因为诸天之国的奥秘，只给你们知道，不给他们知道。</div>
+                    
+                    
+                    
+                    <div class="verse-line">弗6:19	也替我祈求，使我在开口的时候，有发表赐给我，好放胆讲明福音的奥秘，</div>
+                    
+                    
+                    
+                    <div class="verse-line">西1:27	神愿意叫他们知道，这奥秘的荣耀在外邦人中是何等的丰富，就是基督在你们里面成了荣耀的盼望；</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前15:51	看哪，我把一个奥秘告诉你们：我们不是都要睡觉，乃是都要改变，</div>
+                    
+                    
+                    
+                    <div class="verse-line">林前15:52	就是在一刹那，眨眼之间，末次号筒的时候；因号筒要响，死人要复活，成为不朽坏的，我们也要改变。</div>
+                    
+                    
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section" id="section-叁-三-5">
+            <div class="outline-item level-3">
+                
+                5　第七号吹响时，这一切奥秘都要得以完全；因此，神的奥秘就完成了。
+                
+            </div>
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.outline-page {
+    padding: 5px;
+}
+
+/* 字体大小控制 */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.font-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+}
+
+.outline-content {
+    margin-top: 20px;
+}
+
+/* section 样式使用 base.html 统一定义 */
+
+.subsections {
+    margin-left: 0;
+    display: block;
+}
+
+/* toggle-btn 样式已在 base.html 中定义 */
+
+/* 章节级别经文样式 */
+.scripture-section {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.chapter-scripture-content {
+    margin-top: 12px;
+    margin-left: 0;
+    background: white;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const hymnElem = document.querySelector('.hymn-number');
+            if (hymnElem) text += hymnElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            const sections = document.querySelectorAll('.section-level');
+            sections.forEach(s => {
+                const t = s.textContent.trim();
+                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+                    text += t + '。';
+                }
+            });
+            return text;
+        }
+    });
+});
+
+function toggleSection(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.classList.add('expanded');
+    } else {
+        element.style.display = 'none';
+        if (button) button.classList.remove('expanded');
+    }
+}
+
+function toggleScripture(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
+    const button = buttons[0];
+
+    if (element.style.display === 'none' || element.style.display === '') {
+        element.style.display = 'block';
+        if (button) button.textContent = '收起经文';
+    } else {
+        element.style.display = 'none';
+        if (button) button.textContent = '展开经文';
+    }
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>202507 冬季训练训</p>
+        </div>
+    </div>
+
+    <!-- 固定底部控制栏 -->
+    <div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+        <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+            <span class="play-icon">▶</span>
+            <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        
+        <div class="progress-section">
+            <div class="progress-column">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+                <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+            </div>
+            <select id="rateSelect" class="control-select" title="语速">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <button class="control-btn font-btn" id="fontSmaller" title="减小字体">A-</button>
+            <button class="control-btn font-btn" id="fontReset" title="重置字体">A</button>
+            <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
+        </div>
+    </div>
+
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    <script src="js/highlight.js"></script>
+    <script src="js/app-update.js"></script>
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var pathname = window.location.pathname;
+                var href = window.location.href;
+                
+                console.log('[页面记忆] 检查页面:', pathname);
+                
+                // 检查是否是主页（支持各种路径格式）
+                var isMainPage = pathname === '/' || 
+                                pathname === '/index.html' ||
+                                pathname === '' ||
+                                // Capacitor 可能使用特殊路径
+                                pathname === '/android_asset/public/index.html' ||
+                                pathname.includes('/public/index.html');
+                
+                // 检查是否是训练目录页
+                // 训练目录的特征：路径中有训练文件夹名（如 2025-04-夏季），且以 index.html 结尾或以 / 结尾
+                // 例如：/2025-04-夏季/index.html 或 /2025-04-夏季/
+                var isTrainingIndex = false;
+                if (!isMainPage) {
+                    // 匹配类似 /2025-04-夏季/index.html 或 /2025-04-夏季/ 的路径
+                    // 但不匹配 /2025-04-夏季/1_cx.htm 这样的内容页
+                    var trainingIndexPattern = /\/\d{4}-\d{2}-[^\/]+\/(index\.html)?$/;
+                    isTrainingIndex = trainingIndexPattern.test(pathname);
+                }
+                
+                console.log('[页面记忆] 页面类型:', {
+                    isMainPage: isMainPage,
+                    isTrainingIndex: isTrainingIndex,
+                    pathname: pathname
+                });
+                
+                // 只保存非主页且非训练目录的页面（即具体的内容页面）
+                if (!isMainPage && !isTrainingIndex) {
+                    localStorage.setItem('cx_last_page', href);
+                    localStorage.setItem('cx_last_page_time', Date.now());
+                    console.log('[页面记忆] ✓ 保存页面:', href);
+                } else {
+                    var reason = isMainPage ? '主页' : (isTrainingIndex ? '训练目录' : '未知');
+                    console.log('[页面记忆] ✗ 跳过保存:', reason);
+                }
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>
