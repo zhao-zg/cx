@@ -284,12 +284,22 @@
             // 显示更新进度
             this.showUpdateProgress();
 
-            // 清除Service Worker缓存
+            // 步骤1: 清除Service Worker缓存（20%）
             this.clearServiceWorkerCache()
                 .then(function() {
                     console.log('[热更新] 缓存已清除');
-                    this.updateProgress = 50;
+                    this.updateProgress = 20;
                     this.updateUpdateProgress();
+                    this.updateProgressText('正在准备更新...');
+                    
+                    // 步骤2: 预加载关键资源（20% → 80%）
+                    return this.preloadResources(versionInfo);
+                }.bind(this))
+                .then(function() {
+                    console.log('[热更新] 资源预加载完成');
+                    this.updateProgress = 80;
+                    this.updateUpdateProgress();
+                    this.updateProgressText('正在应用更新...');
                     
                     // 保存新的资源版本号
                     const resourceVersion = versionInfo.resource_version || versionInfo.app_version;
@@ -300,6 +310,7 @@
                     
                     this.updateProgress = 100;
                     this.updateUpdateProgress();
+                    this.updateProgressText('更新完成');
                     
                     setTimeout(function() {
                         this.updating = false;
@@ -318,6 +329,80 @@
                     this.hideUpdateProgress();
                     this.showMessage('更新失败: ' + (error.message || '未知错误'));
                 }.bind(this));
+        },
+
+        /**
+         * 预加载关键资源
+         */
+        preloadResources: function(versionInfo) {
+            return new Promise(function(resolve, reject) {
+                // 获取需要更新的文件列表
+                const files = versionInfo.files || [];
+                
+                if (files.length === 0) {
+                    // 没有文件列表，直接完成
+                    resolve();
+                    return;
+                }
+                
+                // 只预加载关键文件（HTML、JS、CSS）
+                const criticalFiles = files.filter(function(file) {
+                    return file.endsWith('.html') || 
+                           file.endsWith('.js') || 
+                           file.endsWith('.css') ||
+                           file === 'index.html' ||
+                           file === 'manifest.json';
+                });
+                
+                console.log('[热更新] 预加载', criticalFiles.length, '个关键文件');
+                
+                if (criticalFiles.length === 0) {
+                    resolve();
+                    return;
+                }
+                
+                // 预加载文件
+                let loaded = 0;
+                const total = Math.min(criticalFiles.length, 20); // 最多预加载20个文件
+                const filesToLoad = criticalFiles.slice(0, total);
+                
+                const loadPromises = filesToLoad.map(function(file) {
+                    return fetch('/' + file, { cache: 'reload' })
+                        .then(function(response) {
+                            loaded++;
+                            // 更新进度：20% → 80%
+                            const progress = 20 + Math.round((loaded / total) * 60);
+                            this.updateProgress = progress;
+                            this.updateUpdateProgress();
+                            return response;
+                        }.bind(this))
+                        .catch(function(error) {
+                            console.warn('[热更新] 预加载失败:', file, error);
+                            loaded++;
+                            return null;
+                        });
+                }.bind(this));
+                
+                Promise.all(loadPromises)
+                    .then(function() {
+                        resolve();
+                    })
+                    .catch(function(error) {
+                        // 即使预加载失败，也继续更新流程
+                        console.warn('[热更新] 部分资源预加载失败:', error);
+                        resolve();
+                    });
+            }.bind(this));
+        },
+
+        /**
+         * 更新进度文本
+         */
+        updateProgressText: function(text) {
+            const progressText = document.querySelector('#hotUpdateProgress .progress-text');
+            if (progressText) {
+                progressText.textContent = text;
+            }
         },
 
         /**
