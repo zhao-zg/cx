@@ -284,20 +284,21 @@
             // 显示更新进度
             this.showUpdateProgress();
 
-            // 步骤1: 清除Service Worker缓存（20%）
+            // 步骤1: 清除旧缓存（10%）
+            this.updateProgressText('正在清理旧缓存...');
             this.clearServiceWorkerCache()
                 .then(function() {
                     console.log('[热更新] 缓存已清除');
-                    this.updateProgress = 20;
+                    this.updateProgress = 10;
                     this.updateUpdateProgress();
-                    this.updateProgressText('正在准备更新...');
                     
-                    // 步骤2: 预加载关键资源（20% → 80%）
-                    return this.preloadResources(versionInfo);
+                    // 步骤2: 预加载核心资源（10% → 90%）
+                    this.updateProgressText('正在下载更新...');
+                    return this.preloadCoreResources(versionInfo);
                 }.bind(this))
                 .then(function() {
-                    console.log('[热更新] 资源预加载完成');
-                    this.updateProgress = 80;
+                    console.log('[热更新] 核心资源已加载');
+                    this.updateProgress = 90;
                     this.updateUpdateProgress();
                     this.updateProgressText('正在应用更新...');
                     
@@ -332,46 +333,29 @@
         },
 
         /**
-         * 预加载关键资源
+         * 预加载核心资源（只加载必需的文件）
          */
-        preloadResources: function(versionInfo) {
+        preloadCoreResources: function(versionInfo) {
             return new Promise(function(resolve, reject) {
-                // 获取需要更新的文件列表
-                const files = versionInfo.files || [];
+                // 核心文件列表（必须预加载的）
+                const coreFiles = [
+                    'index.html',
+                    'manifest.json',
+                    'sw.js',
+                    'version.json'
+                ];
                 
-                if (files.length === 0) {
-                    // 没有文件列表，直接完成
-                    resolve();
-                    return;
-                }
+                console.log('[热更新] 预加载', coreFiles.length, '个核心文件');
                 
-                // 只预加载关键文件（HTML、JS、CSS）
-                const criticalFiles = files.filter(function(file) {
-                    return file.endsWith('.html') || 
-                           file.endsWith('.js') || 
-                           file.endsWith('.css') ||
-                           file === 'index.html' ||
-                           file === 'manifest.json';
-                });
-                
-                console.log('[热更新] 预加载', criticalFiles.length, '个关键文件');
-                
-                if (criticalFiles.length === 0) {
-                    resolve();
-                    return;
-                }
-                
-                // 预加载文件
                 let loaded = 0;
-                const total = Math.min(criticalFiles.length, 20); // 最多预加载20个文件
-                const filesToLoad = criticalFiles.slice(0, total);
+                const total = coreFiles.length;
                 
-                const loadPromises = filesToLoad.map(function(file) {
+                const loadPromises = coreFiles.map(function(file) {
                     return fetch('/' + file, { cache: 'reload' })
                         .then(function(response) {
                             loaded++;
-                            // 更新进度：20% → 80%
-                            const progress = 20 + Math.round((loaded / total) * 60);
+                            // 更新进度：10% → 90%
+                            const progress = 10 + Math.round((loaded / total) * 80);
                             this.updateProgress = progress;
                             this.updateUpdateProgress();
                             return response;
