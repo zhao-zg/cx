@@ -1329,7 +1329,7 @@
                 installStatus.className = 'cache-status';
             }
             
-            // 1. 清理 localStorage（页面记忆、字体设置、语速设置等）
+            // 1. 清理 localStorage（页面记忆、字体设置、语速设置、热更新等）
             try {
                 var keysToRemove = [];
                 for (var i = 0; i < localStorage.length; i++) {
@@ -1340,6 +1340,10 @@
                     }
                     // 清理字体和语速设置
                     if (key === 'fontSize' || key === 'speechRate') {
+                        keysToRemove.push(key);
+                    }
+                    // 清理热更新相关
+                    if (key === 'resource_version' || key === 'pending_hot_update') {
                         keysToRemove.push(key);
                     }
                 }

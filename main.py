@@ -261,9 +261,21 @@ def generate_main_index(config, batch_results):
         })
         total_chapters += result['chapter_count']
     
-    # 按年份和季节排序（最新的在前）
-    season_order = {'春季': 1, '夏季': 2, '秋季': 3, '冬季': 4}
-    trainings.sort(key=lambda x: (x['year'], season_order.get(x['season'], 5)), reverse=True)
+    # 按年份和月份排序（最新的在前）
+    # 从文件夹名称提取年份和月份，如 "2025-07 冬季训练" -> (2025, 7)
+    def get_sort_key(training):
+        # 尝试从path中提取年份和月份
+        import re
+        match = re.match(r'(\d{4})-(\d{2})', training['path'])
+        if match:
+            year = int(match.group(1))
+            month = int(match.group(2))
+            return (year, month)
+        # 降级到使用year和season
+        season_order = {'春季': 1, '夏季': 2, '秋季': 3, '冬季': 4}
+        return (training['year'], season_order.get(training['season'], 5))
+    
+    trainings.sort(key=get_sort_key, reverse=True)
     
     # 渲染模板
     env = Environment(loader=FileSystemLoader(template_dir))

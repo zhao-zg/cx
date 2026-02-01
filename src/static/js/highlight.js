@@ -345,11 +345,11 @@
                 }, 10);
             });
 
-            // 监听文本选择（移动端）
+            // 监听文本选择（移动端）- 优化响应速度
             document.addEventListener('touchend', function(e) {
                 setTimeout(function() {
                     self.handleTextSelection(e);
-                }, 150); // iOS需要更长的延迟
+                }, 50); // 从150ms减少到50ms，提升响应速度
             });
 
             // 监听选择变化（移动端长按选择）- iOS特别需要
@@ -362,7 +362,7 @@
                     if (selection && selection.toString().trim().length > 0) {
                         self.handleTextSelection();
                     }
-                }, 500); // iOS需要更长的延迟
+                }, 200); // 从500ms减少到200ms，提升响应速度
             });
 
             // 点击其他地方隐藏工具栏
