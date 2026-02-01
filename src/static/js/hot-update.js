@@ -50,7 +50,15 @@
                     }
                     
                     // 从localStorage读取资源版本
-                    this.config.resourceVersion = localStorage.getItem('resource_version') || config.version;
+                    // 如果没有，使用 0 作为初始值（确保第一次能检测到更新）
+                    var savedResourceVersion = localStorage.getItem('resource_version');
+                    if (savedResourceVersion) {
+                        this.config.resourceVersion = savedResourceVersion;
+                    } else {
+                        // 首次运行，设置为 0，确保能检测到服务器的时间戳版本
+                        this.config.resourceVersion = '0';
+                        localStorage.setItem('resource_version', '0');
+                    }
                     
                     console.log('[热更新] APK版本:', this.config.currentVersion);
                     console.log('[热更新] 资源版本:', this.config.resourceVersion);
@@ -133,10 +141,36 @@
 
         /**
          * 比较版本号
+         * 支持语义化版本号（0.7.9）和时间戳版本号（20260201234248）
          */
         compareVersion: function(v1, v2) {
-            const parts1 = String(v1).split('.').map(function(n) { return parseInt(n) || 0; });
-            const parts2 = String(v2).split('.').map(function(n) { return parseInt(n) || 0; });
+            const s1 = String(v1);
+            const s2 = String(v2);
+            
+            // 检测是否为时间戳格式（纯数字，长度>=8）或初始值 0
+            const isTimestamp1 = /^\d+$/.test(s1);
+            const isTimestamp2 = /^\d+$/.test(s2);
+            
+            // 如果都是纯数字（时间戳或 0），直接比较数值
+            if (isTimestamp1 && isTimestamp2) {
+                const n1 = parseInt(s1);
+                const n2 = parseInt(s2);
+                if (n1 > n2) return 1;
+                if (n1 < n2) return -1;
+                return 0;
+            }
+            
+            // 如果一个是纯数字，一个是语义化版本号
+            if (isTimestamp1 !== isTimestamp2) {
+                // 时间戳格式的版本号总是比语义化版本号新
+                // 因为时间戳是用于热更新的，而语义化版本号是 APK 版本
+                console.warn('[热更新] 版本号格式不一致:', v1, 'vs', v2, '- 假设时间戳更新');
+                return isTimestamp1 ? 1 : -1;
+            }
+            
+            // 都是语义化版本号，按 . 分割比较
+            const parts1 = s1.split('.').map(function(n) { return parseInt(n) || 0; });
+            const parts2 = s2.split('.').map(function(n) { return parseInt(n) || 0; });
             
             for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
                 const p1 = parts1[i] || 0;
@@ -154,6 +188,8 @@
          */
         showApkUpdateDialog: function(versionInfo) {
             const message = '发现新版本 v' + versionInfo.app_version + '\n\n' +
+                          '当前版本: v' + this.config.currentVersion + '\n' +
+                          '最新版本: v' + versionInfo.app_version + '\n\n' +
                           '此更新需要重新安装APK\n\n' +
                           (versionInfo.changelog || '包含新功能和改进') + '\n\n' +
                           '是否立即下载更新？';
@@ -173,7 +209,22 @@
          */
         showHotUpdateDialog: function(versionInfo) {
             const resourceVersion = versionInfo.resource_version || versionInfo.app_version;
-            const message = '发现内容更新 v' + resourceVersion + '\n\n' +
+            
+            // 格式化时间戳为可读格式
+            let versionDisplay = resourceVersion;
+            if (/^\d{14}$/.test(resourceVersion)) {
+                // 时间戳格式：20260201235132 -> 2026-02-01 23:51
+                const year = resourceVersion.substring(0, 4);
+                const month = resourceVersion.substring(4, 6);
+                const day = resourceVersion.substring(6, 8);
+                const hour = resourceVersion.substring(8, 10);
+                const minute = resourceVersion.substring(10, 12);
+                versionDisplay = year + '-' + month + '-' + day + ' ' + hour + ':' + minute;
+            }
+            
+            const message = '发现内容更新\n\n' +
+                          '当前资源: ' + (this.config.resourceVersion === '0' ? '初始版本' : this.formatResourceVersion(this.config.resourceVersion)) + '\n' +
+                          '最新资源: ' + versionDisplay + '\n\n' +
                           '无需重装，快速更新\n\n' +
                           (versionInfo.changelog || '包含内容更新和优化') + '\n\n' +
                           '是否立即更新？';
@@ -181,6 +232,21 @@
             if (confirm(message)) {
                 this.performHotUpdate(versionInfo);
             }
+        },
+
+        /**
+         * 格式化资源版本号为可读格式
+         */
+        formatResourceVersion: function(version) {
+            if (/^\d{14}$/.test(version)) {
+                const year = version.substring(0, 4);
+                const month = version.substring(4, 6);
+                const day = version.substring(6, 8);
+                const hour = version.substring(8, 10);
+                const minute = version.substring(10, 12);
+                return year + '-' + month + '-' + day + ' ' + hour + ':' + minute;
+            }
+            return version;
         },
 
         /**
