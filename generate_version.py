@@ -40,11 +40,15 @@ def generate_version_file(output_dir='output', app_version=None):
     # 生成资源版本号（时间戳格式）
     resource_version = datetime.now().strftime('%Y%m%d%H%M%S')
     
+    # 生成APK下载URL（从GitHub Releases获取）
+    apk_url = f'https://github.com/zhao-zg/cx/releases/download/v{app_version}/TeHui-v{app_version}.apk'
+    
     # 生成版本信息
     version_info = {
         'app_version': app_version,  # APK版本
         'resource_version': resource_version,  # 资源版本（用于热更新）
         'version': resource_version,  # 兼容旧版本
+        'apk_url': apk_url,  # APK下载地址
         'timestamp': datetime.now().isoformat(),
         'files': files,
         'file_count': len(files),
