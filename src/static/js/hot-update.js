@@ -284,21 +284,12 @@
             // 显示更新进度
             this.showUpdateProgress();
 
-            // 步骤1: 清除旧缓存（5%）
-            this.updateProgressText('正在清理旧缓存...');
-            this.clearServiceWorkerCache()
+            // 步骤1: 不清除缓存，直接更新（0% → 90%）
+            this.updateProgressText('正在检查更新...');
+            this.updateCriticalResources(versionInfo)
                 .then(function() {
-                    console.log('[热更新] 缓存已清除');
-                    this.updateProgress = 5;
-                    this.updateUpdateProgress();
-                    
-                    // 步骤2: 下载所有资源（5% → 95%）
-                    this.updateProgressText('正在下载更新资源...');
-                    return this.downloadAllResources(versionInfo);
-                }.bind(this))
-                .then(function() {
-                    console.log('[热更新] 所有资源已下载');
-                    this.updateProgress = 95;
+                    console.log('[热更新] 关键资源已更新');
+                    this.updateProgress = 90;
                     this.updateUpdateProgress();
                     this.updateProgressText('正在应用更新...');
                     
@@ -333,94 +324,66 @@
         },
 
         /**
-         * 下载所有资源（用于离线阅读）
+         * 更新关键资源（只更新必需的文件，其他文件由 Service Worker 按需更新）
          */
-        downloadAllResources: function(versionInfo) {
+        updateCriticalResources: function(versionInfo) {
             return new Promise(function(resolve, reject) {
-                // 获取所有文件列表
-                const files = versionInfo.files || [];
+                // 关键文件列表（必须立即更新的）
+                const criticalFiles = [
+                    'index.html',
+                    'manifest.json',
+                    'sw.js',
+                    'version.json'
+                ];
                 
-                if (files.length === 0) {
-                    console.warn('[热更新] 没有文件列表');
-                    resolve();
-                    return;
-                }
-                
-                console.log('[热更新] 开始下载', files.length, '个文件');
+                console.log('[热更新] 更新', criticalFiles.length, '个关键文件');
                 
                 let loaded = 0;
-                const total = files.length;
-                let failedCount = 0;
+                const total = criticalFiles.length;
                 
-                // 分批下载，避免同时发起太多请求
-                const batchSize = 10; // 每批下载10个文件
-                const batches = [];
+                const loadPromises = criticalFiles.map(function(file) {
+                    return fetch('/' + file, { 
+                        cache: 'reload',
+                        mode: 'cors'
+                    })
+                        .then(function(response) {
+                            if (!response.ok) {
+                                throw new Error('HTTP ' + response.status);
+                            }
+                            loaded++;
+                            // 更新进度：0% → 90%
+                            const progress = Math.round((loaded / total) * 90);
+                            this.updateProgress = progress;
+                            this.updateUpdateProgress();
+                            
+                            // 强制缓存到 Service Worker
+                            return caches.open('cx-main-' + Date.now()).then(function(cache) {
+                                return cache.put('/' + file, response.clone()).then(function() {
+                                    return response;
+                                });
+                            });
+                        }.bind(this))
+                        .catch(function(error) {
+                            console.warn('[热更新] 更新失败:', file, error);
+                            loaded++;
+                            return null;
+                        });
+                }.bind(this));
                 
-                for (let i = 0; i < files.length; i += batchSize) {
-                    batches.push(files.slice(i, i + batchSize));
-                }
-                
-                // 顺序处理每一批
-                const processBatch = function(batchIndex) {
-                    if (batchIndex >= batches.length) {
-                        // 所有批次完成
-                        if (failedCount > 0) {
-                            console.warn('[热更新] 完成，但有', failedCount, '个文件下载失败');
-                        } else {
-                            console.log('[热更新] 所有文件下载成功');
+                Promise.all(loadPromises)
+                    .then(function() {
+                        // 通知 Service Worker 更新
+                        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                            navigator.serviceWorker.controller.postMessage({
+                                type: 'SKIP_WAITING'
+                            });
                         }
                         resolve();
-                        return;
-                    }
-                    
-                    const batch = batches[batchIndex];
-                    const batchPromises = batch.map(function(file) {
-                        return fetch('/' + file, { 
-                            cache: 'reload',
-                            mode: 'cors'
-                        })
-                            .then(function(response) {
-                                if (!response.ok) {
-                                    throw new Error('HTTP ' + response.status);
-                                }
-                                loaded++;
-                                // 更新进度：5% → 95%
-                                const progress = 5 + Math.round((loaded / total) * 90);
-                                this.updateProgress = progress;
-                                this.updateUpdateProgress();
-                                
-                                // 更新文本显示
-                                if (loaded % 10 === 0 || loaded === total) {
-                                    this.updateProgressText('正在下载更新资源... (' + loaded + '/' + total + ')');
-                                }
-                                
-                                return response;
-                            }.bind(this))
-                            .catch(function(error) {
-                                console.warn('[热更新] 下载失败:', file, error);
-                                failedCount++;
-                                loaded++;
-                                return null;
-                            });
-                    }.bind(this));
-                    
-                    // 等待当前批次完成，然后处理下一批
-                    Promise.all(batchPromises)
-                        .then(function() {
-                            // 短暂延迟，避免请求过快
-                            setTimeout(function() {
-                                processBatch(batchIndex + 1);
-                            }, 100);
-                        })
-                        .catch(function(error) {
-                            console.error('[热更新] 批次处理失败:', error);
-                            processBatch(batchIndex + 1); // 继续下一批
-                        });
-                }.bind(this);
-                
-                // 开始处理第一批
-                processBatch(0);
-                
+                    })
+                    .catch(function(error) {
+                        console.error('[热更新] 更新失败:', error);
+                        reject(error);
+                    });
             }.bind(this));
         },
 
