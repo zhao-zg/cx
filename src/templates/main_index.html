@@ -441,12 +441,21 @@
                         clickCount = 0;
                     }, 5000);
                     
-                    // 点击 8 次触发 APK 更新检查（降低门槛）
+                    // 点击 8 次触发更新检查（优先热更新）
                     if (clickCount >= 8) {
                         clickCount = 0;
                         if (clickTimer) clearTimeout(clickTimer);
-                        console.log('=== 触发 APK 更新检查 ===');
-                        checkApkUpdate();
+                        console.log('=== 触发更新检查 ===');
+                        
+                        // 优先使用热更新功能
+                        if (window.HotUpdate) {
+                            window.HotUpdate.checkForUpdate(true);
+                        } else if (window.AppUpdate) {
+                            window.AppUpdate.checkForUpdate(true);
+                        } else {
+                            // 降级到原有的检查方式
+                            checkApkUpdate();
+                        }
                     }
                 });
             } else {

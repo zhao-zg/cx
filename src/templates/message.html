@@ -126,14 +126,17 @@ window.addEventListener('DOMContentLoaded', function() {
                     if (t) text += t + '。';
                 }
                 // 读取 section 内容
-                const paragraphs = section.querySelectorAll(':scope > .section-content > .content-text');
-                paragraphs.forEach(p => {
-                    const t = p.textContent.trim();
-                    if (t) text += t + '。';
-                });
+                const sectionContent = section.querySelector('.section-content');
+                if (sectionContent) {
+                    const paragraphs = sectionContent.querySelectorAll('.content-text');
+                    paragraphs.forEach(p => {
+                        const t = p.textContent.trim();
+                        if (t) text += t + '。';
+                    });
+                }
             });
 
-            // 如果没有 section 结构，直接读取所有 message-text
+            // 如果没有 section 结构，直接读取所有 content-text
             if (sections.length === 0) {
                 const paragraphs = document.querySelectorAll('.content-text');
                 paragraphs.forEach(p => {

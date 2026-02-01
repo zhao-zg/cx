@@ -7,7 +7,7 @@ import json
 import os
 from datetime import datetime
 
-def generate_version_file(output_dir='output'):
+def generate_version_file(output_dir='output', app_version=None):
     """生成 version.json 文件"""
     
     # 获取所有文件列表
@@ -18,12 +18,37 @@ def generate_version_file(output_dir='output'):
                 rel_path = os.path.relpath(os.path.join(root, filename), output_dir)
                 files.append(rel_path.replace('\\', '/'))
     
+    # 读取app_config.json获取APK版本
+    if app_version is None:
+        try:
+            # 先尝试从output目录读取
+            config_file = os.path.join(output_dir, 'app_config.json')
+            if not os.path.exists(config_file):
+                # 如果不存在，尝试从根目录读取
+                config_file = 'app_config.json'
+            
+            if os.path.exists(config_file):
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    app_version = config.get('version', '0.0.0')
+            else:
+                app_version = '0.0.0'
+        except Exception as e:
+            print(f"⚠ 无法读取app_config.json: {e}")
+            app_version = '0.0.0'
+    
+    # 生成资源版本号（时间戳格式）
+    resource_version = datetime.now().strftime('%Y%m%d%H%M%S')
+    
     # 生成版本信息
     version_info = {
-        'version': datetime.now().strftime('%Y%m%d%H%M%S'),
+        'app_version': app_version,  # APK版本
+        'resource_version': resource_version,  # 资源版本（用于热更新）
+        'version': resource_version,  # 兼容旧版本
         'timestamp': datetime.now().isoformat(),
         'files': files,
-        'file_count': len(files)
+        'file_count': len(files),
+        'changelog': '包含内容更新和优化'  # 可以从环境变量或参数读取
     }
     
     # 保存到文件
@@ -32,10 +57,12 @@ def generate_version_file(output_dir='output'):
         json.dump(version_info, f, ensure_ascii=False, indent=2)
     
     print(f"✓ 版本文件已生成: {version_file}")
-    print(f"  版本号: {version_info['version']}")
+    print(f"  APK版本: {version_info['app_version']}")
+    print(f"  资源版本: {version_info['resource_version']}")
     print(f"  文件数: {version_info['file_count']}")
     
     return version_info
 
 if __name__ == '__main__':
     generate_version_file()
+

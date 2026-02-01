@@ -13,8 +13,7 @@
                 yellow: '#fff59d',
                 green: '#a5d6a7',
                 blue: '#90caf9',
-                pink: '#f48fb1',
-                orange: '#ffcc80'
+                pink: '#f48fb1'
             },
             defaultColor: 'yellow'
         },
@@ -282,16 +281,33 @@
             toolbar.className = 'highlight-toolbar';
             toolbar.style.display = 'none';
             
+            // 阻止工具栏上的触摸事件冒泡，避免触发文本选择取消
+            toolbar.addEventListener('touchstart', function(e) {
+                e.stopPropagation();
+            });
+            
+            toolbar.addEventListener('touchend', function(e) {
+                e.stopPropagation();
+            });
+            
             // 颜色按钮
             Object.keys(this.config.colors).forEach(function(colorName) {
                 const btn = document.createElement('button');
                 btn.className = 'highlight-color-btn';
                 btn.style.backgroundColor = this.config.colors[colorName];
                 btn.title = '划线 - ' + colorName;
-                btn.onclick = function() {
+                
+                // 使用 touchend 和 click 双重事件，确保iOS兼容
+                const handleClick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     this.addHighlight(colorName);
                     toolbar.style.display = 'none';
                 }.bind(this);
+                
+                btn.addEventListener('touchend', handleClick);
+                btn.addEventListener('click', handleClick);
+                
                 toolbar.appendChild(btn);
             }.bind(this));
 
@@ -299,11 +315,18 @@
             const clearBtn = document.createElement('button');
             clearBtn.className = 'highlight-clear-btn';
             clearBtn.textContent = '清除';
-            clearBtn.title = '清除所有划线';
-            clearBtn.onclick = function() {
+            clearBtn.title = '清除本页所有划线';
+            
+            const handleClearClick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 this.clearAllHighlights();
                 toolbar.style.display = 'none';
             }.bind(this);
+            
+            clearBtn.addEventListener('touchend', handleClearClick);
+            clearBtn.addEventListener('click', handleClearClick);
+            
             toolbar.appendChild(clearBtn);
 
             document.body.appendChild(toolbar);
@@ -326,16 +349,20 @@
             document.addEventListener('touchend', function(e) {
                 setTimeout(function() {
                     self.handleTextSelection(e);
-                }, 100); // 移动端需要更长的延迟
+                }, 150); // iOS需要更长的延迟
             });
 
-            // 监听选择变化（移动端长按选择）
+            // 监听选择变化（移动端长按选择）- iOS特别需要
+            let selectionChangeTimer = null;
             document.addEventListener('selectionchange', function() {
                 // 使用防抖，避免频繁触发
-                clearTimeout(self.selectionTimeout);
-                self.selectionTimeout = setTimeout(function() {
-                    self.handleTextSelection();
-                }, 300);
+                clearTimeout(selectionChangeTimer);
+                selectionChangeTimer = setTimeout(function() {
+                    const selection = window.getSelection();
+                    if (selection && selection.toString().trim().length > 0) {
+                        self.handleTextSelection();
+                    }
+                }, 500); // iOS需要更长的延迟
             });
 
             // 点击其他地方隐藏工具栏
@@ -352,7 +379,13 @@
                 if (toolbar && !toolbar.contains(e.target)) {
                     // 检查是否点击的是已划线的文本
                     if (!e.target.classList.contains('cx-highlight')) {
-                        toolbar.style.display = 'none';
+                        // iOS需要延迟隐藏，避免干扰选择
+                        setTimeout(function() {
+                            const selection = window.getSelection();
+                            if (!selection || selection.toString().trim().length === 0) {
+                                toolbar.style.display = 'none';
+                            }
+                        }, 100);
                     }
                 }
             });
@@ -369,30 +402,38 @@
 
             // 移动端长按删除划线
             let longPressTimer;
+            let longPressTarget = null;
+            
             document.addEventListener('touchstart', function(e) {
                 if (e.target.classList.contains('cx-highlight')) {
+                    longPressTarget = e.target;
+                    const targetId = e.target.dataset.highlightId;
                     longPressTimer = setTimeout(function() {
-                        const id = e.target.dataset.highlightId;
-                        if (id && confirm('删除这个划线？')) {
-                            self.removeHighlight(id);
+                        if (longPressTarget && targetId) {
+                            if (confirm('删除这个划线？')) {
+                                self.removeHighlight(targetId);
+                            }
                         }
+                        longPressTarget = null;
                     }, 800); // 长按800ms
                 }
             });
 
             document.addEventListener('touchend', function() {
                 clearTimeout(longPressTimer);
+                longPressTarget = null;
             });
 
             document.addEventListener('touchmove', function() {
                 clearTimeout(longPressTimer);
+                longPressTarget = null;
             });
         },
 
         /**
          * 处理文本选择
          */
-        handleTextSelection: function(event) {
+        handleTextSelection: function() {
             const toolbar = document.getElementById('highlightToolbar');
             if (!toolbar) return;
 
@@ -421,31 +462,43 @@
                         toolbar.style.left = '50%';
                         toolbar.style.top = 'auto';
                         toolbar.style.transform = 'translateX(-50%)';
+                        toolbar.style.zIndex = '10000'; // 确保在最上层
                         toolbar.style.display = 'flex';
+                        
+                        // iOS需要强制重绘
+                        toolbar.style.opacity = '0.99';
+                        setTimeout(function() {
+                            toolbar.style.opacity = '1';
+                        }, 10);
                     } else {
-                        // 桌面端：显示在选择区域附近
+                        // 桌面端：使用 requestAnimationFrame 确保流畅显示
                         const rect = range.getBoundingClientRect();
                         
                         toolbar.style.position = 'absolute';
                         toolbar.style.transform = 'none';
-                        
-                        // 计算工具栏位置
-                        let top = rect.top - toolbar.offsetHeight - 10 + window.scrollY;
-                        let left = rect.left + (rect.width / 2) - (toolbar.offsetWidth / 2);
-                        
-                        // 确保工具栏不超出屏幕
-                        const maxLeft = window.innerWidth - toolbar.offsetWidth - 10;
-                        const minLeft = 10;
-                        left = Math.max(minLeft, Math.min(left, maxLeft));
-                        
-                        // 如果工具栏会超出顶部，显示在选择区域下方
-                        if (top < 10) {
-                            top = rect.bottom + 10 + window.scrollY;
-                        }
-                        
                         toolbar.style.display = 'flex';
-                        toolbar.style.left = left + 'px';
-                        toolbar.style.top = top + 'px';
+                        toolbar.style.opacity = '0'; // 先设为透明
+                        
+                        // 使用 requestAnimationFrame 在下一帧计算位置
+                        requestAnimationFrame(() => {
+                            // 计算工具栏位置
+                            let top = rect.top - toolbar.offsetHeight - 10 + window.scrollY;
+                            let left = rect.left + (rect.width / 2) - (toolbar.offsetWidth / 2);
+                            
+                            // 确保工具栏不超出屏幕
+                            const maxLeft = window.innerWidth - toolbar.offsetWidth - 10;
+                            const minLeft = 10;
+                            left = Math.max(minLeft, Math.min(left, maxLeft));
+                            
+                            // 如果工具栏会超出顶部，显示在选择区域下方
+                            if (top < 10) {
+                                top = rect.bottom + 10 + window.scrollY;
+                            }
+                            
+                            toolbar.style.left = left + 'px';
+                            toolbar.style.top = top + 'px';
+                            toolbar.style.opacity = '1'; // 位置设置完成后显示
+                        });
                     }
                 } catch (e) {
                     console.warn('[划线] 无法显示工具栏:', e);

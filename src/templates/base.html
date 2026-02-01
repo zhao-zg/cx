@@ -39,17 +39,17 @@
         .content{max-width:920px;margin:0 auto}
         .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s}
         .cx-highlight:hover{opacity:.8}
-        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px)}
-        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
         .highlight-color-btn:hover{transform:scale(1.1)}
         .highlight-color-btn:active{transform:scale(.95)}
-        .highlight-clear-btn{padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;min-height:40px;min-width:60px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap}
+        .highlight-clear-btn{padding:6px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
         .highlight-clear-btn:hover{opacity:.9}
         .highlight-clear-btn:active{transform:scale(.95)}
         @media(max-width:768px){
-            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:10px;padding:12px 16px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease}
-            .highlight-color-btn{width:44px;height:44px}
-            .highlight-clear-btn{min-height:44px;min-width:70px;font-size:15px}
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
         }
         @keyframes slideUp{
             from{transform:translate(-50%,100%);opacity:0}
@@ -199,6 +199,7 @@
     <script src="js/font-control.js"></script>
     <script src="js/highlight.js"></script>
     <script src="js/app-update.js"></script>
+    <script src="js/hot-update.js"></script>
     
     <!-- 页面记忆功能 -->
     <script>

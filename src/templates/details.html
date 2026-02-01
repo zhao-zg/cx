@@ -169,11 +169,13 @@ window.addEventListener('DOMContentLoaded', function() {
             const scriptureElem = document.querySelector('.scripture');
             if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
 
+            // 读取所有内容文本
             const contentTexts = document.querySelectorAll('.content-text');
             contentTexts.forEach(p => {
                 const t = p.textContent.trim();
                 if (t) text += t + '。';
             });
+            
             return text;
         }
     });

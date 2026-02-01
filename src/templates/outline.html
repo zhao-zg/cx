@@ -150,13 +150,24 @@ window.addEventListener('DOMContentLoaded', function() {
             const scriptureElem = document.querySelector('.scripture');
             if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
 
-            const sections = document.querySelectorAll('.section-level');
-            sections.forEach(s => {
-                const t = s.textContent.trim();
-                if (t && !t.includes('展开经文') && !t.includes('收起经文')) {
+            // 读取所有纲目项目
+            const outlineItems = document.querySelectorAll('.outline-item');
+            outlineItems.forEach(item => {
+                // 获取纲目文本，排除按钮和经文内容
+                const clone = item.cloneNode(true);
+                // 移除按钮
+                const buttons = clone.querySelectorAll('button');
+                buttons.forEach(btn => btn.remove());
+                // 移除经文内容
+                const scriptures = clone.querySelectorAll('.scripture-content');
+                scriptures.forEach(sc => sc.remove());
+                
+                const t = clone.textContent.trim();
+                if (t) {
                     text += t + '。';
                 }
             });
+            
             return text;
         }
     });
