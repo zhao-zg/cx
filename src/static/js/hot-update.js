@@ -50,18 +50,37 @@
                     }
                     
                     // 从localStorage读取资源版本
-                    // 如果没有，使用 0 作为初始值（确保第一次能检测到更新）
                     var savedResourceVersion = localStorage.getItem('resource_version');
-                    if (savedResourceVersion) {
-                        this.config.resourceVersion = savedResourceVersion;
-                    } else {
-                        // 首次运行，设置为 0，确保能检测到服务器的时间戳版本
-                        this.config.resourceVersion = '0';
-                        localStorage.setItem('resource_version', '0');
-                    }
                     
-                    console.log('[热更新] APK版本:', this.config.currentVersion);
-                    console.log('[热更新] 资源版本:', this.config.resourceVersion);
+                    if (savedResourceVersion) {
+                        // 已有保存的资源版本
+                        this.config.resourceVersion = savedResourceVersion;
+                        console.log('[热更新] APK版本:', this.config.currentVersion);
+                        console.log('[热更新] 资源版本:', this.config.resourceVersion);
+                    } else {
+                        // 首次运行，尝试从内置的 version.json 读取初始资源版本
+                        console.log('[热更新] 首次运行，读取内置资源版本...');
+                        fetch('/version.json')
+                            .then(function(response) {
+                                return response.json();
+                            })
+                            .then(function(versionInfo) {
+                                // 使用内置的资源版本号
+                                var initialResourceVersion = versionInfo.resource_version || '0';
+                                this.config.resourceVersion = initialResourceVersion;
+                                localStorage.setItem('resource_version', initialResourceVersion);
+                                console.log('[热更新] APK版本:', this.config.currentVersion);
+                                console.log('[热更新] 初始资源版本:', this.config.resourceVersion);
+                            }.bind(this))
+                            .catch(function(error) {
+                                // 如果读取失败，使用 0 作为初始值
+                                console.warn('[热更新] 无法读取内置 version.json:', error);
+                                this.config.resourceVersion = '0';
+                                localStorage.setItem('resource_version', '0');
+                                console.log('[热更新] APK版本:', this.config.currentVersion);
+                                console.log('[热更新] 资源版本（默认）:', this.config.resourceVersion);
+                            }.bind(this));
+                    }
                 }.bind(this))
                 .catch(function(error) {
                     console.error('[热更新] 加载配置失败:', error);
