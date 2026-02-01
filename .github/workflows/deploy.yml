@@ -61,8 +61,21 @@ jobs:
           echo "🔨 生成静态文件..."
           python main.py
           
+          echo "📋 生成版本信息..."
+          python generate_version.py
+          
           echo "📋 检查生成的文件..."
           ls -la output/
+          
+          echo "📄 检查 version.json 是否存在..."
+          if [ -f output/version.json ]; then
+            echo "✓ version.json 文件存在"
+            echo "内容预览:"
+            cat output/version.json | head -20
+          else
+            echo "⚠️ version.json 文件不存在"
+          fi
+          
           echo "📄 检查 sw.js 是否存在..."
           if [ -f output/sw.js ]; then
             echo "✓ sw.js 文件存在"

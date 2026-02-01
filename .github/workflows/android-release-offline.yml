@@ -85,6 +85,21 @@ jobs:
         du -sh output/
         find output/ -type f | wc -l
         echo "文件总数"
+        
+    - name: 生成版本信息文件
+      run: |
+        echo "=== 生成版本信息文件 ==="
+        python generate_version.py
+        echo "✓ 版本信息文件已生成"
+        
+        # 验证 version.json
+        if [ -f "output/version.json" ]; then
+          echo ""
+          echo "=== version.json 内容 ==="
+          cat output/version.json | head -20
+        else
+          echo "⚠️ 警告: version.json 未生成"
+        fi
     
     - name: 添加 Android 平台
       run: |
