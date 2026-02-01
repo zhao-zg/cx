@@ -92,6 +92,10 @@ jobs:
         python generate_version.py
         echo "✓ 版本信息文件已生成"
         
+        echo "=== 生成热更新包 ==="
+        python generate_hot_update_package.py
+        echo "✓ 热更新包已生成"
+        
         # 验证 version.json
         if [ -f "output/version.json" ]; then
           echo ""
@@ -100,6 +104,11 @@ jobs:
         else
           echo "⚠️ 警告: version.json 未生成"
         fi
+        
+        # 验证热更新包
+        echo ""
+        echo "=== 热更新包 ==="
+        ls -lh output/*.zip || echo "⚠️ 警告: 热更新包未生成"
     
     - name: 添加 Android 平台
       run: |

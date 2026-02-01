@@ -269,7 +269,7 @@
         },
 
         /**
-         * 执行热更新
+         * 执行热更新（使用 ZIP 包）
          */
         performHotUpdate: function(versionInfo) {
             if (this.updating) {
@@ -284,7 +284,235 @@
             // 显示更新进度
             this.showUpdateProgress();
 
-            // 步骤1: 不清除缓存，直接更新（0% → 90%）
+            // 检查是否有热更新包
+            const hotUpdateUrl = versionInfo.hot_update_url;
+            const hotUpdateSize = versionInfo.hot_update_size || 0;
+            
+            if (!hotUpdateUrl) {
+                console.warn('[热更新] 没有热更新包，使用传统方式');
+                this.performTraditionalUpdate(versionInfo);
+                return;
+            }
+            
+            console.log('[热更新] 下载热更新包:', hotUpdateUrl);
+            this.updateProgressText('正在下载更新包...');
+            
+            // 步骤1: 下载 ZIP 包（0% → 50%）
+            this.downloadHotUpdatePackage(hotUpdateUrl, hotUpdateSize)
+                .then(function(zipBlob) {
+                    console.log('[热更新] 下载完成，开始解压...');
+                    this.updateProgress = 50;
+                    this.updateUpdateProgress();
+                    this.updateProgressText('正在解压更新包...');
+                    
+                    // 步骤2: 解压 ZIP 包（50% → 90%）
+                    return this.extractHotUpdatePackage(zipBlob);
+                }.bind(this))
+                .then(function() {
+                    console.log('[热更新] 解压完成');
+                    this.updateProgress = 90;
+                    this.updateUpdateProgress();
+                    this.updateProgressText('正在应用更新...');
+                    
+                    // 保存新的资源版本号
+                    const resourceVersion = versionInfo.resource_version || versionInfo.app_version;
+                    localStorage.setItem('resource_version', resourceVersion);
+                    
+                    // 标记有待应用的更新
+                    localStorage.setItem('pending_hot_update', 'true');
+                    
+                    this.updateProgress = 100;
+                    this.updateUpdateProgress();
+                    this.updateProgressText('更新完成');
+                    
+                    setTimeout(function() {
+                        this.updating = false;
+                        this.hideUpdateProgress();
+                        this.showMessage('更新完成，即将重启应用...', 1500);
+                        
+                        // 重载页面应用更新
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1500);
+                    }.bind(this), 500);
+                }.bind(this))
+                .catch(function(error) {
+                    console.error('[热更新] 更新失败:', error);
+                    this.updating = false;
+                    this.hideUpdateProgress();
+                    this.showMessage('更新失败: ' + (error.message || '未知错误'));
+                }.bind(this));
+        },
+
+        /**
+         * 下载热更新包
+         */
+        downloadHotUpdatePackage: function(url, totalSize) {
+            return new Promise(function(resolve, reject) {
+                // 构建完整 URL
+                const fullUrl = this.config.versionUrl.replace('version.json', url);
+                
+                console.log('[热更新] 下载地址:', fullUrl);
+                
+                fetch(fullUrl)
+                    .then(function(response) {
+                        if (!response.ok) {
+                            throw new Error('HTTP ' + response.status);
+                        }
+                        
+                        const contentLength = response.headers.get('content-length');
+                        const total = contentLength ? parseInt(contentLength) : totalSize;
+                        
+                        if (!response.body) {
+                            // 不支持流式下载，直接返回 blob
+                            return response.blob();
+                        }
+                        
+                        // 支持流式下载，显示进度
+                        const reader = response.body.getReader();
+                        const chunks = [];
+                        let loaded = 0;
+                        
+                        const self = this;
+                        function readChunk() {
+                            return reader.read().then(function(result) {
+                                if (result.done) {
+                                    return new Blob(chunks);
+                                }
+                                
+                                chunks.push(result.value);
+                                loaded += result.value.length;
+                                
+                                // 更新进度：0% → 50%
+                                if (total > 0) {
+                                    const progress = Math.round((loaded / total) * 50);
+                                    self.updateProgress = progress;
+                                    self.updateUpdateProgress();
+                                    
+                                    // 更新文本
+                                    const loadedMB = (loaded / 1024 / 1024).toFixed(2);
+                                    const totalMB = (total / 1024 / 1024).toFixed(2);
+                                    self.updateProgressText('正在下载更新包... (' + loadedMB + '/' + totalMB + ' MB)');
+                                }
+                                
+                                return readChunk();
+                            });
+                        }
+                        
+                        return readChunk();
+                    }.bind(this))
+                    .then(function(blob) {
+                        resolve(blob);
+                    })
+                    .catch(function(error) {
+                        reject(error);
+                    });
+            }.bind(this));
+        },
+
+        /**
+         * 解压热更新包
+         */
+        extractHotUpdatePackage: function(zipBlob) {
+            return new Promise(function(resolve, reject) {
+                // 检查 JSZip 是否可用
+                if (typeof JSZip === 'undefined') {
+                    reject(new Error('JSZip 库未加载'));
+                    return;
+                }
+                
+                console.log('[热更新] 开始解压，大小:', (zipBlob.size / 1024 / 1024).toFixed(2), 'MB');
+                
+                const zip = new JSZip();
+                
+                zip.loadAsync(zipBlob)
+                    .then(function(zipContent) {
+                        const files = Object.keys(zipContent.files);
+                        console.log('[热更新] ZIP 包含', files.length, '个文件');
+                        
+                        let processed = 0;
+                        const total = files.length;
+                        
+                        // 打开缓存
+                        return caches.open('cx-main-' + Date.now()).then(function(cache) {
+                            // 逐个解压并缓存文件
+                            const processFile = function(index) {
+                                if (index >= files.length) {
+                                    return Promise.resolve();
+                                }
+                                
+                                const fileName = files[index];
+                                const file = zipContent.files[fileName];
+                                
+                                if (file.dir) {
+                                    // 跳过目录
+                                    processed++;
+                                    return processFile(index + 1);
+                                }
+                                
+                                return file.async('blob').then(function(blob) {
+                                    // 确定 MIME 类型
+                                    let mimeType = 'application/octet-stream';
+                                    if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
+                                        mimeType = 'text/html';
+                                    } else if (fileName.endsWith('.js')) {
+                                        mimeType = 'application/javascript';
+                                    } else if (fileName.endsWith('.css')) {
+                                        mimeType = 'text/css';
+                                    } else if (fileName.endsWith('.json')) {
+                                        mimeType = 'application/json';
+                                    } else if (fileName.endsWith('.png')) {
+                                        mimeType = 'image/png';
+                                    } else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+                                        mimeType = 'image/jpeg';
+                                    }
+                                    
+                                    // 创建 Response 对象
+                                    const response = new Response(blob, {
+                                        status: 200,
+                                        headers: {
+                                            'Content-Type': mimeType
+                                        }
+                                    });
+                                    
+                                    // 缓存文件
+                                    return cache.put('/' + fileName, response).then(function() {
+                                        processed++;
+                                        
+                                        // 更新进度：50% → 90%
+                                        const progress = 50 + Math.round((processed / total) * 40);
+                                        this.updateProgress = progress;
+                                        this.updateUpdateProgress();
+                                        
+                                        // 更新文本
+                                        if (processed % 10 === 0 || processed === total) {
+                                            this.updateProgressText('正在解压更新包... (' + processed + '/' + total + ')');
+                                        }
+                                        
+                                        return processFile(index + 1);
+                                    }.bind(this));
+                                }.bind(this));
+                            }.bind(this);
+                            
+                            return processFile(0);
+                        }.bind(this));
+                    }.bind(this))
+                    .then(function() {
+                        console.log('[热更新] 解压完成');
+                        resolve();
+                    })
+                    .catch(function(error) {
+                        console.error('[热更新] 解压失败:', error);
+                        reject(error);
+                    });
+            }.bind(this));
+        },
+
+        /**
+         * 传统更新方式（降级方案）
+         */
+        performTraditionalUpdate: function(versionInfo) {
+            // 只更新关键文件
             this.updateProgressText('正在检查更新...');
             this.updateCriticalResources(versionInfo)
                 .then(function() {

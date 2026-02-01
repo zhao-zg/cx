@@ -64,6 +64,9 @@ jobs:
           echo "📋 生成版本信息..."
           python generate_version.py
           
+          echo "📦 生成热更新包..."
+          python generate_hot_update_package.py
+          
           echo "📋 检查生成的文件..."
           ls -la output/
           
@@ -75,6 +78,9 @@ jobs:
           else
             echo "⚠️ version.json 文件不存在"
           fi
+          
+          echo "📦 检查热更新包..."
+          ls -lh output/*.zip || echo "⚠️ 热更新包未生成"
           
           echo "📄 检查 sw.js 是否存在..."
           if [ -f output/sw.js ]; then
