@@ -938,14 +938,26 @@
             checkForUpdate: checkForUpdate,
             checkFirstLaunch: checkFirstLaunch,
             downloadUpdate: downloadUpdate,
-            getCurrentVersion: getCurrentResourceVersion
+            getCurrentVersion: getCurrentResourceVersion,
+            resetFirstLaunch: function() {
+                localStorage.removeItem(FIRST_LAUNCH_KEY);
+                console.log('首次启动标记已重置');
+                alert('首次启动标记已重置\n\n刷新页面将重新触发首次启动流程');
+            }
         };
     })();
     
     // 页面加载完成后检查首次启动
     window.addEventListener('DOMContentLoaded', function() {
+        console.log('DOMContentLoaded 触发');
+        console.log('HotUpdate 对象:', window.HotUpdate);
+        console.log('checkFirstLaunch 方法:', window.HotUpdate ? window.HotUpdate.checkFirstLaunch : 'undefined');
+        
         if (window.HotUpdate && window.HotUpdate.checkFirstLaunch) {
+            console.log('调用 checkFirstLaunch');
             window.HotUpdate.checkFirstLaunch();
+        } else {
+            console.error('HotUpdate 或 checkFirstLaunch 不可用');
         }
     });
     
