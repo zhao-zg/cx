@@ -112,9 +112,16 @@ jobs:
     
     - name: 清理热更新包（避免打包进 APK）
       run: |
-        echo "=== 清理热更新包 ==="
-        rm -f output/*.zip
-        echo "✓ 热更新包已删除（不打包进 APK）"
+        echo "=== 准备资源包 ==="
+        
+        # 将热更新包重命名为固定名称，方便 APK 读取
+        if [ -f output/*.zip ]; then
+          mv output/hot-update-*.zip output/resources.zip
+          echo "✓ 资源包已重命名为 resources.zip"
+          ls -lh output/resources.zip
+        else
+          echo "⚠️ 警告: 资源包未生成"
+        fi
         
     - name: 添加 Android 平台
       run: |
