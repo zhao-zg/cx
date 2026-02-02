@@ -11,7 +11,10 @@ const CONFIG = {
   CORE_RESOURCES: [
     './',
     './manifest.json',
-    './icons/icon.svg'
+    './icons/icon.svg',
+    './trainings.json',
+    './js/hot-update.js',
+    './vendor/jszip.min.js'
   ],
   CACHEABLE_TYPES: ['basic', 'cors']
 };
