@@ -53,26 +53,9 @@
     var useCapacitorTTS = hasCapacitor && window.Capacitor.Plugins.TextToSpeech;
     var hasWebSpeech = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
     
-    // 调试：显示环境检测结果
-    var debugMsg = '环境检测:\n';
-    debugMsg += 'Capacitor: ' + (!!window.Capacitor) + '\n';
-    debugMsg += 'Plugins: ' + (!!window.Capacitor?.Plugins) + '\n';
-    debugMsg += 'TextToSpeech: ' + (!!window.Capacitor?.Plugins?.TextToSpeech) + '\n';
-    debugMsg += 'WebSpeech: ' + hasWebSpeech + '\n';
-    debugMsg += '使用: ' + (useCapacitorTTS ? 'Capacitor TTS' : 'Web Speech');
-    alert(debugMsg);
-    
     // 优先使用 Capacitor TTS，如果不可用则使用 Web Speech API
     var useWebSpeech = !useCapacitorTTS && hasWebSpeech;
     var speechSupported = useCapacitorTTS || useWebSpeech;
-    
-    console.log('[TTS] 环境检测:', {
-      hasCapacitor: !!window.Capacitor,
-      hasCapacitorPlugins: !!(window.Capacitor && window.Capacitor.Plugins),
-      hasTextToSpeech: useCapacitorTTS,
-      hasWebSpeech: useWebSpeech,
-      speechSupported: speechSupported
-    });
     
     // 始终显示控制栏（包含字体控制）
     controlsDiv.style.display = 'flex';
@@ -176,6 +159,12 @@
       elapsedOffset = 0;
       totalDuration = 0;
       if (!keepText) fullText = '';
+      
+      // 重置分段播放状态
+      textChunks = [];
+      currentChunkIndex = 0;
+      isPlayingChunks = false;
+      
       updateButtonState(false);
       progressBar.value = '0';
       speechTime.textContent = '00:00 / 00:00';
@@ -196,10 +185,131 @@
           // ignore
         }
       }
+      // 停止分段播放
+      isPlayingChunks = false;
+    }
+    
+    // 将长文本分段（用于 Web Speech API）
+    function splitTextIntoChunks(text, maxLength) {
+      if (!text) return [];
+      
+      var chunks = [];
+      var sentences = text.split(/([。！？；])/);
+      var currentChunk = '';
+      
+      for (var i = 0; i < sentences.length; i++) {
+        var sentence = sentences[i];
+        if (currentChunk.length + sentence.length <= maxLength) {
+          currentChunk += sentence;
+        } else {
+          if (currentChunk) chunks.push(currentChunk);
+          currentChunk = sentence;
+        }
+      }
+      
+      if (currentChunk) chunks.push(currentChunk);
+      
+      return chunks;
+    }
+    
+    // 播放下一个文本段（通用函数，支持 Capacitor TTS 和 Web Speech API）
+    function playNextChunk() {
+      if (!isPlayingChunks || currentChunkIndex >= textChunks.length) {
+        // 所有段播放完成
+        isPlayingChunks = false;
+        resetState(false);
+        return;
+      }
+      
+      var chunkText = textChunks[currentChunkIndex];
+      var rate = Number(rateSelect.value) || 0.5;
+      
+      if (useCapacitorTTS) {
+        // Capacitor TTS 分段播放
+        var TextToSpeech = window.Capacitor.Plugins.TextToSpeech;
+        
+        utterance = { capacitor: true, chunkIndex: currentChunkIndex };
+        updateButtonState(true);
+        if (!progressInterval) startProgressUpdate();
+        
+        TextToSpeech.speak({
+          text: chunkText,
+          lang: lang,
+          rate: rate,
+          pitch: 1.0,
+          volume: 1.0,
+          category: 'ambient'
+        }).then(function() {
+          currentChunkIndex++;
+          // 继续播放下一段
+          playNextChunk();
+        }).catch(function(error) {
+          // 尝试播放下一段
+          currentChunkIndex++;
+          if (currentChunkIndex < textChunks.length) {
+            setTimeout(playNextChunk, 100);
+          } else {
+            resetState(false);
+            speechTime.textContent = '播放出错';
+            speechTime.style.color = '#e53e3e';
+            setTimeout(function() {
+              speechTime.textContent = '00:00 / 00:00';
+              speechTime.style.color = '';
+            }, 3000);
+          }
+        });
+        
+      } else {
+        // Web Speech API 分段播放
+        utterance = new SpeechSynthesisUtterance(chunkText);
+        utterance.lang = lang;
+        utterance.rate = rate;
+        
+        utterance.onstart = function() {
+          updateButtonState(true);
+          if (!progressInterval) startProgressUpdate();
+        };
+        
+        utterance.onend = function() {
+          currentChunkIndex++;
+          // 继续播放下一段
+          playNextChunk();
+        };
+        
+        utterance.onerror = function(event) {
+          var err = event && event.error;
+          if (err === 'interrupted' || err === 'cancelled') {
+            if (isSeekingInternal) return;
+            resetState(true);
+            return;
+          }
+          
+          // 尝试播放下一段
+          currentChunkIndex++;
+          if (currentChunkIndex < textChunks.length) {
+            setTimeout(playNextChunk, 100);
+          } else {
+            resetState(false);
+            speechTime.textContent = '播放出错';
+            speechTime.style.color = '#e53e3e';
+            setTimeout(function() {
+              speechTime.textContent = '00:00 / 00:00';
+              speechTime.style.color = '';
+            }, 3000);
+          }
+        };
+        
+        window.speechSynthesis.speak(utterance);
+      }
     }
 
     // 用于跳过 cancel 导致的 onerror
     var isSeekingInternal = false;
+    
+    // Web Speech API 分段播放相关变量
+    var textChunks = [];
+    var currentChunkIndex = 0;
+    var isPlayingChunks = false;
 
     function startSpeakingFromPercent(percent) {
       if (!fullText) return;
@@ -228,146 +338,147 @@
         // 使用 Capacitor TTS
         var TextToSpeech = window.Capacitor.Plugins.TextToSpeech;
         
-        // 调试：显示即将播放的信息
-        alert('准备播放\n文本长度: ' + segmentText.length + '\n语速: ' + rate + '\n语言: ' + lang);
-        
-        // Capacitor TTS 没有 onstart 事件，先设置状态
-        isSeekingInternal = false;
-        elapsedOffset = targetSeconds;
-        startTime = Date.now();
-        pauseStartedAt = 0;
-        isPaused = false;
-        utterance = { capacitor: true }; // 标记为 Capacitor TTS
-        
-        updateButtonState(true);
-        startProgressUpdate();
-        
-        console.log('[TTS] 开始播放，文本长度:', segmentText.length, '语速:', rate);
-        
-        TextToSpeech.speak({
-          text: segmentText,
-          lang: lang,
-          rate: rate,
-          pitch: 1.0,
-          volume: 1.0,
-          category: 'ambient'
-        }).then(function() {
-          alert('播放完成');
-          console.log('[TTS] 播放完成');
+        // 如果文本很长，使用分段播放
+        if (segmentText.length > 1000) {
+          textChunks = splitTextIntoChunks(segmentText, 500);
+          currentChunkIndex = 0;
+          isPlayingChunks = true;
+          
+          // 设置时间状态
           isSeekingInternal = false;
-          resetState(false);
-        }).catch(function(error) {
-          isSeekingInternal = false;
-          
-          // 构建详细的错误信息用于弹窗
-          var alertMsg = 'TTS播放失败\n\n';
-          alertMsg += '文本长度: ' + segmentText.length + ' 字\n';
-          alertMsg += '语速: ' + rate + '\n';
-          alertMsg += '语言: ' + lang + '\n\n';
-          
-          // 尝试获取错误详情
-          if (error) {
-            alertMsg += '错误类型: ' + (typeof error) + '\n';
-            if (typeof error === 'string') {
-              alertMsg += '错误: ' + error;
-            } else if (error.message) {
-              alertMsg += '错误: ' + error.message;
-            } else if (error.error) {
-              alertMsg += '错误: ' + error.error;
-            } else if (error.code) {
-              alertMsg += '错误码: ' + error.code;
-            } else {
-              try {
-                alertMsg += '错误对象: ' + JSON.stringify(error);
-              } catch (e) {
-                alertMsg += '无法序列化错误对象';
-              }
-            }
-          }
-          
-          // 弹窗显示错误信息
-          alert(alertMsg);
-          
-          // 重置状态
-          stopProgressUpdate();
-          utterance = null;
-          isPaused = false;
-          startTime = 0;
-          pauseStartedAt = 0;
-          elapsedOffset = 0;
-          updateButtonState(false);
-          progressBar.value = '0';
-          
-          // 在时间显示区域也显示简短提示
-          var shortMsg = '播放失败';
-          if (segmentText.length > 4000) {
-            shortMsg = '文本太长';
-          }
-          speechTime.textContent = shortMsg;
-          speechTime.style.color = '#ff0000';
-          
-          setTimeout(function() {
-            speechTime.textContent = '00:00 / 00:00';
-            speechTime.style.color = '';
-          }, 5000);
-        });
-        
-      } else {
-        // 使用 Web Speech API
-        utterance = new SpeechSynthesisUtterance(segmentText);
-        utterance.lang = lang;
-        utterance.rate = rate;
-
-        utterance.onstart = function () {
-          isSeekingInternal = false;
-          // 在 onstart 中设置时间状态
           elapsedOffset = targetSeconds;
           startTime = Date.now();
           pauseStartedAt = 0;
           isPaused = false;
           
+          // 开始播放第一段
+          playNextChunk();
+          
+        } else {
+          // 短文本直接播放
+          isSeekingInternal = false;
+          elapsedOffset = targetSeconds;
+          startTime = Date.now();
+          pauseStartedAt = 0;
+          isPaused = false;
+          utterance = { capacitor: true }; // 标记为 Capacitor TTS
+          
           updateButtonState(true);
           startProgressUpdate();
-        };
-
-        utterance.onend = function () {
+          
+          TextToSpeech.speak({
+            text: segmentText,
+            lang: lang,
+            rate: rate,
+            pitch: 1.0,
+            volume: 1.0,
+            category: 'ambient'
+          }).then(function() {
+            isSeekingInternal = false;
+            resetState(false);
+          }).catch(function(error) {
+            isSeekingInternal = false;
+            
+            // 重置状态
+            stopProgressUpdate();
+            utterance = null;
+            isPaused = false;
+            startTime = 0;
+            pauseStartedAt = 0;
+            elapsedOffset = 0;
+            updateButtonState(false);
+            progressBar.value = '0';
+            
+            // 显示错误信息
+            var shortMsg = '播放失败';
+            if (segmentText.length > 4000) {
+              shortMsg = '文本太长';
+            }
+            speechTime.textContent = shortMsg;
+            speechTime.style.color = '#ff0000';
+            
+            setTimeout(function() {
+              speechTime.textContent = '00:00 / 00:00';
+              speechTime.style.color = '';
+            }, 5000);
+          });
+        }
+        
+      } else {
+        // 使用 Web Speech API - 分段播放
+        
+        // 如果文本很长，使用分段播放
+        if (segmentText.length > 500) {
+          textChunks = splitTextIntoChunks(segmentText, 200);
+          currentChunkIndex = 0;
+          isPlayingChunks = true;
+          
+          // 设置时间状态
           isSeekingInternal = false;
-          resetState(false);
-        };
+          elapsedOffset = targetSeconds;
+          startTime = Date.now();
+          pauseStartedAt = 0;
+          isPaused = false;
+          
+          // 开始播放第一段
+          playNextChunk();
+          
+        } else {
+          // 短文本直接播放
+          utterance = new SpeechSynthesisUtterance(segmentText);
+          utterance.lang = lang;
+          utterance.rate = rate;
 
-        utterance.onerror = function (event) {
-          var err = event && event.error;
-          if (err === 'interrupted' || err === 'cancelled') {
-            // 如果是跳转导致的 cancel，不重置状态
-            if (isSeekingInternal) {
+          utterance.onstart = function () {
+            isSeekingInternal = false;
+            // 在 onstart 中设置时间状态
+            elapsedOffset = targetSeconds;
+            startTime = Date.now();
+            pauseStartedAt = 0;
+            isPaused = false;
+            
+            updateButtonState(true);
+            startProgressUpdate();
+          };
+
+          utterance.onend = function () {
+            isSeekingInternal = false;
+            resetState(false);
+          };
+
+          utterance.onerror = function (event) {
+            var err = event && event.error;
+            if (err === 'interrupted' || err === 'cancelled') {
+              // 如果是跳转导致的 cancel，不重置状态
+              if (isSeekingInternal) {
+                return;
+              }
+              resetState(true);
               return;
             }
-            resetState(true);
-            return;
-          }
-          isSeekingInternal = false;
-          console.error('朗读错误:', event);
-          
-          // 提供更友好的错误提示
-          var errorMsg = '错误';
-          if (err === 'network') {
-            errorMsg = '需要网络';
-          } else if (err === 'synthesis-unavailable') {
-            errorMsg = '语音不可用';
-          } else if (err === 'synthesis-failed') {
-            errorMsg = '播放失败';
-          }
-          
-          resetState(false);
-          speechTime.textContent = errorMsg;
-          speechTime.style.color = '#e53e3e';
-          setTimeout(function() {
-            speechTime.textContent = '00:00 / 00:00';
-            speechTime.style.color = '';
-          }, 3000);
-        };
+            isSeekingInternal = false;
+            
+            // 提供更友好的错误提示
+            var errorMsg = '错误';
+            if (err === 'network') {
+              errorMsg = '需要网络';
+            } else if (err === 'synthesis-unavailable') {
+              errorMsg = '语音不可用';
+            } else if (err === 'synthesis-failed') {
+              errorMsg = '播放失败';
+            }
+            
+            resetState(false);
+            speechTime.textContent = errorMsg;
+            speechTime.style.color = '#e53e3e';
+            setTimeout(function() {
+              speechTime.textContent = '00:00 / 00:00';
+              speechTime.style.color = '';
+            }, 3000);
+          };
 
-        window.speechSynthesis.speak(utterance);
+          window.speechSynthesis.speak(utterance);
+        }
       }
     }
 
@@ -377,9 +488,6 @@
       safeCancel();
       resetState(false);
     };
-
-    // Show controls on supported browsers
-    controlsDiv.style.display = 'flex';
 
     // Seek UI - 进度条拖动功能
     progressBar.addEventListener('mousedown', function() {

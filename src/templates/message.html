@@ -106,7 +106,6 @@
 <script>
 window.addEventListener('DOMContentLoaded', function() {
     if (!window.CXSpeech || !window.CXSpeech.init) {
-        console.log('[听抄朗读] CXSpeech 未加载');
         return;
     }
     
@@ -122,7 +121,6 @@ window.addEventListener('DOMContentLoaded', function() {
 
             // 方案1: 获取所有 section 标题和内容
             const sections = document.querySelectorAll('.section');
-            console.log('[听抄朗读] 找到 section 数量:', sections.length);
             
             sections.forEach(section => {
                 // 读取 section 标题（支持所有级别）
@@ -144,9 +142,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
             // 方案2: 如果没有 section 结构，直接读取所有 content-text
             if (sections.length === 0) {
-                console.log('[听抄朗读] 没有 section，使用降级方案');
                 const paragraphs = document.querySelectorAll('.content-text');
-                console.log('[听抄朗读] 找到 content-text 数量:', paragraphs.length);
                 paragraphs.forEach(p => {
                     const t = p.textContent.trim();
                     if (t) text += t + '。';
@@ -155,7 +151,6 @@ window.addEventListener('DOMContentLoaded', function() {
             
             // 方案3: 如果还是没有内容，读取整个 message-content
             if (!text || text.length < 10) {
-                console.log('[听抄朗读] 文本太少，使用最终降级方案');
                 const messageContent = document.querySelector('.message-content');
                 if (messageContent) {
                     text = messageContent.textContent.trim();
@@ -168,13 +163,6 @@ window.addEventListener('DOMContentLoaded', function() {
                 .replace(/[\r\n\t]/g, '')       // 移除换行和制表符
                 .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '') // 只保留中英文、数字和常用标点
                 .trim();
-            
-            console.log('[听抄朗读] 获取到的文本长度:', text.length);
-            if (text.length < 50) {
-                console.log('[听抄朗读] 文本预览:', text);
-            } else {
-                console.log('[听抄朗读] 文本开头:', text.substring(0, 100) + '...');
-            }
             
             // 如果文本为空，在页面上显示提示
             if (!text || text.length < 10) {
