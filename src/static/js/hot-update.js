@@ -362,9 +362,23 @@
                 self.updateProgress('正在下载更新包...', 10);
                 console.log('[热更新] 开始下载:', url);
                 
-                // 优先使用 CapacitorHttp 下载（避免 CORS 问题）
-                // Capacitor 6.x: CapacitorHttp 在 core 中
-                var CapacitorHttp = window.Capacitor && window.Capacitor.CapacitorHttp;
+                // 尝试多种方式访问 CapacitorHttp（兼容不同版本）
+                var CapacitorHttp = null;
+                if (window.Capacitor) {
+                    // 方式1: Capacitor 6.x (从 core 导出)
+                    CapacitorHttp = window.Capacitor.CapacitorHttp;
+                    
+                    // 方式2: 通过 Plugins
+                    if (!CapacitorHttp && window.Capacitor.Plugins) {
+                        CapacitorHttp = window.Capacitor.Plugins.CapacitorHttp;
+                    }
+                    
+                    // 方式3: Http 别名
+                    if (!CapacitorHttp && window.Capacitor.Plugins) {
+                        CapacitorHttp = window.Capacitor.Plugins.Http;
+                    }
+                }
+                
                 var blob;
                 
                 if (CapacitorHttp) {
@@ -373,7 +387,9 @@
                         // 使用 CapacitorHttp.get 下载文件
                         var httpResponse = await CapacitorHttp.get({
                             url: url,
-                            responseType: 'blob'
+                            responseType: 'blob',
+                            connectTimeout: 60000,
+                            readTimeout: 120000
                         });
                         
                         // 将响应转换为 Blob
