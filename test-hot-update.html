@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>热更新测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔥 热更新功能测试</h1>
+    
+    <div class="test-section">
+        <h2>1. 环境检测</h2>
+        <button onclick="testEnvironment()">检测环境</button>
+        <div id="env-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. 资源加载器测试</h2>
+        <button onclick="testResourceLoader()">测试资源加载</button>
+        <div id="loader-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. 热更新文件检查</h2>
+        <button onclick="testHotUpdateFiles()">检查热更新文件</button>
+        <div id="files-result" class="result"></div>
+    </div>
+
+    <script src="src/static/js/resource-loader.js"></script>
+    <script>
+        function testEnvironment() {
+            var result = '环境检测结果:\n\n';
+            result += 'Capacitor: ' + (window.Capacitor ? '✓' : '✗') + '\n';
+            result += 'Capacitor.Plugins: ' + (window.Capacitor?.Plugins ? '✓' : '✗') + '\n';
+            result += 'Filesystem: ' + (window.Capacitor?.Plugins?.Filesystem ? '✓' : '✗') + '\n';
+            result += 'ResourceLoader: ' + (window.ResourceLoader ? '✓' : '✗') + '\n';
+            
+            document.getElementById('env-result').textContent = result;
+        }
+        
+        async function testResourceLoader() {
+            if (!window.ResourceLoader) {
+                document.getElementById('loader-result').textContent = '✗ ResourceLoader 未加载';
+                return;
+            }
+            
+            var result = '资源加载器测试:\n\n';
+            
+            try {
+                // 测试检查文件
+                var testPath = 'js/speech.js';
+                result += '检查文件: ' + testPath + '\n';
+                
+                var hasHotUpdate = await window.ResourceLoader.checkHotUpdateFile(testPath);
+                result += '热更新版本: ' + (hasHotUpdate ? '✓ 存在' : '✗ 不存在') + '\n';
+                
+                document.getElementById('loader-result').textContent = result;
+            } catch (e) {
+                document.getElementById('loader-result').textContent = '✗ 测试失败: ' + e.message;
+            }
+        }
+        
+        async function testHotUpdateFiles() {
+            if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Filesystem) {
+                document.getElementById('files-result').textContent = '✗ 仅在 Capacitor 环境下可用';
+                return;
+            }
+            
+            var result = '热更新文件检查:\n\n';
+            var Filesystem = window.Capacitor.Plugins.Filesystem;
+            var DIRECTORY_DATA = 'DATA';
+            
+            try {
+                // 列出热更新目录
+                var dirResult = await Filesystem.readdir({
+                    path: 'hot-update',
+                    directory: DIRECTORY_DATA
+                });
+                
+                result += '热更新目录文件:\n';
+                dirResult.files.forEach(function(file) {
+                    result += '  - ' + file + '\n';
+                });
+                
+                document.getElementById('files-result').textContent = result;
+            } catch (e) {
+                document.getElementById('files-result').textContent = '✗ 读取失败: ' + e.message;
+            }
+        }
+    </script>
+</body>
+</html>

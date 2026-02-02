@@ -554,6 +554,11 @@
                 // 7. 完成
                 self.updateProgress('更新完成！', 100);
                 
+                // 清除资源加载器缓存
+                if (window.ResourceLoader) {
+                    window.ResourceLoader.clearCache();
+                }
+                
                 setTimeout(function() {
                     var dialog = document.getElementById('hotUpdateProgressDialog');
                     if (dialog) dialog.remove();
