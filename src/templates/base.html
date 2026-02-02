@@ -204,11 +204,13 @@
     <!-- 页面加载器（拦截导航，支持热更新） -->
     <script src="js/page-loader.js"></script>
     
-    <!-- 动态加载支持热更新的脚本 -->
+    <!-- 核心脚本 - 在非 Capacitor 环境直接加载，在 Capacitor 环境动态加载支持热更新 -->
     <script>
     (function() {
-        // 如果在 Capacitor 环境且资源加载器可用，使用动态加载
+        // 如果在 Capacitor 环境且资源加载器可用，使用动态加载支持热更新
         if (window.Capacitor && window.ResourceLoader) {
+            console.log('[资源加载] Capacitor 环境，使用热更新加载');
+            
             // 等待 DOM 加载完成后再加载脚本
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', loadScripts);
@@ -228,7 +230,9 @@
                 }
             }
         } else {
-            // 非 Capacitor 环境，使用传统方式加载
+            // 非 Capacitor 环境，直接插入 script 标签
+            console.log('[资源加载] 浏览器环境，使用传统加载');
+            
             var scripts = [
                 'js/speech.js',
                 'js/font-control.js',
@@ -236,10 +240,9 @@
                 'js/app-update.js'
             ];
             
+            // 直接写入 script 标签，让浏览器按顺序加载
             scripts.forEach(function(src) {
-                var script = document.createElement('script');
-                script.src = src;
-                document.head.appendChild(script);
+                document.write('<script src="' + src + '"><\/script>');
             });
         }
     })();
