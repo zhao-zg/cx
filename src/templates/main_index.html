@@ -912,17 +912,18 @@
         
         // 如果是安卓设备且在 APP 内（从 APK 打开）
         // 使用多种检测方式：PWA standalone 模式、Capacitor API、或 Capacitor URL scheme
-        if (isAndroid && (isInApp || isCapacitor || isCapacitorScheme)) {
+        // 或者直接在 Android 环境中（放宽条件）
+        if (isAndroid && (isInApp || isCapacitor || isCapacitorScheme || true)) {
             var clickCount = 0;
             var clickTimer = null;
             var logo = document.getElementById('mainLogo');
             
-            console.log('APK 更新检查已启用，点击 Logo 8 次触发');
+            console.log('更新检查已启用，点击 Logo 8 次触发');
             
             if (logo) {
                 logo.addEventListener('click', function() {
                     clickCount++;
-                    console.log('Logo 点击:', clickCount, '/5');
+                    console.log('Logo 点击:', clickCount, '/8');
                     
                     if (clickTimer) clearTimeout(clickTimer);
                     clickTimer = setTimeout(function() {
