@@ -114,6 +114,29 @@ def scan_resource_folders(resource_dir='resource'):
     return sorted(folders)
 
 
+def url_safe_name(name):
+    """
+    将文件夹名转换为 URL 安全的名称
+    保留年份-月份格式，移除中文和空格
+    
+    例如：
+    "2025-04 夏季训练" -> "2025-04"
+    "2025-05 国际长老及负责弟兄训练" -> "2025-05"
+    "2025-06 感恩节相调特会" -> "2025-06"
+    """
+    import re
+    # 提取年份-月份部分（YYYY-MM 格式）
+    match = re.match(r'(\d{4}-\d{2})', name)
+    if match:
+        return match.group(1)
+    
+    # 如果没有匹配到，只保留 ASCII 字符、数字、连字符
+    safe = re.sub(r'[^\w\-]', '-', name, flags=re.ASCII)
+    safe = re.sub(r'-+', '-', safe)  # 移除连续的连字符
+    safe = safe.strip('-')  # 移除首尾的连字符
+    return safe if safe else name
+
+
 def process_batch(batch_folder, config):
     """
     处理单个批次的文档生成
@@ -126,8 +149,13 @@ def process_batch(batch_folder, config):
         成功返回 0,失败返回 1
     """
     batch_name = os.path.basename(batch_folder)
+    # 生成 URL 安全的输出目录名
+    safe_batch_name = url_safe_name(batch_name)
+    
     print("\n" + "="*60)
     print(f" 处理批次: {batch_name}")
+    if safe_batch_name != batch_name:
+        print(f" 输出目录: {safe_batch_name}")
     print("="*60)
     print()
     
@@ -185,7 +213,7 @@ def process_batch(batch_folder, config):
     print()
     
     # 解析文档
-    output_dir = os.path.join(batch_config['output_dir'], batch_name)
+    output_dir = os.path.join(batch_config['output_dir'], safe_batch_name)
     try:
         training_data = parse_training_docs_improved(
             outline_path=scripture_doc,
@@ -244,7 +272,9 @@ def generate_main_index(config, batch_results):
     for result in batch_results:
         # 收集该训练的图片列表
         training_images = []
-        training_dir = os.path.join(output_dir, result['name'])
+        # 使用 URL 安全的路径名
+        safe_name = url_safe_name(result['name'])
+        training_dir = os.path.join(output_dir, safe_name)
         images_dir = os.path.join(training_dir, 'images')
         if os.path.exists(images_dir):
             for filename in os.listdir(images_dir):
@@ -256,7 +286,7 @@ def generate_main_index(config, batch_results):
             'season': result['season'],
             'title': result['title'],
             'chapter_count': result['chapter_count'],
-            'path': result['name'],  # 相对路径
+            'path': safe_name,  # 使用 URL 安全的路径
             'images': training_images  # 图片列表
         })
         total_chapters += result['chapter_count']
@@ -457,7 +487,8 @@ def main():
     
     for batch_folder in batch_folders:
         batch_name = os.path.basename(batch_folder)
-        output_dir = os.path.join(config['output_dir'], batch_name)
+        safe_batch_name = url_safe_name(batch_name)
+        output_dir = os.path.join(config['output_dir'], safe_batch_name)
         
         # 检查是否跳过已存在的
         if skip_existing and os.path.exists(output_dir):
@@ -497,6 +528,9 @@ def main():
             
             # 收集批次信息用于生成主页
             try:
+                # 使用 URL 安全的路径名
+                safe_batch_name = url_safe_name(batch_name)
+                
                 # 从输出目录读取训练数据
                 year, season = 2025, "秋季"
                 if '-' in batch_name:
@@ -508,14 +542,15 @@ def main():
                     except ValueError:
                         pass
                 
-                # 统计章节数
+                # 统计章节数（使用 URL 安全的路径）
+                safe_output_dir = os.path.join(config['output_dir'], safe_batch_name)
                 chapter_count = 0
                 for i in range(1, 13):  # 最多12篇
-                    if os.path.exists(os.path.join(output_dir, f'{i}_cx.htm')):
+                    if os.path.exists(os.path.join(safe_output_dir, f'{i}_cx.htm')):
                         chapter_count += 1
                 
                 # 尝试从生成的文件中提取标题（简化版）
-                index_path = os.path.join(output_dir, 'index.html')
+                index_path = os.path.join(safe_output_dir, 'index.html')
                 title = f'{year}年{season}训练'
                 if os.path.exists(index_path):
                     try:
