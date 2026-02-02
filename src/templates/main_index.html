@@ -444,12 +444,21 @@
                 if (urlIndex >= REMOTE_URLS.length) {
                     console.error('所有 URL 都无法访问');
                     if (manual) {
-                        var msg = '无法连接到服务器\n\n';
+                        var msg = '无法连接到服务器检查资源更新\n\n';
                         msg += '已尝试 ' + REMOTE_URLS.length + ' 个服务器：\n';
                         for (var i = 0; i < errorMessages.length; i++) {
                             msg += '\n' + (i + 1) + '. ' + errorMessages[i];
                         }
-                        alert(msg);
+                        msg += '\n\n是否检查 APK 更新？';
+                        
+                        if (confirm(msg)) {
+                            // 用户选择检查 APK 更新
+                            if (typeof checkApkUpdate === 'function') {
+                                checkApkUpdate();
+                            } else {
+                                alert('APK 更新功能不可用');
+                            }
+                        }
                     }
                     return;
                 }
