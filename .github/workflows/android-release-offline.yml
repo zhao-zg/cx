@@ -343,20 +343,70 @@ jobs:
         echo "✓ 网络安全配置完成"
         
         echo ""
-        echo "=== 验证 AndroidManifest.xml ==="
-        echo "检查 TTS 相关配置..."
+        echo "=== 配置 APK 安装权限 ==="
         
-        # TTS 不需要特殊权限，但我们可以添加一些优化配置
+        manifest_file="android/app/src/main/AndroidManifest.xml"
+        
+        # 添加 APK 安装权限（Android 8.0+）
+        if ! grep -q "REQUEST_INSTALL_PACKAGES" "$manifest_file"; then
+          # 在 <manifest> 标签后添加权限
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />' "$manifest_file"
+          echo "✓ 添加 REQUEST_INSTALL_PACKAGES 权限"
+        fi
+        
+        # 添加存储权限（Android 10 以下）
+        if ! grep -q "WRITE_EXTERNAL_STORAGE" "$manifest_file"; then
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />' "$manifest_file"
+          echo "✓ 添加 WRITE_EXTERNAL_STORAGE 权限"
+        fi
+        
+        if ! grep -q "READ_EXTERNAL_STORAGE" "$manifest_file"; then
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />' "$manifest_file"
+          echo "✓ 添加 READ_EXTERNAL_STORAGE 权限"
+        fi
+        
+        # 添加 FileProvider 配置
+        if ! grep -q "FileProvider" "$manifest_file"; then
+          # 创建 file_paths.xml
+          mkdir -p android/app/src/main/res/xml
+          cat > android/app/src/main/res/xml/file_paths.xml << 'FILEPATHS_EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <paths xmlns:android="http://schemas.android.com/apk/res/android">
+            <cache-path name="cache" path="." />
+            <external-path name="external" path="." />
+            <external-cache-path name="external_cache" path="." />
+            <external-path name="downloads" path="Download/" />
+        </paths>
+        FILEPATHS_EOF
+          
+          # 在 </application> 前添加 FileProvider
+          sed -i 's|</application>|        <provider\n            android:name="androidx.core.content.FileProvider"\n            android:authorities="${applicationId}.fileprovider"\n            android:exported="false"\n            android:grantUriPermissions="true">\n            <meta-data\n                android:name="android.support.FILE_PROVIDER_PATHS"\n                android:resource="@xml/file_paths" />\n        </provider>\n    </application>|' "$manifest_file"
+          echo "✓ 添加 FileProvider 配置"
+        fi
+        
+        # 添加 queries 配置（Android 11+）
+        if ! grep -q "<queries>" "$manifest_file"; then
+          sed -i '/<manifest/a\    <queries>\n        <intent>\n            <action android:name="android.intent.action.VIEW" />\n            <data android:mimeType="application/vnd.android.package-archive" />\n        </intent>\n    </queries>' "$manifest_file"
+          echo "✓ 添加 queries 配置（Android 11+）"
+        fi
+        
+        echo ""
+        echo "=== 验证 AndroidManifest.xml ==="
+        echo "检查权限配置..."
+        grep -E "REQUEST_INSTALL_PACKAGES|WRITE_EXTERNAL_STORAGE|FileProvider|queries" "$manifest_file" || echo "警告：部分配置可能未添加"
+        
+        echo ""
+        echo "=== 验证应用配置 ==="
         # 确保应用名称正确
-        if grep -q "android:label=" android/app/src/main/AndroidManifest.xml; then
-          sed -i 's/android:label="[^"]*"/android:label="特会"/' android/app/src/main/AndroidManifest.xml
+        if grep -q "android:label=" "$manifest_file"; then
+          sed -i 's/android:label="[^"]*"/android:label="特会"/' "$manifest_file"
           echo "✓ 应用名称已设置为 特会"
         fi
         
         # 显示 AndroidManifest.xml 的关键部分
         echo ""
         echo "AndroidManifest.xml 关键配置:"
-        grep -A 3 "<application" android/app/src/main/AndroidManifest.xml | head -5
+        grep -A 3 "<application" "$manifest_file" | head -5
         
         echo ""
         echo "✓ AndroidManifest 配置完成"
