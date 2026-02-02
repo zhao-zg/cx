@@ -80,7 +80,12 @@ jobs:
           fi
           
           echo "📦 检查热更新包..."
-          ls -lh output/*.zip || echo "⚠️ 热更新包未生成"
+          if [ -f output/*.zip ]; then
+            echo "✓ 热更新包已生成"
+            ls -lh output/*.zip
+          else
+            echo "⚠️ 热更新包未生成"
+          fi
           
           echo "📄 检查 sw.js 是否存在..."
           if [ -f output/sw.js ]; then
@@ -164,3 +169,11 @@ jobs:
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: '部署到 GitHub Pages'
           cname: cx.xzdjx.dynv6.net
+      
+      - name: 上传全量资源包到 Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: resource-package
+          path: output/*.zip
+          retention-days: 90
+          if-no-files-found: warn
