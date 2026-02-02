@@ -1,10 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-    </linearGradient>
+    <!-- 纯蓝色径向渐变：从浅蓝到深蓝 -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563EB;stop-opacity:1" />
+    </radialGradient>
+    <!-- 阴影滤镜 -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+      <feOffset dx="0" dy="4" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- 光泽效果 -->
+    <radialGradient id="shine" cx="30%" cy="30%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+    </radialGradient>
   </defs>
-  <rect width="512" height="512" rx="100" fill="url(#grad)"/>
-  <text x="256" y="340" font-size="280" font-weight="bold" text-anchor="middle" fill="white" font-family="Arial, sans-serif">特</text>
+  
+  <!-- 背景圆角矩形 -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  
+  <!-- 光泽效果 -->
+  <ellipse cx="180" cy="180" rx="150" ry="150" fill="url(#shine)"/>
+  
+  <!-- 白色圆形徽章（带阴影） -->
+  <circle cx="256" cy="256" r="180" fill="white" filter="url(#shadow)"/>
+  
+  <!-- 文字 -->
+  <text x="256" y="340" font-size="240" font-weight="bold" text-anchor="middle" fill="#2563EB" font-family="Arial, sans-serif, 'Microsoft YaHei', 'SimHei'">特</text>
 </svg>

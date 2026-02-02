@@ -18,13 +18,13 @@ SIZES = {
 }
 
 def create_gradient_background(size):
-    """创建现代渐变背景（从深蓝到浅蓝）"""
+    """创建现代渐变背景（从浅蓝到深蓝）"""
     img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
-    # 渐变色：从深蓝 #667eea 到浅蓝 #764ba2（紫色调）
-    color_start = (102, 126, 234)  # #667eea
-    color_end = (118, 75, 162)     # #764ba2
+    # 渐变色：从浅蓝 #4A90E2 到深蓝 #2563EB（纯蓝色调）
+    color_start = (74, 144, 226)   # #4A90E2 浅蓝
+    color_end = (37, 99, 235)      # #2563EB 深蓝
     
     # 创建径向渐变（从中心到边缘）
     center_x, center_y = size // 2, size // 2
@@ -108,8 +108,8 @@ def add_badge_and_text(img, text, font_size):
         print(f"  ⚠ 使用默认字体（可能无法显示中文）")
     
     # 绘制文字（渐变色，使用 mm anchor 居中）
-    # 使用深蓝色 #667eea
-    text_color = (102, 126, 234, 255)
+    # 使用深蓝色 #2563EB
+    text_color = (37, 99, 235, 255)
     draw.text((center_x, center_y), text, font=font, fill=text_color, anchor='mm')
     
     return img
@@ -192,9 +192,9 @@ def generate_icons():
     print("✓ 所有图标生成完成！")
     print(f"\n生成的文件位于: {output_base}/")
     print("\n设计特点：")
-    print("  • 渐变背景（深蓝到紫色）")
+    print("  • 纯蓝色渐变背景（浅蓝到深蓝）")
     print("  • 白色圆形徽章")
-    print("  • 渐变色文字")
+    print("  • 深蓝色文字")
     print("  • 微妙的阴影和光泽效果")
     print("\n下一步：")
     print("  python generate_png_icons.py")
