@@ -119,8 +119,8 @@ window.addEventListener('DOMContentLoaded', function() {
             // 获取所有 section 标题和内容
             const sections = document.querySelectorAll('.section');
             sections.forEach(section => {
-                // 读取 section 标题
-                const levelElem = section.querySelector('.section-level1, .section-level2, .section-level3, .section-level4');
+                // 读取 section 标题（支持所有级别）
+                const levelElem = section.querySelector('[class^="section-level"]');
                 if (levelElem) {
                     const t = levelElem.textContent.trim();
                     if (t) text += t + '。';
