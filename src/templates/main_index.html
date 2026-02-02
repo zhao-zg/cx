@@ -422,8 +422,21 @@
         // 检查资源更新
         function checkForUpdate(manual) {
             console.log('=== 开始检查资源更新 ===');
+            console.log('REMOTE_URLS:', REMOTE_URLS);
+            console.log('REMOTE_URLS 类型:', typeof REMOTE_URLS);
+            console.log('REMOTE_URLS 长度:', REMOTE_URLS ? REMOTE_URLS.length : 'undefined');
+            
             var currentVersion = getCurrentResourceVersion();
             console.log('当前资源版本:', currentVersion);
+            
+            // 检查 REMOTE_URLS 是否有效
+            if (!REMOTE_URLS || REMOTE_URLS.length === 0) {
+                console.error('REMOTE_URLS 未定义或为空');
+                if (manual) {
+                    alert('配置错误：未找到远程服务器地址');
+                }
+                return;
+            }
             
             // 尝试从多个 URL 获取 version.json
             var urlIndex = 0;
@@ -432,21 +445,22 @@
                 if (urlIndex >= REMOTE_URLS.length) {
                     console.error('所有 URL 都无法访问');
                     if (manual) {
-                        alert('无法连接到服务器，请检查网络连接');
+                        alert('无法连接到服务器，请检查网络连接\n\n已尝试的服务器：\n' + REMOTE_URLS.join('\n'));
                     }
                     return;
                 }
                 
                 var url = REMOTE_URLS[urlIndex] + 'version.json?t=' + Date.now();
-                console.log('尝试 URL:', url);
+                console.log('尝试 URL [' + (urlIndex + 1) + '/' + REMOTE_URLS.length + ']:', url);
                 
                 fetch(url, { cache: 'no-cache' })
                     .then(function(response) {
+                        console.log('响应状态:', response.status, response.statusText);
                         if (!response.ok) throw new Error('HTTP ' + response.status);
                         return response.json();
                     })
                     .then(function(versionInfo) {
-                        console.log('获取到版本信息:', versionInfo);
+                        console.log('✓ 成功获取版本信息:', versionInfo);
                         
                         var remoteVersion = versionInfo.resource_version;
                         var comparison = compareResourceVersion(remoteVersion, currentVersion);
@@ -461,7 +475,7 @@
                         showUpdateDialog(versionInfo, currentVersion, comparison, manual, REMOTE_URLS[urlIndex]);
                     })
                     .catch(function(error) {
-                        console.warn('URL 失败:', url, error);
+                        console.warn('✗ URL 失败 [' + (urlIndex + 1) + '/' + REMOTE_URLS.length + ']:', url, error.message);
                         urlIndex++;
                         tryNextUrl();
                     });
