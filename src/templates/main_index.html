@@ -723,15 +723,28 @@
         // 下载更新包（自动更新）
         function downloadUpdate(url, version) {
             console.log('开始自动更新:', url);
+            console.log('Capacitor 环境检测:', {
+                hasCapacitor: !!window.Capacitor,
+                hasPlugins: !!(window.Capacitor && window.Capacitor.Plugins),
+                hasFilesystem: !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem)
+            });
             
             // 关闭对话框
             var dialog = document.getElementById('hotUpdateDialog');
             if (dialog) dialog.remove();
             
             // 检查是否在 Capacitor 环境
-            if (!window.Capacitor || !window.Capacitor.Plugins.Filesystem) {
-                alert('自动更新仅在 APP 中可用\n\n请在浏览器中手动下载更新包');
-                window.open(url, '_blank');
+            if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Filesystem) {
+                var msg = '自动更新仅在 APP 中可用\n\n';
+                msg += '当前环境:\n';
+                msg += '- Capacitor: ' + (window.Capacitor ? '✓' : '✗') + '\n';
+                msg += '- Plugins: ' + (window.Capacitor && window.Capacitor.Plugins ? '✓' : '✗') + '\n';
+                msg += '- Filesystem: ' + (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem ? '✓' : '✗') + '\n';
+                msg += '\n是否在浏览器中打开下载链接？';
+                
+                if (confirm(msg)) {
+                    window.open(url, '_blank');
+                }
                 return;
             }
             
