@@ -53,6 +53,15 @@
     var useCapacitorTTS = hasCapacitor && window.Capacitor.Plugins.TextToSpeech;
     var hasWebSpeech = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
     
+    // 调试：显示环境检测结果
+    var debugMsg = '环境检测:\n';
+    debugMsg += 'Capacitor: ' + (!!window.Capacitor) + '\n';
+    debugMsg += 'Plugins: ' + (!!window.Capacitor?.Plugins) + '\n';
+    debugMsg += 'TextToSpeech: ' + (!!window.Capacitor?.Plugins?.TextToSpeech) + '\n';
+    debugMsg += 'WebSpeech: ' + hasWebSpeech + '\n';
+    debugMsg += '使用: ' + (useCapacitorTTS ? 'Capacitor TTS' : 'Web Speech');
+    alert(debugMsg);
+    
     // 优先使用 Capacitor TTS，如果不可用则使用 Web Speech API
     var useWebSpeech = !useCapacitorTTS && hasWebSpeech;
     var speechSupported = useCapacitorTTS || useWebSpeech;
@@ -219,6 +228,9 @@
         // 使用 Capacitor TTS
         var TextToSpeech = window.Capacitor.Plugins.TextToSpeech;
         
+        // 调试：显示即将播放的信息
+        alert('准备播放\n文本长度: ' + segmentText.length + '\n语速: ' + rate + '\n语言: ' + lang);
+        
         // Capacitor TTS 没有 onstart 事件，先设置状态
         isSeekingInternal = false;
         elapsedOffset = targetSeconds;
@@ -240,6 +252,7 @@
           volume: 1.0,
           category: 'ambient'
         }).then(function() {
+          alert('播放完成');
           console.log('[TTS] 播放完成');
           isSeekingInternal = false;
           resetState(false);
