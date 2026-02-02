@@ -149,14 +149,35 @@ jobs:
           COMMIT_HASH=$(git rev-parse --short HEAD)
           COMMIT_MSG="Deploy $COMMIT_HASH"
           
-          # 部署
-          wrangler pages deploy output \
-            --project-name=cx \
-            --branch=main \
-            --commit-hash="$COMMIT_HASH" \
-            --commit-message="$COMMIT_MSG"
+          # 部署（带重试机制）
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          SUCCESS=false
           
-          echo "✓ Cloudflare Pages 部署完成"
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$SUCCESS" = "false" ]; do
+            if [ $RETRY_COUNT -gt 0 ]; then
+              echo "⏳ 等待 30 秒后重试..."
+              sleep 30
+              echo "🔄 重试第 $RETRY_COUNT 次..."
+            fi
+            
+            if wrangler pages deploy output \
+              --project-name=cx \
+              --branch=main \
+              --commit-hash="$COMMIT_HASH" \
+              --commit-message="$COMMIT_MSG"; then
+              SUCCESS=true
+              echo "✓ Cloudflare Pages 部署成功"
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "⚠️ 部署失败，准备重试 ($RETRY_COUNT/$MAX_RETRIES)"
+              else
+                echo "❌ 部署失败，已达到最大重试次数"
+                exit 1
+              fi
+            fi
+          done
       
       - name: 部署到 GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
