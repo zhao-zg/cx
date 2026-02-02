@@ -266,10 +266,60 @@ jobs:
         echo "=== 重新应用自定义图标 ==="
         echo "注意：cap sync 可能会覆盖图标，需要重新复制"
         
+        # 删除可能存在的默认图标
+        rm -rf android/app/src/main/res/mipmap-*
+        
         # 复制预生成的图标
         cp -r android_icons/* android/app/src/main/res/
         
-        echo "✓ 自定义图标已重新应用"
+        # 验证图标已复制
+        echo ""
+        echo "=== 验证图标文件 ==="
+        for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+          launcher="android/app/src/main/res/mipmap-$density/ic_launcher.png"
+          round="android/app/src/main/res/mipmap-$density/ic_launcher_round.png"
+          if [ -f "$launcher" ]; then
+            echo "✓ mipmap-$density/ic_launcher.png ($(du -h "$launcher" | cut -f1))"
+          else
+            echo "✗ mipmap-$density/ic_launcher.png 缺失"
+          fi
+          if [ -f "$round" ]; then
+            echo "✓ mipmap-$density/ic_launcher_round.png ($(du -h "$round" | cut -f1))"
+          else
+            echo "✗ mipmap-$density/ic_launcher_round.png 缺失"
+          fi
+        done
+        
+        # 确保 AndroidManifest.xml 使用正确的图标
+        echo ""
+        echo "=== 配置 AndroidManifest.xml 图标引用 ==="
+        
+        manifest_file="android/app/src/main/AndroidManifest.xml"
+        
+        # 确保使用 @mipmap/ic_launcher
+        if grep -q 'android:icon=' "$manifest_file"; then
+          sed -i 's/android:icon="[^"]*"/android:icon="@mipmap\/ic_launcher"/' "$manifest_file"
+          echo "✓ 设置 android:icon=@mipmap/ic_launcher"
+        else
+          sed -i 's/<application/<application android:icon="@mipmap\/ic_launcher"/' "$manifest_file"
+          echo "✓ 添加 android:icon=@mipmap/ic_launcher"
+        fi
+        
+        # 确保使用 @mipmap/ic_launcher_round
+        if grep -q 'android:roundIcon=' "$manifest_file"; then
+          sed -i 's/android:roundIcon="[^"]*"/android:roundIcon="@mipmap\/ic_launcher_round"/' "$manifest_file"
+          echo "✓ 设置 android:roundIcon=@mipmap/ic_launcher_round"
+        else
+          sed -i 's/<application/<application android:roundIcon="@mipmap\/ic_launcher_round"/' "$manifest_file"
+          echo "✓ 添加 android:roundIcon=@mipmap/ic_launcher_round"
+        fi
+        
+        echo ""
+        echo "=== 验证 AndroidManifest.xml ==="
+        grep -E 'android:(icon|roundIcon)=' "$manifest_file" || echo "警告：未找到图标配置"
+        
+        echo ""
+        echo "✓ 自定义图标已重新应用并配置完成"
       
     - name: 配置网络安全策略
       run: |
