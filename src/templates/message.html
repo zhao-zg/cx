@@ -105,7 +105,11 @@
 
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-    if (!window.CXSpeech || !window.CXSpeech.init) return;
+    if (!window.CXSpeech || !window.CXSpeech.init) {
+        console.log('[听抄朗读] CXSpeech 未加载');
+        return;
+    }
+    
     window.CXSpeech.init({
         getText: function() {
             let text = '';
@@ -116,8 +120,10 @@ window.addEventListener('DOMContentLoaded', function() {
             const scriptureElem = document.querySelector('.scripture');
             if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
 
-            // 获取所有 section 标题和内容
+            // 方案1: 获取所有 section 标题和内容
             const sections = document.querySelectorAll('.section');
+            console.log('[听抄朗读] 找到 section 数量:', sections.length);
+            
             sections.forEach(section => {
                 // 读取 section 标题（支持所有级别）
                 const levelElem = section.querySelector('[class^="section-level"]');
@@ -136,13 +142,29 @@ window.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // 如果没有 section 结构，直接读取所有 content-text
+            // 方案2: 如果没有 section 结构，直接读取所有 content-text
             if (sections.length === 0) {
+                console.log('[听抄朗读] 没有 section，使用降级方案');
                 const paragraphs = document.querySelectorAll('.content-text');
+                console.log('[听抄朗读] 找到 content-text 数量:', paragraphs.length);
                 paragraphs.forEach(p => {
                     const t = p.textContent.trim();
                     if (t) text += t + '。';
                 });
+            }
+            
+            // 方案3: 如果还是没有内容，读取整个 message-content
+            if (!text || text.length < 10) {
+                console.log('[听抄朗读] 文本太少，使用最终降级方案');
+                const messageContent = document.querySelector('.message-content');
+                if (messageContent) {
+                    text = messageContent.textContent.trim();
+                }
+            }
+            
+            console.log('[听抄朗读] 获取到的文本长度:', text.length);
+            if (text.length < 50) {
+                console.log('[听抄朗读] 文本预览:', text);
             }
 
             return text;
