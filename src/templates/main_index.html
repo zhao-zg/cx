@@ -562,29 +562,35 @@
             });
         }
         
-        // 下载 APK（使用系统浏览器或 Capacitor Browser）
+        // 下载 APK（使用系统下载管理器）
         window.downloadApk = async function(url) {
             console.log('开始下载 APK:', url);
             
             try {
-                // 检查是否在 Capacitor 环境中
-                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
-                    console.log('使用 Capacitor Browser 打开下载链接');
-                    await window.Capacitor.Plugins.Browser.open({ url: url });
+                // 在 Capacitor 环境中，直接使用系统浏览器下载
+                // 这样可以使用 Android 的下载管理器
+                if (window.Capacitor) {
+                    console.log('Capacitor 环境：使用系统下载');
+                    // 直接打开 URL，让系统处理下载
+                    window.location.href = url;
                 } else {
-                    console.log('使用 window.open 打开下载链接');
-                    // 后备方案：使用 window.open
+                    console.log('Web 环境：创建下载链接');
+                    // Web 环境：创建隐藏的下载链接
                     var link = document.createElement('a');
                     link.href = url;
-                    link.target = '_blank';
-                    link.download = '';
+                    link.download = url.split('/').pop(); // 使用文件名
+                    link.style.display = 'none';
                     document.body.appendChild(link);
                     link.click();
-                    document.body.removeChild(link);
+                    
+                    // 延迟移除，确保下载开始
+                    setTimeout(function() {
+                        document.body.removeChild(link);
+                    }, 100);
                 }
             } catch (error) {
                 console.error('下载失败:', error);
-                // 最后的后备方案
+                // 最后的后备方案：打开新标签页
                 window.open(url, '_blank');
             }
         };
