@@ -33,6 +33,13 @@
         getCurrentResourceVersion: function() {
             return localStorage.getItem(this.config.storageKey) || 'unknown';
         },
+        
+        /**
+         * 获取当前版本（兼容旧接口）
+         */
+        getCurrentVersion: function() {
+            return this.getCurrentResourceVersion();
+        },
 
         /**
          * 保存资源版本
