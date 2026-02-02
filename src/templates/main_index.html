@@ -427,134 +427,6 @@
             localStorage.setItem(FIRST_LAUNCH_KEY, 'true');
         }
         
-        // 首次启动自动解压内置资源
-        function checkFirstLaunch() {
-            if (window.Capacitor && isFirstLaunch()) {
-                console.log('检测到首次启动，准备解压内置资源包');
-                setTimeout(function() {
-                    showProgressDialog('正在初始化...', 0);
-                    extractBundledResources();
-                }, 1000);
-            }
-        }
-        
-        // 解压 APK 内置的资源包
-        async function extractBundledResources() {
-            try {
-                var Filesystem = window.Capacitor.Plugins.Filesystem;
-                
-                updateProgress('正在读取资源包...', 10);
-                
-                // 从 public 目录读取 resources.zip
-                var response = await fetch('resources.zip');
-                if (!response.ok) {
-                    throw new Error('无法读取内置资源包');
-                }
-                
-                var blob = await response.blob();
-                console.log('资源包大小:', blob.size, 'bytes');
-                
-                updateProgress('正在解压资源...', 30);
-                
-                // 解压并安装
-                var arrayBuffer = await blob.arrayBuffer();
-                var JSZip = window.JSZip;
-                
-                if (!JSZip) {
-                    throw new Error('JSZip 库未加载');
-                }
-                
-                var zip = await JSZip.loadAsync(arrayBuffer);
-                console.log('ZIP 解压成功，文件数:', Object.keys(zip.files).length);
-                
-                updateProgress('正在安装资源...', 50);
-                
-                // 获取更新目录
-                var updateDir = 'hot-update';
-                
-                // 确保目录存在
-                try {
-                    await Filesystem.mkdir({
-                        path: updateDir,
-                        directory: Filesystem.Directory.Data,
-                        recursive: true
-                    });
-                } catch (e) {
-                    console.log('目录已存在:', e);
-                }
-                
-                // 写入文件
-                var files = Object.keys(zip.files);
-                var totalFiles = files.length;
-                var processedFiles = 0;
-                
-                for (var i = 0; i < files.length; i++) {
-                    var filename = files[i];
-                    var file = zip.files[filename];
-                    
-                    if (file.dir) {
-                        try {
-                            await Filesystem.mkdir({
-                                path: updateDir + '/' + filename,
-                                directory: Filesystem.Directory.Data,
-                                recursive: true
-                            });
-                        } catch (e) {
-                            console.log('创建目录失败:', filename);
-                        }
-                    } else {
-                        try {
-                            var content = await file.async('base64');
-                            await Filesystem.writeFile({
-                                path: updateDir + '/' + filename,
-                                data: content,
-                                directory: Filesystem.Directory.Data,
-                                recursive: true
-                            });
-                        } catch (e) {
-                            console.error('写入文件失败:', filename, e);
-                        }
-                    }
-                    
-                    processedFiles++;
-                    var progress = 50 + Math.floor((processedFiles / totalFiles) * 45);
-                    updateProgress('正在安装资源 (' + processedFiles + '/' + totalFiles + ')...', progress);
-                }
-                
-                // 从 version.json 读取版本号
-                var versionFile = zip.files['version.json'];
-                if (versionFile) {
-                    var versionContent = await versionFile.async('string');
-                    var versionInfo = JSON.parse(versionContent);
-                    saveResourceVersion(versionInfo.resource_version);
-                }
-                
-                updateProgress('初始化完成！', 100);
-                markFirstLaunchDone();
-                
-                setTimeout(function() {
-                    var dialog = document.getElementById('hotUpdateProgressDialog');
-                    if (dialog) dialog.remove();
-                    
-                    alert('资源初始化完成！\n\n应用已准备就绪');
-                    window.location.reload();
-                }, 1000);
-                
-            } catch (error) {
-                console.error('资源初始化失败:', error);
-                
-                var dialog = document.getElementById('hotUpdateProgressDialog');
-                if (dialog) dialog.remove();
-                
-                if (confirm('资源初始化失败：' + error.message + '\n\n是否尝试从服务器下载？')) {
-                    checkForUpdate(true);
-                    markFirstLaunchDone();
-                } else {
-                    markFirstLaunchDone();
-                }
-            }
-        }
-        
         // 比较版本号（时间戳格式：YYYYMMDD-HHMMSS）
         function compareResourceVersion(v1, v2) {
             if (v1 === 'unknown' || v2 === 'unknown') return null;
@@ -936,30 +808,10 @@
         
         return {
             checkForUpdate: checkForUpdate,
-            checkFirstLaunch: checkFirstLaunch,
             downloadUpdate: downloadUpdate,
-            getCurrentVersion: getCurrentResourceVersion,
-            resetFirstLaunch: function() {
-                localStorage.removeItem(FIRST_LAUNCH_KEY);
-                console.log('首次启动标记已重置');
-                alert('首次启动标记已重置\n\n刷新页面将重新触发首次启动流程');
-            }
+            getCurrentVersion: getCurrentResourceVersion
         };
     })();
-    
-    // 页面加载完成后检查首次启动
-    window.addEventListener('DOMContentLoaded', function() {
-        console.log('DOMContentLoaded 触发');
-        console.log('HotUpdate 对象:', window.HotUpdate);
-        console.log('checkFirstLaunch 方法:', window.HotUpdate ? window.HotUpdate.checkFirstLaunch : 'undefined');
-        
-        if (window.HotUpdate && window.HotUpdate.checkFirstLaunch) {
-            console.log('调用 checkFirstLaunch');
-            window.HotUpdate.checkFirstLaunch();
-        } else {
-            console.error('HotUpdate 或 checkFirstLaunch 不可用');
-        }
-    });
     
     // APK 检测和更新功能
     (function() {
