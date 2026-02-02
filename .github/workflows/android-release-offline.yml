@@ -136,6 +136,64 @@ jobs:
         
         echo "✓ Android 平台添加完成"
         du -sh android/app/src/main/assets/
+    
+    - name: 生成并配置 Android 图标
+      run: |
+        echo "=== 生成 Android 图标 ==="
+        
+        # 安装 ImageMagick
+        sudo apt-get update
+        sudo apt-get install -y imagemagick
+        
+        # 检查源 SVG 文件
+        if [ ! -f "src/static/icons/icon.svg" ]; then
+          echo "✗ 错误: 找不到 src/static/icons/icon.svg"
+          exit 1
+        fi
+        
+        # Android 图标尺寸
+        declare -A SIZES=(
+          ["mdpi"]="48"
+          ["hdpi"]="72"
+          ["xhdpi"]="96"
+          ["xxhdpi"]="144"
+          ["xxxhdpi"]="192"
+        )
+        
+        echo "开始转换图标..."
+        
+        for density in "${!SIZES[@]}"; do
+          size="${SIZES[$density]}"
+          output_dir="android/app/src/main/res/mipmap-$density"
+          mkdir -p "$output_dir"
+          
+          # 生成普通图标
+          echo "  生成 mipmap-$density (${size}x${size})..."
+          convert -background none -resize "${size}x${size}" \
+            src/static/icons/icon.svg "$output_dir/ic_launcher.png"
+          
+          # 生成圆形图标（Android 8.0+）
+          convert -background none -resize "${size}x${size}" \
+            src/static/icons/icon.svg \
+            \( +clone -threshold -1 -negate -fill white -draw "circle $((size/2)),$((size/2)) $((size/2)),0" \) \
+            -alpha off -compose copy_opacity -composite \
+            "$output_dir/ic_launcher_round.png"
+        done
+        
+        # 验证图标
+        echo ""
+        echo "=== 验证图标 ==="
+        for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+          icon_file="android/app/src/main/res/mipmap-$density/ic_launcher.png"
+          if [ -f "$icon_file" ]; then
+            echo "✓ mipmap-$density/ic_launcher.png ($(du -h "$icon_file" | cut -f1))"
+          else
+            echo "✗ mipmap-$density/ic_launcher.png 不存在"
+          fi
+        done
+        
+        echo ""
+        echo "✓ Android 图标配置完成"
       
     - name: 配置 Android 版本信息
       run: |
