@@ -250,18 +250,16 @@
             console.log('[热更新] 开始自动更新:', url);
             
             // 检查是否在 Capacitor 环境
-            if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Filesystem) {
+            if (!window.Capacitor || !window.Capacitor.Plugins) {
                 console.error('[热更新] Capacitor 环境检测失败:', {
                     hasCapacitor: !!window.Capacitor,
-                    hasPlugins: !!(window.Capacitor && window.Capacitor.Plugins),
-                    hasFilesystem: !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem)
+                    hasPlugins: !!(window.Capacitor && window.Capacitor.Plugins)
                 });
                 
                 var msg = '自动更新仅在 APP 中可用\n\n';
                 msg += '当前环境:\n';
                 msg += '- Capacitor: ' + (window.Capacitor ? '✓' : '✗') + '\n';
                 msg += '- Plugins: ' + (window.Capacitor && window.Capacitor.Plugins ? '✓' : '✗') + '\n';
-                msg += '- Filesystem: ' + (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem ? '✓' : '✗') + '\n';
                 msg += '\n是否在浏览器中打开下载链接？';
                 
                 if (confirm(msg)) {
@@ -270,24 +268,19 @@
                 return;
             }
             
-            // 检查 Directory 枚举是否可用
-            var Directory = window.Capacitor.Plugins.Filesystem.Directory;
-            if (!Directory || !Directory.Data) {
-                console.error('[热更新] Filesystem.Directory 不可用:', {
-                    hasDirectory: !!Directory,
-                    hasData: !!(Directory && Directory.Data),
-                    Directory: Directory
-                });
-                
-                alert('Filesystem API 配置错误\n\nFilesystem.Directory.Data 不可用\n请检查 Capacitor 插件配置');
+            // 检查 Filesystem 插件（Capacitor 6.x 使用动态导入）
+            var Filesystem = window.Capacitor.Plugins.Filesystem;
+            if (!Filesystem) {
+                console.error('[热更新] Filesystem 插件未加载');
+                alert('Filesystem 插件未加载\n\n请确保已安装 @capacitor/filesystem');
                 return;
             }
             
             console.log('[热更新] 环境检测通过:', {
                 hasCapacitor: true,
+                hasPlugins: true,
                 hasFilesystem: true,
-                hasDirectory: true,
-                DirectoryData: Directory.Data
+                FilesystemAPI: Object.keys(Filesystem)
             });
             
             // 关闭对话框
@@ -345,20 +338,17 @@
             var self = this;
             
             try {
-                // 获取 Filesystem 插件和 Directory 枚举
+                // 获取 Filesystem 插件
                 var Filesystem = window.Capacitor.Plugins.Filesystem;
-                var Directory = window.Capacitor.Plugins.Filesystem.Directory;
                 
-                // 检查 Directory 是否可用
-                if (!Directory || !Directory.Data) {
-                    throw new Error('Filesystem.Directory.Data 不可用，请检查 Capacitor 配置');
-                }
+                // Capacitor 6.x 使用字符串常量而不是枚举
+                // Directory.Data 在 Capacitor 6.x 中是字符串 'DATA'
+                var DIRECTORY_DATA = 'DATA';
                 
-                console.log('[热更新] Filesystem API 检查:', {
+                console.log('[热更新] Filesystem API 初始化:', {
                     hasFilesystem: !!Filesystem,
-                    hasDirectory: !!Directory,
-                    hasData: !!(Directory && Directory.Data),
-                    DirectoryData: Directory ? Directory.Data : 'undefined'
+                    directoryType: DIRECTORY_DATA,
+                    filesystemMethods: Object.keys(Filesystem)
                 });
                 
                 // 1. 下载 ZIP 文件
@@ -393,18 +383,19 @@
                 try {
                     await Filesystem.rmdir({
                         path: tempDir,
-                        directory: Directory.Data,
+                        directory: DIRECTORY_DATA,
                         recursive: true
                     });
+                    console.log('[热更新] 临时目录已清理');
                 } catch (e) {
-                    console.log('[热更新] 临时目录不存在或删除失败:', e);
+                    console.log('[热更新] 临时目录不存在或删除失败:', e.message);
                 }
                 
                 // 创建临时目录
                 try {
                     await Filesystem.mkdir({
                         path: tempDir,
-                        directory: Directory.Data,
+                        directory: DIRECTORY_DATA,
                         recursive: true
                     });
                     console.log('[热更新] 临时目录已创建');
@@ -427,11 +418,11 @@
                         try {
                             await Filesystem.mkdir({
                                 path: tempDir + '/' + filename,
-                                directory: Directory.Data,
+                                directory: DIRECTORY_DATA,
                                 recursive: true
                             });
                         } catch (e) {
-                            console.log('[热更新] 创建目录失败:', filename, e);
+                            console.log('[热更新] 创建目录失败:', filename, e.message);
                         }
                     } else {
                         // 写入文件
@@ -440,12 +431,12 @@
                             await Filesystem.writeFile({
                                 path: tempDir + '/' + filename,
                                 data: content,
-                                directory: Directory.Data,
+                                directory: DIRECTORY_DATA,
                                 recursive: true
                             });
                             console.log('[热更新] 写入文件:', filename);
                         } catch (e) {
-                            console.error('[热更新] 写入文件失败:', filename, e);
+                            console.error('[热更新] 写入文件失败:', filename, e.message);
                             throw new Error('写入文件失败: ' + filename);
                         }
                     }
@@ -462,12 +453,12 @@
                 try {
                     await Filesystem.rmdir({
                         path: updateDir,
-                        directory: Directory.Data,
+                        directory: DIRECTORY_DATA,
                         recursive: true
                     });
                     console.log('[热更新] 旧内容已删除');
                 } catch (e) {
-                    console.log('[热更新] 删除旧内容失败或目录不存在:', e);
+                    console.log('[热更新] 删除旧内容失败或目录不存在:', e.message);
                 }
                 
                 // 重命名临时目录为正式目录
@@ -475,19 +466,19 @@
                     await Filesystem.rename({
                         from: tempDir,
                         to: updateDir,
-                        directory: Directory.Data
+                        directory: DIRECTORY_DATA
                     });
-                    console.log('[热更新] 更新已应用');
+                    console.log('[热更新] 更新已应用（rename）');
                 } catch (e) {
-                    // 如果 rename 不支持，尝试创建新目录
-                    console.log('[热更新] rename 失败，尝试创建新目录:', e);
+                    // 如果 rename 不支持，尝试创建新目录（临时方案）
+                    console.log('[热更新] rename 失败，尝试创建新目录:', e.message);
                     try {
                         await Filesystem.mkdir({
                             path: updateDir,
-                            directory: Directory.Data,
+                            directory: DIRECTORY_DATA,
                             recursive: true
                         });
-                        console.log('[热更新] 已创建新目录');
+                        console.log('[热更新] 已创建新目录（注意：文件可能在 temp 目录）');
                     } catch (e2) {
                         throw new Error('应用更新失败: ' + e2.message);
                     }
