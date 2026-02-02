@@ -288,6 +288,41 @@ jobs:
         echo "=== 验证资源大小 ==="
         du -sh android/app/src/main/assets/
         find android/app/src/main/assets/ -type f | wc -l
+    
+    - name: 重新应用自定义图标（sync 后）
+      run: |
+        echo "=== 重新应用自定义图标 ==="
+        echo "注意：cap sync 可能会覆盖图标，需要重新生成"
+        
+        # Android 图标尺寸
+        declare -A SIZES=(
+          ["mdpi"]="48"
+          ["hdpi"]="72"
+          ["xhdpi"]="96"
+          ["xxhdpi"]="144"
+          ["xxxhdpi"]="192"
+        )
+        
+        for density in "${!SIZES[@]}"; do
+          size="${SIZES[$density]}"
+          output_dir="android/app/src/main/res/mipmap-$density"
+          
+          # 生成普通图标
+          convert -background none -resize "${size}x${size}" \
+            src/static/icons/icon.svg "$output_dir/ic_launcher.png"
+          
+          # 生成圆形图标
+          convert -background none -resize "${size}x${size}" \
+            src/static/icons/icon.svg \
+            \( +clone -threshold -1 -negate -fill white -draw "circle $((size/2)),$((size/2)) $((size/2)),0" \) \
+            -alpha off -compose copy_opacity -composite \
+            "$output_dir/ic_launcher_round.png"
+          
+          echo "✓ 已更新 mipmap-$density 图标"
+        done
+        
+        echo ""
+        echo "✓ 自定义图标已重新应用"
       
     - name: 配置网络安全策略
       run: |
