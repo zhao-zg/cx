@@ -336,7 +336,7 @@
                 {% for training in trainings %}
                 <div class="training-card">
                     <div class="training-card-wrapper">
-                        <a href="{{ training.path }}/index.html" class="training-link">
+                        <a href="{{ training.path | urlencode }}/index.html" class="training-link">
                             <div class="training-info">
                                 <div class="training-header">
                                     <div class="year-season">{{ training.year }}年{{ training.season.split()[0] }}</div>
@@ -349,7 +349,7 @@
                             </div>
                         </a>
                         <div class="training-cache">
-                            <button class="mini-cache-btn" data-training="{{ training.path }}" data-chapters="{{ training.chapter_count }}" data-images='{{ training.images|tojson }}'>
+                            <button class="mini-cache-btn" data-training="{{ training.path | urlencode }}" data-chapters="{{ training.chapter_count }}" data-images='{{ training.images|tojson }}'>
                                 <span class="cache-icon">📥</span> <span class="cache-text">缓存</span>
                             </button>
                             <span class="cache-progress"></span>
