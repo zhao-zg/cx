@@ -876,19 +876,32 @@
         }
         
         // 显示进度对话框
-        showApkDownloadProgress('正在准备下载...', 0);
+        showApkDownloadProgress('正在准备下载...', 0, 0, 0);
         
         window.AppUpdate.downloadApk(
             url,
-            // onProgress
-            function(message, progress) {
-                updateApkDownloadProgress(message, progress);
+            // onProgress: function(message, progress, speed, downloaded)
+            function(message, progress, speed, downloaded) {
+                updateApkDownloadProgress(message, progress, speed, downloaded);
             },
             // onComplete
             function(sourceName) {
                 setTimeout(function() {
                     closeApkDownloadProgress();
-                    alert('APK 已下载完成！\n\n使用: ' + sourceName + '\n\n请按照系统提示完成安装。');
+                    
+                    var message = '✅ APK 下载完成！\n\n';
+                    message += '📦 使用下载源: ' + sourceName + '\n\n';
+                    message += '📱 接下来的步骤：\n';
+                    message += '1. 系统会弹出安装界面\n';
+                    message += '2. 如果提示"需要权限"，请点击"设置"并允许\n';
+                    message += '3. 返回后点击"安装"按钮\n';
+                    message += '4. 等待安装完成\n\n';
+                    message += '💡 提示：\n';
+                    message += '• 首次安装需要授予"安装未知应用"权限\n';
+                    message += '• 如果没有弹出安装界面，请到文件管理器的 Downloads 目录手动安装\n';
+                    message += '• 安装完成后可以覆盖旧版本，数据不会丢失';
+                    
+                    alert(message);
                 }, 1000);
             },
             // onError
@@ -906,7 +919,7 @@
     };
     
     // APK 下载进度对话框
-    function showApkDownloadProgress(message, progress) {
+    function showApkDownloadProgress(message, progress, speed, downloaded) {
         var dialogId = 'apkDownloadProgressDialog';
         var oldDialog = document.getElementById(dialogId);
         if (oldDialog) oldDialog.remove();
@@ -914,7 +927,17 @@
             var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 20px;" id="' + dialogId + '">';
             html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%;">';
             html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 18px; text-align: center;">📱 正在下载 APK</h3>';
-            html += '<p style="color: #666; margin-bottom: 15px; text-align: center; font-size: 14px;" id="apkProgressMessage">' + message + '</p>';
+            html += '<p style="color: #666; margin-bottom: 10px; text-align: center; font-size: 14px;" id="apkProgressMessage">' + message + '</p>';
+            
+            // 速度和已下载信息
+            html += '<p style="color: #999; margin-bottom: 15px; text-align: center; font-size: 12px;" id="apkProgressInfo">';
+            if (speed > 0) {
+                html += '速度: ' + speed + ' KB/s';
+            }
+            if (downloaded > 0) {
+                html += ' | 已下载: ' + (downloaded / 1024 / 1024).toFixed(2) + ' MB';
+            }
+            html += '</p>';
             
             // 进度条
             html += '<div style="background: #e2e8f0; border-radius: 10px; height: 20px; overflow: hidden; margin-bottom: 10px;">';
@@ -927,14 +950,28 @@
             document.body.insertAdjacentHTML('beforeend', html);
     }
     
-    function updateApkDownloadProgress(message, progress) {
+    function updateApkDownloadProgress(message, progress, speed, downloaded) {
         var msgEl = document.getElementById('apkProgressMessage');
         var barEl = document.getElementById('apkProgressBar');
         var pctEl = document.getElementById('apkProgressPercent');
+        var infoEl = document.getElementById('apkProgressInfo');
         
         if (msgEl) msgEl.textContent = message;
         if (barEl) barEl.style.width = progress + '%';
         if (pctEl) pctEl.textContent = progress + '%';
+        
+        // 更新速度和已下载信息
+        if (infoEl) {
+            var info = '';
+            if (speed > 0) {
+                info += '速度: ' + speed + ' KB/s';
+            }
+            if (downloaded > 0) {
+                if (info) info += ' | ';
+                info += '已下载: ' + (downloaded / 1024 / 1024).toFixed(2) + ' MB';
+            }
+            infoEl.textContent = info || ' ';
+        }
     }
     
     function closeApkDownloadProgress() {
@@ -1583,90 +1620,174 @@
                 installStatus.className = 'cache-status';
             }
             
+            var cleanupSteps = [];
+            
             // 1. 清理 localStorage（页面记忆、字体设置、语速设置、热更新等）
-            try {
-                var keysToRemove = [];
-                for (var i = 0; i < localStorage.length; i++) {
-                    var key = localStorage.key(i);
-                    // 清理所有 cx_ 开头的键
-                    if (key && key.startsWith('cx_')) {
-                        keysToRemove.push(key);
+            cleanupSteps.push(new Promise(function(resolve) {
+                try {
+                    var keysToRemove = [];
+                    for (var i = 0; i < localStorage.length; i++) {
+                        var key = localStorage.key(i);
+                        // 清理所有 cx_ 开头的键
+                        if (key && key.startsWith('cx_')) {
+                            keysToRemove.push(key);
+                        }
+                        // 清理字体和语速设置
+                        if (key === 'fontSize' || key === 'speechRate') {
+                            keysToRemove.push(key);
+                        }
+                        // 清理热更新相关
+                        if (key === 'resource_version' || key === 'pending_hot_update') {
+                            keysToRemove.push(key);
+                        }
                     }
-                    // 清理字体和语速设置
-                    if (key === 'fontSize' || key === 'speechRate') {
-                        keysToRemove.push(key);
-                    }
-                    // 清理热更新相关
-                    if (key === 'resource_version' || key === 'pending_hot_update') {
-                        keysToRemove.push(key);
-                    }
+                    keysToRemove.forEach(function(key) {
+                        localStorage.removeItem(key);
+                        console.log('[清理] 删除 localStorage:', key);
+                    });
+                    console.log('[清理] localStorage 清理完成，共删除', keysToRemove.length, '项');
+                    resolve();
+                } catch (e) {
+                    console.error('[清理] 清理 localStorage 失败:', e);
+                    resolve(); // 继续执行其他清理
                 }
-                keysToRemove.forEach(function(key) {
-                    localStorage.removeItem(key);
-                    console.log('[清理] 删除 localStorage:', key);
-                });
-            } catch (e) {
-                console.error('[清理] 清理 localStorage 失败:', e);
+            }));
+            
+            // 2. 清理 sessionStorage
+            cleanupSteps.push(new Promise(function(resolve) {
+                try {
+                    sessionStorage.clear();
+                    console.log('[清理] sessionStorage 已清理');
+                    resolve();
+                } catch (e) {
+                    console.error('[清理] 清理 sessionStorage 失败:', e);
+                    resolve();
+                }
+            }));
+            
+            // 3. 清理资源加载器缓存
+            cleanupSteps.push(new Promise(function(resolve) {
+                try {
+                    if (window.ResourceLoader && window.ResourceLoader.clearCache) {
+                        window.ResourceLoader.clearCache();
+                        console.log('[清理] 资源加载器缓存已清理');
+                    }
+                    resolve();
+                } catch (e) {
+                    console.error('[清理] 清理资源加载器缓存失败:', e);
+                    resolve();
+                }
+            }));
+            
+            // 4. 清理 Capacitor 热更新目录
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem) {
+                cleanupSteps.push(new Promise(function(resolve) {
+                    var Filesystem = window.Capacitor.Plugins.Filesystem;
+                    var DIRECTORY_DATA = 'DATA';
+                    
+                    Filesystem.rmdir({
+                        path: 'hot-update',
+                        directory: DIRECTORY_DATA,
+                        recursive: true
+                    }).then(function() {
+                        console.log('[清理] Capacitor 热更新目录已删除');
+                        resolve();
+                    }).catch(function(e) {
+                        console.log('[清理] 热更新目录不存在或删除失败:', e.message);
+                        resolve(); // 继续执行
+                    });
+                }));
             }
             
-            // 2. 注销所有 Service Worker
-            var unregisterPromise = Promise.resolve();
+            // 5. 注销所有 Service Worker
             if ('serviceWorker' in navigator) {
-                unregisterPromise = navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    console.log('[清理] 找到 Service Worker:', registrations.length, '个');
-                    return Promise.all(
-                        registrations.map(function(registration) {
-                            console.log('[清理] 注销 Service Worker:', registration.scope);
-                            return registration.unregister();
-                        })
-                    );
-                });
+                cleanupSteps.push(
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                        console.log('[清理] 找到 Service Worker:', registrations.length, '个');
+                        return Promise.all(
+                            registrations.map(function(registration) {
+                                console.log('[清理] 注销 Service Worker:', registration.scope);
+                                return registration.unregister();
+                            })
+                        );
+                    }).catch(function(e) {
+                        console.error('[清理] 注销 Service Worker 失败:', e);
+                    })
+                );
             }
             
-            // 3. 清理所有 Cache Storage
-            unregisterPromise.then(function() {
-                if ('caches' in window) {
-                    return caches.keys().then(function(keys) {
-                        console.log('[清理] 找到缓存:', keys);
+            // 6. 清理所有 Cache Storage
+            if ('caches' in window) {
+                cleanupSteps.push(
+                    caches.keys().then(function(keys) {
+                        console.log('[清理] 找到缓存:', keys.length, '个');
                         return Promise.all(
                             keys.map(function(key) {
                                 console.log('[清理] 删除缓存:', key);
                                 return caches.delete(key);
                             })
                         );
-                    });
-                }
-                return Promise.resolve();
-            }).then(function() {
-                console.log('[清理] 所有缓存和 Service Worker 已清理');
+                    }).catch(function(e) {
+                        console.error('[清理] 清理 Cache Storage 失败:', e);
+                    })
+                );
+            }
+            
+            // 7. 清理 IndexedDB
+            if ('indexedDB' in window) {
+                cleanupSteps.push(new Promise(function(resolve) {
+                    try {
+                        // 尝试删除常见的 IndexedDB 数据库
+                        var dbNames = ['cx-trainings', 'cx-cache', 'workbox-expiration'];
+                        var deletePromises = dbNames.map(function(dbName) {
+                            return new Promise(function(resolveDB) {
+                                var request = indexedDB.deleteDatabase(dbName);
+                                request.onsuccess = function() {
+                                    console.log('[清理] 删除 IndexedDB:', dbName);
+                                    resolveDB();
+                                };
+                                request.onerror = function() {
+                                    console.log('[清理] IndexedDB 不存在或删除失败:', dbName);
+                                    resolveDB();
+                                };
+                                request.onblocked = function() {
+                                    console.log('[清理] IndexedDB 删除被阻止:', dbName);
+                                    resolveDB();
+                                };
+                            });
+                        });
+                        Promise.all(deletePromises).then(resolve);
+                    } catch (e) {
+                        console.error('[清理] 清理 IndexedDB 失败:', e);
+                        resolve();
+                    }
+                }));
+            }
+            
+            // 执行所有清理步骤
+            Promise.all(cleanupSteps).then(function() {
+                console.log('[清理] 所有缓存和记忆已清理完成');
                 
                 if (installStatus) {
                     installStatus.textContent = '✓ 清理完成！页面将在 3 秒后刷新';
                     installStatus.className = 'cache-status success';
                 }
                 
-                // 4. 刷新页面
+                // 刷新页面
                 setTimeout(function() {
                     window.location.reload(true);
                 }, 3000);
             }).catch(function(err) {
-                console.error('[清理] 清理失败:', err);
+                console.error('[清理] 清理过程出错:', err);
                 if (installStatus) {
-                    installStatus.textContent = '✗ 清理失败: ' + err.message;
-                    installStatus.className = 'cache-status error';
+                    installStatus.textContent = '⚠ 部分清理完成，页面将在 3 秒后刷新';
+                    installStatus.className = 'cache-status warning';
                 }
-            });
-            
-            if (!('caches' in window) && !('serviceWorker' in navigator)) {
-                console.log('[清理] 浏览器不支持 Cache Storage');
-                if (installStatus) {
-                    installStatus.textContent = '✓ localStorage 已清理，页面将在 3 秒后刷新';
-                    installStatus.className = 'cache-status success';
-                }
+                // 即使出错也刷新页面
                 setTimeout(function() {
                     window.location.reload(true);
                 }, 3000);
-            }
+            });
         }
     });
     </script>

@@ -413,9 +413,6 @@
           currentChunkIndex = 0;
           isPlayingChunks = true;
           
-          // 调试信息
-          alert('启动分段播放\n\n总文本: ' + segmentText.length + '字\n分段数: ' + textChunks.length + '\n每段约: 200字');
-          
           // 设置时间状态
           isSeekingInternal = false;
           elapsedOffset = targetSeconds;
@@ -540,16 +537,9 @@
 
     // Play / Pause
     playPauseBtn.addEventListener('click', function () {
-      alert('播放按钮点击\n\nutterance: ' + !!utterance + '\nfullText: ' + !!fullText + '\nuseCapacitorTTS: ' + useCapacitorTTS + '\nuseWebSpeech: ' + useWebSpeech);
-      
       if (!utterance || !fullText) {
         fullText = safeText(getText());
-        if (!fullText) {
-          alert('getText 返回空文本');
-          return;
-        }
-        
-        alert('准备播放\n\n文本长度: ' + fullText.length + '\n使用引擎: ' + (useCapacitorTTS ? 'Capacitor' : 'Web Speech'));
+        if (!fullText) return;
 
         totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
         elapsedOffset = 0;

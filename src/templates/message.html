@@ -112,36 +112,22 @@ window.addEventListener('DOMContentLoaded', function() {
     window.CXSpeech.init({
         getText: function() {
             let text = '';
-            let debugSteps = [];
 
             const titleElem = document.querySelector('.chapter-title');
-            if (titleElem) {
-                text += titleElem.textContent.trim() + '。';
-                debugSteps.push('标题: ' + titleElem.textContent.trim().substring(0, 20));
-            } else {
-                debugSteps.push('标题: 未找到');
-            }
+            if (titleElem) text += titleElem.textContent.trim() + '。';
 
             const scriptureElem = document.querySelector('.scripture');
-            if (scriptureElem) {
-                text += scriptureElem.textContent.trim() + '。';
-                debugSteps.push('经文: 已添加');
-            }
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
 
             // 方案1: 获取所有 section 标题和内容
             const sections = document.querySelectorAll('.section');
-            debugSteps.push('Sections: ' + sections.length);
             
-            let sectionTextCount = 0;
             sections.forEach(section => {
                 // 读取 section 标题（支持所有级别）
                 const levelElem = section.querySelector('[class^="section-level"]');
                 if (levelElem) {
                     const t = levelElem.textContent.trim();
-                    if (t) {
-                        text += t + '。';
-                        sectionTextCount++;
-                    }
+                    if (t) text += t + '。';
                 }
                 // 读取 section 内容
                 const sectionContent = section.querySelector('.section-content');
@@ -149,19 +135,14 @@ window.addEventListener('DOMContentLoaded', function() {
                     const paragraphs = sectionContent.querySelectorAll('.content-text');
                     paragraphs.forEach(p => {
                         const t = p.textContent.trim();
-                        if (t) {
-                            text += t + '。';
-                            sectionTextCount++;
-                        }
+                        if (t) text += t + '。';
                     });
                 }
             });
-            debugSteps.push('Section文本段: ' + sectionTextCount);
 
             // 方案2: 如果没有 section 结构，直接读取所有 content-text
             if (sections.length === 0) {
                 const paragraphs = document.querySelectorAll('.content-text');
-                debugSteps.push('降级方案: content-text数量 ' + paragraphs.length);
                 paragraphs.forEach(p => {
                     const t = p.textContent.trim();
                     if (t) text += t + '。';
@@ -173,12 +154,8 @@ window.addEventListener('DOMContentLoaded', function() {
                 const messageContent = document.querySelector('.message-content');
                 if (messageContent) {
                     text = messageContent.textContent.trim();
-                    debugSteps.push('最终降级: 使用整个content');
                 }
             }
-            
-            // 清理前的长度
-            const beforeClean = text.length;
             
             // 清理文本：移除多余的空白字符和特殊字符
             text = text
@@ -186,16 +163,6 @@ window.addEventListener('DOMContentLoaded', function() {
                 .replace(/[\r\n\t]/g, '')       // 移除换行和制表符
                 .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '') // 只保留中英文、数字和常用标点
                 .trim();
-            
-            debugSteps.push('清理前: ' + beforeClean + '字');
-            debugSteps.push('清理后: ' + text.length + '字');
-            
-            // 调试：显示文本信息
-            var debugInfo = debugSteps.join('\n');
-            debugInfo += '\n\n前100字:\n' + text.substring(0, 100);
-            
-            // 总是显示调试信息（移动端）
-            alert('听抄文本提取调试\n\n' + debugInfo);
             
             // 如果文本为空，在页面上显示提示
             if (!text || text.length < 10) {
