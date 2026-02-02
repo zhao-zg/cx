@@ -404,7 +404,7 @@
     window.HotUpdate = (function() {
         var REMOTE_URLS = {{ remote_urls|tojson }};
         var STORAGE_KEY = 'cx_resource_version';
-        var FIRST_LAUNCH_KEY = 'cx_first_launch_done';
+        var INIT_KEY = 'cx_resource_initialized';
         
         // 获取当前资源版本
         function getCurrentResourceVersion() {
@@ -417,14 +417,34 @@
             console.log('资源版本已保存:', version);
         }
         
-        // 检查是否首次启动
-        function isFirstLaunch() {
-            return !localStorage.getItem(FIRST_LAUNCH_KEY);
+        // 初始化 APK 内置资源版本号
+        function initBundledVersion() {
+            // 如果已经初始化过，跳过
+            if (localStorage.getItem(INIT_KEY)) {
+                return;
+            }
+            
+            // 从 APK 内置的 version.json 读取版本号
+            fetch('version.json')
+                .then(function(response) {
+                    if (!response.ok) throw new Error('无法读取 version.json');
+                    return response.json();
+                })
+                .then(function(versionInfo) {
+                    if (versionInfo.resource_version) {
+                        saveResourceVersion(versionInfo.resource_version);
+                        localStorage.setItem(INIT_KEY, 'true');
+                        console.log('APK 内置资源版本已初始化:', versionInfo.resource_version);
+                    }
+                })
+                .catch(function(error) {
+                    console.error('初始化资源版本失败:', error);
+                });
         }
         
-        // 标记首次启动已完成
-        function markFirstLaunchDone() {
-            localStorage.setItem(FIRST_LAUNCH_KEY, 'true');
+        // 页面加载时初始化
+        if (window.Capacitor) {
+            initBundledVersion();
         }
         
         // 比较版本号（时间戳格式：YYYYMMDD-HHMMSS）
