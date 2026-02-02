@@ -110,6 +110,12 @@ jobs:
         echo "=== 热更新包 ==="
         ls -lh output/*.zip || echo "⚠️ 警告: 热更新包未生成"
     
+    - name: 清理热更新包（避免打包进 APK）
+      run: |
+        echo "=== 清理热更新包 ==="
+        rm -f output/*.zip
+        echo "✓ 热更新包已删除（不打包进 APK）"
+        
     - name: 添加 Android 平台
       run: |
         echo "=== 添加 Android 平台 ==="
