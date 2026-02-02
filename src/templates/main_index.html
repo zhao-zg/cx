@@ -837,70 +837,202 @@
             });
         }
         
-        // 下载 APK（使用系统下载管理器）
+        // 下载 APK（使用 Capacitor Filesystem API 内部下载）
         window.downloadApk = async function(url) {
             console.log('[APK下载] 开始下载:', url);
             
+            // 检查是否在 Capacitor 环境
+            if (!window.Capacitor || !window.Capacitor.Plugins) {
+                console.log('[APK下载] 非 Capacitor 环境，使用浏览器下载');
+                // Web 环境：创建下载链接
+                var link = document.createElement('a');
+                link.href = url;
+                link.download = url.split('/').pop();
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(function() {
+                    document.body.removeChild(link);
+                }, 100);
+                return;
+            }
+            
+            var Filesystem = window.Capacitor.Plugins.Filesystem;
+            if (!Filesystem) {
+                console.error('[APK下载] Filesystem 插件未加载');
+                alert('Filesystem 插件未加载\n\n请确保已安装 @capacitor/filesystem');
+                return;
+            }
+            
+            // 显示进度对话框
+            showApkDownloadProgress('正在准备下载...', 0);
+            
             try {
-                // 在 Capacitor 环境中，使用 Browser 插件打开外部浏览器
-                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
-                    console.log('[APK下载] Capacitor 环境：使用 Browser 插件');
+                var DIRECTORY_CACHE = 'CACHE';  // 使用 CACHE 目录，可以被其他应用访问
+                var filename = url.split('/').pop();  // 提取文件名
+                var filepath = 'downloads/' + filename;
+                
+                // 1. 下载 APK 文件
+                updateApkDownloadProgress('正在下载 APK...', 10);
+                console.log('[APK下载] 开始下载:', url);
+                
+                var response = await fetch(url);
+                if (!response.ok) throw new Error('下载失败: HTTP ' + response.status);
+                
+                // 获取文件大小
+                var contentLength = response.headers.get('content-length');
+                var total = contentLength ? parseInt(contentLength, 10) : 0;
+                console.log('[APK下载] 文件大小:', total, 'bytes');
+                
+                // 读取响应流并显示进度
+                var reader = response.body.getReader();
+                var chunks = [];
+                var received = 0;
+                
+                while (true) {
+                    var result = await reader.read();
+                    if (result.done) break;
                     
-                    // 使用 Browser 插件在外部浏览器中打开下载链接
-                    // 这样不会离开 APP，下载完成后会自动返回
-                    await window.Capacitor.Plugins.Browser.open({ 
-                        url: url,
-                        presentationStyle: 'popover'  // Android 上会使用 Custom Tabs
-                    });
+                    chunks.push(result.value);
+                    received += result.value.length;
                     
-                    console.log('[APK下载] 已在外部浏览器中打开下载链接');
-                    
-                    // 提示用户
-                    alert('APK 下载已开始\n\n下载完成后，请在通知栏点击安装。\n\n注意：安装新版本前，旧版本的数据会保留。');
-                    
-                } else if (window.Capacitor) {
-                    console.log('[APK下载] Capacitor 环境：Browser 插件不可用，使用 window.open');
-                    
-                    // 降级方案：使用 window.open
-                    // 在 Android WebView 中，这会触发下载
-                    var opened = window.open(url, '_system');
-                    
-                    if (!opened) {
-                        console.warn('[APK下载] window.open 失败，尝试创建隐藏链接');
-                        // 再次降级：创建隐藏链接
-                        var link = document.createElement('a');
-                        link.href = url;
-                        link.target = '_system';
-                        link.style.display = 'none';
-                        document.body.appendChild(link);
-                        link.click();
-                        setTimeout(function() {
-                            document.body.removeChild(link);
-                        }, 100);
+                    if (total > 0) {
+                        var progress = Math.round((received / total) * 70) + 10;  // 10-80%
+                        updateApkDownloadProgress('正在下载 APK... ' + (received / 1024 / 1024).toFixed(1) + ' MB', progress);
                     }
-                    
-                    alert('APK 下载已开始\n\n下载完成后，请在通知栏点击安装。');
-                    
-                } else {
-                    console.log('[APK下载] Web 环境：创建下载链接');
-                    // Web 环境：创建隐藏的下载链接
-                    var link = document.createElement('a');
-                    link.href = url;
-                    link.download = url.split('/').pop(); // 使用文件名
-                    link.style.display = 'none';
-                    document.body.appendChild(link);
-                    link.click();
-                    
-                    // 延迟移除，确保下载开始
-                    setTimeout(function() {
-                        document.body.removeChild(link);
-                    }, 100);
                 }
+                
+                // 合并所有 chunks
+                var blob = new Blob(chunks);
+                console.log('[APK下载] 下载完成，大小:', blob.size, 'bytes');
+                
+                updateApkDownloadProgress('正在保存文件...', 85);
+                
+                // 2. 转换为 base64
+                var arrayBuffer = await blob.arrayBuffer();
+                var bytes = new Uint8Array(arrayBuffer);
+                var binary = '';
+                for (var i = 0; i < bytes.length; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                var base64 = btoa(binary);
+                
+                console.log('[APK下载] 转换为 base64 完成');
+                
+                // 3. 确保目录存在
+                try {
+                    await Filesystem.mkdir({
+                        path: 'downloads',
+                        directory: DIRECTORY_CACHE,
+                        recursive: true
+                    });
+                } catch (e) {
+                    console.log('[APK下载] 目录已存在或创建失败:', e.message);
+                }
+                
+                // 4. 写入文件
+                updateApkDownloadProgress('正在保存到本地...', 90);
+                
+                var writeResult = await Filesystem.writeFile({
+                    path: filepath,
+                    data: base64,
+                    directory: DIRECTORY_CACHE,
+                    recursive: true
+                });
+                
+                console.log('[APK下载] 文件已保存:', writeResult.uri);
+                
+                updateApkDownloadProgress('准备安装...', 95);
+                
+                // 5. 获取文件 URI 并打开
+                var getUriResult = await Filesystem.getUri({
+                    path: filepath,
+                    directory: DIRECTORY_CACHE
+                });
+                
+                var fileUri = getUriResult.uri;
+                console.log('[APK下载] 文件 URI:', fileUri);
+                
+                // 6. 使用系统打开 APK 文件（触发安装）
+                // 需要将 file:// URI 转换为 content:// URI（Android 7.0+）
+                if (window.Capacitor.Plugins.FileOpener) {
+                    // 如果有 FileOpener 插件
+                    await window.Capacitor.Plugins.FileOpener.open({
+                        filePath: fileUri,
+                        contentType: 'application/vnd.android.package-archive'
+                    });
+                } else {
+                    // 降级方案：使用 Browser 插件打开
+                    if (window.Capacitor.Plugins.Browser) {
+                        await window.Capacitor.Plugins.Browser.open({ url: fileUri });
+                    } else {
+                        // 最终降级：显示文件路径
+                        throw new Error('无法自动打开安装程序\n\n文件已保存到:\n' + fileUri + '\n\n请手动打开文件管理器安装。');
+                    }
+                }
+                
+                updateApkDownloadProgress('下载完成！', 100);
+                
+                setTimeout(function() {
+                    closeApkDownloadProgress();
+                    alert('APK 已下载完成！\n\n请按照系统提示完成安装。\n\n注意：安装新版本前，旧版本的数据会保留。');
+                }, 1000);
+                
             } catch (error) {
                 console.error('[APK下载] 下载失败:', error);
-                alert('下载失败: ' + error.message + '\n\n请手动访问 GitHub Releases 页面下载。');
+                closeApkDownloadProgress();
+                
+                var errorMsg = 'APK 下载失败\n\n';
+                errorMsg += '错误: ' + error.message + '\n\n';
+                errorMsg += '是否在浏览器中打开下载链接？';
+                
+                if (confirm(errorMsg)) {
+                    // 降级到浏览器下载
+                    if (window.Capacitor.Plugins.Browser) {
+                        window.Capacitor.Plugins.Browser.open({ url: url });
+                    } else {
+                        window.open(url, '_system');
+                    }
+                }
             }
         };
+        
+        // APK 下载进度对话框
+        function showApkDownloadProgress(message, progress) {
+            var dialogId = 'apkDownloadProgressDialog';
+            var oldDialog = document.getElementById(dialogId);
+            if (oldDialog) oldDialog.remove();
+            
+            var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 20px;" id="' + dialogId + '">';
+            html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%;">';
+            html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 18px; text-align: center;">📱 正在下载 APK</h3>';
+            html += '<p style="color: #666; margin-bottom: 15px; text-align: center; font-size: 14px;" id="apkProgressMessage">' + message + '</p>';
+            
+            // 进度条
+            html += '<div style="background: #e2e8f0; border-radius: 10px; height: 20px; overflow: hidden; margin-bottom: 10px;">';
+            html += '<div id="apkProgressBar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100%; width: ' + progress + '%; transition: width 0.3s;"></div>';
+            html += '</div>';
+            
+            html += '<p style="color: #999; text-align: center; font-size: 12px;" id="apkProgressPercent">' + progress + '%</p>';
+            html += '</div></div>';
+            
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
+        
+        function updateApkDownloadProgress(message, progress) {
+            var msgEl = document.getElementById('apkProgressMessage');
+            var barEl = document.getElementById('apkProgressBar');
+            var pctEl = document.getElementById('apkProgressPercent');
+            
+            if (msgEl) msgEl.textContent = message;
+            if (barEl) barEl.style.width = progress + '%';
+            if (pctEl) pctEl.textContent = progress + '%';
+        }
+        
+        function closeApkDownloadProgress() {
+            var dialog = document.getElementById('apkDownloadProgressDialog');
+            if (dialog) dialog.remove();
+        }
         
         // 显示 APK 更新对话框
         function showApkUpdateDialog(release, apk, currentVersion, comparison) {
