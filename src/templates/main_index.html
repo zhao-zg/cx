@@ -397,6 +397,202 @@
         }
     })();
     
+    // 热更新资源包检测功能
+    window.HotUpdate = (function() {
+        var REMOTE_URLS = {{ remote_urls|tojson }};
+        var STORAGE_KEY = 'cx_resource_version';
+        
+        // 获取当前资源版本
+        function getCurrentResourceVersion() {
+            return localStorage.getItem(STORAGE_KEY) || 'unknown';
+        }
+        
+        // 保存资源版本
+        function saveResourceVersion(version) {
+            localStorage.setItem(STORAGE_KEY, version);
+            console.log('资源版本已保存:', version);
+        }
+        
+        // 比较版本号（时间戳格式：YYYYMMDD-HHMMSS）
+        function compareResourceVersion(v1, v2) {
+            if (v1 === 'unknown' || v2 === 'unknown') return null;
+            return v1 > v2 ? 1 : (v1 < v2 ? -1 : 0);
+        }
+        
+        // 检查资源更新
+        function checkForUpdate(manual) {
+            console.log('=== 开始检查资源更新 ===');
+            var currentVersion = getCurrentResourceVersion();
+            console.log('当前资源版本:', currentVersion);
+            
+            // 尝试从多个 URL 获取 version.json
+            var urlIndex = 0;
+            
+            function tryNextUrl() {
+                if (urlIndex >= REMOTE_URLS.length) {
+                    console.error('所有 URL 都无法访问');
+                    if (manual) {
+                        alert('无法连接到服务器，请检查网络连接');
+                    }
+                    return;
+                }
+                
+                var url = REMOTE_URLS[urlIndex] + 'version.json?t=' + Date.now();
+                console.log('尝试 URL:', url);
+                
+                fetch(url, { cache: 'no-cache' })
+                    .then(function(response) {
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        return response.json();
+                    })
+                    .then(function(versionInfo) {
+                        console.log('获取到版本信息:', versionInfo);
+                        
+                        var remoteVersion = versionInfo.resource_version;
+                        var comparison = compareResourceVersion(remoteVersion, currentVersion);
+                        
+                        console.log('版本比较:', {
+                            current: currentVersion,
+                            remote: remoteVersion,
+                            comparison: comparison
+                        });
+                        
+                        // 显示更新对话框
+                        showUpdateDialog(versionInfo, currentVersion, comparison, manual, REMOTE_URLS[urlIndex]);
+                    })
+                    .catch(function(error) {
+                        console.warn('URL 失败:', url, error);
+                        urlIndex++;
+                        tryNextUrl();
+                    });
+            }
+            
+            tryNextUrl();
+        }
+        
+        // 显示更新对话框
+        function showUpdateDialog(versionInfo, currentVersion, comparison, manual, baseUrl) {
+            var remoteVersion = versionInfo.resource_version;
+            var hotUpdateUrl = versionInfo.hot_update_url;
+            var hotUpdateSize = versionInfo.hot_update_size;
+            
+            // 如果不是手动检查且没有新版本，不显示对话框
+            if (!manual && comparison <= 0) {
+                console.log('没有新版本，跳过对话框');
+                return;
+            }
+            
+            var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="hotUpdateDialog">';
+            html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto;">';
+            
+            // 标题
+            if (comparison > 0) {
+                html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px;">🎉 发现资源更新</h3>';
+            } else if (comparison === 0) {
+                html += '<h3 style="color: #48bb78; margin-bottom: 15px; font-size: 20px;">✅ 已是最新资源</h3>';
+            } else {
+                html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px;">📦 资源信息</h3>';
+            }
+            
+            html += '<div style="color: #333; margin-bottom: 20px; font-size: 14px; line-height: 1.6;">';
+            html += '<p style="margin-bottom: 10px;">';
+            html += '<strong>当前版本：</strong>' + (currentVersion === 'unknown' ? '未知' : currentVersion) + '<br>';
+            html += '<strong>最新版本：</strong>' + remoteVersion;
+            html += '</p>';
+            
+            // 状态提示
+            if (currentVersion === 'unknown') {
+                html += '<div style="background: #fff3cd; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: #856404; margin-bottom: 15px;">';
+                html += '⚠️ 首次使用，建议下载最新资源';
+                html += '</div>';
+            } else if (comparison > 0) {
+                html += '<div style="background: #e6f7ed; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: #48bb78; margin-bottom: 15px;">';
+                html += '🎉 发现新资源可更新';
+                html += '</div>';
+            } else if (comparison === 0) {
+                html += '<div style="background: #e6f7ed; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: #48bb78; margin-bottom: 15px;">';
+                html += '✨ 您使用的已经是最新资源';
+                html += '</div>';
+            }
+            
+            html += '</div>';
+            
+            // 按钮
+            if (currentVersion === 'unknown' || comparison > 0) {
+                var btnText = currentVersion === 'unknown' ? '💾 立即下载' : '💾 立即更新';
+                var downloadUrl = baseUrl + hotUpdateUrl;
+                var sizeMB = (hotUpdateSize / 1024 / 1024).toFixed(1);
+                
+                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.HotUpdate.downloadUpdate(\'' + downloadUrl + '\', \'' + remoteVersion + '\')">';
+                html += btnText + ' (' + sizeMB + ' MB)';
+                html += '</button>';
+            } else {
+                var downloadUrl = baseUrl + hotUpdateUrl;
+                var sizeMB = (hotUpdateSize / 1024 / 1024).toFixed(1);
+                
+                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.HotUpdate.downloadUpdate(\'' + downloadUrl + '\', \'' + remoteVersion + '\')">';
+                html += '💾 重新下载 (' + sizeMB + ' MB)';
+                html += '</button>';
+            }
+            
+            html += '<button style="width: 100%; padding: 12px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="document.getElementById(\'hotUpdateDialog\').remove();">';
+            html += '取消';
+            html += '</button>';
+            
+            html += '</div></div>';
+            
+            // 移除旧对话框
+            var oldDialog = document.getElementById('hotUpdateDialog');
+            if (oldDialog) oldDialog.remove();
+            
+            // 添加新对话框
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
+        
+        // 下载更新包
+        function downloadUpdate(url, version) {
+            console.log('开始下载资源更新:', url);
+            
+            // 关闭对话框
+            var dialog = document.getElementById('hotUpdateDialog');
+            if (dialog) dialog.remove();
+            
+            // 显示下载提示
+            alert('资源包下载即将开始\n\n下载完成后，请解压 ZIP 文件，将内容覆盖到 APP 的资源目录。\n\n注意：这是手动更新方式，需要您自行操作。');
+            
+            // 触发下载
+            try {
+                if (window.Capacitor) {
+                    // Capacitor 环境：使用系统下载
+                    window.location.href = url;
+                } else {
+                    // Web 环境：创建下载链接
+                    var link = document.createElement('a');
+                    link.href = url;
+                    link.download = url.split('/').pop();
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    setTimeout(function() {
+                        document.body.removeChild(link);
+                    }, 100);
+                }
+                
+                // 保存新版本号（假设用户会完成更新）
+                saveResourceVersion(version);
+            } catch (error) {
+                console.error('下载失败:', error);
+                window.open(url, '_blank');
+            }
+        }
+        
+        return {
+            checkForUpdate: checkForUpdate,
+            downloadUpdate: downloadUpdate,
+            getCurrentVersion: getCurrentResourceVersion
+        };
+    })();
+    
     // APK 检测和更新功能
     (function() {
         var isAndroid = /Android/i.test(navigator.userAgent);
