@@ -837,14 +837,13 @@
             });
         }
         
-        // 下载 APK（使用 Capacitor HTTP 插件绕过 CORS）
+        // 下载 APK（竞速策略：同时尝试直连和镜像，哪个快用哪个）
         window.downloadApk = async function(url) {
             console.log('[APK下载] 开始下载:', url);
             
             // 检查是否在 Capacitor 环境
             if (!window.Capacitor || !window.Capacitor.Plugins) {
                 console.log('[APK下载] 非 Capacitor 环境，使用浏览器下载');
-                // Web 环境：创建下载链接
                 var link = document.createElement('a');
                 link.href = url;
                 link.download = url.split('/').pop();
@@ -866,140 +865,141 @@
                 return;
             }
             
+            if (!CapacitorHttp) {
+                console.error('[APK下载] CapacitorHttp 插件未加载');
+                alert('HTTP 插件未加载\n\n请确保已安装 @capacitor/http');
+                return;
+            }
+            
             // 显示进度对话框
-            showApkDownloadProgress('正在准备下载...', 0);
+            showApkDownloadProgress('正在测速选择最快线路...', 0);
             
             try {
                 var DIRECTORY_CACHE = 'CACHE';
                 var filename = url.split('/').pop();
                 var filepath = 'downloads/' + filename;
                 
+                // 竞速下载：同时尝试直连和所有镜像站
+                console.log('[APK下载] 开始竞速测试...');
+                
+                var mirrors = [
+                    'https://gh-proxy.com/',
+                    'https://ghproxy.net/',
+                    'https://proxy.11891189.xyz/',
+                    'https://proxy.07170501.xyz/'
+                ];
+                
+                // 构建所有下载源（直连 + 镜像）
+                var downloadSources = [
+                    { name: 'GitHub 直连', url: url }
+                ];
+                
+                mirrors.forEach(function(mirror, index) {
+                    downloadSources.push({
+                        name: '镜像站 ' + (index + 1),
+                        url: mirror + url
+                    });
+                });
+                
+                console.log('[APK下载] 测试', downloadSources.length, '个下载源');
+                
+                // 竞速函数：测试单个源的响应速度
+                var testSource = function(source) {
+                    return new Promise(function(resolve, reject) {
+                        var startTime = Date.now();
+                        
+                        // 只请求前 1KB 数据来测速
+                        CapacitorHttp.get({
+                            url: source.url,
+                            headers: {
+                                'Range': 'bytes=0-1023'  // 只请求前 1KB
+                            },
+                            connectTimeout: 10000,
+                            readTimeout: 10000
+                        }).then(function(response) {
+                            var responseTime = Date.now() - startTime;
+                            
+                            if (response.status === 200 || response.status === 206) {
+                                console.log('[APK下载]', source.name, '响应时间:', responseTime, 'ms');
+                                resolve({
+                                    source: source,
+                                    responseTime: responseTime,
+                                    success: true
+                                });
+                            } else {
+                                console.warn('[APK下载]', source.name, '返回状态:', response.status);
+                                reject(new Error('HTTP ' + response.status));
+                            }
+                        }).catch(function(error) {
+                            console.warn('[APK下载]', source.name, '测速失败:', error.message);
+                            reject(error);
+                        });
+                    });
+                };
+                
+                // 同时测试所有源
+                updateApkDownloadProgress('正在测试 ' + downloadSources.length + ' 个下载源...', 5);
+                
+                var testResults = await Promise.allSettled(
+                    downloadSources.map(function(source) {
+                        return testSource(source);
+                    })
+                );
+                
+                // 找出最快的可用源
+                var fastestSource = null;
+                var fastestTime = Infinity;
+                
+                testResults.forEach(function(result) {
+                    if (result.status === 'fulfilled' && result.value.success) {
+                        if (result.value.responseTime < fastestTime) {
+                            fastestTime = result.value.responseTime;
+                            fastestSource = result.value.source;
+                        }
+                    }
+                });
+                
+                if (!fastestSource) {
+                    throw new Error('所有下载源都不可用');
+                }
+                
+                console.log('[APK下载] 选择最快源:', fastestSource.name, '响应时间:', fastestTime, 'ms');
+                updateApkDownloadProgress('使用 ' + fastestSource.name + ' 下载...', 10);
+                
+                // 使用最快的源下载完整文件
+                var httpResponse = await CapacitorHttp.get({
+                    url: fastestSource.url,
+                    responseType: 'blob',
+                    connectTimeout: 60000,
+                    readTimeout: 300000  // 5分钟超时
+                });
+                
+                if (httpResponse.status !== 200) {
+                    throw new Error('下载失败: HTTP ' + httpResponse.status);
+                }
+                
+                // 处理响应数据
                 var blob;
-                var downloadSuccess = false;
-                
-                // 策略1：优先使用 CapacitorHttp（原生请求，无 CORS 限制）
-                if (CapacitorHttp) {
-                    console.log('[APK下载] 使用 CapacitorHttp 下载（原生请求）');
-                    updateApkDownloadProgress('正在下载 APK...', 10);
+                if (httpResponse.data instanceof Blob) {
+                    blob = httpResponse.data;
+                    console.log('[APK下载] 获取到 Blob，大小:', blob.size, 'bytes');
+                } else if (typeof httpResponse.data === 'string') {
+                    console.log('[APK下载] 获取到 base64 字符串，正在转换...');
+                    updateApkDownloadProgress('正在处理数据...', 70);
                     
-                    try {
-                        // CapacitorHttp.get 返回 base64 或 blob
-                        var httpResponse = await CapacitorHttp.get({
-                            url: url,
-                            responseType: 'blob',  // 尝试获取 blob
-                            connectTimeout: 60000,
-                            readTimeout: 300000    // 5分钟超时（大文件）
-                        });
-                        
-                        console.log('[APK下载] CapacitorHttp 响应:', {
-                            status: httpResponse.status,
-                            dataType: typeof httpResponse.data
-                        });
-                        
-                        if (httpResponse.status === 200) {
-                            // 检查返回的数据类型
-                            if (httpResponse.data instanceof Blob) {
-                                blob = httpResponse.data;
-                                console.log('[APK下载] 获取到 Blob，大小:', blob.size, 'bytes');
-                            } else if (typeof httpResponse.data === 'string') {
-                                // 如果是 base64 字符串，转换为 Blob
-                                console.log('[APK下载] 获取到 base64 字符串');
-                                var base64Data = httpResponse.data;
-                                var binaryString = atob(base64Data);
-                                var bytes = new Uint8Array(binaryString.length);
-                                for (var i = 0; i < binaryString.length; i++) {
-                                    bytes[i] = binaryString.charCodeAt(i);
-                                }
-                                blob = new Blob([bytes], { type: 'application/vnd.android.package-archive' });
-                                console.log('[APK下载] base64 转换为 Blob，大小:', blob.size, 'bytes');
-                            } else {
-                                throw new Error('未知的响应数据类型');
-                            }
-                            
-                            downloadSuccess = true;
-                            updateApkDownloadProgress('下载完成', 80);
-                        } else {
-                            throw new Error('HTTP ' + httpResponse.status);
-                        }
-                        
-                    } catch (httpError) {
-                        console.warn('[APK下载] CapacitorHttp 失败:', httpError.message);
-                        // 继续尝试镜像站
+                    var base64Data = httpResponse.data;
+                    var binaryString = atob(base64Data);
+                    var bytes = new Uint8Array(binaryString.length);
+                    for (var i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
                     }
+                    blob = new Blob([bytes], { type: 'application/vnd.android.package-archive' });
+                    console.log('[APK下载] base64 转换为 Blob，大小:', blob.size, 'bytes');
+                } else {
+                    throw new Error('未知的响应数据类型');
                 }
                 
-                // 策略2：如果 CapacitorHttp 失败或不可用，尝试镜像站
-                if (!downloadSuccess) {
-                    console.log('[APK下载] 尝试使用 GitHub 镜像站');
-                    
-                    var mirrors = [
-                        'https://gh-proxy.com/',
-                        'https://ghproxy.net/',
-                        'https://proxy.11891189.xyz/',
-                        'https://proxy.07170501.xyz/'
-                    ];
-                    
-                    for (var i = 0; i < mirrors.length; i++) {
-                        try {
-                            var mirrorUrl = mirrors[i] + url;
-                            console.log('[APK下载] 尝试镜像', i + 1, '/', mirrors.length, ':', mirrors[i]);
-                            
-                            updateApkDownloadProgress('尝试镜像 ' + (i + 1) + '/' + mirrors.length + '...', 15 + i * 10);
-                            
-                            if (CapacitorHttp) {
-                                // 使用 CapacitorHttp 请求镜像
-                                var mirrorResponse = await CapacitorHttp.get({
-                                    url: mirrorUrl,
-                                    responseType: 'blob',
-                                    connectTimeout: 30000,
-                                    readTimeout: 120000
-                                });
-                                
-                                if (mirrorResponse.status === 200) {
-                                    if (mirrorResponse.data instanceof Blob) {
-                                        blob = mirrorResponse.data;
-                                    } else if (typeof mirrorResponse.data === 'string') {
-                                        var binaryString = atob(mirrorResponse.data);
-                                        var bytes = new Uint8Array(binaryString.length);
-                                        for (var j = 0; j < binaryString.length; j++) {
-                                            bytes[j] = binaryString.charCodeAt(j);
-                                        }
-                                        blob = new Blob([bytes], { type: 'application/vnd.android.package-archive' });
-                                    }
-                                    downloadSuccess = true;
-                                    console.log('[APK下载] 镜像', i + 1, '下载成功，大小:', blob.size, 'bytes');
-                                    break;
-                                }
-                            } else {
-                                // 降级到 fetch（可能有 CORS 问题）
-                                var fetchResponse = await fetch(mirrorUrl, {
-                                    method: 'GET',
-                                    cache: 'no-cache',
-                                    signal: AbortSignal.timeout(30000)
-                                });
-                                
-                                if (fetchResponse.ok) {
-                                    blob = await fetchResponse.blob();
-                                    downloadSuccess = true;
-                                    console.log('[APK下载] 镜像', i + 1, '下载成功（fetch），大小:', blob.size, 'bytes');
-                                    break;
-                                }
-                            }
-                            
-                        } catch (mirrorError) {
-                            console.warn('[APK下载] 镜像', i + 1, '失败:', mirrorError.message);
-                            if (i === mirrors.length - 1) {
-                                throw new Error('所有下载方式都失败');
-                            }
-                        }
-                    }
-                }
-                
-                if (!downloadSuccess || !blob) {
-                    throw new Error('下载失败：无法获取文件');
-                }
-                
-                updateApkDownloadProgress('正在保存文件...', 85);
+                updateApkDownloadProgress('下载完成，正在保存...', 80);
                 
                 // 转换为 base64
                 var arrayBuffer = await blob.arrayBuffer();
