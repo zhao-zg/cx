@@ -363,7 +363,8 @@
                 console.log('[热更新] 开始下载:', url);
                 
                 // 优先使用 CapacitorHttp 下载（避免 CORS 问题）
-                var CapacitorHttp = window.Capacitor.Plugins.CapacitorHttp;
+                // Capacitor 6.x: CapacitorHttp 在 core 中
+                var CapacitorHttp = window.Capacitor && window.Capacitor.CapacitorHttp;
                 var blob;
                 
                 if (CapacitorHttp) {

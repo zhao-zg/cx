@@ -856,7 +856,8 @@
                 return;
             }
             
-            var CapacitorHttp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
+            // Capacitor 6.x: CapacitorHttp 在 core 中，通过 window.Capacitor.CapacitorHttp 访问
+            var CapacitorHttp = window.Capacitor && window.Capacitor.CapacitorHttp;
             var Filesystem = window.Capacitor.Plugins.Filesystem;
             
             if (!Filesystem) {
