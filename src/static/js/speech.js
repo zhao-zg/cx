@@ -245,33 +245,86 @@
           resetState(false);
         }).catch(function(error) {
           console.error('[TTS] 播放错误:', error);
+          
           isSeekingInternal = false;
-          resetState(false);
           
-          // 显示更详细的错误信息
-          var errorMsg = '播放失败';
-          if (error && error.message) {
-            errorMsg += ': ' + error.message;
-            console.error('[TTS] 错误详情:', error.message);
-          }
-          if (error && error.code) {
-            console.error('[TTS] 错误代码:', error.code);
-          }
+          // 构建错误信息
+          var errorMsg = '';
+          var errorParts = [];
           
-          // 如果是文本太长的错误，尝试截断
+          // 1. 检查文本长度（这是最常见的问题）
           if (segmentText.length > 4000) {
-            console.warn('[TTS] 文本可能太长 (' + segmentText.length + ' 字符)，建议分段播放');
-            errorMsg = '文本太长';
+            errorParts.push('文本过长');
+            errorParts.push(segmentText.length + '字');
           }
           
+          // 2. 尝试获取具体错误信息
+          try {
+            if (error) {
+              if (typeof error === 'string') {
+                errorParts.push(error);
+              } else if (error.message) {
+                errorParts.push(error.message);
+              } else if (error.error) {
+                errorParts.push(String(error.error));
+              } else if (error.code) {
+                errorParts.push('错误码:' + error.code);
+              } else {
+                // 尝试序列化整个错误对象
+                var errStr = JSON.stringify(error);
+                if (errStr && errStr !== '{}') {
+                  errorParts.push(errStr.substring(0, 20));
+                }
+              }
+            }
+          } catch (e) {
+            errorParts.push('未知错误');
+          }
+          
+          // 3. 如果没有任何错误信息，使用默认提示
+          if (errorParts.length === 0) {
+            errorParts.push('播放失败');
+          }
+          
+          // 组合错误信息（最多显示前2个部分）
+          errorMsg = errorParts.slice(0, 2).join(' ');
+          
+          // 限制总长度
+          if (errorMsg.length > 35) {
+            errorMsg = errorMsg.substring(0, 32) + '...';
+          }
+          
+          console.error('[TTS] 显示错误信息:', errorMsg);
+          
+          // 重置状态但不清空文本
+          stopProgressUpdate();
+          utterance = null;
+          isPaused = false;
+          startTime = 0;
+          pauseStartedAt = 0;
+          elapsedOffset = 0;
+          updateButtonState(false);
+          progressBar.value = '0';
+          
+          // 显示错误信息
           speechTime.textContent = errorMsg;
           speechTime.style.color = '#e53e3e';
           speechTime.style.fontSize = '10px';
+          speechTime.style.fontWeight = 'bold';
+          speechTime.style.whiteSpace = 'nowrap';
+          speechTime.style.overflow = 'hidden';
+          speechTime.style.textOverflow = 'ellipsis';
+          
+          // 8秒后恢复正常显示
           setTimeout(function() {
             speechTime.textContent = '00:00 / 00:00';
             speechTime.style.color = '';
             speechTime.style.fontSize = '';
-          }, 5000);
+            speechTime.style.fontWeight = '';
+            speechTime.style.whiteSpace = '';
+            speechTime.style.overflow = '';
+            speechTime.style.textOverflow = '';
+          }, 8000);
         });
         
       } else {

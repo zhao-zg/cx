@@ -172,6 +172,21 @@ window.addEventListener('DOMContentLoaded', function() {
             console.log('[听抄朗读] 获取到的文本长度:', text.length);
             if (text.length < 50) {
                 console.log('[听抄朗读] 文本预览:', text);
+            } else {
+                console.log('[听抄朗读] 文本开头:', text.substring(0, 100) + '...');
+            }
+            
+            // 如果文本为空，在页面上显示提示
+            if (!text || text.length < 10) {
+                var timeElem = document.getElementById('speechTime');
+                if (timeElem) {
+                    timeElem.textContent = '无内容';
+                    timeElem.style.color = '#999';
+                    setTimeout(function() {
+                        timeElem.textContent = '00:00 / 00:00';
+                        timeElem.style.color = '';
+                    }, 3000);
+                }
             }
 
             return text;
