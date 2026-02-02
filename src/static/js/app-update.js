@@ -284,46 +284,81 @@
                         });
                     });
                     
-                    // 快速测速：只测试前 1KB，超时 3 秒
+                    // 竞速测速：谁先完成就用谁（最快 1-2 秒）
                     var testPromises = downloadSources.map(function(source) {
                         return new Promise(function(resolve) {
                             var startTime = Date.now();
                             var timeout = setTimeout(function() {
-                                resolve({ source: source, responseTime: Infinity, success: false });
-                            }, 3000);
+                                resolve({ source: source, responseTime: Infinity, speed: 0, success: false });
+                            }, 5000);
                             
                             CapacitorHttp.get({
                                 url: source.url,
-                                headers: { 'Range': 'bytes=0-1023' },
-                                connectTimeout: 3000,
-                                readTimeout: 3000
+                                headers: { 'Range': 'bytes=0-102399' }, // 前 100KB
+                                connectTimeout: 5000,
+                                readTimeout: 5000
                             }).then(function(response) {
                                 clearTimeout(timeout);
                                 var responseTime = Date.now() - startTime;
                                 if (response.status === 200 || response.status === 206) {
-                                    console.log('[测速]', source.name, ':', responseTime, 'ms');
-                                    resolve({ source: source, responseTime: responseTime, success: true });
+                                    // 计算速度 (KB/s)
+                                    var speed = Math.round(102400 / 1024 / (responseTime / 1000));
+                                    console.log('[测速]', source.name, ':', responseTime, 'ms,', speed, 'KB/s');
+                                    resolve({ source: source, responseTime: responseTime, speed: speed, success: true });
                                 } else {
-                                    resolve({ source: source, responseTime: Infinity, success: false });
+                                    resolve({ source: source, responseTime: Infinity, speed: 0, success: false });
                                 }
                             }).catch(function() {
                                 clearTimeout(timeout);
-                                resolve({ source: source, responseTime: Infinity, success: false });
+                                resolve({ source: source, responseTime: Infinity, speed: 0, success: false });
                             });
                         });
                     });
                     
-                    var testResults = await Promise.all(testPromises);
-                    
-                    // 找出最快的可用源
+                    // 竞速：使用 Promise.race 获取第一个成功的源
                     var fastestSource = null;
                     var fastestTime = Infinity;
-                    testResults.forEach(function(result) {
-                        if (result.success && result.responseTime < fastestTime) {
-                            fastestTime = result.responseTime;
-                            fastestSource = result.source;
-                        }
-                    });
+                    
+                    // 等待第一个成功的结果
+                    var racePromise = Promise.race(
+                        testPromises.map(function(p) {
+                            return p.then(function(result) {
+                                if (result.success) {
+                                    return result;
+                                } else {
+                                    return new Promise(function() {}); // 永不resolve，让其他继续竞争
+                                }
+                            });
+                        })
+                    );
+                    
+                    // 设置 2 秒超时，如果 2 秒内没有任何源成功，则等待所有结果
+                    var quickResult = await Promise.race([
+                        racePromise,
+                        new Promise(function(resolve) {
+                            setTimeout(function() {
+                                resolve(null);
+                            }, 2000);
+                        })
+                    ]);
+                    
+                    if (quickResult && quickResult.success) {
+                        // 2 秒内有源成功，直接使用
+                        fastestSource = quickResult.source;
+                        fastestTime = quickResult.responseTime;
+                        console.log('[APK下载] 快速选择:', fastestSource.name, '(', fastestTime, 'ms)');
+                    } else {
+                        // 2 秒内没有成功，等待所有结果并选择最快的
+                        console.log('[APK下载] 等待所有测速结果...');
+                        var testResults = await Promise.all(testPromises);
+                        
+                        testResults.forEach(function(result) {
+                            if (result.success && result.responseTime < fastestTime) {
+                                fastestTime = result.responseTime;
+                                fastestSource = result.source;
+                            }
+                        });
+                    }
                     
                     if (!fastestSource) {
                         throw new Error('所有下载源都不可用');
@@ -336,15 +371,29 @@
                     // 使用 CapacitorHttp 下载（避免跨域问题）
                     if (onProgress) onProgress('使用 ' + sourceName + ' 下载中...', 10, 0, 0);
                     
-                    // 先获取文件大小
-                    var headResponse = await CapacitorHttp.head({
-                        url: downloadUrl,
-                        connectTimeout: 10000,
-                        readTimeout: 10000
-                    });
-                    
-                    var contentLength = parseInt(headResponse.headers['content-length'] || headResponse.headers['Content-Length'] || '0');
-                    console.log('[APK下载] 文件大小:', (contentLength / 1024 / 1024).toFixed(2), 'MB');
+                    // 先获取文件大小（使用 Range 请求前 1 字节）
+                    var contentLength = 0;
+                    try {
+                        var sizeResponse = await CapacitorHttp.get({
+                            url: downloadUrl,
+                            headers: { 'Range': 'bytes=0-0' },
+                            connectTimeout: 10000,
+                            readTimeout: 10000
+                        });
+                        
+                        // 从 Content-Range 头获取总大小
+                        var contentRange = sizeResponse.headers['content-range'] || sizeResponse.headers['Content-Range'];
+                        if (contentRange) {
+                            // Content-Range: bytes 0-0/12345678
+                            var match = contentRange.match(/\/(\d+)/);
+                            if (match) {
+                                contentLength = parseInt(match[1]);
+                                console.log('[APK下载] 文件大小:', (contentLength / 1024 / 1024).toFixed(2), 'MB');
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[APK下载] 无法获取文件大小:', e.message);
+                    }
                     
                     // 分块下载以显示进度（每块 1MB）
                     var chunkSize = 1024 * 1024; // 1MB
