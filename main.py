@@ -324,6 +324,15 @@ def generate_main_index(config, batch_results):
                 shutil.copy2(src_file, dst_file)
         print(f"✓ vendor 目录已复制")
     
+    # 复制 hot-update.js 到 js 目录
+    js_dir = os.path.join(output_dir, 'js')
+    os.makedirs(js_dir, exist_ok=True)
+    hot_update_src = os.path.join('src', 'static', 'js', 'hot-update.js')
+    hot_update_dst = os.path.join(js_dir, 'hot-update.js')
+    if os.path.exists(hot_update_src):
+        shutil.copy2(hot_update_src, hot_update_dst)
+        print(f"✓ hot-update.js 已复制")
+    
     # manifest.json
     manifest_template = env.get_template('main_manifest.json')
     manifest_content = manifest_template.render()
