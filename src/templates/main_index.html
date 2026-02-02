@@ -488,6 +488,14 @@
             
             grid.innerHTML = html;
             
+            // 如果在 PWA 模式下，显示缓存按钮
+            var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+            if (isStandalone) {
+                document.querySelectorAll('.training-cache').forEach(function(el) {
+                    el.classList.add('show');
+                });
+            }
+            
             // 重新绑定缓存按钮事件（在 PWA 安装功能中）
             // 检查函数是否已定义（可能在 DOMContentLoaded 之前调用）
             if (typeof initCacheButtons === 'function') {
