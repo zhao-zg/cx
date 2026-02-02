@@ -695,7 +695,7 @@
                 var blob = await response.blob();
                 console.log('下载完成，大小:', blob.size, 'bytes');
                 
-                updateProgress('正在解压文件...', 30);
+                updateProgress('正在解压文件...', 25);
                 
                 // 2. 读取 ZIP 内容
                 var arrayBuffer = await blob.arrayBuffer();
@@ -708,24 +708,37 @@
                 var zip = await JSZip.loadAsync(arrayBuffer);
                 console.log('ZIP 解压成功，文件数:', Object.keys(zip.files).length);
                 
-                updateProgress('正在安装文件...', 50);
-                
-                // 3. 获取更新目录
+                // 3. 删除旧内容
+                updateProgress('正在清理旧内容...', 40);
                 var updateDir = 'hot-update';
                 
-                // 确保目录存在
+                try {
+                    // 尝试删除整个目录
+                    await Filesystem.rmdir({
+                        path: updateDir,
+                        directory: Filesystem.Directory.Data,
+                        recursive: true
+                    });
+                    console.log('旧内容已删除');
+                } catch (e) {
+                    console.log('删除旧内容失败或目录不存在:', e);
+                }
+                
+                // 4. 创建新目录
+                updateProgress('正在准备安装...', 45);
                 try {
                     await Filesystem.mkdir({
                         path: updateDir,
-                        directory: window.Capacitor.Plugins.Filesystem.Directory.Data,
+                        directory: Filesystem.Directory.Data,
                         recursive: true
                     });
+                    console.log('更新目录已创建');
                 } catch (e) {
-                    // 目录可能已存在，忽略错误
-                    console.log('目录已存在或创建失败:', e);
+                    console.log('创建目录失败:', e);
                 }
                 
-                // 4. 写入文件
+                // 5. 写入新文件
+                updateProgress('正在安装文件...', 50);
                 var files = Object.keys(zip.files);
                 var totalFiles = files.length;
                 var processedFiles = 0;
@@ -739,7 +752,7 @@
                         try {
                             await Filesystem.mkdir({
                                 path: updateDir + '/' + filename,
-                                directory: window.Capacitor.Plugins.Filesystem.Directory.Data,
+                                directory: Filesystem.Directory.Data,
                                 recursive: true
                             });
                         } catch (e) {
@@ -752,7 +765,7 @@
                             await Filesystem.writeFile({
                                 path: updateDir + '/' + filename,
                                 data: content,
-                                directory: window.Capacitor.Plugins.Filesystem.Directory.Data,
+                                directory: Filesystem.Directory.Data,
                                 recursive: true
                             });
                             console.log('写入文件:', filename);
@@ -766,11 +779,11 @@
                     updateProgress('正在安装文件 (' + processedFiles + '/' + totalFiles + ')...', progress);
                 }
                 
-                // 5. 保存版本信息
+                // 6. 保存版本信息
                 updateProgress('正在完成更新...', 95);
                 saveResourceVersion(version);
                 
-                // 6. 完成
+                // 7. 完成
                 updateProgress('更新完成！', 100);
                 
                 setTimeout(function() {
