@@ -884,7 +884,8 @@
                     console.log('[APK下载] 尝试直接下载');
                     var response = await fetch(url, {
                         method: 'GET',
-                        cache: 'no-cache'
+                        cache: 'no-cache',
+                        mode: 'cors'  // 明确指定 CORS 模式
                     });
                     
                     if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -919,47 +920,91 @@
                 } catch (directError) {
                     console.warn('[APK下载] 直接下载失败:', directError.message);
                     
-                    // 尝试2：使用代理下载
+                    // 尝试2：使用 GitHub 镜像站（国内加速）
                     try {
-                        console.log('[APK下载] 尝试使用代理下载');
+                        console.log('[APK下载] 尝试使用 GitHub 镜像站');
                         
-                        // 使用 CORS 代理
-                        var proxyUrls = [
-                            'https://cors-anywhere.herokuapp.com/',
-                            'https://api.allorigins.win/raw?url=',
-                            'https://corsproxy.io/?'
+                        // GitHub 镜像站列表（可用镜像）
+                        var mirrors = [
+                            'https://gh-proxy.com/',          // gh-proxy
+                            'https://ghproxy.net/',           // ghproxy.net
+                            'https://proxy.11891189.xyz/',    // 11891189 代理
+                            'https://proxy.07170501.xyz/'     // 07170501 代理
                         ];
                         
-                        for (var i = 0; i < proxyUrls.length; i++) {
+                        for (var i = 0; i < mirrors.length; i++) {
                             try {
-                                var proxyUrl = proxyUrls[i] + encodeURIComponent(url);
-                                console.log('[APK下载] 尝试代理', i + 1, ':', proxyUrls[i]);
+                                var mirrorUrl = mirrors[i] + url;
+                                console.log('[APK下载] 尝试镜像', i + 1, '/', mirrors.length, ':', mirrors[i]);
                                 
-                                updateApkDownloadProgress('尝试代理下载 (' + (i + 1) + '/' + proxyUrls.length + ')...', 15);
+                                updateApkDownloadProgress('尝试镜像 ' + (i + 1) + '/' + mirrors.length + '...', 15 + i * 5);
                                 
-                                var proxyResponse = await fetch(proxyUrl, {
+                                var mirrorResponse = await fetch(mirrorUrl, {
                                     method: 'GET',
-                                    cache: 'no-cache'
+                                    cache: 'no-cache',
+                                    signal: AbortSignal.timeout(30000)  // 30秒超时
                                 });
                                 
-                                if (!proxyResponse.ok) throw new Error('代理返回 HTTP ' + proxyResponse.status);
+                                if (!mirrorResponse.ok) throw new Error('HTTP ' + mirrorResponse.status);
                                 
-                                blob = await proxyResponse.blob();
+                                // 获取文件大小
+                                var mirrorContentLength = mirrorResponse.headers.get('content-length');
+                                var mirrorTotal = mirrorContentLength ? parseInt(mirrorContentLength, 10) : 0;
+                                
+                                console.log('[APK下载] 镜像', i + 1, '响应成功，文件大小:', mirrorTotal, 'bytes');
+                                
+                                // 读取响应流
+                                var mirrorReader = mirrorResponse.body.getReader();
+                                var mirrorChunks = [];
+                                var mirrorReceived = 0;
+                                
+                                while (true) {
+                                    var mirrorResult = await mirrorReader.read();
+                                    if (mirrorResult.done) break;
+                                    
+                                    mirrorChunks.push(mirrorResult.value);
+                                    mirrorReceived += mirrorResult.value.length;
+                                    
+                                    if (mirrorTotal > 0) {
+                                        var mirrorProgress = Math.round((mirrorReceived / mirrorTotal) * 70) + 10;
+                                        updateApkDownloadProgress('镜像下载中... ' + (mirrorReceived / 1024 / 1024).toFixed(1) + ' MB', mirrorProgress);
+                                    }
+                                }
+                                
+                                blob = new Blob(mirrorChunks);
                                 downloadSuccess = true;
-                                console.log('[APK下载] 代理下载成功，大小:', blob.size, 'bytes');
+                                console.log('[APK下载] 镜像', i + 1, '下载成功，大小:', blob.size, 'bytes');
                                 break;
                                 
-                            } catch (proxyError) {
-                                console.warn('[APK下载] 代理', i + 1, '失败:', proxyError.message);
-                                if (i === proxyUrls.length - 1) {
-                                    throw new Error('所有代理都失败');
+                            } catch (mirrorError) {
+                                console.warn('[APK下载] 镜像', i + 1, '失败:', mirrorError.message);
+                                if (i === mirrors.length - 1) {
+                                    throw new Error('所有镜像都失败');
                                 }
+                                // 继续尝试下一个镜像
                             }
                         }
                         
-                    } catch (proxyError) {
-                        console.error('[APK下载] 代理下载也失败:', proxyError.message);
-                        throw new Error('下载失败：' + directError.message + '（代理也失败）');
+                    } catch (mirrorError) {
+                        console.error('[APK下载] 所有镜像都失败:', mirrorError.message);
+                        
+                        // 最后尝试：降级到浏览器下载
+                        closeApkDownloadProgress();
+                        
+                        var fallbackMsg = 'APK 内部下载失败\n\n';
+                        fallbackMsg += '直接下载：' + directError.message + '\n';
+                        fallbackMsg += '镜像下载：' + mirrorError.message + '\n\n';
+                        fallbackMsg += '是否在浏览器中打开下载链接？\n';
+                        fallbackMsg += '（下载完成后，请在通知栏点击安装）';
+                        
+                        if (confirm(fallbackMsg)) {
+                            if (window.Capacitor.Plugins.Browser) {
+                                await window.Capacitor.Plugins.Browser.open({ url: url });
+                            } else {
+                                window.open(url, '_system');
+                            }
+                        }
+                        return;  // 退出函数
                     }
                 }
                 
