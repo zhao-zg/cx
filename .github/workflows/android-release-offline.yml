@@ -141,15 +141,19 @@ jobs:
       run: |
         echo "=== 生成 Android 图标 ==="
         
-        # 安装 ImageMagick
+        # 安装 ImageMagick 和中文字体
         sudo apt-get update
-        sudo apt-get install -y imagemagick
+        sudo apt-get install -y imagemagick fonts-noto-cjk fonts-wqy-zenhei
         
         # 检查源 SVG 文件
         if [ ! -f "src/static/icons/icon.svg" ]; then
           echo "✗ 错误: 找不到 src/static/icons/icon.svg"
           exit 1
         fi
+        
+        echo "SVG 文件内容预览:"
+        head -20 src/static/icons/icon.svg
+        echo ""
         
         # Android 图标尺寸
         declare -A SIZES=(
@@ -169,10 +173,23 @@ jobs:
           
           # 生成普通图标
           echo "  生成 mipmap-$density (${size}x${size})..."
-          convert -background none -resize "${size}x${size}" \
-            src/static/icons/icon.svg "$output_dir/ic_launcher.png"
+          
+          # 使用 -verbose 查看详细信息
+          if convert -verbose -background none -resize "${size}x${size}" \
+            src/static/icons/icon.svg "$output_dir/ic_launcher.png" 2>&1 | tail -5; then
+            echo "    ✓ 转换成功"
+            
+            # 显示生成的图标信息
+            if [ -f "$output_dir/ic_launcher.png" ]; then
+              file "$output_dir/ic_launcher.png"
+              identify "$output_dir/ic_launcher.png"
+            fi
+          else
+            echo "    ✗ 转换失败"
+          fi
           
           # 生成圆形图标（Android 8.0+）
+          echo "  生成 mipmap-$density 圆形图标..."
           convert -background none -resize "${size}x${size}" \
             src/static/icons/icon.svg \
             \( +clone -threshold -1 -negate -fill white -draw "circle $((size/2)),$((size/2)) $((size/2)),0" \) \
@@ -186,7 +203,9 @@ jobs:
         for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
           icon_file="android/app/src/main/res/mipmap-$density/ic_launcher.png"
           if [ -f "$icon_file" ]; then
-            echo "✓ mipmap-$density/ic_launcher.png ($(du -h "$icon_file" | cut -f1))"
+            size=$(du -h "$icon_file" | cut -f1)
+            dimensions=$(identify -format "%wx%h" "$icon_file")
+            echo "✓ mipmap-$density/ic_launcher.png ($size, $dimensions)"
           else
             echo "✗ mipmap-$density/ic_launcher.png 不存在"
           fi
