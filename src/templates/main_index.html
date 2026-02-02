@@ -455,21 +455,14 @@
                         clickCount = 0;
                     }, 5000);
                     
-                    // 点击 8 次触发更新检查（优先热更新）
+                    // 点击 8 次触发更新检查（同时检查资源和 APK）
                     if (clickCount >= 8) {
                         clickCount = 0;
                         if (clickTimer) clearTimeout(clickTimer);
                         console.log('=== 触发更新检查 ===');
                         
-                        // 优先使用热更新功能
-                        if (window.HotUpdate) {
-                            window.HotUpdate.checkForUpdate(true);
-                        } else if (window.AppUpdate) {
-                            window.AppUpdate.checkForUpdate(true);
-                        } else {
-                            // 降级到原有的检查方式
-                            checkApkUpdate();
-                        }
+                        // 显示统一的更新检查对话框
+                        showUnifiedUpdateDialog();
                     }
                 });
             } else {
@@ -477,6 +470,128 @@
             }
         } else {
             console.log('APK 更新检查未启用（非安卓 APP 环境）');
+        }
+        
+        // 统一的更新检查对话框
+        function showUnifiedUpdateDialog() {
+            console.log('[更新检查] 开始统一更新检查');
+            
+            // 创建对话框
+            var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="unifiedUpdateDialog">';
+            html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto;">';
+            html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px; text-align: center;">🔄 检查更新</h3>';
+            
+            // 资源版本检查区域
+            html += '<div style="margin-bottom: 20px; padding: 15px; background: #f8f9ff; border-radius: 8px; border: 1px solid #e0e4ff;">';
+            html += '<h4 style="color: #667eea; margin-bottom: 10px; font-size: 16px;">📦 资源包</h4>';
+            html += '<div id="resourceCheckStatus" style="color: #666; font-size: 14px;">正在检查...</div>';
+            html += '<button id="resourceUpdateBtn" style="display: none; width: 100%; padding: 10px; margin-top: 10px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">立即更新资源</button>';
+            html += '</div>';
+            
+            // APK 版本检查区域
+            html += '<div style="margin-bottom: 20px; padding: 15px; background: #f8f9ff; border-radius: 8px; border: 1px solid #e0e4ff;">';
+            html += '<h4 style="color: #667eea; margin-bottom: 10px; font-size: 16px;">📱 应用版本</h4>';
+            html += '<div id="apkCheckStatus" style="color: #666; font-size: 14px;">正在检查...</div>';
+            html += '<button id="apkUpdateBtn" style="display: none; width: 100%; padding: 10px; margin-top: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">立即更新应用</button>';
+            html += '</div>';
+            
+            html += '<button style="width: 100%; padding: 12px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="document.getElementById(\'unifiedUpdateDialog\').remove();">关闭</button>';
+            html += '</div></div>';
+            
+            document.body.insertAdjacentHTML('beforeend', html);
+            
+            // 检查资源更新
+            checkResourceUpdate();
+            
+            // 检查 APK 更新
+            checkApkUpdateStatus();
+        }
+        
+        // 检查资源更新
+        function checkResourceUpdate() {
+            var statusEl = document.getElementById('resourceCheckStatus');
+            var btnEl = document.getElementById('resourceUpdateBtn');
+            
+            if (!window.HotUpdate) {
+                statusEl.innerHTML = '❌ 热更新功能不可用';
+                return;
+            }
+            
+            var currentVersion = window.HotUpdate.getCurrentVersion ? window.HotUpdate.getCurrentVersion() : 'unknown';
+            statusEl.innerHTML = '当前版本: ' + currentVersion + '<br>正在检查远程版本...';
+            
+            // 获取远程版本信息
+            var remoteUrls = window.HotUpdate.config ? window.HotUpdate.config.remoteUrls : [];
+            if (!remoteUrls || remoteUrls.length === 0) {
+                statusEl.innerHTML = '❌ 未配置远程服务器';
+                return;
+            }
+            
+            var url = remoteUrls[0] + 'version.json?t=' + Date.now();
+            fetch(url, { cache: 'no-cache' })
+                .then(function(response) {
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return response.json();
+                })
+                .then(function(versionInfo) {
+                    var remoteVersion = versionInfo.resource_version;
+                    var comparison = window.HotUpdate.compareResourceVersion ? 
+                        window.HotUpdate.compareResourceVersion(remoteVersion, currentVersion) : null;
+                    
+                    if (comparison > 0) {
+                        statusEl.innerHTML = '✅ 发现新版本<br>当前: ' + currentVersion + '<br>最新: ' + remoteVersion;
+                        btnEl.style.display = 'block';
+                        btnEl.onclick = function() {
+                            document.getElementById('unifiedUpdateDialog').remove();
+                            window.HotUpdate.checkForUpdate(true);
+                        };
+                    } else if (comparison === 0) {
+                        statusEl.innerHTML = '✅ 已是最新版本<br>版本: ' + currentVersion;
+                    } else {
+                        statusEl.innerHTML = '当前: ' + currentVersion + '<br>远程: ' + remoteVersion;
+                    }
+                })
+                .catch(function(error) {
+                    statusEl.innerHTML = '❌ 检查失败: ' + error.message;
+                });
+        }
+        
+        // 检查 APK 更新状态
+        function checkApkUpdateStatus() {
+            var statusEl = document.getElementById('apkCheckStatus');
+            var btnEl = document.getElementById('apkUpdateBtn');
+            
+            getCurrentApkVersion().then(function(currentVersion) {
+                statusEl.innerHTML = '当前版本: ' + currentVersion + '<br>正在检查远程版本...';
+                
+                return fetch('https://api.github.com/repos/zhao-zg/cx/releases/latest')
+                    .then(function(response) {
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        return response.json();
+                    })
+                    .then(function(release) {
+                        var latestVersion = release.tag_name.replace('v', '');
+                        var currentVersionClean = currentVersion.replace('v', '');
+                        var comparison = compareVersion(latestVersion, currentVersionClean);
+                        
+                        if (comparison > 0) {
+                            statusEl.innerHTML = '✅ 发现新版本<br>当前: v' + currentVersionClean + '<br>最新: ' + release.tag_name;
+                            btnEl.style.display = 'block';
+                            btnEl.onclick = function() {
+                                document.getElementById('unifiedUpdateDialog').remove();
+                                checkApkUpdate();
+                            };
+                        } else if (comparison === 0) {
+                            statusEl.innerHTML = '✅ 已是最新版本<br>版本: v' + currentVersionClean;
+                        } else if (comparison === null) {
+                            statusEl.innerHTML = '⚠️ 无法比较版本<br>当前: ' + currentVersion + '<br>最新: ' + release.tag_name;
+                        } else {
+                            statusEl.innerHTML = '当前: v' + currentVersionClean + '<br>远程: ' + release.tag_name;
+                        }
+                    });
+            }).catch(function(error) {
+                statusEl.innerHTML = '❌ 检查失败: ' + error.message;
+            });
         }
         
         // 获取当前 APK 版本（异步）
