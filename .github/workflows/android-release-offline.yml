@@ -137,65 +137,19 @@ jobs:
         echo "✓ Android 平台添加完成"
         du -sh android/app/src/main/assets/
     
-    - name: 生成并配置 Android 图标
+    - name: 配置 Android 图标（使用预生成的 PNG）
       run: |
-        echo "=== 生成 Android 图标 ==="
+        echo "=== 配置 Android 图标 ==="
         
-        # 安装 ImageMagick 和中文字体
-        sudo apt-get update
-        sudo apt-get install -y imagemagick fonts-noto-cjk fonts-wqy-zenhei
-        
-        # 检查源 SVG 文件
-        if [ ! -f "src/static/icons/icon.svg" ]; then
-          echo "✗ 错误: 找不到 src/static/icons/icon.svg"
+        # 检查预生成的图标目录
+        if [ ! -d "android_icons" ]; then
+          echo "✗ 错误: 找不到 android_icons 目录"
           exit 1
         fi
         
-        echo "SVG 文件内容预览:"
-        head -20 src/static/icons/icon.svg
-        echo ""
-        
-        # Android 图标尺寸
-        declare -A SIZES=(
-          ["mdpi"]="48"
-          ["hdpi"]="72"
-          ["xhdpi"]="96"
-          ["xxhdpi"]="144"
-          ["xxxhdpi"]="192"
-        )
-        
-        echo "开始转换图标..."
-        
-        for density in "${!SIZES[@]}"; do
-          size="${SIZES[$density]}"
-          output_dir="android/app/src/main/res/mipmap-$density"
-          mkdir -p "$output_dir"
-          
-          # 生成普通图标
-          echo "  生成 mipmap-$density (${size}x${size})..."
-          
-          # 使用 -verbose 查看详细信息
-          if convert -verbose -background none -resize "${size}x${size}" \
-            src/static/icons/icon.svg "$output_dir/ic_launcher.png" 2>&1 | tail -5; then
-            echo "    ✓ 转换成功"
-            
-            # 显示生成的图标信息
-            if [ -f "$output_dir/ic_launcher.png" ]; then
-              file "$output_dir/ic_launcher.png"
-              identify "$output_dir/ic_launcher.png"
-            fi
-          else
-            echo "    ✗ 转换失败"
-          fi
-          
-          # 生成圆形图标（Android 8.0+）
-          echo "  生成 mipmap-$density 圆形图标..."
-          convert -background none -resize "${size}x${size}" \
-            src/static/icons/icon.svg \
-            \( +clone -threshold -1 -negate -fill white -draw "circle $((size/2)),$((size/2)) $((size/2)),0" \) \
-            -alpha off -compose copy_opacity -composite \
-            "$output_dir/ic_launcher_round.png"
-        done
+        # 复制预生成的图标到 Android 项目
+        echo "复制预生成的图标..."
+        cp -r android_icons/* android/app/src/main/res/
         
         # 验证图标
         echo ""
@@ -204,8 +158,7 @@ jobs:
           icon_file="android/app/src/main/res/mipmap-$density/ic_launcher.png"
           if [ -f "$icon_file" ]; then
             size=$(du -h "$icon_file" | cut -f1)
-            dimensions=$(identify -format "%wx%h" "$icon_file")
-            echo "✓ mipmap-$density/ic_launcher.png ($size, $dimensions)"
+            echo "✓ mipmap-$density/ic_launcher.png ($size)"
           else
             echo "✗ mipmap-$density/ic_launcher.png 不存在"
           fi
@@ -311,36 +264,11 @@ jobs:
     - name: 重新应用自定义图标（sync 后）
       run: |
         echo "=== 重新应用自定义图标 ==="
-        echo "注意：cap sync 可能会覆盖图标，需要重新生成"
+        echo "注意：cap sync 可能会覆盖图标，需要重新复制"
         
-        # Android 图标尺寸
-        declare -A SIZES=(
-          ["mdpi"]="48"
-          ["hdpi"]="72"
-          ["xhdpi"]="96"
-          ["xxhdpi"]="144"
-          ["xxxhdpi"]="192"
-        )
+        # 复制预生成的图标
+        cp -r android_icons/* android/app/src/main/res/
         
-        for density in "${!SIZES[@]}"; do
-          size="${SIZES[$density]}"
-          output_dir="android/app/src/main/res/mipmap-$density"
-          
-          # 生成普通图标
-          convert -background none -resize "${size}x${size}" \
-            src/static/icons/icon.svg "$output_dir/ic_launcher.png"
-          
-          # 生成圆形图标
-          convert -background none -resize "${size}x${size}" \
-            src/static/icons/icon.svg \
-            \( +clone -threshold -1 -negate -fill white -draw "circle $((size/2)),$((size/2)) $((size/2)),0" \) \
-            -alpha off -compose copy_opacity -composite \
-            "$output_dir/ic_launcher_round.png"
-          
-          echo "✓ 已更新 mipmap-$density 图标"
-        done
-        
-        echo ""
         echo "✓ 自定义图标已重新应用"
       
     - name: 配置网络安全策略
