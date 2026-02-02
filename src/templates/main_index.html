@@ -423,8 +423,6 @@
         function checkForUpdate(manual) {
             console.log('=== 开始检查资源更新 ===');
             console.log('REMOTE_URLS:', REMOTE_URLS);
-            console.log('REMOTE_URLS 类型:', typeof REMOTE_URLS);
-            console.log('REMOTE_URLS 长度:', REMOTE_URLS ? REMOTE_URLS.length : 'undefined');
             
             var currentVersion = getCurrentResourceVersion();
             console.log('当前资源版本:', currentVersion);
@@ -433,19 +431,25 @@
             if (!REMOTE_URLS || REMOTE_URLS.length === 0) {
                 console.error('REMOTE_URLS 未定义或为空');
                 if (manual) {
-                    alert('配置错误：未找到远程服务器地址');
+                    alert('配置错误：未找到远程服务器地址\n\nREMOTE_URLS = ' + (typeof REMOTE_URLS) + '\n值: ' + JSON.stringify(REMOTE_URLS));
                 }
                 return;
             }
             
             // 尝试从多个 URL 获取 version.json
             var urlIndex = 0;
+            var errorMessages = [];
             
             function tryNextUrl() {
                 if (urlIndex >= REMOTE_URLS.length) {
                     console.error('所有 URL 都无法访问');
                     if (manual) {
-                        alert('无法连接到服务器，请检查网络连接\n\n已尝试的服务器：\n' + REMOTE_URLS.join('\n'));
+                        var msg = '无法连接到服务器\n\n';
+                        msg += '已尝试 ' + REMOTE_URLS.length + ' 个服务器：\n';
+                        for (var i = 0; i < errorMessages.length; i++) {
+                            msg += '\n' + (i + 1) + '. ' + errorMessages[i];
+                        }
+                        alert(msg);
                     }
                     return;
                 }
@@ -475,6 +479,8 @@
                         showUpdateDialog(versionInfo, currentVersion, comparison, manual, REMOTE_URLS[urlIndex]);
                     })
                     .catch(function(error) {
+                        var shortUrl = REMOTE_URLS[urlIndex].replace('https://', '').replace('http://', '');
+                        errorMessages.push(shortUrl + '\n   ' + error.message);
                         console.warn('✗ URL 失败 [' + (urlIndex + 1) + '/' + REMOTE_URLS.length + ']:', url, error.message);
                         urlIndex++;
                         tryNextUrl();
