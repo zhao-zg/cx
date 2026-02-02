@@ -413,6 +413,9 @@
           currentChunkIndex = 0;
           isPlayingChunks = true;
           
+          // 调试信息
+          alert('启动分段播放\n\n总文本: ' + segmentText.length + '字\n分段数: ' + textChunks.length + '\n每段约: 200字');
+          
           // 设置时间状态
           isSeekingInternal = false;
           elapsedOffset = targetSeconds;
