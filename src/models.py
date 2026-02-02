@@ -111,12 +111,16 @@ class Chapter:
         # 匹配：二1 或 十三14 或 二二1
         short_pattern = re.compile(r'^[一二三四五六七八九十\d]+[:：]?\d+([~～\-]\d+)?[\s　]+')
         
+        # 经文格式3：只有节号（同一章的不同节）
+        # 匹配：5 或 11 或 13~15（开头是数字+空格）
+        verse_pattern = re.compile(r'^\d+([~～\-]\d+)?[\s　]+')
+        
         # 经文段落的最大长度（超过这个长度可能包含了正文内容）
         MAX_SCRIPTURE_LENGTH = 800
         
         for i, para in enumerate(paragraphs):
             # 检查是否匹配经文格式
-            if (full_pattern.match(para) or short_pattern.match(para)):
+            if (full_pattern.match(para) or short_pattern.match(para) or verse_pattern.match(para)):
                 # 如果段落太长，可能包含了正文，需要分割
                 if len(para) > MAX_SCRIPTURE_LENGTH:
                     # 尝试在段落中找到经文结束的位置
