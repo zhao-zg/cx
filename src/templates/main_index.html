@@ -839,17 +839,50 @@
         
         // 下载 APK（使用系统下载管理器）
         window.downloadApk = async function(url) {
-            console.log('开始下载 APK:', url);
+            console.log('[APK下载] 开始下载:', url);
             
             try {
-                // 在 Capacitor 环境中，直接使用系统浏览器下载
-                // 这样可以使用 Android 的下载管理器
-                if (window.Capacitor) {
-                    console.log('Capacitor 环境：使用系统下载');
-                    // 直接打开 URL，让系统处理下载
-                    window.location.href = url;
+                // 在 Capacitor 环境中，使用 Browser 插件打开外部浏览器
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
+                    console.log('[APK下载] Capacitor 环境：使用 Browser 插件');
+                    
+                    // 使用 Browser 插件在外部浏览器中打开下载链接
+                    // 这样不会离开 APP，下载完成后会自动返回
+                    await window.Capacitor.Plugins.Browser.open({ 
+                        url: url,
+                        presentationStyle: 'popover'  // Android 上会使用 Custom Tabs
+                    });
+                    
+                    console.log('[APK下载] 已在外部浏览器中打开下载链接');
+                    
+                    // 提示用户
+                    alert('APK 下载已开始\n\n下载完成后，请在通知栏点击安装。\n\n注意：安装新版本前，旧版本的数据会保留。');
+                    
+                } else if (window.Capacitor) {
+                    console.log('[APK下载] Capacitor 环境：Browser 插件不可用，使用 window.open');
+                    
+                    // 降级方案：使用 window.open
+                    // 在 Android WebView 中，这会触发下载
+                    var opened = window.open(url, '_system');
+                    
+                    if (!opened) {
+                        console.warn('[APK下载] window.open 失败，尝试创建隐藏链接');
+                        // 再次降级：创建隐藏链接
+                        var link = document.createElement('a');
+                        link.href = url;
+                        link.target = '_system';
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        link.click();
+                        setTimeout(function() {
+                            document.body.removeChild(link);
+                        }, 100);
+                    }
+                    
+                    alert('APK 下载已开始\n\n下载完成后，请在通知栏点击安装。');
+                    
                 } else {
-                    console.log('Web 环境：创建下载链接');
+                    console.log('[APK下载] Web 环境：创建下载链接');
                     // Web 环境：创建隐藏的下载链接
                     var link = document.createElement('a');
                     link.href = url;
@@ -864,9 +897,8 @@
                     }, 100);
                 }
             } catch (error) {
-                console.error('下载失败:', error);
-                // 最后的后备方案：打开新标签页
-                window.open(url, '_blank');
+                console.error('[APK下载] 下载失败:', error);
+                alert('下载失败: ' + error.message + '\n\n请手动访问 GitHub Releases 页面下载。');
             }
         };
         
