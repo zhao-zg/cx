@@ -333,6 +333,18 @@ def generate_main_index(config, batch_results):
     with open(index_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
     
+    # 生成 trainings.json（用于热更新）
+    trainings_json = {
+        'version': datetime.now().strftime('%Y%m%d%H%M%S'),
+        'generation_time': datetime.now().strftime('%Y年%m月%d日 %H:%M'),
+        'trainings': trainings,
+        'total_chapters': total_chapters
+    }
+    trainings_json_path = os.path.join(output_dir, 'trainings.json')
+    with open(trainings_json_path, 'w', encoding='utf-8') as f:
+        json.dump(trainings_json, f, ensure_ascii=False, indent=2)
+    print(f"✓ trainings.json 已生成")
+    
     # 生成 PWA 文件
     # 复制静态图标
     icons_dir = os.path.join(output_dir, 'icons')

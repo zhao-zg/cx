@@ -332,31 +332,12 @@
         </div>
         
         <div class="content">
-            <div class="trainings-grid">
-                {% for training in trainings %}
-                <div class="training-card">
-                    <div class="training-card-wrapper">
-                        <a href="{{ training.path }}/index.html" class="training-link">
-                            <div class="training-info">
-                                <div class="training-header">
-                                    <div class="year-season">{{ training.year }}年{{ training.season.split()[0] }}</div>
-                                    <div class="info">共 {{ training.chapter_count }} 篇</div>
-                                </div>
-                                <div class="training-title-row">
-                                    <div class="title">{{ training.title }}</div>
-                                    <span class="arrow">→</span>
-                                </div>
-                            </div>
-                        </a>
-                        <div class="training-cache">
-                            <button class="mini-cache-btn" data-training="{{ training.path }}" data-chapters="{{ training.chapter_count }}" data-images='{{ training.images|tojson }}'>
-                                <span class="cache-icon">📥</span> <span class="cache-text">缓存</span>
-                            </button>
-                            <span class="cache-progress"></span>
-                        </div>
-                    </div>
+            <div class="trainings-grid" id="trainingsGrid">
+                <!-- 训练列表将通过 JavaScript 动态加载 -->
+                <div style="text-align: center; padding: 40px; color: #999;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                    <div>正在加载训练列表...</div>
                 </div>
-                {% endfor %}
             </div>
         </div>
         
@@ -400,6 +381,124 @@
             }).catch(function(err) {
                 console.log('无法获取 App 信息:', err);
             });
+        }
+    })();
+    
+    // 动态加载训练列表（支持热更新）
+    (function() {
+        console.log('[训练列表] 开始加载');
+        
+        // 尝试从热更新目录加载
+        loadTrainingsFromHotUpdate()
+            .then(function(trainings) {
+                if (trainings) {
+                    console.log('[训练列表] 从热更新加载成功');
+                    renderTrainings(trainings);
+                } else {
+                    // 降级到从 APK 内置加载
+                    return loadTrainingsFromBundle();
+                }
+            })
+            .catch(function(error) {
+                console.error('[训练列表] 加载失败:', error);
+                // 降级到从 APK 内置加载
+                return loadTrainingsFromBundle();
+            });
+        
+        // 从热更新目录加载
+        function loadTrainingsFromHotUpdate() {
+            if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Filesystem) {
+                return Promise.resolve(null);
+            }
+            
+            var Filesystem = window.Capacitor.Plugins.Filesystem;
+            var DIRECTORY_DATA = 'DATA';
+            
+            return Filesystem.readFile({
+                path: 'hot-update/trainings.json',
+                directory: DIRECTORY_DATA,
+                encoding: 'utf8'
+            }).then(function(result) {
+                var data = JSON.parse(result.data);
+                console.log('[训练列表] 热更新版本:', data.version);
+                return data;
+            }).catch(function(error) {
+                console.log('[训练列表] 热更新目录不存在或读取失败');
+                return null;
+            });
+        }
+        
+        // 从 APK 内置加载
+        function loadTrainingsFromBundle() {
+            console.log('[训练列表] 从 APK 内置加载');
+            return fetch('trainings.json?t=' + Date.now())
+                .then(function(response) {
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return response.json();
+                })
+                .then(function(data) {
+                    console.log('[训练列表] APK 内置版本:', data.version);
+                    renderTrainings(data);
+                })
+                .catch(function(error) {
+                    console.error('[训练列表] APK 内置加载失败:', error);
+                    showLoadError();
+                });
+        }
+        
+        // 渲染训练列表
+        function renderTrainings(data) {
+            var grid = document.getElementById('trainingsGrid');
+            if (!grid) return;
+            
+            var trainings = data.trainings || [];
+            if (trainings.length === 0) {
+                grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">暂无训练内容</div>';
+                return;
+            }
+            
+            var html = '';
+            trainings.forEach(function(training) {
+                html += '<div class="training-card">';
+                html += '<div class="training-card-wrapper">';
+                html += '<a href="' + training.path + '/index.html" class="training-link">';
+                html += '<div class="training-info">';
+                html += '<div class="training-header">';
+                html += '<div class="year-season">' + training.year + '年' + training.season.split(' ')[0] + '</div>';
+                html += '<div class="info">共 ' + training.chapter_count + ' 篇</div>';
+                html += '</div>';
+                html += '<div class="training-title-row">';
+                html += '<div class="title">' + training.title + '</div>';
+                html += '<span class="arrow">→</span>';
+                html += '</div>';
+                html += '</div>';
+                html += '</a>';
+                html += '<div class="training-cache">';
+                html += '<button class="mini-cache-btn" data-training="' + training.path + '" data-chapters="' + training.chapter_count + '" data-images=\'' + JSON.stringify(training.images || []) + '\'>';
+                html += '<span class="cache-icon">📥</span> <span class="cache-text">缓存</span>';
+                html += '</button>';
+                html += '<span class="cache-progress"></span>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            grid.innerHTML = html;
+            
+            // 重新绑定缓存按钮事件（在 PWA 安装功能中）
+            initCacheButtons();
+        }
+        
+        // 显示加载错误
+        function showLoadError() {
+            var grid = document.getElementById('trainingsGrid');
+            if (!grid) return;
+            
+            grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #e53e3e;">';
+            grid.innerHTML += '<div style="font-size: 24px; margin-bottom: 10px;">❌</div>';
+            grid.innerHTML += '<div>加载训练列表失败</div>';
+            grid.innerHTML += '<button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">重试</button>';
+            grid.innerHTML += '</div>';
         }
     })();
     
@@ -1090,8 +1189,10 @@
             return resources;
         }
         
-        // 单个训练缓存按钮
-        document.querySelectorAll('.mini-cache-btn').forEach(function(btn) {
+        // 初始化缓存按钮（提取为函数，供动态加载后调用）
+        function initCacheButtons() {
+            // 单个训练缓存按钮
+            document.querySelectorAll('.mini-cache-btn').forEach(function(btn) {
             var path = btn.getAttribute('data-training');
             var chapters = parseInt(btn.getAttribute('data-chapters'), 10);
             var imagesData = btn.getAttribute('data-images');
@@ -1345,7 +1446,10 @@
                 }
             });
         });
+        }
         
+        // 页面加载时初始化缓存按钮
+        initCacheButtons();
 
         // iOS 安装提示
         var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
