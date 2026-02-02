@@ -17,23 +17,15 @@ SIZES = {
 }
 
 def create_gradient_background(size):
-    """创建渐变背景"""
+    """创建纯蓝色背景"""
     img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
-    # 渐变色：从 #667eea 到 #764ba2
-    start_color = (102, 126, 234)  # #667eea
-    end_color = (118, 75, 162)     # #764ba2
+    # 纯蓝色背景：#4A90E2
+    blue_color = (74, 144, 226, 255)
     
-    for y in range(size):
-        # 计算当前行的颜色
-        ratio = y / size
-        r = int(start_color[0] + (end_color[0] - start_color[0]) * ratio)
-        g = int(start_color[1] + (end_color[1] - start_color[1]) * ratio)
-        b = int(start_color[2] + (end_color[2] - start_color[2]) * ratio)
-        
-        # 绘制一行
-        draw.line([(0, y), (size, y)], fill=(r, g, b, 255))
+    # 填充整个背景
+    draw.rectangle([(0, 0), (size, size)], fill=blue_color)
     
     # 添加圆角
     mask = Image.new('L', (size, size), 0)
@@ -47,7 +39,7 @@ def create_gradient_background(size):
     return img
 
 def add_text_to_image(img, text, font_size):
-    """在图片上添加文字"""
+    """在图片上添加文字（精确居中）"""
     draw = ImageDraw.Draw(img)
     size = img.size[0]
     
@@ -72,17 +64,18 @@ def add_text_to_image(img, text, font_size):
         font = ImageFont.load_default()
         print(f"  ⚠ 使用默认字体（可能无法显示中文）")
     
-    # 获取文字边界框
-    bbox = draw.textbbox((0, 0), text, font=font)
+    # 获取文字边界框（使用 anchor 参数确保精确测量）
+    bbox = draw.textbbox((0, 0), text, font=font, anchor='lt')
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
     
-    # 计算文字位置（居中）
-    x = (size - text_width) // 2
-    y = (size - text_height) // 2 - int(size * 0.05)  # 稍微向上偏移
+    # 计算文字位置（完全居中）
+    # 使用 'mm' anchor（middle-middle）确保文字在中心点
+    x = size // 2
+    y = size // 2
     
-    # 绘制文字（白色）
-    draw.text((x, y), text, font=font, fill=(255, 255, 255, 255))
+    # 绘制文字（白色，使用 mm anchor 居中）
+    draw.text((x, y), text, font=font, fill=(255, 255, 255, 255), anchor='mm')
     
     return img
 
