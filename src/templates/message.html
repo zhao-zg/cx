@@ -162,6 +162,13 @@ window.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
+            // 清理文本：移除多余的空白字符和特殊字符
+            text = text
+                .replace(/\s+/g, ' ')           // 多个空白字符替换为单个空格
+                .replace(/[\r\n\t]/g, '')       // 移除换行和制表符
+                .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '') // 只保留中英文、数字和常用标点
+                .trim();
+            
             console.log('[听抄朗读] 获取到的文本长度:', text.length);
             if (text.length < 50) {
                 console.log('[听抄朗读] 文本预览:', text);

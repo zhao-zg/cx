@@ -247,12 +247,31 @@
           console.error('[TTS] 播放错误:', error);
           isSeekingInternal = false;
           resetState(false);
-          speechTime.textContent = '播放失败';
+          
+          // 显示更详细的错误信息
+          var errorMsg = '播放失败';
+          if (error && error.message) {
+            errorMsg += ': ' + error.message;
+            console.error('[TTS] 错误详情:', error.message);
+          }
+          if (error && error.code) {
+            console.error('[TTS] 错误代码:', error.code);
+          }
+          
+          // 如果是文本太长的错误，尝试截断
+          if (segmentText.length > 4000) {
+            console.warn('[TTS] 文本可能太长 (' + segmentText.length + ' 字符)，建议分段播放');
+            errorMsg = '文本太长';
+          }
+          
+          speechTime.textContent = errorMsg;
           speechTime.style.color = '#e53e3e';
+          speechTime.style.fontSize = '10px';
           setTimeout(function() {
             speechTime.textContent = '00:00 / 00:00';
             speechTime.style.color = '';
-          }, 3000);
+            speechTime.style.fontSize = '';
+          }, 5000);
         });
         
       } else {
