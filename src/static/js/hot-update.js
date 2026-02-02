@@ -362,10 +362,49 @@
                 self.updateProgress('正在下载更新包...', 10);
                 console.log('[热更新] 开始下载:', url);
                 
-                var response = await fetch(url);
-                if (!response.ok) throw new Error('下载失败: HTTP ' + response.status);
+                // 优先使用 CapacitorHttp 下载（避免 CORS 问题）
+                var CapacitorHttp = window.Capacitor.Plugins.CapacitorHttp;
+                var blob;
                 
-                var blob = await response.blob();
+                if (CapacitorHttp) {
+                    console.log('[热更新] 使用 CapacitorHttp 下载');
+                    try {
+                        // 使用 CapacitorHttp.get 下载文件
+                        var httpResponse = await CapacitorHttp.get({
+                            url: url,
+                            responseType: 'blob'
+                        });
+                        
+                        // 将响应转换为 Blob
+                        if (httpResponse.data) {
+                            // 如果返回的是 base64
+                            if (typeof httpResponse.data === 'string') {
+                                var binaryString = atob(httpResponse.data);
+                                var bytes = new Uint8Array(binaryString.length);
+                                for (var i = 0; i < binaryString.length; i++) {
+                                    bytes[i] = binaryString.charCodeAt(i);
+                                }
+                                blob = new Blob([bytes], { type: 'application/zip' });
+                            } else {
+                                blob = httpResponse.data;
+                            }
+                        } else {
+                            throw new Error('CapacitorHttp 返回数据为空');
+                        }
+                    } catch (httpError) {
+                        console.warn('[热更新] CapacitorHttp 下载失败，降级到 fetch:', httpError);
+                        // 降级到 fetch
+                        var response = await fetch(url);
+                        if (!response.ok) throw new Error('下载失败: HTTP ' + response.status);
+                        blob = await response.blob();
+                    }
+                } else {
+                    console.log('[热更新] CapacitorHttp 不可用，使用 fetch');
+                    var response = await fetch(url);
+                    if (!response.ok) throw new Error('下载失败: HTTP ' + response.status);
+                    blob = await response.blob();
+                }
+                
                 console.log('[热更新] 下载完成，大小:', blob.size, 'bytes');
                 
                 self.updateProgress('正在解压文件...', 25);
