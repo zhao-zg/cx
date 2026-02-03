@@ -248,51 +248,63 @@
          * 下载 APK（优化版：快速测速 + 实时进度 + 正确安装）
          */
         downloadApk: async function(url, onProgress, onComplete, onError) {
-            console.log('[APK下载] 开始下载:', url);
+            alert('[调试] 开始下载 APK');
             
             if (!window.Capacitor || !window.Capacitor.Plugins) {
+                alert('[错误] 非 Capacitor 环境');
                 if (onError) onError(new Error('非 Capacitor 环境'));
                 return;
             }
             
             var Filesystem = window.Capacitor.Plugins.Filesystem;
             if (!Filesystem) {
+                alert('[错误] Filesystem 插件未加载');
                 if (onError) onError(new Error('Filesystem 插件未加载'));
                 return;
             }
             
-            // 检查并请求存储权限（Android 10 以下）
+            // 先请求存储权限
             try {
-                if (window.Capacitor.Plugins.Device) {
-                    var deviceInfo = await window.Capacitor.Plugins.Device.getInfo();
-                    var androidVersion = parseInt(deviceInfo.osVersion);
-                    
-                    // Android 10 以下需要存储权限
-                    if (androidVersion < 10) {
-                        console.log('[APK下载] Android', androidVersion, '需要存储权限');
+                alert('[调试] 开始检查存储权限');
+                
+                // 尝试使用 Capacitor 5+ 的权限 API
+                if (window.Capacitor.Plugins.Permissions) {
+                    try {
+                        var permResult = await window.Capacitor.Plugins.Permissions.query({ name: 'storage' });
+                        alert('[调试] 权限状态: ' + permResult.state);
                         
-                        // 尝试请求权限（如果有权限插件）
-                        if (window.Capacitor.Plugins.Permissions) {
-                            try {
-                                var result = await window.Capacitor.Plugins.Permissions.query({ name: 'storage' });
-                                if (result.state !== 'granted') {
-                                    console.log('[APK下载] 请求存储权限');
-                                    await window.Capacitor.Plugins.Permissions.request({ name: 'storage' });
-                                }
-                            } catch (e) {
-                                console.warn('[APK下载] 无法请求存储权限:', e);
+                        if (permResult.state !== 'granted') {
+                            alert('需要存储权限才能下载 APK\n\n请在下一步允许存储权限');
+                            var requestResult = await window.Capacitor.Plugins.Permissions.request({ name: 'storage' });
+                            alert('[调试] 权限请求结果: ' + requestResult.state);
+                            
+                            if (requestResult.state !== 'granted') {
+                                throw new Error('用户拒绝了存储权限');
                             }
                         }
+                    } catch (e) {
+                        alert('[警告] 权限 API 调用失败:\n' + e.message);
                     }
+                } else {
+                    alert('[提示] 没有权限 API，跳过权限检查');
                 }
             } catch (e) {
-                console.warn('[APK下载] 权限检查失败:', e);
+                alert('[警告] 权限检查失败:\n' + e.message);
             }
             
             var CapacitorHttp = getCapacitorHttp();
             var filename = url.split('/').pop();
-            var filepath = 'Download/' + filename; // Android Download 目录
-            var DIRECTORY_EXTERNAL = 'EXTERNAL'; // 使用外部存储，更容易被系统识别
+            
+            // 尝试多个保存位置
+            var saveAttempts = [
+                { dir: 'EXTERNAL', path: 'Download/' + filename, name: 'Download 目录' },
+                { dir: 'CACHE', path: 'downloads/' + filename, name: '缓存目录' },
+                { dir: 'DATA', path: 'downloads/' + filename, name: '数据目录' }
+            ];
+            
+            var savedLocation = null;
+            
+            alert('[调试] 准备下载，文件名: ' + filename);
             
             try {
                 var blob, sourceName, downloadUrl;
@@ -533,9 +545,31 @@
                 
                 if (onProgress) onProgress('正在保存到本地...', 90, 0, blob.size);
                 
-                // 保存文件
-                var fileUri = await saveToFilesystem(filepath, base64, DIRECTORY_EXTERNAL);
-                console.log('[APK下载] 文件已保存:', fileUri);
+                // 尝试保存到多个位置
+                var fileUri = null;
+                var savedDir = null;
+                
+                alert('[调试] 开始尝试保存文件');
+                
+                for (var i = 0; i < saveAttempts.length; i++) {
+                    try {
+                        alert('[调试] 尝试保存到: ' + saveAttempts[i].name + '\n目录: ' + saveAttempts[i].dir + '\n路径: ' + saveAttempts[i].path);
+                        fileUri = await saveToFilesystem(saveAttempts[i].path, base64, saveAttempts[i].dir);
+                        savedDir = saveAttempts[i].name;
+                        alert('[成功] 文件已保存！\n\n位置: ' + saveAttempts[i].name + '\n路径: ' + fileUri);
+                        break;
+                    } catch (e) {
+                        alert('[失败] 保存到 ' + saveAttempts[i].name + ' 失败\n\n错误: ' + e.message);
+                        if (i === saveAttempts.length - 1) {
+                            // 所有位置都失败
+                            throw new Error('无法保存文件到任何位置\n\n最后错误: ' + e.message);
+                        }
+                    }
+                }
+                
+                if (!fileUri) {
+                    throw new Error('文件保存失败，未获得文件路径');
+                }
                 
                 if (onProgress) onProgress('准备安装...', 95, 0, blob.size);
                 
@@ -563,9 +597,13 @@
                 if (onProgress) onProgress('准备打开安装程序...', 97, 0, blob.size);
                 
                 // 提示用户即将打开安装程序
-                console.log('[APK安装] 文件路径:', fileUri);
-                console.log('[APK安装] 文件名:', filename);
-                console.log('[APK安装] 文件大小:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+                var installMsg = '[准备安装]\n\n';
+                installMsg += '文件: ' + filename + '\n';
+                installMsg += '位置: ' + savedDir + '\n';
+                installMsg += '大小: ' + (blob.size / 1024 / 1024).toFixed(2) + ' MB\n';
+                installMsg += '路径: ' + fileUri + '\n\n';
+                installMsg += '即将尝试打开安装程序...';
+                alert(installMsg);
                 
                 // 安装 APK - 使用 Android Intent
                 var installed = false;
@@ -574,7 +612,7 @@
                 // 方法1: 使用 FileOpener 插件（推荐）
                 if (window.Capacitor.Plugins.FileOpener) {
                     try {
-                        console.log('[APK安装] 尝试方法1: FileOpener 插件');
+                        alert('[调试] 尝试方法1: FileOpener 插件');
                         if (onProgress) onProgress('打开安装程序...', 98, 0, blob.size);
                         
                         // 确保 fileUri 是正确的格式
@@ -585,7 +623,7 @@
                             // 使用 FileProvider 转换
                             var packageName = 'com.tehui.offline'; // 你的应用包名
                             openUri = 'content://' + packageName + '.fileprovider' + fileUri.replace('file://', '');
-                            console.log('[APK安装] 转换为 content:// URI:', openUri);
+                            alert('[调试] 转换 URI:\n原始: ' + fileUri + '\n\n转换后: ' + openUri);
                         }
                         
                         await window.Capacitor.Plugins.FileOpener.open({
@@ -594,18 +632,19 @@
                             openWithDefault: true
                         });
                         installed = true;
-                        console.log('[APK安装] FileOpener 成功');
+                        alert('[成功] FileOpener 打开成功');
                     } catch (e) {
                         installError = e;
-                        console.warn('[APK安装] FileOpener 失败:', e.message);
-                        alert('[调试] FileOpener 失败:\n' + e.message + '\n\nURI: ' + fileUri);
+                        alert('[失败] FileOpener 失败:\n' + e.message);
                     }
+                } else {
+                    alert('[提示] FileOpener 插件不可用');
                 }
                 
                 // 方法2: 使用自定义 Android Intent（通过 WebView）
                 if (!installed) {
                     try {
-                        console.log('[APK安装] 尝试方法2: Android Intent');
+                        alert('[调试] 尝试方法2: Android Intent');
                         if (onProgress) onProgress('打开安装程序...', 99, 0, blob.size);
                         
                         // 构建 Android Intent URL
@@ -616,31 +655,31 @@
                         intentUrl += 'S.browser_fallback_url=' + encodeURIComponent(fileUri) + ';';
                         intentUrl += 'end';
                         
-                        console.log('[APK安装] Intent URL:', intentUrl);
+                        alert('[调试] Intent URL:\n' + intentUrl);
                         
                         window.location.href = intentUrl;
                         installed = true;
-                        console.log('[APK安装] Intent 已触发');
+                        alert('[成功] Intent 已触发');
                     } catch (e) {
                         installError = e;
-                        console.warn('[APK安装] Intent 失败:', e.message);
-                        alert('[调试] Intent 失败:\n' + e.message);
+                        alert('[失败] Intent 失败:\n' + e.message);
                     }
                 }
                 
                 // 方法3: 使用 App 插件
                 if (!installed && window.Capacitor.Plugins.App) {
                     try {
-                        console.log('[APK安装] 尝试方法3: App.openUrl');
+                        alert('[调试] 尝试方法3: App.openUrl');
                         
                         await window.Capacitor.Plugins.App.openUrl({ url: fileUri });
                         installed = true;
-                        console.log('[APK安装] App.openUrl 成功');
+                        alert('[成功] App.openUrl 成功');
                     } catch (e) {
                         installError = e;
-                        console.warn('[APK安装] App.openUrl 失败:', e.message);
-                        alert('[调试] App.openUrl 失败:\n' + e.message + '\n\nURI: ' + fileUri);
+                        alert('[失败] App.openUrl 失败:\n' + e.message);
                     }
+                } else if (!installed) {
+                    alert('[提示] App 插件不可用');
                 }
                 
                 if (installed) {
@@ -649,12 +688,13 @@
                 } else {
                     // 所有方法都失败，提供手动安装指引
                     var errorMsg = '无法自动打开安装程序\n\n';
-                    errorMsg += '文件已保存到:\n' + fileUri + '\n\n';
+                    errorMsg += '文件已保存到: ' + savedDir + '\n';
+                    errorMsg += '路径: ' + fileUri + '\n';
+                    errorMsg += '文件名: ' + filename + '\n\n';
                     errorMsg += '请手动安装:\n';
                     errorMsg += '1. 打开文件管理器\n';
-                    errorMsg += '2. 进入 Downloads 或缓存目录\n';
-                    errorMsg += '3. 找到 ' + filename + '\n';
-                    errorMsg += '4. 点击安装\n\n';
+                    errorMsg += '2. 找到上述位置的文件\n';
+                    errorMsg += '3. 点击文件进行安装\n\n';
                     
                     if (installError) {
                         errorMsg += '错误详情: ' + installError.message;
