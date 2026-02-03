@@ -121,8 +121,8 @@
 </style>
 
 <script>
-window.addEventListener('DOMContentLoaded', function() {
-    if (!window.CXSpeech || !window.CXSpeech.init) return;
+// 朗读功能初始化
+function initSpeech() {
     window.CXSpeech.init({
         getText: function() {
             let text = '';
@@ -142,6 +142,30 @@ window.addEventListener('DOMContentLoaded', function() {
             return text;
         }
     });
-});
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
 </script>
 {% endblock %}

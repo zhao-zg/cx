@@ -221,10 +221,6 @@
             async function loadScripts() {
                 try {
                     await window.ResourceLoader.loadScript('js/speech.js');
-                    if (!window.CXSpeech) {
-                        alert('[调试] speech.js 加载后 CXSpeech 不存在');
-                    }
-                    
                     await window.ResourceLoader.loadScript('js/font-control.js');
                     await window.ResourceLoader.loadScript('js/highlight.js');
                     await window.ResourceLoader.loadScript('js/app-update.js');
@@ -232,7 +228,6 @@
                     console.log('[资源加载] 所有脚本加载完成');
                 } catch (e) {
                     console.error('[资源加载] 脚本加载失败:', e);
-                    alert('[调试] 脚本加载失败:\n' + e.message);
                 }
             }
         } else {
