@@ -605,81 +605,57 @@
                 installMsg += '即将尝试打开安装程序...';
                 alert(installMsg);
                 
-                // 安装 APK - 使用 Android Intent
+                // 安装 APK - 不依赖额外插件
                 var installed = false;
                 var installError = null;
                 
-                // 方法1: 使用 FileOpener 插件（推荐）
-                if (window.Capacitor.Plugins.FileOpener) {
+                // 方法1: 使用 App.openUrl（Capacitor 内置）
+                if (window.Capacitor.Plugins.App) {
                     try {
-                        alert('[调试] 尝试方法1: FileOpener 插件');
+                        alert('[调试] 尝试方法1: App.openUrl\n\nURI: ' + fileUri);
                         if (onProgress) onProgress('打开安装程序...', 98, 0, blob.size);
-                        
-                        // 确保 fileUri 是正确的格式
-                        var openUri = fileUri;
-                        
-                        // 如果是 file:// 格式，需要转换为 content:// 格式（Android 7.0+）
-                        if (fileUri.startsWith('file://')) {
-                            // 使用 FileProvider 转换
-                            var packageName = 'com.tehui.offline'; // 你的应用包名
-                            openUri = 'content://' + packageName + '.fileprovider' + fileUri.replace('file://', '');
-                            alert('[调试] 转换 URI:\n原始: ' + fileUri + '\n\n转换后: ' + openUri);
-                        }
-                        
-                        await window.Capacitor.Plugins.FileOpener.open({
-                            filePath: fileUri,
-                            contentType: 'application/vnd.android.package-archive',
-                            openWithDefault: true
-                        });
-                        installed = true;
-                        alert('[成功] FileOpener 打开成功');
-                    } catch (e) {
-                        installError = e;
-                        alert('[失败] FileOpener 失败:\n' + e.message);
-                    }
-                } else {
-                    alert('[提示] FileOpener 插件不可用');
-                }
-                
-                // 方法2: 使用自定义 Android Intent（通过 WebView）
-                if (!installed) {
-                    try {
-                        alert('[调试] 尝试方法2: Android Intent');
-                        if (onProgress) onProgress('打开安装程序...', 99, 0, blob.size);
-                        
-                        // 构建 Android Intent URL
-                        // intent://path#Intent;action=android.intent.action.VIEW;type=application/vnd.android.package-archive;end
-                        var intentUrl = 'intent://' + fileUri.replace(/^file:\/\//, '') + '#Intent;';
-                        intentUrl += 'action=android.intent.action.VIEW;';
-                        intentUrl += 'type=application/vnd.android.package-archive;';
-                        intentUrl += 'S.browser_fallback_url=' + encodeURIComponent(fileUri) + ';';
-                        intentUrl += 'end';
-                        
-                        alert('[调试] Intent URL:\n' + intentUrl);
-                        
-                        window.location.href = intentUrl;
-                        installed = true;
-                        alert('[成功] Intent 已触发');
-                    } catch (e) {
-                        installError = e;
-                        alert('[失败] Intent 失败:\n' + e.message);
-                    }
-                }
-                
-                // 方法3: 使用 App 插件
-                if (!installed && window.Capacitor.Plugins.App) {
-                    try {
-                        alert('[调试] 尝试方法3: App.openUrl');
                         
                         await window.Capacitor.Plugins.App.openUrl({ url: fileUri });
                         installed = true;
-                        alert('[成功] App.openUrl 成功');
+                        alert('[成功] App.openUrl 已调用\n\n如果没有弹出安装界面，请手动到文件管理器安装');
                     } catch (e) {
                         installError = e;
                         alert('[失败] App.openUrl 失败:\n' + e.message);
                     }
-                } else if (!installed) {
-                    alert('[提示] App 插件不可用');
+                } else {
+                    alert('[错误] App 插件不可用');
+                }
+                
+                // 方法2: 使用 Browser 插件打开
+                if (!installed && window.Capacitor.Plugins.Browser) {
+                    try {
+                        alert('[调试] 尝试方法2: Browser.open');
+                        if (onProgress) onProgress('打开安装程序...', 99, 0, blob.size);
+                        
+                        await window.Capacitor.Plugins.Browser.open({ 
+                            url: fileUri,
+                            presentationStyle: 'fullscreen'
+                        });
+                        installed = true;
+                        alert('[成功] Browser.open 已调用');
+                    } catch (e) {
+                        installError = e;
+                        alert('[失败] Browser.open 失败:\n' + e.message);
+                    }
+                }
+                
+                // 方法3: 使用 WebView 直接打开
+                if (!installed) {
+                    try {
+                        alert('[调试] 尝试方法3: window.open');
+                        
+                        window.open(fileUri, '_system');
+                        installed = true;
+                        alert('[成功] window.open 已调用\n\n如果没有弹出安装界面，请手动安装');
+                    } catch (e) {
+                        installError = e;
+                        alert('[失败] window.open 失败:\n' + e.message);
+                    }
                 }
                 
                 if (installed) {
