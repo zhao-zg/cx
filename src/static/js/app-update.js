@@ -640,12 +640,76 @@
                         window.location.href = fileUri;
                         installed = true;
                         
-                        await new Promise(function(resolve) { setTimeout(resolve, 2000); });
-                        alert('[提示] 已尝试打开\n\n如果没有弹出安装界面，请手动到文件管理器安装');
+                        await new Promise(function(resolve) { setTimeout(resolve, 1000); });
                     } catch (e) {
                         installError = e;
                         alert('[失败] 方法2 失败:\n' + e.message);
                     }
+                }
+                
+                // 保底方案：显示详细的手动安装指引
+                if (!installed || installError) {
+                    // 尝试复制文件路径到剪贴板
+                    var pathCopied = false;
+                    try {
+                        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Clipboard) {
+                            await window.Capacitor.Plugins.Clipboard.write({
+                                string: fileUri.replace('file://', '')
+                            });
+                            pathCopied = true;
+                        }
+                    } catch (e) {
+                        console.log('无法复制到剪贴板:', e);
+                    }
+                    
+                    var manualMsg = '📱 APK 已下载完成！\n\n';
+                    manualMsg += '📂 文件位置：\n';
+                    manualMsg += savedDir + '\n\n';
+                    manualMsg += '📄 文件名：\n';
+                    manualMsg += filename + '\n\n';
+                    manualMsg += '💾 文件大小：\n';
+                    manualMsg += (blob.size / 1024 / 1024).toFixed(2) + ' MB\n\n';
+                    
+                    if (pathCopied) {
+                        manualMsg += '✅ 文件路径已复制到剪贴板\n\n';
+                    }
+                    
+                    manualMsg += '━━━━━━━━━━━━━━━━\n\n';
+                    manualMsg += '📋 手动安装步骤：\n\n';
+                    manualMsg += '1️⃣ 打开"文件管理器"应用\n\n';
+                    
+                    if (savedDir.indexOf('Download') >= 0) {
+                        manualMsg += '2️⃣ 进入"Download"或"下载"文件夹\n\n';
+                    } else if (savedDir.indexOf('缓存') >= 0) {
+                        manualMsg += '2️⃣ 进入以下路径：\n';
+                        manualMsg += 'Android/data/\n';
+                        manualMsg += 'com.tehui.offline/\n';
+                        manualMsg += 'cache/downloads/\n\n';
+                    } else {
+                        manualMsg += '2️⃣ 使用搜索功能\n';
+                        manualMsg += '   搜索：' + filename + '\n\n';
+                    }
+                    
+                    manualMsg += '3️⃣ 找到并点击 APK 文件\n\n';
+                    manualMsg += '4️⃣ 如果提示"未知来源"：\n';
+                    manualMsg += '   • 点击"设置"\n';
+                    manualMsg += '   • 允许"安装未知应用"\n';
+                    manualMsg += '   • 返回继续安装\n\n';
+                    manualMsg += '5️⃣ 点击"安装"按钮\n\n';
+                    manualMsg += '6️⃣ 等待安装完成\n\n';
+                    manualMsg += '━━━━━━━━━━━━━━━━\n\n';
+                    manualMsg += '💡 提示：\n';
+                    manualMsg += '• 安装完成后可覆盖旧版本\n';
+                    manualMsg += '• 数据不会丢失\n';
+                    
+                    if (pathCopied) {
+                        manualMsg += '• 完整路径已在剪贴板中\n';
+                        manualMsg += '  可粘贴到文件管理器搜索';
+                    } else {
+                        manualMsg += '• 如找不到文件，请重新下载';
+                    }
+                    
+                    alert(manualMsg);
                 }
                 
                 if (installed) {
