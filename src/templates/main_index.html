@@ -378,38 +378,6 @@
     <script src="js/app-update.js"></script>
     
     <script>
-    // Android 返回键处理（主页按返回键退出应用）
-    (function() {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-            var App = window.Capacitor.Plugins.App;
-            
-            // 监听返回键
-            App.addListener('backButton', function(data) {
-                console.log('[返回键] 在主页按下返回键，准备退出应用');
-                
-                // 主页按返回键直接退出
-                if (data.canGoBack) {
-                    // 如果有历史记录，但我们在主页，应该退出而不是返回
-                    // 检查历史记录长度，如果只有1条或更少，退出应用
-                    if (window.history.length <= 1) {
-                        App.exitApp();
-                    } else {
-                        // 有历史记录，但我们想在主页退出
-                        // 使用确认对话框
-                        if (confirm('确定要退出应用吗？')) {
-                            App.exitApp();
-                        }
-                    }
-                } else {
-                    // 没有历史记录，直接退出
-                    App.exitApp();
-                }
-            });
-            
-            console.log('[返回键] 主页返回键监听已启用');
-        }
-    })();
-    
     // 自动设置 APK 版本（用于离线版）
     (function() {
         // 检测是否在 Capacitor 环境中

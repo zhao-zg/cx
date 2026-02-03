@@ -201,29 +201,6 @@
     <script src="js/highlight.js"></script>
     <script src="js/app-update.js"></script>
     
-    <!-- Android 返回键处理（非主页：返回上一页或返回主页） -->
-    <script>
-    (function() {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-            var App = window.Capacitor.Plugins.App;
-            
-            App.addListener('backButton', function(data) {
-                console.log('[返回键] 按下返回键, canGoBack:', data.canGoBack, 'history.length:', window.history.length);
-                
-                if (data.canGoBack && window.history.length > 1) {
-                    // 有历史记录，返回上一页
-                    window.history.back();
-                } else {
-                    // 没有历史记录，返回主页
-                    window.location.href = '/index.html';
-                }
-            });
-            
-            console.log('[返回键] 内容页返回键监听已启用');
-        }
-    })();
-    </script>
-    
     <!-- 页面记忆功能 -->
     <script>
     (function() {
@@ -243,31 +220,18 @@
                                 pathname === '/android_asset/public/index.html' ||
                                 pathname.includes('/public/index.html');
                 
-                // 检查是否是训练目录页
-                // 训练目录的特征：路径中有训练文件夹名（如 2025-04-夏季），且以 index.html 结尾或以 / 结尾
-                // 例如：/2025-04-夏季/index.html 或 /2025-04-夏季/
-                var isTrainingIndex = false;
-                if (!isMainPage) {
-                    // 匹配类似 /2025-04-夏季/index.html 或 /2025-04-夏季/ 的路径
-                    // 但不匹配 /2025-04-夏季/1_cx.htm 这样的内容页
-                    var trainingIndexPattern = /\/\d{4}-\d{2}-[^\/]+\/(index\.html)?$/;
-                    isTrainingIndex = trainingIndexPattern.test(pathname);
-                }
-                
                 console.log('[页面记忆] 页面类型:', {
                     isMainPage: isMainPage,
-                    isTrainingIndex: isTrainingIndex,
                     pathname: pathname
                 });
                 
-                // 只保存非主页且非训练目录的页面（即具体的内容页面）
-                if (!isMainPage && !isTrainingIndex) {
+                // 只跳过主页，其他页面都保存（包括训练目录和内容页）
+                if (!isMainPage) {
                     localStorage.setItem('cx_last_page', href);
                     localStorage.setItem('cx_last_page_time', Date.now());
                     console.log('[页面记忆] ✓ 保存页面:', href);
                 } else {
-                    var reason = isMainPage ? '主页' : (isTrainingIndex ? '训练目录' : '未知');
-                    console.log('[页面记忆] ✗ 跳过保存:', reason);
+                    console.log('[页面记忆] ✗ 跳过保存: 主页');
                 }
             } catch (e) {
                 console.error('[页面记忆] 保存失败:', e);
