@@ -388,6 +388,121 @@ jobs:
         cp -r android_icons/* android/app/src/main/res/
         
         # 验证图标已复制
+    
+    - name: 重新添加自定义 APK 安装插件（sync 后）
+      run: |
+        echo "=== 重新添加自定义 APK 安装插件（sync 后） ==="
+        echo "注意：cap sync 后需要重新创建自定义插件"
+        
+        # 确保目录存在
+        mkdir -p android/app/src/main/java/com/tehui/offline
+        
+        # 创建 MainActivity.java
+        echo "创建 MainActivity.java..."
+        cat > android/app/src/main/java/com/tehui/offline/MainActivity.java << 'EOF'
+        package com.tehui.offline;
+        
+        import android.os.Bundle;
+        import com.getcapacitor.BridgeActivity;
+        
+        public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                
+                // 注册自定义插件
+                registerPlugin(ApkInstallerPlugin.class);
+            }
+        }
+        EOF
+        echo "✓ MainActivity.java 已创建"
+        
+        # 创建 ApkInstallerPlugin.java
+        echo "创建 ApkInstallerPlugin.java..."
+        cat > android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java << 'EOF'
+        package com.tehui.offline;
+        
+        import android.content.Intent;
+        import android.net.Uri;
+        import android.os.Build;
+        import androidx.core.content.FileProvider;
+        import com.getcapacitor.JSObject;
+        import com.getcapacitor.Plugin;
+        import com.getcapacitor.PluginCall;
+        import com.getcapacitor.PluginMethod;
+        import com.getcapacitor.annotation.CapacitorPlugin;
+        import java.io.File;
+        
+        @CapacitorPlugin(name = "ApkInstaller")
+        public class ApkInstallerPlugin extends Plugin {
+        
+            @PluginMethod
+            public void install(PluginCall call) {
+                String filePath = call.getString("filePath");
+                
+                if (filePath == null || filePath.isEmpty()) {
+                    call.reject("文件路径不能为空");
+                    return;
+                }
+                
+                try {
+                    // 移除 file:// 前缀
+                    if (filePath.startsWith("file://")) {
+                        filePath = filePath.substring(7);
+                    }
+                    
+                    File file = new File(filePath);
+                    
+                    if (!file.exists()) {
+                        call.reject("文件不存在: " + filePath);
+                        return;
+                    }
+                    
+                    Uri uri;
+                    
+                    // Android 7.0+ 使用 FileProvider
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        uri = FileProvider.getUriForFile(
+                            getContext(),
+                            getContext().getPackageName() + ".fileprovider",
+                            file
+                        );
+                    } else {
+                        uri = Uri.fromFile(file);
+                    }
+                    
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/vnd.android.package-archive");
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    
+                    getActivity().startActivity(intent);
+                    
+                    JSObject ret = new JSObject();
+                    ret.put("success", true);
+                    ret.put("message", "安装程序已打开");
+                    call.resolve(ret);
+                    
+                } catch (Exception e) {
+                    call.reject("打开安装程序失败: " + e.getMessage());
+                }
+            }
+        }
+        EOF
+        echo "✓ ApkInstallerPlugin.java 已创建"
+        
+        echo ""
+        echo "=== 验证自定义插件文件 ==="
+        ls -lh android/app/src/main/java/com/tehui/offline/
+        
+        echo ""
+        echo "=== 验证文件内容 ==="
+        echo "MainActivity.java 行数:"
+        wc -l android/app/src/main/java/com/tehui/offline/MainActivity.java
+        echo "ApkInstallerPlugin.java 行数:"
+        wc -l android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
+        
+        echo ""
+        echo "✓ 自定义 APK 安装插件已重新添加"
         echo ""
         echo "=== 验证图标文件 ==="
         for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do

@@ -605,16 +605,13 @@
                 installMsg += '即将尝试打开安装程序...';
                 alert(installMsg);
                 
-                // 安装 APK - 使用自定义插件
+                // 安装 APK - 让系统选择程序打开
                 var installed = false;
                 var installError = null;
-                
-                alert('[调试] 文件路径:\n' + fileUri + '\n\n准备打开安装程序...');
                 
                 // 方法1: 使用自定义 ApkInstaller 插件（最可靠）
                 if (window.Capacitor.Plugins.ApkInstaller) {
                     try {
-                        alert('[调试] 尝试方法1: ApkInstaller 插件');
                         if (onProgress) onProgress('打开安装程序...', 98, 0, blob.size);
                         
                         var result = await window.Capacitor.Plugins.ApkInstaller.install({
@@ -622,94 +619,52 @@
                         });
                         
                         installed = true;
-                        alert('[成功] 安装程序已打开！\n\n' + result.message);
+                        if (onComplete) onComplete(sourceName);
                     } catch (e) {
                         installError = e;
-                        alert('[失败] ApkInstaller 失败:\n' + e.message);
+                        console.error('[APK安装] ApkInstaller 失败:', e);
                     }
-                } else {
-                    alert('[提示] ApkInstaller 插件不可用\n\n将尝试其他方法...');
                 }
                 
-                // 方法2: 尝试直接跳转（降级方案）
-                if (!installed) {
+                // 方法2: 使用 Share API 让系统选择程序
+                if (!installed && window.Capacitor.Plugins.Share) {
                     try {
-                        alert('[调试] 尝试方法2: 直接跳转');
-                        if (onProgress) onProgress('打开安装程序...', 99, 0, blob.size);
+                        if (onProgress) onProgress('打开系统选择器...', 99, 0, blob.size);
                         
-                        window.location.href = fileUri;
+                        await window.Capacitor.Plugins.Share.share({
+                            title: '安装 APK',
+                            text: '选择安装程序',
+                            url: fileUri,
+                            dialogTitle: '选择安装程序'
+                        });
+                        
                         installed = true;
-                        
-                        await new Promise(function(resolve) { setTimeout(resolve, 1000); });
+                        if (onComplete) onComplete(sourceName);
                     } catch (e) {
                         installError = e;
-                        alert('[失败] 方法2 失败:\n' + e.message);
+                        console.error('[APK安装] Share 失败:', e);
                     }
                 }
                 
-                // 保底方案：显示详细的手动安装指引
-                if (!installed || installError) {
-                    // 尝试复制文件路径到剪贴板
-                    var pathCopied = false;
+                // 方法3: 使用 Browser 打开
+                if (!installed && window.Capacitor.Plugins.Browser) {
                     try {
-                        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Clipboard) {
-                            await window.Capacitor.Plugins.Clipboard.write({
-                                string: fileUri.replace('file://', '')
-                            });
-                            pathCopied = true;
-                        }
+                        if (onProgress) onProgress('打开系统选择器...', 99, 0, blob.size);
+                        
+                        await window.Capacitor.Plugins.Browser.open({ 
+                            url: fileUri
+                        });
+                        
+                        installed = true;
+                        if (onComplete) onComplete(sourceName);
                     } catch (e) {
-                        console.log('无法复制到剪贴板:', e);
+                        installError = e;
+                        console.error('[APK安装] Browser 失败:', e);
                     }
-                    
-                    var manualMsg = '📱 APK 已下载完成！\n\n';
-                    manualMsg += '📂 文件位置：\n';
-                    manualMsg += savedDir + '\n\n';
-                    manualMsg += '📄 文件名：\n';
-                    manualMsg += filename + '\n\n';
-                    manualMsg += '💾 文件大小：\n';
-                    manualMsg += (blob.size / 1024 / 1024).toFixed(2) + ' MB\n\n';
-                    
-                    if (pathCopied) {
-                        manualMsg += '✅ 文件路径已复制到剪贴板\n\n';
-                    }
-                    
-                    manualMsg += '━━━━━━━━━━━━━━━━\n\n';
-                    manualMsg += '📋 手动安装步骤：\n\n';
-                    manualMsg += '1️⃣ 打开"文件管理器"应用\n\n';
-                    
-                    if (savedDir.indexOf('Download') >= 0) {
-                        manualMsg += '2️⃣ 进入"Download"或"下载"文件夹\n\n';
-                    } else if (savedDir.indexOf('缓存') >= 0) {
-                        manualMsg += '2️⃣ 进入以下路径：\n';
-                        manualMsg += 'Android/data/\n';
-                        manualMsg += 'com.tehui.offline/\n';
-                        manualMsg += 'cache/downloads/\n\n';
-                    } else {
-                        manualMsg += '2️⃣ 使用搜索功能\n';
-                        manualMsg += '   搜索：' + filename + '\n\n';
-                    }
-                    
-                    manualMsg += '3️⃣ 找到并点击 APK 文件\n\n';
-                    manualMsg += '4️⃣ 如果提示"未知来源"：\n';
-                    manualMsg += '   • 点击"设置"\n';
-                    manualMsg += '   • 允许"安装未知应用"\n';
-                    manualMsg += '   • 返回继续安装\n\n';
-                    manualMsg += '5️⃣ 点击"安装"按钮\n\n';
-                    manualMsg += '6️⃣ 等待安装完成\n\n';
-                    manualMsg += '━━━━━━━━━━━━━━━━\n\n';
-                    manualMsg += '💡 提示：\n';
-                    manualMsg += '• 安装完成后可覆盖旧版本\n';
-                    manualMsg += '• 数据不会丢失\n';
-                    
-                    if (pathCopied) {
-                        manualMsg += '• 完整路径已在剪贴板中\n';
-                        manualMsg += '  可粘贴到文件管理器搜索';
-                    } else {
-                        manualMsg += '• 如找不到文件，请重新下载';
-                    }
-                    
-                    alert(manualMsg);
+                }
+                
+                if (!installed) {
+                    throw new Error('无法打开 APK 文件\n\n所有方法都失败了\n\n' + (installError ? installError.message : '未知错误'));
                 }
                 
                 if (installed) {
