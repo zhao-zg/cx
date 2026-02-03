@@ -566,6 +566,89 @@ jobs:
         
         python3 insert_signing.py android/app/build.gradle offline-key.keystore
         echo "✓ 签名配置完成"
+        
+    - name: 启用资源压缩和代码优化
+      run: |
+        echo "=== 启用资源压缩和代码优化 ==="
+        
+        cat > enable_shrink.py << 'PYTHON_EOF'
+        import re
+        
+        gradle_file = 'android/app/build.gradle'
+        
+        with open(gradle_file, 'r') as f:
+            content = f.read()
+        
+        # 在 release buildType 中启用 minifyEnabled 和 shrinkResources
+        # 查找 release { 块并添加配置
+        release_pattern = r'(buildTypes\s*\{[^}]*release\s*\{)'
+        
+        if re.search(release_pattern, content):
+            # 检查是否已有 minifyEnabled
+            if 'minifyEnabled' not in content:
+                content = re.sub(
+                    release_pattern,
+                    r'\1\n            minifyEnabled true\n            shrinkResources true',
+                    content,
+                    count=1
+                )
+                print('✓ 已启用 minifyEnabled 和 shrinkResources')
+            else:
+                print('⚠️ minifyEnabled 已存在，跳过')
+        else:
+            print('⚠️ 未找到 release buildType')
+        
+        # 确保有 proguard 配置
+        if 'proguardFiles' not in content:
+            content = re.sub(
+                r'(minifyEnabled true)',
+                r'\1\n            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"',
+                content,
+                count=1
+            )
+            print('✓ 已添加 proguard 配置')
+        
+        with open(gradle_file, 'w') as f:
+            f.write(content)
+        
+        print('✓ 资源压缩配置完成')
+        PYTHON_EOF
+        
+        python3 enable_shrink.py
+        
+        # 创建 proguard-rules.pro（保留 Capacitor 相关类）
+        cat > android/app/proguard-rules.pro << 'PROGUARD_EOF'
+        # Capacitor
+        -keep class com.getcapacitor.** { *; }
+        -keep class com.tehui.offline.** { *; }
+        -keep @com.getcapacitor.annotation.CapacitorPlugin class * { *; }
+        -keep @com.getcapacitor.PluginMethod public class * { *; }
+        
+        # WebView
+        -keepclassmembers class * {
+            @android.webkit.JavascriptInterface <methods>;
+        }
+        
+        # Keep native methods
+        -keepclasseswithmembernames class * {
+            native <methods>;
+        }
+        
+        # FileProvider
+        -keep class androidx.core.content.FileProvider { *; }
+        
+        # 保留 R 文件
+        -keepclassmembers class **.R$* {
+            public static <fields>;
+        }
+        PROGUARD_EOF
+        
+        echo "✓ proguard-rules.pro 已创建"
+        
+        # 验证配置
+        echo ""
+        echo "=== 验证 build.gradle 压缩配置 ==="
+        grep -E "minifyEnabled|shrinkResources|proguardFiles" android/app/build.gradle || echo "警告：压缩配置可能未添加"
       
     - name: 授予 Gradle 执行权限
       run: chmod +x android/gradlew
