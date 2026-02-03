@@ -516,9 +516,9 @@
             hostname: window.location.hostname
         });
         
-        // 如果是安卓设备且在 APP 内（从 APK 打开）
-        // 使用多种检测方式：PWA standalone 模式、Capacitor API、或 Capacitor URL scheme
-        if (isAndroid && (isInApp || isCapacitor || isCapacitorScheme)) {
+        // 检查更新按钮只在 Capacitor APK 环境显示（不在 PWA 中显示）
+        // 必须同时满足：isCapacitor 或 isCapacitorScheme（排除纯 PWA standalone 模式）
+        if (isAndroid && (isCapacitor || isCapacitorScheme)) {
             // 显示检查更新按钮
             var updateSection = document.getElementById('updateSection');
             var checkUpdateBtn = document.getElementById('checkUpdateBtn');
