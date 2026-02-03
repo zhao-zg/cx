@@ -637,6 +637,17 @@ jobs:
         echo "=== 构建 APK ==="
         cd android
         
+        # 在构建前，再次验证自定义插件文件存在
+        echo "=== 构建前验证插件文件 ==="
+        ls -la app/src/main/java/com/tehui/offline/
+        echo ""
+        echo "MainActivity.java 内容:"
+        cat app/src/main/java/com/tehui/offline/MainActivity.java
+        echo ""
+        echo "ApkInstallerPlugin.java 前20行:"
+        head -20 app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
+        echo ""
+        
         mkdir -p ~/.gradle
         cat > ~/.gradle/gradle.properties << 'EOF'
         org.gradle.daemon=false
@@ -646,8 +657,17 @@ jobs:
         systemProp.http.socketTimeout=60000
         EOF
         
+        # 清理并构建
+        echo "=== 开始 Gradle 构建 ==="
         if ./gradlew clean assembleRelease --stacktrace --no-daemon; then
           echo "✓ APK 构建成功"
+          
+          # 验证编译后的类文件
+          echo ""
+          echo "=== 验证编译后的类文件 ==="
+          find . -name "ApkInstallerPlugin*.class" -type f 2>/dev/null || echo "未找到 ApkInstallerPlugin.class"
+          find . -name "MainActivity*.class" -type f 2>/dev/null || echo "未找到 MainActivity.class"
+          
           cd ..
         else
           echo "✗ APK 构建失败"
