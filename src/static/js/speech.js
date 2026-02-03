@@ -33,7 +33,10 @@
 
   function init(options) {
     var getText = options && typeof options.getText === 'function' ? options.getText : null;
-    if (!getText) return;
+    if (!getText) {
+      alert('[调试] CXSpeech.init: getText 函数未提供');
+      return;
+    }
 
     var lang = (options && options.lang) || 'zh-CN';
 
@@ -45,6 +48,13 @@
     var progressBar = byId('progressBar');
 
     if (!playPauseBtn || !rateSelect || !speechTime || !progressBar || !controlsDiv) {
+      var missing = [];
+      if (!controlsDiv) missing.push('controlsDiv');
+      if (!playPauseBtn) missing.push('playPauseBtn');
+      if (!rateSelect) missing.push('rateSelect');
+      if (!speechTime) missing.push('speechTime');
+      if (!progressBar) missing.push('progressBar');
+      alert('[调试] CXSpeech.init: 缺少元素\n' + missing.join(', '));
       return;
     }
 

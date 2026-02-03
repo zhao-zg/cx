@@ -105,7 +105,28 @@
 
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-    if (!window.CXSpeech || !window.CXSpeech.init) {
+    // 检查 CXSpeech 是否加载
+    if (!window.CXSpeech) {
+        alert('[调试] window.CXSpeech 不存在');
+        return;
+    }
+    
+    if (!window.CXSpeech.init) {
+        alert('[调试] window.CXSpeech.init 不存在');
+        return;
+    }
+    
+    // 检查控制元素
+    var controlBar = document.getElementById('bottomControlBar');
+    var playBtn = document.getElementById('playPauseBtn');
+    
+    if (!controlBar) {
+        alert('[调试] bottomControlBar 不存在');
+        return;
+    }
+    
+    if (!playBtn) {
+        alert('[调试] playPauseBtn 不存在');
         return;
     }
     
