@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -899,23 +899,9 @@
                 updateApkDownloadProgress(message, progress, speed, downloaded);
             },
             // onComplete
-            function(sourceName) {
+            function() {
                 setTimeout(function() {
                     closeApkDownloadProgress();
-                    
-                    var message = '✅ APK 下载完成！\n\n';
-                    message += '📦 使用下载源: ' + sourceName + '\n\n';
-                    message += '📱 接下来的步骤：\n';
-                    message += '1. 系统应该会自动弹出安装界面\n';
-                    message += '2. 如果提示"需要权限"，请点击"设置"并允许\n';
-                    message += '3. 返回后点击"安装"按钮\n';
-                    message += '4. 等待安装完成\n\n';
-                    message += '💡 提示：\n';
-                    message += '• 首次安装需要授予"安装未知应用"权限\n';
-                    message += '• 如果没有弹出安装界面，请到文件管理器的 Download 目录手动安装\n';
-                    message += '• 安装完成后可以覆盖旧版本，数据不会丢失';
-                    
-                    alert(message);
                 }, 500);
             },
             // onError

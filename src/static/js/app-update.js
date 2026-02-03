@@ -249,7 +249,7 @@
             ];
             
             try {
-                var blob, sourceName, downloadUrl;
+                var blob, downloadUrl;
                 var startDownloadTime = Date.now();
                 var isGitHubUrl = url.indexOf('github.com') !== -1 || url.indexOf('githubusercontent.com') !== -1;
                 
@@ -257,11 +257,11 @@
                     if (isGitHubUrl) {
                         // GitHub URL：测速选择最快线路
                         console.log('[APK下载] GitHub URL，使用快速测速策略');
-                        if (onProgress) onProgress('正在测速选择最快线路...', 0, 0, 0);
+                        if (onProgress) onProgress('正在选择最快线路...', 0, 0, 0);
                         
-                        var downloadSources = [{ name: 'GitHub 直连', url: url }];
+                        var downloadSources = [{ name: '线路 1', url: url }];
                         this.config.mirrors.forEach(function(mirror, index) {
-                            downloadSources.push({ name: '镜像 ' + (index + 1), url: mirror + url });
+                            downloadSources.push({ name: '线路 ' + (index + 2), url: mirror + url });
                         });
                         
                         // 竞速测速
@@ -317,19 +317,17 @@
                             });
                         }
                         
-                        if (!fastestSource) throw new Error('所有下载源都不可用');
+                        if (!fastestSource) throw new Error('所有下载线路都不可用');
                         
                         console.log('[APK下载] 选择:', fastestSource.name, '(', fastestTime, 'ms)');
-                        sourceName = fastestSource.name;
                         downloadUrl = fastestSource.url;
                     } else {
                         // 非 GitHub URL（如 Cloudflare），直接下载
                         console.log('[APK下载] 直接下载:', url);
-                        sourceName = 'Cloudflare';
                         downloadUrl = url;
                     }
                     
-                    if (onProgress) onProgress('使用 ' + sourceName + ' 下载中...', 10, 0, 0);
+                    if (onProgress) onProgress('正在下载...', 10, 0, 0);
                     var result = await downloadFileInChunks(downloadUrl, onProgress);
                     blob = result.blob;
                     
@@ -338,8 +336,8 @@
                     
                 } else {
                     // 降级到镜像站
-                    console.log('[APK下载] CapacitorHttp 不可用，使用镜像站');
-                    if (onProgress) onProgress('准备使用镜像站下载...', 0, 0, 0);
+                    console.log('[APK下载] CapacitorHttp 不可用，使用备用线路');
+                    if (onProgress) onProgress('准备下载...', 0, 0, 0);
                     
                     for (var i = 0; i < this.config.mirrors.length; i++) {
                         try {
@@ -347,10 +345,9 @@
                             var response = await fetch(mirrorUrl, { method: 'GET', cache: 'no-cache' });
                             if (!response.ok) throw new Error('HTTP ' + response.status);
                             blob = await response.blob();
-                            sourceName = '镜像 ' + (i + 1);
                             break;
                         } catch (e) {
-                            if (i === this.config.mirrors.length - 1) throw new Error('所有镜像站都失败');
+                            if (i === this.config.mirrors.length - 1) throw new Error('所有下载线路都失败');
                         }
                     }
                 }
@@ -413,7 +410,7 @@
                 }
                 
                 if (onProgress) onProgress('完成', 100, 0, blob.size);
-                if (onComplete) onComplete(sourceName);
+                if (onComplete) onComplete();
                 
             } catch (error) {
                 console.error('[APK下载] 失败:', error);
