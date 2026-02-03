@@ -313,13 +313,20 @@ jobs:
       run: |
         echo "=== 配置 AndroidManifest.xml 使用自定义 MainActivity ==="
         echo "注意：cap sync 会重新生成 AndroidManifest.xml，需要修改它使用我们的自定义 MainActivity"
-        echo "自定义插件文件已在 Git 仓库中：android/app/src/main/java/com/tehui/offline/"
+        
+        # 重要：cap sync 可能会覆盖自定义插件文件，需要重新恢复
+        echo ""
+        echo "=== 重新恢复自定义插件文件（cap sync 可能已覆盖） ==="
+        mkdir -p android/app/src/main/java/com/tehui/offline
+        git checkout android/app/src/main/java/com/tehui/offline/MainActivity.java
+        git checkout android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
         
         # 验证插件文件存在
         echo ""
         echo "=== 验证自定义插件文件 ==="
         if [ -f "android/app/src/main/java/com/tehui/offline/MainActivity.java" ]; then
           echo "✓ MainActivity.java 存在"
+          cat android/app/src/main/java/com/tehui/offline/MainActivity.java
         else
           echo "✗ MainActivity.java 不存在"
           exit 1
@@ -327,6 +334,7 @@ jobs:
         
         if [ -f "android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java" ]; then
           echo "✓ ApkInstallerPlugin.java 存在"
+          head -20 android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
         else
           echo "✗ ApkInstallerPlugin.java 不存在"
           exit 1
