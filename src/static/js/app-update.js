@@ -613,7 +613,7 @@
                 // 方法1: 使用自定义 ApkInstaller 插件（直接打开系统安装器）
                 if (window.Capacitor.Plugins.ApkInstaller) {
                     try {
-                        if (onProgress) onProgress('打开安装程序...', 98, 0, blob.size);
+                        if (onProgress) onProgress('打开安装程序...', 97, 0, blob.size);
                         
                         var result = await window.Capacitor.Plugins.ApkInstaller.install({
                             filePath: fileUri
@@ -632,7 +632,27 @@
                     attemptedMethods.push('ApkInstaller: 插件不可用（需要重新构建 APK）');
                 }
                 
-                // 方法2: 使用 Share API（让用户选择系统安装器）
+                // 方法2: 使用 Capacitor App.openUrl（尝试打开文件）
+                if (!installed && window.Capacitor.Plugins.App && window.Capacitor.Plugins.App.openUrl) {
+                    try {
+                        if (onProgress) onProgress('尝试打开文件...', 98, 0, blob.size);
+                        
+                        await window.Capacitor.Plugins.App.openUrl({ url: fileUri });
+                        
+                        installed = true;
+                        attemptedMethods.push('App.openUrl: 成功');
+                        if (onComplete) onComplete(sourceName);
+                    } catch (e) {
+                        installError = e;
+                        attemptedMethods.push('App.openUrl: ' + e.message);
+                        alert('[失败] App.openUrl\n\n' + e.message + '\n\n将尝试其他方法...');
+                        console.error('[APK安装] App.openUrl 失败:', e);
+                    }
+                } else if (!installed) {
+                    attemptedMethods.push('App.openUrl: 方法不可用');
+                }
+                
+                // 方法3: 使用 Share API（让用户选择系统安装器）
                 if (!installed && window.Capacitor.Plugins.Share) {
                     try {
                         if (onProgress) onProgress('打开系统选择器...', 99, 0, blob.size);
