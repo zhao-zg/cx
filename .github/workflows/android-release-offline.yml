@@ -314,31 +314,55 @@ jobs:
         echo "=== 配置 AndroidManifest.xml 使用自定义 MainActivity ==="
         echo "注意：cap sync 会重新生成 AndroidManifest.xml，需要修改它使用我们的自定义 MainActivity"
         
-        # 重要：cap sync 可能会覆盖自定义插件文件，需要重新恢复
+        # 重要：cap sync 会生成默认的 MainActivity，需要删除并替换为我们的自定义版本
         echo ""
-        echo "=== 重新恢复自定义插件文件（cap sync 可能已覆盖） ==="
-        mkdir -p android/app/src/main/java/com/tehui/offline
-        git checkout android/app/src/main/java/com/tehui/offline/MainActivity.java
-        git checkout android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
+        echo "=== 检查 Capacitor 生成的 MainActivity ==="
         
-        # 验证插件文件存在
+        # 显示 cap sync 后的 java 目录结构
+        echo "Java 目录结构:"
+        find android/app/src/main/java -name "*.java" -type f
+        
+        # 删除 Capacitor 生成的默认 MainActivity（如果存在）
+        if [ -f "android/app/src/main/java/com/tehui/offline/MainActivity.java" ]; then
+          echo ""
+          echo "发现 Capacitor 生成的 MainActivity.java，内容如下:"
+          cat android/app/src/main/java/com/tehui/offline/MainActivity.java
+          echo ""
+          echo "删除 Capacitor 生成的 MainActivity.java..."
+          rm -f android/app/src/main/java/com/tehui/offline/MainActivity.java
+        fi
+        
+        # 从 Git 恢复我们的自定义插件文件
+        echo ""
+        echo "=== 恢复自定义插件文件 ==="
+        mkdir -p android/app/src/main/java/com/tehui/offline
+        git checkout HEAD -- android/app/src/main/java/com/tehui/offline/MainActivity.java
+        git checkout HEAD -- android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
+        
+        # 验证插件文件存在并显示内容
         echo ""
         echo "=== 验证自定义插件文件 ==="
         if [ -f "android/app/src/main/java/com/tehui/offline/MainActivity.java" ]; then
-          echo "✓ MainActivity.java 存在"
+          echo "✓ MainActivity.java 已恢复，内容如下:"
           cat android/app/src/main/java/com/tehui/offline/MainActivity.java
         else
-          echo "✗ MainActivity.java 不存在"
+          echo "✗ MainActivity.java 恢复失败"
           exit 1
         fi
         
+        echo ""
         if [ -f "android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java" ]; then
-          echo "✓ ApkInstallerPlugin.java 存在"
-          head -20 android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
+          echo "✓ ApkInstallerPlugin.java 已恢复，内容如下:"
+          cat android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
         else
-          echo "✗ ApkInstallerPlugin.java 不存在"
+          echo "✗ ApkInstallerPlugin.java 恢复失败"
           exit 1
         fi
+        
+        # 再次显示 java 目录结构，确认文件存在
+        echo ""
+        echo "=== 最终 Java 目录结构 ==="
+        find android/app/src/main/java -name "*.java" -type f
         
         manifest_file="android/app/src/main/AndroidManifest.xml"
         
