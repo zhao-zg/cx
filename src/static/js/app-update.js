@@ -605,56 +605,46 @@
                 installMsg += '即将尝试打开安装程序...';
                 alert(installMsg);
                 
-                // 安装 APK - 不依赖额外插件
+                // 安装 APK - 使用自定义插件
                 var installed = false;
                 var installError = null;
                 
-                // 方法1: 使用 App.openUrl（Capacitor 内置）
-                if (window.Capacitor.Plugins.App) {
+                alert('[调试] 文件路径:\n' + fileUri + '\n\n准备打开安装程序...');
+                
+                // 方法1: 使用自定义 ApkInstaller 插件（最可靠）
+                if (window.Capacitor.Plugins.ApkInstaller) {
                     try {
-                        alert('[调试] 尝试方法1: App.openUrl\n\nURI: ' + fileUri);
+                        alert('[调试] 尝试方法1: ApkInstaller 插件');
                         if (onProgress) onProgress('打开安装程序...', 98, 0, blob.size);
                         
-                        await window.Capacitor.Plugins.App.openUrl({ url: fileUri });
+                        var result = await window.Capacitor.Plugins.ApkInstaller.install({
+                            filePath: fileUri
+                        });
+                        
                         installed = true;
-                        alert('[成功] App.openUrl 已调用\n\n如果没有弹出安装界面，请手动到文件管理器安装');
+                        alert('[成功] 安装程序已打开！\n\n' + result.message);
                     } catch (e) {
                         installError = e;
-                        alert('[失败] App.openUrl 失败:\n' + e.message);
+                        alert('[失败] ApkInstaller 失败:\n' + e.message);
                     }
                 } else {
-                    alert('[错误] App 插件不可用');
+                    alert('[提示] ApkInstaller 插件不可用\n\n将尝试其他方法...');
                 }
                 
-                // 方法2: 使用 Browser 插件打开
-                if (!installed && window.Capacitor.Plugins.Browser) {
-                    try {
-                        alert('[调试] 尝试方法2: Browser.open');
-                        if (onProgress) onProgress('打开安装程序...', 99, 0, blob.size);
-                        
-                        await window.Capacitor.Plugins.Browser.open({ 
-                            url: fileUri,
-                            presentationStyle: 'fullscreen'
-                        });
-                        installed = true;
-                        alert('[成功] Browser.open 已调用');
-                    } catch (e) {
-                        installError = e;
-                        alert('[失败] Browser.open 失败:\n' + e.message);
-                    }
-                }
-                
-                // 方法3: 使用 WebView 直接打开
+                // 方法2: 尝试直接跳转（降级方案）
                 if (!installed) {
                     try {
-                        alert('[调试] 尝试方法3: window.open');
+                        alert('[调试] 尝试方法2: 直接跳转');
+                        if (onProgress) onProgress('打开安装程序...', 99, 0, blob.size);
                         
-                        window.open(fileUri, '_system');
+                        window.location.href = fileUri;
                         installed = true;
-                        alert('[成功] window.open 已调用\n\n如果没有弹出安装界面，请手动安装');
+                        
+                        await new Promise(function(resolve) { setTimeout(resolve, 2000); });
+                        alert('[提示] 已尝试打开\n\n如果没有弹出安装界面，请手动到文件管理器安装');
                     } catch (e) {
                         installError = e;
-                        alert('[失败] window.open 失败:\n' + e.message);
+                        alert('[失败] 方法2 失败:\n' + e.message);
                     }
                 }
                 

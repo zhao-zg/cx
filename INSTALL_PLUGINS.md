@@ -1,167 +1,100 @@
-# 安装必需的 Capacitor 插件
+# APK 下载和安装 - 无需额外插件
 
-## 问题
+## 当前方案
 
-APK 下载功能需要以下插件才能正常工作：
-1. **FileOpener** - 用于打开 APK 安装程序
-2. **Permissions** (可选) - 用于请求存储权限
+**不需要安装任何额外插件**，只使用 Capacitor 6 内置功能：
+- ✅ `@capacitor/app` - 打开 URL（已安装）
+- ✅ `@capacitor/browser` - 浏览器功能（已安装）
+- ✅ `@capacitor/filesystem` - 文件系统（已安装）
 
-目前 `package.json` 中缺少这些插件。
+## 为什么不用 FileOpener
 
-## 解决方案
+`@capacitor-community/file-opener` 只支持 Capacitor 5，与你的 Capacitor 6 不兼容。
 
-### 方法1：自动安装（推荐）
+## 当前实现
 
-运行以下命令：
+### 1. 权限处理
 
-```bash
-# 安装 FileOpener 插件（必需）
-npm install @capacitor-community/file-opener
+**不主动申请权限**，因为：
+- Capacitor 6 没有内置 Permissions API
+- 第三方权限插件可能不兼容
 
-# 同步到 Android 项目
-npx cap sync android
-```
+**策略**：
+- 尝试保存到多个位置
+- 如果 `EXTERNAL/Download/` 失败（权限问题），自动降级到 `CACHE` 目录
+- `CACHE` 目录不需要权限，一定能成功
 
-### 方法2：手动更新 package.json
+### 2. 文件保存（按顺序尝试）
 
-我已经更新了 `package.json`，添加了：
-```json
-"@capacitor-community/file-opener": "^1.0.5"
-```
+1. **EXTERNAL/Download/** - 系统 Download 文件夹
+   - 优点：用户容易找到
+   - 缺点：可能需要权限（Android 10 以下）
 
-然后运行：
-```bash
-npm install
-npx cap sync android
-```
+2. **CACHE/downloads/** - 应用缓存目录
+   - 优点：不需要权限，一定成功
+   - 缺点：可能被系统清理
 
-## 验证安装
+3. **DATA/downloads/** - 应用数据目录
+   - 优点：不需要权限
+   - 缺点：用户难以找到
 
-安装完成后，在 Android Studio 中打开项目：
-```bash
-npx cap open android
-```
+### 3. 打开安装程序（按顺序尝试）
 
-检查 `android/app/build.gradle` 中是否有：
-```gradle
-implementation 'com.capacitor-community:file-opener:1.0.5'
-```
+1. **App.openUrl()** - Capacitor 内置
+   - 最可靠的方法
+   - 应该能打开系统安装程序
 
-## 关于权限
+2. **Browser.open()** - Capacitor 内置
+   - 备用方案
 
-### Android 10 及以下
-
-需要存储权限才能保存文件到 Download 目录。但是：
-- **Capacitor 6.x 没有内置的 Permissions 插件**
-- 需要使用第三方插件或自定义插件
-
-### Android 11+
-
-使用 Scoped Storage，不需要存储权限，可以直接保存到：
-- `CACHE` 目录（应用缓存）
-- `DATA` 目录（应用数据）
-
-但是 `EXTERNAL/Download` 目录仍然需要权限。
-
-## 当前代码的权限处理
-
-代码会尝试：
-1. 检查 `window.Capacitor.Plugins.Permissions` 是否存在
-2. 如果存在，请求存储权限
-3. 如果不存在，跳过权限检查，直接尝试保存
-
-保存策略（按顺序尝试）：
-1. `EXTERNAL/Download/` - 需要权限，但用户可以在文件管理器中找到
-2. `CACHE/downloads/` - 不需要权限，但可能被系统清理
-3. `DATA/downloads/` - 不需要权限，但用户难以找到
-
-## 推荐方案
-
-### 短期方案（当前）
-
-不安装 Permissions 插件，使用降级策略：
-- 优先尝试 `EXTERNAL/Download/`（可能失败）
-- 失败后降级到 `CACHE/downloads/`（一定成功）
-- 用户可以在 alert 提示中看到实际保存位置
-
-### 长期方案
-
-创建自定义 Capacitor 插件，直接调用 Android API：
-```java
-// 请求存储权限
-ActivityCompat.requestPermissions(
-    getActivity(),
-    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-    REQUEST_CODE
-);
-
-// 安装 APK
-Intent intent = new Intent(Intent.ACTION_VIEW);
-intent.setDataAndType(uri, "application/vnd.android.package-archive");
-intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-startActivity(intent);
-```
+3. **window.open()** - 标准 Web API
+   - 最后的尝试
 
 ## 测试步骤
 
-1. 安装插件：
+1. **不需要安装任何东西**，直接测试：
    ```bash
-   npm install
+   # 同步现有配置
    npx cap sync android
-   ```
-
-2. 重新构建 APK：
-   ```bash
+   
+   # 打开 Android Studio
    npx cap open android
-   # 在 Android Studio 中 Build > Build Bundle(s) / APK(s) > Build APK(s)
+   
+   # 构建 APK
    ```
 
-3. 安装并测试：
+2. **测试下载和安装**：
    - 点击 Logo 8 次触发更新
-   - 观察 alert 提示
-   - 检查文件是否保存成功
-   - 检查是否能打开安装程序
+   - 观察每个 alert 提示
+   - 记录：
+     - 文件保存到哪个目录？
+     - 是否打开了安装程序？
+     - 如果失败，错误信息是什么？
 
 ## 预期行为
 
-### 安装 FileOpener 后
+### 理想情况
 
-- ✅ 文件保存成功（到 CACHE 目录）
-- ✅ 自动打开安装程序
-- ✅ 用户点击"安装"完成更新
+1. ✅ 文件保存到 CACHE 目录（不需要权限）
+2. ✅ `App.openUrl()` 打开系统安装程序
+3. ✅ 用户点击"安装"完成更新
 
-### 没有 FileOpener
+### 可能的问题
 
-- ✅ 文件保存成功
-- ❌ 无法自动打开安装程序
-- ⚠️ 需要用户手动到文件管理器安装
+#### 问题1：无法打开安装程序
 
-## 故障排查
-
-### 问题1：文件保存失败
-
-**症状**：alert 显示"保存到 XXX 失败"
+**症状**：alert 显示"App.openUrl 失败"
 
 **原因**：
-- Android 11+ 限制访问外部存储
-- 没有存储权限
+- Android 7.0+ 需要使用 FileProvider
+- URI 格式不正确
 
 **解决**：
-- 代码会自动降级到 CACHE 目录
-- 查看 alert 提示的实际保存位置
+- 确保 AndroidManifest.xml 中配置了 FileProvider
+- 确保 file_paths.xml 正确配置
+- 查看 alert 显示的 URI 格式
 
-### 问题2：无法打开安装程序
-
-**症状**：alert 显示"FileOpener 插件不可用"
-
-**原因**：
-- 没有安装 FileOpener 插件
-
-**解决**：
-- 运行 `npm install @capacitor-community/file-opener`
-- 运行 `npx cap sync android`
-
-### 问题3：安装时提示"未知来源"
+#### 问题2：安装时提示"未知来源"
 
 **症状**：系统阻止安装
 
@@ -169,13 +102,80 @@ startActivity(intent);
 - Android 8.0+ 需要"安装未知应用"权限
 
 **解决**：
-- 系统会自动引导用户到设置页面
-- 用户需要手动允许该权限
-- 这是 Android 系统的安全机制，无法绕过
+- 用户需要手动允许（系统会引导）
+- 这是 Android 安全机制，无法绕过
 
-## 相关文件
+## 调试信息
 
-- `package.json` - 插件依赖配置
-- `src/static/js/app-update.js` - APK 下载和安装逻辑
-- `ANDROID_PERMISSIONS.md` - Android 权限配置指南
-- `.github/workflows/android-release-offline.yml` - CI/CD 构建配置
+代码会显示详细的 alert 提示：
+
+1. **权限检查**：
+   - "权限 API 不可用" - 正常，因为没有插件
+
+2. **文件保存**：
+   - "尝试保存到: XXX" - 显示尝试的目录
+   - "文件已保存！" - 显示成功的位置和路径
+   - "保存失败" - 显示错误信息
+
+3. **打开安装程序**：
+   - "尝试方法1: App.openUrl" - 显示 URI
+   - "成功" 或 "失败" - 显示结果
+
+## 如果还是不行
+
+如果 Capacitor 内置方法都失败，可以考虑：
+
+### 方案1：创建自定义插件
+
+创建一个简单的 Capacitor 插件，直接调用 Android API：
+
+```java
+@PluginMethod
+public void installApk(PluginCall call) {
+    String filePath = call.getString("filePath");
+    File file = new File(filePath);
+    
+    Uri uri;
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        uri = FileProvider.getUriForFile(
+            getContext(),
+            getContext().getPackageName() + ".fileprovider",
+            file
+        );
+    } else {
+        uri = Uri.fromFile(file);
+    }
+    
+    Intent intent = new Intent(Intent.ACTION_VIEW);
+    intent.setDataAndType(uri, "application/vnd.android.package-archive");
+    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    getActivity().startActivity(intent);
+    
+    call.resolve();
+}
+```
+
+### 方案2：降级到 Capacitor 5
+
+如果必须使用 FileOpener 插件：
+
+```bash
+# 降级所有 Capacitor 包到 5.x
+npm install @capacitor/core@^5.0.0 @capacitor/cli@^5.0.0 @capacitor/android@^5.0.0 @capacitor/app@^5.0.0 @capacitor/browser@^5.0.0 @capacitor/filesystem@^5.0.0
+
+# 安装 FileOpener
+npm install @capacitor-community/file-opener
+
+# 同步
+npx cap sync android
+```
+
+## 总结
+
+- ✅ 不需要安装额外插件
+- ✅ 使用 Capacitor 6 内置功能
+- ✅ 文件保存有降级策略
+- ✅ 打开安装程序有多种尝试
+- ✅ 详细的 alert 调试信息
+
+测试后告诉我看到了什么 alert 提示，我们再根据实际情况调整。
