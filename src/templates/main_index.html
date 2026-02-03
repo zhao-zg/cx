@@ -1164,21 +1164,29 @@
                     var pathname = window.location.pathname;
                     var isMainPage = pathname === '/' || 
                                     pathname === '/index.html' ||
-                                    pathname.endsWith('/index.html') ||
                                     pathname === '' ||
                                     // Capacitor 可能使用特殊路径
                                     pathname === '/android_asset/public/index.html' ||
                                     pathname.includes('/public/index.html');
                     
+                    // 检查保存的页面是否也是主页（避免主页跳主页）
+                    var lastPagePath = new URL(lastPage).pathname;
+                    var lastPageIsMain = lastPagePath === '/' || 
+                                        lastPagePath === '/index.html' ||
+                                        lastPagePath === '' ||
+                                        lastPagePath === '/android_asset/public/index.html' ||
+                                        lastPagePath.includes('/public/index.html');
+                    
                     console.log('[页面记忆] 检查条件:', {
                         isExternalEntry: isExternalEntry,
                         isMainPage: isMainPage,
+                        lastPageIsMain: lastPageIsMain,
                         referrer: document.referrer,
                         pathname: window.location.pathname
                     });
                     
-                    // 只在外部进入主页时恢复（避免用户主动点击主页时也跳转）
-                    if (isExternalEntry && isMainPage) {
+                    // 只在外部进入主页时恢复，且保存的页面不是主页
+                    if (isExternalEntry && isMainPage && !lastPageIsMain) {
                         console.log('[页面记忆] 恢复上次访问的页面:', lastPage);
                         window.location.replace(lastPage);
                         return;
