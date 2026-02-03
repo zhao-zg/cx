@@ -610,25 +610,49 @@
                 var installError = null;
                 var attemptedMethods = [];
                 
+                // 调试：检查所有可用的 Capacitor 插件
+                var availablePlugins = Object.keys(window.Capacitor.Plugins || {});
+                alert('[调试] 可用的 Capacitor 插件:\n' + availablePlugins.join('\n'));
+                
                 // 方法1: 使用自定义 ApkInstaller 插件（直接打开系统安装器）
-                if (window.Capacitor.Plugins.ApkInstaller) {
+                var ApkInstaller = null;
+                
+                // 尝试多种方式获取插件
+                if (window.Capacitor.Plugins && window.Capacitor.Plugins.ApkInstaller) {
+                    ApkInstaller = window.Capacitor.Plugins.ApkInstaller;
+                    alert('[调试] 通过 Capacitor.Plugins.ApkInstaller 找到插件');
+                } else if (window.Capacitor.registerPlugin) {
+                    // Capacitor 3+ 方式：动态注册插件
+                    try {
+                        ApkInstaller = window.Capacitor.registerPlugin('ApkInstaller');
+                        alert('[调试] 通过 registerPlugin 注册插件');
+                    } catch (e) {
+                        alert('[调试] registerPlugin 失败: ' + e.message);
+                    }
+                }
+                
+                if (ApkInstaller) {
                     try {
                         if (onProgress) onProgress('打开安装程序...', 98, 0, blob.size);
                         
-                        var result = await window.Capacitor.Plugins.ApkInstaller.install({
+                        alert('[调试] 调用 ApkInstaller.install，路径: ' + fileUri);
+                        var result = await ApkInstaller.install({
                             filePath: fileUri
                         });
                         
                         installed = true;
                         attemptedMethods.push('ApkInstaller: 成功');
+                        alert('[成功] ApkInstaller 安装成功！');
                         if (onComplete) onComplete(sourceName);
                     } catch (e) {
                         installError = e;
                         attemptedMethods.push('ApkInstaller: ' + e.message);
+                        alert('[失败] ApkInstaller 错误: ' + e.message);
                         console.error('[APK安装] ApkInstaller 失败:', e);
                     }
                 } else {
                     attemptedMethods.push('ApkInstaller: 插件不可用（需要重新构建 APK）');
+                    alert('[调试] ApkInstaller 插件不可用\n\n可用插件: ' + availablePlugins.join(', '));
                 }
                 
                 // 方法2: 使用 Share API（让用户选择系统安装器）
