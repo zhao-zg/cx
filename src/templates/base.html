@@ -74,19 +74,19 @@
             .scripture,.scripture-verses{font-size:1.00em;padding:15px;line-height:1.6}
             .section{margin:20px 0}
         }
-        .section-level1,.outline-item.level-1{font-size:1.10em;font-weight:600;margin:15px 0 10px;color:#222;line-height:1.6;margin-left:10px}
-        .section-level2,.outline-item.level-2{font-size:1.07em;font-weight:560;margin:12px 0 8px;color:#333;line-height:1.6;margin-left:20px}
-        .section-level3,.outline-item.level-3{font-size:1.04em;font-weight:530;margin:10px 0 8px;color:#444;line-height:1.6;margin-left:30px}
-        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:normal;margin:8px 0 6px;color:#555;line-height:1.6;margin-left:40px}
+        .section-level1,.outline-item.level-1{font-size:1.10em;font-weight:600;margin:15px 0 10px;color:#222;line-height:1.6;padding-left:10px;padding-right:10px}
+        .section-level2,.outline-item.level-2{font-size:1.07em;font-weight:560;margin:12px 0 8px;color:#333;line-height:1.6;padding-left:20px;padding-right:10px}
+        .section-level3,.outline-item.level-3{font-size:1.04em;font-weight:530;margin:10px 0 8px;color:#444;line-height:1.6;padding-left:30px;padding-right:10px}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:normal;margin:8px 0 6px;color:#555;line-height:1.6;padding-left:40px;padding-right:10px}
         .outline-item .outline-level,.outline-item .outline-text{display:inline}
         .outline-children{margin-left:0}
-        .content-text{margin:16px 0;padding-left:8px;text-indent:2em;color:#4a5568;line-height:1.6;font-size:1.00em}
+        .content-text{margin:16px 0;padding-left:8px;padding-right:8px;text-indent:2em;color:#4a5568;line-height:1.6;font-size:1.00em}
         @media(min-width:768px){
-            .content-text{padding-left:8px;font-size:1.05em}
-            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px}
-            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:24px}
-            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:38px}
-            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:52px}
+            .content-text{padding-left:8px;padding-right:8px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;padding-left:10px;padding-right:10px}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;padding-left:24px;padding-right:10px}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;padding-left:38px;padding-right:10px}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;padding-left:52px;padding-right:10px}
         }
         .outline-item{position:relative}
         .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-32px;top:2px}
@@ -124,13 +124,17 @@
             body{padding:4px 2px 60px}
             .container{padding:8px 6px}
             .header{padding:14px 10px}
-            .content-text{padding-left:4px}
+            .content-text{padding-left:4px;padding-right:4px}
             .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
             .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:5px;font-size:14px}
             .play-pause-btn{font-size:16px}
             .speech-time{font-size:10px}
             .control-select{min-width:44px;min-height:30px;padding:4px 5px;font-size:11px}
             .control-group{gap:4px}
+            .section-level1,.outline-item.level-1{padding-left:6px;padding-right:6px}
+            .section-level2,.outline-item.level-2{padding-left:14px;padding-right:6px}
+            .section-level3,.outline-item.level-3{padding-left:22px;padding-right:6px}
+            .section-level4,.outline-item.level-4{padding-left:30px;padding-right:6px}
         }
         @media(max-width:480px){
             body{padding-bottom:55px}
