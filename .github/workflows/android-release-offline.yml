@@ -127,6 +127,13 @@ jobs:
     - name: 添加 Android 平台
       run: |
         echo "=== 添加 Android 平台 ==="
+        
+        # 如果 android 目录已存在（因为 Git 中有自定义插件文件），先删除
+        if [ -d "android" ]; then
+          echo "检测到 android 目录已存在，先删除..."
+          rm -rf android
+        fi
+        
         npx cap add android
         
         if [ ! -d "android" ]; then
@@ -137,121 +144,34 @@ jobs:
         echo "✓ Android 平台添加完成"
         du -sh android/app/src/main/assets/
     
-    - name: 添加自定义 APK 安装插件
+    - name: 恢复自定义 APK 安装插件文件
       run: |
-        echo "=== 添加自定义 APK 安装插件 ==="
+        echo "=== 恢复自定义 APK 安装插件文件 ==="
         
-        # 创建插件目录
-        mkdir -p android/app/src/main/java/com/tehui/offline
+        # 从 Git 恢复自定义插件文件
+        git checkout android/app/src/main/java/com/tehui/offline/MainActivity.java
+        git checkout android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
         
-        # 复制 MainActivity.java
+        echo ""
+        echo "=== 验证插件文件 ==="
         if [ -f "android/app/src/main/java/com/tehui/offline/MainActivity.java" ]; then
-          echo "✓ MainActivity.java 已存在"
+          echo "✓ MainActivity.java 已恢复"
+          head -5 android/app/src/main/java/com/tehui/offline/MainActivity.java
         else
-          echo "创建 MainActivity.java..."
-          cat > android/app/src/main/java/com/tehui/offline/MainActivity.java << 'EOF'
-        package com.tehui.offline;
-        
-        import android.os.Bundle;
-        import com.getcapacitor.BridgeActivity;
-        
-        public class MainActivity extends BridgeActivity {
-            @Override
-            public void onCreate(Bundle savedInstanceState) {
-                super.onCreate(savedInstanceState);
-                
-                // 注册自定义插件
-                registerPlugin(ApkInstallerPlugin.class);
-            }
-        }
-        EOF
-          echo "✓ MainActivity.java 已创建"
+          echo "✗ MainActivity.java 恢复失败"
+          exit 1
         fi
         
-        # 复制 ApkInstallerPlugin.java
         if [ -f "android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java" ]; then
-          echo "✓ ApkInstallerPlugin.java 已存在"
+          echo "✓ ApkInstallerPlugin.java 已恢复"
+          head -5 android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
         else
-          echo "创建 ApkInstallerPlugin.java..."
-          cat > android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java << 'EOF'
-        package com.tehui.offline;
-        
-        import android.content.Intent;
-        import android.net.Uri;
-        import android.os.Build;
-        import androidx.core.content.FileProvider;
-        import com.getcapacitor.JSObject;
-        import com.getcapacitor.Plugin;
-        import com.getcapacitor.PluginCall;
-        import com.getcapacitor.PluginMethod;
-        import com.getcapacitor.annotation.CapacitorPlugin;
-        import java.io.File;
-        
-        @CapacitorPlugin(name = "ApkInstaller")
-        public class ApkInstallerPlugin extends Plugin {
-        
-            @PluginMethod
-            public void install(PluginCall call) {
-                String filePath = call.getString("filePath");
-                
-                if (filePath == null || filePath.isEmpty()) {
-                    call.reject("文件路径不能为空");
-                    return;
-                }
-                
-                try {
-                    // 移除 file:// 前缀
-                    if (filePath.startsWith("file://")) {
-                        filePath = filePath.substring(7);
-                    }
-                    
-                    File file = new File(filePath);
-                    
-                    if (!file.exists()) {
-                        call.reject("文件不存在: " + filePath);
-                        return;
-                    }
-                    
-                    Uri uri;
-                    
-                    // Android 7.0+ 使用 FileProvider
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        uri = FileProvider.getUriForFile(
-                            getContext(),
-                            getContext().getPackageName() + ".fileprovider",
-                            file
-                        );
-                    } else {
-                        uri = Uri.fromFile(file);
-                    }
-                    
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setDataAndType(uri, "application/vnd.android.package-archive");
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    
-                    getActivity().startActivity(intent);
-                    
-                    JSObject ret = new JSObject();
-                    ret.put("success", true);
-                    ret.put("message", "安装程序已打开");
-                    call.resolve(ret);
-                    
-                } catch (Exception e) {
-                    call.reject("打开安装程序失败: " + e.getMessage());
-                }
-            }
-        }
-        EOF
-          echo "✓ ApkInstallerPlugin.java 已创建"
+          echo "✗ ApkInstallerPlugin.java 恢复失败"
+          exit 1
         fi
         
         echo ""
-        echo "=== 验证自定义插件 ==="
-        ls -lh android/app/src/main/java/com/tehui/offline/
-        echo ""
-        echo "✓ 自定义 APK 安装插件已添加"
-    
-    
+        echo "✓ 自定义 APK 安装插件文件已恢复"
     - name: 配置 Android 图标（使用预生成的 PNG）
       run: |
         echo "=== 配置 Android 图标 ==="
