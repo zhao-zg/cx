@@ -908,11 +908,7 @@
             function(error) {
                 closeApkDownloadProgress();
                 if (confirm('APK 下载失败\n\n' + error.message + '\n\n是否在浏览器中打开下载链接？')) {
-                    if (window.Capacitor.Plugins.Browser) {
-                        window.Capacitor.Plugins.Browser.open({ url: url });
-                    } else {
-                        window.open(url, '_system');
-                    }
+                    window.open(url, '_blank');
                 }
             }
         );

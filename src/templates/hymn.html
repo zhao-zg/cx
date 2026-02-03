@@ -106,47 +106,23 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 10px;
 }
 
 .image-viewer-content {
-    max-width: 95%;
-    max-height: 95%;
+    max-width: 100%;
+    max-height: 100%;
     position: relative;
 }
 
 .image-viewer-content img {
     max-width: 100%;
-    max-height: 90vh;
+    max-height: 98vh;
     width: auto;
     height: auto;
     display: block;
-    border-radius: 8px;
+    border-radius: 4px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-}
-
-.image-viewer-close {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 44px;
-    height: 44px;
-    background: rgba(255, 255, 255, 0.9);
-    border: none;
-    border-radius: 50%;
-    font-size: 24px;
-    color: #333;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    z-index: 10000;
-}
-
-.image-viewer-close:active {
-    transform: scale(0.95);
-    background: rgba(255, 255, 255, 0.8);
 }
 
 @keyframes fadeIn {
@@ -235,7 +211,6 @@
 {% block extra_scripts %}
 <!-- 图片查看器 -->
 <div id="imageViewer" class="image-viewer-overlay" onclick="closeImageViewer(event)">
-    <button class="image-viewer-close" onclick="closeImageViewer(event)" aria-label="关闭">✕</button>
     <div class="image-viewer-content">
         <img id="viewerImage" src="" alt="诗歌内容">
     </div>
@@ -251,12 +226,10 @@ function openImageViewer(src) {
 }
 
 function closeImageViewer(event) {
-    // 只在点击背景或关闭按钮时关闭，不在点击图片时关闭
-    if (event.target.id === 'imageViewer' || event.target.classList.contains('image-viewer-close') || event.target.textContent === '✕') {
-        const viewer = document.getElementById('imageViewer');
-        viewer.classList.remove('show');
-        document.body.style.overflow = ''; // 恢复滚动
-    }
+    // 点击任意位置关闭
+    const viewer = document.getElementById('imageViewer');
+    viewer.classList.remove('show');
+    document.body.style.overflow = ''; // 恢复滚动
 }
 
 // ESC 键关闭

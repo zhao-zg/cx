@@ -390,21 +390,6 @@
                     }
                 }
                 
-                if (!installed && window.Capacitor.Plugins.Share) {
-                    try {
-                        if (onProgress) onProgress('打开系统选择器...', 99, 0, blob.size);
-                        await window.Capacitor.Plugins.Share.share({
-                            title: '安装 APK',
-                            text: '请选择"包安装程序"',
-                            url: fileUri,
-                            dialogTitle: '选择安装程序'
-                        });
-                        installed = true;
-                    } catch (e) {
-                        console.error('[APK安装] Share 失败:', e);
-                    }
-                }
-                
                 if (!installed) {
                     alert('无法自动打开安装器\n\n文件已下载到: ' + savedDir + '\n文件: ' + filename + '\n\n请手动到文件管理器安装');
                 }
