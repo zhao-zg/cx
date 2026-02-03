@@ -72,11 +72,8 @@ jobs:
           echo "🔨 生成静态文件..."
           python main.py
           
-          echo "📋 生成版本信息（热更新）..."
+          echo "📋 生成版本信息..."
           python generate_version.py
-          
-          echo "📦 生成热更新包..."
-          python generate_hot_update_package.py
           
           echo "✓ 静态文件生成完成"
           du -sh output/
@@ -88,9 +85,6 @@ jobs:
           else
             echo "⚠️ version.json 未生成"
           fi
-          
-          echo "📦 检查热更新包..."
-          ls -lh output/*.zip || echo "⚠️ 热更新包未生成"
 
       - name: Setup Node.js
         if: steps.check_changes.outputs.has_changes == 'true'
