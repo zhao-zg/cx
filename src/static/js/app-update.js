@@ -261,10 +261,38 @@
                 return;
             }
             
+            // 检查并请求存储权限（Android 10 以下）
+            try {
+                if (window.Capacitor.Plugins.Device) {
+                    var deviceInfo = await window.Capacitor.Plugins.Device.getInfo();
+                    var androidVersion = parseInt(deviceInfo.osVersion);
+                    
+                    // Android 10 以下需要存储权限
+                    if (androidVersion < 10) {
+                        console.log('[APK下载] Android', androidVersion, '需要存储权限');
+                        
+                        // 尝试请求权限（如果有权限插件）
+                        if (window.Capacitor.Plugins.Permissions) {
+                            try {
+                                var result = await window.Capacitor.Plugins.Permissions.query({ name: 'storage' });
+                                if (result.state !== 'granted') {
+                                    console.log('[APK下载] 请求存储权限');
+                                    await window.Capacitor.Plugins.Permissions.request({ name: 'storage' });
+                                }
+                            } catch (e) {
+                                console.warn('[APK下载] 无法请求存储权限:', e);
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('[APK下载] 权限检查失败:', e);
+            }
+            
             var CapacitorHttp = getCapacitorHttp();
             var filename = url.split('/').pop();
-            var filepath = 'downloads/' + filename;
-            var DIRECTORY_CACHE = 'CACHE';
+            var filepath = 'Download/' + filename; // Android Download 目录
+            var DIRECTORY_EXTERNAL = 'EXTERNAL'; // 使用外部存储，更容易被系统识别
             
             try {
                 var blob, sourceName, downloadUrl;
@@ -506,7 +534,7 @@
                 if (onProgress) onProgress('正在保存到本地...', 90, 0, blob.size);
                 
                 // 保存文件
-                var fileUri = await saveToFilesystem(filepath, base64, DIRECTORY_CACHE);
+                var fileUri = await saveToFilesystem(filepath, base64, DIRECTORY_EXTERNAL);
                 console.log('[APK下载] 文件已保存:', fileUri);
                 
                 if (onProgress) onProgress('准备安装...', 95, 0, blob.size);
@@ -539,7 +567,7 @@
                 console.log('[APK安装] 文件名:', filename);
                 console.log('[APK安装] 文件大小:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
                 
-                // 安装 APK - 尝试多种方法
+                // 安装 APK - 使用 Android Intent
                 var installed = false;
                 var installError = null;
                 
@@ -547,7 +575,18 @@
                 if (window.Capacitor.Plugins.FileOpener) {
                     try {
                         console.log('[APK安装] 尝试方法1: FileOpener 插件');
-                        if (onProgress) onProgress('打开安装程序...', 97, 0, blob.size);
+                        if (onProgress) onProgress('打开安装程序...', 98, 0, blob.size);
+                        
+                        // 确保 fileUri 是正确的格式
+                        var openUri = fileUri;
+                        
+                        // 如果是 file:// 格式，需要转换为 content:// 格式（Android 7.0+）
+                        if (fileUri.startsWith('file://')) {
+                            // 使用 FileProvider 转换
+                            var packageName = 'com.tehui.offline'; // 你的应用包名
+                            openUri = 'content://' + packageName + '.fileprovider' + fileUri.replace('file://', '');
+                            console.log('[APK安装] 转换为 content:// URI:', openUri);
+                        }
                         
                         await window.Capacitor.Plugins.FileOpener.open({
                             filePath: fileUri,
@@ -559,24 +598,33 @@
                     } catch (e) {
                         installError = e;
                         console.warn('[APK安装] FileOpener 失败:', e.message);
+                        alert('[调试] FileOpener 失败:\n' + e.message + '\n\nURI: ' + fileUri);
                     }
                 }
                 
-                // 方法2: 使用 Browser 插件
-                if (!installed && window.Capacitor.Plugins.Browser) {
+                // 方法2: 使用自定义 Android Intent（通过 WebView）
+                if (!installed) {
                     try {
-                        console.log('[APK安装] 尝试方法2: Browser 插件');
-                        if (onProgress) onProgress('打开安装程序...', 98, 0, blob.size);
+                        console.log('[APK安装] 尝试方法2: Android Intent');
+                        if (onProgress) onProgress('打开安装程序...', 99, 0, blob.size);
                         
-                        await window.Capacitor.Plugins.Browser.open({ 
-                            url: fileUri,
-                            presentationStyle: 'fullscreen'
-                        });
+                        // 构建 Android Intent URL
+                        // intent://path#Intent;action=android.intent.action.VIEW;type=application/vnd.android.package-archive;end
+                        var intentUrl = 'intent://' + fileUri.replace(/^file:\/\//, '') + '#Intent;';
+                        intentUrl += 'action=android.intent.action.VIEW;';
+                        intentUrl += 'type=application/vnd.android.package-archive;';
+                        intentUrl += 'S.browser_fallback_url=' + encodeURIComponent(fileUri) + ';';
+                        intentUrl += 'end';
+                        
+                        console.log('[APK安装] Intent URL:', intentUrl);
+                        
+                        window.location.href = intentUrl;
                         installed = true;
-                        console.log('[APK安装] Browser 成功');
+                        console.log('[APK安装] Intent 已触发');
                     } catch (e) {
                         installError = e;
-                        console.warn('[APK安装] Browser 失败:', e.message);
+                        console.warn('[APK安装] Intent 失败:', e.message);
+                        alert('[调试] Intent 失败:\n' + e.message);
                     }
                 }
                 
@@ -584,7 +632,6 @@
                 if (!installed && window.Capacitor.Plugins.App) {
                     try {
                         console.log('[APK安装] 尝试方法3: App.openUrl');
-                        if (onProgress) onProgress('打开安装程序...', 99, 0, blob.size);
                         
                         await window.Capacitor.Plugins.App.openUrl({ url: fileUri });
                         installed = true;
@@ -592,19 +639,7 @@
                     } catch (e) {
                         installError = e;
                         console.warn('[APK安装] App.openUrl 失败:', e.message);
-                    }
-                }
-                
-                // 方法4: 使用 WebView 打开（最后的尝试）
-                if (!installed) {
-                    try {
-                        console.log('[APK安装] 尝试方法4: window.open');
-                        window.open(fileUri, '_system');
-                        installed = true;
-                        console.log('[APK安装] window.open 已调用');
-                    } catch (e) {
-                        installError = e;
-                        console.warn('[APK安装] window.open 失败:', e.message);
+                        alert('[调试] App.openUrl 失败:\n' + e.message + '\n\nURI: ' + fileUri);
                     }
                 }
                 
@@ -617,7 +652,7 @@
                     errorMsg += '文件已保存到:\n' + fileUri + '\n\n';
                     errorMsg += '请手动安装:\n';
                     errorMsg += '1. 打开文件管理器\n';
-                    errorMsg += '2. 进入 Downloads 目录\n';
+                    errorMsg += '2. 进入 Downloads 或缓存目录\n';
                     errorMsg += '3. 找到 ' + filename + '\n';
                     errorMsg += '4. 点击安装\n\n';
                     
@@ -625,6 +660,7 @@
                         errorMsg += '错误详情: ' + installError.message;
                     }
                     
+                    alert(errorMsg);
                     throw new Error(errorMsg);
                 }
                 
