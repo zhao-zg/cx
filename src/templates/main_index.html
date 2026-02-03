@@ -1445,20 +1445,23 @@
                 installStatus.textContent = '正在获取最新版本...';
                 installStatus.className = 'cache-status';
                 
-                fetch('https://api.github.com/repos/zhao-zg/cx/releases/latest')
+                // 从 Cloudflare Pages 获取版本信息
+                fetch('https://cx.zhaozg.cloudns.org/version.json?t=' + Date.now(), { cache: 'no-cache' })
                     .then(function(response) {
                         if (!response.ok) throw new Error('无法获取版本信息');
                         return response.json();
                     })
-                    .then(function(release) {
-                        var apk = release.assets.find(function(a) {
-                            return a.name.endsWith('.apk');
-                        });
+                    .then(function(versionInfo) {
+                        var version = versionInfo.apk_version || versionInfo.version;
+                        var apkFile = versionInfo.apk_file || ('TeHui-v' + version + '.apk');
+                        var apkSize = versionInfo.apk_size;
+                        var downloadUrl = 'https://cx.zhaozg.cloudns.org/' + apkFile;
                         
-                        if (apk) {
-                            installStatus.textContent = '正在下载 ' + release.tag_name + ' (' + (apk.size / 1024 / 1024).toFixed(1) + ' MB)...';
+                        if (version && apkFile) {
+                            var sizeText = apkSize ? ' (' + (apkSize / 1024 / 1024).toFixed(1) + ' MB)' : '';
+                            installStatus.textContent = '正在下载 v' + version + sizeText + '...';
                             installStatus.className = 'cache-status success';
-                            window.open(apk.browser_download_url, '_blank');
+                            window.open(downloadUrl, '_blank');
                         } else {
                             installStatus.textContent = '未找到 APK 文件';
                             installStatus.className = 'cache-status error';
