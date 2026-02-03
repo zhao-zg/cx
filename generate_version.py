@@ -48,8 +48,8 @@ def generate_version_file(output_dir='output', app_version=None):
     # 生成版本信息
     version_info = {
         'app_version': app_version,  # APK版本
-        'resource_version': resource_version,  # 资源版本（用于热更新）
-        'version': resource_version,  # 兼容旧版本
+        'version': app_version,  # 主版本号（用于更新检查）
+        'resource_version': resource_version,  # 资源版本（时间戳）
         'apk_url': apk_url,  # APK下载地址
         'timestamp': datetime.now().isoformat(),
         'files': files,
