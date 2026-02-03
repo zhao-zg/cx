@@ -1112,7 +1112,7 @@
         }
     })();
     
-    // 页面记忆功能 - 保存主页访问记录
+    // 页面记忆功能 - 保存主页访问记录（仅在离开时保存，不在加载时保存）
     (function() {
         function saveMainPage() {
             try {
@@ -1125,8 +1125,8 @@
             }
         }
         
-        // 页面加载时保存
-        saveMainPage();
+        // 注意：主页不在加载时保存，避免覆盖其他页面的记录
+        // 只在用户真正停留在主页并离开时才保存
         
         // 页面卸载前保存
         window.addEventListener('beforeunload', saveMainPage);
