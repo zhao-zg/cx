@@ -605,11 +605,12 @@
                 installMsg += '即将尝试打开安装程序...';
                 alert(installMsg);
                 
-                // 安装 APK - 让系统选择程序打开
+                // 安装 APK - 优先使用安装器
                 var installed = false;
                 var installError = null;
+                var attemptedMethods = [];
                 
-                // 方法1: 使用自定义 ApkInstaller 插件（最可靠）
+                // 方法1: 使用自定义 ApkInstaller 插件（直接打开安装器）
                 if (window.Capacitor.Plugins.ApkInstaller) {
                     try {
                         if (onProgress) onProgress('打开安装程序...', 98, 0, blob.size);
@@ -619,52 +620,81 @@
                         });
                         
                         installed = true;
+                        attemptedMethods.push('ApkInstaller: 成功');
                         if (onComplete) onComplete(sourceName);
                     } catch (e) {
                         installError = e;
+                        attemptedMethods.push('ApkInstaller: ' + e.message);
+                        alert('[方法1失败] ApkInstaller 插件\n\n' + e.message);
                         console.error('[APK安装] ApkInstaller 失败:', e);
                     }
+                } else {
+                    attemptedMethods.push('ApkInstaller: 插件不可用');
+                    alert('[方法1跳过] ApkInstaller 插件不可用\n\n这是正常的，当前版本还没有包含此插件\n\n将尝试其他方法...');
                 }
                 
-                // 方法2: 使用 Share API 让系统选择程序
+                // 方法2: 使用 Browser 打开（可能触发安装器）
+                if (!installed && window.Capacitor.Plugins.Browser) {
+                    try {
+                        if (onProgress) onProgress('尝试打开安装器...', 99, 0, blob.size);
+                        
+                        await window.Capacitor.Plugins.Browser.open({ 
+                            url: fileUri,
+                            presentationStyle: 'fullscreen'
+                        });
+                        
+                        installed = true;
+                        attemptedMethods.push('Browser: 成功');
+                        if (onComplete) onComplete(sourceName);
+                    } catch (e) {
+                        installError = e;
+                        attemptedMethods.push('Browser: ' + e.message);
+                        alert('[方法2失败] Browser.open\n\n' + e.message + '\n\n将尝试下一个方法...');
+                        console.error('[APK安装] Browser 失败:', e);
+                    }
+                } else if (!installed) {
+                    attemptedMethods.push('Browser: 插件不可用');
+                    alert('[方法2跳过] Browser 插件不可用\n\n将尝试下一个方法...');
+                }
+                
+                // 方法3: 使用 Share API（备用方案，让用户选择）
                 if (!installed && window.Capacitor.Plugins.Share) {
                     try {
                         if (onProgress) onProgress('打开系统选择器...', 99, 0, blob.size);
                         
+                        alert('[方法3] 使用分享功能\n\n即将弹出选择器\n请选择"包安装程序"或"安装器"');
+                        
                         await window.Capacitor.Plugins.Share.share({
                             title: '安装 APK',
-                            text: '选择安装程序',
+                            text: '请选择"包安装程序"或"安装器"',
                             url: fileUri,
                             dialogTitle: '选择安装程序'
                         });
                         
                         installed = true;
+                        attemptedMethods.push('Share: 成功');
                         if (onComplete) onComplete(sourceName);
                     } catch (e) {
                         installError = e;
+                        attemptedMethods.push('Share: ' + e.message);
+                        alert('[方法3失败] Share API\n\n' + e.message);
                         console.error('[APK安装] Share 失败:', e);
                     }
-                }
-                
-                // 方法3: 使用 Browser 打开
-                if (!installed && window.Capacitor.Plugins.Browser) {
-                    try {
-                        if (onProgress) onProgress('打开系统选择器...', 99, 0, blob.size);
-                        
-                        await window.Capacitor.Plugins.Browser.open({ 
-                            url: fileUri
-                        });
-                        
-                        installed = true;
-                        if (onComplete) onComplete(sourceName);
-                    } catch (e) {
-                        installError = e;
-                        console.error('[APK安装] Browser 失败:', e);
-                    }
+                } else if (!installed) {
+                    attemptedMethods.push('Share: 插件不可用');
+                    alert('[方法3跳过] Share 插件不可用');
                 }
                 
                 if (!installed) {
-                    throw new Error('无法打开 APK 文件\n\n所有方法都失败了\n\n' + (installError ? installError.message : '未知错误'));
+                    var errorMsg = '所有安装方法都失败了\n\n';
+                    errorMsg += '尝试的方法:\n';
+                    errorMsg += attemptedMethods.join('\n') + '\n\n';
+                    errorMsg += '文件已保存到:\n' + savedDir + '\n\n';
+                    errorMsg += '请手动到文件管理器安装:\n';
+                    errorMsg += fileUri;
+                    
+                    alert(errorMsg);
+                    throw new Error(errorMsg);
                 }
                 
                 if (installed) {
