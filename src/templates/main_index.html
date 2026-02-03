@@ -354,6 +354,15 @@
             <div class="cache-status" id="installStatus"></div>
         </div>
         
+        <!-- 检查更新按钮（仅在 APP 内显示） -->
+        <div class="cache-section" id="updateSection" style="display: none;">
+            <button class="cache-btn" id="checkUpdateBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <span class="cache-icon">🔄</span>
+                <span class="cache-text">检查更新</span>
+            </button>
+            <div class="cache-status" id="updateStatus"></div>
+        </div>
+        
         <div class="footer">
             <p>本站内容仅供主恢复圣徒交通使用</p>
             <p style="margin-top: 10px; font-size: 0.9em;">
@@ -510,11 +519,51 @@
         // 如果是安卓设备且在 APP 内（从 APK 打开）
         // 使用多种检测方式：PWA standalone 模式、Capacitor API、或 Capacitor URL scheme
         if (isAndroid && (isInApp || isCapacitor || isCapacitorScheme)) {
+            // 显示检查更新按钮
+            var updateSection = document.getElementById('updateSection');
+            var checkUpdateBtn = document.getElementById('checkUpdateBtn');
+            var updateStatus = document.getElementById('updateStatus');
+            
+            if (updateSection && checkUpdateBtn) {
+                updateSection.style.display = 'block';
+                
+                checkUpdateBtn.addEventListener('click', function() {
+                    checkUpdateBtn.disabled = true;
+                    checkUpdateBtn.querySelector('.cache-text').textContent = '检查中...';
+                    updateStatus.textContent = '';
+                    updateStatus.className = 'cache-status';
+                    
+                    checkUpdateFromCloudflare(function(result) {
+                        checkUpdateBtn.disabled = false;
+                        checkUpdateBtn.querySelector('.cache-text').textContent = '检查更新';
+                        
+                        if (result.error) {
+                            updateStatus.textContent = '❌ ' + result.error;
+                            updateStatus.className = 'cache-status error';
+                        } else if (result.hasUpdate) {
+                            updateStatus.innerHTML = '✅ 发现新版本 v' + result.latestVersion + '<br>当前: v' + result.currentVersion;
+                            updateStatus.className = 'cache-status success';
+                            
+                            // 显示下载按钮
+                            checkUpdateBtn.querySelector('.cache-icon').textContent = '📥';
+                            checkUpdateBtn.querySelector('.cache-text').textContent = '立即更新';
+                            checkUpdateBtn.onclick = function() {
+                                downloadApk(result.downloadUrl);
+                            };
+                        } else {
+                            updateStatus.textContent = '✅ 已是最新版本 v' + result.currentVersion;
+                            updateStatus.className = 'cache-status success';
+                        }
+                    });
+                });
+            }
+            
+            // 隐藏入口：点击 Logo 8 次 + 密码验证（用于 GitHub Release 下载）
             var clickCount = 0;
             var clickTimer = null;
             var logo = document.getElementById('mainLogo');
             
-            console.log('APK 更新检查已启用，点击 Logo 8 次触发');
+            console.log('APK 更新检查已启用，点击 Logo 8 次触发隐藏入口');
             
             if (logo) {
                 logo.addEventListener('click', function() {
@@ -550,7 +599,45 @@
             console.log('APK 更新检查未启用（非安卓 APP 环境）');
         }
         
-        // APK 更新检查对话框
+        // Cloudflare Pages 更新检查配置
+        var CLOUDFLARE_UPDATE_URL = 'https://cx.zhaozg.cloudns.org/version.json';
+        var CLOUDFLARE_APK_BASE = 'https://cx.zhaozg.cloudns.org/';
+        
+        // 从 Cloudflare Pages 检查更新
+        function checkUpdateFromCloudflare(callback) {
+            getCurrentApkVersion().then(function(currentVersion) {
+                console.log('[更新检查] 当前版本:', currentVersion);
+                
+                fetch(CLOUDFLARE_UPDATE_URL + '?t=' + Date.now(), { cache: 'no-cache' })
+                    .then(function(response) {
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        return response.json();
+                    })
+                    .then(function(versionInfo) {
+                        console.log('[更新检查] 远程版本信息:', versionInfo);
+                        
+                        var latestVersion = versionInfo.apk_version || versionInfo.version;
+                        var apkFile = versionInfo.apk_file || ('TeHui-v' + latestVersion + '.apk');
+                        var currentVersionClean = currentVersion.replace('v', '');
+                        var latestVersionClean = latestVersion.replace('v', '');
+                        
+                        var comparison = compareVersion(latestVersionClean, currentVersionClean);
+                        
+                        callback({
+                            hasUpdate: comparison > 0,
+                            currentVersion: currentVersionClean,
+                            latestVersion: latestVersionClean,
+                            downloadUrl: CLOUDFLARE_APK_BASE + apkFile
+                        });
+                    })
+                    .catch(function(error) {
+                        console.error('[更新检查] 失败:', error);
+                        callback({ error: '检查失败: ' + error.message });
+                    });
+            });
+        }
+        
+        // APK 更新检查对话框（GitHub Release 入口）
         function showApkUpdateDialog() {
             console.log('[更新检查] 开始检查 APK 更新');
             

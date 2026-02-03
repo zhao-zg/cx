@@ -683,6 +683,69 @@ jobs:
       with:
         name: android-apk
         path: TeHui-*.apk
+    
+    - name: 准备 Cloudflare Pages 部署
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        APK_NAME="TeHui-v${VERSION}.apk"
+        
+        echo "=== 准备 Cloudflare Pages 部署 ==="
+        
+        # 复制 APK 到 output 目录
+        cp "$APK_NAME" output/
+        echo "✓ APK 已复制到 output 目录"
+        
+        # 更新 version.json 添加 APK 信息
+        python3 << PYTHON_EOF
+        import json
+        import os
+        
+        version_file = 'output/version.json'
+        version = '$VERSION'
+        apk_name = '$APK_NAME'
+        
+        # 读取现有的 version.json
+        if os.path.exists(version_file):
+            with open(version_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        else:
+            data = {}
+        
+        # 添加 APK 信息
+        data['apk_version'] = version
+        data['apk_file'] = apk_name
+        data['apk_size'] = os.path.getsize('output/' + apk_name)
+        
+        # 保存
+        with open(version_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        
+        print(f'✓ version.json 已更新')
+        print(f'  APK 版本: {version}')
+        print(f'  APK 文件: {apk_name}')
+        print(f'  APK 大小: {data["apk_size"]} bytes')
+        PYTHON_EOF
+        
+        # 显示 version.json 内容
+        echo ""
+        echo "=== version.json 内容 ==="
+        cat output/version.json
+        
+        # 显示 output 目录内容
+        echo ""
+        echo "=== output 目录 ==="
+        ls -lh output/*.apk output/version.json
+    
+    - name: 部署到 Cloudflare Pages
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: cloudflare/pages-action@v1
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        projectName: cx
+        directory: output
+        gitHubToken: ${{ secrets.GITHUB_TOKEN }}
         
     - name: 创建 Release
       if: startsWith(github.ref, 'refs/tags/')
