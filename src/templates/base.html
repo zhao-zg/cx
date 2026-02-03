@@ -201,6 +201,29 @@
     <script src="js/highlight.js"></script>
     <script src="js/app-update.js"></script>
     
+    <!-- Android 返回键处理（非主页：返回上一页或返回主页） -->
+    <script>
+    (function() {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+            var App = window.Capacitor.Plugins.App;
+            
+            App.addListener('backButton', function(data) {
+                console.log('[返回键] 按下返回键, canGoBack:', data.canGoBack, 'history.length:', window.history.length);
+                
+                if (data.canGoBack && window.history.length > 1) {
+                    // 有历史记录，返回上一页
+                    window.history.back();
+                } else {
+                    // 没有历史记录，返回主页
+                    window.location.href = '/index.html';
+                }
+            });
+            
+            console.log('[返回键] 内容页返回键监听已启用');
+        }
+    })();
+    </script>
+    
     <!-- 页面记忆功能 -->
     <script>
     (function() {
