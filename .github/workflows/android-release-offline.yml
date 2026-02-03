@@ -409,7 +409,7 @@ jobs:
         
         # 创建 MainActivity.java
         echo "创建 MainActivity.java..."
-        cat > android/app/src/main/java/com/tehui/offline/MainActivity.java << 'EOF'
+        cat > android/app/src/main/java/com/tehui/offline/MainActivity.java << 'MAINACTIVITY_EOF'
 package com.tehui.offline;
 
 import android.os.Bundle;
@@ -424,12 +424,12 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ApkInstallerPlugin.class);
     }
 }
-EOF
+MAINACTIVITY_EOF
         echo "✓ MainActivity.java 已创建"
         
         # 创建 ApkInstallerPlugin.java
         echo "创建 ApkInstallerPlugin.java..."
-        cat > android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java << 'EOF'
+        cat > android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java << 'PLUGIN_EOF'
 package com.tehui.offline;
 
 import android.content.Intent;
@@ -497,7 +497,7 @@ public class ApkInstallerPlugin extends Plugin {
         }
     }
 }
-EOF
+PLUGIN_EOF
         echo "✓ ApkInstallerPlugin.java 已创建"
         
         echo ""
