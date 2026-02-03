@@ -195,59 +195,11 @@
         </div>
     </div>
 
-    <!-- JSZip 库（用于热更新解压） -->
-    <script src="js/vendor/jszip.min.js"></script>
-    
-    <!-- 资源加载器（支持热更新） -->
-    <script src="js/resource-loader.js"></script>
-    
-    <!-- 页面加载器（拦截导航，支持热更新） -->
-    <script src="js/page-loader.js"></script>
-    
-    <!-- 核心脚本 - 在非 Capacitor 环境直接加载，在 Capacitor 环境动态加载支持热更新 -->
-    <script>
-    (function() {
-        // 如果在 Capacitor 环境且资源加载器可用，使用动态加载支持热更新
-        if (window.Capacitor && window.ResourceLoader) {
-            console.log('[资源加载] Capacitor 环境，使用热更新加载');
-            
-            // 等待 DOM 加载完成后再加载脚本
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', loadScripts);
-            } else {
-                loadScripts();
-            }
-            
-            async function loadScripts() {
-                try {
-                    await window.ResourceLoader.loadScript('js/speech.js');
-                    await window.ResourceLoader.loadScript('js/font-control.js');
-                    await window.ResourceLoader.loadScript('js/highlight.js');
-                    await window.ResourceLoader.loadScript('js/app-update.js');
-                    
-                    console.log('[资源加载] 所有脚本加载完成');
-                } catch (e) {
-                    console.error('[资源加载] 脚本加载失败:', e);
-                }
-            }
-        } else {
-            // 非 Capacitor 环境，直接插入 script 标签
-            console.log('[资源加载] 浏览器环境，使用传统加载');
-            
-            var scripts = [
-                'js/speech.js',
-                'js/font-control.js',
-                'js/highlight.js',
-                'js/app-update.js'
-            ];
-            
-            // 直接写入 script 标签，让浏览器按顺序加载
-            scripts.forEach(function(src) {
-                document.write('<script src="' + src + '"><\/script>');
-            });
-        }
-    })();
-    </script>
+    <!-- 核心脚本 -->
+    <script src="js/speech.js"></script>
+    <script src="js/font-control.js"></script>
+    <script src="js/highlight.js"></script>
+    <script src="js/app-update.js"></script>
     
     <!-- 页面记忆功能 -->
     <script>

@@ -365,9 +365,6 @@
     <!-- JSZip 库用于解压更新包 -->
     <script src="vendor/jszip.min.js"></script>
     
-    <!-- 热更新功能模块 -->
-    <script src="js/hot-update.js"></script>
-    
     <!-- APK 更新功能模块 -->
     <script src="js/app-update.js"></script>
     
@@ -387,49 +384,12 @@
         }
     })();
     
-    // 动态加载训练列表（支持热更新）
+    // 动态加载训练列表
     (function() {
         console.log('[训练列表] 开始加载');
         
-        // 尝试从热更新目录加载
-        loadTrainingsFromHotUpdate()
-            .then(function(trainings) {
-                if (trainings) {
-                    console.log('[训练列表] 从热更新加载成功');
-                    renderTrainings(trainings);
-                } else {
-                    // 降级到从 APK 内置加载
-                    return loadTrainingsFromBundle();
-                }
-            })
-            .catch(function(error) {
-                console.error('[训练列表] 加载失败:', error);
-                // 降级到从 APK 内置加载
-                return loadTrainingsFromBundle();
-            });
-        
-        // 从热更新目录加载
-        function loadTrainingsFromHotUpdate() {
-            if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Filesystem) {
-                return Promise.resolve(null);
-            }
-            
-            var Filesystem = window.Capacitor.Plugins.Filesystem;
-            var DIRECTORY_DATA = 'DATA';
-            
-            return Filesystem.readFile({
-                path: 'hot-update/trainings.json',
-                directory: DIRECTORY_DATA,
-                encoding: 'utf8'
-            }).then(function(result) {
-                var data = JSON.parse(result.data);
-                console.log('[训练列表] 热更新版本:', data.version);
-                return data;
-            }).catch(function(error) {
-                console.log('[训练列表] 热更新目录不存在或读取失败');
-                return null;
-            });
-        }
+        // 从 APK 内置加载
+        loadTrainingsFromBundle();
         
         // 从 APK 内置加载
         function loadTrainingsFromBundle() {
@@ -523,14 +483,6 @@
         }
     })();
     
-    // 初始化热更新模块
-    (function() {
-        var REMOTE_URLS = {{ remote_urls|tojson }};
-        if (window.HotUpdate) {
-            window.HotUpdate.init(REMOTE_URLS);
-        }
-    })();
-    
     // APK 检测和更新功能
     (function() {
         var isAndroid = /Android/i.test(navigator.userAgent);
@@ -567,7 +519,7 @@
             if (logo) {
                 logo.addEventListener('click', function() {
                     clickCount++;
-                    console.log('Logo 点击:', clickCount, '/5');
+                    console.log('Logo 点击:', clickCount, '/8');
                     
                     if (clickTimer) clearTimeout(clickTimer);
                     clickTimer = setTimeout(function() {
@@ -575,14 +527,20 @@
                         clickCount = 0;
                     }, 5000);
                     
-                    // 点击 8 次触发更新检查（同时检查资源和 APK）
+                    // 点击 8 次触发密码验证
                     if (clickCount >= 8) {
                         clickCount = 0;
                         if (clickTimer) clearTimeout(clickTimer);
-                        console.log('=== 触发更新检查 ===');
+                        console.log('=== 触发密码验证 ===');
                         
-                        // 显示统一的更新检查对话框
-                        showUnifiedUpdateDialog();
+                        // 弹出密码输入框
+                        var password = prompt('请输入管理密码：');
+                        if (password === '1189') {
+                            console.log('密码正确，显示更新检查');
+                            showApkUpdateDialog();
+                        } else if (password !== null) {
+                            alert('密码错误');
+                        }
                     }
                 });
             } else {
@@ -592,21 +550,14 @@
             console.log('APK 更新检查未启用（非安卓 APP 环境）');
         }
         
-        // 统一的更新检查对话框
-        function showUnifiedUpdateDialog() {
-            console.log('[更新检查] 开始统一更新检查');
+        // APK 更新检查对话框
+        function showApkUpdateDialog() {
+            console.log('[更新检查] 开始检查 APK 更新');
             
             // 创建对话框
-            var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="unifiedUpdateDialog">';
+            var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="apkUpdateCheckDialog">';
             html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto;">';
             html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px; text-align: center;">🔄 检查更新</h3>';
-            
-            // 资源版本检查区域
-            html += '<div style="margin-bottom: 20px; padding: 15px; background: #f8f9ff; border-radius: 8px; border: 1px solid #e0e4ff;">';
-            html += '<h4 style="color: #667eea; margin-bottom: 10px; font-size: 16px;">📦 资源包</h4>';
-            html += '<div id="resourceCheckStatus" style="color: #666; font-size: 14px;">正在检查...</div>';
-            html += '<button id="resourceUpdateBtn" style="display: none; width: 100%; padding: 10px; margin-top: 10px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">立即更新资源</button>';
-            html += '</div>';
             
             // APK 版本检查区域
             html += '<div style="margin-bottom: 20px; padding: 15px; background: #f8f9ff; border-radius: 8px; border: 1px solid #e0e4ff;">';
@@ -615,65 +566,13 @@
             html += '<button id="apkUpdateBtn" style="display: none; width: 100%; padding: 10px; margin-top: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">立即更新应用</button>';
             html += '</div>';
             
-            html += '<button style="width: 100%; padding: 12px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="document.getElementById(\'unifiedUpdateDialog\').remove();">关闭</button>';
+            html += '<button style="width: 100%; padding: 12px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="document.getElementById(\'apkUpdateCheckDialog\').remove();">关闭</button>';
             html += '</div></div>';
             
             document.body.insertAdjacentHTML('beforeend', html);
             
-            // 检查资源更新
-            checkResourceUpdate();
-            
             // 检查 APK 更新
             checkApkUpdateStatus();
-        }
-        
-        // 检查资源更新
-        function checkResourceUpdate() {
-            var statusEl = document.getElementById('resourceCheckStatus');
-            var btnEl = document.getElementById('resourceUpdateBtn');
-            
-            if (!window.HotUpdate) {
-                statusEl.innerHTML = '❌ 热更新功能不可用';
-                return;
-            }
-            
-            var currentVersion = window.HotUpdate.getCurrentVersion ? window.HotUpdate.getCurrentVersion() : 'unknown';
-            statusEl.innerHTML = '当前版本: ' + currentVersion + '<br>正在检查远程版本...';
-            
-            // 获取远程版本信息
-            var remoteUrls = window.HotUpdate.config ? window.HotUpdate.config.remoteUrls : [];
-            if (!remoteUrls || remoteUrls.length === 0) {
-                statusEl.innerHTML = '❌ 未配置远程服务器';
-                return;
-            }
-            
-            var url = remoteUrls[0] + 'version.json?t=' + Date.now();
-            fetch(url, { cache: 'no-cache' })
-                .then(function(response) {
-                    if (!response.ok) throw new Error('HTTP ' + response.status);
-                    return response.json();
-                })
-                .then(function(versionInfo) {
-                    var remoteVersion = versionInfo.resource_version;
-                    var comparison = window.HotUpdate.compareResourceVersion ? 
-                        window.HotUpdate.compareResourceVersion(remoteVersion, currentVersion) : null;
-                    
-                    if (comparison > 0) {
-                        statusEl.innerHTML = '✅ 发现新版本<br>当前: ' + currentVersion + '<br>最新: ' + remoteVersion;
-                        btnEl.style.display = 'block';
-                        btnEl.onclick = function() {
-                            document.getElementById('unifiedUpdateDialog').remove();
-                            window.HotUpdate.checkForUpdate(true);
-                        };
-                    } else if (comparison === 0) {
-                        statusEl.innerHTML = '✅ 已是最新版本<br>版本: ' + currentVersion;
-                    } else {
-                        statusEl.innerHTML = '当前: ' + currentVersion + '<br>远程: ' + remoteVersion;
-                    }
-                })
-                .catch(function(error) {
-                    statusEl.innerHTML = '❌ 检查失败: ' + error.message;
-                });
         }
         
         // 检查 APK 更新状态
@@ -1622,7 +1521,7 @@
             
             var cleanupSteps = [];
             
-            // 1. 清理 localStorage（页面记忆、字体设置、语速设置、热更新等）
+            // 1. 清理 localStorage（页面记忆、字体设置、语速设置等）
             cleanupSteps.push(new Promise(function(resolve) {
                 try {
                     var keysToRemove = [];
@@ -1634,10 +1533,6 @@
                         }
                         // 清理字体和语速设置
                         if (key === 'fontSize' || key === 'speechRate') {
-                            keysToRemove.push(key);
-                        }
-                        // 清理热更新相关
-                        if (key === 'resource_version' || key === 'pending_hot_update') {
                             keysToRemove.push(key);
                         }
                     }
@@ -1665,41 +1560,7 @@
                 }
             }));
             
-            // 3. 清理资源加载器缓存
-            cleanupSteps.push(new Promise(function(resolve) {
-                try {
-                    if (window.ResourceLoader && window.ResourceLoader.clearCache) {
-                        window.ResourceLoader.clearCache();
-                        console.log('[清理] 资源加载器缓存已清理');
-                    }
-                    resolve();
-                } catch (e) {
-                    console.error('[清理] 清理资源加载器缓存失败:', e);
-                    resolve();
-                }
-            }));
-            
-            // 4. 清理 Capacitor 热更新目录
-            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem) {
-                cleanupSteps.push(new Promise(function(resolve) {
-                    var Filesystem = window.Capacitor.Plugins.Filesystem;
-                    var DIRECTORY_DATA = 'DATA';
-                    
-                    Filesystem.rmdir({
-                        path: 'hot-update',
-                        directory: DIRECTORY_DATA,
-                        recursive: true
-                    }).then(function() {
-                        console.log('[清理] Capacitor 热更新目录已删除');
-                        resolve();
-                    }).catch(function(e) {
-                        console.log('[清理] 热更新目录不存在或删除失败:', e.message);
-                        resolve(); // 继续执行
-                    });
-                }));
-            }
-            
-            // 5. 注销所有 Service Worker
+            // 3. 注销所有 Service Worker
             if ('serviceWorker' in navigator) {
                 cleanupSteps.push(
                     navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -1716,7 +1577,7 @@
                 );
             }
             
-            // 6. 清理所有 Cache Storage
+            // 4. 清理所有 Cache Storage
             if ('caches' in window) {
                 cleanupSteps.push(
                     caches.keys().then(function(keys) {
@@ -1733,7 +1594,7 @@
                 );
             }
             
-            // 7. 清理 IndexedDB
+            // 5. 清理 IndexedDB
             if ('indexedDB' in window) {
                 cleanupSteps.push(new Promise(function(resolve) {
                     try {
