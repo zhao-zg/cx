@@ -309,71 +309,32 @@ jobs:
         
         # 验证图标已复制
     
-    - name: 配置 AndroidManifest.xml 使用自定义 MainActivity（sync 后）
+    - name: 配置自定义插件和 AndroidManifest（sync 后）
       run: |
-        echo "=== 配置 AndroidManifest.xml 使用自定义 MainActivity ==="
-        echo "注意：cap sync 会重新生成 AndroidManifest.xml，需要修改它使用我们的自定义 MainActivity"
+        echo "=== 配置自定义插件和 AndroidManifest ==="
         
-        # 重要：cap sync 会生成默认的 MainActivity，需要删除并替换为我们的自定义版本
-        echo ""
-        echo "=== 检查 Capacitor 生成的 MainActivity ==="
+        # 删除 Capacitor 生成的默认 MainActivity
+        rm -f android/app/src/main/java/com/tehui/offline/MainActivity.java
         
-        # 显示 cap sync 后的 java 目录结构
-        echo "Java 目录结构:"
-        find android/app/src/main/java -name "*.java" -type f
-        
-        # 删除 Capacitor 生成的默认 MainActivity（如果存在）
-        if [ -f "android/app/src/main/java/com/tehui/offline/MainActivity.java" ]; then
-          echo ""
-          echo "发现 Capacitor 生成的 MainActivity.java，内容如下:"
-          cat android/app/src/main/java/com/tehui/offline/MainActivity.java
-          echo ""
-          echo "删除 Capacitor 生成的 MainActivity.java..."
-          rm -f android/app/src/main/java/com/tehui/offline/MainActivity.java
-        fi
-        
-        # 从 Git 恢复我们的自定义插件文件
-        echo ""
-        echo "=== 恢复自定义插件文件 ==="
+        # 从 Git 恢复自定义插件文件
         mkdir -p android/app/src/main/java/com/tehui/offline
         git checkout HEAD -- android/app/src/main/java/com/tehui/offline/MainActivity.java
         git checkout HEAD -- android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
         
-        # 验证插件文件存在并显示内容
-        echo ""
-        echo "=== 验证自定义插件文件 ==="
-        if [ -f "android/app/src/main/java/com/tehui/offline/MainActivity.java" ]; then
-          echo "✓ MainActivity.java 已恢复，内容如下:"
-          cat android/app/src/main/java/com/tehui/offline/MainActivity.java
-        else
+        # 验证插件文件
+        if [ ! -f "android/app/src/main/java/com/tehui/offline/MainActivity.java" ]; then
           echo "✗ MainActivity.java 恢复失败"
           exit 1
         fi
-        
-        echo ""
-        if [ -f "android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java" ]; then
-          echo "✓ ApkInstallerPlugin.java 已恢复，内容如下:"
-          cat android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
-        else
+        if [ ! -f "android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java" ]; then
           echo "✗ ApkInstallerPlugin.java 恢复失败"
           exit 1
         fi
-        
-        # 再次显示 java 目录结构，确认文件存在
-        echo ""
-        echo "=== 最终 Java 目录结构 ==="
-        find android/app/src/main/java -name "*.java" -type f
+        echo "✓ 自定义插件文件已恢复"
         
         manifest_file="android/app/src/main/AndroidManifest.xml"
         
-        # 显示修改前的内容
-        echo ""
-        echo "=== 修改前的 AndroidManifest.xml ==="
-        cat "$manifest_file"
-        echo "=== 结束 ==="
-        echo ""
-        
-        # 使用 Python 脚本进行可靠的 XML 修改
+        # 使用 Python 脚本修改 AndroidManifest.xml
         cat > modify_manifest.py << 'PYTHON_EOF'
         import re
         
@@ -381,12 +342,6 @@ jobs:
         
         with open(manifest_file, 'r') as f:
             content = f.read()
-        
-        print('原始内容中的 MainActivity 引用:')
-        for line in content.split('\n'):
-            if 'MainActivity' in line:
-                print(f'  {line.strip()}')
-        print('')
         
         # 查找并替换 MainActivity 引用
         patterns = [
@@ -399,41 +354,29 @@ jobs:
         for pattern, replacement in patterns:
             matches = re.findall(pattern, content)
             if matches:
-                print(f'✓ 找到匹配: {pattern}')
-                print(f'  匹配项: {matches}')
                 content = re.sub(pattern, replacement, content)
                 modified = True
         
         if not modified:
-            print('⚠️ 警告：未找到标准 MainActivity 模式，尝试强制替换...')
             activity_match = re.search(r'<activity([^>]*)>', content)
             if activity_match:
                 activity_tag = activity_match.group(0)
-                print(f'找到 activity 标签: {activity_tag}')
                 if 'android:name=' in activity_tag:
                     new_tag = re.sub(r'android:name="[^"]*"', 'android:name="com.tehui.offline.MainActivity"', activity_tag)
                     content = content.replace(activity_tag, new_tag)
-                    print(f'✓ 替换为: {new_tag}')
                     modified = True
                 else:
                     new_tag = activity_tag.replace('<activity', '<activity android:name="com.tehui.offline.MainActivity"')
                     content = content.replace(activity_tag, new_tag)
-                    print(f'✓ 添加 android:name: {new_tag}')
                     modified = True
         
         with open(manifest_file, 'w') as f:
             f.write(content)
         
-        print('')
-        print('修改后的 MainActivity 引用:')
-        for line in content.split('\n'):
-            if 'MainActivity' in line:
-                print(f'  {line.strip()}')
-        
         if modified:
-            print('\n✓✓✓ AndroidManifest.xml 已成功修改')
+            print('✓ AndroidManifest.xml 已修改')
         else:
-            print('\n✗✗✗ 错误：无法修改 AndroidManifest.xml')
+            print('✗ 无法修改 AndroidManifest.xml')
             exit(1)
         PYTHON_EOF
         
@@ -441,16 +384,11 @@ jobs:
         
         # 验证是否成功
         if grep -q "com.tehui.offline.MainActivity" "$manifest_file"; then
-          echo ""
-          echo "✓✓✓ 验证成功：AndroidManifest.xml 包含自定义 MainActivity"
+          echo "✓ AndroidManifest.xml 配置完成"
         else
-          echo ""
-          echo "✗✗✗ 验证失败"
+          echo "✗ 验证失败"
           exit 1
         fi
-        
-        echo ""
-        echo "✓ AndroidManifest.xml 配置完成"
 
 
     - name: 配置网络安全策略
@@ -637,17 +575,6 @@ jobs:
         echo "=== 构建 APK ==="
         cd android
         
-        # 在构建前，再次验证自定义插件文件存在
-        echo "=== 构建前验证插件文件 ==="
-        ls -la app/src/main/java/com/tehui/offline/
-        echo ""
-        echo "MainActivity.java 内容:"
-        cat app/src/main/java/com/tehui/offline/MainActivity.java
-        echo ""
-        echo "ApkInstallerPlugin.java 前20行:"
-        head -20 app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
-        echo ""
-        
         mkdir -p ~/.gradle
         cat > ~/.gradle/gradle.properties << 'EOF'
         org.gradle.daemon=false
@@ -657,17 +584,8 @@ jobs:
         systemProp.http.socketTimeout=60000
         EOF
         
-        # 清理并构建
-        echo "=== 开始 Gradle 构建 ==="
         if ./gradlew clean assembleRelease --stacktrace --no-daemon; then
           echo "✓ APK 构建成功"
-          
-          # 验证编译后的类文件
-          echo ""
-          echo "=== 验证编译后的类文件 ==="
-          find . -name "ApkInstallerPlugin*.class" -type f 2>/dev/null || echo "未找到 ApkInstallerPlugin.class"
-          find . -name "MainActivity*.class" -type f 2>/dev/null || echo "未找到 MainActivity.class"
-          
           cd ..
         else
           echo "✗ APK 构建失败"

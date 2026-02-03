@@ -248,48 +248,15 @@
          * 下载 APK（优化版：快速测速 + 实时进度 + 正确安装）
          */
         downloadApk: async function(url, onProgress, onComplete, onError) {
-            alert('[调试] 开始下载 APK');
-            
             if (!window.Capacitor || !window.Capacitor.Plugins) {
-                alert('[错误] 非 Capacitor 环境');
                 if (onError) onError(new Error('非 Capacitor 环境'));
                 return;
             }
             
             var Filesystem = window.Capacitor.Plugins.Filesystem;
             if (!Filesystem) {
-                alert('[错误] Filesystem 插件未加载');
                 if (onError) onError(new Error('Filesystem 插件未加载'));
                 return;
-            }
-            
-            // 先请求存储权限
-            try {
-                alert('[调试] 开始检查存储权限');
-                
-                // 尝试使用 Capacitor 5+ 的权限 API
-                if (window.Capacitor.Plugins.Permissions) {
-                    try {
-                        var permResult = await window.Capacitor.Plugins.Permissions.query({ name: 'storage' });
-                        alert('[调试] 权限状态: ' + permResult.state);
-                        
-                        if (permResult.state !== 'granted') {
-                            alert('需要存储权限才能下载 APK\n\n请在下一步允许存储权限');
-                            var requestResult = await window.Capacitor.Plugins.Permissions.request({ name: 'storage' });
-                            alert('[调试] 权限请求结果: ' + requestResult.state);
-                            
-                            if (requestResult.state !== 'granted') {
-                                throw new Error('用户拒绝了存储权限');
-                            }
-                        }
-                    } catch (e) {
-                        alert('[警告] 权限 API 调用失败:\n' + e.message);
-                    }
-                } else {
-                    alert('[提示] 没有权限 API，跳过权限检查');
-                }
-            } catch (e) {
-                alert('[警告] 权限检查失败:\n' + e.message);
             }
             
             var CapacitorHttp = getCapacitorHttp();
@@ -303,8 +270,6 @@
             ];
             
             var savedLocation = null;
-            
-            alert('[调试] 准备下载，文件名: ' + filename);
             
             try {
                 var blob, sourceName, downloadUrl;
@@ -549,20 +514,17 @@
                 var fileUri = null;
                 var savedDir = null;
                 
-                alert('[调试] 开始尝试保存文件');
-                
                 for (var i = 0; i < saveAttempts.length; i++) {
                     try {
-                        alert('[调试] 尝试保存到: ' + saveAttempts[i].name + '\n目录: ' + saveAttempts[i].dir + '\n路径: ' + saveAttempts[i].path);
                         fileUri = await saveToFilesystem(saveAttempts[i].path, base64, saveAttempts[i].dir);
                         savedDir = saveAttempts[i].name;
-                        alert('[成功] 文件已保存！\n\n位置: ' + saveAttempts[i].name + '\n路径: ' + fileUri);
+                        console.log('[APK下载] 文件已保存到:', savedDir, fileUri);
                         break;
                     } catch (e) {
-                        alert('[失败] 保存到 ' + saveAttempts[i].name + ' 失败\n\n错误: ' + e.message);
+                        console.warn('[APK下载] 保存到', saveAttempts[i].name, '失败:', e.message);
                         if (i === saveAttempts.length - 1) {
                             // 所有位置都失败
-                            throw new Error('无法保存文件到任何位置\n\n最后错误: ' + e.message);
+                            throw new Error('无法保存文件到任何位置: ' + e.message);
                         }
                     }
                 }
@@ -596,63 +558,32 @@
                 
                 if (onProgress) onProgress('准备打开安装程序...', 97, 0, blob.size);
                 
-                // 提示用户即将打开安装程序
-                var installMsg = '[准备安装]\n\n';
-                installMsg += '文件: ' + filename + '\n';
-                installMsg += '位置: ' + savedDir + '\n';
-                installMsg += '大小: ' + (blob.size / 1024 / 1024).toFixed(2) + ' MB\n';
-                installMsg += '路径: ' + fileUri + '\n\n';
-                installMsg += '即将尝试打开安装程序...';
-                alert(installMsg);
-                
                 // 安装 APK - 使用有效的方法
                 var installed = false;
                 var installError = null;
                 var attemptedMethods = [];
                 
-                // 调试：检查所有可用的 Capacitor 插件
-                var availablePlugins = Object.keys(window.Capacitor.Plugins || {});
-                alert('[调试] 可用的 Capacitor 插件:\n' + availablePlugins.join('\n'));
-                
                 // 方法1: 使用自定义 ApkInstaller 插件（直接打开系统安装器）
-                var ApkInstaller = null;
-                
-                // 尝试多种方式获取插件
-                if (window.Capacitor.Plugins && window.Capacitor.Plugins.ApkInstaller) {
-                    ApkInstaller = window.Capacitor.Plugins.ApkInstaller;
-                    alert('[调试] 通过 Capacitor.Plugins.ApkInstaller 找到插件');
-                } else if (window.Capacitor.registerPlugin) {
-                    // Capacitor 3+ 方式：动态注册插件
-                    try {
-                        ApkInstaller = window.Capacitor.registerPlugin('ApkInstaller');
-                        alert('[调试] 通过 registerPlugin 注册插件');
-                    } catch (e) {
-                        alert('[调试] registerPlugin 失败: ' + e.message);
-                    }
-                }
+                var ApkInstaller = window.Capacitor.Plugins && window.Capacitor.Plugins.ApkInstaller;
                 
                 if (ApkInstaller) {
                     try {
                         if (onProgress) onProgress('打开安装程序...', 98, 0, blob.size);
                         
-                        alert('[调试] 调用 ApkInstaller.install，路径: ' + fileUri);
                         var result = await ApkInstaller.install({
                             filePath: fileUri
                         });
                         
                         installed = true;
                         attemptedMethods.push('ApkInstaller: 成功');
-                        alert('[成功] ApkInstaller 安装成功！');
                         if (onComplete) onComplete(sourceName);
                     } catch (e) {
                         installError = e;
                         attemptedMethods.push('ApkInstaller: ' + e.message);
-                        alert('[失败] ApkInstaller 错误: ' + e.message);
                         console.error('[APK安装] ApkInstaller 失败:', e);
                     }
                 } else {
-                    attemptedMethods.push('ApkInstaller: 插件不可用（需要重新构建 APK）');
-                    alert('[调试] ApkInstaller 插件不可用\n\n可用插件: ' + availablePlugins.join(', '));
+                    attemptedMethods.push('ApkInstaller: 插件不可用');
                 }
                 
                 // 方法2: 使用 Share API（让用户选择系统安装器）
@@ -680,44 +611,21 @@
                 }
                 
                 if (!installed) {
-                    var errorMsg = '❌ 无法自动打开安装器\n\n';
-                    errorMsg += '尝试的方法:\n';
-                    errorMsg += attemptedMethods.join('\n') + '\n\n';
-                    errorMsg += '✅ 文件已下载成功\n';
-                    errorMsg += '📁 位置: ' + savedDir + '\n';
-                    errorMsg += '📄 文件: ' + filename + '\n\n';
-                    errorMsg += '📱 手动安装:\n';
+                    var errorMsg = '无法自动打开安装器\n\n';
+                    errorMsg += '文件已下载成功！\n';
+                    errorMsg += '位置: ' + savedDir + '\n';
+                    errorMsg += '文件: ' + filename + '\n\n';
+                    errorMsg += '请手动安装:\n';
                     errorMsg += '1. 打开"文件管理器"\n';
                     errorMsg += '2. 找到 Download 文件夹\n';
-                    errorMsg += '3. 点击 ' + filename + '\n';
-                    errorMsg += '4. 系统会打开安装器\n\n';
-                    errorMsg += '💡 完整路径:\n' + fileUri;
+                    errorMsg += '3. 点击 ' + filename;
                     
                     alert(errorMsg);
-                    throw new Error(errorMsg);
+                    // 不抛出错误，因为文件已下载成功
                 }
                 
-                if (installed) {
-                    if (onProgress) onProgress('安装程序已打开！', 100, 0, blob.size);
-                    if (onComplete) onComplete(sourceName);
-                } else {
-                    // 所有方法都失败，提供手动安装指引
-                    var errorMsg = '无法自动打开安装程序\n\n';
-                    errorMsg += '文件已保存到: ' + savedDir + '\n';
-                    errorMsg += '路径: ' + fileUri + '\n';
-                    errorMsg += '文件名: ' + filename + '\n\n';
-                    errorMsg += '请手动安装:\n';
-                    errorMsg += '1. 打开文件管理器\n';
-                    errorMsg += '2. 找到上述位置的文件\n';
-                    errorMsg += '3. 点击文件进行安装\n\n';
-                    
-                    if (installError) {
-                        errorMsg += '错误详情: ' + installError.message;
-                    }
-                    
-                    alert(errorMsg);
-                    throw new Error(errorMsg);
-                }
+                if (onProgress) onProgress('完成', 100, 0, blob.size);
+                if (onComplete) onComplete(sourceName);
                 
             } catch (error) {
                 console.error('[APK下载] 失败:', error);
