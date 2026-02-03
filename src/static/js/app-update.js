@@ -576,9 +576,7 @@
                         
                         installed = true;
                         attemptedMethods.push('ApkInstaller: 成功');
-                        if (onComplete) onComplete(sourceName);
                     } catch (e) {
-                        installError = e;
                         attemptedMethods.push('ApkInstaller: ' + e.message);
                         console.error('[APK安装] ApkInstaller 失败:', e);
                     }
@@ -600,9 +598,7 @@
                         
                         installed = true;
                         attemptedMethods.push('Share: 成功（用户选择）');
-                        if (onComplete) onComplete(sourceName);
                     } catch (e) {
-                        installError = e;
                         attemptedMethods.push('Share: ' + e.message);
                         console.error('[APK安装] Share 失败:', e);
                     }
@@ -625,6 +621,8 @@
                 }
                 
                 if (onProgress) onProgress('完成', 100, 0, blob.size);
+                
+                // 只在最后调用一次 onComplete
                 if (onComplete) onComplete(sourceName);
                 
             } catch (error) {

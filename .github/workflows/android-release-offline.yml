@@ -693,9 +693,28 @@ jobs:
         
         echo "=== 准备 Cloudflare Pages 部署 ==="
         
+        # 检查 APK 文件是否存在
+        if [ ! -f "$APK_NAME" ]; then
+          echo "✗ 错误: APK 文件不存在: $APK_NAME"
+          ls -la *.apk || echo "没有找到任何 APK 文件"
+          exit 1
+        fi
+        
+        echo "APK 文件信息:"
+        ls -lh "$APK_NAME"
+        
         # 复制 APK 到 output 目录
         cp "$APK_NAME" output/
         echo "✓ APK 已复制到 output 目录"
+        
+        # 验证复制成功
+        if [ ! -f "output/$APK_NAME" ]; then
+          echo "✗ 错误: APK 复制失败"
+          exit 1
+        fi
+        
+        echo "output 目录中的 APK:"
+        ls -lh "output/$APK_NAME"
         
         # 更新 version.json 添加 APK 信息
         python3 << PYTHON_EOF
@@ -747,6 +766,43 @@ jobs:
         projectName: cx
         directory: output
         gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: 验证 Cloudflare 部署
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        APK_NAME="TeHui-v${VERSION}.apk"
+        
+        echo "=== 验证 Cloudflare 部署 ==="
+        echo "等待 30 秒让 Cloudflare 完成部署..."
+        sleep 30
+        
+        # 检查 version.json 是否可访问
+        echo "检查 version.json..."
+        curl -s "https://cx.zhaozg.cloudns.org/version.json" | head -20
+        
+        # 检查 APK 文件大小（使用 HEAD 请求）
+        echo ""
+        echo "检查 APK 文件..."
+        APK_URL="https://cx.zhaozg.cloudns.org/$APK_NAME"
+        echo "URL: $APK_URL"
+        
+        # 获取文件大小
+        REMOTE_SIZE=$(curl -sI "$APK_URL" | grep -i content-length | awk '{print $2}' | tr -d '\r')
+        LOCAL_SIZE=$(stat -c%s "output/$APK_NAME")
+        
+        echo "本地 APK 大小: $LOCAL_SIZE bytes"
+        echo "远程 APK 大小: $REMOTE_SIZE bytes"
+        
+        if [ "$REMOTE_SIZE" != "$LOCAL_SIZE" ]; then
+          echo "⚠️ 警告: 文件大小不匹配！"
+          echo "可能原因："
+          echo "1. Cloudflare Pages 有 25MB 文件大小限制"
+          echo "2. 部署尚未完成"
+          echo "3. CDN 缓存问题"
+        else
+          echo "✓ 文件大小匹配"
+        fi
         
     - name: 创建 Release
       if: startsWith(github.ref, 'refs/tags/')

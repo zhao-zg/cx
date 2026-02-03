@@ -87,6 +87,53 @@ jobs:
             exit 1
           fi
       
+      - name: 保留现有 APK 文件
+        run: |
+          echo "🔍 检查 Cloudflare 上是否有 APK 文件..."
+          
+          # 获取现有的 version.json
+          REMOTE_VERSION=$(curl -sf "https://cx.zhaozg.cloudns.org/version.json" || echo "{}")
+          echo "远程 version.json: $REMOTE_VERSION"
+          
+          # 提取 APK 文件名
+          APK_FILE=$(echo "$REMOTE_VERSION" | jq -r '.apk_file // empty')
+          APK_VERSION=$(echo "$REMOTE_VERSION" | jq -r '.apk_version // empty')
+          APK_SIZE=$(echo "$REMOTE_VERSION" | jq -r '.apk_size // empty')
+          
+          if [ -n "$APK_FILE" ] && [ "$APK_FILE" != "null" ]; then
+            echo "📥 下载现有 APK: $APK_FILE"
+            APK_URL="https://cx.zhaozg.cloudns.org/$APK_FILE"
+            
+            if curl -sf -o "output/$APK_FILE" "$APK_URL"; then
+              DOWNLOADED_SIZE=$(stat -c%s "output/$APK_FILE" 2>/dev/null || echo "0")
+              echo "✓ APK 下载成功: $APK_FILE ($DOWNLOADED_SIZE bytes)"
+              
+              # 更新 version.json 保留 APK 信息
+              if [ -f output/version.json ]; then
+                python3 << PYTHON_EOF
+          import json
+          
+          with open('output/version.json', 'r', encoding='utf-8') as f:
+              data = json.load(f)
+          
+          # 保留 APK 信息
+          data['apk_file'] = '$APK_FILE'
+          data['apk_version'] = '$APK_VERSION'
+          data['apk_size'] = $APK_SIZE if '$APK_SIZE' and '$APK_SIZE' != 'null' else $DOWNLOADED_SIZE
+          
+          with open('output/version.json', 'w', encoding='utf-8') as f:
+              json.dump(data, f, ensure_ascii=False, indent=2)
+          
+          print('✓ version.json 已更新，保留 APK 信息')
+          PYTHON_EOF
+              fi
+            else
+              echo "⚠️ APK 下载失败，可能文件不存在"
+            fi
+          else
+            echo "ℹ️ 远程没有 APK 文件"
+          fi
+      
       - name: 检查并创建 Cloudflare Pages 项目
         run: |
           echo "🔍 检查项目是否存在..."

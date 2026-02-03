@@ -629,8 +629,8 @@
                         var apkSize = versionInfo.apk_size;
                         var currentVersionClean = currentVersion.replace('v', '');
                         var latestVersionClean = latestVersion.replace('v', '');
-                        var downloadUrl = CLOUDFLARE_APK_BASE + apkFile;
                         
+                        var downloadUrl = CLOUDFLARE_APK_BASE + apkFile;
                         var comparison = compareVersion(latestVersionClean, currentVersionClean);
                         var sizeText = apkSize ? ' (' + (apkSize / 1024 / 1024).toFixed(1) + ' MB)' : '';
                         
@@ -1484,16 +1484,11 @@
                         var apkFile = versionInfo.apk_file || ('TeHui-v' + version + '.apk');
                         var apkSize = versionInfo.apk_size;
                         var downloadUrl = 'https://cx.zhaozg.cloudns.org/' + apkFile;
+                        var sizeText = apkSize ? ' (' + (apkSize / 1024 / 1024).toFixed(1) + ' MB)' : '';
                         
-                        if (version && apkFile) {
-                            var sizeText = apkSize ? ' (' + (apkSize / 1024 / 1024).toFixed(1) + ' MB)' : '';
-                            installStatus.textContent = '正在下载 v' + version + sizeText + '...';
-                            installStatus.className = 'cache-status success';
-                            window.open(downloadUrl, '_blank');
-                        } else {
-                            installStatus.textContent = '未找到 APK 文件';
-                            installStatus.className = 'cache-status error';
-                        }
+                        installStatus.textContent = '正在下载 v' + version + sizeText + '...';
+                        installStatus.className = 'cache-status success';
+                        window.open(downloadUrl, '_blank');
                     })
                     .catch(function(error) {
                         installStatus.textContent = '获取失败: ' + error.message;
