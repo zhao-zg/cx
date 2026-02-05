@@ -391,13 +391,35 @@
                 console.log('无法获取 App 信息:', err);
             });
             
-            // 监听返回键 - 主页直接退出应用
+            // 使用导航栈来追踪历史
+            var navKey = 'cx_nav_stack';
+            var navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
+            var currentPath = window.location.pathname + window.location.search + window.location.hash;
+            
+            // 如果栈顶不是当前页面，压入栈
+            if (navStack.length === 0 || navStack[navStack.length - 1] !== currentPath) {
+                navStack.push(currentPath);
+                sessionStorage.setItem(navKey, JSON.stringify(navStack));
+            }
+            
+            // 监听返回键 - 主页退出应用
             window.Capacitor.Plugins.App.addListener('backButton', function(data) {
-                if (data.canGoBack) {
-                    // 有历史记录，后退
+                // 重新读取栈
+                navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
+                
+                // 弹出当前页面
+                navStack.pop();
+                sessionStorage.setItem(navKey, JSON.stringify(navStack));
+                
+                if (navStack.length > 0) {
+                    // 栈里还有页面，后退
                     window.history.back();
                 } else {
-                    // 主页没有历史记录，退出应用
+                    // 栈空了，主页退出应用
+                    sessionStorage.removeItem(navKey);
+                    // 清除页面记忆，下次重进从主页开始
+                    localStorage.removeItem('cx_last_page');
+                    localStorage.removeItem('cx_last_page_time');
                     window.Capacitor.Plugins.App.exitApp();
                 }
             });

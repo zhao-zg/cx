@@ -172,16 +172,31 @@
 // Android 返回键处理 - 目录页返回主页
 (function() {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-        var initialHistoryLength = window.history.length;
-        var backPressCount = 0;
+        // 使用导航栈来追踪历史
+        var navKey = 'cx_nav_stack';
+        var navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
+        var currentPath = window.location.pathname + window.location.search + window.location.hash;
+        
+        // 如果栈顶不是当前页面，压入栈
+        if (navStack.length === 0 || navStack[navStack.length - 1] !== currentPath) {
+            navStack.push(currentPath);
+            sessionStorage.setItem(navKey, JSON.stringify(navStack));
+        }
         
         window.Capacitor.Plugins.App.addListener('backButton', function(data) {
-            backPressCount++;
+            // 重新读取栈
+            navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
             
-            if (backPressCount < initialHistoryLength && data.canGoBack) {
+            // 弹出当前页面
+            navStack.pop();
+            sessionStorage.setItem(navKey, JSON.stringify(navStack));
+            
+            if (navStack.length > 0) {
+                // 栈里还有页面，后退
                 window.history.back();
             } else {
-                // 没有历史记录了，跳转到主页
+                // 栈空了，跳转到主页
+                sessionStorage.removeItem(navKey);
                 window.location.href = '../index.html';
             }
         });
