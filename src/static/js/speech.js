@@ -329,7 +329,19 @@
 
       // 标记正在跳转，防止 cancel 触发的 onerror 重置状态
       isSeekingInternal = true;
-      safeCancel();
+      
+      // 先停止当前播放
+      if (useCapacitorTTS) {
+        try {
+          var TextToSpeech = window.Capacitor.Plugins.TextToSpeech;
+          TextToSpeech.stop();
+        } catch (e) {}
+      } else {
+        try {
+          window.speechSynthesis.cancel();
+        } catch (e) {}
+      }
+      isPlayingChunks = false;
       stopProgressUpdate();
 
       // 立即更新进度条显示
@@ -416,70 +428,76 @@
           isPlayingChunks = true;
           
           // 设置时间状态
-          isSeekingInternal = false;
           elapsedOffset = targetSeconds;
           startTime = Date.now();
           pauseStartedAt = 0;
           isPaused = false;
           
-          // 开始播放第一段
-          playNextChunk();
+          // 延迟一点再播放，确保 cancel 完成
+          setTimeout(function() {
+            isSeekingInternal = false;
+            // 开始播放第一段
+            playNextChunk();
+          }, 50);
           
         } else {
           // 短文本直接播放
-          utterance = new SpeechSynthesisUtterance(segmentText);
-          utterance.lang = lang;
-          utterance.rate = rate;
+          // 延迟一点再播放，确保 cancel 完成
+          setTimeout(function() {
+            utterance = new SpeechSynthesisUtterance(segmentText);
+            utterance.lang = lang;
+            utterance.rate = rate;
 
-          utterance.onstart = function () {
-            isSeekingInternal = false;
-            // 在 onstart 中设置时间状态
-            elapsedOffset = targetSeconds;
-            startTime = Date.now();
-            pauseStartedAt = 0;
-            isPaused = false;
-            
-            updateButtonState(true);
-            startProgressUpdate();
-          };
+            utterance.onstart = function () {
+              isSeekingInternal = false;
+              // 在 onstart 中设置时间状态
+              elapsedOffset = targetSeconds;
+              startTime = Date.now();
+              pauseStartedAt = 0;
+              isPaused = false;
+              
+              updateButtonState(true);
+              startProgressUpdate();
+            };
 
-          utterance.onend = function () {
-            isSeekingInternal = false;
-            resetState(false);
-          };
+            utterance.onend = function () {
+              isSeekingInternal = false;
+              resetState(false);
+            };
 
-          utterance.onerror = function (event) {
-            var err = event && event.error;
-            if (err === 'interrupted' || err === 'cancelled') {
-              // 如果是跳转导致的 cancel，不重置状态
-              if (isSeekingInternal) {
+            utterance.onerror = function (event) {
+              var err = event && event.error;
+              if (err === 'interrupted' || err === 'cancelled') {
+                // 如果是跳转导致的 cancel，不重置状态
+                if (isSeekingInternal) {
+                  return;
+                }
+                resetState(true);
                 return;
               }
-              resetState(true);
-              return;
-            }
-            isSeekingInternal = false;
-            
-            // 提供更友好的错误提示
-            var errorMsg = '错误';
-            if (err === 'network') {
-              errorMsg = '需要网络';
-            } else if (err === 'synthesis-unavailable') {
-              errorMsg = '语音不可用';
-            } else if (err === 'synthesis-failed') {
-              errorMsg = '播放失败';
-            }
-            
-            resetState(false);
-            speechTime.textContent = errorMsg;
-            speechTime.style.color = '#e53e3e';
-            setTimeout(function() {
-              speechTime.textContent = '00:00 / 00:00';
-              speechTime.style.color = '';
-            }, 3000);
-          };
+              isSeekingInternal = false;
+              
+              // 提供更友好的错误提示
+              var errorMsg = '错误';
+              if (err === 'network') {
+                errorMsg = '需要网络';
+              } else if (err === 'synthesis-unavailable') {
+                errorMsg = '语音不可用';
+              } else if (err === 'synthesis-failed') {
+                errorMsg = '播放失败';
+              }
+              
+              resetState(false);
+              speechTime.textContent = errorMsg;
+              speechTime.style.color = '#e53e3e';
+              setTimeout(function() {
+                speechTime.textContent = '00:00 / 00:00';
+                speechTime.style.color = '';
+              }, 3000);
+            };
 
-          window.speechSynthesis.speak(utterance);
+            window.speechSynthesis.speak(utterance);
+          }, 50);
         }
       }
     }

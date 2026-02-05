@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}第{{ chapter.number }}篇 - 纲目{% endblock %}
 
@@ -28,10 +28,17 @@
     </div>
     {% endif %}
     
+    <!-- 展开级别控制按钮 -->
+    <div class="outline-level-controls">
+        <button class="level-btn" onclick="expandToLevel(1)" title="只显示大纲（一级）">大纲</button>
+        <button class="level-btn" onclick="expandToLevel(2)" title="显示大纲和中纲（一二级）">大中纲</button>
+        <button class="level-btn active" onclick="expandToLevel(4)" title="显示全部内容">全部</button>
+    </div>
+    
     <div class="outline-content">
         {% macro render_section(section, depth=1, show_scripture=True, parent_id='') %}
         {% set section_id = parent_id ~ '-' ~ section.level if parent_id else section.level %}
-        <div class="section" id="section-{{ section_id }}">
+        <div class="section" id="section-{{ section_id }}" data-level="{{ depth }}">
             <div class="outline-item {{ section.level|outline_level_class }}">
                 {% if section.children %}
                 <button class="toggle-btn{% if not default_collapsed %} expanded{% endif %}" onclick="toggleSection('subsection-{{ section_id }}')">
@@ -52,7 +59,7 @@
             </div>
             
             {% if section.children %}
-            <div class="subsections" id="subsection-{{ section_id }}" style="{% if default_collapsed %}display: none;{% else %}display: block;{% endif %}">
+            <div class="subsections" id="subsection-{{ section_id }}" data-parent-level="{{ depth }}" style="{% if default_collapsed %}display: none;{% else %}display: block;{% endif %}">
                 {% for child in section.children %}
                 {{ render_section(child, depth + 1, show_scripture, section_id) }}
                 {% endfor %}
@@ -72,6 +79,42 @@
     padding: 5px;
 }
 
+/* 展开级别控制按钮 */
+.outline-level-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 15px 0;
+    padding: 10px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.level-btn {
+    min-width: 60px;
+    min-height: 36px;
+    padding: 8px 14px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.level-btn:active {
+    transform: scale(0.95);
+}
+
+.level-btn.active {
+    background: linear-gradient(135deg, #4a8fd9 0%, #3d7fc8 100%);
+    border-color: #4a8fd9;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
 /* 字体大小控制 */
 .font-size-controls {
     display: flex;
@@ -85,7 +128,7 @@
     min-width: 44px;
     min-height: 44px;
     padding: 10px 14px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4a8fd9 0%, #3d7fc8 100%);
     border: none;
     border-radius: 8px;
     font-size: 15px;
@@ -93,17 +136,17 @@
     color: #ffffff;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
 .font-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
 }
 
 .font-btn:active {
     transform: scale(0.95);
-    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
 }
 
 .outline-content {
@@ -131,7 +174,7 @@
     margin-top: 12px;
     margin-left: 0;
     background: white;
-    border: 1px solid rgba(102, 126, 234, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.2);
 }
 </style>
 
@@ -227,6 +270,31 @@ function toggleScripture(id) {
         element.style.display = 'none';
         if (button) button.textContent = '展开经文';
     }
+}
+
+// 展开到指定级别
+function expandToLevel(maxLevel) {
+    // 更新按钮状态
+    document.querySelectorAll('.level-btn').forEach(function(btn) {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // 获取所有 subsections
+    document.querySelectorAll('.subsections').forEach(function(subsection) {
+        var parentLevel = parseInt(subsection.getAttribute('data-parent-level')) || 1;
+        var toggleBtn = subsection.previousElementSibling.querySelector('.toggle-btn');
+        
+        if (parentLevel < maxLevel) {
+            // 展开
+            subsection.style.display = 'block';
+            if (toggleBtn) toggleBtn.classList.add('expanded');
+        } else {
+            // 收起
+            subsection.style.display = 'none';
+            if (toggleBtn) toggleBtn.classList.remove('expanded');
+        }
+    });
 }
 </script>
 {% endblock %}

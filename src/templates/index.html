@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}{{ training.title }}{% endblock %}
 
@@ -39,7 +39,7 @@
     align-items: center;
     gap: 6px;
     padding: 8px 14px 8px 10px;
-    color: #667eea;
+    color: #4a8fd9;
     text-decoration: none;
     font-size: 15px;
     font-weight: 500;
@@ -52,7 +52,7 @@
 
 .back-home:active {
     background: #eef1ff;
-    border-color: #667eea;
+    border-color: #4a8fd9;
     transform: translateX(-2px);
     box-shadow: 0 2px 6px rgba(102, 126, 234, 0.15);
 }
@@ -102,7 +102,7 @@
     flex-shrink: 0;
     font-size: 1em;
     font-weight: 600;
-    color: #667eea;
+    color: #4a8fd9;
     white-space: nowrap;
 }
 
@@ -128,7 +128,7 @@
     
     .back-home:hover {
         background: #eef1ff;
-        border-color: #667eea;
+        border-color: #4a8fd9;
         transform: translateX(-2px);
         box-shadow: 0 2px 6px rgba(102, 126, 234, 0.15);
     }
@@ -169,6 +169,20 @@
 </style>
 
 <script>
+// Android 返回键处理 - 目录页返回主页
+(function() {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.Capacitor.Plugins.App.addListener('backButton', function(data) {
+            if (window.history.length > 1 && data.canGoBack) {
+                window.history.back();
+            } else {
+                // 没有历史记录，跳转到主页
+                window.location.href = '../index.html';
+            }
+        });
+    }
+})();
+
 // 页面记忆功能 - 恢复上次访问的页面（仅在 PWA/APP 模式下）
 (function() {
     try {
