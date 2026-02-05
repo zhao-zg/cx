@@ -99,7 +99,7 @@
         .footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--border);text-align:center;color:#999;font-size:0.83em}
         .scripture-toggle-btn{background:rgba(74,144,217,.1);border:1px solid rgba(74,144,217,.3);color:var(--brand);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:6px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
         .scripture-toggle-btn:active{background:rgba(74,144,217,.2);border-color:rgba(74,144,217,.5)}
-        .scripture-content{background:#f8f9fa;border-left:3px solid var(--brand);padding:10px 12px;margin:10px 0 10px 15px;font-size:0.94em;color:#555;line-height:1.8;text-align:justify}
+        .scripture-content{background:#f8f9fa;border-left:3px solid var(--brand);padding:10px 12px 10px 2.5em;margin:10px 0 10px -2em;font-size:0.94em;color:#555;line-height:1.8;text-align:justify}
         .scripture-ref{color:#7f8c8d;font-size:0.78em;margin-left:8px}
         .verse-line{margin-bottom:8px;font-size:0.94em;line-height:2;color:#444;text-align:justify}
         .verse-line:last-child{margin-bottom:0}
@@ -205,11 +205,18 @@
     <script>
     (function() {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+            // 记录进入页面时的历史长度
+            var initialHistoryLength = window.history.length;
+            var backPressCount = 0;
+            
             window.Capacitor.Plugins.App.addListener('backButton', function(data) {
-                if (window.history.length > 1 && data.canGoBack) {
+                backPressCount++;
+                
+                // 如果还有历史可以后退
+                if (backPressCount < initialHistoryLength && data.canGoBack) {
                     window.history.back();
                 } else {
-                    // 没有历史记录，跳转到上级目录页
+                    // 没有历史记录了，跳转到上级目录页
                     window.location.href = './index.html';
                 }
             });

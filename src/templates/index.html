@@ -172,11 +172,16 @@
 // Android 返回键处理 - 目录页返回主页
 (function() {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        var initialHistoryLength = window.history.length;
+        var backPressCount = 0;
+        
         window.Capacitor.Plugins.App.addListener('backButton', function(data) {
-            if (window.history.length > 1 && data.canGoBack) {
+            backPressCount++;
+            
+            if (backPressCount < initialHistoryLength && data.canGoBack) {
                 window.history.back();
             } else {
-                // 没有历史记录，跳转到主页
+                // 没有历史记录了，跳转到主页
                 window.location.href = '../index.html';
             }
         });

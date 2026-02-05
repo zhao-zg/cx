@@ -1,0 +1,37 @@
+{% macro render_section(section, depth=1, show_scripture=True, parent_id='', default_collapsed=False) %}
+{% set section_id = parent_id ~ '-' ~ section.level if parent_id else section.level %}
+<div class="section" id="section-{{ section_id }}" data-level="{{ depth }}">
+    <div class="outline-item {{ section.level|outline_level_class }}">
+        {% if section.children %}
+        <button class="toggle-btn{% if not default_collapsed %} expanded{% endif %}" onclick="toggleSection('subsection-{{ section_id }}')">
+            <span class="toggle-icon"></span>
+        </button>
+        {% endif %}
+        {{ section.level }}　{{ section.title }}
+        {% if section.scripture and section.scripture.strip() and show_scripture %}
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-{{ section_id }}')">展开经文</button>
+        <div class="scripture-content" id="scripture-{{ section_id }}" style="display: none;" onclick="toggleScripture('scripture-{{ section_id }}')">
+            {% for verse_line in section.scripture.split('\n') %}
+            {% if verse_line.strip() %}
+            <div class="verse-line">{{ verse_line }}</div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    
+    {% if section.children %}
+    <div class="subsections" id="subsection-{{ section_id }}" data-parent-level="{{ depth }}" style="{% if default_collapsed %}display: none;{% else %}display: block;{% endif %}">
+        {% for child in section.children %}
+        {{ render_section(child, depth + 1, show_scripture, section_id, default_collapsed) }}
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro render_outline(sections, show_scripture=True, default_collapsed=False) %}
+{% for section in sections %}
+{{ render_section(section, 1, show_scripture, '', default_collapsed) }}
+{% endfor %}
+{% endmacro %}

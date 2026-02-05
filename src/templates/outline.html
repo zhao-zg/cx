@@ -3,6 +3,7 @@
 {% block title %}第{{ chapter.number }}篇 - 纲目{% endblock %}
 
 {% block content %}
+{% from "outline_macro.html" import render_outline, render_section %}
 <div class="outline-page">
     {% include "page_navigation.html" %}
     
@@ -32,41 +33,7 @@
     </div>
     
     <div class="outline-content">
-        {% macro render_section(section, depth=1, show_scripture=True, parent_id='') %}
-        {% set section_id = parent_id ~ '-' ~ section.level if parent_id else section.level %}
-        <div class="section" id="section-{{ section_id }}" data-level="{{ depth }}">
-            <div class="outline-item {{ section.level|outline_level_class }}">
-                {% if section.children %}
-                <button class="toggle-btn{% if not default_collapsed %} expanded{% endif %}" onclick="toggleSection('subsection-{{ section_id }}')">
-                    <span class="toggle-icon"></span>
-                </button>
-                {% endif %}
-                {{ section.level }}　{{ section.title }}
-                {% if section.scripture and section.scripture.strip() and show_scripture %}
-                <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-{{ section_id }}')">展开经文</button>
-                <div class="scripture-content" id="scripture-{{ section_id }}" style="display: none;" onclick="toggleScripture('scripture-{{ section_id }}')">
-                    {% for verse_line in section.scripture.split('\n') %}
-                    {% if verse_line.strip() %}
-                    <div class="verse-line">{{ verse_line }}</div>
-                    {% endif %}
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            
-            {% if section.children %}
-            <div class="subsections" id="subsection-{{ section_id }}" data-parent-level="{{ depth }}" style="{% if default_collapsed %}display: none;{% else %}display: block;{% endif %}">
-                {% for child in section.children %}
-                {{ render_section(child, depth + 1, show_scripture, section_id) }}
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-        {% endmacro %}
-        
-        {% for section in chapter.outline_sections %}
-        {{ render_section(section, 1, True, '') }}
-        {% endfor %}
+        {{ render_outline(chapter.outline_sections, True, default_collapsed) }}
     </div>
 </div>
 
@@ -111,52 +78,14 @@
     box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
-/* 字体大小控制 */
-.font-size-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    justify-content: center;
-    margin: 15px 0;
-}
-
-.font-btn {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 10px 14px;
-    background: linear-gradient(135deg, #4a8fd9 0%, #3d7fc8 100%);
-    border: none;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 600;
-    color: #ffffff;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
-}
-
-.font-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
-}
-
-.font-btn:active {
-    transform: scale(0.95);
-    box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
-}
-
 .outline-content {
     margin-top: 20px;
 }
-
-/* section 样式使用 base.html 统一定义 */
 
 .subsections {
     margin-left: 0;
     display: block;
 }
-
-/* toggle-btn 样式已在 base.html 中定义 */
 
 /* 章节级别经文样式 */
 .scripture-section {
@@ -179,6 +108,7 @@
 }
 </style>
 
+<script src="js/outline.js"></script>
 <script>
 // 朗读功能初始化
 function initSpeech() {
@@ -196,10 +126,8 @@ function initSpeech() {
             outlineItems.forEach(item => {
                 // 获取纲目文本，排除按钮和经文内容
                 const clone = item.cloneNode(true);
-                // 移除按钮
                 const buttons = clone.querySelectorAll('button');
                 buttons.forEach(btn => btn.remove());
-                // 移除经文内容
                 const scriptures = clone.querySelectorAll('.scripture-content');
                 scriptures.forEach(sc => sc.remove());
                 
@@ -236,63 +164,6 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
 } else {
     checkAndInitSpeech();
-}
-
-function toggleSection(id) {
-    const element = document.getElementById(id);
-    if (!element) return;
-
-    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
-    const button = buttons[0];
-
-    if (element.style.display === 'none' || element.style.display === '') {
-        element.style.display = 'block';
-        if (button) button.classList.add('expanded');
-    } else {
-        element.style.display = 'none';
-        if (button) button.classList.remove('expanded');
-    }
-}
-
-function toggleScripture(id) {
-    const element = document.getElementById(id);
-    if (!element) return;
-
-    const buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
-    const button = buttons[0];
-
-    if (element.style.display === 'none' || element.style.display === '') {
-        element.style.display = 'block';
-        if (button) button.textContent = '收起经文';
-    } else {
-        element.style.display = 'none';
-        if (button) button.textContent = '展开经文';
-    }
-}
-
-// 展开到指定级别
-function expandToLevel(maxLevel) {
-    // 更新按钮状态
-    document.querySelectorAll('.level-btn').forEach(function(btn) {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-    
-    // 获取所有 subsections
-    document.querySelectorAll('.subsections').forEach(function(subsection) {
-        var parentLevel = parseInt(subsection.getAttribute('data-parent-level')) || 1;
-        var toggleBtn = subsection.previousElementSibling.querySelector('.toggle-btn');
-        
-        if (parentLevel < maxLevel) {
-            // 展开
-            subsection.style.display = 'block';
-            if (toggleBtn) toggleBtn.classList.add('expanded');
-        } else {
-            // 收起
-            subsection.style.display = 'none';
-            if (toggleBtn) toggleBtn.classList.remove('expanded');
-        }
-    });
 }
 </script>
 {% endblock %}

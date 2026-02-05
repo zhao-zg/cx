@@ -3,6 +3,7 @@
 {% block title %}第{{ chapter.number }}篇 - 晨兴{% endblock %}
 
 {% block content %}
+{% from "outline_macro.html" import render_outline %}
 <div class="morning-revival-page">
     {% include "page_navigation.html" %}
 
@@ -24,17 +25,7 @@
         <div class="day-page" data-day="{{ loop.index }}" data-page="{{ loop.index0 }}" style="display: {% if loop.index0 == 0 %}block{% else %}none{% endif %};">
             {% if revival.outline %}
             <div class="outline-section">
-                {% macro render_outline(items) %}
-                    {% for item in items %}
-                    <div class="outline-item {{ item.level|outline_level_class }}">
-                        {{ item.level }}　{{ item.title }}
-                    </div>
-                    {% if item.children %}
-                        {{ render_outline(item.children) }}
-                    {% endif %}
-                    {% endfor %}
-                {% endmacro %}
-                {{ render_outline(revival.outline) }}
+                {{ render_outline(revival.outline, True, False) }}
             </div>
             {% endif %}
             
@@ -296,6 +287,8 @@ if (document.readyState === 'loading') {
 }
 </script>
 
+<script src="js/outline.js"></script>
+
 <style>
 .morning-revival-page {
     padding: 5px;
@@ -369,6 +362,11 @@ if (document.readyState === 'loading') {
 /* 纲目样式 - 使用 base.html 的公共样式 */
 .outline-section {
     margin: 18px 0;
+}
+
+/* 经文内容可点击收起 */
+.outline-section .scripture-content {
+    cursor: pointer;
 }
 
 /* 内容分隔线 */

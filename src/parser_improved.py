@@ -1837,6 +1837,45 @@ class ImprovedParser:
         return True
 
 
+def _build_scripture_map(sections, scripture_map, prefix=""):
+    """
+    递归构建纲目经文映射
+    
+    Args:
+        sections: Content对象列表
+        scripture_map: 经文映射字典 {level+title -> scripture}
+        prefix: 层级前缀
+    """
+    for section in sections:
+        # 使用 level + title 作为键（去除空格以提高匹配率）
+        key = (section.level + section.title).replace(' ', '').replace('\u3000', '')
+        if section.scripture:
+            scripture_map[key] = section.scripture
+        
+        # 递归处理子节点
+        if section.children:
+            _build_scripture_map(section.children, scripture_map, prefix + section.level)
+
+
+def _fill_scripture(sections, scripture_map):
+    """
+    递归填充晨兴纲目的经文数据
+    
+    Args:
+        sections: Content对象列表（晨兴纲目）
+        scripture_map: 经文映射字典
+    """
+    for section in sections:
+        # 使用 level + title 作为键查找经文
+        key = (section.level + section.title).replace(' ', '').replace('\u3000', '')
+        if key in scripture_map and not section.scripture:
+            section.scripture = scripture_map[key]
+        
+        # 递归处理子节点
+        if section.children:
+            _fill_scripture(section.children, scripture_map)
+
+
 def parse_training_docs_improved(outline_path: str, listen_path: str, 
                                  morning_revival_path: Optional[str] = None,
                                  morning_revival_path2: Optional[str] = None,
@@ -1884,6 +1923,19 @@ def parse_training_docs_improved(outline_path: str, listen_path: str,
     if morning_revival_path2:
         print("  解析晨兴内容2（晨兴2.doc）...")
         parser.parse_morning_revival_doc(morning_revival_path2, chapters)
+    
+    # 3.5 将纲目的经文数据同步到晨兴纲目中（共用同一份经文数据）
+    print("  同步经文数据到晨兴纲目...")
+    for chapter in chapters:
+        if chapter.outline_sections and chapter.morning_revivals:
+            # 构建纲目经文映射：level+title -> scripture
+            scripture_map = {}
+            _build_scripture_map(chapter.outline_sections, scripture_map)
+            
+            # 为每天的晨兴纲目填充经文
+            for revival in chapter.morning_revivals:
+                if revival.outline:
+                    _fill_scripture(revival.outline, scripture_map)
     
     # 4. 读取应用版本号
     app_version = ""
