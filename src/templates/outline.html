@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}第{{ chapter.number }}篇 - 纲目{% endblock %}
 
@@ -8,16 +8,12 @@
     
     <h2 class="chapter-title">第{{ chapter.number }}篇 {{ chapter.title }}</h2>
     
-    {% if chapter.hymn_number %}
-    <div class="hymn-number">{{ chapter.hymn_number }}</div>
-    {% endif %}
-    
     {% if chapter.scripture %}
     <div class="scripture-section">
         <div class="scripture">读经：{{ chapter.scripture }}</div>
         {% if chapter.scripture_verses %}
         <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
-        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;">
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;" onclick="toggleScripture('chapter-scripture')">
             {% for verse in chapter.scripture_verses.split('\n') %}
                 {% if verse.strip() %}
                 <div class="verse-line">{{ verse }}</div>
@@ -48,7 +44,7 @@
                 {{ section.level }}　{{ section.title }}
                 {% if section.scripture and section.scripture.strip() and show_scripture %}
                 <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-{{ section_id }}')">展开经文</button>
-                <div class="scripture-content" id="scripture-{{ section_id }}" style="display: none;">
+                <div class="scripture-content" id="scripture-{{ section_id }}" style="display: none;" onclick="toggleScripture('scripture-{{ section_id }}')">
                     {% for verse_line in section.scripture.split('\n') %}
                     {% if verse_line.strip() %}
                     <div class="verse-line">{{ verse_line }}</div>
@@ -176,6 +172,11 @@
     background: white;
     border: 1px solid rgba(59, 130, 246, 0.2);
 }
+
+/* 经文内容可点击收起 */
+.scripture-content {
+    cursor: pointer;
+}
 </style>
 
 <script>
@@ -186,9 +187,6 @@ function initSpeech() {
             let text = '';
             const titleElem = document.querySelector('.chapter-title');
             if (titleElem) text += titleElem.textContent.trim() + '。';
-
-            const hymnElem = document.querySelector('.hymn-number');
-            if (hymnElem) text += hymnElem.textContent.trim() + '。';
 
             const scriptureElem = document.querySelector('.scripture');
             if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
