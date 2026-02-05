@@ -1230,6 +1230,8 @@
                     // 只在外部进入主页时恢复，且保存的页面不是主页
                     if (isExternalEntry && isMainPage && !lastPageIsMain) {
                         console.log('[页面记忆] 恢复上次访问的页面:', lastPage);
+                        // 清空导航栈，因为是自动跳转，不应该记录主页
+                        sessionStorage.removeItem('cx_nav_stack');
                         window.location.replace(lastPage);
                         return;
                     } else {
