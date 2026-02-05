@@ -1,5 +1,5 @@
-{% macro render_section(section, depth=1, show_scripture=True, parent_id='', default_collapsed=False) %}
-{% set section_id = parent_id ~ '-' ~ section.level if parent_id else section.level %}
+{% macro render_section(section, depth=1, show_scripture=True, parent_id='', default_collapsed=False, id_prefix='') %}
+{% set section_id = id_prefix ~ (parent_id ~ '-' ~ section.level if parent_id else section.level) %}
 <div class="section" id="section-{{ section_id }}" data-level="{{ depth }}">
     <div class="outline-item {{ section.level|outline_level_class }}">
         {% if section.children %}
@@ -23,15 +23,15 @@
     {% if section.children %}
     <div class="subsections" id="subsection-{{ section_id }}" data-parent-level="{{ depth }}" style="{% if default_collapsed %}display: none;{% else %}display: block;{% endif %}">
         {% for child in section.children %}
-        {{ render_section(child, depth + 1, show_scripture, section_id, default_collapsed) }}
+        {{ render_section(child, depth + 1, show_scripture, section_id, default_collapsed, '') }}
         {% endfor %}
     </div>
     {% endif %}
 </div>
 {% endmacro %}
 
-{% macro render_outline(sections, show_scripture=True, default_collapsed=False) %}
+{% macro render_outline(sections, show_scripture=True, default_collapsed=False, id_prefix='') %}
 {% for section in sections %}
-{{ render_section(section, 1, show_scripture, '', default_collapsed) }}
+{{ render_section(section, 1, show_scripture, '', default_collapsed, id_prefix) }}
 {% endfor %}
 {% endmacro %}

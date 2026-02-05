@@ -25,7 +25,7 @@
         <div class="day-page" data-day="{{ loop.index }}" data-page="{{ loop.index0 }}" style="display: {% if loop.index0 == 0 %}block{% else %}none{% endif %};">
             {% if revival.outline %}
             <div class="outline-section">
-                {{ render_outline(revival.outline, True, False) }}
+                {{ render_outline(revival.outline, True, False, 'day' ~ loop.index ~ '-') }}
             </div>
             {% endif %}
             
