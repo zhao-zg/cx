@@ -20,6 +20,10 @@
             --text:#1f2937;
             --text-muted:#6b7280;
         }
+        /* 页面过渡效果 */
+        body{opacity:0;transition:opacity .15s ease-in}
+        body.page-ready{opacity:1}
+        body.page-leaving{opacity:0;transition:opacity .1s ease-out}
         body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;color:var(--text);background:#f7fafc;min-height:100vh;padding:8px 8px 70px;font-size:18px;-webkit-font-smoothing:antialiased}
         .container{max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-radius:12px}
         .header{text-align:center;margin-bottom:20px;padding:16px 12px;background:var(--brand);border-radius:8px}
@@ -194,6 +198,39 @@
             <button class="control-btn font-btn" id="fontLarger" title="增大字体">A+</button>
         </div>
     </div>
+
+    <!-- 页面过渡效果 -->
+    <script>
+    (function() {
+        // 页面加载完成后显示
+        if (document.readyState === 'complete') {
+            document.body.classList.add('page-ready');
+        } else {
+            window.addEventListener('load', function() {
+                document.body.classList.add('page-ready');
+            });
+        }
+        
+        // 拦截链接点击，添加淡出效果
+        document.addEventListener('click', function(e) {
+            var link = e.target.closest('a[href]');
+            if (!link) return;
+            
+            var href = link.getAttribute('href');
+            // 跳过锚点链接、外部链接、特殊链接
+            if (!href || href.startsWith('#') || href.startsWith('javascript:') || 
+                href.startsWith('http') || link.target === '_blank') return;
+            
+            e.preventDefault();
+            document.body.classList.add('page-leaving');
+            document.body.classList.remove('page-ready');
+            
+            setTimeout(function() {
+                window.location.href = href;
+            }, 100);
+        });
+    })();
+    </script>
 
     <!-- 核心脚本 -->
     <script src="js/speech.js"></script>

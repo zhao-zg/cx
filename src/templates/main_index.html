@@ -17,6 +17,19 @@
             box-sizing: border-box;
         }
         
+        /* 页面过渡效果 */
+        body {
+            opacity: 0;
+            transition: opacity .15s ease-in;
+        }
+        body.page-ready {
+            opacity: 1;
+        }
+        body.page-leaving {
+            opacity: 0;
+            transition: opacity .1s ease-out;
+        }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
             line-height: 1.6;
@@ -1232,8 +1245,8 @@
                         pathname: window.location.pathname
                     });
                     
-                    // 只在外部进入主页时恢复，且保存的页面不是主页
-                    if (isExternalEntry && isMainPage && !lastPageIsMain) {
+                    // 只在外部进入主页时恢复，且保存的页面不是主页  && !lastPageIsMain
+                    if (isExternalEntry && isMainPage) {
                         console.log('[页面记忆] 恢复上次访问的页面:', lastPage);
                         // 清空导航栈，因为是自动跳转，不应该记录主页
                         sessionStorage.removeItem('cx_nav_stack');
@@ -1821,6 +1834,39 @@
             });
         }
     });
+    </script>
+    
+    <!-- 页面过渡效果 -->
+    <script>
+    (function() {
+        // 页面加载完成后显示
+        if (document.readyState === 'complete') {
+            document.body.classList.add('page-ready');
+        } else {
+            window.addEventListener('load', function() {
+                document.body.classList.add('page-ready');
+            });
+        }
+        
+        // 拦截链接点击，添加淡出效果
+        document.addEventListener('click', function(e) {
+            var link = e.target.closest('a[href]');
+            if (!link) return;
+            
+            var href = link.getAttribute('href');
+            // 跳过锚点链接、外部链接、特殊链接
+            if (!href || href.startsWith('#') || href.startsWith('javascript:') || 
+                href.startsWith('http') || link.target === '_blank') return;
+            
+            e.preventDefault();
+            document.body.classList.add('page-leaving');
+            document.body.classList.remove('page-ready');
+            
+            setTimeout(function() {
+                window.location.href = href;
+            }, 100);
+        });
+    })();
     </script>
 </body>
 </html>
