@@ -9,6 +9,8 @@
     <meta name="theme-color" content="#4a8fd9">
     {% if training.app_version %}<meta name="app-version" content="{{ training.app_version }}">{% endif %}
     <title>{% block title %}{{ training.title }}{% endblock %}</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
     <style>
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         :root{
@@ -195,11 +197,11 @@
         </div>
     </div>
 
-    <!-- 核心脚本 -->
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
     <script src="js/speech.js"></script>
-    <script src="js/font-control.js"></script>
-    <script src="js/highlight.js"></script>
-    <script src="js/app-update.js"></script>
+    <script src="js/font-control.js" defer></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/app-update.js" defer></script>
     
     <!-- Android 返回键处理 -->
     <script>

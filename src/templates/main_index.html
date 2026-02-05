@@ -9,110 +9,31 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <link rel="manifest" href="manifest.json">
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="trainings.json" as="fetch" crossorigin>
     <title>特会信息合集</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-            line-height: 1.6;
-            color: #2d3748;
-            background: #f7fafc;
-            min-height: 100vh;
-            padding: 12px;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: #4a8fd9;
-            color: white;
-            text-align: center;
-            padding: 20px 16px;
-        }
-        
-        .header h1 {
-            font-size: 25px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-        
-        .header p {
-            font-size: 16px;
-            opacity: 0.9;
-        }
-        
-        .content {
-            padding: 0;
-        }
-        
-        .trainings-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-            margin: 0;
-            background: #fff;
-            overflow: hidden;
-        }
-        
-        .training-card {
-            background: #fff;
-            overflow: hidden;
-            border-bottom: 1px solid #e8e8e8;
-            transition: background-color 0.2s;
-        }
-        
-        .training-card:hover {
-            background: #fafbfc;
-        }
-        
-        .training-card:last-child {
-            border-bottom: none;
-        }
-        
-        .training-card-wrapper {
-            display: flex;
-            align-items: stretch;
-            gap: 0;
-        }
-        
-        .training-link {
-            display: block;
-            padding: 12px 16px;
-            text-decoration: none;
-            color: inherit;
-            flex: 1;
-            min-width: 0;
-            transition: background-color 0.2s;
-        }
-        
-        .training-link:active {
-            background: #f0f4f8;
-        }
-        
-        .training-info {
-            position: relative;
-        }
-        
-        .training-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-            gap: 8px;
-        }
-        
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;color:#2d3748;background:#f7fafc;min-height:100vh;padding:12px}
+        .container{max-width:800px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden}
+        .header{background:#4a8fd9;color:#fff;text-align:center;padding:20px 16px}
+        .header h1{font-size:25px;margin-bottom:8px;font-weight:600}
+        .header p{font-size:16px;opacity:.9}
+        .content{padding:0}
+        .trainings-grid{display:flex;flex-direction:column;gap:0;margin:0;background:#fff;overflow:hidden}
+        .training-card{background:#fff;overflow:hidden;border-bottom:1px solid #e8e8e8;transition:background-color .2s}
+        .training-card:hover{background:#fafbfc}
+        .training-card:last-child{border-bottom:none}
+        .training-card-wrapper{display:flex;align-items:stretch;gap:0}
+        .training-link{display:block;padding:12px 16px;text-decoration:none;color:inherit;flex:1;min-width:0;transition:background-color .2s}
+        .training-link:active{background:#f0f4f8}
+        .training-info{position:relative}
+        .training-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px}
+        /* 骨架屏 */
+        .skeleton-item{padding:16px;border-bottom:1px solid #e8e8e8}
+        .skeleton-line{height:18px;background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px;margin-bottom:8px}
+        .skeleton-line.short{width:30%;height:14px}
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
         .training-card .year-season {
             font-size: 17px;
             color: #4a8fd9;
@@ -333,11 +254,10 @@
         
         <div class="content">
             <div class="trainings-grid" id="trainingsGrid">
-                <!-- 训练列表将通过 JavaScript 动态加载 -->
-                <div style="text-align: center; padding: 40px; color: #999;">
-                    <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
-                    <div>正在加载训练列表...</div>
-                </div>
+                <!-- 骨架屏 - 加载时显示 -->
+                <div class="skeleton-item"><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line short"></div></div>
+                <div class="skeleton-item"><div class="skeleton-line" style="width:70%"></div><div class="skeleton-line short"></div></div>
+                <div class="skeleton-item"><div class="skeleton-line" style="width:55%"></div><div class="skeleton-line short"></div></div>
             </div>
         </div>
         
