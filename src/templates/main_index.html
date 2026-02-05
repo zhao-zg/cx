@@ -994,73 +994,6 @@
         }
     })();
     
-    // 防乱码重定向 - 检测并修复双重编码的 URL
-    (function() {
-        try {
-            var currentPath = window.location.pathname;
-            
-            // 检测是否包含双重编码的特征
-            // 双重编码的 UTF-8 会包含 %C3%A 或 %C2% 等模式
-            var hasDoubleEncoding = /%C3%[89AB]|%C2%[89AB]/.test(currentPath);
-            
-            if (hasDoubleEncoding) {
-                console.log('[防乱码] 检测到双重编码的 URL:', currentPath);
-                
-                try {
-                    // 第一次解码：%C3%A7%C2%A7%C2%8B... → Ã§Â§Â...
-                    var firstDecode = decodeURIComponent(currentPath);
-                    console.log('[防乱码] 第一次解码:', firstDecode);
-                    
-                    // 将字符串转换为字节数组
-                    var bytes = [];
-                    for (var i = 0; i < firstDecode.length; i++) {
-                        bytes.push(firstDecode.charCodeAt(i) & 0xFF);
-                    }
-                    
-                    // 将字节数组转换为 UTF-8 字符串
-                    var utf8Bytes = new Uint8Array(bytes);
-                    var decoder = new TextDecoder('utf-8');
-                    var correctPath = decoder.decode(utf8Bytes);
-                    
-                    console.log('[防乱码] 正确的路径:', correctPath);
-                    
-                    // 重定向到正确的 URL
-                    var correctUrl = window.location.origin + correctPath + window.location.search + window.location.hash;
-                    console.log('[防乱码] 重定向到:', correctUrl);
-                    
-                    window.location.replace(correctUrl);
-                    return;
-                } catch (e) {
-                    console.error('[防乱码] 解码失败:', e);
-                    
-                    // 如果解码失败，尝试简单的双重解码
-                    try {
-                        var doubleDecode = decodeURIComponent(decodeURIComponent(currentPath));
-                        console.log('[防乱码] 双重解码:', doubleDecode);
-                        
-                        if (doubleDecode !== currentPath) {
-                            var correctUrl = window.location.origin + doubleDecode + window.location.search + window.location.hash;
-                            console.log('[防乱码] 重定向到:', correctUrl);
-                            window.location.replace(correctUrl);
-                            return;
-                        }
-                    } catch (e2) {
-                        console.error('[防乱码] 双重解码也失败:', e2);
-                    }
-                    
-                    // 如果都失败，回到主页
-                    if (currentPath !== '/' && currentPath !== '/index.html') {
-                        console.log('[防乱码] 回到主页');
-                        window.location.replace('/');
-                        return;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error('[防乱码] 错误:', e);
-        }
-    })();
-    
     // 页面记忆功能 - 保存主页访问记录
     (function() {
         function saveMainPage() {
@@ -1255,8 +1188,7 @@
             './' + path + '/',
             './' + path + '/js/speech.js',
             './' + path + '/js/font-control.js',
-            './' + path + '/js/highlight.js',
-            './' + path + '/js/app-update.js'
+            './' + path + '/js/highlight.js'
         ];
         for (var i = 1; i <= chapters; i++) {
             resources.push('./' + path + '/' + i + '_cv.htm');

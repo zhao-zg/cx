@@ -37,26 +37,33 @@ class HTMLGenerator:
         """复制 src/static 下的静态资源到输出目录。
 
         生成后的 HTML 默认以相对路径引用（例如 js/speech.js）。
+        只复制训练页面需要的文件，不复制 icons、vendor 等主页专用资源。
         """
         try:
             static_dir = os.path.join(os.path.dirname(self.template_dir), 'static')
             if not os.path.isdir(static_dir):
                 return
 
-            for name in os.listdir(static_dir):
-                src_path = os.path.join(static_dir, name)
-                dst_path = os.path.join(self.output_dir, name)
-                if os.path.isdir(src_path):
-                    # copytree 兼容不同 Python 版本
-                    try:
-                        shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
-                    except TypeError:
-                        if os.path.exists(dst_path):
-                            shutil.rmtree(dst_path)
-                        shutil.copytree(src_path, dst_path)
-                else:
-                    os.makedirs(os.path.dirname(dst_path), exist_ok=True)
-                    shutil.copy2(src_path, dst_path)
+            # 训练页面需要的 JS 文件列表
+            required_js_files = [
+                'speech.js',
+                'font-control.js',
+                'highlight.js',
+                'outline.js'
+            ]
+
+            # 复制 js 目录中需要的文件
+            js_src_dir = os.path.join(static_dir, 'js')
+            js_dst_dir = os.path.join(self.output_dir, 'js')
+            
+            if os.path.isdir(js_src_dir):
+                os.makedirs(js_dst_dir, exist_ok=True)
+                for js_file in required_js_files:
+                    src_file = os.path.join(js_src_dir, js_file)
+                    dst_file = os.path.join(js_dst_dir, js_file)
+                    if os.path.isfile(src_file):
+                        shutil.copy2(src_file, dst_file)
+                        
         except Exception:
             # 静态资源复制失败不应阻断 HTML 生成
             return
