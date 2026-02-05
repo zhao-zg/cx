@@ -39,7 +39,7 @@
     align-items: center;
     gap: 6px;
     padding: 8px 14px 8px 10px;
-    color: #4a8fd9;
+    color: #667eea;
     text-decoration: none;
     font-size: 15px;
     font-weight: 500;
@@ -52,7 +52,7 @@
 
 .back-home:active {
     background: #eef1ff;
-    border-color: #4a8fd9;
+    border-color: #667eea;
     transform: translateX(-2px);
     box-shadow: 0 2px 6px rgba(102, 126, 234, 0.15);
 }
@@ -102,7 +102,7 @@
     flex-shrink: 0;
     font-size: 1em;
     font-weight: 600;
-    color: #4a8fd9;
+    color: #667eea;
     white-space: nowrap;
 }
 
@@ -128,7 +128,7 @@
     
     .back-home:hover {
         background: #eef1ff;
-        border-color: #4a8fd9;
+        border-color: #667eea;
         transform: translateX(-2px);
         box-shadow: 0 2px 6px rgba(102, 126, 234, 0.15);
     }
@@ -169,40 +169,6 @@
 </style>
 
 <script>
-// Android 返回键处理 - 目录页返回主页
-(function() {
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-        // 使用导航栈来追踪历史
-        var navKey = 'cx_nav_stack';
-        var navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
-        var currentPath = window.location.pathname + window.location.search + window.location.hash;
-        
-        // 如果栈顶不是当前页面，压入栈
-        if (navStack.length === 0 || navStack[navStack.length - 1] !== currentPath) {
-            navStack.push(currentPath);
-            sessionStorage.setItem(navKey, JSON.stringify(navStack));
-        }
-        
-        window.Capacitor.Plugins.App.addListener('backButton', function(data) {
-            // 重新读取栈
-            navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
-            
-            // 弹出当前页面
-            navStack.pop();
-            sessionStorage.setItem(navKey, JSON.stringify(navStack));
-            
-            if (navStack.length > 0) {
-                // 栈里还有页面，后退
-                window.history.back();
-            } else {
-                // 栈空了，跳转到主页
-                sessionStorage.removeItem(navKey);
-                window.location.href = '../index.html';
-            }
-        });
-    }
-})();
-
 // 根据星期几决定跳转目标
 document.addEventListener('DOMContentLoaded', function() {
     var dayOfWeek = new Date().getDay(); // 0=周日, 1=周一, ..., 6=周六
