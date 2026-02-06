@@ -230,98 +230,11 @@
     <script src="js/speech.js"></script>
     <script src="js/font-control.js" defer></script>
     <script src="js/highlight.js" defer></script>
-    
-    <!-- Android 返回键处理 -->
+    <script src="js/nav-stack.js"></script>
     <script>
-    (function() {
-        var isCapacitor = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
-        var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        if (isCapacitor || isPWA) {
-            // 使用导航栈来追踪历史
-            var navKey = 'cx_nav_stack';
-            var navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
-            var currentPath = window.location.pathname + window.location.search + window.location.hash;
-            var maxNavStack = 12;
-
-            function trimNavStack(stack) {
-                if (stack.length > maxNavStack) {
-                    return stack.slice(stack.length - maxNavStack);
-                }
-                return stack;
-            }
-
-            function handleBack() {
-                if (window.__cxHandlingBack) {
-                    return;
-                }
-                window.__cxHandlingBack = true;
-                // 重新读取栈
-                navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
-                currentPath = window.location.pathname + window.location.search + window.location.hash;
-
-                // 弹出当前页面
-                navStack.pop();
-                sessionStorage.setItem(navKey, JSON.stringify(navStack));
-
-                if (navStack.length > 0) {
-                    if (isCapacitor) {
-                        // 栈里还有页面，后退
-                        window.history.back();
-                    } else {
-                        // PWA 使用栈顶页面跳转
-                        var targetPath = navStack[navStack.length - 1];
-                        if (targetPath) {
-                            window.location.replace(targetPath);
-                        } else {
-                            window.history.back();
-                        }
-                    }
-                } else {
-                    // 栈空了，判断当前页面类型
-                    sessionStorage.removeItem(navKey);
-                    // 标记用户主动返回，防止主页再次跳转
-                    sessionStorage.setItem('cx_user_back', 'true');
-                    var pathname = window.location.pathname;
-
-                    // 如果在训练目录页 (路径包含训练文件夹且是 index.html)
-                    if ((pathname.endsWith('/index.html') || pathname.endsWith('/')) && pathname.split('/').length > 2) {
-                        // 返回主页
-                        window.location.replace('../index.html');
-                    } else {
-                        // 其他页面返回当前目录的 index.html
-                        window.location.replace('./index.html');
-                    }
-                }
-                setTimeout(function() {
-                    window.__cxHandlingBack = false;
-                }, 0);
-            }
-            
-            // 如果栈顶不是当前页面，压入栈
-            if (navStack.length === 0 || navStack[navStack.length - 1] !== currentPath) {
-                navStack.push(currentPath);
-                navStack = trimNavStack(navStack);
-                sessionStorage.setItem(navKey, JSON.stringify(navStack));
-            }
-
-            if (isCapacitor) {
-                window.Capacitor.Plugins.App.addListener('backButton', function(data) {
-                    handleBack();
-                });
-            } else if (isPWA) {
-                // PWA 中拦截返回键，保持与 App 一致的导航逻辑
-                if (window.history && window.history.pushState) {
-                    var state = window.history.state || {};
-                    if (!state.cx) {
-                        window.history.pushState({ cx: true }, '', currentPath);
-                    }
-                }
-                window.addEventListener('popstate', function() {
-                    handleBack();
-                });
-            }
-        }
-    })();
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
     </script>
     
     <!-- 页面记忆功能 -->
