@@ -1007,8 +1007,9 @@
             }
         }
         
-        // 检查是否是用户主动进入主页（有 referrer 说明是从其他页面来的）
-        var isUserNavigation = document.referrer && document.referrer.startsWith(window.location.origin);
+        // 检查导航栈是否有内容（有内容说明是用户主动导航回来的）
+        var navStack = JSON.parse(sessionStorage.getItem('cx_nav_stack') || '[]');
+        var isUserNavigation = navStack.length > 0;
         
         // 用户主动进入主页时，立即保存
         if (isUserNavigation) {
@@ -1057,8 +1058,9 @@
                 var days7 = 7 * 24 * 60 * 60 * 1000;
                 
                 if (timeDiff < days7) {
-                    // 检查是否是从外部链接进入（没有 referrer 或 referrer 不是本站）
-                    var isExternalEntry = !document.referrer || !document.referrer.startsWith(window.location.origin);
+                    // 检查导航栈是否为空（空栈说明是新会话，APP 刚打开）
+                    var navStack = JSON.parse(sessionStorage.getItem('cx_nav_stack') || '[]');
+                    var isNewSession = navStack.length === 0;
                     
                     // 检查是否在主页（支持各种路径格式）
                     var pathname = window.location.pathname;
@@ -1078,15 +1080,15 @@
                                         lastPagePath.includes('/public/index.html');
                     
                     console.log('[页面记忆] 检查条件:', {
-                        isExternalEntry: isExternalEntry,
+                        isNewSession: isNewSession,
                         isMainPage: isMainPage,
                         lastPageIsMain: lastPageIsMain,
-                        referrer: document.referrer,
+                        navStackLength: navStack.length,
                         pathname: window.location.pathname
                     });
                     
-                    // 只在外部进入主页时恢复，且保存的页面不是主页  
-                    if (isExternalEntry && isMainPage && !lastPageIsMain) {
+                    // 只在新会话进入主页时恢复，且保存的页面不是主页  
+                    if (isNewSession && isMainPage && !lastPageIsMain) {
                         console.log('[页面记忆] 恢复上次访问的页面:', lastPage);
                         // 清空导航栈，因为是自动跳转，不应该记录主页
                         sessionStorage.removeItem('cx_nav_stack');
