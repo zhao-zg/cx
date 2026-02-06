@@ -1061,7 +1061,12 @@
                 if (timeDiff < days7) {
                     // 检查导航栈是否为空（空栈说明是新会话，APP 刚打开）
                     var navStack = JSON.parse(sessionStorage.getItem('cx_nav_stack') || '[]');
-                    var isNewSession = navStack.length === 0;
+                    // 检查是否是用户主动返回（不是新会话）
+                    var isUserBack = sessionStorage.getItem('cx_user_back') === 'true';
+                    if (isUserBack) {
+                        sessionStorage.removeItem('cx_user_back');
+                    }
+                    var isNewSession = navStack.length === 0 && !isUserBack;
                     
                     // 检查是否在主页（支持各种路径格式）
                     var pathname = window.location.pathname;

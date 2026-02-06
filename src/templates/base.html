@@ -231,6 +231,8 @@
                 } else {
                     // 栈空了，判断当前页面类型
                     sessionStorage.removeItem(navKey);
+                    // 标记用户主动返回，防止主页再次跳转
+                    sessionStorage.setItem('cx_user_back', 'true');
                     var pathname = window.location.pathname;
                     
                     // 如果在训练目录页 (路径包含训练文件夹且是 index.html)
