@@ -310,8 +310,11 @@
                 });
             } else if (isPWA) {
                 // PWA 中拦截返回键，保持与 App 一致的导航逻辑
-                if (window.history && window.history.replaceState) {
-                    window.history.replaceState({ cx: true }, '', currentPath);
+                if (window.history && window.history.pushState) {
+                    var state = window.history.state || {};
+                    if (!state.cx) {
+                        window.history.pushState({ cx: true }, '', currentPath);
+                    }
                 }
                 window.addEventListener('popstate', function() {
                     handleBack();
