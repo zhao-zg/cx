@@ -50,7 +50,8 @@ class HTMLGenerator:
                 'font-control.js',
                 'highlight.js',
                 'outline.js',
-                'toc-redirect.js'
+                'toc-redirect.js',
+                'nav-stack.js'
             ]
 
             # 复制 js 目录中需要的文件
