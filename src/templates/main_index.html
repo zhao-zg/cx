@@ -310,16 +310,20 @@
     
     // 自动设置 APK 版本（用于离线版）
     (function() {
-        // 检测是否在 Capacitor 环境中
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-            window.Capacitor.Plugins.App.getInfo().then(function(info) {
-                if (info.version) {
-                    localStorage.setItem('cx_apk_version', info.version);
-                    console.log('从 Capacitor 获取版本:', info.version, '包名:', info.id);
-                }
-            }).catch(function(err) {
-                console.log('无法获取 App 信息:', err);
-            });
+        // 检测是否在 Capacitor 或 PWA 环境中
+        var isCapacitor = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+        var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        if (isCapacitor || isPWA) {
+            if (isCapacitor) {
+                window.Capacitor.Plugins.App.getInfo().then(function(info) {
+                    if (info.version) {
+                        localStorage.setItem('cx_apk_version', info.version);
+                        console.log('从 Capacitor 获取版本:', info.version, '包名:', info.id);
+                    }
+                }).catch(function(err) {
+                    console.log('无法获取 App 信息:', err);
+                });
+            }
             
             // 使用导航栈来追踪历史
             var navKey = 'cx_nav_stack';
@@ -343,26 +347,28 @@
             }
             
             // 监听返回键 - 主页退出应用
-            window.Capacitor.Plugins.App.addListener('backButton', function(data) {
-                // 重新读取栈
-                navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
-                
-                // 弹出当前页面
-                navStack.pop();
-                sessionStorage.setItem(navKey, JSON.stringify(navStack));
-                
-                if (navStack.length > 0) {
-                    // 栈里还有页面，后退
-                    window.history.back();
-                } else {
-                    // 栈空了，主页退出应用
-                    sessionStorage.removeItem(navKey);
-                    // 清除页面记忆，下次重进从主页开始
-                    localStorage.removeItem('cx_last_page');
-                    localStorage.removeItem('cx_last_page_time');
-                    window.Capacitor.Plugins.App.exitApp();
-                }
-            });
+            if (isCapacitor) {
+                window.Capacitor.Plugins.App.addListener('backButton', function(data) {
+                    // 重新读取栈
+                    navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
+                    
+                    // 弹出当前页面
+                    navStack.pop();
+                    sessionStorage.setItem(navKey, JSON.stringify(navStack));
+                    
+                    if (navStack.length > 0) {
+                        // 栈里还有页面，后退
+                        window.history.back();
+                    } else {
+                        // 栈空了，主页退出应用
+                        sessionStorage.removeItem(navKey);
+                        // 清除页面记忆，下次重进从主页开始
+                        localStorage.removeItem('cx_last_page');
+                        localStorage.removeItem('cx_last_page_time');
+                        window.Capacitor.Plugins.App.exitApp();
+                    }
+                });
+            }
         }
     })();
     
