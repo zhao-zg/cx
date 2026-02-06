@@ -16,6 +16,18 @@
         return window.location.pathname + window.location.search + window.location.hash;
     }
 
+    function isHomePath(pathname) {
+        return pathname === '/' ||
+            pathname === '/index.html' ||
+            pathname === '' ||
+            pathname === '/android_asset/public/index.html' ||
+            pathname.indexOf('/public/index.html') !== -1;
+    }
+
+    function buildPath(urlObj) {
+        return urlObj.pathname + urlObj.search + urlObj.hash;
+    }
+
     function getNavStack() {
         try {
             return JSON.parse(sessionStorage.getItem(NAV_KEY) || '[]');
@@ -72,7 +84,39 @@
         if (!isCapacitor() && !isPWA()) return;
 
         var currentPath = getCurrentPath();
-        pushIfNeeded(currentPath);
+        var existingStack = getNavStack();
+        if (existingStack.length === 0) {
+            var pathname = window.location.pathname;
+            if (!isHomePath(pathname)) {
+                var isIndex = pathname.endsWith('/index.html') || pathname.endsWith('/');
+                var dirIndexUrl = new URL('./index.html', window.location.href);
+                var homeUrl = new URL('../index.html', dirIndexUrl);
+                var seededStack = [];
+
+                var homePath = buildPath(homeUrl);
+                var dirIndexPath = buildPath(dirIndexUrl);
+
+                if (homePath && homePath !== currentPath) {
+                    seededStack.push(homePath);
+                }
+
+                if (!isIndex) {
+                    if (dirIndexPath && dirIndexPath !== currentPath) {
+                        seededStack.push(dirIndexPath);
+                    }
+                }
+
+                if (seededStack.length === 0 || seededStack[seededStack.length - 1] !== currentPath) {
+                    seededStack.push(currentPath);
+                }
+
+                setNavStack(trimNavStack(seededStack));
+            } else {
+                pushIfNeeded(currentPath);
+            }
+        } else {
+            pushIfNeeded(currentPath);
+        }
 
         function handleBack() {
             var navStack = getNavStack();
