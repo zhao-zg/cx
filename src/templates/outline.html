@@ -2,6 +2,15 @@
 
 {% block title %}第{{ chapter.number }}篇 - 纲目{% endblock %}
 
+{% block head_css %}
+<style>
+/* 展开级别控制按钮 - 关键CSS放head避免FOUC */
+.outline-level-controls{display:flex;justify-content:center;gap:8px;margin:15px 0;padding:10px;background:#f8f9ff;border-radius:8px}
+.level-btn{min-width:60px;min-height:36px;padding:8px 14px;background:#fff;border:1px solid #ddd;border-radius:6px;font-size:14px;font-weight:600;color:#444;cursor:pointer;transition:all 0.2s ease}
+.level-btn.active{background:linear-gradient(135deg,#667eea 0%,#5b7ce6 100%);border-color:#667eea;color:#fff;box-shadow:0 2px 6px rgba(59,130,246,0.3)}
+</style>
+{% endblock %}
+
 {% block content %}
 {% from "outline_macro.html" import render_outline, render_section %}
 <div class="outline-page">
@@ -38,74 +47,13 @@
 </div>
 
 <style>
-.outline-page {
-    padding: 5px;
-}
-
-/* 展开级别控制按钮 */
-.outline-level-controls {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin: 15px 0;
-    padding: 10px;
-    background: #f8f9ff;
-    border-radius: 8px;
-}
-
-.level-btn {
-    min-width: 60px;
-    min-height: 36px;
-    padding: 8px 14px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #444;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.level-btn:active {
-    transform: scale(0.95);
-}
-
-.level-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #5b7ce6 100%);
-    border-color: #667eea;
-    color: #fff;
-    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
-}
-
-.outline-content {
-    margin-top: 20px;
-}
-
-.subsections {
-    margin-left: 0;
-    display: block;
-}
-
-/* 章节级别经文样式 */
-.scripture-section {
-    margin: 15px 0;
-    padding: 12px 15px;
-    background: #f8f9ff;
-    border-radius: 8px;
-}
-
-.chapter-scripture-content {
-    margin-top: 12px;
-    margin-left: 0;
-    background: white;
-    border: 1px solid rgba(59, 130, 246, 0.2);
-}
-
-/* 经文内容可点击收起 */
-.scripture-content {
-    cursor: pointer;
-}
+.outline-page{padding:5px}
+.level-btn:active{transform:scale(0.95)}
+.outline-content{margin-top:20px}
+.subsections{margin-left:0;display:block}
+.scripture-section{margin:15px 0;padding:12px 15px;background:#f8f9ff;border-radius:8px}
+.chapter-scripture-content{margin-top:12px;margin-left:0;background:white;border:1px solid rgba(59,130,246,0.2)}
+.scripture-content{cursor:pointer}
 </style>
 
 <script src="js/outline.js"></script>
