@@ -127,9 +127,6 @@
             background: #48bb78;
         }
         
-        .mini-cache-btn.refresh {
-            background: #ed8936;
-        }
         
         .cache-progress {
             font-size: 10px;
@@ -274,6 +271,19 @@
             </button>
             <div class="cache-status" id="installStatus"></div>
         </div>
+
+        <!-- 数据工具区域 -->
+        <div class="cache-section" id="dataToolsSection" style="display: none;">
+            <button class="cache-btn" id="clearDataBtn">
+                <span class="cache-icon">🧹</span>
+                <span class="cache-text">清理数据</span>
+            </button>
+            <button class="cache-btn" id="cacheAllBtn">
+                <span class="cache-icon">📦</span>
+                <span class="cache-text">缓存所有数据</span>
+            </button>
+            <div class="cache-status" id="dataToolsStatus"></div>
+        </div>
         
         <!-- 检查更新按钮（仅在 APP 内显示） -->
         <div class="cache-section" id="updateSection" style="display: none;">
@@ -403,6 +413,7 @@
             if (!grid) return;
             
             var trainings = data.trainings || [];
+            window.__cxTrainings = trainings;
             if (trainings.length === 0) {
                 grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">暂无训练内容</div>';
                 return;
@@ -1304,11 +1315,10 @@
                         
                         if (cachedCount === total) {
                             // 全部已缓存
-                            btn.querySelector('.cache-icon').textContent = '🔄';
-                            btn.querySelector('.cache-text').textContent = '刷新';
-                            btn.classList.add('refresh');
+                            btn.querySelector('.cache-icon').textContent = '✅';
+                            btn.querySelector('.cache-text').textContent = '已缓存';
                             btn.classList.remove('cached');
-                            if (progressSpan) progressSpan.textContent = '已缓存';
+                            if (progressSpan) progressSpan.textContent = '';
                         } else if (cachedCount > 0) {
                             // 部分缓存
                             btn.querySelector('.cache-icon').textContent = '📥';
@@ -1325,9 +1335,6 @@
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
-                // 如果是刷新按钮，先清除旧缓存
-                var isRefresh = btn.classList.contains('refresh');
                 
                 btn.disabled = true;
                 var resources = getTrainingResources(path, chapters, images);
@@ -1374,9 +1381,8 @@
                             return successCount;
                         });
                     }).then(function(successCount) {
-                        btn.querySelector('.cache-icon').textContent = '🔄';
-                        btn.querySelector('.cache-text').textContent = '刷新';
-                        btn.classList.add('refresh');
+                        btn.querySelector('.cache-icon').textContent = '✅';
+                        btn.querySelector('.cache-text').textContent = '已缓存';
                         btn.classList.remove('cached');
                         btn.disabled = false;
                         var failedCount = total - successCount;
@@ -1384,7 +1390,7 @@
                             if (failedCount > 0) {
                                 progressSpan.textContent = '失败 ' + failedCount;
                             } else {
-                                progressSpan.textContent = '已缓存';
+                                progressSpan.textContent = '';
                             }
                         }
                     }).catch(function(err) {
@@ -1399,13 +1405,86 @@
                     });
                 };
                 
-                if (isRefresh) {
-                    // 刷新逻辑（省略详细代码，保持原有逻辑）
-                    startCache();
-                } else {
-                    startCache();
-                }
+                startCache();
             });
+        });
+    }
+
+    // 缓存所有训练资源
+    function cacheAllTrainings(statusEl) {
+        if (!('caches' in window)) {
+            if (statusEl) {
+                statusEl.textContent = '当前环境不支持缓存';
+                statusEl.className = 'cache-status error';
+            }
+            return Promise.resolve();
+        }
+
+        var trainings = window.__cxTrainings || [];
+        if (!trainings.length) {
+            if (statusEl) {
+                statusEl.textContent = '训练列表尚未加载';
+                statusEl.className = 'cache-status error';
+            }
+            return Promise.resolve();
+        }
+
+        var totalTrainings = trainings.length;
+        var currentIndex = 0;
+        var totalResources = 0;
+        var cachedResources = 0;
+
+        trainings.forEach(function(training) {
+            totalResources += getTrainingResources(training.path, training.chapter_count, training.images || []).length;
+        });
+
+        if (statusEl) {
+            statusEl.textContent = '开始缓存全部训练...';
+            statusEl.className = 'cache-status';
+        }
+
+        return trainings.reduce(function(promise, training) {
+            return promise.then(function() {
+                currentIndex++;
+                var resources = getTrainingResources(training.path, training.chapter_count, training.images || []);
+                var cacheKey = 'cx-' + training.path;
+
+                if (statusEl) {
+                    statusEl.textContent = '缓存中：' + training.title + '（' + currentIndex + '/' + totalTrainings + '）';
+                    statusEl.className = 'cache-status';
+                }
+
+                return caches.open(cacheKey).then(function(cache) {
+                    var tasks = resources.map(function(url) {
+                        return fetch(url, { redirect: 'follow', cache: 'no-cache' })
+                            .then(function(response) {
+                                if (response.ok && response.status >= 200 && response.status < 300) {
+                                    cachedResources++;
+                                    if (statusEl) {
+                                        var percent = totalResources > 0 ? Math.round((cachedResources / totalResources) * 100) : 0;
+                                        statusEl.textContent = '缓存进度：' + percent + '%';
+                                    }
+                                    return cache.put(response.url, response.clone());
+                                }
+                            })
+                            .catch(function() {
+                                cachedResources++;
+                            });
+                    });
+                    return Promise.all(tasks);
+                });
+            });
+        }, Promise.resolve()).then(function() {
+            if (statusEl) {
+                statusEl.textContent = '✓ 全部缓存完成';
+                statusEl.className = 'cache-status success';
+            }
+        }).catch(function(err) {
+            console.error('缓存所有训练失败:', err);
+            if (statusEl) {
+                statusEl.textContent = '⚠ 缓存中断，请重试';
+                statusEl.className = 'cache-status warning';
+            }
         });
     }
     
@@ -1414,6 +1493,10 @@
         var installBtn = document.getElementById('installBtn');
         var androidApkBtn = document.getElementById('androidApkBtn');
         var installStatus = document.getElementById('installStatus');
+        var dataToolsSection = document.getElementById('dataToolsSection');
+        var clearDataBtn = document.getElementById('clearDataBtn');
+        var cacheAllBtn = document.getElementById('cacheAllBtn');
+        var dataToolsStatus = document.getElementById('dataToolsStatus');
         
         if (!('serviceWorker' in navigator)) {
             return;
@@ -1466,6 +1549,10 @@
             document.querySelectorAll('.training-cache').forEach(function(el) {
                 el.classList.add('show');
             });
+            if (dataToolsSection) {
+                dataToolsSection.style.display = 'flex';
+                dataToolsSection.classList.add('show');
+            }
         } else {
             // 非 PWA 模式，显示安装区域
             installSection.classList.add('show');
@@ -1528,9 +1615,7 @@
                 longPressTimer = setTimeout(function() {
                     isLongPress = true;
                     // 触发清理缓存
-                    if (confirm('确定要清理所有缓存和记忆吗？\n\n这将删除：\n• 所有训练的离线缓存\n• 页面记忆\n• 字体大小设置\n• 语速设置\n• 划线标记\n\n清理后需要重新缓存训练内容。')) {
-                        clearAllCachesAndMemory();
-                    }
+                    promptClearData();
                 }, 2000); // 长按2秒触发
             });
             
@@ -1559,9 +1644,7 @@
                 isLongPress = false;
                 longPressTimer = setTimeout(function() {
                     isLongPress = true;
-                    if (confirm('确定要清理所有缓存和记忆吗？\n\n这将删除：\n• 所有训练的离线缓存\n• 页面记忆\n• 字体大小设置\n• 语速设置\n• 划线标记\n\n清理后需要重新缓存训练内容。')) {
-                        clearAllCachesAndMemory();
-                    }
+                    promptClearData();
                 }, 2000);
             });
             
@@ -1582,15 +1665,44 @@
                 isLongPress = false;
             });
         }
+
+        function promptClearData() {
+            var ok = confirm('确定要清理所有数据吗？\n\n这将删除：\n• 所有训练的离线缓存\n• 页面记忆\n• 字体大小设置\n• 语速设置\n\n下一步可选择是否保留划线笔记。');
+            if (!ok) return;
+            var keepNotes = confirm('是否保留划线笔记？\n\n“确定”= 保留笔记\n“取消”= 同时清理笔记');
+            clearAllCachesAndMemory({ keepNotes: keepNotes });
+        }
+
+        if (clearDataBtn) {
+            clearDataBtn.addEventListener('click', function() {
+                promptClearData();
+            });
+        }
+
+        if (cacheAllBtn) {
+            cacheAllBtn.addEventListener('click', function() {
+                cacheAllBtn.disabled = true;
+                cacheAllTrainings(dataToolsStatus).finally(function() {
+                    cacheAllBtn.disabled = false;
+                });
+            });
+        }
         
         // 清理所有缓存和记忆的函数
-        function clearAllCachesAndMemory() {
+        function clearAllCachesAndMemory(options) {
+            options = options || {};
+            var keepNotes = options.keepNotes === true;
             console.log('[清理] 开始清理所有缓存和记忆');
             
             var installStatus = document.getElementById('installStatus');
+            var dataToolsStatus = document.getElementById('dataToolsStatus');
             if (installStatus) {
                 installStatus.textContent = '正在清理所有缓存和记忆...';
                 installStatus.className = 'cache-status';
+            }
+            if (dataToolsStatus) {
+                dataToolsStatus.textContent = '正在清理数据...';
+                dataToolsStatus.className = 'cache-status';
             }
             
             var cleanupSteps = [];
@@ -1603,6 +1715,9 @@
                         var key = localStorage.key(i);
                         // 清理所有 cx_ 开头的键
                         if (key && key.startsWith('cx_')) {
+                            if (keepNotes && key === 'cx_highlights') {
+                                continue;
+                            }
                             keysToRemove.push(key);
                         }
                         // 清理字体和语速设置
@@ -1704,24 +1819,32 @@
                 console.log('[清理] 所有缓存和记忆已清理完成');
                 
                 if (installStatus) {
-                    installStatus.textContent = '✓ 清理完成！页面将在 3 秒后刷新';
+                    installStatus.textContent = '✓ 清理完成！即将刷新';
                     installStatus.className = 'cache-status success';
                 }
+                if (dataToolsStatus) {
+                    dataToolsStatus.textContent = '✓ 清理完成！即将刷新';
+                    dataToolsStatus.className = 'cache-status success';
+                }
                 
-                // 刷新页面
+                // 立即刷新页面
                 setTimeout(function() {
                     window.location.reload(true);
-                }, 3000);
+                }, 0);
             }).catch(function(err) {
                 console.error('[清理] 清理过程出错:', err);
                 if (installStatus) {
-                    installStatus.textContent = '⚠ 部分清理完成，页面将在 3 秒后刷新';
+                    installStatus.textContent = '⚠ 部分清理完成，页面即将刷新';
                     installStatus.className = 'cache-status warning';
+                }
+                if (dataToolsStatus) {
+                    dataToolsStatus.textContent = '⚠ 部分清理完成，页面即将刷新';
+                    dataToolsStatus.className = 'cache-status warning';
                 }
                 // 即使出错也刷新页面
                 setTimeout(function() {
                     window.location.reload(true);
-                }, 3000);
+                }, 0);
             });
         }
     });

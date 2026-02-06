@@ -81,16 +81,11 @@ self.addEventListener('fetch', event => {
   const normalizedUrl = normalizeUrl(request.url);
 
   event.respondWith((async () => {
-    // 1. 强制网络策略
-    if (request.cache === 'no-cache' || request.cache === 'reload') {
-      return fetchAndCache(request, normalizedUrl);
-    }
-
-    // 2. 缓存匹配 (尝试原始 URL 和规范化 URL)
+    // 1. 缓存优先 (尝试原始 URL 和规范化 URL)
     const cached = await caches.match(request) || await caches.match(normalizedUrl);
     if (cached) return cached;
 
-    // 3. 缓存未命中
+    // 2. 缓存未命中
     return fetchAndCache(request, normalizedUrl);
   })());
 });
