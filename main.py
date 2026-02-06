@@ -354,16 +354,6 @@ def generate_main_index(config, batch_results):
     if os.path.exists(icon_src):
         shutil.copy2(icon_src, icon_dst)
 
-    # 复制 css 目录（共享变量等样式）
-    css_src = os.path.join('src', 'static', 'css')
-    css_dst = os.path.join(output_dir, 'css')
-    if os.path.isdir(css_src):
-        os.makedirs(css_dst, exist_ok=True)
-        for filename in os.listdir(css_src):
-            src_file = os.path.join(css_src, filename)
-            dst_file = os.path.join(css_dst, filename)
-            if os.path.isfile(src_file):
-                shutil.copy2(src_file, dst_file)
     
     # 复制 vendor 目录（包含 jszip 等库）
     vendor_src = os.path.join('src', 'static', 'js', 'vendor')

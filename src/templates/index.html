@@ -46,24 +46,5 @@
 @media(min-width:768px){.back-home-wrapper{margin-bottom:24px;padding-bottom:18px}.back-home{font-size:15px;padding:10px 16px 10px 12px}.back-home:hover{background:#eef1ff;border-color:var(--brand);transform:translateX(-2px);box-shadow:0 2px 6px rgba(102,126,234,0.15)}.back-home:hover .back-icon{transform:translateX(-2px)}.back-icon{width:20px;height:20px}.toc-list{gap:0;border-radius:12px}.toc-item{padding:16px 20px;gap:14px}.toc-item:hover{background:#f0f4ff}.toc-num{font-size:1em}.toc-title{font-size:1.0625em}}
 </style>
 
-<script>
-// 根据星期几决定跳转目标
-document.addEventListener('DOMContentLoaded', function() {
-    var dayOfWeek = new Date().getDay(); // 0=周日, 1=周一, ..., 6=周六
-    var dayAnchors = ['', 'day1', 'day2', 'day3', 'day4', 'day5', 'day6']; // 周一到周六
-    
-    var tocItems = document.querySelectorAll('.toc-item');
-    tocItems.forEach(function(item) {
-        var chapterNum = item.getAttribute('data-chapter');
-        
-        if (dayOfWeek === 0) {
-            // 周日：跳转到纲目页
-            item.href = chapterNum + '_cv.htm';
-        } else {
-            // 周一到周六：跳转到晨兴页对应的天
-            item.href = chapterNum + '_cx.htm#' + dayAnchors[dayOfWeek];
-        }
-    });
-});
-</script>
+<script src="js/toc-redirect.js" defer></script>
 {% endblock %}
