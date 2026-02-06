@@ -234,7 +234,7 @@
                     var pathname = window.location.pathname;
                     
                     // 如果在训练目录页 (路径包含训练文件夹且是 index.html)
-                    if (pathname.includes('/index.html') && pathname.split('/').length > 2) {
+                    if ((pathname.endsWith('/index.html') || pathname.endsWith('/'))&& pathname.split('/').length > 2) {
                         // 返回主页
                         window.location.href = '../index.html';
                     } else {
