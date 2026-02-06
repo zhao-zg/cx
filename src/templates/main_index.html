@@ -13,10 +13,11 @@
     <link rel="preload" href="trainings.json" as="fetch" crossorigin>
     <title>特会信息合集</title>
     <style>
+        :root{--brand:#667eea;--brand-dark:#5B67D4;--bg:linear-gradient(135deg,#A5B4FC,#667EEA,#5B67D4)}
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;color:#2d3748;background:#f7fafc;min-height:100vh;padding:12px}
         .container{max-width:800px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden}
-        .header{background:#667eea;color:#fff;text-align:center;padding:20px 16px}
+        .header{background:var(--brand);color:#fff;text-align:center;padding:20px 16px}
         .header h1{font-size:25px;margin-bottom:8px;font-weight:600}
         .header p{font-size:16px;opacity:.9}
         .content{padding:0}
@@ -36,7 +37,7 @@
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
         .training-card .year-season {
             font-size: 17px;
-            color: #667eea;
+            color: var(--brand);
             font-weight: 600;
             flex-shrink: 0;
             line-height: 1.3;
@@ -80,7 +81,7 @@
         }
         
         .training-card:hover .arrow {
-            color: #667eea;
+            color: var(--brand);
             transform: translateX(2px);
         }
         
@@ -102,7 +103,7 @@
         
         .mini-cache-btn {
             padding: 6px 10px;
-            background: linear-gradient(135deg, #667eea 0%, #5b7ce6 100%);
+            background: var(--bg);
             color: #fff;
             border: none;
             border-radius: 4px;
@@ -170,7 +171,7 @@
             align-items: center;
             gap: 6px;
             padding: 10px 16px;
-            background: linear-gradient(135deg, #667eea 0%, #5b7ce6 100%);
+            background: var(--bg);
             color: #fff;
             border: none;
             border-radius: 8px;
@@ -276,7 +277,7 @@
         
         <!-- 检查更新按钮（仅在 APP 内显示） -->
         <div class="cache-section" id="updateSection" style="display: none;">
-            <button class="cache-btn" id="checkUpdateBtn" style="background: linear-gradient(135deg, #667eea 0%, #5b7ce6 100%);">
+            <button class="cache-btn" id="checkUpdateBtn">
                 <span class="cache-icon">🔄</span>
                 <span class="cache-text">检查更新</span>
             </button>
@@ -298,6 +299,15 @@
     <script src="js/app-update.js"></script>
     
     <script>
+    // 主题颜色常量 - 用于动态生成的 HTML
+    var THEME = {
+        brand: '#667eea',
+        brandDark: '#5b7ce6',
+        bg: 'linear-gradient(135deg, #667eea 0%, #5b7ce6 100%)',
+        success: '#48bb78',
+        successDark: '#38a169'
+    };
+    
     // 自动设置 APK 版本（用于离线版）
     (function() {
         // 检测是否在 Capacitor 环境中
@@ -441,7 +451,7 @@
             grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #e53e3e;">';
             grid.innerHTML += '<div style="font-size: 24px; margin-bottom: 10px;">❌</div>';
             grid.innerHTML += '<div>加载训练列表失败</div>';
-            grid.innerHTML += '<button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">重试</button>';
+            grid.innerHTML += '<button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: ' + THEME.brand + '; color: white; border: none; border-radius: 6px; cursor: pointer;">重试</button>';
             grid.innerHTML += '</div>';
         }
     })();
@@ -539,13 +549,13 @@
             // 创建对话框
             var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="cloudflareUpdateDialog">';
             html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto;">';
-            html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px; text-align: center;">🔄 检查更新</h3>';
+            html += '<h3 style="color: ' + THEME.brand + '; margin-bottom: 15px; font-size: 20px; text-align: center;">🔄 检查更新</h3>';
             
             // APK 版本检查区域
             html += '<div style="margin-bottom: 20px; padding: 15px; background: #f8f9ff; border-radius: 8px; border: 1px solid #e0e4ff;">';
-            html += '<h4 style="color: #667eea; margin-bottom: 10px; font-size: 16px;">📱 应用版本</h4>';
+            html += '<h4 style="color: ' + THEME.brand + '; margin-bottom: 10px; font-size: 16px;">📱 应用版本</h4>';
             html += '<div id="cfCheckStatus" style="color: #666; font-size: 14px;">正在检查...</div>';
-            html += '<button id="cfUpdateBtn" style="display: none; width: 100%; padding: 10px; margin-top: 10px; background: linear-gradient(135deg, #667eea 0%, #5b7ce6 100%); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">立即更新应用</button>';
+            html += '<button id="cfUpdateBtn" style="display: none; width: 100%; padding: 10px; margin-top: 10px; background: ' + THEME.bg + '; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">立即更新应用</button>';
             html += '</div>';
             
             html += '<button style="width: 100%; padding: 12px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="document.getElementById(\'cloudflareUpdateDialog\').remove();">关闭</button>';
@@ -629,13 +639,13 @@
             // 创建对话框
             var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="githubUpdateDialog">';
             html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto;">';
-            html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px; text-align: center;">🔄 检查更新 (GitHub)</h3>';
+            html += '<h3 style="color: ' + THEME.brand + '; margin-bottom: 15px; font-size: 20px; text-align: center;">🔄 检查更新 (GitHub)</h3>';
             
             // APK 版本检查区域
             html += '<div style="margin-bottom: 20px; padding: 15px; background: #f8f9ff; border-radius: 8px; border: 1px solid #e0e4ff;">';
-            html += '<h4 style="color: #667eea; margin-bottom: 10px; font-size: 16px;">📱 应用版本</h4>';
+            html += '<h4 style="color: ' + THEME.brand + '; margin-bottom: 10px; font-size: 16px;">📱 应用版本</h4>';
             html += '<div id="ghCheckStatus" style="color: #666; font-size: 14px;">正在检查...</div>';
-            html += '<button id="ghUpdateBtn" style="display: none; width: 100%; padding: 10px; margin-top: 10px; background: linear-gradient(135deg, #667eea 0%, #5b7ce6 100%); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">立即更新应用</button>';
+            html += '<button id="ghUpdateBtn" style="display: none; width: 100%; padding: 10px; margin-top: 10px; background: ' + THEME.bg + '; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">立即更新应用</button>';
             html += '</div>';
             
             html += '<button style="width: 100%; padding: 12px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="document.getElementById(\'githubUpdateDialog\').remove();">关闭</button>';
@@ -876,7 +886,7 @@
         
             var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 20px;" id="' + dialogId + '">';
             html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%;">';
-            html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 18px; text-align: center;">📱 正在下载 APK</h3>';
+            html += '<h3 style="color: ' + THEME.brand + '; margin-bottom: 15px; font-size: 18px; text-align: center;">📱 正在下载 APK</h3>';
             html += '<p style="color: #666; margin-bottom: 10px; text-align: center; font-size: 14px;" id="apkProgressMessage">' + message + '</p>';
             
             // 速度和已下载信息
@@ -891,7 +901,7 @@
             
             // 进度条
             html += '<div style="background: #e2e8f0; border-radius: 10px; height: 20px; overflow: hidden; margin-bottom: 10px;">';
-            html += '<div id="apkProgressBar" style="background: linear-gradient(135deg, #667eea 0%, #5b7ce6 100%); height: 100%; width: ' + progress + '%; transition: width 0.3s;"></div>';
+            html += '<div id="apkProgressBar" style="background: ' + THEME.bg + '; height: 100%; width: ' + progress + '%; transition: width 0.3s;"></div>';
             html += '</div>';
             
             html += '<p style="color: #999; text-align: center; font-size: 12px;" id="apkProgressPercent">' + progress + '%</p>';
@@ -939,13 +949,13 @@
             
             // 标题根据版本情况变化
             if (isVersionUnknown) {
-                html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px;">📱 APK 下载</h3>';
+                html += '<h3 style="color: ' + THEME.brand + '; margin-bottom: 15px; font-size: 20px;">📱 APK 下载</h3>';
             } else if (comparison > 0) {
-                html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px;">🎉 发现新版本</h3>';
+                html += '<h3 style="color: ' + THEME.brand + '; margin-bottom: 15px; font-size: 20px;">🎉 发现新版本</h3>';
             } else if (comparison === 0) {
-                html += '<h3 style="color: #48bb78; margin-bottom: 15px; font-size: 20px;">✅ 已是最新版本</h3>';
+                html += '<h3 style="color: ' + THEME.success + '; margin-bottom: 15px; font-size: 20px;">✅ 已是最新版本</h3>';
             } else {
-                html += '<h3 style="color: #667eea; margin-bottom: 15px; font-size: 20px;">📱 版本信息</h3>';
+                html += '<h3 style="color: ' + THEME.brand + '; margin-bottom: 15px; font-size: 20px;">📱 版本信息</h3>';
             }
             
             html += '<div style="color: #333; margin-bottom: 20px; font-size: 14px; line-height: 1.6;">';
@@ -960,7 +970,7 @@
                 html += '⚠️ 无法获取当前版本号<br>建议下载最新版本';
                 html += '</div>';
             } else if (comparison === 0) {
-                html += '<div style="background: #e6f7ed; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: #48bb78; margin-bottom: 15px;">';
+                html += '<div style="background: #e6f7ed; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: ' + THEME.success + '; margin-bottom: 15px;">';
                 html += '✨ 您使用的已经是最新版本';
                 html += '</div>';
             } else if (comparison > 0) {
@@ -977,12 +987,12 @@
             if (isVersionUnknown || comparison > 0) {
                 // 版本未知或有新版本，显示"立即下载/更新"按钮
                 var btnText = isVersionUnknown ? '💾 立即下载' : '💾 立即更新';
-                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="downloadApk(\'' + apk.browser_download_url + '\')">';
+                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, ' + THEME.success + ' 0%, ' + THEME.successDark + ' 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="downloadApk(\'' + apk.browser_download_url + '\')">';
                 html += btnText + ' (' + (apk.size / 1024 / 1024).toFixed(1) + ' MB)';
                 html += '</button>';
             } else {
                 // 已是最新版本或更新的版本，显示"重新下载"按钮
-                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, #667eea 0%, #5b7ce6 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="downloadApk(\'' + apk.browser_download_url + '\')">';
+                html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: ' + THEME.bg + '; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="downloadApk(\'' + apk.browser_download_url + '\')">';
                 html += '💾 重新下载 (' + (apk.size / 1024 / 1024).toFixed(1) + ' MB)';
                 html += '</button>';
             }

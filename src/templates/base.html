@@ -11,18 +11,22 @@
     <title>{% block title %}{{ training.title }}{% endblock %}</title>
     <!-- 预加载关键资源 -->
     <link rel="preload" href="js/speech.js" as="script">
-    {% block head_css %}{% endblock %}
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
     <style>
-        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         :root{
             --brand:#667eea;
-            --bg:linear-gradient(135deg,#667eea,#5b7ce6);
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#A5B4FC,#667EEA,#5B67D4);
             --surface:#fff;
             --muted:#f8f9fa;
             --border:#e6e8f0;
             --text:#1f2937;
             --text-muted:#6b7280;
         }
+    </style>
+    {% block head_css %}{% endblock %}
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;color:var(--text);background:#f7fafc;min-height:100vh;padding:8px 8px 70px;font-size:18px;-webkit-font-smoothing:antialiased}
         .container{max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-radius:12px}
         .header{text-align:center;margin-bottom:20px;padding:16px 12px;background:var(--brand);border-radius:8px}
@@ -46,7 +50,7 @@
         .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
         .highlight-color-btn:hover{transform:scale(1.1)}
         .highlight-color-btn:active{transform:scale(.95)}
-        .highlight-clear-btn{padding:6px 12px;background:linear-gradient(135deg,#667eea,#5b7ce6);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
         .highlight-clear-btn:hover{opacity:.9}
         .highlight-clear-btn:active{transform:scale(.95)}
         @media(max-width:768px){
