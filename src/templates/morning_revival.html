@@ -309,12 +309,12 @@ if (document.readyState === 'loading') {
 /* 纲目和内容样式 */
 .outline-section{margin:18px 0}
 .outline-section .scripture-content{cursor:pointer}
-.content-separator{height:1px;background:#ddd;margin:20px 0}
+.content-separator{height:1px;background:var(--border);margin:20px 0}
 .feeding-section,.reading-section{margin:20px 0}
-.feeding-section h4,.reading-section h4{font-size:1.05em;font-weight:600;color:#2d3748;margin:16px 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0}
-.feeding-scripture{margin:10px 0;padding:10px 14px;background:#f7f8ff;border-left:3px solid var(--brand);border-radius:4px;font-size:1.02em;color:#333;line-height:1.7;font-weight:550;text-align:justify}
+.feeding-section h4,.reading-section h4{font-size:1.05em;font-weight:600;color:var(--heading);margin:16px 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0}
+.feeding-scripture{margin:10px 0;padding:10px 14px;background:#f5f6f9;border-left:3px solid var(--brand);border-radius:6px;font-size:1.01em;color:var(--text);line-height:1.8;font-weight:550;text-align:justify;letter-spacing:0.1px}
 .prev-btn:active:not(:disabled),.next-btn:active:not(:disabled){background:var(--bg);color:#fff;border-color:rgba(102,126,234,.55)}
-.no-content{color:#999;font-style:italic;text-align:center;padding:40px 20px}
+.no-content{color:var(--text-muted);font-style:italic;text-align:center;padding:40px 20px}
 @media(min-width:768px){.feeding-section h4,.reading-section h4{font-size:1.08em}.feeding-scripture{font-size:1.05em;padding:12px 16px}}
 @media(max-width:768px){.day-navigation{gap:5px}.day-link{padding:5px 10px;font-size:0.8125em}.page-controls{margin:20px 0 10px}.prev-btn,.next-btn{padding:8px 12px;font-size:14px}.btn-text{display:none}}
 </style>

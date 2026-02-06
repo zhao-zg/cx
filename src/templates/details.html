@@ -57,26 +57,26 @@
     min-width: 46px;
     min-height: 46px;
     padding: 10px 14px;
-    background: linear-gradient(135deg, #4a8fd9 0%, #3d7fc8 100%);
-    border: none;
-    border-radius: 23px;
+    background: #f0f4ff;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-md);
     font-size: 15px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--brand);
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     -webkit-tap-highlight-color: transparent;
-    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+    box-shadow: var(--shadow-sm);
 }
 
 .font-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
 }
 
 .font-btn:active {
     transform: scale(0.95);
-    box-shadow: 0 1px 4px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
 .details-content {
@@ -93,12 +93,12 @@
     font-weight: 600;
     margin: 20px 0 12px 0;
     line-height: 1.8;
-    color: #2d3748;
+    color: var(--heading);
 }
 
 .section-level1 {
     font-size: 1em;
-    color: #4a8fd9;
+    color: var(--heading);
     border-bottom: 2px solid #e2e8f0;
     padding-bottom: 10px;
 }
@@ -106,26 +106,28 @@
 .section-level2 {
     font-size: 0.9375em;
     padding-left: 10px;
+    color: var(--heading-soft);
     border-left: 3px solid #4a8fd9;
 }
 
 .section-level3 {
     font-size: 0.9375em;
     padding-left: 16px;
+    color: var(--text-soft);
 }
 
 .section-level4 {
     font-size: 0.9375em;
     padding-left: 24px;
-    color: #444;
+    color: var(--text-soft);
 }
 
 .content-text {
     margin: 14px 0;
     padding-left: 14px;
-    color: #333;
+    color: var(--text);
     text-indent: 2em;
-    line-height: 2.0;
+    line-height: 1.8;
     font-size: 0.9375em;
 }
 

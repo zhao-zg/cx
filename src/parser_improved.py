@@ -140,7 +140,7 @@ class ImprovedParser:
     LEVEL3_PATTERN = re.compile(r'^(\d+)[　\s]+(.*)')
     # 经文格式：太5:3	经文内容... 或 腓2:5	经文内容... 或 太五3	经文内容...
     # 支持两种格式: 1) 书卷+中文数字+阿拉伯数字 (太五3), 2) 书卷+阿拉伯数字 (腓2:5)
-    VERSE_PATTERN = re.compile(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼约犹启](?:[一二三四五六七八九十后前]\d+|\d+):\d+)[　\s\t]+(.+)')
+    VERSE_PATTERN = re.compile(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼约犹启来](?:[一二三四五六七八九十后前]\d+|\d+):\d+)[　\s\t]+(.+)')
     
     def __init__(self, output_dir: str = 'output'):
         self.output_dir = output_dir
@@ -215,7 +215,7 @@ class ImprovedParser:
         返回: (book, start_verse, end_verse, is_omitted)
         """
         # 匹配 "腓2:5~11 从略。" 或 "腓2:5~11" - 支持两种格式
-        range_match = re.match(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提多彼约犹启](?:[一二三四五六七八九十后前]\d+|\d+)):(\d+)~(\d+)', text)
+        range_match = re.match(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提多彼约犹启来](?:[一二三四五六七八九十后前]\d+|\d+)):(\d+)~(\d+)', text)
         if range_match:
             book = range_match.group(1)
             start = int(range_match.group(2))
@@ -224,7 +224,7 @@ class ImprovedParser:
             return (book, start, end, is_omitted)
         
         # 匹配单节 "腓2:5"
-        single_match = re.match(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提多彼约犹启](?:[一二三四五六七八九十后前]\d+|\d+)):(\d+)', text)
+        single_match = re.match(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提多彼约犹启来](?:[一二三四五六七八九十后前]\d+|\d+)):(\d+)', text)
         if single_match:
             book = single_match.group(1)
             verse = int(single_match.group(2))
