@@ -66,46 +66,6 @@
             text-overflow: ellipsis;
             display: -webkit-box;
             -webkit-line-clamp: 2;
-            line-clamp: 2;
-            -webkit-box-orient: vertical;
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .training-card .arrow {
-            color: #cbd5e0;
-            font-size: 16px;
-            flex-shrink: 0;
-            line-height: 1;
-            transition: color 0.2s, transform 0.2s;
-        }
-        
-        .training-card:hover .arrow {
-            color: var(--brand);
-            transform: translateX(2px);
-        }
-        
-        .training-cache {
-            padding: 12px 16px;
-            background: #fafbfc;
-            display: none;
-            border-left: 1px solid #e8e8e8;
-            flex-shrink: 0;
-        }
-        
-        .training-cache.show {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-        }
-        
-        .mini-cache-btn {
-            padding: 6px 10px;
-            background: var(--bg);
-            color: #fff;
-            border: none;
             border-radius: 4px;
             font-size: 11px;
             font-weight: 600;
@@ -114,27 +74,7 @@
             white-space: nowrap;
         }
         
-        .mini-cache-btn:active {
-            transform: scale(0.97);
-        }
         
-        .mini-cache-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        .mini-cache-btn.cached {
-            background: #48bb78;
-        }
-        
-        
-        .cache-progress {
-            font-size: 10px;
-            color: #666;
-            text-align: center;
-            max-width: 80px;
-            line-height: 1.2;
-        }
         
         .footer {
             text-align: center;
@@ -280,7 +220,7 @@
             </button>
             <button class="cache-btn" id="cacheAllBtn">
                 <span class="cache-icon">📦</span>
-                <span class="cache-text">缓存所有数据</span>
+                <span class="cache-text">缓存数据</span>
             </button>
             <div class="cache-status" id="dataToolsStatus"></div>
         </div>
@@ -435,37 +375,20 @@
                 html += '</div>';
                 html += '</div>';
                 html += '</a>';
-                html += '<div class="training-cache">';
-                html += '<button class="mini-cache-btn" data-training="' + training.path + '" data-chapters="' + training.chapter_count + '" data-images=\'' + JSON.stringify(training.images || []) + '\'>';
-                html += '<span class="cache-icon">📥</span> <span class="cache-text">缓存</span>';
-                html += '</button>';
-                html += '<span class="cache-progress"></span>';
-                html += '</div>';
                 html += '</div>';
                 html += '</div>';
             });
             
             grid.innerHTML = html;
             
-            // 如果在 PWA 模式下，显示缓存按钮
+            // PWA 模式下仅显示数据工具区
             var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
             if (isStandalone) {
-                document.querySelectorAll('.training-cache').forEach(function(el) {
-                    el.classList.add('show');
-                });
-            }
-            
-            // 重新绑定缓存按钮事件（在 PWA 安装功能中）
-            // 检查函数是否已定义（可能在 DOMContentLoaded 之前调用）
-            if (typeof initCacheButtons === 'function') {
-                initCacheButtons();
-            } else {
-                // 等待 DOMContentLoaded 后再初始化
-                document.addEventListener('DOMContentLoaded', function() {
-                    if (typeof initCacheButtons === 'function') {
-                        initCacheButtons();
-                    }
-                });
+                var dataToolsSection = document.getElementById('dataToolsSection');
+                if (dataToolsSection) {
+                    dataToolsSection.style.display = 'flex';
+                    dataToolsSection.classList.add('show');
+                }
             }
         }
         
@@ -1267,148 +1190,6 @@
         return resources;
     }
     
-    // 初始化缓存按钮（提升到全局作用域，供动态加载后调用）
-    function initCacheButtons() {
-        // 单个训练缓存按钮
-        document.querySelectorAll('.mini-cache-btn').forEach(function(btn) {
-            var path = btn.getAttribute('data-training');
-            var chapters = parseInt(btn.getAttribute('data-chapters'), 10);
-            var imagesData = btn.getAttribute('data-images');
-            var images = [];
-            try {
-                images = imagesData ? JSON.parse(imagesData) : [];
-            } catch (e) {
-                console.warn('解析图片数据失败:', e);
-            }
-            var cacheKey = 'cx-' + path;
-            var progressSpan = btn.parentElement.querySelector('.cache-progress');
-            
-            // 检查是否已完全缓存
-            function checkCacheStatus() {
-                caches.open(cacheKey).then(function(cache) {
-                    // 获取缓存中的所有 URL
-                    return cache.keys().then(function(cachedRequests) {
-                        var cachedUrls = cachedRequests.map(function(req) { 
-                            return req.url; 
-                        });
-                        
-                        var resources = getTrainingResources(path, chapters, images);
-                        var total = resources.length;
-                        
-                        // 检查每个资源是否在缓存中
-                        var cachedCount = 0;
-                        resources.forEach(function(url) {
-                            // 将相对 URL 转换为绝对 URL 进行比较
-                            var absoluteUrl = new URL(url, window.location.href).href;
-                            // 检查是否有匹配的缓存（考虑 URL 编码）
-                            var isCached = cachedUrls.some(function(cachedUrl) {
-                                // 比较解码后的 URL
-                                try {
-                                    return decodeURIComponent(cachedUrl) === decodeURIComponent(absoluteUrl) ||
-                                           cachedUrl === absoluteUrl;
-                                } catch (e) {
-                                    return cachedUrl === absoluteUrl;
-                                }
-                            });
-                            if (isCached) cachedCount++;
-                        });
-                        
-                        if (cachedCount === total) {
-                            // 全部已缓存
-                            btn.querySelector('.cache-icon').textContent = '✅';
-                            btn.querySelector('.cache-text').textContent = '已缓存';
-                            btn.classList.remove('cached');
-                            if (progressSpan) progressSpan.textContent = '';
-                        } else if (cachedCount > 0) {
-                            // 部分缓存
-                            btn.querySelector('.cache-icon').textContent = '📥';
-                            btn.querySelector('.cache-text').textContent = '继续';
-                            var percent = Math.round((cachedCount / total) * 100);
-                            if (progressSpan) progressSpan.textContent = percent + '%';
-                        }
-                    });
-                }).catch(function() {});
-            }
-            
-            checkCacheStatus();
-            
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                btn.disabled = true;
-                var resources = getTrainingResources(path, chapters, images);
-                var total = resources.length;
-                var loaded = 0;
-                
-                btn.querySelector('.cache-icon').textContent = '⏳';
-                btn.querySelector('.cache-text').textContent = '0%';
-                if (progressSpan) progressSpan.textContent = '';
-                
-                var startCache = function() {
-                    caches.open(cacheKey).then(function(cache) {
-                        // 逐个缓存以显示进度
-                        var cachePromises = [];
-                        var successCount = 0;
-                        resources.forEach(function(url) {
-                            var promise = fetch(url, {
-                                redirect: 'follow',
-                                cache: 'no-cache'
-                            }).then(function(response) {
-                                loaded++;
-                                var percent = Math.round((loaded / total) * 100);
-                                btn.querySelector('.cache-text').textContent = percent + '%';
-                                
-                                if (response.ok && response.status >= 200 && response.status < 300) {
-                                    successCount++;
-                                    return cache.put(response.url, response.clone());
-                                } else if (response.type === 'opaqueredirect') {
-                                    console.warn('遇到不透明重定向:', url);
-                                    loaded++;
-                                    return Promise.resolve();
-                                } else {
-                                    console.warn('跳过缓存失败的资源:', url, 'status:', response.status, 'type:', response.type);
-                                    return Promise.resolve();
-                                }
-                            }).catch(function(err) {
-                                loaded++;
-                                console.warn('无法获取资源:', url, err);
-                                return Promise.resolve();
-                            });
-                            cachePromises.push(promise);
-                        });
-                        return Promise.all(cachePromises).then(function() {
-                            return successCount;
-                        });
-                    }).then(function(successCount) {
-                        btn.querySelector('.cache-icon').textContent = '✅';
-                        btn.querySelector('.cache-text').textContent = '已缓存';
-                        btn.classList.remove('cached');
-                        btn.disabled = false;
-                        var failedCount = total - successCount;
-                        if (progressSpan) {
-                            if (failedCount > 0) {
-                                progressSpan.textContent = '失败 ' + failedCount;
-                            } else {
-                                progressSpan.textContent = '';
-                            }
-                        }
-                    }).catch(function(err) {
-                        btn.querySelector('.cache-icon').textContent = '❌';
-                        btn.querySelector('.cache-text').textContent = '失败';
-                        btn.disabled = false;
-                        if (progressSpan) progressSpan.textContent = '缓存失败';
-                        setTimeout(function() {
-                            checkCacheStatus();
-                        }, 2000);
-                        console.error('缓存失败:', err);
-                    });
-                };
-                
-                startCache();
-            });
-        });
-    }
 
     // 缓存所有训练资源
     function cacheAllTrainings(statusEl) {
@@ -1479,6 +1260,11 @@
                 statusEl.textContent = '✓ 全部缓存完成';
                 statusEl.className = 'cache-status success';
             }
+        }).then(function() {
+            try {
+                localStorage.setItem('cx_all_cached', Date.now().toString());
+            } catch (e) {}
+            updateCacheAllButtonState();
         }).catch(function(err) {
             console.error('缓存所有训练失败:', err);
             if (statusEl) {
@@ -1486,6 +1272,44 @@
                 statusEl.className = 'cache-status warning';
             }
         });
+    }
+
+    function updateCacheAllButtonState() {
+        var cacheAllBtn = document.getElementById('cacheAllBtn');
+        var dataToolsStatus = document.getElementById('dataToolsStatus');
+        if (!cacheAllBtn) return;
+
+        var flag = null;
+        try {
+            flag = localStorage.getItem('cx_all_cached');
+        } catch (e) {}
+
+        if (!flag) {
+            cacheAllBtn.querySelector('.cache-icon').textContent = '📦';
+            cacheAllBtn.querySelector('.cache-text').textContent = '缓存数据';
+            return;
+        }
+
+        if ('caches' in window) {
+            caches.keys().then(function(keys) {
+                var hasTrainingCache = keys.some(function(key) { return key.indexOf('cx-') === 0; });
+                if (hasTrainingCache) {
+                    cacheAllBtn.querySelector('.cache-icon').textContent = '✅';
+                    cacheAllBtn.querySelector('.cache-text').textContent = '已缓存';
+                    if (dataToolsStatus && !dataToolsStatus.textContent) {
+                        dataToolsStatus.textContent = '✓ 已缓存全部数据';
+                        dataToolsStatus.className = 'cache-status success';
+                    }
+                } else {
+                    try { localStorage.removeItem('cx_all_cached'); } catch (e) {}
+                    cacheAllBtn.querySelector('.cache-icon').textContent = '📦';
+                    cacheAllBtn.querySelector('.cache-text').textContent = '缓存数据';
+                }
+            }).catch(function() {
+                cacheAllBtn.querySelector('.cache-icon').textContent = '📦';
+                cacheAllBtn.querySelector('.cache-text').textContent = '缓存数据';
+            });
+        }
     }
     
     document.addEventListener('DOMContentLoaded', function() {
@@ -1544,11 +1368,8 @@
         // 检查是否在 PWA 模式下运行（已安装）
         var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
         
-        // 只在 PWA 模式下显示单独缓存按钮
+        // 只在 PWA 模式下显示数据工具区
         if (isStandalone) {
-            document.querySelectorAll('.training-cache').forEach(function(el) {
-                el.classList.add('show');
-            });
             if (dataToolsSection) {
                 dataToolsSection.style.display = 'flex';
                 dataToolsSection.classList.add('show');
@@ -1557,9 +1378,6 @@
             // 非 PWA 模式，显示安装区域
             installSection.classList.add('show');
         }
-        
-        // 页面加载时初始化缓存按钮
-        initCacheButtons();
 
         // iOS 安装提示
         var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -1687,6 +1505,8 @@
                 });
             });
         }
+
+        updateCacheAllButtonState();
         
         // 清理所有缓存和记忆的函数
         function clearAllCachesAndMemory(options) {

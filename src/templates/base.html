@@ -251,8 +251,13 @@
             }
 
             function handleBack() {
+                if (window.__cxHandlingBack) {
+                    return;
+                }
+                window.__cxHandlingBack = true;
                 // 重新读取栈
                 navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
+                currentPath = window.location.pathname + window.location.search + window.location.hash;
 
                 // 弹出当前页面
                 navStack.pop();
@@ -266,7 +271,7 @@
                         // PWA 使用栈顶页面跳转
                         var targetPath = navStack[navStack.length - 1];
                         if (targetPath) {
-                            window.location.href = targetPath;
+                            window.location.replace(targetPath);
                         } else {
                             window.history.back();
                         }
@@ -281,12 +286,15 @@
                     // 如果在训练目录页 (路径包含训练文件夹且是 index.html)
                     if ((pathname.endsWith('/index.html') || pathname.endsWith('/')) && pathname.split('/').length > 2) {
                         // 返回主页
-                        window.location.href = '../index.html';
+                        window.location.replace('../index.html');
                     } else {
                         // 其他页面返回当前目录的 index.html
-                        window.location.href = './index.html';
+                        window.location.replace('./index.html');
                     }
                 }
+                setTimeout(function() {
+                    window.__cxHandlingBack = false;
+                }, 0);
             }
             
             // 如果栈顶不是当前页面，压入栈
@@ -302,8 +310,8 @@
                 });
             } else if (isPWA) {
                 // PWA 中拦截返回键，保持与 App 一致的导航逻辑
-                if (window.history && window.history.pushState) {
-                    window.history.pushState({ cx: true }, '', currentPath);
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({ cx: true }, '', currentPath);
                 }
                 window.addEventListener('popstate', function() {
                     handleBack();
