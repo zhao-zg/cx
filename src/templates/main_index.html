@@ -315,9 +315,10 @@
             var navKey = 'cx_nav_stack';
             var navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
             var currentPath = window.location.pathname + window.location.search + window.location.hash;
+            var isNewSession = navStack.length === 0;
             
-            // 如果栈顶不是当前页面，压入栈
-            if (navStack.length === 0 || navStack[navStack.length - 1] !== currentPath) {
+            // 如果栈顶不是当前页面，压入栈（新会话时延迟压入，等页面记忆检查完）
+            if (!isNewSession && navStack[navStack.length - 1] !== currentPath) {
                 navStack.push(currentPath);
                 sessionStorage.setItem(navKey, JSON.stringify(navStack));
             }
@@ -1095,15 +1096,31 @@
                         window.location.replace(lastPage);
                         return;
                     } else {
+                        // 不跳转，把主页压入栈
+                        if (isNewSession) {
+                            var currentPath = window.location.pathname + window.location.search + window.location.hash;
+                            sessionStorage.setItem('cx_nav_stack', JSON.stringify([currentPath]));
+                        }
                         var href = window.location.href;
                         localStorage.setItem('cx_last_page', href);
                         localStorage.setItem('cx_last_page_time', Date.now());
                         console.log('[页面记忆] 不满足恢复条件，保持在主页, 且记忆');
                     }
                 } else {
+                    // 时间过久，不跳转，把主页压入栈
+                    if (isNewSession) {
+                        var currentPath = window.location.pathname + window.location.search + window.location.hash;
+                        sessionStorage.setItem('cx_nav_stack', JSON.stringify([currentPath]));
+                    }
                     console.log('[页面记忆] 上次访问时间过久，不恢复');
                 }
             } else {
+                // 没有记录，把主页压入栈
+                var navStack = JSON.parse(sessionStorage.getItem('cx_nav_stack') || '[]');
+                if (navStack.length === 0) {
+                    var currentPath = window.location.pathname + window.location.search + window.location.hash;
+                    sessionStorage.setItem('cx_nav_stack', JSON.stringify([currentPath]));
+                }
                 console.log('[页面记忆] 没有保存的页面记录');
             }
         } catch (e) {
