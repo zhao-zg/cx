@@ -20,7 +20,7 @@
             --surface:#fff;
             --surface-alt:#f3f5f9;
             --page-bg:#f6f7fb;
-            --header-bg:linear-gradient(135deg,#6f7cea,#5f6dd8);
+            --header-bg:var(--brand);
             --nav-hover:#f7f9ff;
             --scripture-bg:#f6f7fa;
             --muted:#f8f9fa;
@@ -239,10 +239,19 @@
             var navKey = 'cx_nav_stack';
             var navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
             var currentPath = window.location.pathname + window.location.search + window.location.hash;
+            var maxNavStack = 12;
+
+            function trimNavStack(stack) {
+                if (stack.length > maxNavStack) {
+                    return stack.slice(stack.length - maxNavStack);
+                }
+                return stack;
+            }
             
             // 如果栈顶不是当前页面，压入栈
             if (navStack.length === 0 || navStack[navStack.length - 1] !== currentPath) {
                 navStack.push(currentPath);
+                navStack = trimNavStack(navStack);
                 sessionStorage.setItem(navKey, JSON.stringify(navStack));
             }
             

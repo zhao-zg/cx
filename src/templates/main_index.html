@@ -13,11 +13,11 @@
     <link rel="preload" href="trainings.json" as="fetch" crossorigin>
     <title>特会信息合集</title>
     <style>
-        :root{--brand:#667eea;--brand-dark:#5B67D4;--bg:linear-gradient(135deg,#667EEA,#5B67D4);--surface:#fff;--surface-alt:#f3f5f9;--page-bg:#f6f7fb;--header-bg:linear-gradient(135deg,#6f7cea,#5f6dd8);--nav-hover:#f7f9ff;--scripture-bg:#f6f7fa;--muted:#f8f9fa;--border:#e6e8f0;--text:#2f343a;--text-soft:#596170;--text-muted:#7b8697;--heading:#1b2436;--heading-strong:#141c2b;--heading-soft:#2a3954;--heading-muted:#3a4a67;--radius-sm:6px;--radius-md:8px;--shadow-sm:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 6px 16px rgba(0,0,0,.08)}
+        :root{--brand:#667eea;--brand-dark:#5B67D4;--bg:linear-gradient(135deg,#667EEA,#5B67D4);--surface:#fff;--surface-alt:#f3f5f9;--page-bg:#f6f7fb;--header-bg:var(--brand);--nav-hover:#f7f9ff;--scripture-bg:#f6f7fa;--muted:#f8f9fa;--border:#e6e8f0;--text:#2f343a;--text-soft:#596170;--text-muted:#7b8697;--heading:#1b2436;--heading-strong:#141c2b;--heading-soft:#2a3954;--heading-muted:#3a4a67;--radius-sm:6px;--radius-md:8px;--shadow-sm:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 6px 16px rgba(0,0,0,.08)}
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;color:#2d3748;background:#f7fafc;min-height:100vh;padding:12px}
         .container{max-width:800px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden}
-        .header{background:var(--brand);color:#fff;text-align:center;padding:20px 16px}
+        .header{background:var(--header-bg);color:#fff;text-align:center;padding:20px 16px}
         .header h1{font-size:25px;margin-bottom:8px;font-weight:600}
         .header p{font-size:16px;opacity:.9}
         .content{padding:0}
@@ -326,10 +326,19 @@
             var navStack = JSON.parse(sessionStorage.getItem(navKey) || '[]');
             var currentPath = window.location.pathname + window.location.search + window.location.hash;
             var isNewSession = navStack.length === 0;
+            var maxNavStack = 12;
+
+            function trimNavStack(stack) {
+                if (stack.length > maxNavStack) {
+                    return stack.slice(stack.length - maxNavStack);
+                }
+                return stack;
+            }
             
             // 如果栈顶不是当前页面，压入栈（新会话时延迟压入，等页面记忆检查完）
             if (!isNewSession && navStack[navStack.length - 1] !== currentPath) {
                 navStack.push(currentPath);
+                navStack = trimNavStack(navStack);
                 sessionStorage.setItem(navKey, JSON.stringify(navStack));
             }
             
