@@ -58,20 +58,17 @@
         }
         
         .training-card .title {
-            font-size: 19px;
+            font-size: 18px;
             color: #2d3748;
             line-height: 1.5;
-            font-weight: 500;
+            font-weight: 600;
             overflow: hidden;
             text-overflow: ellipsis;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             border-radius: 4px;
-            font-size: 11px;
-            font-weight: 600;
             cursor: pointer;
             min-height: 32px;
-            white-space: nowrap;
         }
         
         
@@ -101,6 +98,17 @@
         
         .cache-section.show {
             display: block;
+        }
+
+        #dataToolsSection.show {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        #dataToolsStatus {
+            flex-basis: 100%;
         }
         
         .cache-btn {
