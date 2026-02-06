@@ -63,6 +63,18 @@ class HTMLGenerator:
                     dst_file = os.path.join(js_dst_dir, js_file)
                     if os.path.isfile(src_file):
                         shutil.copy2(src_file, dst_file)
+
+            # 复制 css 目录（用于共享变量等样式）
+            css_src_dir = os.path.join(static_dir, 'css')
+            css_dst_dir = os.path.join(self.output_dir, 'css')
+
+            if os.path.isdir(css_src_dir):
+                os.makedirs(css_dst_dir, exist_ok=True)
+                for filename in os.listdir(css_src_dir):
+                    src_file = os.path.join(css_src_dir, filename)
+                    dst_file = os.path.join(css_dst_dir, filename)
+                    if os.path.isfile(src_file):
+                        shutil.copy2(src_file, dst_file)
                         
         except Exception:
             # 静态资源复制失败不应阻断 HTML 生成

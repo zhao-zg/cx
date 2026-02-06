@@ -207,7 +207,7 @@ class ImprovedParser:
             return False
         return bool(self.VERSE_PATTERN.match(text))
     
-    def _extract_verse_range(self, text: str) -> tuple:
+    def _extract_verse_range(self, text: str) -> Optional[tuple[str, int, int, bool]]:
         """
         提取经文范围信息
         例如: "腓2:5~11 从略。" -> ('腓2', 5, 11, True)

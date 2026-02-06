@@ -10,7 +10,8 @@
 .day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:rgba(102,126,234,.5)}
 .day-link.active{font-weight:700}
 .pages-container{position:relative;min-height:400px;touch-action:pan-y}
-.day-page{background:#fff;padding:0}
+.day-page{background:#fff;padding:0;display:none}
+.day-page.is-active{display:block}
 .page-controls{display:flex;justify-content:space-between;align-items:center;margin:20px 0 15px;padding:10px;background:#f8f9fa;border-radius:12px;border:1px solid var(--border)}
 .prev-btn,.next-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px;padding:12px 16px;background:#fff;border:1px solid #ddd;border-radius:5px;color:#333;font-size:0.9375em;cursor:pointer}
 .prev-btn:disabled,.next-btn:disabled{opacity:.3;cursor:not-allowed}
@@ -36,9 +37,9 @@
     
     <!-- 分页容器 -->
     {% if chapter.morning_revivals %}
-    <div class="pages-container">
+    <div class="pages-container" data-total-pages="{{ chapter.morning_revivals|length }}">
         {% for revival in chapter.morning_revivals %}
-        <div class="day-page" data-day="{{ loop.index }}" data-page="{{ loop.index0 }}" style="display: {% if loop.index0 == 0 %}block{% else %}none{% endif %};">
+        <div class="day-page{% if loop.index0 == 0 %} is-active{% endif %}" data-day="{{ loop.index }}" data-page="{{ loop.index0 }}">
             {% if revival.outline %}
             <div class="outline-section">
                 {{ render_outline(revival.outline, True, False, 'day' ~ loop.index ~ '-') }}
@@ -95,26 +96,26 @@
 <script>
 // 分页功能
 (function() {
-    const totalPages = {{ chapter.morning_revivals|length if chapter.morning_revivals else 0 }};
+    const pagesContainer = document.querySelector('.pages-container');
+    if (!pagesContainer) return;
+    const totalPages = Number(pagesContainer.dataset.totalPages || 0);
     if (totalPages === 0) return;
-    
+
     let currentPage = 0;
     const pages = document.querySelectorAll('.day-page');
     const dayLinks = document.querySelectorAll('.day-link');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     const pageIndicator = document.getElementById('pageIndicator');
-    const pagesContainer = document.querySelector('.pages-container');
     
     // 显示指定页面，scrollToTop 控制是否滚动到顶部
     function showPage(pageIndex, scrollToTop) {
         if (pageIndex < 0 || pageIndex >= totalPages) return;
         
         // 隐藏所有页面
-        pages.forEach(page => page.style.display = 'none');
-        
-        // 显示目标页面
-        pages[pageIndex].style.display = 'block';
+        pages.forEach((page, index) => {
+            page.classList.toggle('is-active', index === pageIndex);
+        });
         
         // 切页时停止朗读，避免误报与状态错乱
         if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
