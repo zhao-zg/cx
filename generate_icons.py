@@ -34,13 +34,15 @@ def generate_icon(size, text='特会', output_path=None, round_icon=False):
     img = Image.new('RGBA', (size, size), color=(0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
-    # 绘制渐变背景（从深蓝到浅蓝，与系统主色蓝一致）
-    # #5B67D4 -> #667eea
+    # 绘制渐变背景（纯蓝色调）
+    # #1D4ED8 -> #3B82F6
+    start_color = (29, 78, 216)
+    end_color = (59, 130, 246)
     for y in range(size):
         ratio = y / size
-        r = int(91 + (102 - 91) * ratio)
-        g = int(103 + (126 - 103) * ratio)
-        b = int(212 + (234 - 212) * ratio)
+        r = int(start_color[0] + (end_color[0] - start_color[0]) * ratio)
+        g = int(start_color[1] + (end_color[1] - start_color[1]) * ratio)
+        b = int(start_color[2] + (end_color[2] - start_color[2]) * ratio)
         draw.line([(0, y), (size, y)], fill=(r, g, b, 255))
     
     # 添加高光效果（左上角，更大范围）
@@ -114,7 +116,7 @@ def generate_icon(size, text='特会', output_path=None, round_icon=False):
         return out_img
 
     # 非圆形：在背景色上合成并保存为 RGB
-    rgb_img = Image.new('RGB', img.size, (102, 126, 234))  # #667eea
+    rgb_img = Image.new('RGB', img.size, (59, 130, 246))  # #3B82F6
     rgb_img.paste(img, mask=img.split()[3] if img.mode == 'RGBA' else None)
 
     # 保存图像

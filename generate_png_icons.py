@@ -22,9 +22,9 @@ def create_gradient_background(size):
     img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
-    # 渐变色：从浅蓝 #4A90E2 到深蓝 #2563EB（纯蓝色调）
-    color_start = (74, 144, 226)   # #4A90E2 浅蓝
-    color_end = (37, 99, 235)      # #2563EB 深蓝
+    # 渐变色：从浅蓝 #3B82F6 到深蓝 #1D4ED8（纯蓝色调）
+    color_start = (59, 130, 246)   # #3B82F6 浅蓝
+    color_end = (29, 78, 216)      # #1D4ED8 深蓝
     
     # 创建径向渐变（从中心到边缘）
     center_x, center_y = size // 2, size // 2
@@ -108,8 +108,8 @@ def add_badge_and_text(img, text, font_size):
         print(f"  ⚠ 使用默认字体（可能无法显示中文）")
     
     # 绘制文字（渐变色，使用 mm anchor 居中）
-    # 使用深蓝色 #2563EB
-    text_color = (37, 99, 235, 255)
+    # 使用深蓝色 #1D4ED8
+    text_color = (29, 78, 216, 255)
     draw.text((center_x, center_y), text, font=font, fill=text_color, anchor='mm')
     
     return img
