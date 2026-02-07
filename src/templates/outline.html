@@ -2,11 +2,17 @@
 
 {% block title %}第{{ chapter.number }}篇 - 纲目{% endblock %}
 
+{% block header %}
+<div class="header header--chapter">
+    <h2 class="chapter-title">第{{ chapter.number }}篇 {{ chapter.title }}</h2>
+</div>
+{% endblock %}
+
 {% block head_css %}
 <style>
 /* 展开级别控制按钮 - 关键CSS放head避免FOUC */
 .outline-level-controls{display:flex;justify-content:center;gap:8px;margin:15px 0;padding:10px;background:#f7f8fb;border-radius:var(--radius-md)}
-.level-btn{min-width:60px;min-height:36px;padding:8px 14px;background:#fff;border:1px solid #ddd;border-radius:var(--radius-sm);font-size:14px;font-weight:600;color:var(--text-soft);cursor:pointer;transition:all 0.2s ease;box-shadow:var(--shadow-sm)}
+.level-btn{min-width:60px;min-height:36px;padding:8px 14px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:14px;font-weight:600;color:var(--btn-secondary-text);cursor:pointer;transition:all 0.2s ease;box-shadow:var(--shadow-sm)}
 .level-btn.active{background:var(--bg);border-color:var(--brand);color:#fff;box-shadow:0 2px 6px rgba(102,126,234,0.3)}
 </style>
 {% endblock %}
@@ -15,9 +21,7 @@
 {% from "outline_macro.html" import render_outline, render_section %}
 <div class="outline-page">
     {% include "page_navigation.html" %}
-    
-    <h2 class="chapter-title">第{{ chapter.number }}篇 {{ chapter.title }}</h2>
-    
+
     {% if chapter.scripture %}
     <div class="scripture-section">
         <div class="scripture">读经：{{ chapter.scripture }}</div>

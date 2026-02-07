@@ -2,12 +2,16 @@
 
 {% block title %}第{{ chapter.number }}篇 - 诗歌{% endblock %}
 
+{% block header %}
+<div class="header header--chapter">
+    <h2 class="chapter-title">第{{ chapter.number }}篇 {{ chapter.title }}</h2>
+</div>
+{% endblock %}
+
 {% block content %}
 <div class="hymn-page">
     {% include "page_navigation.html" %}
-    
-    <h2 class="chapter-title">第{{ chapter.number }}篇 {{ chapter.title }}</h2>
-    
+
     {% if chapter.hymn_number %}
     <div class="hymn-info">
         <h3>诗歌</h3>

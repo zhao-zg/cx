@@ -2,12 +2,16 @@
 
 {% block title %}第{{ chapter.number }}篇 - 职事信息摘录{% endblock %}
 
+{% block header %}
+<div class="header header--chapter">
+    <h2 class="chapter-title">第{{ chapter.number }}篇 {{ chapter.title }}</h2>
+</div>
+{% endblock %}
+
 {% block content %}
 <div class="ministry-page">
     {% include "page_navigation.html" %}
-    
-    <h2 class="chapter-title">第{{ chapter.number }}篇 {{ chapter.title }}</h2>
-    
+
     {% if chapter.scripture %}
     <div class="scripture">读经：{{ chapter.scripture }}</div>
     {% endif %}
@@ -51,12 +55,12 @@
     min-width: 46px;
     min-height: 46px;
     padding: 10px 14px;
-    background: var(--bg);
-    border: none;
+    background: var(--btn-secondary-bg);
+    border: 1px solid var(--btn-secondary-border);
     border-radius: var(--radius-md);
     font-size: 15px;
     font-weight: 700;
-    color: var(--surface);
+    color: var(--btn-secondary-text);
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     -webkit-tap-highlight-color: transparent;

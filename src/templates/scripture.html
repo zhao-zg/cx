@@ -2,10 +2,15 @@
 
 {% block title %}第{{ chapter.number }}篇 - 经文{% endblock %}
 
+{% block header %}
+<div class="header header--chapter">
+    <h2 class="chapter-title">{{ chapter.title }}</h2>
+</div>
+{% endblock %}
+
 {% block content %}
 <div class="scripture-page">
-    <h2 class="chapter-title">{{ chapter.title }}</h2>
-    
+
     {% if chapter.scripture %}
     <div class="scripture-reference">
         <h3>读经</h3>
