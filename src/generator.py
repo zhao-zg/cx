@@ -65,11 +65,10 @@ class HTMLGenerator:
                     dst_file = os.path.join(js_dst_dir, js_file)
                     if os.path.isfile(src_file):
                         shutil.copy2(src_file, dst_file)
-
                         
-        except Exception:
+        except Exception as e:
             # 静态资源复制失败不应阻断 HTML 生成
-            return
+            pass
     
     def _extract_day_name(self, day_str: str) -> str:
         """
