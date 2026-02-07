@@ -4,6 +4,7 @@ Word文档静态网站生成器 - 主程序
 """
 import os
 import sys
+import json
 import yaml
 import shutil
 from datetime import datetime
@@ -314,7 +315,7 @@ def generate_main_index(config, batch_results):
     html_content = template.render(
         trainings=trainings,
         total_chapters=total_chapters,
-        generation_time=datetime.now().strftime('%Y年%月%d日 %H:%M')
+        generation_time=datetime.now().strftime('%Y年%m月%d日 %H:%M')
     )
     
     # 保存主页
