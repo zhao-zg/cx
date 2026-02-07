@@ -1,8 +1,4 @@
 {
-  "remote_urls": [
-    "https://cx.zhaozg.cloudns.org/",
-    "https://cx.zhaozg.dpdns.org/"
-  ],
   "app_name": "TeHui",
   "app_id": "com.tehui.app",
   "version": "0.9.26"

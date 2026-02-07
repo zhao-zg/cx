@@ -311,21 +311,10 @@ def generate_main_index(config, batch_results):
     env = Environment(loader=FileSystemLoader(template_dir))
     template = env.get_template('main_index.html')
     
-    # 加载 app_config.json 获取 remote_urls
-    import json
-    remote_urls = []
-    try:
-        with open('app_config.json', 'r', encoding='utf-8') as f:
-            app_config = json.load(f)
-            remote_urls = app_config.get('remote_urls', [])
-    except Exception as e:
-        print(f"⚠ 无法读取 app_config.json: {e}")
-    
     html_content = template.render(
         trainings=trainings,
         total_chapters=total_chapters,
-        generation_time=datetime.now().strftime('%Y年%m月%d日 %H:%M'),
-        remote_urls=remote_urls
+        generation_time=datetime.now().strftime('%Y年%月%d日 %H:%M')
     )
     
     # 保存主页
