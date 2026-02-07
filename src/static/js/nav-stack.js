@@ -37,7 +37,10 @@
     }
 
     function setNavStack(stack) {
-        sessionStorage.setItem(NAV_KEY, JSON.stringify(stack));
+        var cleaned = (stack || []).filter(function(item) {
+            return item && String(item).trim() !== '';
+        });
+        sessionStorage.setItem(NAV_KEY, JSON.stringify(cleaned));
     }
 
     function trimNavStack(stack) {
@@ -48,6 +51,9 @@
     }
 
     function pushIfNeeded(currentPath) {
+        if (!currentPath) {
+            return;
+        }
         var navStack = getNavStack();
         if (navStack.length === 0 || navStack[navStack.length - 1] !== currentPath) {
             navStack.push(currentPath);
@@ -59,7 +65,7 @@
     function ensurePwaHistory(currentPath) {
         if (window.history && window.history.pushState) {
             var state = window.history.state || {};
-            if (!state.cx) {
+            if (!state.cx && window.history.length <= 1) {
                 window.history.pushState({ cx: true }, '', currentPath);
             }
         }
