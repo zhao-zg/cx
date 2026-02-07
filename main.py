@@ -372,6 +372,13 @@ def generate_main_index(config, batch_results):
     if os.path.exists(app_update_src):
         shutil.copy2(app_update_src, app_update_dst)
         print(f"✓ app-update.js 已复制")
+
+    # 复制 nav-stack.js（供主页/训练页面使用）
+    nav_stack_src = os.path.join('src', 'static', 'js', 'nav-stack.js')
+    nav_stack_dst = os.path.join(js_dir, 'nav-stack.js')
+    if os.path.exists(nav_stack_src):
+        shutil.copy2(nav_stack_src, nav_stack_dst)
+        print(f"✓ nav-stack.js 已复制")
     
     # manifest.json
     manifest_template = env.get_template('main_manifest.json')

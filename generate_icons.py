@@ -25,11 +25,12 @@ def hex_to_rgb(color):
     color = color.lstrip('#')
     return tuple(int(color[i:i+2], 16) for i in (0, 2, 4))
 
-def generate_icon(size, text='特会', output_path=None):
+def generate_icon(size, text='特会', output_path=None, round_icon=False):
     """
     生成指定尺寸的图标（渐变现代风格）
+    round_icon: 是否生成圆形（有透明角）图标
     """
-    # 创建图像
+    # 创建图像（RGBA，保留透明度以便可选的圆形遮罩）
     img = Image.new('RGBA', (size, size), color=(0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
@@ -96,16 +97,32 @@ def generate_icon(size, text='特会', output_path=None):
     # 绘制白色文本
     draw.text((x, y), text, fill=(255, 255, 255, 255), font=font)
     
-    # 转换为 RGB 用于保存
+    # 根据是否需要圆形图标决定保存方式
+    if round_icon:
+        # 创建圆形遮罩，留下圆形区域，其余透明
+        mask = Image.new('L', (size, size), 0)
+        mask_draw = ImageDraw.Draw(mask)
+        pad = int(size * 0.02)
+        mask_draw.ellipse((pad, pad, size - pad - 1, size - pad - 1), fill=255)
+        out_img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+        out_img.paste(img, (0, 0), mask)
+
+        if output_path:
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            out_img.save(output_path, compress_level=1)
+            print(f'✓ 生成圆形图标: {output_path}')
+        return out_img
+
+    # 非圆形：在背景色上合成并保存为 RGB
     rgb_img = Image.new('RGB', img.size, (102, 126, 234))  # #667eea
     rgb_img.paste(img, mask=img.split()[3] if img.mode == 'RGBA' else None)
-    
+
     # 保存图像
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         rgb_img.save(output_path, quality=95)
         print(f'✓ 生成图标: {output_path}')
-    
+
     return rgb_img
 
 def main():
@@ -119,21 +136,34 @@ def main():
         (76, 'output/icon-76.png'),    # Apple
         (64, 'output/icon-64.png'),    # Favicon
         # Android 图标
-        (192, 'android_icons/mipmap-xxxhdpi/ic_launcher.png'),
-        (144, 'android_icons/mipmap-xxhdpi/ic_launcher.png'),
-        (96, 'android_icons/mipmap-xhdpi/ic_launcher.png'),
-        (72, 'android_icons/mipmap-hdpi/ic_launcher.png'),
-        (48, 'android_icons/mipmap-mdpi/ic_launcher.png'),
+        # 每个分辨率同时生成方形和圆形（round）图标
+        (192, 'android_icons/mipmap-xxxhdpi/ic_launcher.png', False),
+        (192, 'android_icons/mipmap-xxxhdpi/ic_launcher_round.png', True),
+        (144, 'android_icons/mipmap-xxhdpi/ic_launcher.png', False),
+        (144, 'android_icons/mipmap-xxhdpi/ic_launcher_round.png', True),
+        (96, 'android_icons/mipmap-xhdpi/ic_launcher.png', False),
+        (96, 'android_icons/mipmap-xhdpi/ic_launcher_round.png', True),
+        (72, 'android_icons/mipmap-hdpi/ic_launcher.png', False),
+        (72, 'android_icons/mipmap-hdpi/ic_launcher_round.png', True),
+        (48, 'android_icons/mipmap-mdpi/ic_launcher.png', False),
+        (48, 'android_icons/mipmap-mdpi/ic_launcher_round.png', True),
     ]
     
     print('开始生成图标...\n')
     
-    for size, output_path in icon_specs:
-        generate_icon(size, text='特会', output_path=output_path)
+    for spec in icon_specs:
+        # allow tuples of (size,path) or (size,path,round_flag)
+        if len(spec) == 2:
+            size, output_path = spec
+            round_flag = False
+        else:
+            size, output_path, round_flag = spec
+        generate_icon(size, text='特会', output_path=output_path, round_icon=round_flag)
     
     print('\n✓ 所有图标生成完成！')
     print('\n生成的文件：')
-    for _, path in icon_specs:
+    for spec in icon_specs:
+        path = spec[1]
         if os.path.exists(path):
             size_kb = os.path.getsize(path) / 1024
             print(f'  • {path} ({size_kb:.1f} KB)')
