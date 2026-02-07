@@ -126,15 +126,11 @@
             setNavStack(navStack);
 
             if (navStack.length > 0) {
-                if (isCapacitor()) {
-                    window.history.back();
+                var targetPath = navStack[navStack.length - 1];
+                if (targetPath) {
+                    window.location.replace(targetPath);
                 } else {
-                    var targetPath = navStack[navStack.length - 1];
-                    if (targetPath) {
-                        window.location.replace(targetPath);
-                    } else {
-                        window.history.back();
-                    }
+                    window.history.back();
                 }
             } else {
                 sessionStorage.removeItem(NAV_KEY);
@@ -178,15 +174,11 @@
             setNavStack(navStack);
 
             if (navStack.length > 0) {
-                if (isCapacitor()) {
-                    window.history.back();
+                var targetPath = navStack[navStack.length - 1];
+                if (targetPath) {
+                    window.location.replace(targetPath);
                 } else {
-                    var targetPath = navStack[navStack.length - 1];
-                    if (targetPath) {
-                        window.location.replace(targetPath);
-                    } else {
-                        window.history.back();
-                    }
+                    window.history.back();
                 }
             } else {
                 sessionStorage.removeItem(NAV_KEY);
