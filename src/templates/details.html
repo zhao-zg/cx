@@ -169,6 +169,13 @@
 function initSpeech() {
     window.CXSpeech.init({
         getText: function() {
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
             let text = '';
             const titleElem = document.querySelector('.chapter-title');
             if (titleElem) text += titleElem.textContent.trim() + '。';
@@ -179,7 +186,7 @@ function initSpeech() {
             // 读取所有内容文本
             const contentTexts = document.querySelectorAll('.content-text');
             contentTexts.forEach(p => {
-                const t = p.textContent.trim();
+                const t = getCleanText(p);
                 if (t) text += t + '。';
             });
             

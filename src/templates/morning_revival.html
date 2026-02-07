@@ -249,13 +249,20 @@ function initSpeech() {
             const activePage = document.querySelector('.day-page[style*="display: block"]') || document.querySelector('.day-page');
             if (!activePage) return '';
 
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
             let text = '';
 
             const outlineSection = activePage.querySelector('.outline-section');
             if (outlineSection) {
                 const outlineItems = outlineSection.querySelectorAll('.outline-item');
                 outlineItems.forEach(item => {
-                    const t = item.textContent.trim();
+                    const t = getCleanText(item);
                     if (t) text += t + '。';
                 });
             }
@@ -264,7 +271,7 @@ function initSpeech() {
             if (feedingSection) {
                 const paragraphs = feedingSection.querySelectorAll('.content-text');
                 paragraphs.forEach(p => {
-                    const t = p.textContent.trim();
+                    const t = getCleanText(p);
                     if (t) text += t + '。';
                 });
             }
@@ -273,7 +280,7 @@ function initSpeech() {
             if (readingSection) {
                 const paragraphs = readingSection.querySelectorAll('.content-text');
                 paragraphs.forEach(p => {
-                    const t = p.textContent.trim();
+                    const t = getCleanText(p);
                     if (t) text += t + '。';
                 });
             }

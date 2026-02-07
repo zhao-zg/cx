@@ -82,6 +82,8 @@ function initSpeech() {
                 buttons.forEach(btn => btn.remove());
                 const scriptures = clone.querySelectorAll('.scripture-content');
                 scriptures.forEach(sc => sc.remove());
+                const verseLines = clone.querySelectorAll('.verse-line');
+                verseLines.forEach(vl => vl.remove());
                 
                 const t = clone.textContent.trim();
                 if (t) {
