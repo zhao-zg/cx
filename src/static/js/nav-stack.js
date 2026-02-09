@@ -194,6 +194,8 @@
             pushIfNeeded(currentPath);
         }
 
+        var pwaPopstateHandler = null;
+
         function handleBack() {
             var navStack = getNavStack();
             currentPath = getCurrentPath();
@@ -209,7 +211,7 @@
                 }
             }
 
-            // 栈空：已经在主页最顶层
+            // 栈空：已经在主页最顶层，退出
             sessionStorage.removeItem(NAV_KEY);
             try {
                 localStorage.removeItem('cx_last_page');
@@ -219,9 +221,17 @@
             if (isCapacitor()) {
                 window.Capacitor.Plugins.App.exitApp();
             } else {
-                // PWA：弹回已有的 guard 条目，吸收回退操作，保持在主页
-                // 用 go(1) 不会新增 history 条目，避免 history 无限膨胀
-                window.history.go(1);
+                // PWA：移除 popstate 监听，让下一次回退由浏览器原生处理（退出 PWA）
+                if (pwaPopstateHandler) {
+                    window.removeEventListener('popstate', pwaPopstateHandler);
+                    pwaPopstateHandler = null;
+                }
+                // 尝试关闭窗口（部分浏览器支持）
+                window.close();
+                // 如果 close 无效，回退一步让浏览器退出 standalone 模式
+                setTimeout(function() {
+                    window.history.back();
+                }, 100);
             }
         }
 
@@ -231,12 +241,12 @@
             });
         } else if (isPWA()) {
             ensurePwaHistory(currentPath);
-            window.addEventListener('popstate', function(e) {
-                // 忽略 go(1) 弹回 guard 触发的 popstate
+            pwaPopstateHandler = function(e) {
                 var state = (e && e.state) || {};
                 if (state.cxGuard) return;
                 handleBackCommon(handleBack);
-            });
+            };
+            window.addEventListener('popstate', pwaPopstateHandler);
         }
     }
 
