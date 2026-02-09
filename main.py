@@ -339,10 +339,19 @@ def generate_main_index(config, batch_results):
     # 复制静态图标
     icons_dir = os.path.join(output_dir, 'icons')
     os.makedirs(icons_dir, exist_ok=True)
+    
+    # 复制 SVG 图标
     icon_src = os.path.join('src', 'static', 'icons', 'icon.svg')
     icon_dst = os.path.join(icons_dir, 'icon.svg')
     if os.path.exists(icon_src):
         shutil.copy2(icon_src, icon_dst)
+    
+    # 复制 PNG 图标（Android PWA 需要）
+    for icon_filename in ['icon-192.png', 'icon-512.png']:
+        icon_src = os.path.join('src', 'static', 'icons', icon_filename)
+        icon_dst = os.path.join(icons_dir, icon_filename)
+        if os.path.exists(icon_src):
+            shutil.copy2(icon_src, icon_dst)
 
     
     # 复制 vendor 目录（包含 jszip 等库）
