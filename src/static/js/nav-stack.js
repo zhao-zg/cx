@@ -23,52 +23,38 @@
         }
     }
 
-    function setupPwaPopstate(handleBack) {
-        window.addEventListener('popstate', function() {
-            if (window.__cxExiting) return;
-            handleBackCommon(handleBack);
-        });
+    function setupBackHandler(handleBack) {
+        if (!isCapacitor() && !isPWA()) return;
+
+        if (isCapacitor()) {
+            window.Capacitor.Plugins.App.addListener('backButton', function() {
+                handleBackCommon(handleBack);
+            });
+        } else if (isPWA()) {
+            window.addEventListener('popstate', function() {
+                if (window.__cxExiting) return;
+                handleBackCommon(handleBack);
+            });
+        }
     }
 
     // 内容页回退 → 目录页
     function initContentPage() {
-        if (!isCapacitor() && !isPWA()) return;
-
-        function handleBack() {
+        setupBackHandler(function() {
             window.location.replace('./index.html');
-        }
-
-        if (isCapacitor()) {
-            window.Capacitor.Plugins.App.addListener('backButton', function() {
-                handleBackCommon(handleBack);
-            });
-        } else if (isPWA()) {
-            setupPwaPopstate(handleBack);
-        }
+        });
     }
 
     // 目录页回退 → 主页
     function initDirectoryPage() {
-        if (!isCapacitor() && !isPWA()) return;
-
-        function handleBack() {
+        setupBackHandler(function() {
             window.location.replace('../index.html');
-        }
-
-        if (isCapacitor()) {
-            window.Capacitor.Plugins.App.addListener('backButton', function() {
-                handleBackCommon(handleBack);
-            });
-        } else if (isPWA()) {
-            setupPwaPopstate(handleBack);
-        }
+        });
     }
 
     // 主页回退 → 退出
     function initHomePage() {
-        if (!isCapacitor() && !isPWA()) return;
-
-        function handleBack() {
+        setupBackHandler(function() {
             if (isCapacitor()) {
                 window.Capacitor.Plugins.App.exitApp();
             } else {
@@ -78,15 +64,7 @@
                     window.history.back();
                 }, 150);
             }
-        }
-
-        if (isCapacitor()) {
-            window.Capacitor.Plugins.App.addListener('backButton', function() {
-                handleBackCommon(handleBack);
-            });
-        } else if (isPWA()) {
-            setupPwaPopstate(handleBack);
-        }
+        });
     }
 
     window.CXNavStack = {
