@@ -99,7 +99,7 @@
           setTimeout(startInit, 150);
           return;
         }
-        showUnsupported(engine.isNative ? '朗读插件未就绪' : '浏览器不支持朗读');
+        showUnsupported(engine.isNative ? '朗读插件未就绪' : '朗读暂不可用');
         return;
       }
 
