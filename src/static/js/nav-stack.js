@@ -81,10 +81,8 @@
         if (window.history && window.history.pushState) {
             var state = window.history.state || {};
             if (!state.cxGuard) {
-                // 确保当前条目有标记，然后 push 一个守卫条目
-                // 这样按返回键会触发 popstate 而不是退出 PWA
-                window.history.replaceState({ cx: true }, '', currentPath);
-                window.history.pushState({ cx: true, cxGuard: true }, '', currentPath);
+                window.history.replaceState({ cx: true, cxPath: currentPath }, '', currentPath);
+                window.history.pushState({ cx: true, cxGuard: true, cxPath: currentPath }, '', currentPath);
             }
         }
     }
@@ -153,18 +151,18 @@
                 var targetPath = navStack[navStack.length - 1];
                 if (targetPath) {
                     window.location.replace(targetPath);
-                } else {
-                    window.history.back();
+                    return;
                 }
+            }
+
+            // 栈空或无有效目标：导航到上级页面
+            sessionStorage.removeItem(NAV_KEY);
+            sessionStorage.setItem('cx_user_back', 'true');
+            var pathname = window.location.pathname;
+            if ((pathname.endsWith('/index.html') || pathname.endsWith('/')) && pathname.split('/').length > 2) {
+                window.location.replace('../index.html');
             } else {
-                sessionStorage.removeItem(NAV_KEY);
-                sessionStorage.setItem('cx_user_back', 'true');
-                var pathname = window.location.pathname;
-                if ((pathname.endsWith('/index.html') || pathname.endsWith('/')) && pathname.split('/').length > 2) {
-                    window.location.replace('../index.html');
-                } else {
-                    window.location.replace('./index.html');
-                }
+                window.location.replace('./index.html');
             }
         }
 
@@ -201,20 +199,23 @@
                 var targetPath = navStack[navStack.length - 1];
                 if (targetPath) {
                     window.location.replace(targetPath);
-                } else {
-                    window.history.back();
+                    return;
                 }
+            }
+
+            // 栈空：已经在主页最顶层
+            sessionStorage.removeItem(NAV_KEY);
+            try {
+                localStorage.removeItem('cx_last_page');
+                localStorage.removeItem('cx_last_page_time');
+            } catch (e) {}
+
+            if (isCapacitor()) {
+                window.Capacitor.Plugins.App.exitApp();
             } else {
-                sessionStorage.removeItem(NAV_KEY);
-                try {
-                    localStorage.removeItem('cx_last_page');
-                    localStorage.removeItem('cx_last_page_time');
-                } catch (e) {}
-                if (isCapacitor()) {
-                    window.Capacitor.Plugins.App.exitApp();
-                } else {
-                    window.history.back();
-                }
+                // PWA：重新推入守卫条目，吸收回退操作，保持在主页
+                // 不能调用 history.back()，否则会撞到过期的 history 条目导致循环
+                ensurePwaHistory(currentPath);
             }
         }
 
