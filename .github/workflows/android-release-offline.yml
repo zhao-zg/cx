@@ -122,9 +122,9 @@ jobs:
         
         echo "✓ Android 平台添加完成"
         du -sh android/app/src/main/assets/
-
-      - name: 配置状态栏颜色
-        run: |
+    
+    - name: 配置状态栏颜色
+      run: |
         echo "=== 配置状态栏颜色 ==="
 
         python3 << 'PYTHON_EOF'
