@@ -65,8 +65,11 @@
     function ensurePwaHistory(currentPath) {
         if (window.history && window.history.pushState) {
             var state = window.history.state || {};
-            if (!state.cx && window.history.length <= 1) {
-                window.history.pushState({ cx: true }, '', currentPath);
+            if (!state.cxGuard) {
+                // 确保当前条目有标记，然后 push 一个守卫条目
+                // 这样按返回键会触发 popstate 而不是退出 PWA
+                window.history.replaceState({ cx: true }, '', currentPath);
+                window.history.pushState({ cx: true, cxGuard: true }, '', currentPath);
             }
         }
     }
