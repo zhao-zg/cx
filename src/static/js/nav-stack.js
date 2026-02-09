@@ -55,11 +55,26 @@
             return;
         }
         var navStack = getNavStack();
-        if (navStack.length === 0 || navStack[navStack.length - 1] !== currentPath) {
-            navStack.push(currentPath);
-            navStack = trimNavStack(navStack);
-            setNavStack(navStack);
+
+        // 已在栈顶，无需操作
+        if (navStack.length > 0 && navStack[navStack.length - 1] === currentPath) {
+            return;
         }
+
+        // 检查路径是否已存在于栈中（用户通过链接"返回"到之前的页面）
+        // 如果存在，回退栈到该位置，避免栈膨胀
+        for (var i = navStack.length - 2; i >= 0; i--) {
+            if (navStack[i] === currentPath) {
+                navStack = navStack.slice(0, i + 1);
+                setNavStack(navStack);
+                return;
+            }
+        }
+
+        // 全新路径，正常入栈
+        navStack.push(currentPath);
+        navStack = trimNavStack(navStack);
+        setNavStack(navStack);
     }
 
     function ensurePwaHistory(currentPath) {
