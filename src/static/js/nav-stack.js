@@ -88,22 +88,8 @@
     }
 
     function setupPwaPopstate(handleBack) {
-        window.addEventListener('popstate', function(e) {
+        window.addEventListener('popstate', function() {
             if (window.__cxExiting) return;
-
-            var state = (e && e.state) || {};
-
-            if (state.cxGuard) {
-                return;
-            }
-
-            // 用户按了回退: 从 guard 落到 real 条目
-            // 立即重推 guard, 防止快速连续按回退穿透历史
-            if (window.history && window.history.pushState) {
-                var path = getCurrentPath();
-                window.history.pushState({ cx: true, cxGuard: true, cxPath: path }, '', path);
-            }
-
             handleBackCommon(handleBack);
         });
     }
@@ -216,10 +202,9 @@
                 // PWA 退出: 标记正在退出, 防止 popstate 重复处理
                 window.__cxExiting = true;
                 window.close();
-                // close 无效时, 跳到 history 最前面让系统退出 standalone
+                // close 无效时, 使用回退
                 setTimeout(function() {
-                    var steps = window.history.length || 1;
-                    window.history.go(-steps);
+                    window.history.back();
                 }, 150);
             }
         }
