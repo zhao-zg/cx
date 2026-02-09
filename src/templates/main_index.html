@@ -499,15 +499,6 @@
             }
         }
         
-        // 检查导航栈是否有内容（有内容说明是用户主动导航回来的）
-        var navStack = JSON.parse(sessionStorage.getItem('cx_nav_stack') || '[]');
-        var isUserNavigation = navStack.length > 0;
-        
-        // 用户主动进入主页时，立即保存
-        if (isUserNavigation) {
-            saveMainPage();
-        }
-        
         // 页面卸载前保存
         window.addEventListener('beforeunload', saveMainPage);
         
@@ -656,9 +647,13 @@
     function getTrainingResources(path, chapters, images) {
         var resources = [
             './' + path + '/',
+            './' + path + '/index.html',
             './' + path + '/js/speech.js',
             './' + path + '/js/font-control.js',
-            './' + path + '/js/highlight.js'
+            './' + path + '/js/highlight.js',
+            './' + path + '/js/outline.js',
+            './' + path + '/js/nav-stack.js',
+            './' + path + '/js/toc-redirect.js'
         ];
         for (var i = 1; i <= chapters; i++) {
             resources.push('./' + path + '/' + i + '_cv.htm');

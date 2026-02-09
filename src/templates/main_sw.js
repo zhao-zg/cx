@@ -13,7 +13,6 @@ const CONFIG = {
     './manifest.json',
     './icons/icon.svg',
     './trainings.json',
-    './js/hot-update.js',
     './js/nav-stack.js',
     './vendor/jszip.min.js'
   ],
