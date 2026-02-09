@@ -50,65 +50,85 @@
       return;
     }
 
-    // 检查是否支持 Capacitor TTS（优先）或 Web Speech API
-    var hasCapacitor = !!(window.Capacitor && window.Capacitor.Plugins);
-    var useCapacitorTTS = hasCapacitor && window.Capacitor.Plugins.TextToSpeech;
-    var hasWebSpeech = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
-    
-    // 优先使用 Capacitor TTS，如果不可用则使用 Web Speech API
-    var useWebSpeech = !useCapacitorTTS && hasWebSpeech;
-    var speechSupported = useCapacitorTTS || useWebSpeech;
-    
-    // 始终显示控制栏（包含字体控制）
-    controlsDiv.style.display = 'flex';
-    
-    if (!speechSupported) {
-      // 不支持朗读时，隐藏朗读控件，显示提示信息
+    function detectEngine() {
+      var hasCapacitor = !!(window.Capacitor && window.Capacitor.Plugins);
+      var isNative = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+      var useCapacitorTTS = !!(hasCapacitor && window.Capacitor.Plugins.TextToSpeech && typeof window.Capacitor.Plugins.TextToSpeech.speak === 'function');
+      var hasWebSpeech = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+      var useWebSpeech = !useCapacitorTTS && hasWebSpeech;
+      var speechSupported = useCapacitorTTS || useWebSpeech;
+      return {
+        hasCapacitor: hasCapacitor,
+        isNative: isNative,
+        useCapacitorTTS: useCapacitorTTS,
+        useWebSpeech: useWebSpeech,
+        speechSupported: speechSupported
+      };
+    }
+
+    function showUnsupported(message) {
       playPauseBtn.style.display = 'none';
       progressBar.style.display = 'none';
       rateSelect.style.display = 'none';
-      
-      // 将时间显示区域改为提示信息
-      speechTime.textContent = '浏览器不支持朗读';
+
+      speechTime.textContent = message;
       speechTime.style.color = '#999';
       speechTime.style.fontSize = '11px';
       speechTime.style.textAlign = 'center';
       speechTime.style.padding = '0';
       speechTime.style.marginTop = '0';
-      
-      // 调整进度区域的布局，让提示居中
+
       var progressSection = speechTime.parentElement;
       if (progressSection) {
         progressSection.style.justifyContent = 'center';
         progressSection.style.alignItems = 'center';
       }
-      
-      return; // 不初始化朗读功能
     }
-    
-    console.log('TTS 引擎:', useCapacitorTTS ? 'Capacitor TTS' : 'Web Speech API');
 
-    var playIcon = playPauseBtn.querySelector('.play-icon');
-    var pauseIcon = playPauseBtn.querySelector('.pause-icon');
+    // 始终显示控制栏（包含字体控制）
+    controlsDiv.style.display = 'flex';
+
+    var initAttempts = 0;
+    var maxInitAttempts = 20;
+
+    function startInit() {
+      var engine = detectEngine();
+      if (!engine.speechSupported) {
+        if (engine.isNative && initAttempts < maxInitAttempts) {
+          initAttempts++;
+          setTimeout(startInit, 150);
+          return;
+        }
+        showUnsupported(engine.isNative ? '朗读插件未就绪' : '浏览器不支持朗读');
+        return;
+      }
+
+      var useCapacitorTTS = engine.useCapacitorTTS;
+      var useWebSpeech = engine.useWebSpeech;
+
+      console.log('TTS 引擎:', useCapacitorTTS ? 'Capacitor TTS' : 'Web Speech API');
+
+      var playIcon = playPauseBtn.querySelector('.play-icon');
+      var pauseIcon = playPauseBtn.querySelector('.pause-icon');
 
     // 从localStorage恢复语速设置
-    var savedRate = localStorage.getItem('speechRate');
-    if (savedRate) {
-      rateSelect.value = savedRate;
-    }
+      var savedRate = localStorage.getItem('speechRate');
+      if (savedRate) {
+        rateSelect.value = savedRate;
+      }
 
     // State
-    var fullText = '';
-    var utterance = null;
-    var isPaused = false;
+      var fullText = '';
+      var utterance = null;
+      var isPaused = false;
 
-    var totalDuration = 0;
-    var elapsedOffset = 0;
-    var startTime = 0;
-    var pauseStartedAt = 0;
+      var totalDuration = 0;
+      var elapsedOffset = 0;
+      var startTime = 0;
+      var pauseStartedAt = 0;
 
-    var progressInterval = null;
-    var isSeeking = false;
+      var progressInterval = null;
+      var isSeeking = false;
 
     function updateButtonState(isPlaying) {
       if (playIcon && pauseIcon) {
@@ -662,6 +682,9 @@
         }
       }
     });
+    }
+
+    startInit();
   }
 
   window.CXSpeech = window.CXSpeech || {};
