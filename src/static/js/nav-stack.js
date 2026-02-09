@@ -77,6 +77,9 @@
         setNavStack(navStack);
     }
 
+    // 页面加载时，推入一个 guard 条目
+    // 用户按回退 → 从 guard 回到 real → 触发 popstate
+    // 我们处理后用 go(1) 弹回 guard 或 location.replace 导航走
     function ensurePwaHistory(currentPath) {
         if (window.history && window.history.pushState) {
             var state = window.history.state || {};
@@ -172,7 +175,10 @@
             });
         } else if (isPWA()) {
             ensurePwaHistory(currentPath);
-            window.addEventListener('popstate', function() {
+            window.addEventListener('popstate', function(e) {
+                // 忽略 go(1) 弹回 guard 触发的 popstate
+                var state = (e && e.state) || {};
+                if (state.cxGuard) return;
                 handleBackCommon(handleBack);
             });
         }
@@ -213,9 +219,9 @@
             if (isCapacitor()) {
                 window.Capacitor.Plugins.App.exitApp();
             } else {
-                // PWA：重新推入守卫条目，吸收回退操作，保持在主页
-                // 不能调用 history.back()，否则会撞到过期的 history 条目导致循环
-                ensurePwaHistory(currentPath);
+                // PWA：弹回已有的 guard 条目，吸收回退操作，保持在主页
+                // 用 go(1) 不会新增 history 条目，避免 history 无限膨胀
+                window.history.go(1);
             }
         }
 
@@ -225,7 +231,10 @@
             });
         } else if (isPWA()) {
             ensurePwaHistory(currentPath);
-            window.addEventListener('popstate', function() {
+            window.addEventListener('popstate', function(e) {
+                // 忽略 go(1) 弹回 guard 触发的 popstate
+                var state = (e && e.state) || {};
+                if (state.cxGuard) return;
                 handleBackCommon(handleBack);
             });
         }
