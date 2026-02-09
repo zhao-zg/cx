@@ -527,6 +527,16 @@
                 return; // 非 APP 模式不启用记忆功能
             }
             
+            // 检查是否是新会话（APP 冷启动）
+            var hasRestored = sessionStorage.getItem('cx_has_restored');
+            if (hasRestored) {
+                console.log('[页面记忆] 当前会话已跳转过，不再重复跳转');
+                if (window.CXNavStack) {
+                    window.CXNavStack.initHomePage();
+                }
+                return;
+            }
+            
             var lastPage = localStorage.getItem('cx_last_page');
             var lastPageTime = localStorage.getItem('cx_last_page_time');
             
@@ -549,6 +559,8 @@
                     // 如果保存的不是主页，跳转恢复
                     if (!lastPageIsMain) {
                         console.log('[页面记忆] 恢复上次访问的页面:', lastPage);
+                        // 标记当前会话已跳转
+                        sessionStorage.setItem('cx_has_restored', 'true');
                         window.location.replace(lastPage);
                         return;
                     } else {
@@ -560,6 +572,9 @@
             } else {
                 console.log('[页面记忆] 没有保存的页面记录');
             }
+            
+            // 标记当前会话已处理过跳转逻辑
+            sessionStorage.setItem('cx_has_restored', 'true');
             
             // 初始化主页导航
             if (window.CXNavStack) {
