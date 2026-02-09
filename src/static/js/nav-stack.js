@@ -73,27 +73,6 @@
         setNavStack(navStack);
     }
 
-    // ========================================
-    // PWA 回退拦截核心机制
-    // ========================================
-    // 策略: replaceState 标记当前条目(real) -> pushState 推入 guard
-    // 用户按回退 -> guard->real -> popstate 触发
-    // 处理后用 location.replace 导航走(replace 清除前进历史)
-    //
-    // 关键设计:
-    // 1. ensurePwaGuard 无条件推入, 不检查当前 state
-    //    (修复 location.replace 后 state 可能残留的 bug)
-    // 2. popstate 处理器在处理前重推 guard, 防止连续回退穿透
-    // 3. 退出时 history.go(-length) 跳到最前面, 确保退出 standalone
-    // ========================================
-
-    function ensurePwaGuard() {
-        if (!window.history || !window.history.pushState) return;
-        var currentPath = getCurrentPath();
-        window.history.replaceState({ cx: true, cxPath: currentPath }, '', currentPath);
-        window.history.pushState({ cx: true, cxGuard: true, cxPath: currentPath }, '', currentPath);
-    }
-
     function handleBackCommon(targetHandler) {
         if (window.__cxHandlingBack || window.__cxExiting) {
             return;
@@ -109,7 +88,6 @@
     }
 
     function setupPwaPopstate(handleBack) {
-        ensurePwaGuard();
         window.addEventListener('popstate', function(e) {
             if (window.__cxExiting) return;
 
