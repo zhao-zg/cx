@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-生成 Android PNG 图标（现代渐变设计）
+生成 Android PNG 图标（现代扁平化设计）
 使用 Pillow 直接生成，不依赖 SVG
 """
 from PIL import Image, ImageDraw, ImageFont
@@ -18,23 +18,18 @@ SIZES = {
 }
 
 def create_gradient_background(size):
-    """创建现代渐变背景（从浅蓝到深蓝）"""
+    """创建现代渐变背景（对角线性渐变，扁平化设计）"""
     img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
     
-    # 渐变色：从浅蓝 #3B82F6 到深蓝 #1D4ED8（纯蓝色调）
-    color_start = (59, 130, 246)   # #3B82F6 浅蓝
-    color_end = (29, 78, 216)      # #1D4ED8 深蓝
+    # 渐变色：从靛蓝 #4F46E5 到蓝色 #3B82F6（对角渐变）
+    color_start = (79, 70, 229)    # #4F46E5 靛蓝
+    color_end = (59, 130, 246)     # #3B82F6 蓝色
     
-    # 创建径向渐变（从中心到边缘）
-    center_x, center_y = size // 2, size // 2
-    max_distance = math.sqrt(center_x**2 + center_y**2)
-    
+    # 创建对角线性渐变（从左上到右下）
     for y in range(size):
         for x in range(size):
-            # 计算距离中心的距离
-            distance = math.sqrt((x - center_x)**2 + (y - center_y)**2)
-            ratio = min(distance / max_distance, 1.0)
+            # 计算对角线位置比例（0到1）
+            ratio = (x + y) / (2 * size)
             
             # 插值计算颜色
             r = int(color_start[0] + (color_end[0] - color_start[0]) * ratio)
@@ -54,44 +49,18 @@ def create_gradient_background(size):
     
     return img
 
-def add_badge_and_text(img, text, font_size):
-    """在图片上添加白色徽章和文字"""
+def add_text(img, text, font_size):
+    """在图片上添加白色文字（扁平化设计，无徽章）"""
     draw = ImageDraw.Draw(img)
     size = img.size[0]
     center_x, center_y = size // 2, size // 2
     
-    # 创建白色圆形徽章（带阴影效果）
-    badge_radius = int(size * 0.35)  # 徽章半径为图标的 35%
-    
-    # 绘制阴影（稍微偏移和模糊）
-    shadow_offset = int(size * 0.02)
-    shadow_radius = badge_radius + 2
-    for i in range(3):  # 多层阴影实现模糊效果
-        alpha = 30 - i * 8
-        draw.ellipse(
-            [
-                (center_x - shadow_radius + shadow_offset, center_y - shadow_radius + shadow_offset),
-                (center_x + shadow_radius + shadow_offset, center_y + shadow_radius + shadow_offset)
-            ],
-            fill=(0, 0, 0, alpha)
-        )
-        shadow_radius -= 1
-    
-    # 绘制白色徽章
-    draw.ellipse(
-        [
-            (center_x - badge_radius, center_y - badge_radius),
-            (center_x + badge_radius, center_y + badge_radius)
-        ],
-        fill=(255, 255, 255, 255)
-    )
-    
-    # 尝试使用系统字体
+    # 尝试使用系统加粗字体
     font = None
     font_paths = [
-        'C:/Windows/Fonts/msyhbd.ttc',  # Windows 微软雅黑 Bold
-        'C:/Windows/Fonts/msyh.ttc',    # Windows 微软雅黑
+        'C:/Windows/Fonts/msyhbd.ttc',  # Windows 微软雅黑 Bold（优先）
         'C:/Windows/Fonts/simhei.ttf',  # Windows 黑体
+        'C:/Windows/Fonts/msyh.ttc',    # Windows 微软雅黑
         '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',  # Linux
         '/System/Library/Fonts/PingFang.ttc',  # macOS
     ]
@@ -107,27 +76,26 @@ def add_badge_and_text(img, text, font_size):
         font = ImageFont.load_default()
         print(f"  ⚠ 使用默认字体（可能无法显示中文）")
     
-    # 绘制文字（渐变色，使用 mm anchor 居中）
-    # 使用深蓝色 #1D4ED8
-    text_color = (29, 78, 216, 255)
+    # 绘制白色文字（纯白色，使用 mm anchor 居中）
+    text_color = (255, 255, 255, 255)
     draw.text((center_x, center_y), text, font=font, fill=text_color, anchor='mm')
     
     return img
 
 def add_shine_effect(img):
-    """添加光泽效果（可选）"""
+    """添加微妙的左上高光效果"""
     size = img.size[0]
     overlay = Image.new('RGBA', (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
     
-    # 在左上角添加微妙的高光
-    shine_size = int(size * 0.4)
+    # 在左上角添加非常微妙的高光（扁平化设计，更低调）
+    shine_size = int(size * 0.35)
     for i in range(shine_size):
-        alpha = int(30 * (1 - i / shine_size))
+        alpha = int(15 * (1 - i / shine_size))  # 降低透明度，更微妙
         draw.ellipse(
             [
-                (int(size * 0.15) - i, int(size * 0.15) - i),
-                (int(size * 0.15) + shine_size - i, int(size * 0.15) + shine_size - i)
+                (int(size * 0.1) - i, int(size * 0.1) - i),
+                (int(size * 0.1) + shine_size - i, int(size * 0.1) + shine_size - i)
             ],
             fill=(255, 255, 255, alpha)
         )
@@ -151,9 +119,43 @@ def create_round_icon(img):
     
     return round_img
 
+def generate_pwa_icons():
+    """生成 PWA 所需的 PNG 图标（从 Android xxxhdpi 源复制）"""
+    print("\n=== 生成 PWA 图标 ===\n")
+    
+    # 源文件（使用最大的 Android 图标）
+    source_icon = Path('android_icons/mipmap-xxxhdpi/ic_launcher.png')
+    
+    if not source_icon.exists():
+        print(f"✗ 错误: 找不到源图标文件 {source_icon}")
+        print("  请先运行 generate_icons() 生成 Android 图标")
+        return
+    
+    # 输出目录（生成到 src/static/icons）
+    output_dir = Path('src/static/icons')
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # 读取源图标
+    img = Image.open(source_icon)
+    print(f"源图标尺寸: {img.size[0]}x{img.size[1]}")
+    
+    # 生成 192x192
+    icon_192 = img.resize((192, 192), Image.Resampling.LANCZOS)
+    output_192 = output_dir / 'icon-192.png'
+    icon_192.save(output_192, 'PNG', optimize=True)
+    print(f"✓ 生成: {output_192} ({output_192.stat().st_size / 1024:.1f} KB)")
+    
+    # 生成 512x512
+    icon_512 = img.resize((512, 512), Image.Resampling.LANCZOS)
+    output_512 = output_dir / 'icon-512.png'
+    icon_512.save(output_512, 'PNG', optimize=True)
+    print(f"✓ 生成: {output_512} ({output_512.stat().st_size / 1024:.1f} KB)")
+    
+    print("\n✓ PWA 图标生成完成！")
+
 def generate_icons():
     """生成所有尺寸的图标"""
-    print("=== 生成现代风格 Android PNG 图标 ===\n")
+    print("=== 生成现代扁平化设计 Android PNG 图标 ===\n")
     
     # 创建输出目录
     output_base = Path('android_icons')
@@ -168,11 +170,11 @@ def generate_icons():
         # 生成渐变背景
         img = create_gradient_background(size)
         
-        # 添加徽章和文字
-        font_size = int(size * 0.45)  # 字体大小为图标的 45%
-        img = add_badge_and_text(img, '特', font_size)
+        # 添加白色文字
+        font_size = int(size * 0.32)  # 字体大小适中
+        img = add_text(img, '特会', font_size)
         
-        # 添加光泽效果
+        # 添加微妙的光泽效果
         img = add_shine_effect(img)
         
         # 保存普通图标
@@ -189,18 +191,22 @@ def generate_icons():
         
         print()
     
-    print("✓ 所有图标生成完成！")
+    print("✓ Android 图标生成完成！")
     print(f"\n生成的文件位于: {output_base}/")
     print("\n设计特点：")
-    print("  • 纯蓝色渐变背景（浅蓝到深蓝）")
-    print("  • 白色圆形徽章")
-    print("  • 深蓝色文字")
-    print("  • 微妙的阴影和光泽效果")
+    print("  • 对角线性渐变背景（靛蓝 #4F46E5 到蓝色 #3B82F6）")
+    print("  • 白色加粗文字「特会」，直接在背景上")
+    print("  • 扁平化现代设计，无徽章无阴影")
+    print("  • 微妙的左上光泽效果")
+    
+    # 自动生成 PWA 图标
+    generate_pwa_icons()
+    
     print("\n下一步：")
-    print("  python generate_png_icons.py")
-    print("  git add android_icons/")
-    print("  git commit -m 'feat: 更新为现代渐变风格图标'")
-    print("  git push")
+    print("  1. python main.py  # 自动复制图标到 output/icons")
+    print("  2. git add android_icons/ src/static/icons/")
+    print("  3. git commit -m 'feat: 更新为扁平化现代设计图标'")
+    print("  4. 在 Android Chrome 浏览器测试 PWA 安装")
 
 if __name__ == '__main__':
     try:
