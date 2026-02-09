@@ -17,6 +17,13 @@ SIZES = {
     'xxxhdpi': 192,
 }
 
+# PWA/网页常用图标尺寸
+PWA_SIZES = [
+    16, 32, 48, 64, 72, 96,
+    120, 128, 144, 152, 167, 180,
+    192, 256, 384, 512
+]
+
 def create_gradient_background(size):
     """创建现代渐变背景（对角线性渐变，扁平化设计）"""
     img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
@@ -120,37 +127,26 @@ def create_round_icon(img):
     return round_img
 
 def generate_pwa_icons():
-    """生成 PWA 所需的 PNG 图标（从 Android xxxhdpi 源复制）"""
+    """生成 PWA/网页所需的 PNG 图标（直接生成多尺寸）"""
     print("\n=== 生成 PWA 图标 ===\n")
-    
-    # 源文件（使用最大的 Android 图标）
-    source_icon = Path('android_icons/mipmap-xxxhdpi/ic_launcher.png')
-    
-    if not source_icon.exists():
-        print(f"✗ 错误: 找不到源图标文件 {source_icon}")
-        print("  请先运行 generate_icons() 生成 Android 图标")
-        return
-    
+
     # 输出目录（生成到 src/static/icons）
     output_dir = Path('src/static/icons')
     output_dir.mkdir(parents=True, exist_ok=True)
-    
-    # 读取源图标
-    img = Image.open(source_icon)
-    print(f"源图标尺寸: {img.size[0]}x{img.size[1]}")
-    
-    # 生成 192x192
-    icon_192 = img.resize((192, 192), Image.Resampling.LANCZOS)
-    output_192 = output_dir / 'icon-192.png'
-    icon_192.save(output_192, 'PNG', optimize=True)
-    print(f"✓ 生成: {output_192} ({output_192.stat().st_size / 1024:.1f} KB)")
-    
-    # 生成 512x512
-    icon_512 = img.resize((512, 512), Image.Resampling.LANCZOS)
-    output_512 = output_dir / 'icon-512.png'
-    icon_512.save(output_512, 'PNG', optimize=True)
-    print(f"✓ 生成: {output_512} ({output_512.stat().st_size / 1024:.1f} KB)")
-    
+
+    max_size = max(PWA_SIZES)
+    base_img = create_gradient_background(max_size)
+    font_size = int(max_size * 0.32)
+    base_img = add_text(base_img, '特会', font_size)
+    base_img = add_shine_effect(base_img)
+    print(f"源图标尺寸: {max_size}x{max_size}")
+
+    for size in PWA_SIZES:
+        icon_img = base_img.resize((size, size), Image.Resampling.LANCZOS)
+        output_path = output_dir / f'icon-{size}.png'
+        icon_img.save(output_path, 'PNG', optimize=True)
+        print(f"✓ 生成: {output_path} ({output_path.stat().st_size / 1024:.1f} KB)")
+
     print("\n✓ PWA 图标生成完成！")
 
 def generate_icons():

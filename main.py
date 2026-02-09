@@ -346,8 +346,13 @@ def generate_main_index(config, batch_results):
     if os.path.exists(icon_src):
         shutil.copy2(icon_src, icon_dst)
     
-    # 复制 PNG 图标（Android PWA 需要）
-    for icon_filename in ['icon-192.png', 'icon-512.png']:
+    # 复制 PNG 图标（PWA/网页图标）
+    icon_filenames = [
+        'icon-16.png', 'icon-32.png', 'icon-48.png', 'icon-64.png', 'icon-72.png', 'icon-96.png',
+        'icon-120.png', 'icon-128.png', 'icon-144.png', 'icon-152.png', 'icon-167.png', 'icon-180.png',
+        'icon-192.png', 'icon-256.png', 'icon-384.png', 'icon-512.png'
+    ]
+    for icon_filename in icon_filenames:
         icon_src = os.path.join('src', 'static', 'icons', icon_filename)
         icon_dst = os.path.join(icons_dir, icon_filename)
         if os.path.exists(icon_src):
