@@ -41,5 +41,14 @@
 @media(min-width:768px){.back-home{font-size:15px;padding:16px 20px;gap:14px}.back-home:hover{background:#eef2f7;transform:translateX(-2px)}.back-home:hover .back-icon{transform:translateX(-2px)}.back-icon{width:20px;height:20px}.toc-list{gap:0}.toc-item{padding:16px 20px;gap:14px}.toc-item:hover{background:#f0f4ff}.toc-num{font-size:1em}.toc-title{font-size:1.0625em}}
 </style>
 
+{% block nav_init %}
+<script>
+// 目录页覆盖 base.html 的默认导航
+if (window.CXNavStack) {
+    window.CXNavStack.initDirectoryPage();
+}
+</script>
+{% endblock %}
+
 <script src="js/toc-redirect.js" defer></script>
 {% endblock %}

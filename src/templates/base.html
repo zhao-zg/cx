@@ -221,11 +221,13 @@
     <script src="js/font-control.js" defer></script>
     <script src="js/highlight.js" defer></script>
     <script src="js/nav-stack.js"></script>
+    {% block nav_init %}
     <script>
     if (window.CXNavStack) {
         window.CXNavStack.initContentPage();
     }
     </script>
+    {% endblock %}
     
     <!-- 页面记忆功能 -->
     <script>
