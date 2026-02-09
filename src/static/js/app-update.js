@@ -671,7 +671,7 @@
         
         console.log('[更新检查] 显示 Cloudflare 更新对话框');
         
-        createUpdateDialog('cloudflareUpdateDialog', '🔄 检查更新 (Cloudflare)', 'cfCheckStatus', 'cfUpdateBtn');
+        createUpdateDialog('cloudflareUpdateDialog', '🔄 检查更新', 'cfCheckStatus', 'cfUpdateBtn');
         
         var statusEl = document.getElementById('cfCheckStatus');
         var btnEl = document.getElementById('cfUpdateBtn');
