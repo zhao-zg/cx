@@ -1,4 +1,4 @@
-(function() {
+﻿(function() {
     'use strict';
 
     var NAV_KEY = 'cx_nav_stack';
@@ -56,13 +56,10 @@
         }
         var navStack = getNavStack();
 
-        // 已在栈顶，无需操作
         if (navStack.length > 0 && navStack[navStack.length - 1] === currentPath) {
             return;
         }
 
-        // 检查路径是否已存在于栈中（用户通过链接"返回"到之前的页面）
-        // 如果存在，回退栈到该位置，避免栈膨胀
         for (var i = navStack.length - 2; i >= 0; i--) {
             if (navStack[i] === currentPath) {
                 navStack = navStack.slice(0, i + 1);
@@ -71,27 +68,34 @@
             }
         }
 
-        // 全新路径，正常入栈
         navStack.push(currentPath);
         navStack = trimNavStack(navStack);
         setNavStack(navStack);
     }
 
-    // 页面加载时，推入一个 guard 条目
-    // 用户按回退 → 从 guard 回到 real → 触发 popstate
-    // 我们处理后用 go(1) 弹回 guard 或 location.replace 导航走
-    function ensurePwaHistory(currentPath) {
-        if (window.history && window.history.pushState) {
-            var state = window.history.state || {};
-            if (!state.cxGuard) {
-                window.history.replaceState({ cx: true, cxPath: currentPath }, '', currentPath);
-                window.history.pushState({ cx: true, cxGuard: true, cxPath: currentPath }, '', currentPath);
-            }
-        }
+    // ========================================
+    // PWA 回退拦截核心机制
+    // ========================================
+    // 策略: replaceState 标记当前条目(real) -> pushState 推入 guard
+    // 用户按回退 -> guard->real -> popstate 触发
+    // 处理后用 location.replace 导航走(replace 清除前进历史)
+    //
+    // 关键设计:
+    // 1. ensurePwaGuard 无条件推入, 不检查当前 state
+    //    (修复 location.replace 后 state 可能残留的 bug)
+    // 2. popstate 处理器在处理前重推 guard, 防止连续回退穿透
+    // 3. 退出时 history.go(-length) 跳到最前面, 确保退出 standalone
+    // ========================================
+
+    function ensurePwaGuard() {
+        if (!window.history || !window.history.pushState) return;
+        var currentPath = getCurrentPath();
+        window.history.replaceState({ cx: true, cxPath: currentPath }, '', currentPath);
+        window.history.pushState({ cx: true, cxGuard: true, cxPath: currentPath }, '', currentPath);
     }
 
     function handleBackCommon(targetHandler) {
-        if (window.__cxHandlingBack) {
+        if (window.__cxHandlingBack || window.__cxExiting) {
             return;
         }
         window.__cxHandlingBack = true;
@@ -100,8 +104,30 @@
         } finally {
             setTimeout(function() {
                 window.__cxHandlingBack = false;
-            }, 0);
+            }, 300);
         }
+    }
+
+    function setupPwaPopstate(handleBack) {
+        ensurePwaGuard();
+        window.addEventListener('popstate', function(e) {
+            if (window.__cxExiting) return;
+
+            var state = (e && e.state) || {};
+
+            if (state.cxGuard) {
+                return;
+            }
+
+            // 用户按了回退: 从 guard 落到 real 条目
+            // 立即重推 guard, 防止快速连续按回退穿透历史
+            if (window.history && window.history.pushState) {
+                var path = getCurrentPath();
+                window.history.pushState({ cx: true, cxGuard: true, cxPath: path }, '', path);
+            }
+
+            handleBackCommon(handleBack);
+        });
     }
 
     function initContentPage(options) {
@@ -145,7 +171,6 @@
 
         function handleBack() {
             var navStack = getNavStack();
-            currentPath = getCurrentPath();
 
             navStack.pop();
             setNavStack(navStack);
@@ -158,7 +183,6 @@
                 }
             }
 
-            // 栈空或无有效目标：导航到上级页面
             sessionStorage.removeItem(NAV_KEY);
             sessionStorage.setItem('cx_user_back', 'true');
             var pathname = window.location.pathname;
@@ -174,13 +198,7 @@
                 handleBackCommon(handleBack);
             });
         } else if (isPWA()) {
-            ensurePwaHistory(currentPath);
-            window.addEventListener('popstate', function(e) {
-                // 忽略 go(1) 弹回 guard 触发的 popstate
-                var state = (e && e.state) || {};
-                if (state.cxGuard) return;
-                handleBackCommon(handleBack);
-            });
+            setupPwaPopstate(handleBack);
         }
     }
 
@@ -194,11 +212,8 @@
             pushIfNeeded(currentPath);
         }
 
-        var pwaPopstateHandler = null;
-
         function handleBack() {
             var navStack = getNavStack();
-            currentPath = getCurrentPath();
 
             navStack.pop();
             setNavStack(navStack);
@@ -211,7 +226,6 @@
                 }
             }
 
-            // 栈空：已经在主页最顶层，退出
             sessionStorage.removeItem(NAV_KEY);
             try {
                 localStorage.removeItem('cx_last_page');
@@ -221,17 +235,14 @@
             if (isCapacitor()) {
                 window.Capacitor.Plugins.App.exitApp();
             } else {
-                // PWA：移除 popstate 监听，让下一次回退由浏览器原生处理（退出 PWA）
-                if (pwaPopstateHandler) {
-                    window.removeEventListener('popstate', pwaPopstateHandler);
-                    pwaPopstateHandler = null;
-                }
-                // 尝试关闭窗口（部分浏览器支持）
+                // PWA 退出: 标记正在退出, 防止 popstate 重复处理
+                window.__cxExiting = true;
                 window.close();
-                // 如果 close 无效，回退一步让浏览器退出 standalone 模式
+                // close 无效时, 跳到 history 最前面让系统退出 standalone
                 setTimeout(function() {
-                    window.history.back();
-                }, 100);
+                    var steps = window.history.length || 1;
+                    window.history.go(-steps);
+                }, 150);
             }
         }
 
@@ -240,13 +251,7 @@
                 handleBackCommon(handleBack);
             });
         } else if (isPWA()) {
-            ensurePwaHistory(currentPath);
-            pwaPopstateHandler = function(e) {
-                var state = (e && e.state) || {};
-                if (state.cxGuard) return;
-                handleBackCommon(handleBack);
-            };
-            window.addEventListener('popstate', pwaPopstateHandler);
+            setupPwaPopstate(handleBack);
         }
     }
 

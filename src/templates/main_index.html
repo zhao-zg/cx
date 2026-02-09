@@ -307,25 +307,18 @@
     })();
     
     // 自动设置 APK 版本（用于离线版）
+    // 注意：initHomePage 已移至页面记忆代码块中，确保在判断是否跳转之后再初始化
     (function() {
-        // 检测是否在 Capacitor 或 PWA 环境中
         var isCapacitor = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
-        var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        if (isCapacitor || isPWA) {
-            if (isCapacitor) {
-                window.Capacitor.Plugins.App.getInfo().then(function(info) {
-                    if (info.version) {
-                        localStorage.setItem('cx_apk_version', info.version);
-                        console.log('从 Capacitor 获取版本:', info.version, '包名:', info.id);
-                    }
-                }).catch(function(err) {
-                    console.log('无法获取 App 信息:', err);
-                });
-            }
-            
-            if (window.CXNavStack) {
-                window.CXNavStack.initHomePage({ deferPushIfEmpty: true });
-            }
+        if (isCapacitor) {
+            window.Capacitor.Plugins.App.getInfo().then(function(info) {
+                if (info.version) {
+                    localStorage.setItem('cx_apk_version', info.version);
+                    console.log('从 Capacitor 获取版本:', info.version, '包名:', info.id);
+                }
+            }).catch(function(err) {
+                console.log('无法获取 App 信息:', err);
+            });
         }
     })();
     
@@ -527,6 +520,7 @@
     })();
     
     // 页面记忆功能 - 恢复上次访问的页面（PWA 和 Capacitor APP）
+    // 重要：initHomePage 在此处调用，确保先完成跳转判断再初始化导航
     (function() {
         try {
             // 检查是否在 PWA 或 Capacitor APP 中运行
@@ -545,6 +539,7 @@
             
             var lastPage = localStorage.getItem('cx_last_page');
             var lastPageTime = localStorage.getItem('cx_last_page_time');
+            var currentPath = window.location.pathname + window.location.search + window.location.hash;
             
             console.log('[页面记忆] 上次访问:', lastPage, '时间:', lastPageTime);
             
@@ -591,14 +586,14 @@
                     // 只在新会话进入主页时恢复，且保存的页面不是主页  
                     if (isNewSession && isMainPage && !lastPageIsMain) {
                         console.log('[页面记忆] 恢复上次访问的页面:', lastPage);
-                        // 清空导航栈，因为是自动跳转，不应该记录主页
+                        // 清空导航栈，内容页的 initContentPage 会自动种子
                         sessionStorage.removeItem('cx_nav_stack');
+                        // 直接跳转，不调用 initHomePage（避免推入无用的 guard）
                         window.location.replace(lastPage);
                         return;
                     } else {
                         // 不跳转，把主页压入栈
                         if (isNewSession) {
-                            var currentPath = window.location.pathname + window.location.search + window.location.hash;
                             sessionStorage.setItem('cx_nav_stack', JSON.stringify([currentPath]));
                         }
                         var href = window.location.href;
@@ -608,8 +603,8 @@
                     }
                 } else {
                     // 时间过久，不跳转，把主页压入栈
-                    if (isNewSession) {
-                        var currentPath = window.location.pathname + window.location.search + window.location.hash;
+                    var navStack2 = JSON.parse(sessionStorage.getItem('cx_nav_stack') || '[]');
+                    if (navStack2.length === 0) {
                         sessionStorage.setItem('cx_nav_stack', JSON.stringify([currentPath]));
                     }
                     console.log('[页面记忆] 上次访问时间过久，不恢复');
@@ -618,10 +613,15 @@
                 // 没有记录，把主页压入栈
                 var navStack = JSON.parse(sessionStorage.getItem('cx_nav_stack') || '[]');
                 if (navStack.length === 0) {
-                    var currentPath = window.location.pathname + window.location.search + window.location.hash;
                     sessionStorage.setItem('cx_nav_stack', JSON.stringify([currentPath]));
                 }
                 console.log('[页面记忆] 没有保存的页面记录');
+            }
+            
+            // 走到这里说明不跳转，初始化主页导航
+            // 此时 navStack 已经设好，initHomePage 不需要 deferPushIfEmpty
+            if (window.CXNavStack) {
+                window.CXNavStack.initHomePage();
             }
         } catch (e) {
             console.error('[页面记忆] 错误:', e);
