@@ -58,7 +58,8 @@ def obfuscate_with_javascript_obfuscator(input_file, output_file):
         print("请运行: npm install -g javascript-obfuscator")
         return False
 
-obfuscate_app_update_js(source_file='output/js/app-update.js', create_backup=True):
+
+def obfuscate_app_update_js(source_file='output/js/app-update.js', create_backup=True):
     """
     混淆 app-update.js 文件
     """
@@ -115,8 +116,7 @@ obfuscate_app_update_js(source_file='output/js/app-update.js', create_backup=Tru
     print("  - 控制流平坦化")
     print("  - 死代码注入")
     print("  - 自我防护（防格式化）")
-    print("  - 三重加密算法")
-    print("  - 第三层：反调试保护")
+    print("  - 反调试保护")
     print(f"\n⚠️  恢复方法:")
     print(f"  如需恢复原始文件，运行:")
     print(f"  python encrypt_app_update.py --restore")
@@ -129,7 +129,7 @@ def restore_original():
     恢复原始文件
     """
     source_file = 'output/js/app-update.js'
-    backup_file = 'app-update.js.backup'  # 备份在项目根目录
+    backup_file = 'app-update.js.backup'
     
     if not os.path.exists(backup_file):
         print("错误: 未找到备份文件")
@@ -149,7 +149,7 @@ def main():
         restore_original()
     elif '--help' in sys.argv or '-h' in sys.argv:
         print("用法:")
-        print("  python encrypt_app_update.py           # 加密 app-update.js")
+        print("  python encrypt_app_update.py           # 混淆 app-update.js")
         print("  python encrypt_app_update.py --restore # 恢复原始文件")
         print("  python encrypt_app_update.py --help    # 显示帮助")
     else:
@@ -159,19 +159,8 @@ def main():
             print("当前目录:", os.getcwd())
             sys.exit(1)
         
-        encrypt_app_update_js()
+        obfuscate_app_update_js()
 
 
 if __name__ == '__main__':
     main()
-混淆 app-update.js")
-        print("  python encrypt_app_update.py --restore # 恢复原始文件")
-        print("  python encrypt_app_update.py --help    # 显示帮助")
-    else:
-        # 检查是否在项目根目录
-        if not os.path.exists('output/js/app-update.js'):
-            print("错误: 请在项目根目录运行此脚本")
-            print("当前目录:", os.getcwd())
-            sys.exit(1)
-        
-        obfuscate
