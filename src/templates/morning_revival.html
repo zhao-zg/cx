@@ -191,39 +191,17 @@
     let touchStartY = 0;
     let touchEndY = 0;
     let touchStartTime = 0;
-    let isSwiping = false;
     
     document.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
         touchStartY = e.changedTouches[0].screenY;
         touchStartTime = Date.now();
-        isSwiping = false;
     }, { passive: true });
-    
-    document.addEventListener('touchmove', (e) => {
-        if (isSwiping) {
-            // 已识别为翻页手势，阻止页面滚动
-            e.preventDefault();
-            return;
-        }
-        
-        const touchX = e.changedTouches[0].screenX;
-        const touchY = e.changedTouches[0].screenY;
-        const diffX = Math.abs(touchStartX - touchX);
-        const diffY = Math.abs(touchStartY - touchY);
-        
-        // 判断是否为水平滑动意图
-        if (diffX > 10 && diffX > diffY * 1.5) {
-            isSwiping = true;
-            e.preventDefault(); // 阻止页面滚动
-        }
-    }, { passive: false }); // 需要 passive: false 才能使用 preventDefault
     
     document.addEventListener('touchend', (e) => {
         touchEndX = e.changedTouches[0].screenX;
         touchEndY = e.changedTouches[0].screenY;
         handleSwipe();
-        isSwiping = false;
     }, { passive: true });
     
     function handleSwipe() {
