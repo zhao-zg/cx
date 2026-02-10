@@ -41,78 +41,72 @@ def update_capacitor_config_for_production():
 
 
 def obfuscate_javascript():
-    """混淆 JavaScript 代码"""
-    print("\n🔒 混淆 JavaScript 代码...")
+    """加密和混淆 JavaScript 代码（专注于 app-update.js）"""
+    print("\n🔒 处理 JavaScript 文件...")
     
-    # 检查是否安装了 javascript-obfuscator
-    try:
-        result = subprocess.run(
-            ['npx', 'javascript-obfuscator', '--version'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        print(f"  使用 javascript-obfuscator {result.stdout.strip()}")
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("  ⚠ 未安装 javascript-obfuscator，正在安装...")
-        subprocess.run(['npm', 'install', '-g', 'javascript-obfuscator'], check=True)
-    
-    # 混淆 output/js 目录中的所有 JS 文件
     js_dir = 'output/js'
-    
     if not os.path.exists(js_dir):
         print(f"  ⚠ 目录不存在: {js_dir}")
         return
     
-    js_files = [f for f in os.listdir(js_dir) if f.endswith('.js')]
-    
-    if not js_files:
-        print(f"  ⚠ 未找到 JS 文件: {js_dir}")
-        return
-    
-    print(f"  找到 {len(js_files)} 个 JS 文件")
-    
-    # 备份原始文件
-    backup_dir = 'output/js_original'
-    if not os.path.exists(backup_dir):
-        os.makedirs(backup_dir, exist_ok=True)
-        for js_file in js_files:
-            src = os.path.join(js_dir, js_file)
-            dst = os.path.join(backup_dir, js_file)
-            shutil.copy2(src, dst)
-        print(f"  ✓ 已备份原始文件到: {backup_dir}")
-    
-    # 混淆每个文件
-    for js_file in js_files:
-        input_path = os.path.join(js_dir, js_file)
-        temp_path = input_path + '.obf'
-        
-        cmd = [
-            'npx', 'javascript-obfuscator',
-            input_path,
-            '--output', temp_path,
-            '--compact', 'true',
-            '--control-flow-flattening', 'true',
-            '--control-flow-flattening-threshold', '0.75',
-            '--dead-code-injection', 'true',
-            '--dead-code-injection-threshold', '0.4',
-            '--string-array', 'true',
-            '--string-array-encoding', 'base64',
-            '--string-array-threshold', '0.75',
-            '--transform-object-keys', 'true',
-            '--self-defending', 'true',
-            '--disable-console-output', 'false'
-        ]
-        
+    # 专门加密 app-update.js（包含敏感地址）
+    app_update_file = os.path.join(js_dir, 'app-update.js')
+    if os.path.exists(app_update_file):
+        print(f"\n  🔐 加密 app-update.js（包含敏感地址）...")
         try:
-            subprocess.run(cmd, check=True, capture_output=True)
-            # 替换原文件
-            shutil.move(temp_path, input_path)
-            print(f"  ✓ 已混淆: {js_file}")
+            # 调用专门的加密脚本
+            result = subprocess.run(
+                ['python', 'encrypt_app_update.py'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            print("  ✓ app-update.js 已加密保护")
         except subprocess.CalledProcessError as e:
-            print(f"  ✗ 混淆失败: {js_file}")
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
+            print(f"  ✗ 加密失败: {e.stderr}")
+        except FileNotFoundError:
+            print("  ✗ 未找到 encrypt_app_update.py")
+    
+    # 其他 JS 文件做轻量混淆
+    other_files = [f for f in os.listdir(js_dir) 
+                   if f.endswith('.js') and f != 'app-update.js']
+    
+    if other_files:
+        print(f"\n  🎭 混淆其他 JS 文件 ({len(other_files)} 个)...")
+        
+        # 检查混淆工具
+        try:
+            subprocess.run(
+                ['npx', 'javascript-obfuscator', '--version'],
+                capture_output=True,
+                check=True
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("  ⚠ 混淆工具未安装，跳过其他文件")
+            return
+        
+        for js_file in other_files:
+            input_path = os.path.join(js_dir, js_file)
+            temp_path = input_path + '.obf'
+            
+            cmd = [
+                'npx', 'javascript-obfuscator',
+                input_path,
+                '--output', temp_path,
+                '--compact', 'true',
+                '--string-array', 'true',
+                '--string-array-threshold', '0.5',
+                '--simplify', 'true'
+            ]
+            
+            try:
+                subprocess.run(cmd, check=True, capture_output=True)
+                shutil.move(temp_path, input_path)
+                print(f"    ✓ {js_file}")
+            except:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                print(f"    ⚠ {js_file} (跳过)")
 
 
 def add_content_protection():
@@ -202,7 +196,15 @@ def restore_dev_config():
     
     if os.path.exists(backup_path):
         shutil.copy2(backup_path, config_path)
-        print(f"✓ 已恢复开发配置")
+        print(f"✓ 已恢复 Capacitor 开发配置")
+    
+    # 恢复 app-update.js 原始文件
+    try:
+        subprocess.run(['python', 'encrypt_app_update.py', '--restore'], 
+                      capture_output=True, check=True)
+        print(f"✓ 已恢复 app-update.js 原始文件")
+    except:
+        pass
 
 
 def main():

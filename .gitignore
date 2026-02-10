@@ -30,6 +30,8 @@ tmp_downloads/
 # Security build artifacts
 *.dev.backup
 output/js_original/
+*.original
+*.temp.obf
 
 # IDE
 .vscode/
