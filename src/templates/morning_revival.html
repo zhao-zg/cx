@@ -251,7 +251,7 @@
 function initSpeech() {
     window.CXSpeech.init({
         getText: function() {
-            const activePage = document.querySelector('.day-page[style*="display: block"]') || document.querySelector('.day-page');
+            const activePage = document.querySelector('.day-page.is-active');
             if (!activePage) return '';
 
             function getCleanText(node) {
