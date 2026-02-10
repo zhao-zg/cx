@@ -4,7 +4,6 @@
   "description": "特会信息合集 - 安卓应用",
   "scripts": {
     "build": "python main.py",
-    "build:secure": "python build_secure.py",
     "encrypt:app-update": "python encrypt_app_update.py",
     "restore:app-update": "python encrypt_app_update.py --restore",
     "cap:init": "npx cap init",
@@ -12,9 +11,7 @@
     "cap:sync": "npx cap sync",
     "cap:open": "npx cap open android",
     "android:build": "npm run build && npm run cap:sync && cd android && ./gradlew assembleRelease",
-    "android:build:secure": "npm run build:secure && npm run cap:sync && cd android && ./gradlew assembleRelease",
-    "android:dev": "npm run build && npm run cap:sync && npm run cap:open",
-    "restore:dev": "python build_secure.py --restore"
+    "android:dev": "npm run build && npm run cap:sync && npm run cap:open"
   },
   "dependencies": {
     "@capacitor/core": "^6.0.0",

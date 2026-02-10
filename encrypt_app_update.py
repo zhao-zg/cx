@@ -182,13 +182,18 @@ def encrypt_app_update_js(source_file='output/js/app-update.js', create_backup=T
     
     # 3. 第一次混淆（使用 javascript-obfuscator）
     print(f"\n🎭 第一层：深度混淆...")
-    temp_obfuscated = source_file + '.temp.obf'
+    temp_obfuscated = source_file + '.temp.js'
     
     if obfuscate_with_javascript_obfuscator(source_file, temp_obfuscated):
         print("   ✓ 第一层混淆完成")
-        with open(temp_obfuscated, 'r', encoding='utf-8') as f:
-            obfuscated_content = f.read()
-        os.remove(temp_obfuscated)
+        # 确保输出是文件而非目录
+        if os.path.isfile(temp_obfuscated):
+            with open(temp_obfuscated, 'r', encoding='utf-8') as f:
+                obfuscated_content = f.read()
+            os.remove(temp_obfuscated)
+        else:
+            print("   ⚠ 混淆输出异常，使用原始内容")
+            obfuscated_content = original_content
     else:
         print("   ⚠ 混淆工具未安装，跳过混淆步骤")
         obfuscated_content = original_content
