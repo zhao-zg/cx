@@ -185,31 +185,66 @@
         }
     });
     
-    // 移动端滑动支持（仅水平滑动）
+    // 移动端滑动支持（优化版：支持速度判断和方向识别）
     let touchStartX = 0;
     let touchEndX = 0;
     let touchStartY = 0;
     let touchEndY = 0;
+    let touchStartTime = 0;
+    let isSwiping = false;
     
     document.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
         touchStartY = e.changedTouches[0].screenY;
+        touchStartTime = Date.now();
+        isSwiping = false;
     }, { passive: true });
+    
+    document.addEventListener('touchmove', (e) => {
+        if (isSwiping) {
+            // 已识别为翻页手势，阻止页面滚动
+            e.preventDefault();
+            return;
+        }
+        
+        const touchX = e.changedTouches[0].screenX;
+        const touchY = e.changedTouches[0].screenY;
+        const diffX = Math.abs(touchStartX - touchX);
+        const diffY = Math.abs(touchStartY - touchY);
+        
+        // 判断是否为水平滑动意图
+        if (diffX > 10 && diffX > diffY * 1.5) {
+            isSwiping = true;
+            e.preventDefault(); // 阻止页面滚动
+        }
+    }, { passive: false }); // 需要 passive: false 才能使用 preventDefault
     
     document.addEventListener('touchend', (e) => {
         touchEndX = e.changedTouches[0].screenX;
         touchEndY = e.changedTouches[0].screenY;
         handleSwipe();
+        isSwiping = false;
     }, { passive: true });
     
     function handleSwipe() {
-        const swipeThreshold = 80; // 最小滑动距离
-        const verticalTolerance = 2; // 垂直容忍度：水平滑动必须是垂直滑动的2倍
         const diffX = touchStartX - touchEndX;
-        const diffY = touchStartY - touchEndY;
+        const diffY = Math.abs(touchStartY - touchEndY);
+        const diffTime = Date.now() - touchStartTime;
+        const velocity = Math.abs(diffX) / diffTime; // px/ms
         
-        // 只有当水平滑动距离明显大于垂直滑动距离，且超过阈值时才触发翻页
-        if (Math.abs(diffX) > Math.abs(diffY) * verticalTolerance && Math.abs(diffX) > swipeThreshold) {
+        // 动态阈值：快速滑动降低距离要求
+        const baseThreshold = 50; // 降低基础阈值
+        const velocityThreshold = 0.3; // 速度阈值 (px/ms)
+        const swipeThreshold = velocity > velocityThreshold ? 30 : baseThreshold;
+        
+        // 更严格的垂直容忍度
+        const maxVerticalMove = 30; // 垂直移动不超过30px
+        const horizontalRatio = 2.5; // 水平必须是垂直的2.5倍
+        
+        // 综合判断：距离 + 速度 + 方向
+        if (Math.abs(diffX) > swipeThreshold && 
+            diffY < maxVerticalMove && 
+            Math.abs(diffX) > diffY * horizontalRatio) {
             if (diffX > 0) {
                 // 向左滑动 - 下一页
                 nextBtn.click();
