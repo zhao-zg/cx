@@ -64,7 +64,13 @@ jobs:
           echo "📋 生成版本信息..."
           python generate_version.py
           
-          echo "📋 检查生成的文件..."
+          echo "�️ 删除 app-update.js（仅 APK 需要）..."
+          if [ -f output/js/app-update.js ]; then
+            rm -f output/js/app-update.js
+            echo "✓ 已删除 app-update.js（网页版不需要）"
+          fi
+          
+          echo "�📋 检查生成的文件..."
           ls -la output/
           
           echo "📄 检查 version.json 是否存在..."

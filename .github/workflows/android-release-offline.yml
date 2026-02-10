@@ -92,21 +92,22 @@ jobs:
         find output/ -type f | wc -l
         echo "文件总数"
     
-    - name: 🔐 加密 app-update.js (保护下载地址)
+    - name: 🔐 混淆 app-update.js (保护下载地址)
       run: |
-        echo "=== 加密敏感文件 ==="
+        echo "=== 混淆敏感文件 ==="
         python encrypt_app_update.py
-        echo "✓ app-update.js 已加密"
+        echo "✓ app-update.js 已混淆"
         
-        # 验证加密结果
-        if grep -q "DO NOT MODIFY - 此文件已加密保护" output/js/app-update.js; then
-          echo "✅ 加密成功验证"
+        # 验证混淆结果（检查混淆器特征）
+        if grep -q "_0x" output/js/app-update.js; then
+          echo "✅ 混淆成功验证"
+          ls -lh output/js/app-update.js
         else
-          echo "❌ 加密可能失败"
+          echo "❌ 混淆可能失败"
           exit 1
         fi
         
-        # 删除备份文件（安全措施：避免泄露未加密源码）
+        # 删除备份文件（安全措施：避免泄露未混淆源码）
         if [ -f "app-update.js.backup" ]; then
           rm -f app-update.js.backup
           echo "🗑️  已删除备份文件（防止泄露）"
