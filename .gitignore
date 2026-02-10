@@ -27,6 +27,10 @@ output/
 # Temporary downloads
 tmp_downloads/
 
+# Security build artifacts
+*.dev.backup
+output/js_original/
+
 # IDE
 .vscode/
 .idea/
