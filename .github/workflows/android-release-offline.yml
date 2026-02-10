@@ -78,6 +78,10 @@ jobs:
         npm install
         echo "✓ Node.js 依赖安装完成"
         npm list --depth=0 | grep capacitor || echo "无"
+        
+        # 安装代码混淆工具（用于加密）
+        npm install -g javascript-obfuscator
+        echo "✓ javascript-obfuscator 已安装"
       
     - name: 生成完整静态网站
       run: |
@@ -87,6 +91,20 @@ jobs:
         du -sh output/
         find output/ -type f | wc -l
         echo "文件总数"
+    
+    - name: 🔐 加密 app-update.js (保护下载地址)
+      run: |
+        echo "=== 加密敏感文件 ==="
+        python encrypt_app_update.py
+        echo "✓ app-update.js 已加密"
+        
+        # 验证加密结果
+        if grep -q "DO NOT MODIFY - 此文件已加密保护" output/js/app-update.js; then
+          echo "✅ 加密成功验证"
+        else
+          echo "❌ 加密可能失败"
+          exit 1
+        fi
         
     - name: 生成版本信息文件
       run: |
