@@ -31,7 +31,7 @@ def obfuscate_with_javascript_obfuscator(input_file, output_file):
         '--string-array', 'true',
         '--string-array-calls-transform', 'true',
         '--string-array-calls-transform-threshold', '1',
-        '--string-array-encoding', '["rc4"]',
+        '--string-array-encoding', 'rc4',
         '--string-array-index-shift', 'true',
         '--string-array-rotate', 'true',
         '--string-array-shuffle', 'true',
