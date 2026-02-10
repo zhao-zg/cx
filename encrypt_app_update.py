@@ -165,12 +165,12 @@ def encrypt_app_update_js(source_file='output/js/app-update.js', create_backup=T
     print("🔐 加密 app-update.js")
     print("=" * 60)
     
-    # 1. 备份原始文件
+    # 1. 备份原始文件（备份到 output/ 外部，避免被打包进 APK）
     if create_backup:
-        backup_file = source_file + '.original'
+        backup_file = 'app-update.js.backup'  # 备份到项目根目录
         if not os.path.exists(backup_file):
             shutil.copy2(source_file, backup_file)
-            print(f"✓ 已备份原始文件: {backup_file}")
+            print(f"✓ 已备份原始文件: {backup_file}（不会被打包进 APK）")
     
     # 2. 读取原始内容
     print(f"\n📖 读取源文件: {source_file}")
@@ -239,14 +239,15 @@ def restore_original():
     恢复原始文件
     """
     source_file = 'output/js/app-update.js'
-    backup_file = source_file + '.original'
+    backup_file = 'app-update.js.backup'  # 备份在项目根目录
     
     if not os.path.exists(backup_file):
         print("错误: 未找到备份文件")
+        print(f"期望位置: {os.path.abspath(backup_file)}")
         return False
     
     shutil.copy2(backup_file, source_file)
-    print(f"✓ 已恢复原始文件: {source_file}")
+    print(f"✓ 已从备份恢复: {backup_file} -> {source_file}")
     return True
 
 

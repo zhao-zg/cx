@@ -32,6 +32,8 @@ tmp_downloads/
 output/js_original/
 *.original
 *.temp.obf
+*.temp.js
+app-update.js.backup
 
 # IDE
 .vscode/
