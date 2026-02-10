@@ -212,8 +212,8 @@
         const diffX = Math.abs(touchStartX - touchX);
         const diffY = Math.abs(touchStartY - touchY);
         
-        // 判断是否为水平滑动意图
-        if (diffX > 10 && diffX > diffY * 1.5) {
+        // 判断是否为水平滑动意图（放宽条件）
+        if (diffX > 8 && diffX > diffY * 1.3) {
             isSwiping = true;
             e.preventDefault(); // 阻止页面滚动
         }
@@ -233,13 +233,13 @@
         const velocity = Math.abs(diffX) / diffTime; // px/ms
         
         // 动态阈值：快速滑动降低距离要求
-        const baseThreshold = 50; // 降低基础阈值
-        const velocityThreshold = 0.3; // 速度阈值 (px/ms)
-        const swipeThreshold = velocity > velocityThreshold ? 30 : baseThreshold;
+        const baseThreshold = 40; // 基础阈值
+        const velocityThreshold = 0.25; // 速度阈值 (px/ms)
+        const swipeThreshold = velocity > velocityThreshold ? 25 : baseThreshold;
         
-        // 更严格的垂直容忍度
-        const maxVerticalMove = 30; // 垂直移动不超过30px
-        const horizontalRatio = 2.5; // 水平必须是垂直的2.5倍
+        // 放宽垂直容忍度
+        const maxVerticalMove = 50; // 垂直移动不超过50px
+        const horizontalRatio = 1.8; // 水平必须是垂直的1.8倍
         
         // 综合判断：距离 + 速度 + 方向
         if (Math.abs(diffX) > swipeThreshold && 
