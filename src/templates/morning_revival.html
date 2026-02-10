@@ -18,7 +18,7 @@
 .day-link:last-child{border-top-right-radius:6px;border-bottom-right-radius:6px}
 .day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:rgba(102,126,234,.5)}
 .day-link.active{font-weight:700}
-.pages-container{position:relative;min-height:400px;touch-action:manipulation}
+.pages-container{position:relative;min-height:400px;touch-action:pan-y}
 .day-page{background:#fff;padding:0;display:none}
 .day-page.is-active{display:block}
 .page-controls{display:flex;justify-content:space-between;align-items:center;margin:20px 0 15px;padding:10px;background:var(--surface-alt);border-radius:12px;border:1px solid var(--border)}
@@ -193,31 +193,33 @@
     let touchStartTime = 0;
     let isSwiping = false;
     
-    // 将监听器绑定到容器上，避免干扰其他元素
-    pagesContainer.addEventListener('touchstart', (e) => {
+    document.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
         touchStartY = e.changedTouches[0].screenY;
         touchStartTime = Date.now();
         isSwiping = false;
     }, { passive: true });
     
-    pagesContainer.addEventListener('touchmove', (e) => {
+    document.addEventListener('touchmove', (e) => {
+        if (isSwiping) {
+            // 已识别为翻页手势，阻止页面滚动
+            e.preventDefault();
+            return;
+        }
+        
         const touchX = e.changedTouches[0].screenX;
         const touchY = e.changedTouches[0].screenY;
         const diffX = Math.abs(touchStartX - touchX);
         const diffY = Math.abs(touchStartY - touchY);
         
-        // 更早识别水平滑动意图（降低阈值到5px）
-        if (diffX > 5 && diffX > diffY * 1.2) {
-            if (!isSwiping) {
-                isSwiping = true;
-            }
-            // 阻止页面滚动
-            e.preventDefault();
+        // 判断是否为水平滑动意图
+        if (diffX > 10 && diffX > diffY * 1.5) {
+            isSwiping = true;
+            e.preventDefault(); // 阻止页面滚动
         }
     }, { passive: false }); // 需要 passive: false 才能使用 preventDefault
     
-    pagesContainer.addEventListener('touchend', (e) => {
+    document.addEventListener('touchend', (e) => {
         touchEndX = e.changedTouches[0].screenX;
         touchEndY = e.changedTouches[0].screenY;
         handleSwipe();
@@ -230,14 +232,14 @@
         const diffTime = Date.now() - touchStartTime;
         const velocity = Math.abs(diffX) / diffTime; // px/ms
         
-        // 动态阈值：快速滑动降低距离要求
-        const baseThreshold = 50; // 降低基础阈值
-        const velocityThreshold = 0.3; // 速度阈值 (px/ms)
-        const swipeThreshold = velocity > velocityThreshold ? 30 : baseThreshold;
+        // 动态阈值：快速滑动大幅降低距离要求
+        const baseThreshold = 40; // 基础阈值降低到40px
+        const velocityThreshold = 0.25; // 降低速度阈值，让更多滑动被判定为"快速"
+        const swipeThreshold = velocity > velocityThreshold ? 25 : baseThreshold;
         
-        // 更严格的垂直容忍度
-        const maxVerticalMove = 30; // 垂直移动不超过30px
-        const horizontalRatio = 2.5; // 水平必须是垂直的2.5倍
+        // 适度放宽垂直容忍度
+        const maxVerticalMove = 40; // 垂直移动可以到40px
+        const horizontalRatio = 2.0; // 水平是垂直的2倍即可
         
         // 综合判断：距离 + 速度 + 方向
         if (Math.abs(diffX) > swipeThreshold && 
