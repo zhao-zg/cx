@@ -2,6 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -25,18 +27,18 @@
             --btn-primary-text:#fff;
             --btn-primary-border:var(--brand);
         }
-        /* 暖色模式（默认） */
+        /* 冷色模式（默认） */
         :root,
-        [data-theme="warm"]{
-            --surface:#fafaf9;
-            --surface-alt:#f5f5f3;
-            --page-bg:#f0f0ee;
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
             --header-bg:var(--brand);
-            --nav-hover:#f2f2f0;
-            --scripture-bg:#f6f6f4;
-            --muted:#f5f5f3;
-            --border:#e5e5e3;
-            --text:#3a3532;
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
             --text-soft:#635f5a;
             --text-muted:#8b8783;
             --heading:#2a2926;
@@ -50,16 +52,17 @@
             --btn-secondary-active-bg:rgba(113,136,227,.12);
         }
         /* 冷色模式 */
-        [data-theme="cool"]{
-            --surface:#fff;
-            --surface-alt:#f5f6fb;
-            --page-bg:#f7f8fc;
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
             --header-bg:var(--brand);
-            --nav-hover:#f0f4ff;
-            --scripture-bg:#f6f7fa;
-            --muted:#f5f6fb;
-            --border:#e6e8f0;
-            --text:#2f343a;
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
             --text-soft:#596170;
             --text-muted:#7b8697;
             --heading:#1b2436;
@@ -73,10 +76,12 @@
             --btn-secondary-active-bg:rgba(113,136,227,.12);
         }
         /* 设置按钮样式 */
-        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;font-size:20px;text-shadow:0 1px 3px rgba(0,0,0,.3)}
-        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08)}
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
         .theme-toggle-btn:active{transform:scale(.95)}
-        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px;font-size:16px}}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
         /* 设置面板样式 */
         .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
         .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
