@@ -9,22 +9,9 @@ const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
 const CONFIG = {
   TIMEOUT: 5000,
   CORE_RESOURCES: [
-    './',
-    './manifest.json',
-    './icons/icon.svg',
-    './icons/icon-16.png',
-    './icons/icon-32.png',
-    './icons/icon-120.png',
-    './icons/icon-152.png',
-    './icons/icon-167.png',
-    './icons/icon-180.png',
-    './icons/icon-192.png',
-    './icons/icon-256.png',
-    './icons/icon-384.png',
-    './icons/icon-512.png',
-    './trainings.json',
-    './js/nav-stack.js',
-    './vendor/jszip.min.js'
+    {%- for resource in core_resources %}
+    '{{ resource }}'{% if not loop.last %},{% endif %}
+    {%- endfor %}
   ],
   CACHEABLE_TYPES: ['basic', 'cors']
 };

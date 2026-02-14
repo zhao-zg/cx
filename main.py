@@ -393,6 +393,13 @@ def generate_main_index(config, batch_results):
     if os.path.exists(nav_stack_src):
         shutil.copy2(nav_stack_src, nav_stack_dst)
         print(f"✓ nav-stack.js 已复制")
+
+    # 复制 theme-toggle.js（主题切换功能）
+    theme_toggle_src = os.path.join('src', 'static', 'js', 'theme-toggle.js')
+    theme_toggle_dst = os.path.join(js_dir, 'theme-toggle.js')
+    if os.path.exists(theme_toggle_src):
+        shutil.copy2(theme_toggle_src, theme_toggle_dst)
+        print(f"✓ theme-toggle.js 已复制")
     
     # manifest.json
     manifest_template = env.get_template('main_manifest.json')
@@ -403,6 +410,35 @@ def generate_main_index(config, batch_results):
     
     # sw.js - 使用时间戳作为版本号
     cache_version = datetime.now().strftime('%Y%m%d%H%M%S')
+    
+    # 自动收集核心资源（静态文件）
+    core_resources = [
+        './',
+        './manifest.json',
+        './trainings.json',
+        './version.json'
+    ]
+    
+    # 自动扫描 icons 目录
+    icons_dir = os.path.join(output_dir, 'icons')
+    if os.path.exists(icons_dir):
+        for filename in os.listdir(icons_dir):
+            if filename.endswith(('.svg', '.png')):
+                core_resources.append(f'./icons/{filename}')
+    
+    # 自动扫描 js 目录
+    js_dir = os.path.join(output_dir, 'js')
+    if os.path.exists(js_dir):
+        for filename in os.listdir(js_dir):
+            if filename.endswith('.js') and not filename.endswith('.original'):
+                core_resources.append(f'./js/{filename}')
+    
+    # 自动扫描 vendor 目录
+    vendor_dir = os.path.join(output_dir, 'vendor')
+    if os.path.exists(vendor_dir):
+        for filename in os.listdir(vendor_dir):
+            if filename.endswith('.js'):
+                core_resources.append(f'./vendor/{filename}')
     
     # 收集所有图片路径
     image_paths = []
@@ -418,6 +454,7 @@ def generate_main_index(config, batch_results):
     sw_content = sw_template.render(
         trainings=trainings, 
         cache_version=cache_version,
+        core_resources=core_resources,
         image_paths=image_paths
     )
     sw_path = os.path.join(output_dir, 'sw.js')

@@ -137,6 +137,19 @@ def find_resource_pages(session: requests.Session, training: Dict[str, str]) -> 
     return resource_pages
 
 
+def find_motto_pages(session: requests.Session, training: Dict[str, str]) -> Optional[Dict[str, str]]:
+    """查找训练下的标语页面"""
+    blocks = load_page_blocks(session, training['id'])
+    for child_id in get_children(blocks, training['id']):
+        block = blocks.get(child_id)
+        if not block or block.get('value', {}).get('type') != 'page':
+            continue
+        title = get_block_title(block)
+        if '标语' in title:
+            return {'id': child_id, 'title': title}
+    return None
+
+
 def process_resource_page(session: requests.Session, resource: Dict[str, str]) -> Dict[str, List[Dict[str, Any]]]:
     blocks = load_page_blocks(session, resource['id'])
     documents = {'经文': [], '听抄': [], '晨兴': []}
@@ -301,7 +314,73 @@ def download_documents(session: requests.Session, documents: Dict[str, List[Dict
     return all_docs
 
 
-def download_notion_documents(base_url: str) -> List[Dict[str, Any]]:
+def download_motto_image(session: requests.Session, motto_page: Dict[str, str], folder_name: str) -> bool:
+    """下载标语诗歌图片"""
+    import urllib.parse
+    
+    blocks = load_page_blocks(session, motto_page['id'])
+    images = []
+    
+    for child_id in get_children(blocks, motto_page['id']):
+        block = blocks.get(child_id)
+        if not block or block.get('value', {}).get('type') != 'image':
+            continue
+        
+        value = block.get('value', {})
+        properties = value.get('properties', {})
+        source = properties.get('source', [['']])
+        
+        if not source or not source[0] or not source[0][0]:
+            continue
+        
+        source_url = source[0][0]
+        if not source_url.startswith('attachment:'):
+            continue
+        
+        # 解析 attachment:file_id:filename
+        parts = source_url.split(':', 2)
+        if len(parts) < 3:
+            continue
+        
+        file_id, filename = parts[1], parts[2]
+        space_id = value.get('space_id', '')
+        block_id = value.get('id', '')
+        
+        if not all([file_id, filename, space_id, block_id]):
+            continue
+        
+        # 构造Notion重定向URL
+        attachment_str = f"attachment:{file_id}:{filename}"
+        encoded_attachment = urllib.parse.quote(attachment_str, safe='')
+        redirect_url = f"https://www.notion.so/image/{encoded_attachment}?table=block&id={block_id}&spaceId={space_id}&width=2000&userId=&cache=v2"
+        
+        try:
+            response = session.get(redirect_url, allow_redirects=True, timeout=30)
+            if response.status_code == 200:
+                images.append({
+                    'data': response.content,
+                    'size': len(response.content),
+                    'ext': Path(filename).suffix or '.png'
+                })
+        except Exception:
+            continue
+    
+    if not images:
+        return False
+    
+    # 选择最小的图片
+    smallest = min(images, key=lambda x: x['size'])
+    folder_path = Path('resource') / folder_name
+    folder_path.mkdir(parents=True, exist_ok=True)
+    image_path = folder_path / f"标语诗歌{smallest['ext']}"
+    
+    image_path.write_bytes(smallest['data'])
+    size_kb = smallest['size'] / 1024
+    print(f"  [OK] {folder_name}/标语诗歌{smallest['ext']}: {size_kb:.2f} KB")
+    return True
+
+
+def download_notion_documents(base_url: str, only_images: bool = False) -> List[Dict[str, Any]]:
     page_id = extract_page_id(base_url)
     if not page_id:
         print("无法解析页面 ID")
@@ -316,10 +395,21 @@ def download_notion_documents(base_url: str) -> List[Dict[str, Any]]:
     
     all_docs: List[Dict[str, Any]] = []
     for training in all_trainings:
+        folder_name = re.sub(r'[<>:\\"/|?*]', '_', training['title'])
+        
+        # 下载标语诗歌图片
+        motto_page = find_motto_pages(session, training)
+        if motto_page:
+            download_motto_image(session, motto_page, folder_name)
+        
+        # 如果只下载图片，跳过Word文档
+        if only_images:
+            time.sleep(1)
+            continue
+        
         resource_pages = find_resource_pages(session, training)
         if not resource_pages:
             continue
-        folder_name = re.sub(r'[<>:\\"/|?*]', '_', training['title'])
         
         for resource in resource_pages:
             aggregated: Dict[str, List[Dict[str, Any]]] = {'经文': [], '听抄': [], '晨兴': []}
@@ -420,7 +510,7 @@ def save_file_from_request(request, url: str, override_name: Optional[str], outp
     
     # 如果MD5相同,跳过
     if existing_md5 and existing_md5 == new_md5:
-        print(f"✓ MD5相同，跳过: {target}")
+        print(f"[OK] MD5相同，跳过: {target}")
         return
     
     # MD5不同或文件不存在,写入新文件
@@ -521,14 +611,14 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                         if temp_downloaded:
                             new_md5 = calculate_file_md5(temp_path)
                             if existing_md5 == new_md5:
-                                print(f"  ✓ MD5相同，跳过: {filename}")
+                                print(f"  [OK] MD5相同，跳过: {filename}")
                                 temp_path.unlink()  # 删除临时文件
                                 total_success += 1
                                 continue
                             else:
                                 print(f"  MD5不同，从临时目录移动到resource: {filename}")
                                 shutil.move(str(temp_path), str(target_path))
-                                print(f"  ✓ 已更新：{target_path}")
+                                print(f"  [OK] 已更新：{target_path}")
                                 total_success += 1
                                 continue
                         else:
@@ -573,7 +663,7 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                             download.save_as(temp_path)
                             # 然后移动到最终目录
                             shutil.move(str(temp_path), str(target_path))
-                            print(f"✓ 已下载：{target_path}")
+                            print(f"[OK] 已下载：{target_path}")
                             total_success += 1
                             downloaded = True
                             break
@@ -599,7 +689,7 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
     if tmp_dir.exists():
         try:
             shutil.rmtree(tmp_dir)
-            print(f"\n✓ 已清理临时目录: {tmp_dir}")
+            print(f"\n[OK] 已清理临时目录: {tmp_dir}")
         except Exception as e:
             print(f"\n⚠ 清理临时目录失败: {e}")
     
@@ -611,17 +701,21 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
 def main() -> None:
     parser = ArgumentParser(description="Notion 文档下载器（自动使用 Playwright 回退下载）")
     parser.add_argument('--url', default=BASE_URL, help='Notion 页面 URL')
+    parser.add_argument('--only-images', action='store_true', help='只下载标语诗歌图片，跳过Word文档')
     args = parser.parse_args()
     print('=' * 80)
     print('Notion文档下载器启动')
     print('=' * 80)
-    print('目标: 下载训练资源中的简体中文Word文档')
-    print('类型: 经文、听抄、晨兴')
+    if args.only_images:
+        print('目标: 下载标语诗歌图片')
+    else:
+        print('目标: 下载训练资源中的简体中文Word文档和标语诗歌图片')
+        print('类型: 经文、听抄、晨兴、标语诗歌')
     print('=' * 80)
     start_time = time.time()
     all_docs: List[Dict[str, Any]] = []
     try:
-        all_docs = download_notion_documents(args.url)
+        all_docs = download_notion_documents(args.url, args.only_images)
     except KeyboardInterrupt:
         print('\n\n用户中断下载')
     except Exception as error:
@@ -629,10 +723,10 @@ def main() -> None:
     else:
         elapsed = time.time() - start_time
         print('=' * 80)
-        print(f"文档收集完成, 耗时: {elapsed:.1f} 秒")
+        print(f"下载完成, 耗时: {elapsed:.1f} 秒")
         print('=' * 80)
     
-    if all_docs:
+    if all_docs and not args.only_images:
         playwright_downloads(all_docs)
 
 

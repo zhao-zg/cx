@@ -6,9 +6,7 @@
 <style>
 /* 目录页关键CSS - 放head避免FOUC */
 .toc-list{display:flex;flex-direction:column;gap:1px;background:#e8ecf0;border-radius:12px;overflow:hidden;margin-bottom:20px}
-.back-home{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f8f9fb;text-decoration:none;color:#2d3748;font-size:15px;font-weight:500;border-bottom:1px solid #e8ecf0}
-.back-icon{width:18px;height:18px;flex-shrink:0;color:var(--brand)}
-.toc-item{display:flex;align-items:baseline;gap:12px;padding:14px 16px;background:#fff;text-decoration:none;color:inherit;transition:background-color .2s}
+.toc-item{display:flex;align-items:baseline;gap:12px;padding:14px 16px;background:var(--surface);text-decoration:none;color:inherit;transition:background-color .2s}
 .toc-num{flex-shrink:0;font-size:1em;font-weight:600;color:var(--brand);white-space:nowrap}
 .toc-title{flex:1;font-size:1.05em;line-height:1.6;color:#2d3748;font-weight:500}
 </style>
@@ -16,13 +14,20 @@
 
 {% block content %}
 <div class="index-page">
+    <!-- 目录页导航栏 -->
+    <div class="page-navigation">
+        <a href="../index.html" class="nav-link" title="返回主页" onclick="try{sessionStorage.setItem('cx_user_back','true')}catch(e){}">返回主页</a>
+        <a href="index.html" class="nav-link active" title="目录">目录</a>
+        {% if training.mottos %}
+        <a href="motto.html" class="nav-link" title="标语">标语</a>
+        {% endif %}
+        {% if training.motto_song_image %}
+        <a href="motto_song.html" class="nav-link" title="标语诗歌">标语诗歌</a>
+        {% endif %}
+    </div>
+    
+    <!-- 章节列表 -->
     <div class="toc-list">
-        <a href="../index.html" class="back-home" onclick="try{sessionStorage.setItem('cx_user_back','true')}catch(e){}">
-            <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            <span>返回主页</span>
-        </a>
         {% for chapter in training.chapters %}
         <a href="{{ chapter.number }}_cx.htm" class="toc-item" data-chapter="{{ chapter.number }}">
             <span class="toc-num">第{{ chapter.number }}篇</span>
@@ -34,11 +39,9 @@
 
 <style>
 .index-page{padding:0}
-.back-home:active{background:#eef2f7;transform:translateX(-2px)}
-.back-icon{transition:transform 0.2s ease}
-.back-home:active .back-icon{transform:translateX(-2px)}
-.toc-item:active{background:#f0f4ff}
-@media(min-width:768px){.back-home{font-size:15px;padding:16px 20px;gap:14px}.back-home:hover{background:#eef2f7;transform:translateX(-2px)}.back-home:hover .back-icon{transform:translateX(-2px)}.back-icon{width:20px;height:20px}.toc-item{padding:16px 20px;gap:14px}.toc-item:hover{background:#f0f4ff}.toc-num{font-size:1em}.toc-title{font-size:1.0625em}}
+.index-page .page-navigation{margin-bottom:12px}
+.toc-item:active{background:var(--nav-hover)}
+@media(min-width:768px){.toc-item{padding:16px 20px;gap:14px}.toc-item:hover{background:var(--nav-hover)}.toc-num{font-size:1em}.toc-title{font-size:1.0625em}}
 </style>
 
 {% block nav_init %}

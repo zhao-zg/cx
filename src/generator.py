@@ -47,11 +47,11 @@ class HTMLGenerator:
             # 训练页面需要的 JS 文件列表
             required_js_files = [
                 'speech.js',
-                'font-control.js',
                 'highlight.js',
                 'outline.js',
                 'toc-redirect.js',
-                'nav-stack.js'
+                'nav-stack.js',
+                'theme-toggle.js'
             ]
 
             # 复制 js 目录中需要的文件
@@ -134,8 +134,15 @@ class HTMLGenerator:
         Args:
             training_data: 训练数据对象
         """
-        # 生成首页
+        # 生成目录页
         self.generate_index(training_data)
+        
+        # 生成标语页
+        self.generate_motto(training_data)
+        
+        # 生成标语诗歌页（如果有图片）
+        if training_data.motto_song_image:
+            self.generate_motto_song(training_data)
         
         # 为每个篇章生成页面
         for chapter in training_data.chapters:
@@ -144,11 +151,29 @@ class HTMLGenerator:
         print(f"✓ 已生成 {len(training_data.chapters)} 篇章的所有页面")
     
     def generate_index(self, training_data: TrainingData):
-        """生成首页"""
+        """生成目录页"""
         template = self.env.get_template('index.html')
         html = template.render(training=training_data.to_dict())
         
         output_path = os.path.join(self.output_dir, 'index.html')
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(html)
+    
+    def generate_motto(self, training_data: TrainingData):
+        """生成标语页"""
+        template = self.env.get_template('motto.html')
+        html = template.render(training=training_data.to_dict())
+        
+        output_path = os.path.join(self.output_dir, 'motto.html')
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(html)
+    
+    def generate_motto_song(self, training_data: TrainingData):
+        """生成标语诗歌页"""
+        template = self.env.get_template('motto_song.html')
+        html = template.render(training=training_data.to_dict())
+        
+        output_path = os.path.join(self.output_dir, 'motto_song.html')
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
     

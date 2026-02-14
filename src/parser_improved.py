@@ -273,12 +273,53 @@ class ImprovedParser:
         collecting_ministry = False  # 是否正在收集职事信息摘录
         ministry_buffer = []  # 职事信息摘录缓冲区
         
-        # 首先在文档开头提取标题信息
+        # 标语提取相关变量
+        self.mottos = []  # 存储标语内容
+        motto_started = False  # 是否进入标语区域
+        prev_was_empty = False  # 上一行是否为空行
+        
+        # 首先在文档开头提取标题信息和标语
         title_parts = []
         subtitle_found = False
-        for i, para in enumerate(doc.paragraphs[:15]):  # 只检查前15段
+        for i, para in enumerate(doc.paragraphs[:60]):  # 扩大检查范围以包含标语
             text = para.text.strip()
+            
+            # 如果在标语区域
+            if motto_started:
+                # 标语区域结束的条件：遇到"目录"、"训练纲要"、"总题"或章节标题
+                if text and re.match(r'目\s*录|训练纲要|总题：?|^第[一二三四五六七八九十]+篇', text):
+                    motto_started = False
+                    break
+                
+                # 处理空行：用于段落分隔
+                if not text:
+                    if not prev_was_empty:  # 避免多个连续空行产生多个分隔符
+                        self.mottos.append('###PARAGRAPH_SEPARATOR###')
+                        prev_was_empty = True
+                    continue
+                
+                prev_was_empty = False
+                
+                # 收集有效的标语内容
+                # 排除：纯数字、括号内容（包括中英文括号）、日期信息、与副标题完全一致的内容
+                if not re.match(r'^\d+$|^\([一二三四五六七八九十\d]+\)$|^\（[一二三四五六七八九十\d]+\）$|.*[至到].*日$|^[一二三四五六七八九十○〇零\d]+年|.*月.*日', text):
+                    # 检查是否与副标题重复
+                    if self.training_subtitle and text == self.training_subtitle:
+                        continue
+                    # 检查是否与标题重复（避免标题重复出现）
+                    if self.training_title and text == self.training_title:
+                        continue
+                    self.mottos.append(text)
+                continue
+            
+            # 未进入标语区域时，跳过空行
             if not text:
+                continue
+            
+            # 检测标语区域的开始
+            if re.match(r'^标\s*语$', text):
+                motto_started = True
+                prev_was_empty = False
                 continue
                 
             # 停止条件：遇到"目录"或"第X篇"
@@ -562,6 +603,10 @@ class ImprovedParser:
         
         if self.current_chapter:
             chapters.append(self.current_chapter)
+        
+        # 清理标语列表：移除末尾的段落分隔符
+        while self.mottos and self.mottos[-1] == '###PARAGRAPH_SEPARATOR###':
+            self.mottos.pop()
         
         return chapters
     
@@ -1947,13 +1992,37 @@ def parse_training_docs_improved(outline_path: str, listen_path: str,
     except Exception as e:
         print(f"  ⚠ 读取版本号失败: {e}")
     
+    # 清理标语列表：移除末尾的段落分隔符
+    while parser.mottos and parser.mottos[-1] == '###PARAGRAPH_SEPARATOR###':
+        parser.mottos.pop()
+    
+    # 检测标语诗歌图片
+    motto_song_image = ""
+    import os
+    resource_dir = os.path.dirname(outline_path)
+    song_image_path = os.path.join(resource_dir, "标语诗歌.png")
+    if os.path.exists(song_image_path):
+        # 复制图片到output目录
+        import shutil
+        os.makedirs(output_dir, exist_ok=True)
+        dest_path = os.path.join(output_dir, "images", "标语诗歌.png")
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        shutil.copy2(song_image_path, dest_path)
+        motto_song_image = "images/标语诗歌.png"
+        print(f"  ✓ 找到标语诗歌图片")
+        shutil.copy2(song_image_path, dest_path)
+        motto_song_image = "images/标语诗歌.png"
+        print(f"  ✓ 找到标语诗歌图片")
+    
     # 5. 创建训练数据对象
     training_data = TrainingData(
         title=title,
         subtitle=subtitle,
         year=year,
         season=season,
-        app_version=app_version
+        app_version=app_version,
+        mottos=parser.mottos,  # 添加标语
+        motto_song_image=motto_song_image  # 添加标语诗歌图片
     )
     
     for chapter in chapters:

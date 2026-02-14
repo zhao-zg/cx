@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}标语诗歌 - {{ training.title }}{% endblock %}
+
+{% block head_css %}
+<style>
+/* 标语诗歌页关键CSS */
+.song-page{padding:0}
+.song-page .page-navigation{margin-bottom:12px}
+.song-container{background:var(--surface);border-radius:12px;overflow:hidden;padding:20px}
+.song-image-wrapper{text-align:center;padding:0}
+.song-image{max-width:100%;height:auto;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s}
+.song-image:hover{transform:scale(1.02);box-shadow:0 6px 16px rgba(0,0,0,0.15)}
+.song-image:active{transform:scale(0.98)}
+.click-hint{margin-top:12px;font-size:13px;color:#999;text-align:center}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="song-page">
+    <!-- 标语诗歌页导航栏 -->
+    <div class="page-navigation">
+        <a href="../index.html" class="nav-link" title="返回主页" onclick="try{sessionStorage.setItem('cx_user_back','true')}catch(e){}">返回主页</a>
+        <a href="index.html" class="nav-link" title="目录">目录</a>
+        {% if training.mottos %}
+        <a href="motto.html" class="nav-link" title="标语">标语</a>
+        {% endif %}
+        <a href="motto_song.html" class="nav-link active" title="标语诗歌">标语诗歌</a>
+    </div>
+    
+    <div class="song-container">
+        <div class="song-image-wrapper">
+            <img src="{{ training.motto_song_image }}" alt="标语诗歌" class="song-image" onclick="openImageViewer(this.src)">
+            <p class="click-hint">👆 点击图片放大查看</p>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 图片查看器 */
+.image-viewer-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:9999;animation:fadeIn 0.2s;overflow:auto}
+.image-viewer-overlay.show{display:block}
+.image-viewer-content{width:100%;min-height:100vh;display:flex;align-items:flex-start;justify-content:center}
+.image-viewer-content img{width:100%;max-width:100vw;height:auto;display:block}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+@media(min-width:768px){
+    .song-container{padding:30px}
+    .song-image{width:auto}
+    .click-hint{font-size:14px;margin-top:15px}
+}
+</style>
+
+{% block nav_init %}
+<script>
+// 标语诗歌页覆盖 base.html 的默认导航
+if (window.CXNavStack) {
+    window.CXNavStack.initMottoSongPage();
+}
+</script>
+{% endblock %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- 图片查看器 -->
+<div id="imageViewer" class="image-viewer-overlay" onclick="closeImageViewer(event)">
+    <div class="image-viewer-content">
+        <img id="viewerImage" src="" alt="标语诗歌">
+    </div>
+</div>
+
+<script>
+function openImageViewer(src) {
+    const viewer = document.getElementById('imageViewer');
+    const img = document.getElementById('viewerImage');
+    img.src = src;
+    viewer.classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageViewer(event) {
+    const viewer = document.getElementById('imageViewer');
+    viewer.classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+// ESC 键关闭
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const viewer = document.getElementById('imageViewer');
+        if (viewer.classList.contains('show')) {
+            viewer.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}标语 - {{ training.title }}{% endblock %}
+
+{% block head_css %}
+<style>
+/* 标语页关键CSS - 放head避免FOUC */
+.motto-page{padding:0}
+.motto-page .page-navigation{margin-bottom:12px}
+.motto-container{background:var(--surface);border-radius:12px;overflow:hidden;padding:12px 0}
+.motto-paragraph{padding:16px 20px;margin:0 12px 12px;background:var(--surface-alt);border-radius:var(--radius-md);line-height:2.1;font-size:1.05em;color:var(--text);box-shadow:var(--shadow-sm)}
+.motto-paragraph .motto-line{display:block;margin-bottom:2px}
+.motto-paragraph .motto-line:last-child{margin-bottom:0}
+.motto-paragraph:last-child{margin-bottom:0}
+.no-motto{padding:40px 20px;text-align:center;color:var(--text-muted);font-size:0.95em}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="motto-page">
+    <!-- 标语页导航栏 -->
+    <div class="page-navigation">
+        <a href="../index.html" class="nav-link" title="返回主页" onclick="try{sessionStorage.setItem('cx_user_back','true')}catch(e){}">返回主页</a>
+        <a href="index.html" class="nav-link" title="目录">目录</a>
+        <a href="motto.html" class="nav-link active" title="标语">标语</a>
+        {% if training.motto_song_image %}
+        <a href="motto_song.html" class="nav-link" title="标语诗歌">标语诗歌</a>
+        {% endif %}
+    </div>
+    
+    <div class="motto-container">
+        {% if training.mottos %}
+            {% set ns = namespace(lines=[]) %}
+            {% for motto in training.mottos %}
+                {# 遇到段落分隔符，输出当前段落并重置 #}
+                {% if motto == '###PARAGRAPH_SEPARATOR###' %}
+                    {% if ns.lines %}
+                        <div class="motto-paragraph">
+                            {% for line in ns.lines %}
+                            <span class="motto-line">{{ line }}</span>
+                            {% endfor %}
+                        </div>
+                        {% set ns.lines = [] %}
+                    {% endif %}
+                {% else %}
+                    {# 累积当前行到数组中 #}
+                    {% set _ = ns.lines.append(motto) %}
+                {% endif %}
+                {# 如果是最后一行且还有内容，输出段落 #}
+                {% if loop.last and ns.lines %}
+                    <div class="motto-paragraph">
+                        {% for line in ns.lines %}
+                        <span class="motto-line">{{ line }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <div class="no-motto">本次训练暂无标语</div>3
+        {% endif %}
+    </div>
+</div>
+
+<style>
+@media(min-width:768px){
+    .motto-container{padding:20px 0}
+    .motto-paragraph{padding:24px 32px;margin:0 20px 18px;font-size:1.15em;line-height:2.4}
+}
+</style>
+
+{% block nav_init %}
+<script>
+// 标语页覆盖 base.html 的默认导航
+if (window.CXNavStack) {
+    window.CXNavStack.initMottoPage();
+}
+</script>
+{% endblock %}
+
+{% endblock %}

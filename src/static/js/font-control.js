@@ -1,5 +1,6 @@
 /* Shared font size controls for CX site
    Auto-initializes when DOM is ready
+   Note: 主要逻辑已移至 theme-toggle.js，此文件仅用于连接底部控制栏按钮
 */
 (function() {
   'use strict';
@@ -10,54 +11,17 @@
     const fontLarger = document.getElementById('fontLarger');
 
     if (!fontSmaller || !fontReset || !fontLarger) {
-      return; // 字体控件不存在(如诗歌页面)
+      return; // 字体控件不存在(如诗歌页面或主页)
     }
 
-    const fontSizes = [14, 16, 18, 20, 22, 24, 26, 28];
-    const defaultSizeIndex = 2; // 默认18px
-    let currentSizeIndex = defaultSizeIndex;
-
-    // 从localStorage恢复字体大小
-    const savedSize = localStorage.getItem('globalFontSize');
-    if (savedSize) {
-      const savedIndex = fontSizes.indexOf(parseInt(savedSize));
-      if (savedIndex !== -1) {
-        currentSizeIndex = savedIndex;
-        document.body.style.fontSize = savedSize + 'px';
-      }
+    // 使用 theme-toggle.js 提供的全局函数
+    if (window.CXFontControl) {
+      fontSmaller.addEventListener('click', window.CXFontControl.decrease);
+      fontReset.addEventListener('click', window.CXFontControl.reset);
+      fontLarger.addEventListener('click', window.CXFontControl.increase);
+    } else {
+      console.warn('CXFontControl not found, font controls may not work');
     }
-
-    function updateFontSize() {
-      const size = fontSizes[currentSizeIndex];
-      document.body.style.fontSize = size + 'px';
-      localStorage.setItem('globalFontSize', size);
-      
-      // 更新按钮状态
-      fontSmaller.disabled = currentSizeIndex === 0;
-      fontLarger.disabled = currentSizeIndex === fontSizes.length - 1;
-    }
-
-    fontSmaller.addEventListener('click', function() {
-      if (currentSizeIndex > 0) {
-        currentSizeIndex--;
-        updateFontSize();
-      }
-    });
-
-    fontReset.addEventListener('click', function() {
-      currentSizeIndex = defaultSizeIndex;
-      updateFontSize();
-    });
-
-    fontLarger.addEventListener('click', function() {
-      if (currentSizeIndex < fontSizes.length - 1) {
-        currentSizeIndex++;
-        updateFontSize();
-      }
-    });
-
-    // 初始化应用保存的字体大小
-    updateFontSize();
   }
 
   // 在DOM加载完成后自动初始化

@@ -199,6 +199,8 @@ class TrainingData:
     year: int  # 年份
     season: str  # 季节
     app_version: str = ""  # 应用版本号
+    mottos: List[str] = field(default_factory=list)  # 标语列表
+    motto_song_image: str = ""  # 标语诗歌图片路径
     chapters: List[Chapter] = field(default_factory=list)  # 篇章列表
     
     def add_chapter(self, chapter: Chapter):
@@ -220,5 +222,7 @@ class TrainingData:
             'year': self.year,
             'season': self.season,
             'app_version': self.app_version,
+            'mottos': self.mottos,
+            'motto_song_image': self.motto_song_image,
             'chapters': [ch.to_dict() for ch in self.chapters]
         }
