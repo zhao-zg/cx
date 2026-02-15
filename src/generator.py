@@ -164,7 +164,7 @@ class HTMLGenerator:
         template = self.env.get_template('motto.html')
         html = template.render(training=training_data.to_dict())
         
-        output_path = os.path.join(self.output_dir, 'motto.html')
+        output_path = os.path.join(self.output_dir, 'motto.htm')
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
     
@@ -173,7 +173,7 @@ class HTMLGenerator:
         template = self.env.get_template('motto_song.html')
         html = template.render(training=training_data.to_dict())
         
-        output_path = os.path.join(self.output_dir, 'motto_song.html')
+        output_path = os.path.join(self.output_dir, 'motto_song.htm')
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
     
