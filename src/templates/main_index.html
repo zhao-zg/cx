@@ -324,7 +324,7 @@
 
         <!-- 数据工具区域 -->
         <div class="cache-section" id="dataToolsSection" style="display: none;">
-            <button class="cache-btn" id="clearDataBtn">
+            <button class="cache-btn clear-btn" id="clearDataBtn">
                 <span class="cache-icon">🧹</span>
                 <span class="cache-text">清理数据</span>
             </button>
@@ -1069,9 +1069,9 @@
         }
 
         function promptClearData() {
-            var ok = confirm('确定要清理所有数据吗？\n\n这将删除：\n• 所有训练的离线缓存\n• 页面记忆\n• 字体大小设置\n• 语速设置\n\n下一步可选择是否保留划线笔记。');
+            var ok = confirm('⚠️ 清理所有数据\n\n将删除以下内容：\n\n📦 所有训练的离线缓存\n📖 页面阅读记忆（进度/位置）\n🔤 字体大小设置\n🔊 语速设置\n\n⚡ 此操作不可撤销！\n\n下一步可选择是否保留划线笔记。');
             if (!ok) return;
-            var keepNotes = confirm('是否保留划线笔记？\n\n“确定”= 保留笔记\n“取消”= 同时清理笔记');
+            var keepNotes = confirm('💾 是否保留您的划线笔记？\n\n点击"确定"→ 保留笔记（推荐）\n点击"取消"→ 一并清除笔记');
             clearAllCachesAndMemory({ keepNotes: keepNotes });
         }
 
@@ -1101,11 +1101,11 @@
             var installStatus = document.getElementById('installStatus');
             var dataToolsStatus = document.getElementById('dataToolsStatus');
             if (installStatus) {
-                installStatus.textContent = '正在清理所有缓存和记忆...';
+                installStatus.textContent = '🧹 正在清理中，请稍候...';
                 installStatus.className = 'cache-status';
             }
             if (dataToolsStatus) {
-                dataToolsStatus.textContent = '正在清理数据...';
+                dataToolsStatus.textContent = '🧹 正在清理中，请稍候...';
                 dataToolsStatus.className = 'cache-status';
             }
             
@@ -1223,11 +1223,11 @@
                 console.log('[清理] 所有缓存和记忆已清理完成');
                 
                 if (installStatus) {
-                    installStatus.textContent = '✓ 清理完成！即将刷新';
+                    installStatus.textContent = '✅ 清理完成！页面即将刷新...';
                     installStatus.className = 'cache-status success';
                 }
                 if (dataToolsStatus) {
-                    dataToolsStatus.textContent = '✓ 清理完成！即将刷新';
+                    dataToolsStatus.textContent = '✅ 清理完成！页面即将刷新...';
                     dataToolsStatus.className = 'cache-status success';
                 }
                 
