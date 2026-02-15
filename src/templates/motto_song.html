@@ -38,17 +38,10 @@
 
 <style>
 /* 图片查看器 */
-.image-viewer-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:9999;animation:fadeIn 0.2s;overflow:hidden;touch-action:none}
+.image-viewer-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:9999;animation:fadeIn 0.2s;overflow:auto}
 .image-viewer-overlay.show{display:block}
-.image-viewer-content{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.image-viewer-content img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;transition:transform 0.1s ease-out;cursor:grab;transform-origin:center center}
-.image-viewer-content img.dragging{cursor:grabbing}
-.viewer-controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:10000;background:rgba(0,0,0,0.7);padding:8px 12px;border-radius:20px}
-.viewer-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:8px 16px;border-radius:12px;cursor:pointer;font-size:14px;transition:all 0.2s;min-width:44px;text-align:center}
-.viewer-btn:hover{background:rgba(255,255,255,0.3)}
-.viewer-btn:active{transform:scale(0.95)}
-.viewer-close{position:fixed;top:20px;right:20px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;z-index:10000;transition:all 0.2s}
-.viewer-close:hover{background:rgba(255,255,255,0.3)}
+.image-viewer-content{width:100%;min-height:100vh;display:flex;align-items:flex-start;justify-content:center}
+.image-viewer-content img{width:100%;max-width:100vw;height:auto;display:block}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 @media(min-width:768px){
@@ -71,163 +64,34 @@ if (window.CXNavStack) {
 
 {% block extra_scripts %}
 <!-- 图片查看器 -->
-<div id="imageViewer" class="image-viewer-overlay">
-    <div class="viewer-close" onclick="closeImageViewer()">×</div>
-    <div class="image-viewer-content" id="viewerContent">
+<div id="imageViewer" class="image-viewer-overlay" onclick="closeImageViewer(event)">
+    <div class="image-viewer-content">
         <img id="viewerImage" src="" alt="标语诗歌">
-    </div>
-    <div class="viewer-controls">
-        <button class="viewer-btn" onclick="zoomOut()">-</button>
-        <button class="viewer-btn" onclick="resetZoom()">重置</button>
-        <button class="viewer-btn" onclick="zoomIn()">+</button>
     </div>
 </div>
 
 <script>
-let scale = 1;
-let translateX = 0;
-let translateY = 0;
-let isDragging = false;
-let startX, startY;
-let initialDistance = 0;
-
 function openImageViewer(src) {
     const viewer = document.getElementById('imageViewer');
     const img = document.getElementById('viewerImage');
     img.src = src;
     viewer.classList.add('show');
     document.body.style.overflow = 'hidden';
-    resetZoom();
 }
 
-function closeImageViewer() {
+function closeImageViewer(event) {
     const viewer = document.getElementById('imageViewer');
     viewer.classList.remove('show');
     document.body.style.overflow = '';
-    resetZoom();
 }
-
-function updateTransform() {
-    const img = document.getElementById('viewerImage');
-    img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-}
-
-function zoomIn() {
-    scale = Math.min(scale * 1.3, 5);
-    updateTransform();
-}
-
-function zoomOut() {
-    scale = Math.max(scale / 1.3, 0.5);
-    if (scale === 0.5 || scale === 1) {
-        translateX = 0;
-        translateY = 0;
-    }
-    updateTransform();
-}
-
-function resetZoom() {
-    scale = 1;
-    translateX = 0;
-    translateY = 0;
-    updateTransform();
-}
-
-// 鼠标滚轮缩放
-document.getElementById('viewerContent').addEventListener('wheel', function(e) {
-    if (!document.getElementById('imageViewer').classList.contains('show')) return;
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    scale = Math.max(0.5, Math.min(5, scale * delta));
-    updateTransform();
-}, { passive: false });
-
-// 鼠标拖动
-const img = document.getElementById('viewerImage');
-img.addEventListener('mousedown', function(e) {
-    if (scale <= 1) return;
-    isDragging = true;
-    startX = e.clientX - translateX;
-    startY = e.clientY - translateY;
-    img.classList.add('dragging');
-});
-
-document.addEventListener('mousemove', function(e) {
-    if (!isDragging) return;
-    translateX = e.clientX - startX;
-    translateY = e.clientY - startY;
-    updateTransform();
-});
-
-document.addEventListener('mouseup', function() {
-    isDragging = false;
-    img.classList.remove('dragging');
-});
-
-// 双击放大/还原
-img.addEventListener('dblclick', function(e) {
-    if (scale === 1) {
-        scale = 2;
-    } else {
-        scale = 1;
-        translateX = 0;
-        translateY = 0;
-    }
-    updateTransform();
-});
-
-// 触摸捏合缩放
-let lastTouchDistance = 0;
-document.getElementById('viewerContent').addEventListener('touchstart', function(e) {
-    if (e.touches.length === 2) {
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        lastTouchDistance = Math.hypot(
-            touch2.clientX - touch1.clientX,
-            touch2.clientY - touch1.clientY
-        );
-    } else if (e.touches.length === 1 && scale > 1) {
-        isDragging = true;
-        startX = e.touches[0].clientX - translateX;
-        startY = e.touches[0].clientY - translateY;
-    }
-}, { passive: false });
-
-document.getElementById('viewerContent').addEventListener('touchmove', function(e) {
-    e.preventDefault();
-    if (e.touches.length === 2) {
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        const distance = Math.hypot(
-            touch2.clientX - touch1.clientX,
-            touch2.clientY - touch1.clientY
-        );
-        if (lastTouchDistance > 0) {
-            const delta = distance / lastTouchDistance;
-            scale = Math.max(0.5, Math.min(5, scale * delta));
-            updateTransform();
-        }
-        lastTouchDistance = distance;
-    } else if (e.touches.length === 1 && isDragging) {
-        translateX = e.touches[0].clientX - startX;
-        translateY = e.touches[0].clientY - startY;
-        updateTransform();
-    }
-}, { passive: false });
-
-document.getElementById('viewerContent').addEventListener('touchend', function(e) {
-    if (e.touches.length === 0) {
-        isDragging = false;
-        lastTouchDistance = 0;
-    }
-});
 
 // ESC 键关闭
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         const viewer = document.getElementById('imageViewer');
         if (viewer.classList.contains('show')) {
-            closeImageViewer();
+            viewer.classList.remove('show');
+            document.body.style.overflow = '';
         }
     }
 });
