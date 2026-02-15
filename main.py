@@ -308,6 +308,29 @@ def generate_main_index(config, batch_results):
     
     trainings.sort(key=get_sort_key, reverse=True)
     
+    # 自动扫描所有训练的资源（用于主页和 SW）
+    training_pages = []
+    for training in trainings:
+        training_dir = os.path.join(output_dir, training['path'])
+        training_path = training['path']
+        
+        # 自动扫描所有 HTML/HTM 文件
+        if os.path.exists(training_dir):
+            for filename in os.listdir(training_dir):
+                if filename.endswith(('.html', '.htm')):
+                    # index.html 使用目录路径，其他文件使用完整路径
+                    if filename == 'index.html':
+                        training_pages.append(f"./{training_path}/")
+                    else:
+                        training_pages.append(f"./{training_path}/{filename}")
+        
+        # 自动扫描 js/ 目录下的所有 JS 文件
+        js_dir = os.path.join(training_dir, 'js')
+        if os.path.exists(js_dir):
+            for filename in os.listdir(js_dir):
+                if filename.endswith('.js'):
+                    training_pages.append(f"./{training_path}/js/{filename}")
+    
     # 渲染模板
     env = Environment(loader=FileSystemLoader(template_dir))
     template = env.get_template('main_index.html')
@@ -315,7 +338,8 @@ def generate_main_index(config, batch_results):
     html_content = template.render(
         trainings=trainings,
         total_chapters=total_chapters,
-        generation_time=datetime.now().strftime('%Y年%m月%d日 %H:%M')
+        generation_time=datetime.now().strftime('%Y年%m月%d日 %H:%M'),
+        training_pages=training_pages  # 传递自动扫描的资源列表
     )
     
     # 保存主页
@@ -440,22 +464,11 @@ def generate_main_index(config, batch_results):
             if filename.endswith('.js'):
                 core_resources.append(f'./vendor/{filename}')
     
-    # 自动扫描所有 HTML 页面和图片
-    training_pages = []
+    # 收集图片（training_pages 已在主页生成时扫描）
     image_paths = []
     for training in trainings:
         training_dir = os.path.join(output_dir, training['path'])
         training_path = training['path']
-        
-        # 自动扫描所有 HTML/HTM 文件
-        if os.path.exists(training_dir):
-            for filename in os.listdir(training_dir):
-                if filename.endswith(('.html', '.htm')):
-                    # index.html 使用目录路径，其他文件使用完整路径
-                    if filename == 'index.html':
-                        training_pages.append(f"./{training_path}/")
-                    else:
-                        training_pages.append(f"./{training_path}/{filename}")
         
         # 收集图片
         images_dir = os.path.join(training_dir, 'images')

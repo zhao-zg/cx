@@ -377,6 +377,9 @@
     <script src="js/nav-stack.js"></script>
     
     <script>
+    // 自动扫描的训练资源列表（与 Service Worker 完全一致）
+    window.__cxTrainingPages = {{ training_pages | tojson }};
+    
     // 主题颜色常量 - 用于动态生成的 HTML
     var THEME = {
         brand: '#667eea',
@@ -757,32 +760,28 @@
     });
     
     // 生成单个训练的资源列表（提升到全局作用域）
-    function getTrainingResources(path, chapters, images) {
-        var resources = [
-            './' + path + '/',
-            './' + path + '/motto.html',
-            './' + path + '/motto_song.html',
-            './' + path + '/js/speech.js',
-            './' + path + '/js/highlight.js',
-            './' + path + '/js/outline.js',
-            './' + path + '/js/nav-stack.js',
-            './' + path + '/js/toc-redirect.js',
-            './' + path + '/js/theme-toggle.js'
-        ];
-        for (var i = 1; i <= chapters; i++) {
-            resources.push('./' + path + '/' + i + '_cv.htm');
-            resources.push('./' + path + '/' + i + '_cx.htm');
-            resources.push('./' + path + '/' + i + '_sg.htm');
-            resources.push('./' + path + '/' + i + '_ts.htm');
-            resources.push('./' + path + '/' + i + '_zs.htm');
-            resources.push('./' + path + '/' + i + '_h.htm');
-        }
+    /**
+     * 获取指定训练的资源列表（从自动扫描结果中筛选）
+     * @param {string} path - 训练路径，如 '2025-07'
+     * @param {Array} images - 训练的图片列表
+     * @returns {Array} 资源 URL 列表
+     */
+    function getTrainingResources(path, images) {
+        var allPages = window.__cxTrainingPages || [];
+        var prefix = './' + path + '/';
+        
+        // 筛选出该训练的所有页面（已包含 HTML 和 JS）
+        var resources = allPages.filter(function(page) {
+            return page.startsWith(prefix);
+        });
+        
         // 添加图片
         if (images && images.length > 0) {
             images.forEach(function(img) {
-                resources.push('./' + path + '/' + img);
+                resources.push(prefix + img);
             });
         }
+        
         return resources;
     }
     
@@ -812,7 +811,7 @@
         var cachedResources = 0;
 
         trainings.forEach(function(training) {
-            totalResources += getTrainingResources(training.path, training.chapter_count, training.images || []).length;
+            totalResources += getTrainingResources(training.path, training.images || []).length;
         });
 
         if (statusEl) {
@@ -823,7 +822,7 @@
         return trainings.reduce(function(promise, training) {
             return promise.then(function() {
                 currentIndex++;
-                var resources = getTrainingResources(training.path, training.chapter_count, training.images || []);
+                var resources = getTrainingResources(training.path, training.images || []);
                 var cacheKey = 'cx-' + training.path;
 
                 if (statusEl) {
