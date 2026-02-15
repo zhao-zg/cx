@@ -23,6 +23,8 @@ on:
       - 'src/templates/message.html'
       - 'src/templates/ministry.html'
       - 'src/templates/page_navigation.html'
+      - 'src/templates/motto.html'
+      - 'src/templates/motto_song.html'
       - 'src/static/**'
       - 'main.py'
       - 'config.yaml'
