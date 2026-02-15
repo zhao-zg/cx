@@ -440,21 +440,36 @@ def generate_main_index(config, batch_results):
             if filename.endswith('.js'):
                 core_resources.append(f'./vendor/{filename}')
     
-    # 收集所有图片路径
+    # 自动扫描所有 HTML 页面和图片
+    training_pages = []
     image_paths = []
     for training in trainings:
         training_dir = os.path.join(output_dir, training['path'])
+        training_path = training['path']
+        
+        # 自动扫描所有 HTML/HTM 文件
+        if os.path.exists(training_dir):
+            for filename in os.listdir(training_dir):
+                if filename.endswith(('.html', '.htm')):
+                    # index.html 使用目录路径，其他文件使用完整路径
+                    if filename == 'index.html':
+                        training_pages.append(f"./{training_path}/")
+                    else:
+                        training_pages.append(f"./{training_path}/{filename}")
+        
+        # 收集图片
         images_dir = os.path.join(training_dir, 'images')
         if os.path.exists(images_dir):
             for filename in os.listdir(images_dir):
                 if filename.endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                    image_paths.append(f"{training['path']}/images/{filename}")
+                    image_paths.append(f"{training_path}/images/{filename}")
     
     sw_template = env.get_template('main_sw.js')
     sw_content = sw_template.render(
         trainings=trainings, 
         cache_version=cache_version,
         core_resources=core_resources,
+        training_pages=training_pages,
         image_paths=image_paths
     )
     sw_path = os.path.join(output_dir, 'sw.js')

@@ -13,6 +13,11 @@ const CONFIG = {
     '{{ resource }}'{% if not loop.last %},{% endif %}
     {%- endfor %}
   ],
+  TRAINING_PAGES: [
+    {%- for page in training_pages %}
+    '{{ page }}'{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ],
   CACHEABLE_TYPES: ['basic', 'cors']
 };
 
