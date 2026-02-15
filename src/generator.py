@@ -164,7 +164,7 @@ class HTMLGenerator:
         template = self.env.get_template('motto.html')
         html = template.render(training=training_data.to_dict())
         
-        output_path = os.path.join(self.output_dir, 'motto.html')
+        output_path = os.path.join(self.output_dir, 'motto.htm')
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
     
@@ -173,7 +173,7 @@ class HTMLGenerator:
         template = self.env.get_template('motto_song.html')
         html = template.render(training=training_data.to_dict())
         
-        output_path = os.path.join(self.output_dir, 'motto_song.html')
+        output_path = os.path.join(self.output_dir, 'motto_song.htm')
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
     
@@ -224,67 +224,67 @@ class HTMLGenerator:
         template = self.env.get_template('outline.html')
         html = template.render(chapter=chapter, training=training, default_collapsed=collapsed, page_type=filename_suffix)
         
-        filename = f'{num}_{filename_suffix}.html'
+        filename = f'{num}_{filename_suffix}.htm'
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
     
     def _generate_ministry_page(self, num: int, chapter: dict, training: dict):
-        """生成职事信息摘录页（_zs.html）"""
+        """生成职事信息摘录页（_zs.htm）"""
         template = self.env.get_template('ministry.html')
         html = template.render(chapter=chapter, training=training, page_type='zs')
         
-        filename = f'{num}_zs.html'
+        filename = f'{num}_zs.htm'
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
     
     def _generate_scripture_page(self, num: int, chapter: dict, training: dict):
-        """生成经文页（_jw.html）"""
+        """生成经文页（_jw.htm）"""
         template = self.env.get_template('scripture.html')
         html = template.render(chapter=chapter, training=training)
         
-        filename = f'{num}_jw.html'
+        filename = f'{num}_jw.htm'
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
     
     def _generate_hymn_page(self, num: int, chapter: dict, training: dict):
-        """生成诗歌页（_sg.html）"""
+        """生成诗歌页（_sg.htm）"""
         template = self.env.get_template('hymn.html')
         html = template.render(chapter=chapter, training=training, page_type='sg')
         
-        filename = f'{num}_sg.html'
+        filename = f'{num}_sg.htm'
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
     
     def _generate_morning_revival_page(self, num: int, chapter: dict, training: dict):
-        """生成晨兴页（_cx.html）"""
+        """生成晨兴页（_cx.htm）"""
         template = self.env.get_template('morning_revival.html')
         html = template.render(chapter=chapter, training=training, page_type='cx')
         
-        filename = f'{num}_cx.html'
+        filename = f'{num}_cx.htm'
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
     
     def _generate_details_page(self, num: int, chapter: dict, training: dict):
-        """生成详情页（_ts.html）- 显示详细内容"""
+        """生成详情页（_ts.htm）- 显示详细内容"""
         template = self.env.get_template('details.html')
         html = template.render(chapter=chapter, training=training, page_type='ts')
         
-        filename = f'{num}_ts.html'
+        filename = f'{num}_ts.htm'
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
     
     def _generate_message_page(self, num: int, chapter: dict, training: dict):
-        """生成听抄页（_h.html）- 显示职事信息"""
+        """生成听抄页（_h.htm）- 显示职事信息"""
         template = self.env.get_template('message.html')
         html = template.render(chapter=chapter, training=training, page_type='h')
         
-        filename = f'{num}_h.html'
+        filename = f'{num}_h.htm'
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
