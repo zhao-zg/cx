@@ -67,9 +67,25 @@
         });
     }
 
+    // 标语页回退 → 目录页
+    function initMottoPage() {
+        setupBackHandler(function() {
+            window.location.replace('./index.html');
+        });
+    }
+
+    // 标语诗歌页回退 → 目录页
+    function initMottoSongPage() {
+        setupBackHandler(function() {
+            window.location.replace('./index.html');
+        });
+    }
+
     window.CXNavStack = {
         initContentPage: initContentPage,
         initDirectoryPage: initDirectoryPage,
-        initHomePage: initHomePage
+        initHomePage: initHomePage,
+        initMottoPage: initMottoPage,
+        initMottoSongPage: initMottoSongPage
     };
 })();
