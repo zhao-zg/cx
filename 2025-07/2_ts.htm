@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第2篇 - 详情</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第2篇 基督拿着死亡和阴间的钥匙</h2>
+</div>
+
+        
+        <div class="content">
+            
+<div class="details-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="2_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="2_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="2_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="2_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    
+    <div class="scripture">读经：启一17~18，十7，十二11，十五1、8，徒二24，腓三10~11</div>
+    
+    
+    <div class="details-content">
+        
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　“我是首先的，我是末后的，又是那活着的”
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　基督是首先的，也是末后的，
+含指祂所开始的事，祂必定完成
+            </div>
+            
+            
+            <div class="content-text">“我是首先的，我是末后的，又是那活着的。”（启一17下~18上）基督是首先的，也是末后的，含指祂所开始的事，祂必定完成。这是主的行事法则：凡祂开始了的事，祂都必定完成。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　主耶稣不仅是首先的，也是初；
+不仅是末后的，也是终
+            </div>
+            
+            
+            <div class="content-text">主耶稣不仅是首先的，也是初；不仅是末后的，也是终（二一6，二二13）。“首先的”，指明没有人在祂以先；“末后的”，指明没有人在祂之后。“初”，意即祂是万有的起源；“终”，意即祂是万有的终结。主所开始的，祂还要终结。这是此时此刻正在我们每个人里面发生的事；这不是字句道理，乃是我们的见证：基督是初也是终。这不仅指明，没有人在主耶稣之先，也没有人在主耶稣之后，也指明没有祂，就没有起源，也没有终结。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　基督不仅是首先的和末后的，也是初和终；
+这向我们保证，祂开始了召会生活以后，就必要完成
+            </div>
+            
+            
+            <div class="content-text">基督不仅是首先的和末后的，也是初和终；这向我们保证，祂开始了召会生活以后，就必要完成（参提后四5）。在主恢复里的每一处地方召会中，主所开始的工，祂都必要完成；今年是如此，来年主还要在众召会中作得更多。主耶稣永不会叫祂的工作半途而废（启十7，十五1、8）。所有地方召会都必须相信，主耶稣是初又是终。祂必完成祂在恢复里所开始的工。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　行走在众召会中间的基督，乃是那活着的；
+因此各地方召会，也该是活而新鲜并刚强的
+            </div>
+            
+            
+            <div class="content-text">这位行走在众召会中间，为众召会的头，并为众召会所属的基督，乃是那活着的；因此，祂的身体所显出来的各地方召会，也该是活而新鲜并刚强的（二1）。无论年长或年幼，我们都该是活而新鲜并刚强的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　“我曾死过，看哪，现在又活了，
+直活到永永远远”
+            </div>
+            
+            
+            <div class="content-text">“我曾死过，看哪，现在又活了，直活到永永远远。”（一18上）。基督付了重价，为救赎全人类而死；祂死了，但祂更复活了，直活到永永远远。如今这位在我们里面活着的基督是非常活跃的；祂乃是曾死过，又复活了的一位。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　主受过死的苦，但祂又活了；基督曾进入死亡，
+但死亡不能拘禁祂，因为祂是复活
+            </div>
+            
+            
+            <div class="content-text">主受过死的苦，但祂又活了（二8）。基督曾进入死亡，但死亡不能拘禁祂（徒二24），因为祂是复活（约十一25）。主在约翰十一章二十五节说，“我是复活，我是生命；信入我的人，虽然死了，也必复活。”复活不只是主所经历的过程，复活更是祂的所是。现今这位内住的基督作为赐生命的灵，正在我们里面作为复活来运行。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　复活是主的日子的延长；
+祂在祂的复活里要存到永永远远
+            </div>
+            
+            
+            <div class="content-text">复活是主的日子的延长；祂在祂的复活里要存到永永远远。我们都会经历复活，并且我们都要活在复活里，直到永远。将来会有新天新地，其中心将是作我们复活的基督。这实在好得无比。就着我们对主的经历而言，最好的还在将来。</div>
+            
+            <div class="content-text">耶稣基督今天是那活着的，就是那在复活里的一位。基督要分赐生命，就必须是那活着的。试问我们今天有没有经历基督将祂自己分赐到我们里面？如果还没有，不需要等待，此时此刻就可以经历基督分赐生命到我们里面。每天清晨，我与妻子都会以这样的祷告起头：“主啊，愿这一天满了你的分赐。我们向你敞开，愿你更多把你自己分赐到我们里面。”</div>
+            
+            <div class="content-text">基督现今正在我们里面分赐祂的生命，祂渴望达到我们全人的最深处，而不是仅仅停留在表面。祂需要进到我们全人的最深处，且正为此祷告并作工。如今在我们里面有一场争战正在进行，我们不是打仗的人，而是战场本身。基督这复活的生命已与我们的灵调和，所以我们的灵是生命；但我们的身体仍是罪与死的身体；我们的魂则是位于中间。内住的基督作为赐生命的灵，渴望更多充满我们的魂；但仇敌也在利用我们罪与死的身体，试图控制我们的魂。所以，我们若愿与主同工，就要天天向祂敞开，真诚地告诉主：“主啊，我要让你进到我全人的每一部分，不向你有任何保留。”无论我们到了生命经历的那个阶段，都该这样敞开自己，操练用我们的灵来接受主的分赐，让祂能越过越多地分赐到我们里面。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　基督是那位活着的，
+重点乃是祂是永远活着的，并且活在我们里面
+            </div>
+            
+            
+            <div class="content-text">基督是那位活着的，重点乃是祂是永远活着的，并且活在我们里面。这里并不是说，“祂在我们里面”，这固然是事实；这里乃是说，“祂活在我们里面。”我们应当衡量自己向祂敞开到何种程度；我们唯有向祂敞开，才能让祂不仅是“在”我们里面，更是“活在”我们里面。</div>
+            
+            <div class="content-text">在以弗所三章十四至十九节，保罗发出了一个特别的祷告。这祷告相当摸着人，总是令人感觉新鲜。保罗向父屈膝，从深处祷告说，“使基督借着信，安家在你们心里。”（17）基督渴望安家在我们心里，否则祂在我们里面就如同坐监一般。主已经在我们的灵里，与我们的灵调和；但祂渴望能够进到我们全人里面，就是安家在我们心里，不是探访作客，而是安家。比方我到一地拜访圣徒，圣徒接待我住在他们家中，带我进到客房休息。我虽然住在那里，却实在不是在那里过生活。同样的，主并非只想在我们里面“度周末”，而是渴望在我们的心里安家。这个道理不难理解，但我们每天是否真实经历主的安家？我们要将全人向主敞开，祷告说，“主啊，愿你不仅是在我里面，更是活在我全人里面。”</div>
+            
+            <div class="content-text">这里的重点是，祂是永远活着，并且活在我们里面。当我们的魂与灵分开时，我们就能同时作两件事。此时此刻，外面看来我是在说话，但我里面乃是在向主祷告，愿主在我们每一位里面得着敞开的通道，好叫祂不仅是在我们里面，更活在我们里面，安家在我们心里。</div>
+            
+            <div class="content-text">我们的心包含许多部分。关于心思和记忆，可能有些记忆是我们巴不得完全忘掉的；所以我们需要让主进到我们的心思里。说到向主敞开自己的情感，对姊妹们而言并不难。但对许多弟兄而言，他们习惯压抑自己的情感，他们的感觉很不容易暴露出来；所以我们需要在主面前敞开我们的情感。我们需要越过越多简单地向主祷告：“主，我把我的心转向你，把我的全人转向你，求你今天活在我里面。我知道你在我里面，但我不愿意你在我里面坐监。盼望你能达到我全人的每一部分，好叫你不仅在我里面，更是活在我里面。”</div>
+            
+            <div class="content-text">祂要我们脱离各样的死，起来成为活的召会。主此刻正在为此祷告，祂要我们成为活的召会。我们越活，就越是活的耶稣的见证（启十二11）。信息后文将帮助我们完满地认识，在主死后并祂复活之前，祂去了哪里，祂为何要去，以及在那里发生了什么事。我们必须认识这些与祂有关之事客观的一面，同时也需要领悟，祂渴望达到、进到我们全人的最深处。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　“在这灵里，祂〔基督〕……
+曾去向那些在监狱里的灵……宣扬”
+            </div>
+            
+            
+            <div class="content-text">“在这灵里，祂〔基督〕……曾去向那些在监狱里的灵……宣扬。”（彼前三19~20上）这里的“灵”不是指留在阴间里死人的脱体之灵，乃是指挪亚时代因悖逆而堕落，并且被拘留在幽暗坑中，等候大日审判的天使（天使是灵─来一14）（彼后二4~5，犹6）。基督在肉体里受死以后，在那作祂神性活的灵里到无底坑这些背叛的天使那里，宣扬神的得胜，就是神借着祂在基督里的成为肉体，以及基督在肉体里的死，胜过了撒但阻挠神圣计划的诡计。“监狱”（彼前三19）指他他拉，幽暗的深坑，拘留堕落天使的地方。</div>
+            
+            <div class="content-text">这里说到基督到无底坑这些背叛的天使那里。这是很关键的点。对于这点，许多人可能从未听过，或可能只略知一二。我们都需要深刻经历这点，这样的经历是独特的；我们若不在这个时代经历，就要在要来的千年国期间经历。然而，盼望我们都在这个时代就经历这事，不要等到要来的一千年才经历。</div>
+            
+            <div class="content-text">“无底坑”是什么？在物质一面，无底坑指地的最深处，是人无法达到的地方。但在属灵意义上，无底坑就在我们人的最深处。人的言语无法充分解释这事。我们需要看见，基督所已经作的，祂此刻正在作的，以及祂一切所作的结果。</div>
+            
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　“我……看见一个星从天落到地上，
+有无底坑的钥匙赐给他”
+            </div>
+            
+            
+            <div class="content-text">“我……看见一个星从天落到地上，有无底坑的钥匙赐给他。”（启九1~2，十一7，十七8，二十1、3）这段是本篇信息一个重要的部分。我们要先来看一些经节。在行传六章四节使徒们说，“我们要坚定持续地祷告，并尽话语的职事。”以下的经节会帮助我们，使我们能有话语的职事。路加八章三十一节说，“鬼就央求耶稣，不要吩咐它们到无底坑里去。”这说出鬼要被送到无底坑里去。按照圣经，敌基督也要从那里上来（启十一7，十七8）。罗马十章七节说，“或说，‘谁要下到无底坑？’就是要领基督从死人中上来。”这是指基督死后下到无底坑，去对付那些邪恶的天使。启示录九章一节说，“第五位天使吹号，我就看见一个星从天落到地上，有无底坑的钥匙赐给他。”这里的“星”是指撒但。二节说，“他开了无底坑，便有烟从坑里往上冒”。十一节说，“有无底坑的使者作王管辖它们。”无底坑的使者就是敌基督，他要从无底坑上来。</div>
+            
+            <div class="content-text">当这件事在这世代的末了七年发生时，我们很多人─甚至我们全部的人─可能都还活着。在那七年的末了，基督会以肉眼可见的方式来到地上，改变一切，使世上的国成为我主和祂基督的国（十一15）。那时我们要进入另一个范围，另一个时代，就是国度时代。</div>
+            
+            <div class="content-text">然而，我们需要领悟，在这事发生以前，敌基督要从无底坑上来。盼望我们都能活到那个时刻。我们会经过头三年半，然后真正得胜的圣徒在头三年半的末了就会被提。倘若每位圣徒都能在那时被提，那将是何等美妙。单单成为信徒，不足以使我们够资格被提。我们必须是成熟的；只有在生命上成熟的信徒才会被提。大部分的基督徒都会被留下来，继续经过末后的三年半。</div>
+            
+            <div class="content-text">十二章给我们看见，得胜的圣徒被提到宝座那里（5），天上就起了争战，米迦勒和他的使者与龙争战，龙和它的使者也争战（7）。这乃是天使和撒但及邪灵之间的争战。然后撒但会被摔在地上，他的使者也一同被摔下去（9）。盼望那时我们都不在地上，而在另一个范围。此外，十一章七节也说到那从无底坑上来的兽，必与他们（两个见证人）争战。在这个世代末了，邪恶的势力要兴起，就是敌基督和他的军队，在哈米吉顿与基督同祂的得胜者争战。然后，二十章一节说，“我又看见一位天使从天降下，手里拿着无底坑的钥匙，和一条大锁链。”三节说撒但要被“扔在无底坑里，关起来”。我们需要研读这些经节的内容，明白其中的意义。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　启示录九章一节的星是指撒但，他要从天上摔到地上
+            </div>
+            
+            
+            <div class="content-text">启示录九章一节的星是指撒但，他要从天上摔到地上。天使被比喻作星（伯三八7，启十二4）。撒但是天使长，原是明亮之星（赛十四12）。明亮之星是撒但本来的名字。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　“‘谁要下到无底坑？’
+就是要领基督从死人中上来”
+            </div>
+            
+            
+            <div class="content-text">“‘谁要下到无底坑？’就是要领基督从死人中上来。”（罗十7）五十一年前，李弟兄从洛杉矶搬到安那翰，开始生命读经的工作，并要我从底特律搬到安那翰与他配搭。于是我花了二十四年编辑生命读经。那时，我期许自己，要如同牛踹谷时，不笼住嘴（参申二五4）；我在编辑时，也要吃我所编辑的生命读经信息，把一切的丰富吃进来。后来另一位弟兄（Ed Marks）也加入编辑生命读经的工作。一九七四年六月，李弟兄写了罗马十章七节的注解。以下所述就是出于这个注解。“无底坑”这辞的原文是abyssos，阿比索斯。这辞在路加八章三十一节指鬼的住处（27、33、35、38）。路加八章记载主到了格拉森，从一个人身上赶出群鬼。那时鬼央求耶稣，不要吩咐它们到无底坑里去，并准它们进入猪群，耶稣便准了它们（31~32）。在此我们看见，“无底坑”这辞是指鬼的住处。这群鬼知道自己将来会被赶到无底坑里去，但它们不愿在当时就被赶到无底坑里，因为知道时候还没有到。事实上，今天鬼在地上仍是非常活跃。我们早晨醒来时，可能受各种纷乱的思绪所搅扰，这时我们需要停下所有的思想，转向主，问主说，“主，这是从你来的，还是出于我自己的心思？”至终，我们也许会领悟，这些搅扰是从鬼来的，让我们误以为是自己的思想。盼望我们每早晨醒来时，不要陷在错纵复杂的思想里，也不要分析，只要对主说，“主啊，你知道我这一切思想的源头。我把心转向你。”这样，我们就会有清明的心思，我们的心思和灵就会是和谐的。</div>
+            
+            <div class="content-text">“无底坑”这辞也在启示录九章一节、二节、十一节，指那些“蝗虫”出来的地方，它们的王名叫亚玻伦。在十一章七节，十七章八节，这辞指“兽”，就是敌基督，要上来的地方。在这世代末了的三年半里，地不会是令人喜悦的地方。我渴望在那之前就被提，我不愿意看见那些蝗虫。</div>
+            
+            <div class="content-text">我们如何知道，这世代最后的七年是何时呢？将来，圣殿山会发生一些事，金顶寺要被挪去，以色列人要在那里重建圣殿。众所皆知，以色列人已经预备好盖造圣殿所需的一切材料和器物，连红母牛都已预备好了。当以色列要重建圣殿时，周围的列国会群起攻击以色列，但将有一个强人从欧洲某地兴起，与以色列的领袖立七年的盟约，从这时起就进入这世代最后的七年。在这七年的前半，他会帮助以色列人重建圣殿，并同意以色列人在殿里献祭敬拜神。在末了的三年半之前，他会被刺杀，但他要凭该撒尼罗的灵复苏，成为敌基督。那时，基督徒将经历前所未有的大灾难；这是必然发生的事。敌基督就是那“兽”，要从无底坑上来（启十一7，十七8）。这是圣经里说到无底坑的另一个负面、消极的地方。这给我们看见，一切邪恶事物的源头，都是从无底坑出来的。</div>
+            
+            <div class="content-text">此外，在启示录二十章一节、三节，“无底坑”这辞指千年国时，撒但要被扔进去受监禁的地方。罗马十章七节的无底坑是指基督在死后，复活前所去的地方；根据行传二章二十四节、二十七节，这地方就是阴间，因为这二节启示，基督死后下到阴间，复活时从那里起来。照圣经的用法，无底坑一辞乃是指死亡，以及撒但黑暗权势的地方，就是基督死后所降到地的低下之处（弗四9）；祂胜过了这地方，就在复活里从这地方上来。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　关于“无底坑”客观的认识与主观的经历
+            </div>
+            
+            
+            <div class="content-text">截至目前为止，我们讲了许多关于无底坑的事；然而这些都还是外在、客观的。但是在我们全人的最深处，有一些事必须发生。这是我们需要知道的；我们需要知道有这么一回事，知道有那些事需要发生。</div>
+            
+            <div class="content-text">什么是我们的无底坑？我要说一个自己很独特的经历。当我还在德州生活、服事的时候，有一天中午，我在开车回家的路上，不知什么原因，我突然对主说，“无底坑是什么？你会怎么来对付这无底坑？”主在我里面对我说，“我会来对付你这个人里面的无底坑。”所以“无底坑”这个辞，在这层意义上，是指我们全人最深的部分。我们全人里面有个很深的部分，深到连我们自己都达不到，但却知道是在哪里。我们要领悟，那就是仇敌所在的地方；这是在主观的一面。同时，无底坑也是鬼的住处，是敌基督将来要从其中上来的地方；那是在客观的一面。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　经历基督安家在我们全人的最深处
+            </div>
+            
+            
+            <div class="content-text">还有一个柔细、主观的一面，即基督要安家在我们心里，祂就必须能够进到、下到我们全人的最深处。一面，基督作为灵是在我们的灵里；另一面，我们有罪与死的身体；而我们的魂乃是在身体和灵中间。主来牧养我们，是要把祂自己分赐到我们里面，而祂渴望达到我们魂的最深处，达到连我们自己都不知道的深处。关于这点，我有一个很深的、爱的关切，就是在主的恢复里有许多圣徒，他们是非常宝贵，我们也爱他们，但是他们与主的关系还是相当肤浅。</div>
+            
+            <div class="content-text">一般来说，人都是很肤浅的。但我们都已经重生，也奉献自己，应该不再受外在的文化所支配；然而，我们要领悟，有一个东西─无底坑，还是在我们全人的深处。我们都需要祷告：“主啊，只要我还活在地上，我就要让你有机会，充满我魂的每一部分，我不向你有任何的保留。”</div>
+            
+            <div class="content-text">我们与主交通，相信祂，信靠祂，住在祂里面，也尽可能地向祂敞开；然而，在我们个人的生活中，还可能需要有一些事情发生，好叫神能够达到、进到我们个人的无底坑，也就是我们魂的最深处。这不只是祂一点光照就能作到的。愿主遮盖我们众人，使我们能领受这样的话：神在祂的智慧里，凭着祂的权柄，为使祂的儿女能够长大以至成熟，会在我们的环境中安排一切的人事物，好让祂能进到我们全人的最深处。</div>
+            
+            <div class="content-text">我想分享一个我个人的经历。在二〇二二年夏季训练中，我的胃非常疼痛，无法承受；于是我请一位作医生的弟兄尽快带我去急诊。急诊的医生说，胃痛还不是最严重的，我需要的是立刻作心脏绕道手术，这是攸关生死的。当我听见他说这话，我里面只感觉平安，也有一种感觉：这是身体的事。开刀那天清晨，我被带进手术室，我一进去就有个感觉：我爱手术室里的众人。手术完成后，医生说手术非常成功。后来有四十八小时，我非常清醒。主在我里面越过越深地进到我的无底坑，进到我全人的最深处，并使我得知那些地方而向祂认罪。然后祂就分赐，并且让我看见更多，我又更多悔改，然后祂又继续往前。这样的循环持续了四十八小时。后来，有几周的时间，我在家休养。我领悟：主进到了我的无底坑，而这不只是为着我个人，使我在生命上更成熟，更是为着使我能向主忠信，向众圣徒尽职。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　出代价走职事的路
+            </div>
+            
+            
+            <div class="content-text">最近我对一些全时间学员说，“你们不要立刻去作什么，但是必须作出决定；关乎你们基督徒的发展，关乎你们将来的服事，你们必须作一个决定。”以弗所四章给我们看见，身体上每个肢体，都有一分职事。这不是说每个人都会站讲台讲信息，但是每个肢体都有一分职事。所以，我们都要不计代价地让主进到我们的深处。</div>
+            
+            <div class="content-text">李弟兄对于他过世以后，主的恢复会有什么样的情形，下一代的圣徒会如何，曾表达很深的关切；其中一点就是盼望圣徒不要走恩赐的路，而要走职事的路。我们都要继续这一分职事，不要走恩赐的路，而要出代价走职事的路。</div>
+            
+            <div class="content-text">李弟兄曾在一九六七年释放关于哥林多后书的信息。在《一个在灵里之人的自传》一书中说到，“使徒……受苦的结果……乃是死。……十字架的经历总是带进对复活之神的享受。这样的经历产生并形成职事。”（七页）虽然当时我不明白，但是我对主说，“主，在这件事上我无法作什么，但我选择走职事的路。”</div>
+            
+            <div class="content-text">李弟兄在快要过世以前，写了一封感激、交通的信，里面说，“主给我看见，祂已经预备了许多弟兄，与我相调着同作奴仆事奉。我觉得这是主为祂的身体所作主宰的供备，也是现今为着完成祂职事的路。”（李常受文集一九九四至一九九七年第五册，六五七至六五八页）</div>
+            
+            <div class="content-text">我真诚地相信，这是内住的基督在我里面沉重的负担和关切。李弟兄深深关切下一代的圣徒会如何，他们是否会继续主的恢复，还是会堕落成基督教的一部分？他说，“我们若没有履行那完成神定旨的责任，祂可能被迫去找另一班人。”（李常受文集一九九三年第一册，二五四页）祂可能被迫去找一班完全向祂敞开的人。</div>
+            
+            <div class="content-text">但我们今天是在恩典时代，我相信主渴望在我们这一代人身上继续祂的恢复。即使你是年长，或是你曾离开主的恢复，才刚回来，主作为七倍加强的灵会在你身上作工，使你有机会长大以至成熟，与祂一同作王。你只要照着本相来到主面前，把自己毫无保留地奉献给主，让主有完全的自由，进到你全人的最深处。不要凭自己作什么，只要经历基督、享受基督、彰显基督。我们每一位都有机会得以长大，以至成熟，在要来的时代与主一同作王。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　在启示录一章十八节下半主耶稣说，
+“我……拿着死亡和阴间的钥匙”
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　死将一切有罪的人聚拢到阴间；
+然而在召会生活里，我们不再受死亡和阴间的支配
+            </div>
+            
+            
+            <div class="content-text">在启示录一章十八节下半主耶稣说，“我……拿着死亡和阴间的钥匙。”因着人堕落而有了罪，死就进来，如今在地上工作，将一切有罪的人聚拢到阴间，就是拘留死人的地方。然而，在召会生活里，我们不再受死亡和阴间的支配（腓三10~11）。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　基督在十字架上废掉了死，
+并且在祂的复活里胜过了阴间
+            </div>
+            
+            
+            <div class="content-text">基督在十字架上废掉了死，并且在祂的复活里胜过了阴间。虽然死尽其所能要扣住基督，却没有能力这样作（徒二24）。基督是神，也是复活（约一1，十一25），有不能毁坏的生命（来七16）。撒但会被毁坏，但我们有不能毁坏的生命─基督。祂既是这样一位永活者，死就不能拘禁祂。基督将自己交于死，死却无法扣住祂，反而被祂击败，祂就从死里复活了。因此，对基督而言，死没有毒刺，阴间也没有能力。死已经被基督击败了。这不是说我们在肉身上不会死，而是说我们在今生可以胜过属灵的死。</div>
+            
+            <div class="content-text">至关重要的乃是我们如何结束我们的路程。有些年长的弟兄在年轻时就奉献给主，但主却无法彻底地得着他们。于是，主可能安排他们生重病，好在他们一生年日的末了几个月，得以达到他们全人的最深处，使他们达到成熟，能在将来与基督一同作王。虽然我珍赏这样的经历，但我深处实在盼望也呼喊，我们不需要等到八十几岁或得了绝症才成熟；我们可以提早成熟。我里面呼喊：“主啊，愿你让全地成千上万的圣徒都成熟。”说到长大以至成熟，我们没有人是太早或太迟。主知道怎么使我们成熟。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　因为基督在召会里是那拿着死亡和阴间的钥匙者，
+死亡和阴间在我们身上就不该有任何能力
+            </div>
+            
+            
+            <div class="content-text">因为基督在召会里是那拿着死亡和阴间的钥匙者，死亡和阴间在我们身上就不该有任何能力。主正将更多的信心分赐到我们里面，使我们可以简单地相信这事实。死亡和阴间在我们身上不该有任何能力。我要代表我们众人宣告：我们能够胜过死亡，能够在要来的时代与主一同作王。这事真会发生的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　在召会生活里，死亡和阴间的钥匙是在主手中；
+我们不可能对付死
+            </div>
+            
+            
+            <div class="content-text">在召会生活里，死亡和阴间的钥匙是在主手中。我们不可能对付死。我们根本没有能力操纵死。每当死进来的时候，许多人就被死征服。换句话说，我们不该信靠自己，反要把己摆在一边。我们要领悟，这位包罗万有、内住在我们里面的基督有复活的大能，并且祂要将祂复活的大能应用在我们身上，叫我们胜过死。对付死亡对我们来说是不可能的，对祂却是极其容易的，因为祂是复活的基督。这就是为何我们对死亡无所畏惧。我曾在一些圣徒临终时陪伴在他们身边，他们已跑完他们的赛程（提后四7）。我深信当他们复活而站在主的审判台前时，主会对他们说，“好，来与我在要来的时代一同作王。”我深信这事在全地许多圣徒身上都会发生。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们若给主耶稣地位、机会和自由的路，
+在我们中间运行并行动，死亡和阴间就在祂控制之下
+            </div>
+            
+            
+            <div class="content-text">我们若给主耶稣地位、机会和自由的路，在我们中间运行并行动，死亡和阴间就在祂控制之下（太十六18，启二十14）。我们要对主说，“主，我把我里面的地位给你。我要让你有机会，让你有自由的路能够在我里面运行并行动，也在我们中间运行并行动。”这样，死亡和阴间就会在祂的控制之下。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　当主耶稣在召会里没有地位时，
+死亡立刻猖狂，阴间也成为有能力的
+            </div>
+            
+            
+            <div class="content-text">许多在召会中担负责任的弟兄们都能见证，当主耶稣在召会里没有地位时，死亡立刻猖狂，阴间也成为有能力的，来扣住死了的人。因此我们盼望，召会中所有的地位都要被基督占有，都要在基督的支配之下；生命就会充满一切，死亡就会被击败。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们看见基督拿着死亡和阴间的钥匙─权柄，
+这是很重要的；死亡受祂的支配，阴间也在祂的控制之下
+            </div>
+            
+            
+            <div class="content-text">我们看见基督拿着死亡和阴间的钥匙─权柄，这是很重要的（约五27，十七2，启十二10）。死亡受祂的支配，阴间也在祂的控制之下。我们能够看见这事，实在无比重大。所以我们该祷告：“主啊，我要有这属灵的看见，这对我是很重要的。主啊，我要看见你拿着死亡和阴间的钥匙。”内住的基督拿着死亡和阴间的钥匙，就是权柄，因此祂能胜过死亡和阴间。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们应当赞美主，基督拿着死亡和阴间的钥匙
+            </div>
+            
+            
+            <div class="content-text">我们应当赞美主，基督拿着死亡和阴间的钥匙（一18，来十三15，彼前一7，启十九5~6）。本篇信息结束于赞美，我们应当赞美主，基督拿着死亡和阴间的钥匙。（R. K.）</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.details-page {
+    padding: 5px;
+}
+
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 46px;
+    min-height: 46px;
+    padding: 10px 14px;
+    background: var(--btn-secondary-bg);
+    border: 1px solid var(--btn-secondary-border);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--btn-secondary-text);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: var(--shadow-sm);
+}
+
+.font-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+.details-content {
+    margin-top: 15px;
+    line-height: 1.8;
+    text-align: justify;
+}
+
+.section {
+    margin-bottom: 18px;
+}
+
+.section-level1, .section-level2, .section-level3, .section-level4 {
+    font-weight: 600;
+    margin: 20px 0 12px 0;
+    line-height: 1.8;
+    color: var(--heading);
+}
+
+.section-level1 {
+    font-size: 1em;
+    color: var(--heading);
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+.section-level2 {
+    font-size: 0.9375em;
+    padding-left: 10px;
+    color: var(--heading-soft);
+    border-left: 3px solid var(--brand);
+}
+
+.section-level3 {
+    font-size: 0.9375em;
+    padding-left: 16px;
+    color: var(--text-soft);
+}
+
+.section-level4 {
+    font-size: 0.9375em;
+    padding-left: 24px;
+    color: var(--text-soft);
+}
+
+.content-text {
+    margin: 14px 0;
+    padding-left: 14px;
+    color: var(--text);
+    text-indent: 2em;
+    line-height: 1.8;
+    font-size: 0.9375em;
+}
+
+@media (min-width: 768px) {
+    .details-page {
+        padding: 20px 0;
+    }
+    
+    .details-content {
+        margin-top: 30px;
+    }
+    
+    .section {
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .font-size-controls {
+        gap: 6px;
+        margin: 8px 0;
+    }
+    
+    .font-btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+</style>
+
+<script>
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            // 读取所有内容文本
+            const contentTexts = document.querySelectorAll('.content-text');
+            contentTexts.forEach(p => {
+                const t = getCleanText(p);
+                if (t) text += t + '。';
+            });
+            
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>202507 冬季训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

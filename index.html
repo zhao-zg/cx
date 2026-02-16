@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="特会信息合集 - 所有训练总览">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png">
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="trainings.json" as="fetch" crossorigin>
+    <title>特会信息合集</title>
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 16px;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);border-radius:12px;box-shadow:var(--shadow-md);border:1px solid var(--border);overflow:hidden}
+        .header{position:relative;background:var(--header-bg);color:#fff;text-align:center;padding:16px 12px;margin-bottom:20px;border-radius:8px}
+        .header h1{font-size:1.17em;margin-bottom:8px;font-weight:600;line-height:1.8}
+        .header .subtitle{font-size:0.88em;opacity:.9;line-height:1.8}
+        .content{padding:0}
+        .trainings-grid{display:flex;flex-direction:column;gap:1px;margin:0;background:#e3e3e1;overflow:hidden;border-radius:12px}
+        .training-card{background:var(--surface);overflow:hidden;transition:background-color .2s}
+        .training-card:hover{background:var(--nav-hover)}
+        .training-card:last-child{border-bottom:none}
+        .training-card-wrapper{display:flex;align-items:stretch;gap:0}
+        .training-link{display:block;padding:14px 16px;text-decoration:none;color:inherit;flex:1;min-width:0;transition:background-color .2s}
+        .training-link:active{background:#ececea}
+        .training-info{position:relative}
+        .training-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px}
+        /* 骨架屏 */
+        .skeleton-item{padding:16px;border-bottom:1px solid var(--border)}
+        .skeleton-line{height:18px;background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px;margin-bottom:8px}
+        .skeleton-line.short{width:30%;height:14px}
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        .training-card .year-season {
+            font-size: 17px;
+            color: var(--brand);
+            font-weight: 600;
+            flex-shrink: 0;
+            line-height: 1.3;
+        }
+        
+        .training-card .info {
+            color: #a0aec0;
+            font-size: 16px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        .training-title-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 0;
+        }
+        
+        .training-card .title {
+            font-size: 1.05em;
+            color: var(--text);
+            line-height: 1.6;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            border-radius: 4px;
+            cursor: pointer;
+            min-height: 32px;
+            flex: 1;
+        }
+
+        .training-title-row .arrow {
+            margin-left: auto;
+            color: #cbd5e0;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        
+        
+        
+        .footer {
+            text-align: center;
+            padding: 16px;
+            color: #999;
+            background: #f5f7fa;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+        
+        @media (min-width:768px){
+            .header{margin-bottom:30px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        
+        /* 缓存按钮 */
+        .cache-section {
+            padding: 12px;
+            text-align: center;
+            background: #f8f9fa;
+            border-top: 1px solid #e2e8f0;
+            display: none;
+        }
+        
+        .cache-section.show {
+            display: block;
+        }
+
+        #dataToolsSection.show {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        #dataToolsStatus {
+            flex-basis: 100%;
+        }
+        
+        .cache-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: var(--bg);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            min-height: 42px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            margin: 4px;
+        }
+        
+        .cache-btn:active {
+            transform: scale(0.97);
+        }
+        
+        .cache-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .cache-btn.cached {
+            background: #48bb78;
+        }
+        
+        .clear-btn {
+            background: #e53e3e;
+        }
+        
+        .install-btn {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+        }
+        
+        .cache-icon {
+            font-size: 16px;
+        }
+        
+        .cache-status {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #666;
+            padding: 0 16px;
+        }
+        
+        .cache-status.success {
+            color: #48bb78;
+        }
+        
+        .cache-status.error {
+            color: #e53e3e;
+        }
+        
+        @media (max-width: 480px) {
+            .cache-section {
+                padding: 12px 8px;
+            }
+            
+            .cache-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+                min-height: 38px;
+                margin: 3px;
+            }
+            
+            .cache-icon {
+                font-size: 14px;
+            }
+            
+            .cache-status {
+                font-size: 12px;
+                padding: 0 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="mainLogo" style="cursor: pointer; user-select: none;">🏠 特会信息合集</h1>
+            <p class="subtitle">Conference Information Collections</p>
+        </div>
+        
+        <div class="content">
+            <div class="trainings-grid" id="trainingsGrid">
+                <!-- 骨架屏 - 加载时显示 -->
+                <div class="skeleton-item"><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line short"></div></div>
+                <div class="skeleton-item"><div class="skeleton-line" style="width:70%"></div><div class="skeleton-line short"></div></div>
+                <div class="skeleton-item"><div class="skeleton-line" style="width:55%"></div><div class="skeleton-line short"></div></div>
+            </div>
+        </div>
+        
+        <!-- 安装按钮区域 -->
+        <div class="cache-section" id="installSection">
+            <button class="cache-btn install-btn" id="installBtn" style="display:none;">
+                <span class="cache-icon">📲</span>
+                <span class="cache-text">安装到桌面</span>
+            </button>
+            <button class="cache-btn" id="androidApkBtn" style="display:none; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+                <span class="cache-icon">📱</span>
+                <span class="cache-text">安卓离线版</span>
+            </button>
+            <div class="cache-status" id="installStatus"></div>
+        </div>
+
+        <!-- 数据工具区域 -->
+        <div class="cache-section" id="dataToolsSection" style="display: none;">
+            <button class="cache-btn clear-btn" id="clearDataBtn">
+                <span class="cache-icon">🧹</span>
+                <span class="cache-text">清理数据</span>
+            </button>
+            <button class="cache-btn" id="cacheAllBtn">
+                <span class="cache-icon">📦</span>
+                <span class="cache-text">缓存数据</span>
+            </button>
+            <div class="cache-status" id="dataToolsStatus"></div>
+        </div>
+        
+        <!-- 检查更新按钮（仅在 APP 内显示） -->
+        <div class="cache-section" id="updateSection" style="display: none;">
+            <button class="cache-btn" id="checkUpdateBtn">
+                <span class="cache-icon">🔄</span>
+                <span class="cache-text">检查更新</span>
+            </button>
+            <div class="cache-status" id="updateStatus"></div>
+        </div>
+        
+        <div class="footer">
+            <p>本站内容仅供主恢复圣徒交通使用</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">
+                生成时间: 2026年02月16日 00:39
+            </p>
+        </div>
+    </div>
+    
+    <!-- 主题切换脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    
+    <!-- JSZip 库用于解压更新包 -->
+    <script src="vendor/jszip.min.js"></script>
+    
+    <!-- APK 更新功能模块（仅在 Capacitor APP 环境下加载） -->
+    <script>
+    (function() {
+        // 检测是否在 Capacitor 环境中
+        var isCapacitor = window.Capacitor !== undefined;
+        var isCapacitorScheme = window.location.protocol === 'capacitor:' || 
+                                (window.location.hostname === 'localhost' && window.location.protocol === 'http:');
+        
+        // 只在 Capacitor APP 环境下加载 app-update.js
+        if (isCapacitor || isCapacitorScheme) {
+            var script = document.createElement('script');
+            script.src = 'js/app-update.js';
+            document.head.appendChild(script);
+        }
+    })();
+    </script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    // 自动扫描的训练资源列表（与 Service Worker 完全一致）
+    window.__cxTrainingPages = ["./2025-07/8_ts.htm", "./2025-07/7_zs.htm", "./2025-07/6_ts.htm", "./2025-07/2_h.htm", "./2025-07/1_cv.htm", "./2025-07/8_sg.htm", "./2025-07/6_zs.htm", "./2025-07/9_sg.htm", "./2025-07/12_ts.htm", "./2025-07/9_ts.htm", "./2025-07/9_cv.htm", "./2025-07/10_ts.htm", "./2025-07/6_sg.htm", "./2025-07/", "./2025-07/5_ts.htm", "./2025-07/7_cx.htm", "./2025-07/5_h.htm", "./2025-07/5_cx.htm", "./2025-07/4_sg.htm", "./2025-07/4_cv.htm", "./2025-07/1_cx.htm", "./2025-07/2_cx.htm", "./2025-07/motto.htm", "./2025-07/11_zs.htm", "./2025-07/11_cv.htm", "./2025-07/7_sg.htm", "./2025-07/11_ts.htm", "./2025-07/6_cx.htm", "./2025-07/3_zs.htm", "./2025-07/12_cx.htm", "./2025-07/9_zs.htm", "./2025-07/2_zs.htm", "./2025-07/10_cv.htm", "./2025-07/9_h.htm", "./2025-07/4_zs.htm", "./2025-07/9_cx.htm", "./2025-07/10_zs.htm", "./2025-07/6_cv.htm", "./2025-07/1_sg.htm", "./2025-07/10_h.htm", "./2025-07/motto_song.htm", "./2025-07/5_zs.htm", "./2025-07/3_sg.htm", "./2025-07/11_sg.htm", "./2025-07/12_sg.htm", "./2025-07/8_zs.htm", "./2025-07/12_cv.htm", "./2025-07/11_h.htm", "./2025-07/4_cx.htm", "./2025-07/3_cx.htm", "./2025-07/3_ts.htm", "./2025-07/8_cx.htm", "./2025-07/7_ts.htm", "./2025-07/7_cv.htm", "./2025-07/3_cv.htm", "./2025-07/4_ts.htm", "./2025-07/12_zs.htm", "./2025-07/11_cx.htm", "./2025-07/10_sg.htm", "./2025-07/4_h.htm", "./2025-07/5_cv.htm", "./2025-07/2_sg.htm", "./2025-07/2_cv.htm", "./2025-07/6_h.htm", "./2025-07/10_cx.htm", "./2025-07/8_h.htm", "./2025-07/12_h.htm", "./2025-07/1_ts.htm", "./2025-07/5_sg.htm", "./2025-07/3_h.htm", "./2025-07/2_ts.htm", "./2025-07/7_h.htm", "./2025-07/8_cv.htm", "./2025-07/1_zs.htm", "./2025-07/1_h.htm", "./2025-07/js/outline.js", "./2025-07/js/speech.js", "./2025-07/js/toc-redirect.js", "./2025-07/js/highlight.js", "./2025-07/js/nav-stack.js", "./2025-07/js/theme-toggle.js", "./2025-06/6_ts.htm", "./2025-06/2_h.htm", "./2025-06/1_cv.htm", "./2025-06/6_zs.htm", "./2025-06/6_sg.htm", "./2025-06/", "./2025-06/5_ts.htm", "./2025-06/5_h.htm", "./2025-06/5_cx.htm", "./2025-06/4_sg.htm", "./2025-06/4_cv.htm", "./2025-06/1_cx.htm", "./2025-06/2_cx.htm", "./2025-06/motto.htm", "./2025-06/6_cx.htm", "./2025-06/3_zs.htm", "./2025-06/2_zs.htm", "./2025-06/4_zs.htm", "./2025-06/6_cv.htm", "./2025-06/1_sg.htm", "./2025-06/5_zs.htm", "./2025-06/3_sg.htm", "./2025-06/4_cx.htm", "./2025-06/3_cx.htm", "./2025-06/3_ts.htm", "./2025-06/3_cv.htm", "./2025-06/4_ts.htm", "./2025-06/4_h.htm", "./2025-06/5_cv.htm", "./2025-06/2_sg.htm", "./2025-06/2_cv.htm", "./2025-06/6_h.htm", "./2025-06/1_ts.htm", "./2025-06/5_sg.htm", "./2025-06/3_h.htm", "./2025-06/2_ts.htm", "./2025-06/1_zs.htm", "./2025-06/1_h.htm", "./2025-06/js/outline.js", "./2025-06/js/speech.js", "./2025-06/js/toc-redirect.js", "./2025-06/js/highlight.js", "./2025-06/js/nav-stack.js", "./2025-06/js/theme-toggle.js", "./2025-05/8_ts.htm", "./2025-05/7_zs.htm", "./2025-05/6_ts.htm", "./2025-05/2_h.htm", "./2025-05/1_cv.htm", "./2025-05/8_sg.htm", "./2025-05/6_zs.htm", "./2025-05/9_sg.htm", "./2025-05/9_ts.htm", "./2025-05/9_cv.htm", "./2025-05/6_sg.htm", "./2025-05/", "./2025-05/5_ts.htm", "./2025-05/7_cx.htm", "./2025-05/5_h.htm", "./2025-05/5_cx.htm", "./2025-05/4_sg.htm", "./2025-05/4_cv.htm", "./2025-05/1_cx.htm", "./2025-05/2_cx.htm", "./2025-05/motto.htm", "./2025-05/7_sg.htm", "./2025-05/6_cx.htm", "./2025-05/3_zs.htm", "./2025-05/9_zs.htm", "./2025-05/2_zs.htm", "./2025-05/9_h.htm", "./2025-05/4_zs.htm", "./2025-05/9_cx.htm", "./2025-05/6_cv.htm", "./2025-05/1_sg.htm", "./2025-05/5_zs.htm", "./2025-05/3_sg.htm", "./2025-05/8_zs.htm", "./2025-05/4_cx.htm", "./2025-05/3_cx.htm", "./2025-05/3_ts.htm", "./2025-05/8_cx.htm", "./2025-05/7_ts.htm", "./2025-05/7_cv.htm", "./2025-05/3_cv.htm", "./2025-05/4_ts.htm", "./2025-05/4_h.htm", "./2025-05/5_cv.htm", "./2025-05/2_sg.htm", "./2025-05/2_cv.htm", "./2025-05/6_h.htm", "./2025-05/8_h.htm", "./2025-05/1_ts.htm", "./2025-05/5_sg.htm", "./2025-05/3_h.htm", "./2025-05/2_ts.htm", "./2025-05/7_h.htm", "./2025-05/8_cv.htm", "./2025-05/1_zs.htm", "./2025-05/1_h.htm", "./2025-05/js/outline.js", "./2025-05/js/speech.js", "./2025-05/js/toc-redirect.js", "./2025-05/js/highlight.js", "./2025-05/js/nav-stack.js", "./2025-05/js/theme-toggle.js", "./2025-04/8_ts.htm", "./2025-04/7_zs.htm", "./2025-04/6_ts.htm", "./2025-04/2_h.htm", "./2025-04/1_cv.htm", "./2025-04/8_sg.htm", "./2025-04/6_zs.htm", "./2025-04/9_sg.htm", "./2025-04/12_ts.htm", "./2025-04/9_ts.htm", "./2025-04/9_cv.htm", "./2025-04/10_ts.htm", "./2025-04/6_sg.htm", "./2025-04/", "./2025-04/5_ts.htm", "./2025-04/7_cx.htm", "./2025-04/5_h.htm", "./2025-04/5_cx.htm", "./2025-04/4_sg.htm", "./2025-04/4_cv.htm", "./2025-04/1_cx.htm", "./2025-04/2_cx.htm", "./2025-04/motto.htm", "./2025-04/11_zs.htm", "./2025-04/11_cv.htm", "./2025-04/7_sg.htm", "./2025-04/11_ts.htm", "./2025-04/6_cx.htm", "./2025-04/3_zs.htm", "./2025-04/12_cx.htm", "./2025-04/9_zs.htm", "./2025-04/2_zs.htm", "./2025-04/10_cv.htm", "./2025-04/9_h.htm", "./2025-04/4_zs.htm", "./2025-04/9_cx.htm", "./2025-04/10_zs.htm", "./2025-04/6_cv.htm", "./2025-04/1_sg.htm", "./2025-04/10_h.htm", "./2025-04/motto_song.htm", "./2025-04/5_zs.htm", "./2025-04/3_sg.htm", "./2025-04/11_sg.htm", "./2025-04/12_sg.htm", "./2025-04/8_zs.htm", "./2025-04/12_cv.htm", "./2025-04/11_h.htm", "./2025-04/4_cx.htm", "./2025-04/3_cx.htm", "./2025-04/3_ts.htm", "./2025-04/8_cx.htm", "./2025-04/7_ts.htm", "./2025-04/7_cv.htm", "./2025-04/3_cv.htm", "./2025-04/4_ts.htm", "./2025-04/12_zs.htm", "./2025-04/11_cx.htm", "./2025-04/10_sg.htm", "./2025-04/4_h.htm", "./2025-04/5_cv.htm", "./2025-04/2_sg.htm", "./2025-04/2_cv.htm", "./2025-04/6_h.htm", "./2025-04/10_cx.htm", "./2025-04/8_h.htm", "./2025-04/12_h.htm", "./2025-04/1_ts.htm", "./2025-04/5_sg.htm", "./2025-04/3_h.htm", "./2025-04/2_ts.htm", "./2025-04/7_h.htm", "./2025-04/8_cv.htm", "./2025-04/1_zs.htm", "./2025-04/1_h.htm", "./2025-04/js/outline.js", "./2025-04/js/speech.js", "./2025-04/js/toc-redirect.js", "./2025-04/js/highlight.js", "./2025-04/js/nav-stack.js", "./2025-04/js/theme-toggle.js"];
+    
+    // 主题颜色常量 - 用于动态生成的 HTML
+    var THEME = {
+        brand: '#667eea',
+        brandDark: '#5b7ce6',
+        bg: 'linear-gradient(135deg, #667eea 0%, #5b7ce6 100%)',
+        success: '#48bb78',
+        successDark: '#38a169'
+    };
+    
+    // 统一的环境检测 - 避免重复代码
+    var CX_ENV = (function() {
+        return {
+            isAndroid: /Android/i.test(navigator.userAgent),
+            isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
+            isCapacitor: window.Capacitor !== undefined,
+            isCapacitorScheme: window.location.protocol === 'capacitor:' || 
+                              (window.location.hostname === 'localhost' && window.location.protocol === 'http:'),
+            isStandalone: window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches,
+            get isInApp() {
+                return this.isStandalone;
+            },
+            get isCapacitorApp() {
+                return this.isCapacitor || this.isCapacitorScheme;
+            }
+        };
+    })();
+    
+    // 自动设置 APK 版本（用于离线版）
+    // 注意：initHomePage 已移至页面记忆代码块中，确保在判断是否跳转之后再初始化
+    (function() {
+        var isCapacitor = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+        if (isCapacitor) {
+            window.Capacitor.Plugins.App.getInfo().then(function(info) {
+                if (info.version) {
+                    localStorage.setItem('cx_apk_version', info.version);
+                    console.log('从 Capacitor 获取版本:', info.version, '包名:', info.id);
+                }
+            }).catch(function(err) {
+                console.log('无法获取 App 信息:', err);
+            });
+        }
+    })();
+    
+    // 动态加载训练列表
+    (function() {
+        console.log('[训练列表] 开始加载');
+        
+        // 从 APK 内置加载
+        loadTrainingsFromBundle();
+        
+        // 从 APK 内置加载
+        function loadTrainingsFromBundle() {
+            console.log('[训练列表] 从 APK 内置加载');
+            return fetch('trainings.json?t=' + Date.now())
+                .then(function(response) {
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return response.json();
+                })
+                .then(function(data) {
+                    console.log('[训练列表] APK 内置版本:', data.version);
+                    renderTrainings(data);
+                })
+                .catch(function(error) {
+                    console.error('[训练列表] APK 内置加载失败:', error);
+                    showLoadError();
+                });
+        }
+        
+        // 渲染训练列表
+        function renderTrainings(data) {
+            var grid = document.getElementById('trainingsGrid');
+            if (!grid) return;
+            
+            var trainings = data.trainings || [];
+            window.__cxTrainings = trainings;
+            if (trainings.length === 0) {
+                grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">暂无训练内容</div>';
+                return;
+            }
+            
+            var html = '';
+            trainings.forEach(function(training) {
+                html += '<div class="training-card">';
+                html += '<div class="training-card-wrapper">';
+                html += '<a href="' + training.path + '/index.html" class="training-link">';
+                html += '<div class="training-info">';
+                html += '<div class="training-header">';
+                html += '<div class="year-season">' + training.year + '年' + training.season.split(' ')[0] + '</div>';
+                html += '<div class="info">共 ' + training.chapter_count + ' 篇</div>';
+                html += '</div>';
+                html += '<div class="training-title-row">';
+                html += '<div class="title">' + training.title + '</div>';
+                html += '<span class="arrow">→</span>';
+                html += '</div>';
+                html += '</div>';
+                html += '</a>';
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            grid.innerHTML = html;
+            
+            // PWA 模式下仅显示数据工具区
+            var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+            if (isStandalone) {
+                var dataToolsSection = document.getElementById('dataToolsSection');
+                if (dataToolsSection) {
+                    dataToolsSection.style.display = 'flex';
+                    dataToolsSection.classList.add('show');
+                }
+            }
+        }
+        
+        // 显示加载错误
+        function showLoadError() {
+            var grid = document.getElementById('trainingsGrid');
+            if (!grid) return;
+            
+            grid.innerHTML = '<div style="text-align: center; padding: 40px; color: #e53e3e;">';
+            grid.innerHTML += '<div style="font-size: 24px; margin-bottom: 10px;">❌</div>';
+            grid.innerHTML += '<div>加载训练列表失败</div>';
+            grid.innerHTML += '<button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: ' + THEME.brand + '; color: white; border: none; border-radius: 6px; cursor: pointer;">重试</button>';
+            grid.innerHTML += '</div>';
+        }
+    })();
+    
+    // APK 检测和更新功能
+    (function() {
+        console.log('APK 检测初始化:', {
+            isAndroid: CX_ENV.isAndroid,
+            isInApp: CX_ENV.isInApp,
+            isCapacitor: CX_ENV.isCapacitor,
+            isCapacitorScheme: CX_ENV.isCapacitorScheme,
+            userAgent: navigator.userAgent,
+            protocol: window.location.protocol,
+            hostname: window.location.hostname
+        });
+        
+        // 检查更新按钮只在 Capacitor APK 环境显示（不在 PWA 中显示）
+        if (CX_ENV.isAndroid && CX_ENV.isCapacitorApp) {
+            // 显示检查更新按钮
+            var updateSection = document.getElementById('updateSection');
+            var checkUpdateBtn = document.getElementById('checkUpdateBtn');
+            var updateStatus = document.getElementById('updateStatus');
+            
+            if (updateSection && checkUpdateBtn) {
+                updateSection.style.display = 'block';
+                
+                checkUpdateBtn.addEventListener('click', function() {
+                    // 调用 AppUpdate 模块的更新检查对话框
+                    if (window.AppUpdate && window.AppUpdate.showCloudflareUpdateDialog) {
+                        window.AppUpdate.showCloudflareUpdateDialog();
+                    } else {
+                        console.error('AppUpdate 模块未加载或方法不可用');
+                        alert('更新功能未加载');
+                    }
+                });
+            }
+            
+            // 隐藏入口：点击 Logo 8 次 + 密码验证（用于 GitHub Release 下载）
+            var clickCount = 0;
+            var clickTimer = null;
+            var logo = document.getElementById('mainLogo');
+            
+            console.log('APK 更新检查已启用，点击 Logo 8 次触发隐藏入口');
+            
+            if (logo) {
+                logo.addEventListener('click', function() {
+                    clickCount++;
+                    console.log('Logo 点击:', clickCount, '/8');
+                    
+                    if (clickTimer) clearTimeout(clickTimer);
+                    clickTimer = setTimeout(function() {
+                        console.log('点击计数重置');
+                        clickCount = 0;
+                    }, 5000);
+                    
+                    // 点击 8 次触发密码验证
+                    if (clickCount >= 8) {
+                        clickCount = 0;
+                        if (clickTimer) clearTimeout(clickTimer);
+                        console.log('=== 触发密码验证 ===');
+                        
+                        // 弹出密码输入框
+                        var password = prompt('请输入管理密码：');
+                        if (password === '1189') {
+                            console.log('密码正确，显示更新检查');
+                            // 调用 AppUpdate 模块的 GitHub 更新检查对话框
+                            if (window.AppUpdate && window.AppUpdate.showGitHubUpdateDialog) {
+                                window.AppUpdate.showGitHubUpdateDialog();
+                            } else {
+                                console.error('AppUpdate 模块未加载或方法不可用');
+                                alert('更新功能未加载');
+                            }
+                        } else if (password !== null) {
+                            alert('密码错误');
+                        }
+                    }
+                });
+            } else {
+                console.error('找不到 mainLogo 元素');
+            }
+        } else {
+            console.log('APK 更新检查未启用（非安卓 APP 环境）');
+        }
+    })();
+    
+    // 页面记忆功能 - 保存主页访问记录
+    (function() {
+        function saveMainPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存主页:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面卸载前保存
+        window.addEventListener('beforeunload', saveMainPage);
+        
+        // 页面隐藏时保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveMainPage();
+            }
+        });
+    })();
+    
+    // 页面记忆功能 - 恢复上次访问的页面（PWA 和 Capacitor APP）
+    (function() {
+        try {
+            // 检查是否在 PWA 或 Capacitor APP 中运行
+            var isApp = CX_ENV.isInApp || CX_ENV.isCapacitor;
+            
+            console.log('[页面记忆] 环境检测:', {
+                isPWA: CX_ENV.isStandalone,
+                isCapacitor: CX_ENV.isCapacitor,
+                isApp: isApp
+            });
+            
+            if (!isApp) {
+                console.log('[页面记忆] 非 APP 环境，不启用记忆功能');
+                return; // 非 APP 模式不启用记忆功能
+            }
+            
+            // 检查是否是新会话（APP 冷启动）
+            var hasRestored = sessionStorage.getItem('cx_has_restored');
+            if (hasRestored) {
+                console.log('[页面记忆] 当前会话已跳转过，不再重复跳转');
+                if (window.CXNavStack) {
+                    window.CXNavStack.initHomePage();
+                }
+                return;
+            }
+            
+            var lastPage = localStorage.getItem('cx_last_page');
+            var lastPageTime = localStorage.getItem('cx_last_page_time');
+            
+            console.log('[页面记忆] 上次访问:', lastPage, '时间:', lastPageTime);
+            
+            // 如果有保存的页面，且在7天内访问过，则恢复
+            if (lastPage && lastPageTime) {
+                var timeDiff = Date.now() - parseInt(lastPageTime);
+                var days7 = 7 * 24 * 60 * 60 * 1000;
+                
+                if (timeDiff < days7) {
+                    // 检查保存的页面是否是主页（避免主页跳主页）
+                    var lastPagePath = new URL(lastPage).pathname;
+                    var lastPageIsMain = lastPagePath === '/' || 
+                                        lastPagePath === '/index.html' ||
+                                        lastPagePath === '' ||
+                                        lastPagePath === '/android_asset/public/index.html' ||
+                                        lastPagePath.includes('/public/index.html');
+                    
+                    // 如果保存的不是主页，跳转恢复
+                    if (!lastPageIsMain) {
+                        console.log('[页面记忆] 恢复上次访问的页面:', lastPage);
+                        // 标记当前会话已跳转
+                        sessionStorage.setItem('cx_has_restored', 'true');
+                        window.location.replace(lastPage);
+                        return;
+                    } else {
+                        console.log('[页面记忆] 上次访问就是主页，不跳转');
+                    }
+                } else {
+                    console.log('[页面记忆] 上次访问时间过久，不恢复');
+                }
+            } else {
+                console.log('[页面记忆] 没有保存的页面记录');
+            }
+            
+            // 标记当前会话已处理过跳转逻辑
+            sessionStorage.setItem('cx_has_restored', 'true');
+            
+            // 初始化主页导航
+            if (window.CXNavStack) {
+                window.CXNavStack.initHomePage();
+            }
+        } catch (e) {
+            console.error('[页面记忆] 错误:', e);
+        }
+    })();
+    
+    // 注册 Service Worker 并自动更新
+    if ('serviceWorker' in navigator) {
+        var isInstalling = false;
+        var installStartTime = Date.now();
+        
+        console.log('[主页] 开始注册 Service Worker');
+        
+        navigator.serviceWorker.register('./sw.js').then(function(reg) {
+            console.log('[主页] Service Worker 注册成功');
+            
+            // 检查更新（但不阻塞）
+            reg.update().catch(function(err) {
+                console.log('[主页] 检查更新失败:', err);
+            });
+            
+            // 监听安装进度
+            if (reg.installing) {
+                trackInstalling(reg.installing);
+            }
+            
+            // 监听更新
+            reg.addEventListener('updatefound', function() {
+                console.log('[主页] 发现更新');
+                var newWorker = reg.installing;
+                trackInstalling(newWorker);
+                
+                newWorker.addEventListener('statechange', function() {
+                    console.log('[主页] SW 状态变化:', newWorker.state);
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // 新版本已安装，静默更新（不打扰用户）
+                        console.log('[主页] 新版本已就绪，下次访问时生效');
+                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                    }
+                });
+            });
+            
+            // 等待 Service Worker 就绪
+            return navigator.serviceWorker.ready;
+        }).then(function() {
+            var installTime = Date.now() - installStartTime;
+            console.log('[主页] Service Worker 已就绪，耗时:', installTime, 'ms');
+        }).catch(function(err) {
+            console.error('[主页] Service Worker 注册失败:', err);
+        });
+        
+        // 监听 SW 控制器变化（静默刷新）
+        var refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+            if (refreshing) return;
+            refreshing = true;
+            console.log('[主页] Service Worker 已更新，刷新页面');
+            window.location.reload();
+        });
+        
+        // 跟踪安装进度
+        function trackInstalling(worker) {
+            if (isInstalling) return;
+            isInstalling = true;
+            console.log('[主页] Service Worker 正在安装');
+        }
+    }
+    
+    // PWA 安装功能
+    var deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        var installBtn = document.getElementById('installBtn');
+        if (installBtn) {
+            installBtn.style.display = 'inline-flex';
+        }
+    });
+    
+    // 生成单个训练的资源列表（提升到全局作用域）
+    /**
+     * 获取指定训练的资源列表（从自动扫描结果中筛选）
+     * @param {string} path - 训练路径，如 '2025-07'
+     * @param {Array} images - 训练的图片列表
+     * @returns {Array} 资源 URL 列表
+     */
+    function getTrainingResources(path, images) {
+        var allPages = window.__cxTrainingPages || [];
+        var prefix = './' + path + '/';
+        
+        // 筛选出该训练的所有页面（已包含 HTML 和 JS）
+        var resources = allPages.filter(function(page) {
+            return page.startsWith(prefix);
+        });
+        
+        // 添加图片
+        if (images && images.length > 0) {
+            images.forEach(function(img) {
+                resources.push(prefix + img);
+            });
+        }
+        
+        return resources;
+    }
+    
+
+    // 缓存所有训练资源
+    function cacheAllTrainings(statusEl) {
+        if (!('caches' in window)) {
+            if (statusEl) {
+                statusEl.textContent = '当前环境不支持缓存';
+                statusEl.className = 'cache-status error';
+            }
+            return Promise.resolve();
+        }
+
+        var trainings = window.__cxTrainings || [];
+        if (!trainings.length) {
+            if (statusEl) {
+                statusEl.textContent = '训练列表尚未加载';
+                statusEl.className = 'cache-status error';
+            }
+            return Promise.resolve();
+        }
+
+        var totalTrainings = trainings.length;
+        var currentIndex = 0;
+        var totalResources = 0;
+        var cachedResources = 0;
+
+        trainings.forEach(function(training) {
+            totalResources += getTrainingResources(training.path, training.images || []).length;
+        });
+
+        if (statusEl) {
+            statusEl.textContent = '开始缓存全部训练...';
+            statusEl.className = 'cache-status';
+        }
+
+        return trainings.reduce(function(promise, training) {
+            return promise.then(function() {
+                currentIndex++;
+                var resources = getTrainingResources(training.path, training.images || []);
+                var cacheKey = 'cx-' + training.path;
+
+                if (statusEl) {
+                    statusEl.textContent = '缓存中：' + training.title + '（' + currentIndex + '/' + totalTrainings + '）';
+                    statusEl.className = 'cache-status';
+                }
+
+                return caches.open(cacheKey).then(function(cache) {
+                    var tasks = resources.map(function(url) {
+                        return fetch(url, { redirect: 'follow', cache: 'no-cache' })
+                            .then(function(response) {
+                                if (response.ok && response.status >= 200 && response.status < 300) {
+                                    cachedResources++;
+                                    if (statusEl) {
+                                        var percent = totalResources > 0 ? Math.round((cachedResources / totalResources) * 100) : 0;
+                                        statusEl.textContent = '缓存进度：' + percent + '%';
+                                    }
+                                    return cache.put(response.url, response.clone());
+                                }
+                            })
+                            .catch(function() {
+                                cachedResources++;
+                            });
+                    });
+                    return Promise.all(tasks);
+                });
+            });
+        }, Promise.resolve()).then(function() {
+            if (statusEl) {
+                statusEl.textContent = '✓ 全部缓存完成';
+                statusEl.className = 'cache-status success';
+            }
+        }).then(function() {
+            try {
+                localStorage.setItem('cx_all_cached', Date.now().toString());
+            } catch (e) {}
+            updateCacheAllButtonState();
+        }).catch(function(err) {
+            console.error('缓存所有训练失败:', err);
+            if (statusEl) {
+                statusEl.textContent = '⚠ 缓存中断，请重试';
+                statusEl.className = 'cache-status warning';
+            }
+        });
+    }
+
+    function updateCacheAllButtonState() {
+        var cacheAllBtn = document.getElementById('cacheAllBtn');
+        var dataToolsStatus = document.getElementById('dataToolsStatus');
+        if (!cacheAllBtn) return;
+
+        var flag = null;
+        try {
+            flag = localStorage.getItem('cx_all_cached');
+        } catch (e) {}
+
+        if (!flag) {
+            cacheAllBtn.querySelector('.cache-icon').textContent = '📦';
+            cacheAllBtn.querySelector('.cache-text').textContent = '缓存数据';
+            return;
+        }
+
+        if ('caches' in window) {
+            caches.keys().then(function(keys) {
+                var hasTrainingCache = keys.some(function(key) { return key.indexOf('cx-') === 0; });
+                if (hasTrainingCache) {
+                    cacheAllBtn.querySelector('.cache-icon').textContent = '✅';
+                    cacheAllBtn.querySelector('.cache-text').textContent = '已缓存';
+                    if (dataToolsStatus && !dataToolsStatus.textContent) {
+                        dataToolsStatus.textContent = '✓ 已缓存全部数据';
+                        dataToolsStatus.className = 'cache-status success';
+                    }
+                } else {
+                    try { localStorage.removeItem('cx_all_cached'); } catch (e) {}
+                    cacheAllBtn.querySelector('.cache-icon').textContent = '📦';
+                    cacheAllBtn.querySelector('.cache-text').textContent = '缓存数据';
+                }
+            }).catch(function() {
+                cacheAllBtn.querySelector('.cache-icon').textContent = '📦';
+                cacheAllBtn.querySelector('.cache-text').textContent = '缓存数据';
+            });
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        var installSection = document.getElementById('installSection');
+        var installBtn = document.getElementById('installBtn');
+        var androidApkBtn = document.getElementById('androidApkBtn');
+        var installStatus = document.getElementById('installStatus');
+        var dataToolsSection = document.getElementById('dataToolsSection');
+        var clearDataBtn = document.getElementById('clearDataBtn');
+        var cacheAllBtn = document.getElementById('cacheAllBtn');
+        var dataToolsStatus = document.getElementById('dataToolsStatus');
+        
+        if (!('serviceWorker' in navigator)) {
+            return;
+        }
+        
+        // 如果是安卓设备且不在 APP 内，显示 APK 下载按钮
+        if (CX_ENV.isAndroid && !CX_ENV.isInApp && !CX_ENV.isCapacitor) {
+            installSection.classList.add('show');
+            androidApkBtn.style.display = 'inline-flex';
+            
+            androidApkBtn.addEventListener('click', function() {
+                installStatus.textContent = '正在获取最新版本...';
+                installStatus.className = 'cache-status';
+                
+                // 从当前网站获取版本信息（使用相对路径）
+                fetch('version.json?t=' + Date.now(), { cache: 'no-cache' })
+                    .then(function(response) {
+                        if (!response.ok) throw new Error('无法获取版本信息');
+                        return response.json();
+                    })
+                    .then(function(versionInfo) {
+                        var version = versionInfo.apk_version || versionInfo.version;
+                        var apkFile = versionInfo.apk_file || ('TeHui-v' + version + '.apk');
+                        var apkSize = versionInfo.apk_size;
+                        var downloadUrl = apkFile;  // 使用相对路径
+                        var sizeText = apkSize ? ' (' + (apkSize / 1024 / 1024).toFixed(1) + ' MB)' : '';
+                        
+                        installStatus.textContent = '正在下载 v' + version + sizeText + '...';
+                        installStatus.className = 'cache-status success';
+                        window.open(downloadUrl, '_blank');
+                    })
+                    .catch(function(error) {
+                        installStatus.textContent = '获取失败: ' + error.message;
+                        installStatus.className = 'cache-status error';
+                    });
+            });
+        }
+        
+        // 只在 PWA 模式下显示数据工具区
+        if (CX_ENV.isStandalone) {
+            if (dataToolsSection) {
+                dataToolsSection.style.display = 'flex';
+                dataToolsSection.classList.add('show');
+            }
+        } else {
+            // 非 PWA 模式，显示安装区域
+            installSection.classList.add('show');
+        }
+
+        // iOS 安装提示
+        if (CX_ENV.isIOS && !CX_ENV.isStandalone) {
+            installBtn.style.display = 'inline-flex';
+            installBtn.innerHTML = '<span class="cache-icon">📲</span><span class="cache-text">添加到主屏幕</span>';
+            installBtn.addEventListener('click', function() {
+                installStatus.innerHTML = '请点击浏览器底部 <strong>分享按钮 ↑</strong>，然后选择 <strong>"添加到主屏幕"</strong>';
+                installStatus.className = 'cache-status';
+            });
+        } else if (installBtn) {
+            installBtn.addEventListener('click', function() {
+                if (deferredPrompt) {
+                    installStatus.textContent = '正在准备安装...';
+                    installStatus.className = 'cache-status';
+                    
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(function(result) {
+                        if (result.outcome === 'accepted') {
+                            installStatus.textContent = '✓ 安装成功！PWA 已添加到主屏幕';
+                            installStatus.className = 'cache-status success';
+                            
+                            // 等待 Service Worker 就绪
+                            if ('serviceWorker' in navigator) {
+                                navigator.serviceWorker.ready.then(function() {
+                                    installStatus.textContent = '✓ 安装完成！离线功能已启用';
+                                });
+                            }
+                            
+                            setTimeout(function() {
+                                installBtn.style.display = 'none';
+                            }, 3000);
+                        } else {
+                            installStatus.textContent = '';
+                        }
+                        deferredPrompt = null;
+                    });
+                }
+            });
+        }
+        
+        // 清理所有缓存和记忆功能（通过长按 Logo 触发）
+        var logo = document.getElementById('mainLogo');
+        
+        if (logo) {
+            var longPressTimer = null;
+            var isLongPress = false;
+            
+            // 触摸开始
+            logo.addEventListener('touchstart', function(e) {
+                isLongPress = false;
+                longPressTimer = setTimeout(function() {
+                    isLongPress = true;
+                    // 触发清理缓存
+                    promptClearData();
+                }, 2000); // 长按2秒触发
+            });
+            
+            // 触摸结束
+            logo.addEventListener('touchend', function(e) {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                }
+                // 如果是长按，阻止点击事件
+                if (isLongPress) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+            
+            // 触摸移动（取消长按）
+            logo.addEventListener('touchmove', function(e) {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                }
+                isLongPress = false;
+            });
+            
+            // 桌面端：鼠标长按
+            logo.addEventListener('mousedown', function(e) {
+                isLongPress = false;
+                longPressTimer = setTimeout(function() {
+                    isLongPress = true;
+                    promptClearData();
+                }, 2000);
+            });
+            
+            logo.addEventListener('mouseup', function(e) {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                }
+                if (isLongPress) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+            
+            logo.addEventListener('mouseleave', function(e) {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                }
+                isLongPress = false;
+            });
+        }
+
+        function promptClearData() {
+            var ok = confirm('⚠️ 清理所有数据\n\n将删除以下内容：\n\n📦 所有训练的离线缓存\n📖 页面阅读记忆（进度/位置）\n🔤 字体大小设置\n🔊 语速设置\n\n⚡ 此操作不可撤销！\n\n下一步可选择是否保留划线笔记。');
+            if (!ok) return;
+            var keepNotes = confirm('💾 是否保留您的划线笔记？\n\n点击"确定"→ 保留笔记（推荐）\n点击"取消"→ 一并清除笔记');
+            clearAllCachesAndMemory({ keepNotes: keepNotes });
+        }
+
+        if (clearDataBtn) {
+            clearDataBtn.addEventListener('click', function() {
+                promptClearData();
+            });
+        }
+
+        if (cacheAllBtn) {
+            cacheAllBtn.addEventListener('click', function() {
+                cacheAllBtn.disabled = true;
+                cacheAllTrainings(dataToolsStatus).finally(function() {
+                    cacheAllBtn.disabled = false;
+                });
+            });
+        }
+
+        updateCacheAllButtonState();
+        
+        // 清理所有缓存和记忆的函数
+        function clearAllCachesAndMemory(options) {
+            options = options || {};
+            var keepNotes = options.keepNotes === true;
+            console.log('[清理] 开始清理所有缓存和记忆');
+            
+            var installStatus = document.getElementById('installStatus');
+            var dataToolsStatus = document.getElementById('dataToolsStatus');
+            if (installStatus) {
+                installStatus.textContent = '🧹 正在清理中，请稍候...';
+                installStatus.className = 'cache-status';
+            }
+            if (dataToolsStatus) {
+                dataToolsStatus.textContent = '🧹 正在清理中，请稍候...';
+                dataToolsStatus.className = 'cache-status';
+            }
+            
+            var cleanupSteps = [];
+            
+            // 1. 清理 localStorage（页面记忆、字体设置、语速设置等）
+            cleanupSteps.push(new Promise(function(resolve) {
+                try {
+                    var keysToRemove = [];
+                    for (var i = 0; i < localStorage.length; i++) {
+                        var key = localStorage.key(i);
+                        // 清理所有 cx_ 开头的键
+                        if (key && key.startsWith('cx_')) {
+                            if (keepNotes && key === 'cx_highlights') {
+                                continue;
+                            }
+                            keysToRemove.push(key);
+                        }
+                        // 清理字体和语速设置
+                        if (key === 'fontSize' || key === 'speechRate') {
+                            keysToRemove.push(key);
+                        }
+                    }
+                    keysToRemove.forEach(function(key) {
+                        localStorage.removeItem(key);
+                        console.log('[清理] 删除 localStorage:', key);
+                    });
+                    console.log('[清理] localStorage 清理完成，共删除', keysToRemove.length, '项');
+                    resolve();
+                } catch (e) {
+                    console.error('[清理] 清理 localStorage 失败:', e);
+                    resolve(); // 继续执行其他清理
+                }
+            }));
+            
+            // 2. 清理 sessionStorage
+            cleanupSteps.push(new Promise(function(resolve) {
+                try {
+                    sessionStorage.clear();
+                    console.log('[清理] sessionStorage 已清理');
+                    resolve();
+                } catch (e) {
+                    console.error('[清理] 清理 sessionStorage 失败:', e);
+                    resolve();
+                }
+            }));
+            
+            // 3. 注销所有 Service Worker
+            if ('serviceWorker' in navigator) {
+                cleanupSteps.push(
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                        console.log('[清理] 找到 Service Worker:', registrations.length, '个');
+                        return Promise.all(
+                            registrations.map(function(registration) {
+                                console.log('[清理] 注销 Service Worker:', registration.scope);
+                                return registration.unregister();
+                            })
+                        );
+                    }).catch(function(e) {
+                        console.error('[清理] 注销 Service Worker 失败:', e);
+                    })
+                );
+            }
+            
+            // 4. 清理所有 Cache Storage
+            if ('caches' in window) {
+                cleanupSteps.push(
+                    caches.keys().then(function(keys) {
+                        console.log('[清理] 找到缓存:', keys.length, '个');
+                        return Promise.all(
+                            keys.map(function(key) {
+                                console.log('[清理] 删除缓存:', key);
+                                return caches.delete(key);
+                            })
+                        );
+                    }).catch(function(e) {
+                        console.error('[清理] 清理 Cache Storage 失败:', e);
+                    })
+                );
+            }
+            
+            // 5. 清理 IndexedDB
+            if ('indexedDB' in window) {
+                cleanupSteps.push(new Promise(function(resolve) {
+                    try {
+                        // 尝试删除常见的 IndexedDB 数据库
+                        var dbNames = ['cx-trainings', 'cx-cache', 'workbox-expiration'];
+                        var deletePromises = dbNames.map(function(dbName) {
+                            return new Promise(function(resolveDB) {
+                                var request = indexedDB.deleteDatabase(dbName);
+                                request.onsuccess = function() {
+                                    console.log('[清理] 删除 IndexedDB:', dbName);
+                                    resolveDB();
+                                };
+                                request.onerror = function() {
+                                    console.log('[清理] IndexedDB 不存在或删除失败:', dbName);
+                                    resolveDB();
+                                };
+                                request.onblocked = function() {
+                                    console.log('[清理] IndexedDB 删除被阻止:', dbName);
+                                    resolveDB();
+                                };
+                            });
+                        });
+                        Promise.all(deletePromises).then(resolve);
+                    } catch (e) {
+                        console.error('[清理] 清理 IndexedDB 失败:', e);
+                        resolve();
+                    }
+                }));
+            }
+            
+            // 执行所有清理步骤
+            Promise.all(cleanupSteps).then(function() {
+                console.log('[清理] 所有缓存和记忆已清理完成');
+                
+                if (installStatus) {
+                    installStatus.textContent = '✅ 清理完成！页面即将刷新...';
+                    installStatus.className = 'cache-status success';
+                }
+                if (dataToolsStatus) {
+                    dataToolsStatus.textContent = '✅ 清理完成！页面即将刷新...';
+                    dataToolsStatus.className = 'cache-status success';
+                }
+                
+                // 立即刷新页面
+                setTimeout(function() {
+                    window.location.reload(true);
+                }, 0);
+            }).catch(function(err) {
+                console.error('[清理] 清理过程出错:', err);
+                if (installStatus) {
+                    installStatus.textContent = '⚠ 部分清理完成，页面即将刷新';
+                    installStatus.className = 'cache-status warning';
+                }
+                if (dataToolsStatus) {
+                    dataToolsStatus.textContent = '⚠ 部分清理完成，页面即将刷新';
+                    dataToolsStatus.className = 'cache-status warning';
+                }
+                // 即使出错也刷新页面
+                setTimeout(function() {
+                    window.location.reload(true);
+                }, 0);
+            });
+        }
+    });
+    </script>
+</body>
+</html>

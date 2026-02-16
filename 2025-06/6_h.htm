@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第6篇 - 听抄</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第6篇 基督作为那有天上地上所有权柄的一位</h2>
+</div>
+
+        
+        <div class="content">
+            
+<div class="message-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="6_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="6_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="6_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="6_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    
+    <div class="scripture">读经：太七29，二一24，路五24，罗九21~22，来十三17</div>
+    
+    
+    <div class="message-content">
+        
+        
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                壹　我们需要有关于权柄的定义—太七29：
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                一　权柄最好的定义是“下命令、作决定并要求顺从的权力或权利，通常源自职位权力或专长”。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                二　在圣经里，权柄是“行使权力的道德正当性，终极来自并起源于神”。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">第二点是这个重点。在圣经里，权柄是行使权力的道德正当性，终极来自并起源于神，来自并起源于神。所以谁有权柄呢？坐在那边的，你们谁有权柄么？坐在我这边的，有没有谁有权柄呢？都没有权柄。在我前面的这些圣徒们，你们谁有权柄呢？没有权柄。我坐在这里我也没有权柄。只有神在基督里有权柄。主渴望我们，祂此时此刻正与我们同在，祂希望我们对这件事有个深的领悟，我们乃是活在神的权柄之下。</p>
+                
+                <p class="content-text">好，我们现在来到第二大点。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                贰　神是最高的权柄；祂有一切的权柄—罗九21~22：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">请注意，这个点的开头是神，说到神。所以如果是个训练的话，我会这么来问你们，会更直接地问你们。但我现在因为不是训练，我会用间接的方式来问，你们爱神么？罗马书八章二十九到三十节说到爱神，二十八节说到爱神。记得主复活的时候那个有个爱主的姊妹清早就在那里找主，祂说你先不要摸我，我还没有升到父那里去，我要升到我的神，祂是与神，祂说我是与我的神，我的父同在，祂也是你的神，你的父。我们要认识，不光认识子，基督，我们越过越多，按照约壹第一章第三节，我们还要也与父有交通，我们交通不光是与子，也要与父有交通。我信我们大部分的圣徒，今天在座的可能都还在一个初期阶段，学习怎么与父有交通，有交通。但是祂是非常有耐心的，祂正在等候我们，祂的心意就是要祂所有的儿女都能够被带到，带回到父面前。祂爱所有主恢复中的圣徒，祂也对所有全地上的基督徒，神的儿女，祂都爱祂们。时候要到，他们都要回到父家。父是何等的怜悯，何等的慈爱，祂一再给我们机会，叫我们能够回到父家，与父同在，也与祂的家人同在。所以我们要领悟祂有一切的权柄。</p>
+                
+                <p class="content-text">底下这些点帮助我们进一步地看见权柄的意义。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                一　神的权柄代表神自己；神的能力仅代表神的作为—太二一24，路五24。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                二　神的权柄实际上就是神自己；权柄是出于神自己的所是—启二二1。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">当神彰显祂的权柄，权柄是出于祂自己的所是，这指明祂有一个非常深的关切，也是出于祂的慈爱，我们都要领悟权柄乃是出于神自己的所是，这不是一个道理，这是此时此刻正在，也正在发生的一件事。祂渴望祂所有的儿女都要领悟这件事，在我们的日常生活中领悟这件事。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                三　无论什么权柄—属灵的、地位的、行政的—都是出于神—林后十8，十三10，约十九10~11，创九6。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">所以真正的属灵乃是出于神。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                四　我们摸到神的权柄，就是摸到神自己—赛六1~5：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我不能讲得太细，但是我回想我的经历，一九六六年的春天，那个时候我结束了我的神学的教育，我是六四年就在普林斯顿神学院毕业，我后来决定，我只要接受并实行神纯全的旨意。我直到今天还不知道那个感觉，那个祷告是从哪来的。无论是谁为我祷告，他使我受益。我那时候就说，我不要接受祂许可的旨意，神许可的旨意。所以在后来的两年中，祂一直在环境中作工，我就领悟那个机会不是神的旨意，那个机会也不是神的旨意，神一直让我看见祂的旨意为何。一九六六年一个礼拜四的晚上，我在很认真地研读所有关于宗派的事之后，那时候我还在寻求，寻求与三一神是一，那个时候我就作了决定，我要离开整个的基督教，要离开基督教，我要单单地跟随主的带领，要往西去，往西方去，我要在那里找到他。后来我遇到了一位弟兄，那时候有一些弟兄在祷告，我就遇到一个人，他说他正在读倪弟兄的书报，他就跟我说，你知不知道他有一个同伴一个同工—李常受，他就住在洛杉矶。他就给了我一些职事书报。这让我们看见神何等，实在是神，祂预备了一切。</p>
+                
+                <p class="content-text">在那之前，我那时的妻子她几年前过世了。她那时候在上班，我那个时候就在研读以弗所书，读英文版，也读希腊文版。我来到第三章，第九第十和第十一节，我就说，我还没有认识任何人真正能解开这一段经文，如果有谁能够解开这些经文，我要跟随这个人。结果我来到了美国西部，就是加州，就是这位刚才所提到的弟兄，他给了我一些职事书报。其中一本就是水流报，我打开，看见里面有三个点，其中一个点就是解开以弗所书三章九到十一节，我就领悟，我虽然还没遇见这个人，但是我可以信靠这个人，这是一个真实的，真实的职事。</p>
+                
+                <p class="content-text">所以从那个时候我就开始认识李弟兄。然后从一九七四年开始，他要我回到加州，就是到我现在所在的地方，我就与他一同同工，一同为了生命读经有劳苦，持续了二十四年。我的点不是要讲我个人的历史，我的点是在那些事情发生之前，有两位成熟的圣徒，他们曾经对付过我，他说Ron弟兄，你要非常小心，关乎神的权柄这件事你要非常谨慎。我很感谢这两位圣徒，一位是弟兄，一位是姊妹，借着他们的帮助，我能够在神的权柄下进到主的恢复里，并且能够有这样的经历，经历神的权柄，这个权柄是借着其他圣徒彰显出来的。所以圣徒，这不是一个理论一个道理，这乃是一个实际的经历。</p>
+                
+                <p class="content-text">好，我们回来读纲要。第四点说我们摸到神的权柄，就是摸到神自己。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　碰见神权柄的，就是遇见了神—摩四12。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　得罪神的权柄，就是得罪神自己。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                五　在我们与神的关系中，没有什么比碰着权柄更重要—徒九5，太十一25。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">这点非常重要，在我们与神的关系中没有什么比碰着权柄更重要。一面，我们是被权柄摸着，但一面来说我们也要摸着、碰着权柄。我们不需要害怕，这不是一件消极的事。但父神祂盼望我们在经历中认识权柄，碰着权柄，让我们知道祂的权柄是真实的，让我们知道祂的权柄正在摸着我们。从我们这边来看，是我们摸着权柄、碰着权柄，这样在我们里面就一定永定，对权柄有一个真实的认识。所以在我里面我感觉主盼望祂要把祂的权柄以一种个人的方式带到我们每个人身上，在我们每一个人身上都要有这样的经历。我现在正是对你们每一个人说话，你们要让神的权柄来碰着你，你们也要碰着神的权柄，在这件事上有个一定永定的领悟，直到新天新地，祂的权柄还要在那里永永远远地彰显出来。</p>
+                
+                <p class="content-text">好，我们来到第六。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                六　认识权柄是里面的开启，不是外面的教导—徒二二6~16。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                七　只有神是人直接的权柄；其他一切的权柄都是间接的权柄—神设立的代表权柄—但四32、34~37：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">所以神的权柄乃是借着不同的人彰显出来。在主的恢复里有不同的弟兄姊妹，神使用他们来彰显祂的权柄。当神彰显，当神借着身体上肢体来彰显祂的权柄的时候，那个弟兄，他不会说“哦我要让你知道神的权柄正在从我身上涌流出来，我对权柄非常有经历”，他不会这么说。当神使用你的时候，你不会对自己有这种感觉。反而是因为你是与神是一，祂就能自然而然地从你身上流出来，是你自己都不晓得的，没有感觉的。但是那些接受这个权柄的，他会有领悟，他会知道，他们会知道，这不是你，而是神的权柄从你身上涌流出来。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　唯有我们碰着神的权柄，我们才能顺服神所设立的代表权柄—太二八18，来十三17，彼前五5。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">所以是有代表权柄这回事的。我们可能接触这样的人，但是唯有我们碰着神的权柄，我们才能顺服神所设立的代表权柄。所以当我进到主恢复的时候，那个时候我才二十六岁，那里的那个时候的长老，当时的三位长老都才三十岁，但是我知道他们是长老。那个时候我非常单纯，我就简单地认识了，权柄是从他们身上流出来的。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　神不只要我们顺服祂自己，也要我们顺服祂一切的代表权柄—罗十三1~7，林后十8，十三10，来十三17。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                3　一切不顺服神间接权柄的人，都是不服神直接的权柄。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们许多人都知道，在我们所在的地方召会可能有这样的事发生，我们可能有负责弟兄、有长老，他们不是越界，他们只是在那里服从神要求他们，作神要求他们所作的事。但我们如果没有这样的对神权柄的领悟，不知道神权柄是从祂的代表权柄身上流出来，我们可能就不懂得顺服，可能不懂得顺服。我们要完全认识权柄有两个路，两条路：第一条是在我们今生中来认识权柄；第二条路就是在要来的千年国期间来认识权柄。</p>
+                
+                <p class="content-text">按照路加福音十二章后来的一个经节，十二章末了的一个经节，有两种基督徒，他们会站在主的面前。大部分的呢，他们可以很诚实地说，主，我不知道你的意思。他们不是在找借口，他们实在可以很诚实地说，我从来没听过这样的事。主会说，我知道在你在世的时候你没有机会认识这些事，但你在要来的国度认识、学习这些事。但是他们在那个时候他们要很多地学习。</p>
+                
+                <p class="content-text">有的时候我会想到，我也会提醒弟兄姊妹们，我们是很有福的，有这么多神圣的真理都叫我们认识晓得了。当李弟兄在他的职事最高峰，从九四年到九七年他释放神圣高峰的真理，他那个时候可以说是与第一世纪的使徒们是同等，他们的看见是同等的，都看见了最高的启示。我们何等有福能够接受这样的职事。但是我们知道了这么多，当我们站在主审判台前的时候，我们就不能像其他基督徒说我不知道。所以一面来说，在主柔细的照顾之下，祂让我们晓得了这一切，这是借着时代的职事叫我们晓得的。但是此刻我们就有了责任。有这么多圣徒他们没有这责任，我们是有责任的。我们的深处我们要领悟，我们接受了这么多，我们是感恩的，我们感谢主，我们接受了关于这些事的真理，此时此刻就能接受这样的真理，我们要为此感谢赞美主。但是我们要说，“主啊，我们要把自己奉献给你，我需要你生命的供应、你的恩典，叫我能够学习、经历你所叫我晓得的，学得的这一切事。”权柄也是这样，关乎权柄这件事也是这样，我们要学得经历这一切。</p>
+                
+                <p class="content-text">所以我们回来读纲要，这里说，第三点，一切不顺服神间接权柄的人，都是不服神直接的权柄。这是为什么，当你小孩长大的时候，如果他们能够受训练学习尊敬、尊重他们的父母，直到他们是青少年时期或是年轻人时候，他们就能够成为一个正常的人。这会影响他们的婚姻，他们以后的家庭生活，这是个属人的例子。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                4　神要我们顺服间接的权柄（即代表权柄），而得到属灵的供应。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们许多人能够诚实地这么见证，我们只是借着尊重神纯全的旨意，借着承认祂的代表权柄，我们就有平安，我们就得着了平安，我们就得着了属灵的供应。主呢，祂会给我们丰富的、美妙的属灵的供应。</p>
+                
+                <p class="content-text">好，我们先来到第八。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                八　我们总得碰着权柄，受神约束，也受代表权柄的引导—赛三七16，腓二12，来十三17。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">第八点跳过，我们来到第三大点。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                叁　宇宙中有两个大原则—神的权柄和撒但的背叛；神和撒但之间所争执的唯一问题，与权柄有关—徒二六18，西一13：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">这就是宇宙中的争战。这个争战的开头我们知道就是撒但，他是率先背叛的。所以今天整个宇宙中只有两种人，一种是背叛的，一种是顺从的，顺从权柄的。除此以外没有别的了，这底下的点会帮助我们。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                一　背叛乃是否认神的权柄，也是拒绝神的管治：
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　撒但原是神所造的天使长，但由于他的骄傲，他高举自己，干犯神的主宰、背叛神，就成了神的对头，并建立他自己的国—赛十四12~14，结二八2~19，太十二26。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">所以宇宙中有两个国度，这两个国度彼此争战，此时此刻正在争战。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　当人犯罪时，就背叛神，否认神的权柄，并拒绝神的管治；在巴别那里，人集体背叛神，要从地上废除神的权柄—创三1~6，十一1~9。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们都知道主当时作了什么？当时在巴别塔祂把人四散到全地。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                二　撒但虽然干犯神的权柄，人也干犯神的权柄，背叛神，神却不让这个背叛继续下去，祂要在地上建立祂的国—启十一15。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">这是一个关键点，祂要在地上建立祂的国。那主要怎么建立呢？主耶稣自己在祂职事的过程中，尽职的过程中，祂就是在那里传国度的福音。使徒们呢，他们所传的福音也是国度的福音。那些接受了国度福音，然后重生受浸的，他们进到召会生活，他们就领悟召会乃是实际的神国。我认识一些圣徒，他们领悟召会是家。没错，我很享受这一方面。有一个姊妹，但是有些圣徒可能说我不喜欢召会作为神的国。我们在这件事上是没有选择的。我们同时在家里，也是在神的国里，召会乃是神的国，不光是神的家。但是在这里没有所谓的人，没有谁在这里作王，有些圣徒可能是代表主的权柄，但事实上我们都在神的国里，召会生活就是神的国。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                三　宇宙中争执的中心，乃是谁该得着权柄—四2~3：
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　我们要和撒但争执，肯定权柄是属于神的—徒十七24、30。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　我们要存心顺服神的权柄，维持神的权柄—太十一25。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                四　背叛的罪比什么罪都厉害—撒上十五23。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">所以背叛的罪比什么罪都厉害，这是到了下面的第四点了。背叛的罪比什么罪都厉害。二Ｏ一九年在夏季训练之后，那个时候发生了一个背叛，在主的恢复中当时有一个背叛。我不会去讲那个细节，但那个带头背叛的，他就一直走下坡，下坡的路，只有主知道后来发生什么严重的结果。</p>
+                
+                <p class="content-text">好，我们现在要跳到下一个大点，就是第四大点，这个要让我们看见什么代表权柄。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                肆　以权柄（代表权柄）代表神的人必须有以下的资格：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">所以我们再说代表权柄，也就是说彰显神权柄的人必须有这些资格，这些点都是可经历的。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                一　他必须服权柄—太八8~9。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">必须，必须服权柄。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                二　他必须认识他自己并没有权柄—二八18，林后十8，十三10。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我盼望所有的同工们、所有的长老们都要领悟这个点，他们自己并没有任何权柄，在自己里面没有任何权柄。权柄可能是借着他们流出，但却不是他们所是的一部分，而不是因为他们有了什么地位，就在自己里面有什么权柄。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                三　他必须认识神的旨意—弗一9，五17。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">必须认识神的旨意。我们光是这个点可以讲一整个特会了。在启示录四章十一节那里讲到，神造了万有，万有是因神的旨意存在并被创造的。神的旨意是宇宙中一切事物的源头，这是从正面一面来说，祂是源头。那什么是神纯全的旨意呢？按着歌罗西书这很清楚，神纯全的旨意乃是要基督对我们在经历上成为包罗万有的那一位。所以我们若要行神的旨意，我们就必须学习来经历享受包罗万有的基督。以弗所书让我们看见神纯全的旨意，乃是要得着基督的身体，作为一个新人。</p>
+                
+                <p class="content-text">当我们在这件事上有一个决断，有个领悟，在我们与主的关系中，我们就可以跟主说“主，我现在知道了，我在这里，我知道我为何被造，我为何得救，我为何被带到这里，乃是为了叫你纯全的旨意，能够借着基督与召会得着实现”。这样我们就可以也应该来到主面前，来问主说，“主，你的纯全旨意关乎我，你关乎我的纯全旨意是什么呢？”我们就可以这么来问主了。你们有些人，你们可能正在这件事上正在学习。“主啊，你对于我的旨意是什么呢？”我们都要作这样的决定。“我可能暂时还不知道你的旨意，你对我的纯全旨意是什么，但是我一再的，主啊，我要作出这样的决断。主，你不光是有权柄，但是我愿你的旨意、你的心意能够成就，我会对你的旨意说阿们。我愿意认识你旨意的每一方面。”我一旦作了这样的决定，我们一旦作了这样决定，主就能按祂的旨意在我们身上成就。这是为什么当我的前妻过世的时候，当时有些人会为我作这样那样的建议，提一些姊妹，那个时候我就叫他们停下，因为你那个时候这么作，只是叫我更加受苦。那时我知道我的下一步自然而然地会从神那里（纯全的旨意里）显明出来。当神纯全旨意显明出来的时候，祂当时的纯全旨意不是要我娶一位从美国来的姊妹，而是从其他地方来的姊妹，这是神的智慧。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                四　他必须是否认己的人—太十六24。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">否认己的人。所以我们需要认识己，还要否认己。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                五　他必须与主是一，时刻活在与祂亲密的交通里—林前六17，一9，约壹一3。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">时刻活在与祂亲密的交通里。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                六　他必须不主观，不照着自己的感觉行事—林后三5。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们常常有感觉。是的，我们有感觉，是有感觉，种种感觉，但是那个感觉可能不是神圣的感觉。所以我们要把我们所有的感觉带到主面前，“主啊，我有这个感觉，你不要隐藏，但是主啊，这难道是我么？如果是我，请你应用你的十字架，如果你是源头，愿你的旨意成就。”</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                七　他必须对人亲切、有恩典—路六35，参罗五15~16，林前二12。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">对人亲切、有恩典。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                八　他必须是在复活里的人，活在基督复活的生命里—林后一9，四14。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">这是极重要的一个点。我们要求主：“主，我愿成为一个活在复活里的人。”当我活在复活里时，我就实在是在基督的生命里。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                九　他在神面前必须站在卑微的地位上—民十四5，十六3~4、22、45，太十一29，罗十二16，路十四7~11，彼前五5~6。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                十　他必须是受得起顶撞的—出十六7，民十四2、5、9、27，太六14~15，林前四6~13。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">顶撞是会发生的，但至终这样的事不会搅扰你。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                十一　他必须自己觉得不行，自以为不配—出三11，四6~7、10，林后三5，林前十五10。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们要领悟我们是不行的，但这不是说你自己审判自己，而是一个真实的领悟，我实在是不行的。至终你会有这样的一个领悟。我当时有这样领悟，我非常喜乐，我告诉主说，“主啊，我什么也不能，什么也不会，因为在我里面我什么也不是，一无所是、一无所有、一无所能。主，你是一切。”哦，何等的释放。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                十二　他必须是正确代表神的人—民二十2~13，林后五18、20，弗六20。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">好，这个余下的时间我们要来讲到祷告这件事了。这不是一个训练，这是一个特会，但我实在想要这么说。我在倪弟兄的书，也在李弟兄的书里读到，他们都有这样的一个发表，他们都讲过，不是祷告的祷告，不是祷告的祷告。按着外表来看，好像是祷告，那个话语也好像是祷告的话语，也许祷告的这个人，他这个人是这一切的源头。但我们必须诚实地说，那种祷告呢，其实不是祷告。</p>
+                
+                <p class="content-text">一九六二年那个时候，李弟兄对全地负责弟兄有一个训练，那时候两周的训练。我不是一个所谓的负责的弟兄，但是李弟兄盼望我当时参加那个聚会。有一天他说，这应该是八二年了，他说，那天早上你们都要提早半小时来，你们要来祷告。这是在八Ｏ年代的一个长老训练。我们八点钟就来了，提早半小时来，然后他后来来了。你能够在那个书里，在长老训练的一篇信息里面，第二册里面，应该是第十章，你在那里可以看见。李弟兄说，当我进到你们中间，我无法加入你们的祷告，无法加入你们的祷告。因为你们的祷告都是个人的，都是所谓的祷告。我记忆犹新，他在那时候，他说，在一个祷告聚会中，这应该是一件身体的事。他就举例，你可能在打球，你可能在篮球场上，你们要投篮得分。众人虽多，但是只有一个球，不是说每个人手上有自己的球，你们一个团队是只有一个球，你们要彼此传球，然后有同样的目标，就是要得分。这就是团体祷告该有的光景。每个祷告不该太长，不该长于几秒钟。那个时候，我是在那个聚会里。曾经我参加过这样的聚会，那是很美妙的，大家都是短祷告。所以我们要领悟，这是第五大点。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                伍　最重要、最属灵的祷告，乃是权柄的祷告—太十八18，可十一20~24：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">乃是权柄的祷告。最重要、最属灵的祷告，乃是权柄的祷告。所以我们现在要慢慢来，好好来看过这下面的点。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                一　权柄的祷告乃是用权柄来吩咐—赛四五11，可十一20~24：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">这个祷告是要用权柄来吩咐某些事的发生。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　权柄的祷告乃是吩咐的祷告—赛四五11。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　我们若真要祷告在神面前有分量、有价值，就必须能在神面前发出权柄的命令来—可十一23。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">这里是说要有分量、有价值的祷告。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                二　权柄的祷告有两方面—捆绑和释放—太十八18：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">这下面有两个小点，但我相信我们众人，我要读这个点，在你们经历中，不同的聚会中，你们应该都有这样的经历。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　普通的祷告是求神捆绑，求神释放的祷告。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">你在那里求神。这是普通的祷告。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　权柄的祷告是我们用权柄来捆绑，来释放。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们许多人在不同的聚会里有这样的经历，我们都见过这两种的祷告。我们常常说，“主啊，求你捆绑，求你释放。”但我们如果真是有从主来的眼光，我们要领悟，我们要有带着权柄的祷告。所以我们要用权柄来捆绑，来释放。那就是使用权柄的祷告。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                三　权柄的祷告就是马可十一章二十至二十四节的祷告—这个祷告不是对神说，乃是对“这座山”说—23节：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">你若去好好研读这些经文，你就会看见主在那里所说的。那个祷告不是对着神说的，乃是要对着这座山，那是神所要对付的东西。所以你就与神一同对着这座山祷告。你的祷告是集中在这个问题上或一种情形，针对那个情形。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　权柄的祷告，不是求神作什么，乃是用神的权柄，把神的权柄拿来对付难处，对付那该除去的事—23节。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　权柄的祷告不是直接向神求，乃是直接用神的权柄来对付难处—出十四15~27。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">所以我盼望我们大部分的人里面都有这种愿意的心，愿意来学习。“主啊，我实在愿意学习这件事。以个人的方式，也以团队方式来学这件事，这是我从未听过的。”我们可能许多人会有这种感觉，但是这种权柄的祷告乃是直接用神的权柄来对付难处。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                3　得胜者最要紧的工作，就是把宝座上的权柄带到地上来；我们若要作得胜者，就必须学会权柄的祷告，对山说话—启十一15，十二10。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">第三点是何等重要的一个点。得胜者最要紧的工作，就是把宝座上的权柄带到地上来；我们若要作得胜者，就必须学会权柄的祷告，对山说话。我想在这个点上要再花一点时间。我们若要作一个得胜者，我信我们所有的人都盼望成为得胜者，我们只是不知道该如何作得胜者。我们该都有这样的盼望，要作得胜者。这就说出一条路，作得胜者要如何。我们若要作得胜者，我们就必须学习，要有权柄的祷告。这不是我的话，这是李弟兄的话。我们必须学会权柄的祷告。我要再重复，我们是必须学会权柄的祷告。所以这是对得胜者的要求。这个决定是在于你，要不要作这样的决定。我们要必须要学会这样的祷告。我要再重复强调这个点，我们是要学会权柄的祷告，对山说话。就是说你在祷告的时候，你直接对你所对付的那件事、那个难处说话，这必须是我们与那包罗万有的基督是一。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                四　召会用权柄祷告，就管理阴府—太十六18：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我非常喜欢这个，当召会用权柄祷告，就可以管理阴府。所以你可能在一个召会的祷告聚会里，可能是没有权柄的祷告，也可能是用权柄来祷告。但是当这个召会是用权柄祷告的时候，就能管理阴府。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　召会有权柄能管理一切属乎撒但的。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">这是非常激励人的一句话。召会有权柄能管理一切属乎撒但的。但是要用这种方式来管理撒但，乃是取决于或基于这个有权柄的祷告。主此时此刻正在为我们祷告，叫我们能够开始有或是开始学习这样子的祷告。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　召会该用祷告来治服邪灵在各方面的活动，并该借着祷告来掌权—路十17~19，太十八18。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">这个第四中点是针对召会说的，都讲到当召会祷告，召会如何祷告，这都是说到召会。我必须要非常谨慎，我现在只是一种一般性的原则。当我在家里的时候，我去参加，我总是会去参加这个召会的祷告聚会，但是这个聚会结束的时候，我总会在想，有多少圣徒他们真的是开口祷告了？通常只是与会者的百分之二十，他们有的人可能祷告了八次二十次。我必须很小心这么说，但这个不是一个训练。但我们如果是带着权柄祷告，并且是与主是一，并且我们是在一个身体的氛围里，那么我们祷告必然是一的，是都为同一件事祷告。就好像在打球一样，你只有一颗球，那个祷告是一个接一个，一个接一个，一个接一个的，是接续的，接续的，彼此联结的，是在同一个氛围里的。这就是权柄的祷告，用权柄的祷告。</p>
+                
+                <p class="content-text">我常常需要提醒我自己不要跳过纲要的点，因为我偶尔地会跳过一些纲要的点，所以我需要有一些记号提醒我自己。好，来到第五。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                五　我们若要有权柄的祷告，首先必须服在神的权柄之下；除非我们服神地位上的权柄，在日常生活上，并在一切实行的事上，都服神的权柄，我们就不能有权柄的祷告—赛四五11，彼前五6，启二二1。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">所以我要问，我要请你们弟兄们要读，我现在请你们弟兄们用操练的灵再来读这个第五点。然后姊妹们你们也要再来读这个点，主盼望把这个点刻印到我们里面。好，弟兄们，请你们先读，然后姊妹再读。这是第五中点，我们若要有权柄的祷告，首先必须服在神的权柄之下；除非我们服神地位上的权柄，在日常生活上，并在一切实行的事上，都服神的权柄，我们就不能有权柄的祷告。姊妹们，请你们也再读一次。我们若要有权柄的祷告，首先必须服在神的权柄之下；除非我们服神地位上的权柄，在日常生活上，并在一切实行的事上，都服神的权柄，我们就不能有权柄的祷告。</p>
+                
+                <p class="content-text">所以你要注意，这个点是讲到我们的日常生活，要在日常生活上，并在一切实行的事上都服神的权柄。比如说你怎么开车，这都包括在内。或者你怎么说话，你与人怎么交谈，这都是我们日常生活的一部分，也是实行的事。所以主渴望要训练我们，在我们日常生活中，还有在一切实行事上都要训练我们，叫我们能够服祂的权柄，目标是叫我们能够有权柄的祷告。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                六　权柄的祷告，乃是以天上为起点，以地上为终点的—歌四8，六10，弗一22~23，二6，六18：
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　权柄的祷告，是从天上祷告到地上，乃是站在天上的地位，从天上祷告下来，祷告到地上—二6。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我要再重复权柄的祷告，是从天上祷告到地上。那你们可能有人会想说，我们是在地上，我怎么能够从天上祷告呢？我是在地上，我们怎么能够在天上呢？你要去看以弗所书第二章，我们事实上虽然肉身是在地上，但事实上我们是与主同坐在诸天界里。我们很容易可以读这个经文，能够明白这个点，但是呢我们要领悟我们同时是在这两个地方，在地上也在天上。按经历来说，我只要在一个地方，当我们在诸天界里的时候，在经历中我们可以有这样祷告。但是我们如果被很多事情霸占的时候，属世的事情霸占的时候，我们就没有办法有这种祷告。但主可能会来，祂也会这么作，祂会叫我们要祷读主的话。比如说希伯来书第四章，那里讲到我们要来到施恩的宝座前。然后那里十二节也讲到要剖开、分开我们的灵与魂，这是对我们来说在个人一面是很重要的一种经历。当我们的魂与我们的灵是分开的，这样我们就能同时在两个不同的境地，你就可以在天上，也在地上。比如说你在教一个中学，比如说你这个中学教师应该说很忙在教学，你正在上课，正在与学生互动。但是你的魂要是已经与灵分开了，你就可以同时在那里教课，你就同时可以在两个境地，一面在教课，一面也在天上。所以一面你是在对付一种地上的光景，但事实上你里面不断地还是在接触主。</p>
+                
+                <p class="content-text">按照马太福音二十四章，那里说到两个人在田里作工，一个被取去，一个被留下；两个女人在磨坊推磨，取去一个，撇下一个。这些都是讲到信徒，但在被提的那一刻，可能其中一位没有住在主里面。所以当主来的时候，我们不知道祂会怎么来，祂会怎么来提取我们，我不相信会有个很大声的什么号角声，但是会在里面你有个感觉，你会知道主，其实你那个时候你可能生命已经长大成熟了，即使你成熟，你那个时候要是不住在主里面的话，你要是不是在属灵的范围里，那你就可能会错过那个被提。所以这件事是我们在个人这一面需要学习的，团体一面也需要学习。我们都要学习同时在两个境地里。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　祷告下来，就是站在基督所给我们在诸天界里的地位上，在那里用权柄命令撒但，拒绝撒但一切的工作，而用权柄宣告说，神所已经命令的都该成功—太六9~10。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                七　祷告的地位是升天的地位，祷告的权柄也是升天的权柄；所有在升天里的祷告，都是权柄的祷告—弗二6，一22~23：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">这里说祷告的地位是升天的地位，祷告的权柄也是升天的权柄；这是第七中点，所有在升天里的祷告，都是权柄的祷告。所以这个纲要这一部分的很多点都是我们需要学习的，我们需要有个起头。我们不需要觉得羞耻，好像什么都不知道，我们都在学习。我们该有这种感觉：我是一个学习者，我的一生都是一个学习者，这对我们该是新鲜的。我们要说我们愿意学习，我们要求主，“主，你是我们的教师。”我们也需要知道什么是升天，在属灵的意义上什么是升天。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　权柄的祷告就是能站在升天的地位上发出命令来—赛四五11。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                2　我们若在升天的地位上，我们的祷告就等于神的行政，等于在那里执行祂的命令—启八3~5。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">所以我盼望我们众人，当然我们是在不同的生命经历的阶段中，但当你再回去复习纲要的时候，主可能会在里面向你说话，我要你专注于某个点，你已经预备好接受我这样的训练，要明白什么是升天。我几乎每天都这么作。当我预备或研读，为了这个纲要，我会打开我的平板电脑，我会到这个living stream ministry search，这个是英文的一个网站，可以搜寻职事的一个网站，我会搜寻一些关键辞，就会跑出很多相关的职事信息。我可能会搜寻比如说“权柄”这个辞或是搜寻“升天”这个辞，我就可以找到上百的职事选读。神实在是太美妙了，为这些事劳苦的弟兄们主会祝福他们，叫我们有这么方便的工具可以查读职事。所以一面来说我很高兴，常常接到一些E-Mail电子邮件，有人会问我这个，问我那个，问一些问题。我会乐意尽力地回答，我并不为此受搅扰。但有时候我会想说你们为什么不好好自己去学习搜寻职事话语，你只要到ministrybooks.org，你们自己去那里搜寻这个关键辞，你就找到很多很多职事的选读，就能得到解答。</p>
+                
+                <p class="content-text">我们不是在基督教里，不是说某些人他在那里，他们某些人是专门作工的，那你们好像是平信徒。你去读以弗所书四章，我们都有我们的那一分，我们不该有这个圣品阶级。但你不用担心，你写信给我我还是会回信的，我只要还活着我会尽力回信，你们不需要迟疑。</p>
+                
+                <p class="content-text">好，我们来到第八，这是最后一段了，然后我们还会有个结语。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                八　有了升天的地位，有了升天的权柄，也能发出权柄的祷告来，一到这个时候，我们这个人就是在宝座上，和主一同掌权—弗二5~6，启三21，参结一26：
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">然后第一，到了这个时候，我们这个人就是在宝座上，和主一同掌权。这是那个经节让我们看见的，就是以弗所书，我们等一下会读经节给你们听。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                1　到了这个时候，我们的祷告不光是个权柄的祷告，也是个掌权的祷告；我们的祷告就是执掌神的行政，执行神的命令—罗五17、21，太十八18，启八3~5。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">到了这个时候，我们的祷告不光是个权柄的祷告，不光是权柄的祷告，也是个掌权的祷告，掌权的祷告；我们的祷告就是执掌神的行政，执行神的命令，执行神的命令。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　我们肯去学的时候，到一个地步，就能发出这样的祷告，叫神永远的定旨得以成就—弗一10~11，三9~11。
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">第二，我们肯去学的时候，我们肯去学的时候，到一个地步，就能发出这样的祷告，叫神永远的定旨得以成就。我想知道这样的信息是全地的圣徒都听见的，如果我们中间有上千的圣徒都能够作出这样决定：“主啊，我愿意学，我愿意学，我愿意学这样的祷告。”那会发生什么事呢？比如若说有四五千位圣徒，全地有四五千位圣徒有这样的愿意的心，可能从七十、八十个不同的国家里都是愿意学习的，能够有权柄的祷告，哦那何等美妙，那会发生什么呢？</p>
+                
+                <p class="content-text">我跟我的妻子还有另外一位年长的姊妹，我们一周两次，大概每次二十五分钟，就是祷告，就是祷告，在身体的灵里祷告。如果这种祷告小组，三三两两的祷告小组每周两三次，如果有成千的小组都能够兴起，有这样的祷告，那会发生什么呢？对我来说这实在是无法想象的。神一直在等待这样子的身体里的团体的祷告，祂已经等了数世纪了。我们为何不让祂喜乐呢？我们该成为这样祷告的一员。我跟我的妻子和那一位年长姊妹，我们每周有这样祷告，有时候我在忙，她们就两个祷告，与别人祷告，特别是姊妹们常常有这种三三两两的祷告，你们在某方面是更深的，你们的祷告是重要的。主知道，主会记念。当你们站在祂的面前，祂会说你们是忠信的，在祷告的事上是忠信的，我现在要给你奖赏，要让你与我一同作王，在那之前你们要先成为新妇的一部分，我要来迎娶你们。</p>
+                
+                <p class="content-text">启示录三章二十一节那里说，“得胜的，我要赐他在我宝座上与我同坐，就如我得了胜，在我父的宝座上与祂同坐一样。”这里的这个注解，这里说要在主的宝座上与主同坐，乃是给得胜者的赏赐，使他在要来的千年国有分于主的权柄，与主同王管理全地，与主同王管理全地。我想要再把这个注解再读一次，我停一下的时候，你们要，我讲完以后你们就要两两祷告，我刚才也与弟兄们说过了，我们会有够多的时间让你们来到麦克风，一人三十秒。但这一次我们要只有三十岁以上的圣徒能来分享，我们需要有这三十岁以上的圣徒来加强这样的话，所以即使你们是坐在很后面的，或是坐在中间的，主若带给你，你们都要前来，你们会有够多时间来到前面。我实在真诚地说，当你来到这个麦克风，你还会有二十五分钟可以分享，你们的分享会完成这篇信息，完成这篇信息。我再把注解再读一次：“在主的宝座上与主同坐，乃是给得胜者的赏赐，使他在要来的千年国有分于主的权柄，与主同王，管理全地。”</p>
+                
+                <p class="content-text">好，你们可以两两祷告，然后前来分享。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+    </div>
+</div>
+
+<style>
+.message-page {
+    padding: 5px;
+}
+
+.message-content {
+    margin-top: 15px;
+    line-height: 1.8;
+    font-size: 1em; /* 明确设置为 18px，确保与 body 一致 */
+    text-align: justify;
+}
+
+/* 章节结构样式 - 使用 base.html 统一样式 */
+.section {
+    margin-bottom: 18px;
+}
+
+/* 标题不需要悬挂缩进 */
+.message-page [class^="section-level"] {
+    text-indent: 0;
+    padding-left: 0;
+}
+
+.section-content {
+    margin: 12px 0 16px 0;
+    
+}
+
+.subsections {
+    margin-left: 0;
+}
+
+/* 使用 base.html 的统一 .content-text 样式 */
+
+.no-content {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 24px 16px;
+    font-size: 0.9375em;
+}
+
+@media (min-width: 768px) {
+    .message-page {
+        padding: 20px 0;
+    }
+    
+    .message-content {
+        margin-top: 30px;
+    }
+    
+    .section {
+        margin-bottom: 30px;
+       
+    }
+}
+
+/* 移动端样式继承 base.html */
+</style>
+
+<script>
+// 等待 CXSpeech 加载完成后初始化
+function initSpeech() {
+    // 检查控制元素
+    var controlBar = document.getElementById('bottomControlBar');
+    var playBtn = document.getElementById('playPauseBtn');
+    
+    if (!controlBar || !playBtn) {
+        return; // 元素不存在，不初始化
+    }
+    
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            // 方案1: 获取所有 section 标题和内容
+            const sections = document.querySelectorAll('.section');
+            
+            sections.forEach(section => {
+                // 读取 section 标题（支持所有级别）
+                const levelElem = section.querySelector('[class^="section-level"]');
+                if (levelElem) {
+                    const t = levelElem.textContent.trim();
+                    if (t) text += t + '。';
+                }
+                // 读取 section 内容
+                const sectionContent = section.querySelector('.section-content');
+                if (sectionContent) {
+                    const paragraphs = sectionContent.querySelectorAll('.content-text');
+                    paragraphs.forEach(p => {
+                        const t = p.textContent.trim();
+                        if (t) text += t + '。';
+                    });
+                }
+            });
+
+            // 方案2: 如果没有 section 结构，直接读取所有 content-text
+            if (sections.length === 0) {
+                const paragraphs = document.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+            
+            // 方案3: 如果还是没有内容，读取整个 message-content
+            if (!text || text.length < 10) {
+                const messageContent = document.querySelector('.message-content');
+                if (messageContent) {
+                    text = messageContent.textContent.trim();
+                }
+            }
+            
+            // 清理文本：移除多余的空白字符和特殊字符
+            text = text
+                .replace(/\s+/g, ' ')           // 多个空白字符替换为单个空格
+                .replace(/[\r\n\t]/g, '')       // 移除换行和制表符
+                .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '') // 只保留中英文、数字和常用标点
+                .trim();
+            
+            // 如果文本为空，在页面上显示提示
+            if (!text || text.length < 10) {
+                var timeElem = document.getElementById('speechTime');
+                if (timeElem) {
+                    timeElem.textContent = '无内容';
+                    timeElem.style.color = '#999';
+                    setTimeout(function() {
+                        timeElem.textContent = '00:00 / 00:00';
+                        timeElem.style.color = '';
+                    }, 3000);
+                }
+            }
+
+            return text;
+        }
+    });
+}
+
+// 检查并初始化 CXSpeech
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        // 等待 CXSpeech 加载，最多等待 5 秒
+        var attempts = 0;
+        var maxAttempts = 50;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                // 5秒后仍未加载，可能是脚本加载失败
+                console.log('[朗读] CXSpeech 加载超时');
+            }
+        }, 100);
+    }
+}
+
+// DOM 加载完成后检查并初始化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>202506 感恩节相调特会训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

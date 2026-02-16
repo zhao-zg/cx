@@ -1,0 +1,2476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第5篇 - 晨兴</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+<style>
+.morning-revival-page{padding:5px;max-width:820px;margin:0 auto}
+.day-navigation{display:flex;flex-wrap:nowrap;gap:0;margin:15px 0;padding:8px;background:var(--surface-alt);border-radius:8px;justify-content:space-between;font-size:0.85em;box-sizing:border-box;overflow:hidden}
+.day-link{height:40px;padding:0 10px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:0;color:var(--btn-secondary-text);font-size:0.88em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box}
+.day-link + .day-link{border-left:1px solid var(--border)}
+.day-link:first-child{border-top-left-radius:6px;border-bottom-left-radius:6px}
+.day-link:last-child{border-top-right-radius:6px;border-bottom-right-radius:6px}
+.day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:rgba(102,126,234,.5)}
+.day-link.active{font-weight:700}
+.pages-container{position:relative;min-height:400px;touch-action:pan-y}
+.day-page{background:var(--surface);padding:0;display:none}
+.day-page.is-active{display:block}
+.page-controls{display:flex;justify-content:space-between;align-items:center;margin:20px 0 15px;padding:10px;background:var(--surface-alt);border-radius:12px;border:1px solid var(--border)}
+.prev-btn,.next-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:12px 16px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:5px;color:var(--btn-secondary-text);font-size:0.9375em;cursor:pointer;font-weight:600;transition:background .2s}
+.prev-btn:hover,.next-btn:hover{background:var(--btn-secondary-hover-bg)}
+.prev-btn:active,.next-btn:active{background:var(--btn-secondary-active-bg)}
+.prev-btn:disabled,.next-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-indicator{font-size:0.94em;color:var(--text-muted);font-weight:800}
+</style>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第5篇 使我们在圣别上无可指摘的原因，并使我们的灵、魂、体完全圣别的原因</h2>
+</div>
+
+        
+        <div class="content">
+            
+
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="5_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="5_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="5_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="5_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container" data-total-pages="6">
+        
+        <div class="day-page is-active" data-day="1" data-page="0">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day1-壹" data-level="1">
+    <div class="outline-item level-1">
+        
+        壹　我们要为着召会生活过圣别的生活，就需要主使我们的心得以坚固，在圣别上无可指摘（在圣别上无可挑剔）—帖前三13：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-壹')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-壹" style="display: none;" onclick="toggleScripture('scripture-day1-壹')">
+            
+            
+            <div class="verse-line">帖前3:13	好使你们的心，当我们主耶稣同祂众圣徒来临的时候，在我们的神与父面前，得以坚固，在圣别上无可指摘。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　心是人里面诸部分的总汇，是人的总代表，是他的行动机关：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　我们的心是由我们魂的各部分—心思、情感、意志（太九4，来四12，约十四1，十六22，徒十一23）—加上我们灵的一部分—良心（来十22，约壹三20）—所组成。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一-1" style="display: none;" onclick="toggleScripture('scripture-day1-一-1')">
+            
+            
+            <div class="verse-line">太9:4	耶稣知道他们的心意，就说，你们为什么心里思念恶事？</div>
+            
+            
+            
+            <div class="verse-line">来4:12	因为神的话是活的，是有功效的，比一切两刃的剑更锋利，能以刺入、甚至剖开魂与灵，骨节与骨髓，连心中的思念和主意都能辨明。</div>
+            
+            
+            
+            <div class="verse-line">约14:1	你们心里不要受搅扰，你们当信入神，也当信入我。</div>
+            
+            
+            
+            <div class="verse-line">约16:22	你们现在也有忧愁，但我要再见你们，你们的心就喜乐了，并且你们的喜乐，没有人能从你们夺去。</div>
+            
+            
+            
+            <div class="verse-line">徒11:23	他到了，看见神的恩典，就欢乐，劝勉众人，要立定心志，一直与主同在；</div>
+            
+            
+            
+            <div class="verse-line">来10:22	并且在心一面，我们已经被基督的血洒过，脱开了邪恶的良心，在身体一面，也已经用清水洗净了，就当存着真诚的心，以十分确信的信，前来进入至圣所；</div>
+            
+            
+            
+            <div class="verse-line">约壹3:20	我们的心若责备我们，神比我们的心大，一切事祂都知道。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-一-2')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        2　我们的心及其在神前的光景，与我们的灵、魂、体在神前的光景，其间的关系是生机的、内在的、密不可分的：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-一-2" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-一-2-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　当我们的心活跃时，运用灵才有用；人的心若是无所谓，灵就被关在里面，无法施展其能力—太五3、8，诗七八8，弗三16~17。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一-2-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一-2-a" style="display: none;" onclick="toggleScripture('scripture-day1-一-2-a')">
+            
+            
+            <div class="verse-line">太5:3	灵里贫穷的人有福了，因为诸天的国是他们的。</div>
+            
+            
+            
+            <div class="verse-line">太5:8	清心的人有福了，因为他们必看见神。</div>
+            
+            
+            
+            <div class="verse-line">诗78:8	不至像他们的祖宗，是顽梗悖逆、居心不正之辈，他们的灵向着神不忠信。</div>
+            
+            
+            
+            <div class="verse-line">弗3:16	愿祂照着祂荣耀的丰富，借着祂的灵，用大能使你们得以加强到里面的人里，</div>
+            
+            
+            
+            <div class="verse-line">弗3:17	使基督借着信，安家在你们心里，叫你们在爱里生根立基，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-一-2-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　魂是人位的本身，而心是采取行动的人位；心是我们全人行动的机关，行动的执行者。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-一-2-c" data-level="3">
+    <div class="outline-item level-4">
+        
+        c　我们物质身体的活动和行动依赖我们物质的心；照样，我们的日常生活，我们如何行事为人，乃在于我们有何种心理的心。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　心是生命的进出口，是生命的“开关”；心不对了，灵里的生命就受了阻碍，生命的律也就不得自由运行，不
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">帖前三13	好使你们的心，当我们主耶稣同祂众圣徒来临的时候，在我们的神与父面前，得以坚固，在圣别上无可指摘。</div>
+                
+                <div class="feeding-scripture">箴四23	你要切切保守你心，因为生命的果效发之于心。</div>
+                
+                
+                
+                <p class="content-text">新约圣经强调纯洁的心。主耶稣说，“清心的人有福了，因为他们必看见神。”（太五8）保罗嘱咐提摩太，要同那清心呼求主的人竭力追求（提后二22）。不仅如此，大卫在诗篇五十一篇十节祷告说，求主在他里面造清洁的心。〔然而，在帖前三章十三节，〕保罗为什么不说“在纯洁或清洁上无可指摘”，却说“在圣别上无可指摘”？原因是帖撒罗尼迦前书是一卷论到为着召会生活之圣别生活的书信。这封书信第一个段落（由一、二、三章组成）的结论是：主要使我们的心得坚固，在圣别上无可指摘（帖撒罗尼迦前书生命读经，二○八页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">诗篇七十八篇八节说，“不至像他们的祖宗，是顽梗悖逆、居心不正之辈，他们的灵向着神不忠信。”……心一不正，灵就不忠信。这节经文指明，心与灵的关系何等密切。</p>
+                
+                <p class="content-text">魂是人位的本身，而心是采取行动的人位。这意思是说，每当你行动的时候，是你借着你的心行动。因此，可以说我们的心是我们行动的代表。……当一位弟兄对他的妻子说，“亲爱的，我爱你”，这意思是说，他的心爱他的妻子。……我们喜欢或讨厌什么，也是我们的心在喜欢或在讨厌。因此，我们的心是我们的代表，是我们里面之所是行动的代表、执行者或大使。</p>
+                
+                <p class="content-text">因为心是我们的代表，所以所罗门在箴言四章二十三节说，“你要切切保守你心，因为生命的果效发之于心。”保守我们的心实际上就是护卫我们的心。保守的原文意思是护卫。我们应当护卫我们的心，胜过护卫一切，因为生命的果效发之于心。……心与生命的源头、生命的泉源以及生命的流出都有关联。我们首先有源头，其次有泉源，然后有流出。</p>
+                
+                <p class="content-text">要作一个活的信徒，关系到我们的灵和心。……我们许多人能作见证，我们虽然运用我们的灵，但这还不能每次都有效地叫我们活。运用灵没有果效的原因，乃是心没有活动。这意思是说，心出了问题。也许心思没有更新、圣别、变化，也许没有被主浸透并被祂占有，却充满属世的事物。我们可以运用我们的灵说，“赞美主！”但这样用灵也许不能叫我们活。当我们的心活跃时，运用灵才有用。</p>
+                
+                <p class="content-text">我们的心若是沉睡不醒，运用我们的灵呼求主名就没有果效。……这就是为何我们必须彻底对付我们的心。这对付必须包括我们的心思、情感和意志。我们的心思必须是基督的心思，我们的情感必须被基督的爱浸透，我们的意志必须与祂的意志是一。我们心的光景若是这样，我们的心就是活跃的，并且是尽功用的。当我们的心一活跃，我们呼求主就会非常有果效。</p>
+                
+                <p class="content-text">我们需要祷告：“主，怜悯我。我要我的心思得着更新，我要我的情感充满你的爱，我要我的意志真实的与你的意志是一。”如果我们有这样的心，那作我们行动机关的心就会得坚固，在圣别上无可指摘，就是在成为圣别的光景里无可指摘（帖撒罗尼迦前书生命读经，二一五至二一七、二三二至二三三页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day2-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　神是不改变的一位，但按着我们天然的出生，我们的心在与人、与主之间的关系上是善变的—参提后四10，太十三3~9、18~23。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三" style="display: none;" onclick="toggleScripture('scripture-day2-三')">
+            
+            
+            <div class="verse-line">提后4:10	因为底马爱了现今的世代，就离弃我往帖撒罗尼迦去了；革勒士往加拉太去，提多往挞马太去。</div>
+            
+            
+            
+            <div class="verse-line">太13:3	祂就用比喻对他们讲许多事，说，看哪，那撒种的出去撒种。</div>
+            
+            
+            
+            <div class="verse-line">太13:4	撒的时候，有的落在路旁，飞鸟来吃尽了。</div>
+            
+            
+            
+            <div class="verse-line">太13:5	又有的落在土浅石头地上，土既不深，立刻发苗；</div>
+            
+            
+            
+            <div class="verse-line">太13:6	等日头一出来，就晒焦了，又因没有根，便枯干了。</div>
+            
+            
+            
+            <div class="verse-line">太13:7	还有的落在荆棘里，荆棘长起来，就把它挤住了。</div>
+            
+            
+            
+            <div class="verse-line">太13:8	但有的落在好土里，就结果实，有的一百倍，有的六十倍，有的三十倍。</div>
+            
+            
+            
+            <div class="verse-line">太13:9	有耳可听的，就应当听。</div>
+            
+            
+            
+            <div class="verse-line">太13:18	所以你们要听这撒种者的比喻。</div>
+            
+            
+            
+            <div class="verse-line">太13:19	凡听见国度之道不领悟的，那恶者就来，把撒在他心里的夺了去；这就是那撒在路旁的。</div>
+            
+            
+            
+            <div class="verse-line">太13:20	又有那撒在石头地上的，就是人听了道，立刻欢喜领受，</div>
+            
+            
+            
+            <div class="verse-line">太13:21	只因他里面没有根，不过是暂时的；一旦为道遭遇患难或逼迫，就立刻绊跌了。</div>
+            
+            
+            
+            <div class="verse-line">太13:22	还有那撒在荆棘里的，就是人听了道，后来有今世的思虑，和钱财的迷惑，把道全然挤住了，道就不能结实。</div>
+            
+            
+            
+            <div class="verse-line">太13:23	但那撒在好土里的，就是人听了道，也领悟了，他就结出果实，有的结了一百倍，有的六十倍，有的三十倍。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        四　按照人天然、属人的生命，没有一个人有坚定的心；因为我们的心太容易改变了，所以它一点也不可靠—耶十七9~10，十三23。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-四" style="display: none;" onclick="toggleScripture('scripture-day2-四')">
+            
+            
+            <div class="verse-line">耶17:9	人心比万物都诡诈，无法医治，谁能识透呢？</div>
+            
+            
+            
+            <div class="verse-line">耶17:10	我耶和华是鉴察人心，试验人肺腑的，要照各人所行的，和他作事的结果报应他。</div>
+            
+            
+            
+            <div class="verse-line">耶13:23	古实人岂能改变皮肤呢？豹岂能改变斑点呢？若能，你们这习惯行恶的，便能行善了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        五　我们的心有可指摘，因为我们的心刻变时翻；不改变的心就是无可指摘的心—诗五七7，一○八1，一一二7。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-六" data-level="1">
+    <div class="outline-item level-2">
+        
+        六　在神的救恩里，心的更新是一次而永远的；但在我们的经历里，我们的心不断在更新，因为它是善变的—结三六26，林后四16。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-六')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-六" style="display: none;" onclick="toggleScripture('scripture-day2-六')">
+            
+            
+            <div class="verse-line">结36:26	我也要赐给你们新心，将新灵放在你们里面；又从你们的肉体中除掉石心，赐给你们肉心。</div>
+            
+            
+            
+            <div class="verse-line">林后4:16	所以我们不丧胆，反而我们外面的人虽然在毁坏，我们里面的人却日日在更新。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-七" data-level="1">
+    <div class="outline-item level-2">
+        
+        七　我们的心是善变的，所以需要被圣别的灵不断地更新，好使我们的心在圣别的光景里，就是在一种分别归神、被神占有、被神据有并被神浸透的光景里，得坚固、得建立—多三5，罗六19、22。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-七')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-七" style="display: none;" onclick="toggleScripture('scripture-day2-七')">
+            
+            
+            <div class="verse-line">多3:5	祂便救了我们，并不是本于我们所成就的义行，乃是照着祂的怜悯，借着重生的洗涤，和圣灵的更新。</div>
+            
+            
+            
+            <div class="verse-line">罗6:19	我因你们肉体的软弱，就照着人的常情说，你们从前怎样将肢体献给不洁不法作奴仆，以至于不法，现今也要照样将肢体献给义作奴仆，以至于圣别。</div>
+            
+            
+            
+            <div class="verse-line">罗6:22	但现今你们既从罪里得了释放，作了神的奴仆，就有圣别的果子，结局就是永远的生命。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">结三六26~27	我也要赐给你们新心，将新灵放在你们里面；又从你们的肉体中除掉石心，赐给你们肉心。我必将我的灵放在你们里面，使你们遵行我的律例，谨守遵行我的典章。</div>
+                
+                <div class="feeding-scripture">诗五七7　		神啊，我心坚定，我心坚定。我要唱诗，我要歌颂。</div>
+                
+                
+                
+                <p class="content-text">大多数的基督徒没有坚固的心，他们的心刻变时翻，时常摇动。我们需要的是扎实坚固的心，不是容易改变的心。但按着我们天然的出生，我们的心是善变的。……譬如，一位弟兄早晨也许对妻子很好，但吃早餐的时候，也许有什么事叫他烦恼，就对妻子不好了。这是我们心善变的一个例证。</p>
+                
+                <p class="content-text">我们的心不仅在与人的关系上善变，甚至与主之间也是这样。神是不改变的一位，祂从来没有改变。我们是一班刻变时翻的人，我们的心极其善变。为这缘故，保罗关心帖撒罗尼迦初信者的心能否定下来，得着建造、坚固（帖撒罗尼迦前书生命读经，二○九至二一○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">帖前三章十三节一开始用了“好使”一辞；指明前面几节（特别是六至十二节）的结果。……保罗……所关心的，乃是帖撒罗尼迦人的信心和爱心。他盼望他们的信心得着补足，并且他们的爱心增多洋溢，好使主可以坚固他们的心。</p>
+                
+                <p class="content-text">我们人都是善变的；不会因着我们老了，就说我们的性情有了基本上的改变。譬如，玻璃是很容易破碎的；五十年之后，这块玻璃还是易碎的，年日并不会叫玻璃更坚刚。人的生命也是这样。……因此，我劝你们，特别是那些不太年轻的人，不要相信你们的心。因为我们的心太容易改变了，所以它一点也不可靠。</p>
+                
+                <p class="content-text">在我尽职的年日里，我遇见的人数以千计。……我一再看见人的心改变了。因为我们的心善变，所以我们基督徒的生活有一急切的需要，就是我们的心得着坚固。……虽然我们的心需要得坚固，但我们自己办不到，只有主才能坚固我们的心。因此，我们需要祂使我们的心扎实的得坚固并建造。……你的心若在扎实的根基上得着固定、建造并坚固，你的心就会无可指摘。不改变的心就是无可指摘的心。</p>
+                
+                <p class="content-text">有时候我们批评别人刻变时翻，但我们自己也是善变的。……我们为了照顾初信者，也会警告他们不要信靠一些善变的人。但我们自己又怎样？我们难道不善变么？我必须承认我在天然的生命里是善变的。不仅如此，我所说的改变多半是消极的。许多年前，我在日记里记载了一些事情；譬如，我怎样在主面前彻底对付了某件事。但是许多年以后，我不敢看我写的那些话，因为在我作了这样的记录以后，我又有了一些改变。</p>
+                
+                <p class="content-text">我们必须看见并承认，我们的心是善变的。因此，我们需要从主领受怜悯和恩典，使我们允许祂来坚固我们的心。祂正等待我们的允许，要在我们里面作工来坚固我们。当我们的心得了坚固，我们的心就无可指摘（帖撒罗尼迦前书生命读经，二一○至二一二页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day3-八" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-八')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        八　我们要成为“那些被圣别的”，过为着召会生活的圣别生活，就必须对付我们的心，而与“那圣别人的”内里的运行合作—来二11，诗一三九23~24：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-八')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-八" style="display: none;" onclick="toggleScripture('scripture-day3-八')">
+            
+            
+            <div class="verse-line">来2:11	因那圣别人的，和那些被圣别的，都是出于一；因这缘故，祂称他们为弟兄，并不以为耻，说，</div>
+            
+            
+            
+            <div class="verse-line">诗139:23	神啊，求你鉴察我，知道我的心；试炼我，知道我的思虑；</div>
+            
+            
+            
+            <div class="verse-line">诗139:24	看在我里面有什么害人的行径没有，引导我走永远的道路。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-八" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-八-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　神要我们的心软—结三六26，太十三4、19，林后五14，参出三二9，耶四八11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-八-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-八-1" style="display: none;" onclick="toggleScripture('scripture-day3-八-1')">
+            
+            
+            <div class="verse-line">结36:26	我也要赐给你们新心，将新灵放在你们里面；又从你们的肉体中除掉石心，赐给你们肉心。</div>
+            
+            
+            
+            <div class="verse-line">太13:4	撒的时候，有的落在路旁，飞鸟来吃尽了。</div>
+            
+            
+            
+            <div class="verse-line">太13:19	凡听见国度之道不领悟的，那恶者就来，把撒在他心里的夺了去；这就是那撒在路旁的。</div>
+            
+            
+            
+            <div class="verse-line">林后5:14	原来基督的爱困迫我们，因我们断定：一人既替众人死，众人就都死了；</div>
+            
+            
+            
+            <div class="verse-line">出32:9	耶和华对摩西说，我看这百姓真是硬着颈项的百姓。</div>
+            
+            
+            
+            <div class="verse-line">耶48:11	摩押自幼年以来，常享安逸，如酒在渣滓上澄清，没有从这器皿倒在那器皿里，也未曾被迁徙；因此，他的原味尚存，香气未变。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-八-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　神要我们的心清—太五8，诗七三1、25，耶三二39，诗八六11下，提后二22，提前一5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-八-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-八-2" style="display: none;" onclick="toggleScripture('scripture-day3-八-2')">
+            
+            
+            <div class="verse-line">太5:8	清心的人有福了，因为他们必看见神。</div>
+            
+            
+            
+            <div class="verse-line">诗73:1	神实在善待以色列那些清心的人。</div>
+            
+            
+            
+            <div class="verse-line">诗73:25	除你以外，在天上我有谁呢？除你以外，在地上我也没有所爱慕的。</div>
+            
+            
+            
+            <div class="verse-line">耶32:39	我要赐给他们一个心和一条路，好叫他们终身敬畏我，使他们和他们以后的子孙得福乐。</div>
+            
+            
+            
+            <div class="verse-line">诗86:11下	……求你使我专心敬畏你的名。</div>
+            
+            
+            
+            <div class="verse-line">提后2:22	你要逃避青年人的私欲，同那清心呼求主的人，竭力追求公义、信、爱、和平。</div>
+            
+            
+            
+            <div class="verse-line">提前1:5	这嘱咐的目的乃是爱，这爱是出于清洁的心、无亏的良心、并无伪的信心。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-八-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　神要我们的心爱—诗四二1~2，歌一1~4，林后三16，帖后三5，补充本诗歌三三三首、三三五首，弗六24，约十五9~10，二一15~17，太二六6~13，约壹二5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-八-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-八-3" style="display: none;" onclick="toggleScripture('scripture-day3-八-3')">
+            
+            
+            <div class="verse-line">诗42:1	神啊，我的魂切慕你，如鹿切慕溪水。</div>
+            
+            
+            
+            <div class="verse-line">诗42:2	我的魂渴想神，就是活神。我几时才可以来朝见神呢？</div>
+            
+            
+            
+            <div class="verse-line">歌1:1	歌中的歌，就是所罗门的歌。</div>
+            
+            
+            
+            <div class="verse-line">歌1:2	愿他用口与我亲嘴！因你的爱情比酒更美。</div>
+            
+            
+            
+            <div class="verse-line">歌1:3	你的膏油馨香；你的名如同倒出来的香膏，所以众童女都爱你。</div>
+            
+            
+            
+            <div class="verse-line">歌1:4	愿你吸引我，我们就快跑跟随你—王带我进了他的内室—我们必因你欢喜快乐；我们要称赞你的爱情，胜似称赞美酒。她们爱你是理所当然的。</div>
+            
+            
+            
+            <div class="verse-line">林后3:16	但他们的心几时转向主，帕子就几时除去了。</div>
+            
+            
+            
+            <div class="verse-line">帖后3:5	愿主修直你们心中的途径，引导你们的心，进入神的爱以爱神，并进入基督的忍耐以忍耐。</div>
+            
+            
+            
+            <div class="verse-line">补充本诗歌三三三首</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-八-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　神要我们的心安—徒二四16，约壹三19~21，来十22，约壹一7、9，提前一5，腓四6~7，西三13~15。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-八-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-八-4" style="display: none;" onclick="toggleScripture('scripture-day3-八-4')">
+            
+            
+            <div class="verse-line">徒24:16	我因此操练自己，对神对人常存无亏的良心。</div>
+            
+            
+            
+            <div class="verse-line">约壹3:19	在此就知道，我们是属真理的，并且我们在祂面前可以安心；</div>
+            
+            
+            
+            <div class="verse-line">约壹3:20	我们的心若责备我们，神比我们的心大，一切事祂都知道。</div>
+            
+            
+            
+            <div class="verse-line">约壹3:21	亲爱的，我们的心若不责备我们，我们就可以向神坦然无惧了；</div>
+            
+            
+            
+            <div class="verse-line">来10:22	并且在心一面，我们已经被基督的血洒过，脱开了邪恶的良心，在身体一面，也已经用清水洗净了，就当存着真诚的心，以十分确信的信，前来进入至圣所；</div>
+            
+            
+            
+            <div class="verse-line">约壹1:7	但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。</div>
+            
+            
+            
+            <div class="verse-line">约壹1:9	我们若认自己的罪，神是信实的，是公义的，必要赦免我们的罪，洗净我们一切的不义。</div>
+            
+            
+            
+            <div class="verse-line">提前1:5	这嘱咐的目的乃是爱，这爱是出于清洁的心、无亏的良心、并无伪的信心。</div>
+            
+            
+            
+            <div class="verse-line">腓4:6	应当一无挂虑，只要凡事借着祷告、祈求，带着感谢，将你们所要的告诉神；</div>
+            
+            
+            
+            <div class="verse-line">腓4:7	神那超越人所能理解的平安，必在基督耶稣里，保卫你们的心怀意念。</div>
+            
+            
+            
+            <div class="verse-line">西3:13	倘若这人与那人有嫌隙，总要彼此容忍，彼此饶恕；主怎样饶恕了你们，你们也要怎样饶恕人。</div>
+            
+            
+            
+            <div class="verse-line">西3:14	在这一切之上，还要穿上爱，爱是全德的联索。</div>
+            
+            
+            
+            <div class="verse-line">西3:15	又要让基督的平安在你们心里作仲裁，你们在一个身体里蒙召，也是为了这平安；且要感恩。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-九" data-level="1">
+    <div class="outline-item level-2">
+        
+        九　当我们被圣别的灵不断更新，使我们的心得坚固，在圣别上无可指摘时，我们就渐渐成为新耶路撒冷，有神圣生命的新样，也渐渐成为圣城，有神圣性情的圣别—启二一2，约壹五11~12，彼后一4。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-九')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-九" style="display: none;" onclick="toggleScripture('scripture-day3-九')">
+            
+            
+            <div class="verse-line">启21:2	我又看见圣城新耶路撒冷由神那里从天而降，预备好了，就如新妇妆饰整齐，等候丈夫。</div>
+            
+            
+            
+            <div class="verse-line">约壹5:11	这见证就是神赐给我们永远的生命，这生命也是在祂儿子里面。</div>
+            
+            
+            
+            <div class="verse-line">约壹5:12	人有了神的儿子，就有生命；没有神的儿子，就没有生命。</div>
+            
+            
+            
+            <div class="verse-line">彼后1:4	借这荣耀和美德，祂已将又宝贵又极大的应许赐给我们，叫你们既逃离世上从情欲来的败坏，就借着这些应许，得有分于神的性情。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">太五8	清心的人有福了，因为他们必看见神。</div>
+                
+                <div class="feeding-scripture">来十22	并且在心一面，我们已经被基督的血洒过，脱开了邪恶的良心，在身体一面，也已经用清水洗净了，就当存着真诚的心，以十分确信的信，前来进入至圣所。</div>
+                
+                
+                
+                <p class="content-text">心与生命既有这样重要的关系，所以神为要叫祂的生命能从我们里面律出去，就不得不来对付我们的心。我们的心向着神总不外有四大问题，就是：不软，不清，不爱，不安。不软，是心志的问题；不清，不只是心思的问题，也是心情的问题；不爱，就只是心情的问题；而不安，乃是良心的问题。神来对付我们的心，就是来对付这四方面，叫我们的心能软，能清，能爱，能安（李常受文集一九五三年第三册，一四七页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">第一，神是要我们的心软。心软就是心志向神是折服的，是柔顺的，没有强项，没有悖逆。神来对付我们的心，使我们的心能软，乃是除掉我们的石心，赐给我们肉心（结三六26），就是把我们刚硬的石心，软化成柔软的肉心。</p>
+                
+                <p class="content-text">神怎样使我们的心软？……神常是先用祂的爱来感动，若是爱感不动，就用祂的手借着环境来击打，直到我们的心软下来。我们的心一软下来，祂的生命就能在我们里面运行了。</p>
+                
+                <p class="content-text">第二，神是要我们的心清。心清就是心思专一的思念神，也是心情向着神纯一不杂。……只爱神要神，除神以外，别无爱慕、倾向或想望。马太五章八节说，“清心的人……必看见神。”所以心若不清，就不得看见神。只要我们的心思有一点思念在神之外的事物，或是我们的心情有一点爱慕在神之外的东西，我们的心就不清了，我们灵里的生命也就因此受了阻碍。所以我们必须和那“清心呼求主的人”一同追求（提后二22），作一个清心爱主要神的人，才能让神的生命在我们里面自由运行。</p>
+                
+                <p class="content-text">第三，神是要我们的心爱。心爱就是心情爱神，要神，渴慕神，想望神，对神有爱情。……旧约的雅歌……说我们一个圣徒，爱主该像一个女子恋慕她的良人一样，是一往情深，比死更坚强的〔八6~7〕。因为那卷书特别说到圣徒对主的爱情，所以也特别说出圣徒在主生命里的长进。到了新约，在约翰二十一章里，主曾三次问彼得说，“你爱我么？”也就是要带领他的心情能这样的爱主，叫他向着主作一个心爱的人。主所以这样作，乃是要彼得让主的生命有机会在他里面运行长大。……我们的心若这样的向着主有爱情，主的生命在我们里面才能得到亨通，为所欲为。</p>
+                
+                <p class="content-text">第四，神是要我们的心安。心安就是良心无亏〔徒二四16〕，没有定罪指责，是妥贴安稳的。良心在我们里面，乃是代表神来管理我们。……我们必须把良心里一切的亏欠、定罪和指责，都对付清楚，使“我们在祂面前可以安心”（约壹三19）。我们这样心安，神就能通过，神生命的律在我们里面才能继续运行（李常受文集一九五三年第三册，一四七至一五○页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day4-贰" data-level="1">
+    <div class="outline-item level-1">
+        
+        贰　神不仅在祂法理的救赎里借着基督救赎的血使我们分别归祂，而在地位上成为圣别，也在祂生机的拯救里借着祂自己圣别的性情用祂自己浸透我们，而在性情上圣化我们—来十三12，十29，罗六19、22，弗五26，帖前五23~24：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-贰')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-贰" style="display: none;" onclick="toggleScripture('scripture-day4-贰')">
+            
+            
+            <div class="verse-line">来13:12	所以耶稣为要借自己的血圣别百姓，也就在城门外受苦。</div>
+            
+            
+            
+            <div class="verse-line">来10:29	何况那践踏神的儿子，将他借以成圣的立约之血当作俗物，又亵慢恩典之灵的，你们想，他该受怎样更重的刑罚？</div>
+            
+            
+            
+            <div class="verse-line">罗6:19	我因你们肉体的软弱，就照着人的常情说，你们从前怎样将肢体献给不洁不法作奴仆，以至于不法，现今也要照样将肢体献给义作奴仆，以至于圣别。</div>
+            
+            
+            
+            <div class="verse-line">罗6:22	但现今你们既从罪里得了释放，作了神的奴仆，就有圣别的果子，结局就是永远的生命。</div>
+            
+            
+            
+            <div class="verse-line">弗5:26	好圣化召会，借着话中之水的洗涤洁净召会，</div>
+            
+            
+            
+            <div class="verse-line">帖前5:23	且愿和平的神，亲自全然圣别你们，又愿你们的灵、与魂、与身子得蒙保守，在我们主耶稣基督来临的时候，得以完全，无可指摘。</div>
+            
+            
+            
+            <div class="verse-line">帖前5:24	那召你们的是信实的，祂也必作成这事。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　神在性情上圣化我们的灵、魂、体，乃是神圣的“子化”我们，使我们成为神的众子，叫我们在生命和性情上，但不在神格上，成为与祂一样，好使我们能作神的彰显—弗一4~5，来二10~11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一" style="display: none;" onclick="toggleScripture('scripture-day4-一')">
+            
+            
+            <div class="verse-line">弗1:4	就如祂在创立世界以前，在基督里拣选了我们，使我们在爱里，在祂面前，成为圣别、没有瑕疵；</div>
+            
+            
+            
+            <div class="verse-line">弗1:5	按着祂意愿所喜悦的，预定了我们，借着耶稣基督得儿子的名分，归于祂自己，</div>
+            
+            
+            
+            <div class="verse-line">来2:10	原来万有因祂而有，借祂而造的那位，为着要领许多的儿子进荣耀里去，就借着苦难成全他们救恩的创始者，这对祂本是合宜的。</div>
+            
+            
+            
+            <div class="verse-line">来2:11	因那圣别人的，和那些被圣别的，都是出于一；因这缘故，祂称他们为弟兄，并不以为耻，说，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　神这样圣别我们，就在我们灵、魂、体的素质里变化我们，使我们在性质上全然像祂；如此，祂就保守我们的灵、魂、体全然完全—帖前五23：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-二" style="display: none;" onclick="toggleScripture('scripture-day4-二')">
+            
+            
+            <div class="verse-line">帖前5:23	且愿和平的神，亲自全然圣别你们，又愿你们的灵、与魂、与身子得蒙保守，在我们主耶稣基督来临的时候，得以完全，无可指摘。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-二" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-二-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　在量的一面，神要全然圣别我们；在质的一面，神要保守我们得以完全，就是要保守我们的灵、魂、体得以完美。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-二-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　虽然神保守我们，但我们必须负起责任，采取主动，与神的运行合作，借着使我们的灵、魂、体被圣灵浸透而蒙保守—12~24节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-二-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-二-2" style="display: none;" onclick="toggleScripture('scripture-day4-二-2')">
+            
+            
+            <div class="verse-line">帖前5:12	弟兄们，我们还请求你们，要敬重那些在你们中间劳苦，并在主里带领你们，劝戒你们的人，</div>
+            
+            
+            
+            <div class="verse-line">帖前5:13	又因他们所作的工，在爱里格外尊重他们；你们也要彼此和睦。</div>
+            
+            
+            
+            <div class="verse-line">帖前5:14	弟兄们，我们劝你们，要劝戒不守规矩的人，抚慰灰心的人，扶持软弱的人，又要对众人恒忍。</div>
+            
+            
+            
+            <div class="verse-line">帖前5:15	你们要当心，谁都不可以恶报恶，却要在彼此相待，或对待众人上，常常竭力追求良善。</div>
+            
+            
+            
+            <div class="verse-line">帖前5:16	要常常喜乐，</div>
+            
+            
+            
+            <div class="verse-line">帖前5:17	不住地祷告，</div>
+            
+            
+            
+            <div class="verse-line">帖前5:18	凡事谢恩；因为这是神在基督耶稣里对你们的旨意。</div>
+            
+            
+            
+            <div class="verse-line">帖前5:19	不要销灭那灵，</div>
+            
+            
+            
+            <div class="verse-line">帖前5:20	不要藐视申言者的话，</div>
+            
+            
+            
+            <div class="verse-line">帖前5:21	但要凡事察验，善美的要持守，</div>
+            
+            
+            
+            <div class="verse-line">帖前5:22	各种的恶事要远离禁作。</div>
+            
+            
+            
+            <div class="verse-line">帖前5:23	且愿和平的神，亲自全然圣别你们，又愿你们的灵、与魂、与身子得蒙保守，在我们主耶稣基督来临的时候，得以完全，无可指摘。</div>
+            
+            
+            
+            <div class="verse-line">帖前5:24	那召你们的是信实的，祂也必作成这事。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　我们要与神合作，在圣别中保守我们的灵，就必须借着运用我们的灵，以保守我们的灵是活的：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-三-1')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        1　我们要保守我们的灵，就必须运用我们的灵与神交通，以保守我们的灵是活的；我们若不这样运用我们的灵，就会把我们的灵留在死沉的光景里：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-三-1" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-三-1-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　喜乐、祷告、谢恩就是运用我们的灵；要保守我们的灵，首先必须运用我们的灵，保守我们的灵是活的，并将我们的灵从死亡中拉出来—16~18节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-三-1-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-三-1-a" style="display: none;" onclick="toggleScripture('scripture-day4-三-1-a')">
+            
+            
+            <div class="verse-line">帖前5:16	要常常喜乐，</div>
+            
+            
+            
+            <div class="verse-line">帖前5:17	不住地祷告，</div>
+            
+            
+            
+            <div class="verse-line">帖前5:18	凡事谢恩；因为这是神在基督耶稣里对你们的旨意。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-三-1-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　我们需要与那圣化人的神合作，使我们从灵里死沉的光景分别出来—参民六6~8，林后五4。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-三-1-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-三-1-b" style="display: none;" onclick="toggleScripture('scripture-day4-三-1-b')">
+            
+            
+            <div class="verse-line">民6:6	在他将自己分别出来归耶和华的一切日子，不可挨近死人。</div>
+            
+            
+            
+            <div class="verse-line">民6:7	他的父母、兄弟、或姊妹死了的时候，他不可因他们使自己不洁净，因为那分别出来归神的凭据在他头上。</div>
+            
+            
+            
+            <div class="verse-line">民6:8	在他分别出来的一切日子，他是归耶和华为圣的。</div>
+            
+            
+            
+            <div class="verse-line">林后5:4	因为我们在这帐幕里的人，负重叹息，是因不愿脱下这个，乃愿穿上那个，好叫这必死的被生命吞灭了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-三-1-c" data-level="3">
+    <div class="outline-item level-4">
+        
+        c　我们必须在我们的灵里，用我们的灵敬拜神、事奉神并与神交通；我们向神所是的一切、所有的一切和所作的一切，都必须在我们的灵里—约四24，罗一9，腓二1。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-三-1-c')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-三-1-c" style="display: none;" onclick="toggleScripture('scripture-day4-三-1-c')">
+            
+            
+            <div class="verse-line">约4:24	神是灵；敬拜祂的，必须在灵和真实里敬拜。</div>
+            
+            
+            
+            <div class="verse-line">罗1:9	我在祂儿子的福音上，在我灵里所事奉的神，可以见证我怎样在祷告中，常常不住地提到你们，</div>
+            
+            
+            
+            <div class="verse-line">腓2:1	所以在基督里若有什么鼓励，若有什么爱的安慰，若有什么灵的交通，若有什么慈心、怜恤，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　我们要保守我们的灵，就需要保守这灵脱离一切的玷污和污染—林后七1。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-三-2" style="display: none;" onclick="toggleScripture('scripture-day4-三-2')">
+            
+            
+            <div class="verse-line">林后7:1	所以亲爱的，我们既有这些应许，就当洁净自己，除去肉身和灵一切的玷污，敬畏神，以成全圣别。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-三-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　我们要保守我们的灵，就必须操练自己，对神对人都存无亏的良心—徒二四16，罗九1，参八16。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-三-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-三-3" style="display: none;" onclick="toggleScripture('scripture-day4-三-3')">
+            
+            
+            <div class="verse-line">徒24:16	我因此操练自己，对神对人常存无亏的良心。</div>
+            
+            
+            
+            <div class="verse-line">罗9:1	我在基督里说真话，并不说谎，有我的良心在圣灵里同我作见证，</div>
+            
+            
+            
+            <div class="verse-line">罗8:16	那灵自己同我们的灵见证我们是神的儿女。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-三-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　我们要保守我们的灵，就必须留意我们的灵，将心思置于灵，顾到我们灵里的安息—玛二15~16，罗八6，林后二13。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-三-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-三-4" style="display: none;" onclick="toggleScripture('scripture-day4-三-4')">
+            
+            
+            <div class="verse-line">玛2:15	然而神岂不是使二人成为一么？祂灵的余裔是属祂的。为何成为一呢？乃是要得着属神的后裔。所以当留意你们的灵，谁也不可以诡诈待自己幼年所娶的妻子。</div>
+            
+            
+            
+            <div class="verse-line">玛2:16	耶和华以色列的神说，休妻是我所恨恶的，休妻的人是以强暴行事；所以当留意你们的灵，不可行诡诈；这是万军之耶和华说的。</div>
+            
+            
+            
+            <div class="verse-line">罗8:6	因为心思置于肉体，就是死；心思置于灵，乃是生命平安。</div>
+            
+            
+            
+            <div class="verse-line">林后2:13	那时没有找到我的弟兄提多，我灵里不安，便辞别那里的人，往马其顿去了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">帖前五23	且愿和平的神，亲自全然圣别你们，又愿你们的灵、与魂、与身子得蒙保守，在我们主耶稣基督来临的时候，得以完全，无可指摘。</div>
+                
+                <div class="feeding-scripture">16~19	要常常喜乐，不住的祷告，凡事谢恩；因为这是神在基督耶稣里对你们的旨意。不要销灭那灵。</div>
+                
+                
+                
+                <p class="content-text">神不仅全然圣别我们，也保守我们的灵、魂、体得以完全。……在量的一面，神要全然圣别我们；在质的一面，神要保守我们得以完全，就是要保守我们的灵、魂、体得以完美。因着堕落，我们的体受了败坏，魂受了玷污，灵也死了。在神完全的救恩里，我们的全人都要得救，成为完全、完美的。为此，神保守我们的灵脱离死的元素（来九14），保守我们的魂不再留在天然和老旧里（太十六24~26），并保守我们的体脱离罪的败坏（帖前四4，罗六6）。神这样的保守，以及祂彻底的圣别，维持我们过圣别的生活，直到成熟，使我们能在主的“巴路西亚”里与祂相会（帖撒罗尼迦前书生命读经，二四三至二四四页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们的灵是由良心、交通、直觉这三部分组成的。我们的灵主要是为着与神交通。我们与神有交通时，就接触祂。这样与神的接触，自然叫我们感觉到神，对神有知觉。直觉是指从神来的直接感觉和知觉；借着这直觉，就能知道我们是对还是错。我们若错了，就会被我们的良心定罪。但我们若是对的，就会被我们的良心称义。</p>
+                
+                <p class="content-text">保守我们灵的第一条路，是正确地运用灵，以保守我们的灵是活的〔参帖前五16~19〕。……喜乐、祷告、谢恩乃是运用我们的灵。当我们这样运用我们的灵，就能叫我们的灵活。</p>
+                
+                <p class="content-text">你知道保持缄默，乃是叫你的灵留在死沉的光景里么？你若让你的灵留在死的光景里，这意思就是说，你没有与圣别人的神合作，以保守你的灵。</p>
+                
+                <p class="content-text">保守我们灵的另一条路，是在林后七章一节。……这节说，“所以亲爱的，我们既有这些应许，就当洁净自己，除去肉身和灵一切的玷污，敬畏神，以成全圣别。”这节经文指明，我们应当禁戒肉身和灵一切的玷污。我们必须远离污染我们灵的一切事物。所以我们应当保守我们的眼睛不看恶事，譬如那些玷污人的图片。这样的图片不仅玷污我们的眼睛，也玷污我们的灵；这是我从经历中学知的。一九三三年我第一次访问上海。那时召会有两个会所，……两个会所相离甚远。……从西上海到北上海要花一个小时以上。我头几次搭电车时东张西望，看着大街上各种景观。等我到了会所时，我发现我的灵非常死沉。我注意看街上那许多东西，就叫我的灵死沉。从这件事我学会，当我搭电车时要闭起眼睛祷告；这就保守了我的灵。因为我学习这样保守我的灵，所以当我到达北上海的会所时，我的灵还是活的。我的确在我的灵里得以圣别。</p>
+                
+                <p class="content-text">你若因着看某些图片而被污染，你的灵就会被玷污、污染而死沉。结果，你必须先求主洁净你，除去一切玷污，否则你就不能祷告。我举出这事作例证，说明我们必须与圣别人的三一神合作，使我们的灵得蒙保守，远离死沉和污染（帖撒罗尼迦前书生命读经，二四四至二四六、二四八页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day5-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-四')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        四　我们要与神合作，在圣别中保守我们的魂，就必须清理我们心理之心的三条主要“动脉”，就是我们魂的各部分—我们的心思、情感和意志—腓二2、5，一8，二13：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-四" style="display: none;" onclick="toggleScripture('scripture-day5-四')">
+            
+            
+            <div class="verse-line">腓2:2	你们就要使我的喜乐满足，就是要思念相同的事，有相同的爱，魂里联结，思念同一件事，</div>
+            
+            
+            
+            <div class="verse-line">腓2:5	你们里面要思念基督耶稣里面所思念的：</div>
+            
+            
+            
+            <div class="verse-line">腓1:8	神可为我作见证，我在基督耶稣的心肠里，怎样切切地想念你们众人。</div>
+            
+            
+            
+            <div class="verse-line">腓2:13	因为乃是神为着祂的美意，在你们里面运行，使你们立志并行事。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-四" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-四-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　我们的魂要被圣别，我们的心思就必须被更新，成为基督的心思（罗十二2），我们的情感必须被基督的爱摸着并浸透（弗三17、19），我们的意志必须被复活的基督征服并注入（腓二13，参歌四4上，七4上），并且我们必须用全人来爱主（可十二30）。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-四-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-四-1" style="display: none;" onclick="toggleScripture('scripture-day5-四-1')">
+            
+            
+            <div class="verse-line">罗12:2	不要模仿这世代，反要借着心思的更新而变化，叫你们验证何为神那美好、可喜悦、并纯全的旨意。</div>
+            
+            
+            
+            <div class="verse-line">弗3:17	使基督借着信，安家在你们心里，叫你们在爱里生根立基，</div>
+            
+            
+            
+            <div class="verse-line">弗3:19	并认识基督那超越知识的爱，使你们被充满，成为神一切的丰满。</div>
+            
+            
+            
+            <div class="verse-line">腓2:13	因为乃是神为着祂的美意，在你们里面运行，使你们立志并行事。</div>
+            
+            
+            
+            <div class="verse-line">歌4:4上	你的颈项好像大卫建造收藏军器的高楼，……</div>
+            
+            
+            
+            <div class="verse-line">歌7:4上	你的颈项如象牙楼；……</div>
+            
+            
+            
+            <div class="verse-line">可12:30	你要全心、全魂、全心思并全力，爱主你的神。”</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-四-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-四-2')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        2　除去心理之心三条主要动脉的阻塞之路，就是向主彻底认罪；我们需要停留在主面前一段时间，求主把我们完全带进光中；根据祂所暴露的，我们需要承认我们的缺点、失误、失败、错误、恶行和诸罪—约壹一5~9：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-四-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-四-2" style="display: none;" onclick="toggleScripture('scripture-day5-四-2')">
+            
+            
+            <div class="verse-line">约壹1:5	神就是光，在祂里面毫无黑暗；这是我们从祂所听见，现在又报给你们的信息。</div>
+            
+            
+            
+            <div class="verse-line">约壹1:6	我们若说我们与神有交通，却在黑暗里行，就是说谎话，不行真理了；</div>
+            
+            
+            
+            <div class="verse-line">约壹1:7	但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。</div>
+            
+            
+            
+            <div class="verse-line">约壹1:8	我们若说自己没有罪，便是自欺，真理就不在我们里面了。</div>
+            
+            
+            
+            <div class="verse-line">约壹1:9	我们若认自己的罪，神是信实的，是公义的，必要赦免我们的罪，洗净我们一切的不义。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-四-2" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-四-2-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　我们要清除我们心思动脉的阻塞，就需要承认在我们思想里和我们的思想方式上一切有罪的事物。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-四-2-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　我们要清除我们情感动脉的阻塞，就需要承认我们表达喜乐和忧伤的方式是天然的甚至是属肉的，并且我们许多时候恨我们所该爱的，爱我们所该恨的。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-四-2-c" data-level="3">
+    <div class="outline-item level-4">
+        
+        c　我们要清除我们意志动脉的阻塞，就需要承认我们意志里背叛的病菌。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-四-2-d" data-level="3">
+    <div class="outline-item level-4">
+        
+        d　我们若花够多的时间清除心理之心三条主要动脉的阻塞，就会感觉到我们全人活了，并且光景非常健康。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">罗十二2　	……借着心思的更新而变化，叫你们验证何为神那美好、可喜悦、并纯全的旨意。</div>
+                
+                <div class="feeding-scripture">腓二13　	因为乃是神为着祂的美意，在你们里面运行，使你们立志并行事。</div>
+                
+                <div class="feeding-scripture">可十二30	你要全心、全魂、全心思并全力，爱主你的神。</div>
+                
+                
+                
+                <p class="content-text">我们心理的心有三条主要的动脉，就是魂的三部分—心思、意志和情感。……除去心理之心三条主要动脉的阻塞之路，就是向主彻底认罪。我从经历中学会，我们需要停留在主面前一段时间，承认我们的缺点、失误、失败、错误、恶行和诸罪（帖撒罗尼迦前书生命读经，二五○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们可以从承认我们心思、思想里所有的罪与不洁开始。……我们的心思满了污秽。……我们要清除心思动脉的障碍物，就必须承认在我们思想里和我们的思想方式上一切有罪的事物。借着承认思想里一件件的罪，这动脉的阻塞就会除去。</p>
+                
+                <p class="content-text">当我们这样认罪时，我们可以向主承认自己对许多事的领会是多么天然。你也许不觉得你对许多事的领会很天然，所以你需要到主面前，对祂说，“主啊，光照我，暴露我的心思，暴露我所有的思想。主，把我的心思完全带进你的光中。”然后你应当照着主的光照和暴露，承认你思想上一件件的难处。譬如，……你对你的丈夫、妻子、孩子以及家庭事务的领会，也许都是天然的，一点不属灵。如果主在你里面暴露这一点，你应当马上承认说，“主，赦免我，我虽然爱你，但我对婚姻生活的领会完全是天然的。主，拯救我脱离这种天然的领会，把这种领会从我里面拿去。”……我们要有这种暴露与认罪，就需要有一段长的时间与主同在。</p>
+                
+                <p class="content-text">我们若针对我们的意志到主面前，主会彻底而详细地暴露我们的意志。我们好像在神圣的显微镜底下接受察验。……我们特别会看见，自己是何等的背叛，我们不知道什么是服从主。……主也许给你看见，几年前你在某一件事上作错了。也许祂又叫你看见，你错待了某一位弟兄或姊妹。每一次你都需要认罪。你应当因着在祂的光中被祂暴露而感谢祂。我们若承认主在我们意志里所暴露的一切，就能清除我们的意志这条动脉的阻塞。</p>
+                
+                <p class="content-text">我们也需要清除情感这条动脉的阻塞。当我们看见，我们情感的难处多么严重时，我们也许会极其难过。……我们会看见，许多时候我们恨我们所该爱的，爱我们所该恨的。当我们进到圣所的光中，就会看见我们全人最丑陋的一面就是我们的情感，因为我们运用情感不得当。我们的喜乐和忧伤可能全是天然的。当主暴露我们时，我们会对自己表达喜乐和忧伤的方式感到羞愧，因为那样的表现常是天然的、属肉体的、甚至是属肉的。</p>
+                
+                <p class="content-text">我们若花够多的时间清除心理之心三条主要动脉的阻塞，就会感觉到我们全人活了。我们的心思、意志和情感，都会非常健康。这些“沟渠”里面的“污秽”都被挖除了（帖撒罗尼迦前书生命读经，二五○至二五二页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day6-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day6-五')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        五　我们要与神合作，在圣别中保守我们的身体，就必须把我们的身体献给祂，使我们能为着召会生活过圣别的生活，实行身体生活，以完成神纯全的旨意—罗十二1~2，帖前四4，五18：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-五')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-五" style="display: none;" onclick="toggleScripture('scripture-day6-五')">
+            
+            
+            <div class="verse-line">罗12:1	所以弟兄们，我借着神的怜恤劝你们，将身体献上，当作圣别并讨神喜悦的活祭，这是你们合理的事奉。</div>
+            
+            
+            
+            <div class="verse-line">罗12:2	不要模仿这世代，反要借着心思的更新而变化，叫你们验证何为神那美好、可喜悦、并纯全的旨意。</div>
+            
+            
+            
+            <div class="verse-line">帖前4:4	要你们各人晓得，怎样用圣别和尊贵，持守自己的器皿，</div>
+            
+            
+            
+            <div class="verse-line">帖前5:18	凡事谢恩；因为这是神在基督耶稣里对你们的旨意。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day6-五" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day6-五-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　我们堕落的身体，就是肉体，乃是撒但、罪和死的“聚会所”，但借着基督的救赎，并在作为父、子、灵“聚会所”的我们重生之灵里，我们的身体是基督的肢体和圣灵的殿—罗六6、12、14，七11、24，林前六15、19。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-五-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-五-1" style="display: none;" onclick="toggleScripture('scripture-day6-五-1')">
+            
+            
+            <div class="verse-line">罗6:6	知道我们的旧人已经与祂同钉十字架，使罪的身体失效，叫我们不再作罪的奴仆，</div>
+            
+            
+            
+            <div class="verse-line">罗6:12	所以不要让罪在你们必死的身体里作王，使你们顺从身体的私欲，</div>
+            
+            
+            
+            <div class="verse-line">罗6:14	罪必不能作主管辖你们，因你们不在律法之下，乃在恩典之下。</div>
+            
+            
+            
+            <div class="verse-line">罗7:11	因为罪借着诫命得着机会，诱骗了我，并且借着诫命杀了我。</div>
+            
+            
+            
+            <div class="verse-line">罗7:24	我是个苦恼的人！谁要救我脱离那属这死的身体？</div>
+            
+            
+            
+            <div class="verse-line">林前6:15	岂不知你们的身体是基督的肢体么？我可以把基督的肢体作成娼妓的肢体么？绝对不可！</div>
+            
+            
+            
+            <div class="verse-line">林前6:19	岂不知你们的身体，就是在你们里面之圣灵的殿么？这圣灵是你们从神而得的，并且你们不是属自己的，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-五-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　保守身体就是在我们的身体上荣耀神—20节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-五-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-五-2" style="display: none;" onclick="toggleScripture('scripture-day6-五-2')">
+            
+            
+            <div class="verse-line">林前6:20	因为你们是重价买来的。这样，就要在你们的身体上荣耀神。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-五-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　保守身体就是在我们的身体上显大基督—腓一20。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-五-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-五-3" style="display: none;" onclick="toggleScripture('scripture-day6-五-3')">
+            
+            
+            <div class="verse-line">腓1:20	这是照着我所专切期待并盼望的，就是没有一事会叫我羞愧，只要凡事放胆，无论是生，是死，总叫基督在我身体上，现今也照常显大，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-五-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　我们要保守身体，就必须不照我们的魂（旧人）生活；这样我们罪的身体就失业，被解雇—罗六6。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-五-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-五-4" style="display: none;" onclick="toggleScripture('scripture-day6-五-4')">
+            
+            
+            <div class="verse-line">罗6:6	知道我们的旧人已经与祂同钉十字架，使罪的身体失效，叫我们不再作罪的奴仆，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-五-5" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day6-五-5')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        5　我们要保守身体，就必须不将我们的身体献给任何有罪的事物，倒要献上自己作义的奴仆，并献上我们的肢体作义的兵器—13、18~19、22节，但五23：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-五-5')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-五-5" style="display: none;" onclick="toggleScripture('scripture-day6-五-5')">
+            
+            
+            <div class="verse-line">罗6:13	也不要将你们的肢体献给罪作不义的兵器；倒要像从死人中活过来的人，将自己献给神，并将你们的肢体献给神作义的兵器。</div>
+            
+            
+            
+            <div class="verse-line">罗6:18	你们既从罪里得了释放，就作了义的奴仆。</div>
+            
+            
+            
+            <div class="verse-line">罗6:19	我因你们肉体的软弱，就照着人的常情说，你们从前怎样将肢体献给不洁不法作奴仆，以至于不法，现今也要照样将肢体献给义作奴仆，以至于圣别。</div>
+            
+            
+            
+            <div class="verse-line">罗6:22	但现今你们既从罪里得了释放，作了神的奴仆，就有圣别的果子，结局就是永远的生命。</div>
+            
+            
+            
+            <div class="verse-line">但5:23	竟向天上的主自高，使人将祂殿中的器皿拿到你面前，你和大臣、王后、妃嫔用这些器皿饮酒；你又赞美那不能看、不能听，无知无识，用金、银、铜、铁、木、石所造的神；却没有将尊荣归与那手中有你气息，管理你一切道路的神；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day6-五-5" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day6-五-5-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　“神的旨意就是要你们圣别，禁戒淫乱；要你们各人晓得，怎样用圣别和尊贵，持守自己的器皿”—帖前四3~4。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-五-5-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　不认识神，乃是人放纵私欲邪情的基本原因—5节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-五-5-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-五-5-b" style="display: none;" onclick="toggleScripture('scripture-day6-五-5-b')">
+            
+            
+            <div class="verse-line">帖前4:5	不放纵私欲的邪情，像那不认识神的外邦人；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-五-6" data-level="2">
+    <div class="outline-item level-3">
+        
+        6　我们要保守身体，就必须痛击己身，叫身为奴，以成就我们神圣的目的，就是成为圣城—林前九27，启二一2。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-五-6')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-五-6" style="display: none;" onclick="toggleScripture('scripture-day6-五-6')">
+            
+            
+            <div class="verse-line">林前9:27	我乃是痛击己身，叫身为奴，免得我传给别人，自己反不蒙称许。</div>
+            
+            
+            
+            <div class="verse-line">启21:2	我又看见圣城新耶路撒冷由神那里从天而降，预备好了，就如新妇妆饰整齐，等候丈夫。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">罗十二1	所以弟兄们，我借着神的怜恤劝你们，将身体献上，当作圣别并讨神喜悦的活祭，这是你们合理的事奉。</div>
+                
+                <div class="feeding-scripture">帖前四3~4	神的旨意就是要你们圣别，禁戒淫乱；要你们各人晓得，怎样用圣别和尊贵，持守自己的器皿。</div>
+                
+                
+                
+                <p class="content-text">我们不仅要知道怎样保守我们的灵与魂，也必须知道怎样保守我们的身体。罪已经破坏并败坏了我们的身体。……我们的身体是“罪的身体”〔罗六6〕。</p>
+                
+                <p class="content-text">我们若要保守自己的身体，就应当过一种绝对不跟随旧人、不跟随我们魂的生活。罗马六章六节说，“……我们的旧人已经与祂同钉十字架，使罪的身体失效，叫我们不再作罪的奴仆。”（帖撒罗尼迦前书生命读经，二五三至二五四页）</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们若照着魂生活，就会用我们的身体服事旧人。因此，我们若要保守自己的身体，首先必须不照着我们的魂生活。</p>
+                
+                <p class="content-text">第二，我们若要保守自己的身体，我们身上不论哪个肢体，都不可献给任何有罪的事物。譬如，我们应当保守自己的眼睛远离邪恶的图片，保守我们的耳朵不听不洁的事。……我们必须保守我们的身体不看、不听那些污染并败坏身体的事物。这就是用圣别持守我们的身体。</p>
+                
+                <p class="content-text">保罗……嘱咐我们要禁戒淫乱，借此说明这样持守我们身体的重要性〔帖前四3〕。禁戒淫乱就是用圣别和尊贵持守我们的器皿—我们的身体。因此，我们为了要保守自己的身体，就不该把我们的肢体献给任何罪恶的事物。</p>
+                
+                <p class="content-text">今天世界满了玷污和污秽，这使我们很难持守自己的身体。……父母应当训练自己的孩子（甚至小学生也不例外），远离这些污秽人的元素。有些父母认为应当让儿女们接受试验，好培养抵抗力，他们都犯了严重的错误，将来会为此后悔。这样照顾子女的父母，种的是什么，收的也必定是什么。</p>
+                
+                <p class="content-text">你们不要以为，年纪大了就不需要护卫自己远离情欲和玷污。只要我们的身体还没有改变形状，还留在旧造里，我们就需要一直持守自己的身体。……在这玷污人、污秽人的世界中，我们最难作到的，就是持守自己的身体。我们需要谨慎，任何会玷污我们身体的东西，我们都不要看、不要听、也不要摸。</p>
+                
+                <p class="content-text">我们在帖前五章十二至二十四节看见，圣别的生活与神的工作合作。十二至二十二节给我们看见信徒的合作，活出属灵、圣别的生活。二十三至二十四节说到神的工作，圣别并保守信徒。神渴望全然圣别我们，并保守我们的灵、与魂、与身子得以完全。然而，我们必须与祂合作。合作的路就是常常喜乐，不住的祷告，凡事谢恩，不销灭那灵，在召会聚会中不藐视申言者的话。我们若这样的合作，我们的灵就会蒙保守，不至死沉；我们的魂会蒙保守，使心思、意志、情感不受污染；我们的身体也会蒙保守，不受这世代的污染。这样，我们就能实际地过为着召会生活的圣别生活。保罗写帖撒罗尼迦前书这卷给初信者的书，目的是要他们过这种为着召会生活的圣化且圣别的生活（帖撒罗尼迦前书生命读经，二五四至二五六页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const pagesContainer = document.querySelector('.pages-container');
+    if (!pagesContainer) return;
+    const totalPages = Number(pagesContainer.dataset.totalPages || 0);
+    if (totalPages === 0) return;
+
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach((page, index) => {
+            page.classList.toggle('is-active', index === pageIndex);
+        });
+        
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 仅在用户手动切换时滚动到顶部
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（优化版：支持速度判断和方向识别）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let touchStartTime = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+        touchStartTime = Date.now();
+    }, { passive: true });
+    
+    document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const diffX = touchStartX - touchEndX;
+        const diffY = Math.abs(touchStartY - touchEndY);
+        const diffTime = Date.now() - touchStartTime;
+        const velocity = Math.abs(diffX) / diffTime; // px/ms
+        
+        // 动态阈值：快速滑动大幅降低距离要求
+        const baseThreshold = 40; // 基础阈值降低到40px
+        const velocityThreshold = 0.25; // 降低速度阈值，让更多滑动被判定为"快速"
+        const swipeThreshold = velocity > velocityThreshold ? 25 : baseThreshold;
+        
+        // 适度放宽垂直容忍度
+        const maxVerticalMove = 40; // 垂直移动可以到40px
+        const horizontalRatio = 2.0; // 水平是垂直的2倍即可
+        
+        // 综合判断：距离 + 速度 + 方向
+        if (Math.abs(diffX) > swipeThreshold && 
+            diffY < maxVerticalMove && 
+            Math.abs(diffX) > diffY * horizontalRatio) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    // 初始加载时不滚动
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', function() {
+        initFromHash(false);
+    });
+    
+    // 初始化（不滚动）
+    initFromHash(true);
+})();
+
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page.is-active');
+            if (!activePage) return '';
+
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = getCleanText(item);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+<script src="js/outline.js"></script>
+
+<style>
+/* 纲目和内容样式 */
+.outline-section{margin:18px 0}
+.outline-section .scripture-content{cursor:pointer}
+.content-separator{height:1px;background:var(--border);margin:20px 0}
+.feeding-section,.reading-section{margin:20px 0}
+.feeding-section h4,.reading-section h4{font-size:1.05em;font-weight:600;color:var(--heading);margin:16px 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;text-align:center}
+.feeding-scripture{margin:10px 0;padding:10px 14px;background:var(--surface-alt);border-left:3px solid var(--brand);border-radius:6px;font-size:1.01em;color:var(--text);line-height:1.8;font-weight:550;text-align:justify;letter-spacing:0.1px}
+.prev-btn:active:not(:disabled),.next-btn:active:not(:disabled){background:var(--bg);color:#fff;border-color:rgba(102,126,234,.55)}
+.no-content{color:var(--text-muted);font-style:italic;text-align:center;padding:40px 20px}
+@media(min-width:768px){.feeding-section h4,.reading-section h4{font-size:1.08em}.feeding-scripture{font-size:1.05em;padding:12px 16px}}
+@media(max-width:768px){.day-navigation{gap:0}.page-controls{margin:20px 0 10px}.prev-btn,.next-btn{padding:8px 12px;font-size:14px}.btn-text{display:none}}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>202504 夏季训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

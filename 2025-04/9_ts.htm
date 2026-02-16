@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第9篇 - 详情</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第9篇 对基督无上宝贝的异象、经历、享受与彰显，为着真正的召会生活</h2>
+</div>
+
+        
+        <div class="content">
+            
+<div class="details-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="9_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="9_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="9_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="9_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    
+    <div class="scripture">读经：彼前一7、19，二4、6~7，三4，彼后一1、4</div>
+    
+    
+    <div class="details-content">
+        
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　竭力前进，达到成熟
+            </div>
+            
+            
+            <div class="content-text">希伯来六章一节说，“我们既离开了那论到基督之开端的话，就当竭力前进，达到完全、成熟。”我们要与主配合，好叫祂能带我们往前。以下是希伯来书生命读经里一段非常激励人的话：</div>
+            
+            <div class="content-text">接受本书的希伯来信徒，在他们的基督徒生活中，一直犹疑不定，不知到底该往前，还是退回。本书就在这紧要关头写给他们，鼓励他们应当继续往前。</div>
+            
+            <div class="content-text">往前去的最好方法，就是忘掉一切。我们一旦忘掉一切，就能立即往前。我们可能花很多时间考虑我们的环境、我们的已往、我们的将来以及许多相关的事，却不肯花一点工夫在往前的事上。许多时候，一些亲爱的圣徒来问我，对从前、现在、将来和其他种种的事怎么办。很多人都知道，我对这样的问题从不回答；我只给他们一句劝勉的话：“往前吧。不要谈论，也不要记住已过的事；甚至现在的事也要丢在一边，更不必担心将来。你若真要往前，就往前好了。”那些忘记一切的人，是往前走得最好的人。你看场上赛跑的人，他们跑的时候，没有工夫去想别的事。他们只知道一件事，就是奔跑赛程。</div>
+            
+            <div class="content-text">我们在这里看见一个基本的原则：若有人偏离了正轨，或是停下不跑，以后又受激励要继续往前，他这时就不要犹豫，不要问问题，只管往前奔跑。许多青年人受到激励，要与主一同往前；但他们中间有些人担心，在往前之先是否该作什么，唯恐主可能不赦免他，不喜欢他。你若也是这样，就很难与主一同往前。你若对主认真，就只管往前。忘掉祂是否会赦免你，或者是否喜欢你。不要在这事上花时间考虑，只要达到目标，得着奖赏。不必考虑对或错，只管往前（三九三至三九四页）。</div>
+            
+            <div class="content-text">我们奔跑赛程时若摔倒，就要赶紧爬起再往前去，不该在那里自我分析，乃该继续往前奔跑，继续追求。</div>
+            
+            <div class="content-text">本篇信息说到“对基督无上宝贝的异象、经历、享受与彰显，为着真正的召会生活”。彼得在他的书信里常常用到“宝贵”这辞：宝血（彼前一19）、宝贵的房角石（二6）、同样宝贵之信（彼后一1）。他甚至说，基督在信祂的人是宝贵的（彼前二7）。在彼得书信里，“宝贵”这辞实在令人珍赏。</div>
+            
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　在基督里的信徒，该有价值观的改变
+            </div>
+            
+            
+            <div class="content-text">在基督里的信徒，该有价值观的改变（太二三16~26，撒上十六7，路十六15，九54~56，彼前三4，腓三7~8）。倪柝声文集第三辑第十四册有一篇信息说到“价值观的改变”（一九〇至二〇一页）。这是倪弟兄一个很沉重的负担：所有信徒都该有价值观的改变。马太二十三章十三至三十六节给我们看见，关于经学家和法利赛人的八重灾祸。主八次说到：“你们有祸了！”（13~16、23、25、27、29）我们需要祷告：“主啊，拯救我脱离任何的假冒为善。”假冒为善的人是舞台演员、化装扮演者，是不真实的（六2与注2、5、16）。“有祸了”意即极深的痛苦，可怜的、悲惨的。主对假冒为善的经学家和法利赛人说，“你们有祸了！”意思是他们是可怜的，会遭遇很多灾祸，原因之一就是他们有错误的价值观。</div>
+            
+            <div class="content-text">二十三章十六至十七节说，“瞎眼领路的，你们有祸了！你们说，凡指着殿起誓的，算不得什么；只是凡指着殿中金子起誓的，他就该谨守。愚拙瞎眼的人，那个是更大的，是金子，还是叫金子成圣的殿？”殿叫金子成圣，所以殿比金子更大；然而，他们却以为金子比殿更大。主继续说，“你们又说，凡指着坛起誓的，算不得什么；只是凡指着坛上礼物起誓的，他就该谨守。瞎眼的人，哪个是更大的，是礼物，还是叫礼物成圣的坛？”（18~19）坛叫礼物成圣，是比礼物更大的；但他们却有错误的价值观。主一再严肃地指出：“假冒为善的经学家和法利赛人，你们有祸了！”</div>
+            
+            <div class="content-text">路加十一章也有一段类似的记载，主对法利赛人说，他们有祸了（42~ 44）。有一个律法师说，“夫子，你这样说，也把我们侮辱了。”（45）主没有回避，反倒直率地说，“你们律法师也有祸了！因为你们把难担的担子放在人身上，自己连一个指头也不肯动。”（46）我们要向主祷告，求主保守我们，拯救我们脱离一切的假冒为善。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　信徒正确的价值观，可见于他们
+对基督和祂完满救恩各方面的估计和评价
+            </div>
+            
+            
+            <div class="content-text">信徒正确的价值观，可见于他们对基督和祂完满救恩各方面的估计和评价。在腓立比三章七至八节，保罗看见了基督无上的宝贝。他说，“只是从前我以为对我是赢得的，这些，我因基督都已经看作亏损。不但如此，我也将万事看作亏损，因我以认识我主基督耶稣为至宝。”“至宝”含超绝、无上的宝贝和超凡的价值等意思。保罗因着主耶稣无上的宝贝，超凡的价值，就将万事看作亏损。保罗的过去有很多可夸耀的，但他将其全数看作亏损。</div>
+            
+            <div class="content-text">首先，保罗借着启示，看见基督的超绝和无上的宝贝，就以认识基督为至宝（8）。其次，他说，“使我认识基督。”（10）这认识乃是借着经历和享受，而在经历上认识基督。保罗在八节称基督耶稣为“我主”，这是非常个人、亲密的称呼。接着，保罗说，“我因祂已经亏损万事，看作粪土，为要赢得基督。”赢得就是得着，取得。基督不仅要在国度时代作我们的奖赏，更要在今天就给我们赢得，作我们的奖赏。然而，我们是否因祂亏损万事，看作粪土？我们若看见祂的超绝和无上的宝贝，必定亏损万事，看作粪土、垃圾、狗食、渣滓。保罗说，除了基督以外，万事都是垃圾。盼望我们能更多地看见这位宝贵的基督，使我们将万事看作粪土，为要赢得基督，就是在我们的经历、享受并彰显上得着基督。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　对于主耶稣是为着召会建造之房角石的估价
+            </div>
+            
+            
+            <div class="content-text">以下我们要来看信徒在几方面该有的价值观。第一，对于主耶稣是为着召会建造之房角石的估价（诗一一八22，彼前二7）。彼得在彼前二章七节说，“所以祂在你们信的人是宝贵的。”对于信的人，基督是宝贵的，祂是宝贵的本身。“宝贵”作为名词，意即不只是很宝贵，而是那宝贵的本身；基督是这宇宙中的至宝。彼得在此引用诗篇一百一十八篇二十二节，说到基督“在那不信的人却是‘匠人所弃的石头，已成了房角的头块石头’”。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　对于主耶稣与他们亲人之间的估价
+            </div>
+            
+            
+            <div class="content-text">第二，对于主耶稣与他们亲人之间的估价（太十37~38，路十八26~30，彼前一1、17，二11上）。对于刚信主的人来说，这是不太容易的事。我在高中时，原本是个很受欢迎的人，大家都喜欢我；但自我得救之后，大家似乎都不喜欢我了。我接受基督之后，成了不受欢迎的人。我全人洋溢着基督，这样的情形却不受其他人欢迎。有一次我和一位弟兄一同搭电梯，人看见我们手里拿着圣经，就都移到电梯的另一边。如果我手上拿的是佛经，或是孔子的经典，他们不会有这样的反应。只因我拿的是圣经，他们就退避三舍。</div>
+            
+            <div class="content-text">我信主得救之后，不仅之前喜欢我的人不再喜欢我，连我的家人，包括我的父亲、母亲、姊妹，都说我是掉入深渊了。这使我非常受苦。在天然的关系里，我很爱我的父亲。那时我还住在家里，父亲对我说，“我每次看见你，你都在读圣经。”这事令他深感不悦。</div>
+            
+            <div class="content-text">最终我父亲仍然得救了。我很感谢Ron弟兄，因为他和我父亲的得救有很大的关系。当时我们在叩门传福音，之后有一场收割聚会。那天，我父亲问我当晚要作什么。我告诉他，我们会聚集一些人，向他们传福音，并且我要分享一些话，他就说他也要来参加。我听到后十分紧张，只能在里面呼求主名。</div>
+            
+            <div class="content-text">那天晚上我讲话时，父亲就坐在会场的中央。当我供应话语时，里面感觉需要传一段简短的福音。讲完之后，我看了父亲一眼，他的眼眶里含着泪水。那时他已将近七十岁。Ron弟兄告诉我，今天可能就是我父亲得救的日子，并且鼓励我直接向父亲传福音，使他可以得救。我便用人生的奥秘向他传福音，他也和我一起祷告，接受了主耶稣。这实在是极大的神迹。</div>
+            
+            <div class="content-text">我们需要尊重我们的父母，也需要顾到我们的兄弟姊妹，但我们不该让他们居首位。他们在我们里面的地位，不该超过主耶稣。他们若反对我们信主，我们也要拣选主；因为活在我们里面的那一位就是如此行。在马太十二章，耶稣还对群众说话的时候，有人对祂说，“看哪，你的母亲和兄弟站在外面，要找你说话。”（47）如果是我们，我们可能会去看一下，但主没有这样作。祂说，“谁是我的母亲？谁是我的弟兄？……凡实行我在诸天之上父旨意的，就是我的弟兄、姊妹和母亲了。”（48~50）这里恢复本的注解说，“凡实行祂父旨意的，就是帮助祂的弟兄，同情祂的姊妹，以及柔和慈爱的母亲。”（50注1）我们若将自己奉献给主，并向主说，“主啊，将你自己作到我里面，我要与你是一，实行父神纯全的旨意，”我们的估价就会改变。实行神旨意的圣徒，乃是我们的弟兄、姊妹和母亲。我们的确需要尊重我们的父母，爱我们的兄弟姊妹。事实上，我们得救之后，会更爱我们的家人，并且找机会把福音传给他们。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　对于基督为义的珍宝与属地珍宝之间的估价
+            </div>
+            
+            
+            <div class="content-text">第三，对于基督为义的珍宝与属地珍宝之间的估价（伯二二23~28，太十二18~21，赛四二1~4，彼前一18~20）。约伯记二十二章二十三至二十五节说，“你若归向全能者，就必得建立。你若使不义远离你的帐棚，将你的金块丢在尘土里，将俄斐的金子丢在溪河石头之间，全能者就必作你的金块，作你的宝银。”以赛亚四十二章四节说，“祂不灰心，也不丧胆，直到祂在地上设立公理。”在英文里，本节的“公理”和约伯记二十二章二十三节的“义”是同一个字。公理乃是公义经过了判定，是对公义之审判的裁决。祂在地上设立公理，意思就是设立神完整的救恩；这救恩乃是神在基督身上审判的结果。以赛亚四十二章说到“祂不灰心，也不丧胆”。每当你灰心丧胆时，请记得在你灵里有一位是不灰心也不丧胆的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　对于基督的认识与万事之间的估价
+            </div>
+            
+            
+            <div class="content-text">第四，对于基督的认识与万事之间的估价（彼前一8，彼后一2~3、8，二20，三18）。这里的引经出自彼得前后书，说出对于基督的认识；这位基督是无可比拟的。彼前一章八节说，“你们虽然没有见过祂，却是爱祂，如今虽不得看见，却因信入祂而欢腾，有说不出来、满有荣光的喜乐。”我们虽然没有亲眼见过主，却是爱祂。这是何等奇妙的神迹。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们需要看见一个异象，
+新耶路撒冷乃是三一神作到蒙祂救赎的人里面，
+并与他们结构在一起，成为奇妙珍宝的结构
+            </div>
+            
+            
+            <div class="content-text">我们需要看见一个异象，新耶路撒冷乃是三一神，神圣的三一，作为三种基本的因素，作到蒙祂救赎的人里面，并与他们结构在一起，成为奇妙珍宝的结构；这是整本圣经的总结—作为城之基础的金预表父神，作为城门的珍珠预表子神，城的碧玉墙预表灵神（启二一18~21，参林前三12）。新耶路撒冷是一个奇妙珍宝的结构，表明我们已经被三一神重新构成。三一神由金、珍珠和宝石所预表，我们已经与祂联结、调和并合并。职事的话给我们看见蚌产生珍珠的过程：“珍珠产自死水中的蚌。当蚌被砂粒—小石子—所伤，就分泌生命的汁液包裹砂粒，使其成为宝贵的珍珠。”（神新约的经纶，四〇九页）基督乃是真正的蚌，祂这位永活者进到死水中，为我们所伤，如以赛亚五十三章五节所说，“祂为我们的过犯受创，”就分泌祂的生命包裹我们，使我们成为宝贵的珍珠，好被建造成为神永远的住处和彰显。珍珠表征我们借着那胜过死亡并分泌生命的基督而得的重生。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们需要求主给我们亮光，
+叫我们的价值观有彻底的改变，
+叫我们不断地拣选基督并祂一切的所是，
+作我们绝佳的分
+            </div>
+            
+            
+            <div class="content-text">我们需要求主给我们亮光，叫我们的价值观有彻底的改变，叫我们不断地拣选基督并祂一切的所是，作我们绝佳的分（可九7~8，林后二10，四7，彼前一8）。马可九章记载：“耶稣带着彼得、雅各和约翰，暗暗地领开他们上了高山，就在他们面前变了形像，衣服放光，白到极点，……有以利亚同着摩西向他们显现，并且同耶稣谈话。”（2~4）彼得的书信称这座山为圣山（彼后一18）。摩西代表律法，以利亚代表申言者。</div>
+            
+            <div class="content-text">路加九章也记载同样的事：“看哪，有两个人，就是摩西和以利亚，同耶稣谈话。他们在荣耀里显现，谈论耶稣去世的事，就是祂在耶路撒冷将要成就的。彼得和同他在一起的都打盹瞌睡，既清醒了，就看见耶稣的荣耀，并同祂站着的那两个人。二人正要和耶稣分离的时候，彼得对耶稣说，夫子，我们在这里真好，可以搭三座帐棚，一座为你，一座为摩西，一座为以利亚。他却不知道所说的是什么。”（30~33）搭三座帐棚意思是使律法和申言者与基督同等；然而，律法和申言者不过是基督的见证，不能与基督在同一个水平上。</div>
+            
+            <div class="content-text">“彼得不知道该说什么才好，因为他们甚是惧怕。有一朵云彩来遮盖他们，又有声音从云彩里出来，说，这是我的爱子，你们要听祂。”（可九6~7）父神对彼得、雅各、约翰说，“你们要听祂。”</div>
+            
+            <div class="content-text">在马太十六章，耶稣告诉门徒说祂将要被杀，第三日复活。彼得就拉祂到一边，责劝祂说，“主啊，神眷怜你，这事绝不会临到你。”（21~22）如果主当时听彼得的话，没有上十字架，我们就不会得救。主转过来，对彼得说，“撒但，退我后面去吧！”（23）我们都需要谨慎，我们意见的背后乃是撒但。所以我们不该发表意见，乃该单单听主。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　“你若将宝贵的从低贱的分别出来，
+你就可以作我的口”
+            </div>
+            
+            
+            <div class="content-text">“你若将宝贵的从低贱的分别出来，你就可以作我的口。”（耶十五19，参16）主对我们是宝贵的；当我们去供应青少年、大专生、社区圣徒的时候，需要将宝贵的从低贱的分别出来。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们必须看重主的话，
+过于派定给我们的饮食
+            </div>
+            
+            
+            <div class="content-text">我们必须看重主的话，过于派定给我们的饮食，在主的话里品尝主作涌流着滋养的奶和新蜜之美地的实际，使我们将其分赐给神的子民，为着他们完满的救恩（伯二三12，彼前二2~5，诗一一九103，申八8，歌四11上）。“奶与蜜乃是两种生命—动物生命和植物生命—结合而成的产品。奶产自吃草的牛，蜜由蜜蜂采花蜜而成。奶与蜜表征基督的丰富来自祂生命的两方面—动物生命所预表祂救赎的生命（约一29），以及植物生命所预表祂生产的生命（十二24）。”（出三8注2）</div>
+            
+            <div class="content-text">雅歌四章十一节说，“我新妇，你的嘴唇滴下新蜜；你的舌下有蜜有奶。”舌下有蜜有奶，意思是舌下有美地，就是流奶与蜜之地。我们有救赎的生命—动物的生命，也有生产的生命—植物的生命，这二者加在一起，就是神完整的救恩，包括法理的救赎和生机的拯救。我们应当经历神完整的救恩在我们舌下，并从我们的嘴唇滴下，供应别人。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们必须看重主的话，
+过于一切地上的财富
+            </div>
+            
+            
+            <div class="content-text">我们必须看重主的话，过于一切地上的财富，使我们能讲神的谕言，分赐基督那追测不尽的丰富，作为神诸般的恩典（诗一一九72、9~16，弗三8，林后六10，彼前四10~11）。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　彼得看见基督自己在信祂的人是宝贵的
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　彼得被主迷住到一个地步，
+跟定主作他的牧者，直到殉道
+            </div>
+            
+            
+            <div class="content-text">彼得看见基督自己在信祂的人是宝贵的（二7，参腓三8）。彼前二章七节说，“所以祂在你们信的人是宝贵的。”彼得被主迷住（吸引并夺取）到一个地步，虽然多次受主责备并大大地失败，还是跟定主作他的牧者，直到殉道（路五8~11，可十四67~72，十六7，约二一15~22，彼后一14~15）。当你被某人迷住，就会为其疯狂。彼得被主迷住，就毫无理由地受主吸引并被夺取。在帖前一章四节，保罗称帖撒罗尼迦人为“蒙神所爱的弟兄们”。神为什么爱我们呢？神爱我们是没有理由的。</div>
+            
+            <div class="content-text">彼得虽经历过许多失败，仍然跟定主，直到殉道。彼得否认主之后极其沮丧，但在马可十六章，主复活后，天使对三位姊妹说，“你们要去告诉祂的门徒和彼得说，祂在你们以先往加利利去，在那里你们要看见祂，正如祂从前所告诉你们的。”（7）这里有一个辞是其他福音书所没有的：“和彼得。”当彼得听见主说“和彼得”，就知道主想到他了；这使他大得鼓励。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　彼得晓得在主变化形像时，他和雅各、约翰
+乃是得许可极其完全地进入其中，观看祂的威荣
+            </div>
+            
+            
+            <div class="content-text">彼得晓得在主变化形像时，他和雅各、约翰乃是得许可极其完全地进入其中，观看祂的威荣（彼后一16~18，参彼前五1）。彼得是个渔夫，但他看见了基督无上的宝贝。他和雅各、约翰受主邀请到了变化山上，所以他能在彼得后书说，他们并不是随从乖巧捏造的虚构无稽之事，乃是作祂威荣的亲眼见证人（一16）。主的变化形像乃是祂再来的预像。“因为祂从父神领受尊贵荣耀的时候，从显赫的荣耀中，有这样的声音向祂发出：这是我的爱子，我所喜悦的。我们同祂在圣山的时候，亲自听见这声音从天上发出。”（17~18）彼得实在宝贵这个经历。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　基督在祂的升天里是“威严者”，
+在神的行政中作我们的审判者、设立律法者和君王
+            </div>
+            
+            
+            <div class="content-text">基督在祂的升天里是“威严者”—祂是我们的神和救主（一1），是万有的主（彼前三22，徒二36），在神的行政中作我们的审判者、设立律法者和君王（赛三三21~22），好将祂自己分赐到我们里面，作我们的享受，使我们得着完满的救恩（启二二1）。主借着以赛亚说，“在那里，那威严者耶和华之于我们，必如江河宽渠溢流之处。”（赛三三21）“耶稣”的意思就是耶和华救恩，当以赛亚看见了耶和华，就是看见耶稣。祂是我们的审判者、设立律法者和君王；这就如政府的三个部门—司法、立法、行政。在人类建立政府之前，宇宙中已经有这样一个神圣的行政，真是奇妙。基督是我们的审判者、设立律法者和君王。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　为着神建造的宝石，乃是基督自己；
+基督的宝血已救赎我们脱离虚妄的生活
+            </div>
+            
+            
+            <div class="content-text">为着神建造的宝石，乃是基督自己（彼前二4、6~8）。基督的宝血已救赎我们脱离虚妄的生活（一14、18~19）。血叫我们在法理一面得着救赎，并且叫我们脱离虚妄的生活。我们在开始追求主之前所过的是虚空、虚妄的生活，没有目标；然而，我们已借着基督的宝血蒙救赎，脱离那虚妄的生活。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们的神和救主，耶稣基督，
+已将又宝贵又极大的应许赐给我们
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们借着呼求主宝贵的名，就得以饮于祂这救恩的杯
+            </div>
+            
+            
+            <div class="content-text">我们的神和救主，耶稣基督，已将又宝贵又极大的应许赐给我们（彼后一1、4，参赛四二6，来八8~12）。我们借着呼求主宝贵的名，就得以饮于祂这救恩的杯，享受祂是神一切又宝贵又极大之应许的实际，目标是为着神的建造（徒四10~12，诗一一六12~13）。在行传三章，彼得和约翰上殿里去，有一个瘸子在那里乞讨，彼得对他说，“金银我都没有，只把我所有的给你：我在拿撒勒人耶稣基督的名里，叫你起来行走！”（6）于是彼得扶他起来，他就跳起来，站着，又行走，赞美神（7~8）。百姓认出他就是那个瘸腿的人，都很希奇。但到了四章，祭司们、守殿官和撒都该人却将彼得、约翰收在监里。彼得向官长们解释，他们所作的乃是在拿撒勒人耶稣基督的名里。“在这名里，这人才站在你们面前健康完好。祂是你们匠人所轻弃的石头，已成了房角的头块石头。除祂以外，别无拯救，因为在天下人间，没有赐下别的名，我们可以靠着得救。”（10~12）</div>
+            
+            <div class="content-text">诗篇一百一十六篇十二至十三节很宝贝：“我拿什么回报耶和华对我的一切厚待？我要举起救恩的杯，呼求耶和华的名。”主给我们多少的厚待？实在是无法穷尽，无以回报。基督一切的丰富，都在这救恩的杯里。祂喝了忿怒杯，好叫我们能喝祂作福杯。基督这包罗万有的福分，就是我们的杯。我们要怎么喝这救恩的杯？乃是借着呼求主的名。呼喊“哦，主耶稣”就是喝救恩之杯的路。呼求主名不是一件小事。随着年纪渐长，人的肉身会越来越软弱；但你不要担心，你只需要继续不断地享受主，你就会与主一同往前。呼求主名这事，对你也就越来越宝贵。主用不同的方式对付我们。我们在主的恢复里，常常会受到试炼，如同身在烤炉里；虽然感觉艰难，我们仍要留在对主的享受里。有时我们极其软弱，但只要喊说“哦，主耶稣。”我们就蒙拯救了。在史壮的经文汇编（Strong’s Exhaustive Concordance of the Bible）里，“哦”这个字在圣经中出现上百次：“哦，神啊”，“哦，主啊”。呼求主这件事不需要遵守形式规条。你可以单单说“主耶稣。”但若加了“哦”，表示你实在渴望得着祂。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　宝贵的应许具体化于神的话；
+借着祷读这些应许，我们有分于神的性情
+            </div>
+            
+            
+            <div class="content-text">这些宝贵的应许，具体化于神的话；借着祷读这些应许，我们就有分于并享受神圣的性情，使我们在生命里长大并发展，达到生命的成熟，得以享受丰富地进入我们主和救主耶稣基督永远的国（彼后一4~11）。祷读主话这个实行，是非常宝贵的。当你打开圣经，要在祷告的灵和气氛里读。每当读的时候有经节摸着你，你就献上简短的祷告，那节经文就会成为你的经历。借此，我们就有分于并享受神圣的性情，使我们在生命里长大并发展，达到生命的成熟，得以享受丰富地进入我们主和救主耶稣基督永远的国。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　神已将同样宝贵的信，分给所有的信徒
+            </div>
+            
+            
+            <div class="content-text">神已将同样宝贵的信，分给所有的信徒（彼后一1，罗十二3）。罗马十二章三节论到神分给我们每一个人信心的度量，说，“不要看自己过于所当看的，乃要照着神所分给各人信心的度量，看得清明适度。”如果你以为自己在信心的度量上比保罗更大，你就太狂妄了，说出你的心思不是清明适度的。有些圣徒可能看自己的度量比长老更大，这就不是清明适度。长老们至少在属灵上比你年长一点。看自己过于所当看的，就是不清明适度，也就是抹煞身体生活中正确的等次。在最近一次风波里，异议者认为他们只要有同样的参考书籍，就可以作李弟兄所作的。这就是没有看得清明适度，而抹煞了身体生活中生机的等次。在召会历史中，有五他连得的肢体不多；我们在这个时代有两位五他连得的肢体，就是倪弟兄和李弟兄。这分时代的职事成全我们众人，成为身体上尽功用的肢体，更要预备我们作基督的新妇。在召会历史中，从来没有一个时代像现今这时代。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们信心所受宝贵的试验，
+乃是借着苦难而来的诸般试炼
+            </div>
+            
+            
+            <div class="content-text">我们信心所受宝贵的试验，乃是借着苦难而来的诸般试炼（彼前一6~7）。以上的点在彼得前后书结晶读经里都已涵盖，但下面我们要举出旧约两位申言者，如何看见基督无上的宝贝。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　以赛亚在沮丧中
+看见在荣耀里之基督的异象
+            </div>
+            
+            
+            <div class="content-text">以赛亚在沮丧中看见在荣耀里之基督的异象（赛六1~8，参五20，二二1，代下二六1~5）。以赛亚不是在最快乐的时候，而是在沮丧中看见荣耀基督的异象。我们都有沮丧的时候，保罗也不例外。保罗在林后一章八至九节说，“弟兄们，关于我们在亚西亚所遭遇的患难，我们不愿意你们不知道，就是我们被压太重，力不能胜，甚至连活命的指望都绝了，自己里面也断定是必死的，叫我们不信靠自己，只信靠那叫死人复活的神。”保罗不只是沮丧，更是连活命的指望都绝了。然而，保罗在这样的环境中受训练，学习不信靠自己，只信靠那叫死人复活的神。</div>
+            
+            <div class="content-text">以赛亚为什么沮丧呢？以赛亚六章一节说，“当乌西雅王崩的那年，我看见主坐在高高的宝座上。”比起之前的犹大王，乌西雅是一个相对好的王，但这个好王死了，以赛亚就觉得沮丧；但他在沮丧中看见在荣耀里之基督的异象。今天在人类社会中，也有许多叫我们沮丧的事，但我们要学习不往下看，乃要往上看，就会看见主坐在高高的宝座上。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　以赛亚所在的时期乃是邪恶的时代；
+基督作为主、君王、万军之耶和华，
+仍在荣耀里坐在高高的宝座上
+            </div>
+            
+            
+            <div class="content-text">以赛亚所在的时期乃是邪恶的时代，这可见于主警告的话—“祸哉，那些称恶为善，称善为恶，以暗为光，以光为暗，以苦为甜，以甜为苦的人！”（赛五20）我们今天所在的时代也是如此。尽管神所拣选、所爱的百姓背叛，满有罪孽和败坏，基督作为主、君王、万军之耶和华，仍在荣耀里坐在高高的宝座上（六1~5，哀五19，启二二1）。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　以赛亚所见的一位乃是基督
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　约翰叙述基督在地上的生活工作时，
+说以赛亚“看见了祂的荣耀，就指着祂说”
+            </div>
+            
+            
+            <div class="content-text">以赛亚所见的一位乃是基督（赛六5下，约十二38~41）。约翰叙述基督在地上的生活工作时，说以赛亚“看见了祂的荣耀，就指着祂说”（41）。在以赛亚六章，以赛亚看见耶和华的荣光充满全地（3）；约翰论到基督时，说以赛亚“看见了祂的荣耀”，证明以赛亚所见的那一位乃是基督。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们要看见登宝座之荣耀基督的异象，
+就需要注意以赛亚警告的话
+            </div>
+            
+            
+            <div class="content-text">我们要看见登宝座之荣耀基督的异象，就需要注意以赛亚警告的话（赛六9~10），操练我们的灵祷告，求主开启我们里面的眼睛，柔软我们的心，使我们的心转向祂，好接受祂内里的医治，除去我们的瞎眼和疾病（约十二40，太十三14~17，徒二八25~27，启三18，四2，林后三16~18）。以赛亚六章九至十节是一段警告的话：“祂说，你去对这百姓说，你们听是要听见，却绝不领悟；看是要看见，却绝不晓得。你要使这百姓心蒙脂油，耳朵发沉，眼睛封闭；恐怕他们眼睛看见，耳朵听见，心里领悟，回转过来，便得医治。”这是父神说的。然后在马太十三章十四至十七节，以及行传二十八章二十五至二十七节，子神和灵神也引用同样的话。神圣的三一在祂们的行动里给我们看见，神的子民不顺从恩典的神。因此，我们需要用这话来祷告，使我们的心转向祂，好接受祂内里的医治，除去我们的瞎眼和疾病。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　基督的长袍，表征基督在祂美德上的荣美
+            </div>
+            
+            
+            <div class="content-text">基督的长袍，表征基督在祂美德上的荣美；这荣美主要是在祂的人性里，并借着祂的人性彰显出来；基督穿着长袍，指明祂是以人的形像向以赛亚显现；基督是登宝座的神人，有神圣的荣耀彰显在祂人性的美德里（赛六1，参结一26、22，徒二36，来二9上）。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　以赛亚看见圣别里的基督，那圣别乃是基于祂的公义
+            </div>
+            
+            
+            <div class="content-text">以赛亚看见圣别里的基督，那圣别乃是基于祂的公义（赛六2~3）。撒拉弗表征或代表那作三一神具体化身之基督的圣别；他们是为着基督的圣别站立在那里。基督的圣别是基于祂的义；基督一直是公义的，所以祂是圣别的，与凡俗的人有分别（五16）。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　以赛亚看见这异象，结果就被了结，
+领悟他是嘴唇不洁的人，又住在嘴唇不洁的民中
+            </div>
+            
+            
+            <div class="content-text">以赛亚看见这异象，结果就被了结、被结束了，领悟他是嘴唇不洁的人，又住在嘴唇不洁的民中（六5）。以赛亚在六章一节看见荣耀的基督坐在高高的宝座上；在五节他就说，“祸哉，我灭亡了！因为我是嘴唇不洁的人，又住在嘴唇不洁的民中。”我们越看见基督，就越被了结、炼净，领悟自己是嘴唇不洁的人，住在嘴唇不洁的民中。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　按新约的意义说，看见神等于得着神
+            </div>
+            
+            
+            <div class="content-text">按新约的意义说，看见神等于得着神；得着神就是在神的元素、生命和性情上接受神，使我们被神构成（参创十三14~15，加三14，太五8）。在创世记十三章十四至十五节，“罗得离别亚伯兰以后，耶和华对亚伯兰说，从你所在的地方，举目向东西南北观看；凡你所看见的一切地，我都要赐给你和你的后裔，直到永远。”在神圣奥秘的范围里，我们所看见的就是我们所得着的；我们看见基督有多少，得着基督就有多少。然后十七节接着说，“你起来，纵横走遍这地，因为我必把这地赐给你。”这就是经历、享受并彰显基督作包罗万有的地，一切都是基于我们的看见。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　看见神使我们变化；我们越看见神、认识神并爱神，
+就越厌恶自己，越否认自己
+            </div>
+            
+            
+            <div class="content-text">看见神使我们变化，因为我们看见神时，就得着神，把祂的元素接受到我们里面，我们旧的元素也被排除了；这新陈代谢的过程就是变化（林后三16~四1，罗十二2，腓三8）。我们越看见神、认识神并爱神，就越厌恶自己，越否认自己（伯四二5~6，太十六24，路九23，十四26）。这是约伯的经历；在约伯记四十二章五至六节他说，“我从前风闻有你，现在亲眼看见你。因此我厌恶自己，在尘土和炉灰中懊悔。”</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　以赛亚看见自己是不洁的，之后就由一位撒拉弗，
+用来自坛上的红炭使他得了洁净
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　救赎的功效，借着“那灵那圣的”
+在其审判、焚烧并圣别的大能里得以应用
+            </div>
+            
+            
+            <div class="content-text">以赛亚看见自己是不洁的，之后就由一位撒拉弗，用来自坛上的红炭使他得了洁净；撒拉弗表征神的圣别。撒拉弗应用这红炭，表征基督在十字架上所完成之救赎的功效，借着“那灵那圣的”在其审判、焚烧并圣别的大能里得以应用（赛六6~7，四4，参路十二49，启四5）。“圣灵”这辞按原文也可译为“那灵那圣的”（the Spirit the Holy），那灵就是那圣的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　看见神，结果乃是被神炼净并洁净；
+被神洁净，结果乃是受神差遣
+            </div>
+            
+            
+            <div class="content-text">看见神，结果乃是被神炼净并洁净；被神洁净，结果乃是受神差遣，要将祂所拣选的人带到一种活基督的光景里，使他们在祂的荣耀里彰显祂，被祂的圣别浸透，并活在祂的义里（赛六6~8，约壹一7~9，徒十三47，腓一21上）。以赛亚看见荣耀的基督，承认自己的不洁，并被撒拉弗用红炭所洁净后，他就听见主的声音，说，“我可以差遣谁呢？谁肯为我们去呢？”（赛六8上）“我”是单数，“我们”是复数，“我”和“我们”二辞，指明在此说话的乃是三一神。然后以赛亚回应说，“我在这里，请差遣我。”（8下）愿我们也都能对主说，“我在这里，请差遣我。”</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　超越的基督在祂无上的宝贵里
+向但以理显现为一个人，
+这异象供但以理珍赏，
+叫他得着安慰、鼓励和坚定
+            </div>
+            
+            
+            <div class="content-text">超越的基督在祂无上的宝贵里向但以理显现为一个人，这异象供但以理珍赏，叫他得着安慰、鼓励和坚定（但十4~9）。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　基督的显现
+            </div>
+            
+            
+            <div class="content-text">基督在人性里显现为祭司（由细麻衣袍所表征），照顾祂被掳的选民（5上，出二八31~35）。基督在神性里显现为君王（由精金带所表征），为要掌管万民（但十5下）。基督在祂的宝贵和尊荣里显现（由祂身体如水苍玉所表征），供祂的子民珍赏；“水苍玉”原文可指一种蓝绿色或黄色的宝石，表征基督在祂的具体化身里是神圣的（黄色），满了生命（绿色），并且是属天的（蓝色）（6上）。基督也在祂的光明里显现，为要光照人（由祂的面貌如闪电所表征），并在祂光照的眼光里显现，为要搜寻并审判（由祂眼目如火把所表征）（6中）。基督在祂工作和行动的闪耀里向但以理显现（由祂的手和脚如闪耀发亮的铜所表征）（6下）。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　基督在祂刚强的说话里显现，
+为要审判人
+            </div>
+            
+            
+            <div class="content-text">基督在祂刚强的说话里显现，为要审判人（由祂说话的声音如大众的声音所表征）（6末）。整个世界局势都在天上之神的诸天掌权之下，好叫基督在万有中居首位，使祂在凡事上得着首位（二34~35，七9~10，四34~ 35，西一15、18，启二4~5）。在我们个人的宇宙中，基督必须是第一位，必须居首位；今天，基督这居首位者必须是我们召会生活、家庭生活和日常生活的中心与普及（西一17下、18下，三17，林前十31）。万有都在基督里面得以维系；基督是全宇宙的维系中心，也该是我们个人宇宙的维系中心。在神属天的掌权下，祂正在使用环境，使基督成为我们的中心（第一位）与普及（一切）（罗八28，西一18、27，三4、10~11）。我们蒙神拣选作祂的子民，为叫基督居首位；我们乃是在神属天的掌权之下，使基督得以居首位，使祂在万有中居第一位（但四26下、35，西一18，三4、10~11，诗二七4）。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-">
+            <div class="section-level0">
+                　我们必须赎回光阴，
+享受基督作神无上的宝贝，
+使我们被祂构成，成为宝贵的人，
+作祂自己的珍宝
+            </div>
+            
+            
+            <div class="content-text">我们必须赎回光阴，享受基督作神无上的宝贝，使我们被祂构成，成为宝贵的人，作祂自己的珍宝；当我们活在祂宝贵的同在里，享受祂作我们的分，正如祂享受我们作祂的珍宝，祂就将自己建造到我们里面，把我们作成祂属灵的殿和祂圣别、君尊的祭司体系，以完成祂心头的渴望（彼前三4，但九23，十11、19，林后二10，诗十六5，出十九4~6，彼前二1~9，彼后三8、11~12）。在但以理书中，神的使者三次称但以理为“大蒙眷爱的”（九23，十11、19）；大蒙眷爱，直译，珍贵，指但以理乃是宝贵的人。我们若赎回光阴，享受基督作神无上的宝贝，我们就会被祂构成，也成为宝贵的人。然后，我们会成为新耶路撒冷这奇妙珍宝的结构，作神私有的产业和奇特的珍宝。（E. M.）</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.details-page {
+    padding: 5px;
+}
+
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 46px;
+    min-height: 46px;
+    padding: 10px 14px;
+    background: var(--btn-secondary-bg);
+    border: 1px solid var(--btn-secondary-border);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--btn-secondary-text);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: var(--shadow-sm);
+}
+
+.font-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+.details-content {
+    margin-top: 15px;
+    line-height: 1.8;
+    text-align: justify;
+}
+
+.section {
+    margin-bottom: 18px;
+}
+
+.section-level1, .section-level2, .section-level3, .section-level4 {
+    font-weight: 600;
+    margin: 20px 0 12px 0;
+    line-height: 1.8;
+    color: var(--heading);
+}
+
+.section-level1 {
+    font-size: 1em;
+    color: var(--heading);
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+.section-level2 {
+    font-size: 0.9375em;
+    padding-left: 10px;
+    color: var(--heading-soft);
+    border-left: 3px solid var(--brand);
+}
+
+.section-level3 {
+    font-size: 0.9375em;
+    padding-left: 16px;
+    color: var(--text-soft);
+}
+
+.section-level4 {
+    font-size: 0.9375em;
+    padding-left: 24px;
+    color: var(--text-soft);
+}
+
+.content-text {
+    margin: 14px 0;
+    padding-left: 14px;
+    color: var(--text);
+    text-indent: 2em;
+    line-height: 1.8;
+    font-size: 0.9375em;
+}
+
+@media (min-width: 768px) {
+    .details-page {
+        padding: 20px 0;
+    }
+    
+    .details-content {
+        margin-top: 30px;
+    }
+    
+    .section {
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .font-size-controls {
+        gap: 6px;
+        margin: 8px 0;
+    }
+    
+    .font-btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+</style>
+
+<script>
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            // 读取所有内容文本
+            const contentTexts = document.querySelectorAll('.content-text');
+            contentTexts.forEach(p => {
+                const t = getCleanText(p);
+                if (t) text += t + '。';
+            });
+            
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>202504 夏季训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

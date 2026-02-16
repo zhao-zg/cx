@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第3篇 - 详情</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第3篇 耶稣—神所起君王救主的名，与以马内利—人所称君王救主的名</h2>
+</div>
+
+        
+        <div class="content">
+            
+<div class="details-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="3_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="3_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="3_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="3_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    
+    <div class="scripture">读经：太一21、23，十八20，二八20</div>
+    
+    
+    <div class="details-content">
+        
+        
+        
+        
+        <div class="section" id="section-壹">
+            <div class="section-level1">
+                壹　“她将要生一个儿子，你要给祂起名叫耶稣，因祂要亲自将祂的百姓从他们的罪里救出来”—太一21：
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-一">
+            <div class="section-level1">
+                一　“耶稣”是希腊文，等于希伯来文的名“约书亚”，意，耶和华救主，或耶和华救恩；耶稣是耶和华成为我们的救主和救恩—罗十12~13，五10，参腓一19。
+            </div>
+            
+            
+            <div class="content-text">这个名，耶稣这个名有三个部分，三个成分。第一个就是耶和华，这实在是件大事。耶和华是在耶稣的名里，这是件大事，我们在纲要里面会发展。第二个就是耶和华救主，耶和华救主，耶和华祂是我们的救主，不只是耶和华，祂乃是我们的救主。而且还说这个救主成为我们的救恩。三方面，我们不要以为这都是理所当然的，耶和华、救主、救恩。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-二">
+            <div class="section-level1">
+                二　“耶稣”这名包括“耶和华”这名；“耶和华”的意思是“我是那我是”，指明耶和华是自有永有的永远者，就是那昔是今是以后永是者—出三14，启一4：
+            </div>
+            
+            
+            <div class="content-text">这两节经节非常重要，出埃及记三章十四节，启示录一章四节。当神对摩西说，就是在出埃及记里，祂介绍祂自己，祂介绍祂自己是这样介绍，“神对摩西说，我是那我是”，我是那我是，“又说，你要对以色列人这样说，那我是差我到你们这里来。”我是那我是差我到你们这里来。这一位就是“我是”。哦，圣徒们，这是何等的应用。祂是永远的一位，祂永远是。在过去祂是那是；祂也是现在的我是，而祂是现在，祂也是，祂是我是；将来到永远，祂也是我是。所以祂永远是用这个现在式的。这不是件小事，圣徒们。因为我们总是用时间来量我们的生命，我们是被造的，但是祂不是被创造的，祂不依靠任何人。我们是受造的，我们受时间空间的限制，所以我们总是现在。但是赞美主，但是祂是永远是现在，祂是我是，祂是那我是。但是你说主啊，你是，你是什么？让我们来读，然后祂是一切，你们就把祂填充就好了，你所填的就是祂。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　唯有耶和华是那是的一位，祂不倚靠自己以外的任何事物；我们必须操练信心的灵信“祂是”，我们“不是”；在一切事上，祂是唯一的一位，独一的一位，我们什么都不是—来十一6。
+            </div>
+            
+            
+            <div class="content-text">圣徒们，这是非常重要的，让我们看见祂是，祂是那我是。因为在希伯来书十一章六节说到，到神面前来的人，到神面前来的人，必须信祂是。你今天有没有来到神面前？每次我们来到神面前，我们必须信你是。主啊，你是。不是说“主啊，你在哪里”，乃是说“主啊，你是”。我们需要操练运用我们信心的灵。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　作为“我是”，祂是包罗万有的一位，是一切正面事物的实际，也是祂子民所需的一切—约六35，八12，十14，十一25，十四6。
+            </div>
+            
+            
+            <div class="content-text">亲爱的圣徒们，在这里有些经节，在这个纲要里面，请你们注意这些经节，每一节经节都是非常有意义的。这里有约翰福音的经节，耶稣对他们说，祂在这里填充，祂说我是。然后在这些经节里，约翰六章三十五节，耶稣说，我就是生命的粮。你饿么？昨天晚上我们弟兄鼓励我们，要我们来进入路加福音，这是凡是饥饿的，祂就给你美食，你是富足的，祂就让你回去。所以第一篇信息、第二篇信息，但愿我们都说，主啊，我仍然是饥饿的。你是不是饥饿的？祂是生命的粮。约翰八章十二节，祂是世界的光；约翰十章十四节，祂是好牧人；约翰十一章二十五节，我是复活，我是生命。圣徒们，你有没有需要复活？你有没有从来需要在一个死的情形，你就觉得好像这个死亡就要临在你身上，就在那个时候你可以说“主啊，你是”，我不相信我所看见的，我甚至不相信我所感觉的，我相信你是，你是复活，而且你是生命。我们接受祂，我们应用祂，如何呢？如何作？就是借着呼求祂，主耶稣。就靠着这个名，借着这个名，我们得着耶和华，我们得着救主，我们得着救恩。阿们。</div>
+            
+            <div class="content-text">一切都在祂的名里，圣徒们。我盼望我们这个呼求主名的实行，永远我们不要以为是理所当然的，也不要把它作成老旧的，这不是只是一些实行，这乃是生命线，这是你的生命线。哦，主耶稣，生命的粮；哦，主耶稣，光；哦，主耶稣，复活。有的时候你都不知道你需要什么，所以你只要说“哦，主耶稣”，你就得着“我是”。阿们。约翰十四章六节，“耶稣说，我就是道路、实际、生命。”常常在我们的日常生活里，我们就不知道下一步该怎么作。我们面对一些复杂的情形。甚至弟兄们，弟兄们，我们是不是常常会碰到一些环境，不可能的，是不可能的。弟兄们，甚至我们都可以说“哦，主耶稣”，你是道路，我摸着祂，就有了路了。赞美主！我们永远不能够从这里的应用长大完成，我们需要经历祂，我们要来经历祂是我是，然后你就填充。因为我们非常有需要，我们有很大的需要，下一点来让我们看见。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　我们可以说，我们有一张金额栏空白的签名支票，可以填写我们所需要的一切；我们需要什么，耶稣就是什么，就如光、生命、能力、智慧、圣别或公义；我们所需要的一切，都能在耶稣的名里找到。
+            </div>
+            
+            
+            <div class="content-text">圣徒们，不只是在耶稣里找到，而且是在耶稣的名里找到。我们等一下还会看到诗篇一百一十六篇，我来接受救恩的福杯，来呼求主的名，祂要成为我们的救恩，祂还要我们来饮于这个救恩的泉源，如何？就是借着呼求，哦，主。有的时候这是唯一的一件事你可以作的，我们在一种情况之下，我们只能作的就是“哦，主啊”，祂就来了，祂就来了，成为我们所需要祂是的。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-三">
+            <div class="section-level1">
+                三　耶稣是我们的约书亚，带我们进入安息，这安息就是祂自己作了我们的美地—来四8，太十一28~29。
+            </div>
+            
+            
+            <div class="content-text">耶稣是我们的约书亚，我们前面有讲到在希腊文里面，耶稣在旧约里面就是这个约书亚的名字。耶稣是我们的约书亚，带我们进入安息，这安息就是祂自己作了我们的美地。在旧约里约书亚把他们进到，带他们进入美地，我们的约书亚，我们的耶稣，事实上把我们从所有的消极事物里面带出来，而且也把我们带进入安息。事实上我们的约书亚是更完整的约书亚，我们的约书亚是包罗万有的约书亚，祂拯救我们从一切的、许多的事情拯救出来，那个救恩讲到，诗歌讲到祂从一切救恩的，从很多的事情里面拯救出来。祂的名不只是拯救我们从一些事情里面出来，而且把我们拯救到，进入到一些事情里面，进入到安息里。事实上我们有一篇信息，整篇信息都讲到这个。你们要再回来，明天第五篇信息要讲到安息。</div>
+            
+            <div class="content-text">第四中点，好，在第四中点，我们摸着一个非常重要的点。事实上你要看见在这篇信息里面，整篇信息都是在讲到这点，这就是为着我们的经历。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-四">
+            <div class="section-level1">
+                四　主的名，就是祂的人位，乃是包罗万有复合的灵—歌一3，出三十23~30，腓一19。
+            </div>
+            
+            
+            <div class="content-text">我们讲这话是根据于雅歌一章三节，何等的甜美，“你的膏油馨香；你的名如同倒出来的香膏。”你的名如同倒出来的香膏。而且我们也知道在旧约里面这个膏油，膏油，这个油总是表征圣灵，就是那灵。这节经节就把主的名和灵连在一起，这是非常重要。这节经节把主的名和那灵连在一起。我们呼求祂的名—耶稣，但是事实上那灵就是那个名的实际，也是那个名的实化。今天事实上那个名的人位，我们呼求祂的名，我们就得着那灵，这个联结是在这个纲要里面你会看到，真是太美妙了。</div>
+            
+            <div class="content-text">常常当我们呼求这个名说“主耶稣”，你们有没有同样的经历？在你里面有一个东西，好像有一个非常舒适的甜美。当我们真的是有膏油在我们里面，那就是灵的涌流，鼓励我们，甚至在那里作见证，见证我们是神的儿女，甚至就是让我们知道我与你同在，我与你同在。如何呢？就是借着呼求祂的名。祂的名是膏油，倾倒出来的膏油，倒出来的香膏。我们这里有出埃及记的经节，这里讲到在旧约里面，膏油乃是膏这些祭司，为了他们的事奉，而且要膏所有的帐幕里面的器皿。所以表示不论我们什么时候服事，我们应该呼求。我们每次服事我们都需要有这个膏油涂抹，祂的名就是倾倒出来的膏油涂抹。这个膏油的涂抹，我们知道这里基本就是一欣的橄榄油，但是有四个香料加进来，加到这个，就是有没药、香肉桂、香菖蒲、桂皮。没药和香肉桂乃是表征基督甜美的死，还有基督死的甜美的功效。然后香菖蒲是要有复活的大能，然后它是有复活的能力，就是这个香菖蒲有这个能力，它能够就驱逐这些蛇、虫等等。如果你发现你是在一个满了泥浆的情形里面，你就要呼求“哦，主耶稣”，祂就在你里面涂抹，涂抹，就在那个时候你就得着复活。也许你在面对仇敌的攻击，甚至这一周我知道，甚至这一周有些情形，我都可以感觉到仇敌在攻击，圣徒们，我就逃到耶稣的名里。</div>
+            
+            <div class="content-text">在箴言说到祂的名好像是高塔，义人要逃进去，还在那边得着救恩。我所能作的就是，我不太清楚这个情形，怎么样的情形，没有办法搞清楚，我越去想我就越低落，我就说“哦，主啊，我如果留在这种情形，我怎么能够向圣徒们说，我不能留在这里，哦，主耶稣”，结果就有高塔，我就得救了。圣徒们，这是真实的，这是实际的，为着我们日常的生活。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-五">
+            <div class="section-level1">
+                五　耶稣的名超乎万名之上—二9~10：
+            </div>
+            
+            
+            <div class="content-text">祂的名，腓立比书二章说到：“神将祂升为至高，又赐给祂那超乎万民之上的名。”圣徒们没有一个名字是这么高，能够像耶稣的名，是那么的至高。不论你爱耶稣还是恨耶稣，你是为祂还是不为祂，你是反对祂，每个人都知道那是一个特别的名字。这个名是个特别的名字，赞美主！事实上这个超乎万民之上的名，是让我们作许多的事情，下面有很多的点，我们都在这个耶稣的名里作这些事。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　耶稣的名是给我们信入的—约一12。
+            </div>
+            
+            
+            <div class="content-text">圣徒们，我不愿以为着一切都是理所当然的，但是在我们当中也许有些新人，我要你们来注意到这节经节，约翰福音一章十二节。我们许多人甚至因着这节经节而得救，我们在我们的传福音里用这个经节。我现在愿意读一下，“凡接受祂的，就是信入祂名的人，祂就赐他们权柄，成为神的儿女。”就是信入祂名的人。我再读一次，第一，前面跟后面，凡接受祂的，就是信入祂名的人，这些人，接受祂的是谁？我小的时候，小男孩的时候，七岁时候我就接受祂，我呼求祂的名很简单。我还不知道是怎么回事，我那时候并不清楚，但是当我接受了祂，我呼求祂的名，事实上我就相信，不只我相信耶稣，而且我信入祂，就有一个生机的联结，就与这一位开始。相信，把我们带到信入祂的名里。这与我们相信一个历史的人物是不一样。像我们相信乔治华盛顿或者林肯，我们相信他的名，但是你可以喊乔治华盛顿，乔治华盛顿，但是没有办法把你呼求到那个名字里面。你喊林肯，这个林肯总统，我们也没有办法进到他里面，我不能与他联结。但是我呼求主耶稣，我就进到祂的里面。当我们帮助人得救的时候，非常好，来帮助他们来宣告耶稣的名；甚至说我相信，相信耶稣的名，而且我信入耶稣的名，这就能够加强他们的救恩。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　耶稣的名是给我们浸入的—徒八16，十九5。
+            </div>
+            
+            
+            <div class="content-text">我们这里有二节经节，使徒行传八章十六节和十九章五节，都说到我们浸入主耶稣的名里，我们都是浸入主耶稣的名里，浸入主耶稣的名里。但是还有另外两节经节，在加拉太书三章二十七节，还有罗马书六章三节。保罗说我们受浸的时候，我们是受浸到基督里，是基督的这个人位里。所以当我们在有人受浸的时候，我们聚在那边，甚至当我们给人施浸的时候，我们说某某人，我们把你浸入耶稣的名里，或者浸入父、子、圣灵的名里，然后我们给他受浸。但是圣徒们，我们需要知道那是什么意思，不是只是浸入到一个名里，但是这个名字后面有个人位，这个名字里面有实际。所以每一位在那里，同时在那里见证受浸的，必须必须操练他们信心的灵，就不是一个空的、宗教的实行。事实上这个实际，当我们把你受浸到，施浸到水里的时候，我们乃是把你施浸到主耶稣基督的人位里。我要承认我那个时候十二岁的时候受浸，我并不明白这个，但是我现在知道了。赞美主。当我年纪越长，我越来越珍赏、宝贝我的受浸。我相信，信入祂，而且我也是受浸，浸入祂的名里，不只信入，而且是浸入祂的名里，祂的人位里。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　耶稣的名叫我们得救—四12。
+            </div>
+            
+            
+            <div class="content-text">当我们信入这个名的时候我们就得救了，我们从神的定罪得救，我们从审判得救，我们从火湖或者是地狱得救了。但是圣徒们，还有许多的其他的事物，我们还需要得救。罗马书说到呼求主名的人，呼求主名就必得救。所以当我们呼求主的时候，我们就从很多的事情里面得救。但是罗马书五章说到，在祂的生命里得救。圣徒们，有许多其他的事情，我们还需要得拯救。我们的情绪，很多的时候我们就需要从我们的情绪。我们的脾气，你有没有需要从你的脾气得拯救？从你的失望，从你的怀疑，有的时候我们需要从惧怕得拯救。有的时候我们需要从灰心得拯救，有的时候我们需要从不信得拯救。我们觉得我们来一个特会，听到这样的信息也许很快乐、很兴奋，结果仇敌就来向你说谎话，说每一个人都可以达到，只有你不行。你有没有这样的心思里面，仇敌攻击你？圣徒们在那个时候我们能够呼求“哦，主耶稣”，主耶稣不只来拯救我，不是只是给我救恩，主啊进来成为我的救恩。祂就是你的救主，在那个时候就是你的救主，借着你的呼喊，借着你的呼喊。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　耶稣的名使我们得医治—三6，四10。
+            </div>
+            
+            
+            <div class="content-text">今天早上我们也讲到这个。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-5">
+            <div class="section-level1">
+                5　耶稣的名使我们被洗净、圣别、称义—林前六11。
+            </div>
+            
+            
+            <div class="content-text">这节经节非常重要，林前六章十一节，我读给你们听。“你们中间有人从前也是这样，但在主耶稣基督的名里，并在我们神的灵里，你们已经洗净了自己，已经圣别了，已经称义了。”是在主耶稣基督的名里，在我们神的灵里。你看到么？这节经节把主的名和那灵连在一起。名和那灵，那灵是那个名的实际。我们呼求那个名，我们信入主耶稣，然后我们受浸归入祂里。事实上我们是受浸浸入到这个人位里，我们接受那灵，然后这灵在我们里面整天工作。每一天，每天我们一生中的每一天，祂都在我们里面工作，来洗净我们自己。不是洗净我们的罪，那是血来洗净，乃是洗净所有其他的东西。就是在以弗所书五章二十六节讲到，祂圣别她乃是借着话中之水的洗涤，这就是祂如何来预备祂的新妇。我们需要这个洗净，但是如何你来应用这个洗净？怎么样应用？就是在灵和名里。“主啊，现在就来洗净我，洗净我，洗掉我所有的思想，所有不信的思想，洗掉所有仇敌注射到我里面的思想。主啊，我再也不接受它了。主洗净我，洗净我，圣别我，圣别我，称义我。”</div>
+            
+            <div class="content-text">现在第六小点，大的点。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-6">
+            <div class="section-level1">
+                6　耶稣的名是给我们呼求的—罗十13，林前一2，徒九14，创四26。
+            </div>
+            
+            
+            <div class="content-text">这里的经节，在这个纲要里面常常看到罗马书十章十三节。罗马书十章十三节，“因为‘凡呼求主名的，就必得救。’”我们有林前一章二节，保罗“给在哥林多神的召会，就是给在基督耶稣里被圣别，蒙召的圣徒，同着所有在各处呼求我们主耶稣基督之名的人”。使徒行传九章，他还是大数的扫罗的时候，在这里他从祭司长得到权柄，要捆绑一切呼求主名的人，这是亚拿尼亚就需要去看这个大数的扫罗。主差遣他去。他说，主啊，你不知道这个人。当然主知道，最后结果亚拿尼亚告诉扫罗，你要受浸，要呼求这个名，非常有意义。</div>
+            
+            <div class="content-text">圣徒们，我们许多人，当我们一听到，我来到召会生活，来到主的恢复，我听到圣徒们操练呼求主的名，呼求、呼求、呼求。我必须承认有点受搅扰，有点受搅扰。我甚至觉得，我甚至觉得，对不起，圣徒们，我还在想，他们是不是这样随便用主的名。对不起，我为着那个想法认罪悔改。他们是不是妄称主的名？然后他们就是，哦，主啊，哦，主啊，哦，主啊。所以我很受搅扰。</div>
+            
+            <div class="content-text">然后我就听到呼求主的名，我想说我以为呼求和祷告是同样的事，后来我才发现事实上呼求是包括在祷告里面，呼求就是一种的祷告；但是呼求是特别的，呼求是特别的。这个在希腊文里面说到呼求，乃是向祂呼求，或者是，就是发出声音地来呼求。如果我说Bill Lawson，你看他在这里。这里有一个人，他的名字就是向这个话有反应，整个会场里面只有他一个人叫Bill Lawson。你好，Bill Lawson还在这里，谢谢你。这个名字后面有一个人位，在这里话语乃是告诉我们要呼求，就是要向祂呼喊，用听得见的声音呼喊。</div>
+            
+            <div class="content-text">很多在诗篇里的经节，当我刚得救的时候，我的姐姐给了我一本圣经，我真是爱。不是这本圣经，这是比较新的圣经，但是我还有那本圣经在我的书房里。我非常爱那本圣经。我那时候十二岁，我才刚刚得救、受浸，我很喜爱那本圣经，我就去读诗篇。然后在诗篇里面，我告诉你们，我对呼求有点问题，结果主提醒我，记得那节经节么？在诗篇里。所以我就去看，我说，啊，呼求。看看这节经节，呼求。所以有很多的经节在诗篇里面都是讲到，哦，主啊，哦，主啊，哦，主啊。我说，哦，我已经两年都在呼求主的名，但是我还不知道。我愿意读给你们听两个注解，两个注解。</div>
+            
+            <div class="content-text">这是在这段话，就是创世记四章二十六节，创世记四章二十六节，说，“塞特也生了一个儿子，起名叫以挪士。在那时候，人开始呼求耶和华的名。”所以如果你有恢复本的圣经，有旧约的恢复本圣经，这里有个注解，就是创世记四章二十六节的第二个注解，这是讲到呼求，希伯来文原文意“向……呼叫”，“向……呼喊”，意即用听得见的声音呼喊。因为人领悟自己的生命是虚空。这就是讲到亚伯，他是塞特的兄弟，他是已经被，那时候被杀死，亚伯的名字就是虚空的意思。然后呢，塞特他就给他的儿子起名叫以挪士，以挪士的意思是脆弱必死的。因为人知道他们自己是脆弱必死的，生命是虚空的，所以自然而然地开始呼求耶和华那永远者的名。他们虽然是虚空软弱的，但借着呼求主的名，就变得丰富且刚强，因为他们进入了他们所呼求者的丰富和力量。然后就说，见使徒行传二章二十一节注一。</div>
+            
+            <div class="content-text">所以在新约里面我们有这个注解，就是使徒行传二章二十一节的第一个注解，非常丰富的注解，我要读给你们听。希望你们能够在这里，也许从来，很多新人从来没有听见过这些话的，我希望花时间来读给你们听，如果你们读过，我希望你们再一次更新地享受这些点。就是讲到呼求的实行非常的惊人，就是使徒行传二章二十一节，就是彼得在五旬节的时候说的话。他在那里说，他是引用那灵的倾倒出来，就是约珥的时候那灵的释放。所以这个注解说到，呼求主名不是新约的新作法，乃是开始于人类的第三代以挪士。接着有约伯、亚伯拉罕、以撒、摩西和以色列人、参孙、撒母耳、大卫……。圣徒们，你如果在读这个注解，每一个名字的后面都有经节。我们现在读的这个旧约的这些人，这里引用了五十节的经节，让我们看到旧约的圣徒如何，他们是在呼求主的名。</div>
+            
+            <div class="content-text">还有下面一段，至少十四节，至少有六十节，让我们看到这是呼求主的名的属灵的应用。还有诗人亚萨、诗人希幔、以利亚、以赛亚等等，他们在旧约的时候都呼求主名。以赛亚也嘱咐寻求神的人要呼求祂。甚至外邦人也晓得，以色列的申言者习惯呼求神的名。神从北方兴起的外邦人，也呼求祂的名。神命令并愿意祂的百姓呼求祂。这是饮于神救恩泉源的喜乐之路。这是从以赛亚书十二章讲到要来从救恩的泉源欢然取水，然后要呼求祂的名，不只是呼求祂的名，而且说你要呼喊，要在这里大声地呼求。有的时候我们需要大声地呼喊。很多的时候我们在一些情况里面，我们说要小声的，哦，主耶稣。但是今天晚上，我们不在那种情况之下，哦，主耶稣！阿们。有的时候我们就大声地喊是非常的好的，哦，主耶稣！阿们。这是饮于神救恩泉源的喜乐之路，也是以神为乐的享受之路，就是来享受神，因此神的子民必须天天呼求祂。这是约珥关于新约禧年所预言的欢乐作法。</div>
+            
+            <div class="content-text">在新约里，彼得在五旬节那天，首次提起呼求主名，应验了约珥的预言。这应验是关乎神在经纶一面，将包罗万有的灵浇灌在祂所拣选的人身上，使他们能有分于新约的禧年。约珥关于神新约禧年的预言及其应验有两面：在神那一面，祂在复活基督的升天里，将祂的灵浇灌下来；在我们这一面，我们呼求这位成就一切、达到一切并得着一切，升天之主的名。我们这些在基督里的信徒，要有分于并享受包罗万有的基督，和祂所成就、所达到、所得着的一切，呼求祂的名是极其需要的。在神新约的经纶里，这是一种主要的作法，使我们能享受这位经过过程的三一神，叫我们完全得救。早期的信徒在各处都呼求主名。对不信的人，尤其对逼迫的人，呼求主名成了基督信徒普遍的记号。司提反遭逼迫时，曾呼求主名。当他被石头打死的时候，在使徒行传七章最后的时候，他在这里呼求主耶稣，然后不信的扫罗，以他们的呼求为记号。我误了这一段。司提反这样的实行，必定使逼迫他的扫罗印象深刻。但是扫罗是说他恨恶这个名，他的见证，他认为我必须要作些事情，与这个名是相对的。所以他就去，在那里逮捕这些呼求祂名的人，不是那些祷告的人。</div>
+            
+            <div class="content-text">如果你那天是能够被逮捕的么？还是你在那边小声祷告，安静地祷告。主不是会听得见我们么？但是事实上圣徒们，他们知道他们是在这个逼迫之下，他们仍然是在那里呼求。赞美主。然后不信的扫罗，以他们的呼求为记号，逼迫那些呼求的人。等到他被主得着以后，那把人带进基督身体交通里的亚拿尼亚，立刻嘱咐他要呼求着主的名受浸，向人表明他也成了这样呼求的人。然后他在他提醒提摩太要成为这样呼求主的人。赞美主！</div>
+            
+            <div class="content-text">我有一个短的见证，我是十几岁的时候在纽约召会，纽约市的召会。我们有一个特会，年轻人的特会，特会之后，我们在那里打扫，高中生就留在那里，我们在那里整洁会所。我不知道，不太记得怎么回事，但是那时候我们有八位在一起，有弟兄有姊妹。有人认为说我们现在休息一下，让我们来呼求主的名。所以我们就决定让我们来操练呼求一百次，所以我们就围着个圆圈，我们就在那里呼求一百次，呼求主的名开始，有人在开始数，十二、十三、十四之后，我们就忘记了，如何数。从我的记忆里面，我们至少呼求了八、九、十分钟，我们正在那里呼求，哦，主耶稣！哦，主耶稣！哦，主耶稣！十分钟之后，那时候就没有世界了，没有试探了，没有罪，什么都没有了，就是我们奇妙的主耶稣。我们都觉得，哦，主啊，我们非常地爱你，太爱你了。你们要试试看，试试看，五分钟，就向主呼喊。如果你从来没有试过的话，我就在担心，我在担心你是不是真正地摸着了主的丰富和祂的甜美。我就说这么多，要呼喊出来。</div>
+            
+            <div class="content-text">这一段讲完我要讲到六个点，就是我们如何来呼求主的名。这是在创世记的生命读经里面，实在是一个宝贝，是创世记的生命读经第二十五篇。事实上这里很多的点都从马太福音的第六篇信息，还有创世记生命读经第二十五篇，如果你读那个话，就会比我现在讲得更多。如何呼求主这里有六个点，第一个要清心。提后二章二十二节，我们要清心来呼求主。所以当我呼求的时候，我不是在那边找感觉，不是在那寻找任何东西，我甚至不在那里寻找经历。“主啊，我在寻找你，主啊，我只要你。主啊，我只要你。我不要任何的答案，我不需要你的带领，我需要一个人位。”</div>
+            
+            <div class="content-text">第二，用纯洁的语言，就是用清洁的嘴唇。西番雅书三章九节，那节有说到纯洁的语言。好像在和合本也讲到清洁的嘴唇。在希伯来文就是讲到我们的嘴唇。圣徒们，我们需要一个清洁的嘴唇。如果我们用个不清洁的嘴唇来呼求主的名，我想你们不会经历我所讲到的丰富。没有任何东西比讲闲话来更影响，使我们的嘴唇不纯净，不洁净。耶利米说他是在不洁净的人当中，以赛亚说他在不洁净的人当中。也许我们中间讲些闲言闲语，也许讲一些批评论断的话，甚至在讲些咒诅的话，然后我们来呼求主的名，你就不会来享受这个救恩，不会享受这个丰富，我们必须要用清洁的嘴唇。</div>
+            
+            <div class="content-text">第三，张口。这个是诗篇八十一篇第七节还有第十节。诗篇八十一篇七节、十节，当你在患难中呼求你，要大大张口，我就给你充满。</div>
+            
+            <div class="content-text">第四点是团体的。我们天天，我们要团体的。提后二章二十二节，同样的经节跟第一点是一样，你要同那清心呼求主的人，同那清心呼求主的人来呼求。要团体地来呼求。我们现在一同团体地来呼求两次：哦，主耶稣！哦，主耶稣！</div>
+            
+            <div class="content-text">第五是天天。天天我们要呼求。这诗篇八十八篇九节，我的眼睛因困苦而昏花，我天天求告你，天天求告你。所以我们天天需要呼求。</div>
+            
+            <div class="content-text">在一生，第六，一生，我们只要活着，我们都要来呼求。这是诗篇一百一十六篇，“祂既向我侧耳，我一生要呼求祂。”（2）我一生要呼求祂。只要我们活着，我们要呼求祂，阿们。再回到纲要，第七小点。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-7">
+            <div class="section-level1">
+                7　那灵是属天的空气给我们吸入；我们操练灵呼求主的名吸入那灵，借此接受那灵—约二十22，加三2，帖前五17，哀三55~56，诗歌二一〇首。
+            </div>
+            
+            
+            <div class="content-text">这里的主要的点乃是哀歌三章五十五节和三章五十六节，“耶和华啊，我从极深的坑里呼求你的名。你曾听见我的声音；求你不要掩耳不听我的呼吸，我的呼吁。”你看到这里讲到把呼吸和呼吁连在一起。我们的呼求就是我们属灵的呼吸。呼吸，呼吸有两部分，我们呼，然后我们吸。我们在这里讲到中文诗歌的二百一十首，非常好的一首诗歌。我是呼出我的愁苦，呼出我的罪污，我是吸入，一直吸入，你的一切丰富。每一节经节都讲到先呼出，先呼出，然后吸入。我在很多圣徒当中看到这种情形。我们的领会觉得说我们呼求的时候，我们就要得着供应，我们要得着吸入。但是有的时候我们的呼求，主说，祂对我们是丰富的，但是我好像，我呼求不是像这样丰富，为什么？也许是因为在我们的呼求里面，我们没有呼出来。我们里面是满了很多的东西。当我们呼求的时候，我们需要从我们里面释放很多东西出来，很多东西。当然第一个是罪，当然我们要承认，承认就是一个呼出。而且有些失望，有些忧虑，有一些的苦难，我们没有办法使我们失望，甚至对主有些失望。我们要呼出我们没有达成的愿望。也许我们在我们属世的情形，我们的家庭，我们在我们的事业也许失望，但是甚至我们对召会生活，对召会生活也失望，所以我们在主面前说，我们必须要向主说“哦”，这个“哦”就是一种的呼出。你去看，如果你去查，圣经汇编，你去查这个“哦”，那里的“哦”，“哦”，光是找那里的“哦”有多少，有很多的“哦”，在诗篇里面有很多的“哦”。我真是感谢主牧养我。我在很小的时候就呼喊主，哦，主啊，哦，主，哦，主。我们需要倒空，这样我们才有空间让主进来，再把祂的丰富带进来，阿们。我们需要这样属灵的呼吸。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-六">
+            <div class="section-level1">
+                六　呼求主名的目的是：
+            </div>
+            
+            
+            <div class="content-text">我们这里有很多的点</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　得救—罗十13。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　从急难、患难、愁苦和痛苦中蒙拯救—诗十八6，一一八5，八六7，五十15，八一7，一一六3~4。
+            </div>
+            
+            
+            <div class="content-text">这里有很多诗篇的经节，我就不花时间来读了。我也许读一两个。诗篇十八篇六节，我在急难中呼求耶和华。诗篇五十篇十五节，在患难之日呼求我。诗篇一百一十六篇三节、四节，“死亡的绳索围绕我，阴间的痛苦临到我；我遭遇患难愁苦。然而我呼求耶和华的名。耶和华，求你救我的性命。”我祷告，你们有时候有没有这样的感觉？有时候在我们四围，有些事情好像情形还可以，但是我们的魂是在这里受搅扰，我们的魂是有痛苦，我们可以呼求，祂能够释放我们的魂。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　有分于主的慈爱，祂的怜悯—八六5。
+            </div>
+            
+            
+            <div class="content-text">我很爱这个经节，诗篇八十六篇五节，“主啊，你本为良善，乐意饶恕人，对一切呼求你的人，有丰盛的慈爱。”在钦定本是说到满了怜悯，你是满了怜悯，有丰盛的恩赐。我们都知道，都喜爱这些经节。在哀歌里面说，祂的怜悯，每早晨都是新的。但是如何来取用这些怜悯？就要借着呼求主。哦，主啊，谢谢你新的怜悯。而且我们有，我们可以壮胆来到施恩的宝座前，来接受恩典，得着怜悯。你如何实际地来到祂面前呢，宝座前？就是“哦，主啊，我来到你的面前。哦，主耶稣，谢谢你。你满了怜悯，你是满了慈爱”。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　有分于主的救恩—一一六2、4、13、17。
+            </div>
+            
+            
+            <div class="content-text">这里从诗篇一百一十六篇有四节的经节，在这个短的诗篇里面，四次讲到呼求。十三节，“我要举起救恩的杯，呼求耶和华的名。”圣徒们，我们的救恩是一个杯，我们喝，我们借着呼求而饮，这就跟我享受到我们来享受救恩，饮于救恩的泉源。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-5">
+            <div class="section-level1">
+                5　接受那灵—徒二17、21。
+            </div>
+            
+            
+            <div class="content-text">呼求实在是最好而且最容易的路来接受那灵。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-6">
+            <div class="section-level1">
+                6　饮灵水吃灵粮以得满足—赛五五1~2、6。
+            </div>
+            
+            
+            <div class="content-text">我想我们常常讲到呼求好像是属灵的呼吸，是属灵的饮，但是我们要吃粮，我们觉得是祷读。但是这一段的话说到我们的呼求就是吃。以赛亚五十五章，以赛亚书五十五章一节、二节和六节我就不读了。你们一切干渴的都当就近水来，你们都来，买了吃；然后第六节说到相近的时候呼求祂。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-7">
+            <div class="section-level1">
+                7　享受主的丰富—罗十12，林前十二3下，申四7，诗一四五18。
+            </div>
+            
+            
+            <div class="content-text">要享受主的丰富。我们这里有林前十二章三节下，“若不是在圣灵里，也没有人能说，主，耶稣！”耶稣是主，我们能不能说耶稣是主？你就在圣灵里了，祂的名和灵是联结的。哥林多书是非常特别的书，哥林多书乃是讲到享受包罗万有的基督，至少讲到基督的二十方面，但是那个背景、那个环境是非常复杂的召会生活，至少有两次保罗说到呼求主的名，要呼求主的名。圣徒们，我们可以经历基督的一切所是，甚至在我们复杂的召会生活里，借着呼求，借着呼求，不要忘掉呼求，阿们。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-8">
+            <div class="section-level1">
+                8　将我们自己挑旺起来—赛六四7。
+            </div>
+            
+            
+            <div class="content-text">以赛亚书六十四章，当我们呼求的时候，我们实在是可以挑旺我们里面的人。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-9">
+            <div class="section-level1">
+                9　耶稣的名是给我们在其中祷告的—约十四13~14，十五16，十六24。
+            </div>
+            
+            
+            <div class="content-text">这里很多的经节我们是熟悉的，说到我们要在主的名里祷告。但是圣徒们，这并不表示我们祷告了，然后最后说在主的名里我祷告。我不是说这样子不行，不对，但是我也这样操练，我也这样地操练，常常这样，很多年来都是这样操练实行，但是不是只是这个。要在主的名里祷告，需要这个名的后面有人位。当我们把自己祷告到那灵里的时候，我们就真是在主的名里祷告。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-10">
+            <div class="section-level2">
+                10　耶稣的名是给我们聚集归入的—太十八20。
+            </div>
+            
+            
+            <div class="content-text">赞美主，今天晚上我们聚集归入。我们不是在这个会场里，乃是在祂的名里聚集归入祂的名。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-11">
+            <div class="section-level2">
+                11　耶稣的名是给我们赶鬼的—徒十六18。
+            </div>
+            
+            
+            <div class="content-text">在我们中间很多年来我们都有这个实际，主的名的能力。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-12">
+            <div class="section-level2">
+                12　耶稣的名是给我们在其中放胆讲说的—九27。
+            </div>
+            
+            
+            <div class="content-text">我还要再加一节，就是歌罗西书三章十七节，不论你作什么，“凡你们所作的，无论是什么，或说话，或行事，都要在主耶稣的名里，借着祂感谢父神。”我们所作的一切都要在祂的名里，阿们。圣徒们，赞美主，为这个甜美的、丰富的、有能的、拯救的、医治的、安慰的、随时可得着的耶稣的名，阿利路亚！</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-七">
+            <div class="section-level1">
+                七　撒但恨恶耶稣的名：
+            </div>
+            
+            
+            <div class="content-text">不是所有的人都爱这个名。撒但恨恶耶稣的名。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　撒但利用人攻击耶稣的名—参二六9。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　宗教徒攻击耶稣的名，禁止信徒在那名里传扬或施教—四17~18，五40。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　使徒们遭受逼迫时，因被算是配为耶稣的名受辱而欢喜—41节，十五26。
+            </div>
+            
+            
+            <div class="content-text">我愿意指出一件很特别的事情，我不知道你们有没有经历到这个。当我们说到任何事，世界局势、经济、天气、运动、体育，我们都不觉得羞耻。但是当我们在一个环境里，当我们说到耶稣，我不是讲在召会聚会里，我讲到，当我们在学校里，在工作的地方，有个很奇特的感觉，给你看那个就是属魔鬼的。在这宇宙里面有一个东西，是反对耶稣的名的。我们讲到哲学，讲很多的事情，讲到体育，都没有问题，但是有机会了，你要说一点关于耶稣的话就很奇怪的感觉。你们有这样的经历么？哦，圣徒们，那是因为撒但还有魔鬼，他们都知道救恩是在耶稣的名里的，所以我们更需要壮胆来说这个名，而且在这个名里而说。</div>
+            
+            <div class="content-text">第八中点，这一段的结束。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-八">
+            <div class="section-level1">
+                八　主耶稣称赞非拉铁非的得胜者，因为他们没有否认祂的名—启三8：
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　恢复的召会弃绝了主耶稣基督之外一切的名，而绝对属于主。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　以主名之外的名称呼召会，乃是属灵的淫乱；召会如同贞洁的童女许配基督（林后十一2），除了她丈夫的名以外，不该有别的名。
+            </div>
+            
+            
+            <div class="content-text">阿们，好，第二大点，我们现在来到以马内利，第二大点就是这个经节，我们一同来读：</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+        
+        <div class="section" id="section-贰">
+            <div class="section-level1">
+                贰　“‘看哪，必有童女怀孕生子，人要称祂的名为以马内利。’（以马内利翻出来，就是神与我们同在）”—太一23：
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-一">
+            <div class="section-level1">
+                一　耶稣这君王救主的名是神所起的，而以马内利这君王救主的名是人所称的—23节。
+            </div>
+            
+            
+            <div class="content-text">这里很特别的。以马内利这个名乃是有人有些经历而称的，你必须要有些经历。所以我们说耶稣祂来了，当祂来的时候，我们就发现祂是神与我同在，哦，以马内利，以马内利是经历的名字。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-二">
+            <div class="section-level1">
+                二　马太福音是一卷论到以马内利—神成为肉体与我们同在—的书—21~23节。
+            </div>
+            
+            
+            <div class="content-text">我们前面读过了马太一章，要呼求祂的名，神与我们同在。然后十八章你们两三个人聚集在一起，我就在你们当中。祂在聚会里面，在我们信徒们的聚集里面，祂在我们当中。然后在二十八章二十节，祂说我也与你们同在。在马太福音里面，祂说到祂与我们同在，二十八章的时候。所以马太福音是一卷论到以马内利—神成为肉体与我们同在—的书。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-三">
+            <div class="section-level1">
+                三　以马内利是包罗万有的—腓一19：
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　祂先是我们的救主（路二11），然后是我们的救赎主（约一29，罗三24）、赐我们生命者（林前十五45下），之后是包罗万有、内住的灵（约十四16~20，罗八9~11）。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　实际上，全本新约的内容就是以马内利（太一23，十八20，二八20，启二一3），并且所有在基督里的信徒，作为基督的众肢体，乃是团体的基督（林前十二12，西三10~11）这伟大以马内利的一部分。
+            </div>
+            
+            
+            <div class="content-text">好，我们一开始看到神与我们同在，但是在这里我们看到启示录二十三章，启示录二十三章，在新约里面，我们看到他说到，我听见有大声音，启示录二十一章三节，“我听见有大声音从宝座出来，说，看哪，神的帐幕与人同在，祂要与人同住，他们要作祂的百姓，神要亲自与他们同在，作祂们的神。”你有看到新耶路撒冷是以马内利么？神与他们同在。而且我们现在在那里了，我们是新耶路撒冷，所以我们成为这个以马内利的一部分，这是何等的看见。从马太一章的以马内利到启示录二十一章、二十二章的以马内利。</div>
+            
+            <div class="content-text">第四中点，事实上就是我们标语的第二个标语。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-四">
+            <div class="section-level1">
+                四　实际的以马内利就是实际的灵，也就是终极完成之三一神在我们灵里的同在；祂一直在我们灵里与我们同在—不只天天，更是每时每刻—约一14，十四16~20，林前十五45下，提后四22：
+            </div>
+            
+            
+            <div class="content-text">圣徒们，我们永远不能够把祂的灵与祂的同在分开，事实上灵就是祂的同在，在我们的灵里。灵就是祂在我们灵里与我们的同在。我们呼求主耶稣，祂是那灵临到我们。那灵就是那个人的实际，就是那个名的实际，也就是我们对那个耶稣，人，耶稣的实化。我们这里有约翰一章十四节，主说祂是，约翰福音十四章，祂说我要给你们另外一个保惠师，祂要与你们，天天与你们同在。你看到祂告诉你，灵是以马内利，我要离开了，我是以马内利，我离开，我要离开了，但是祂要来，祂要是那个以马内利，就是那个保惠师就是那灵，你们有没有看到，那灵就是以马内利？然后祂说祂要与你们同在，而且要在你们里面，我不会让你们，留下你们为孤儿。感谢主，赞美主，祂是我的灵，也是我们的以马内利。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　祂在我们的聚集中与我们同在—太十八20。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　祂天天与我们同在—二八20。
+            </div>
+            
+            
+            <div class="content-text">我再说圣徒们，不要忘了，今天祂天天与我们同在，今天与我们同在。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　祂在我们的灵里与我们同在—提后四22：
+            </div>
+            
+            
+            <div class="content-text">在这底下有两个点，a点，非常特别的点，注意听。</div>
+            
+            <div class="content-text">圣徒们，我想我们都熟悉，讲到以马内利，在以赛亚书第七章讲到以马内利。马太一章是从以赛亚，引用以赛亚书的，就是有一个童女要怀孕生子，你要给他起名叫以马内利。但是在以赛亚书八章这里又讲到以马内利，就是在这里的上下文，主告诉他们，这些亚述王他们要来，就像一个大河要来淹没他们，然后最后祂说，以赛亚书八章八节说，那河展开翅膀，遍满你的地，以马内利阿。在以赛亚书，它说到那个地就是美地，迦南地，那个地就是以马内利的地。这就是我们从这里得着这个话。所以美地就是神与我们同在，就是以马内利地，这是以赛亚书八章七节、八节。第十节，它是说到，“任凭你们策划，终必失败；任凭你们言定，终不成立；因为神与我们同在。”所以这里让我们看到，仇敌总是要来得着以马内利地，但是他作不到，因为神与我们同在，因为神与我们同在。</div>
+            
+            <div class="content-text">我们在一生中看到许多圣徒们，我知道你们的故事，你们也知道我的故事，仇敌来试着，很多次，来试着要得着我们，要占取以马内利的地，在我们一生当中。但是今天晚上你在这里，我也在这里，阿利路亚！他作不到，表示他没有办法作到。赞美主！这一周，也许他试了二十一次要得着你，但是他每次他都失败了。赞美主！以马内利的地就是你的灵，阿利路亚！我很爱这个经节，这里引用的经节。约翰一书五章四节，“因为凡从神生之物，就胜过世界。”然后约翰福音三章六节，“从那灵生的，就是灵。”所以从神生的是什么？就是你的灵，我的灵。我的灵能够胜过世界，世界要胜过，世界要来占取以马内利，但是我们说“哦，主耶稣”，我们呼求主耶稣，我们看到那个大河要过来了，我们就说“哦，主耶稣”，我们呼求主耶稣，结果我们得着什么？得着以马内利。那灵就是以马内利临到我们，祂要得着那地，仇敌不能占取。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　我们聚集在一起，教训神的圣言，就能享受三一神的同在—太十八20，二八20，诗一一九30，徒六4。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-5">
+            <div class="section-level1">
+                5　我们借着作三一神同在的那灵，享受恩典与平安—加六18，徒九31。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-6">
+            <div class="section-level1">
+                6　那灵的引导和见证，就是祂的同在—罗八14、16。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-7">
+            <div class="section-level1">
+                7　我们借着三一神作为那灵的同在，享受三一神的分赐—林后十三14。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-五">
+            <div class="section-level1">
+                五　我们要与作以马内利的基督同活，就需要在祂的神圣同在里；这神圣的同在就是赐生命的灵，作三一神的终极完成—加五25：
+            </div>
+            
+            
+            <div class="content-text">这里有个非常重要的点。第一小点下面会更多地发挥，发展。</div>
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　与基督同活就是我们仍然活着，但不是凭自己单独活着，乃是凭那作以马内利的基督在我们里面活着并与我们同活；三一神若在我们外面，就无法完成祂的目的，就是将祂自己分赐到我们这人里面；所以，祂与我们的同在必须是内里的—二20。
+            </div>
+            
+            
+            <div class="content-text">这是什么意思？当主来的时候，在马太一章，祂是以马内利，祂是以马内利，祂是神与我们同在。但是祂所在的那个形状，就是神与我们同在，只能够完成法理的救赎，因为祂，这样祂能够到十字架上去流祂的血。但是我们知道神完整的救恩，不只包括法理的救赎，还有生机的拯救，这个主要的点就是祂的分赐。所以祂需要经过另外一个过程，第一个过程就是神成了肉体，第二段就是末后的亚当成了赐生命的灵。成了，成了，我们说，有的时候讲这是两个成了，所以这两个成了的过程，现在祂是以马内利，不只是外面与我们同在，祂乃是在我灵里的以马内利。而且祂一直都在分赐、分赐、分赐，把神生机的救恩实行出来，目标乃是为着预备新妇。</div>
+            
+            <div class="content-text">圣徒们，当我是一个新的信徒的时候，我非常宝贝祂是那个以马内利，来为我流血，我仍然宝贝这个。甚至每个主日的擘饼聚会，我还是这样感谢祂。谢谢你为我们所完成的，是在那个阶段你是以马内利，但是那个只是杯；但是今天我还得着饼，有东西进到我的里面，这个是以马内利在另外一个阶段。在擘饼聚会里面主的桌子，我们看到以马内利有两个阶段。祂能够与我们同在，不只祂应付我们的需要，而且把我们作成身体来答应祂的需要。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　以马内利是我们的生命和人位，我们是祂的器官，与祂一同生活如同一人；我们的得胜在于以马内利—耶稣的同在。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　我们若有主的同在，就有智慧、眼光、先见以及对事物内里的认识；主的同在对我们乃是一切—林后二10，四6~7，加五25，创五22~24，来十一5~6。
+            </div>
+            
+            
+            <div class="content-text">有的时候圣徒们，特别是年轻人，他们在那里有一些挣扎，对一些事情拦阻他们不能够往前。但是他们太注重、太注意那些事情，试着要胜过，事实上你是需要认罪，但是不要专注于那些事情，不要试着在你里面胜过，只要有以马内利。当你有祂的同在，你就已经得胜了。这就是为什么他们洗净自己袍子的有福了，他们就有权利来吃生命树，而且进到城里。如果你跌倒了你要承认，但是还需要怎么作呢？就要吃主，要来喝救恩的福杯，享受以马内利的同在。只要你在享受以马内利的同在，你就是在得胜里，事实上祂就是你的得胜。所以不要专注于注意那些事情，注意你的软弱，乃是要专注于这个人位—耶稣。祂拯救我们，从罪里拯救我们出来，祂成为我们的以马内利。</div>
+            
+            <div class="content-text">第六，是么？我们是不是到了第六中点？</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-六">
+            <div class="section-level1">
+                六　我们若要进入、据有并享受包罗万有的基督这美地的实际，就必须在主的同在里去；主应许摩西：“我的同在必和你同去，我必使你得安息”（出三三14）；神的同在就是祂的道路，是那向祂的百姓指示当行之路的“地图”：
+            </div>
+            
+            
+            
+            
+            
+            
+        <div class="section" id="section-1">
+            <div class="section-level1">
+                1　我们要为着神的建造完全得着并据有基督这包罗万有的地，就必须抓牢这一个原则：神的同在乃是一切问题的准则；我们无论作什么，都必须注意我们有否神的同在；我们若有神的同在，就有一切，但我们若失去神的同在，就失去一切—太一23，提后四22，加六18，诗二七4、8，五一11。
+            </div>
+            
+            
+            <div class="content-text">圣徒们，在使徒行传还有在利未记里，我们看到不只有很多基督的丰富让我们来享受，而且我们也看到原则，这个支配的原则就是如何神的子民能够进入、占有并享受美地。这个在《包罗万有的基督》这本书里面，第十一章里面有很多的发表。在第十一篇，《包罗万有的基督》的第十一篇里，第一个原则就是祂的同在，在出埃及记。我们如果有祂的同在，我们就有一切，我们就有一切。摩西告诉主说，主啊，如果你的同在不跟我们去的话，就不要把我们带去那里。摩西知道这个秘诀，我们就需要你的同在。</div>
+            
+            <div class="content-text">在《包罗万有的基督》的那本书里，李弟兄讲到，真是非常帮助。他说有四、五位弟兄，他们一同为着服事来旅行。有一位他对那另外四位不高兴，但是他必须去，所以他们四、五位一起坐火车，他们都在一个车厢里，结果那位弟兄他坐到第二个车厢去。他们都在第一个车厢，那位弟兄坐到第二个车厢，所以李弟兄说他们有他，但是却没有他的同在，就是这里所讲的。主说，在第六中点说，我的同在必和你同去。主没有说我会与你同去，那是不一样的。我的同在必和你同去，这是一件事；我与你同去，这是另外一回事。</div>
+            
+            <div class="content-text">我想我们都有在这一种情况，你跟别人在一起，你跟他同走，也许是你的配偶，或者你的孩子，或者你的好朋友，或者你的同伴在主里，但有的时候他们在那里，但是你没有他的同在。或者反过来也是一样，你跟他们在一起，但是他们没有你的同在。为什么？因为你不高兴，有些事情你不高兴。圣徒们，有的时候，有的时候，主会跟我们一同去，一同走，但是我们却没有祂的同在。祂会允许我们，甚至祝福我们，这是很特别的事，祂会帮助你，但是你是在第一个车厢，祂在第二个车厢。</div>
+            
+            <div class="content-text">你们有没有经历过这样的事，圣徒们？我知道在我的一生里我经历过这个，我跟我自己讲这是出于主的，所以我就作了这个事，结果，很搅扰的事情就是，好像这个事情在某一方面来讲很蒙福，但是主却不与我同在。我知道，让我看到祂的不喜悦，我在第一个车厢，但是祂在第二个车厢，但是祂跟着我一起来了。我盼望圣徒们，我们能够说，“主啊，我不要被你的帮助来支配，甚至不是你的祝福来支配。”我向主说过，我说，“主啊，我不需要你的帮助，你不帮我，我也可以作，但是如果没有你的同在，我作不到。”祂的帮助不是在这里支配的原则。我们参加过，我们有很多的情形，有个感觉里面有些的问题，有些疑问，在一些的主的工作上或者一些事奉上。有些也许说，哦，但是有结果啊。你不能跟这个果子争辩，但是我说你还是可以，与这个有争论。因为有果子，有果子，但是我觉得我们应该还是，不时地停下来，安静下来。在主面前说，主啊，我有没有你的笑容，我有没有你的笑容，在我的心里在这里有没有你的笑容，笑脸？</div>
+            
+            <div class="content-text">保罗让我们看到，保罗乃是在基督的面光中生活。他赦免那个弟兄是在基督的面光中。我们都很熟悉这个，他是在基督的面光中来，他是在基督的面前来赦免，特别是祂的眼前，是祂的眼睛的周围。我们知道，如果我们有这个人的眼睛，我们就有他的同在。你可以看到他对你高兴还是不高兴，因为你有他的眼睛。让我们来看看我有没有主的笑容，或者我只有祂的帮助，很可能的。圣徒们，我们应该非常的敬畏，主也许给我们一些东西，但是我们失去祂的同在。事实上可能主给你一些东西，结果主给你的那个东西就抢夺了祂的同在。我希望我们能够向主说，主啊，怜悯我，我宁可你不答应我的祷告，我宁可你不答应我的祷告，给我一些东西是我祷告要的。但是那个东西，也许是些物质的东西，或者是一个关系，或者是任何东西，结果那件事情来抢夺了主的同在，使我们没有主的同在。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-2">
+            <div class="section-level1">
+                2　主的同在，主的微笑，是支配的原则；我们必须学习受主直接、头手的同在保守、掌管、管理并指引—二七8，八十3、7、17~19。
+            </div>
+            
+            
+            <div class="content-text">哦，圣徒们，我想这个点是值得我们到主面前去祷告，这个点，说“主啊，我愿意被你的同在，受你直接、头手的同在来掌管、管理、指引、保守的”。这里的经节，这里诗篇八十篇的经节，说到“使你的脸发光，我们便要得救”。使你的脸发光，主啊，我愿意看到你的脸。我刚刚讲到保罗不是只有保罗他有主的人位。保罗，哥林多后书二章四节，他说，这个是光从黑暗里面照出来的，祂要照到我们的心里，就使我们认识，能够在耶稣的面上能够看见这个荣耀。所以我们每一位都有祂的面，我们每一位都有祂的面，在我们的心里都有祂的面。所以我们应该停下来说，“主啊，我有你的面，但是我有你的笑容么？”</div>
+            
+            <div class="content-text">第三，这里有些例子他们经历了这个。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-3">
+            <div class="section-level1">
+                3　作为成熟生命掌权一面的代表，约瑟享受主的同在，并且因此享有主所赐的权柄、亨通与祝福—创三九2~5、21，徒七9。
+            </div>
+            
+            
+            <div class="content-text">很多的时候约瑟的事例，我们看到耶和华与他同在。他在很糟的情况之下，但是耶和华与约瑟同在。他认识主的同在。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-4">
+            <div class="section-level1">
+                4　摩西是个非常接近神的心，并照着神的心的人；因此，他有神的同在，到了完满的地步—出三三11。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-5">
+            <div class="section-level1">
+                5　使徒保罗是照着基督眼中所表露祂全人的标示，在祂面前生活行动的人—林后二10。
+            </div>
+            
+            
+            <div class="content-text">就是在祂的眼前。</div>
+            
+            <div class="content-text">第六，这是李弟兄的交通。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-6">
+            <div class="section-level1">
+                6　“我年轻时，人教导我各种得胜、圣别、并属灵的方法。然而，……除了主的同在以外，没有一样管用。祂与我们同在，乃是一切”—约书亚记生命读经，五八至五九页。
+            </div>
+            
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+            
+            
+        <div class="section" id="section-七">
+            <div class="section-level1">
+                七　整个新约就是以马内利；我们现今是这伟大以马内利的一部分，这以马内利要终极完成于新天新地里的新耶路撒冷，直到永远；新约开始于一个神人，祂是“神与我们同在”，结束于一个伟大的神人，新耶路撒冷，就是“耶和华的所在”—太一23，林前六17，徒九4，提前三15~16，启二一3、22，结四八35。
+            </div>
+            
+            
+            <div class="content-text">我们看到启示录二十一章，就是神的帐幕要与人同在。然后在以西结书那里也经节说到新耶路撒冷。以西结书四十八章三十五节，这城的名字被称为耶和华的所在。新耶路撒冷就是以马内利。阿们。</div>
+            
+            <div class="content-text">圣徒们，结束我愿意读一点马太福音生命读经第一篇的一些的话，那一段是讲到中心思想。我们需要找出圣经每卷书的中心思想。马太福音的中心思想是，请你们注意听，基督，就是耶稣（耶和华救主）和以马内利（神与我们同在），乃是君王。你可以说阿们，阿们。施浸者、光、教师、医治者、赦罪者、新郎、牧人、朋友、智慧、安息、更大的殿、真大卫、安息日的主、更大的约拿、更大的所罗门、撒种者、种子、喂养者、饼、桌子下的碎渣、基督、活神的儿子、为着召会的磐石、召会的建造者、国度的创立者、今日的摩西、今日的以利亚、房角的头块石头、主、复活的一位、带着权柄的一位、在复活里与祂子民永远同在的一位。阿利路亚！三十三项，就是耶稣是以马内利，祂是三十三项。马太福音里的基督何等丰富，甚至比约翰福音里的更丰富。祂这位耶稣、以马内利，对我们又是另外三十三项。我们必须享受祂并有分于祂。我们需要在复活里，不是在天然的情形里，经历祂的各方面。祂是永远与我们同在的一位。马太开始于“神与我们同在”，结束于“看哪，我天天与你们同在，直到这世代的终结”。这是何等的美妙。</div>
+            
+            <div class="content-text">圣徒们，但愿我们都宝贝这两个名：耶稣，哦，耶稣，是拯救的一位，祂就是我们救恩的一位；与以马内利—神与我们同在。借着经历祂，祂就能够把我们带到国度的实际，这都在马太福音书里。祂把我们带到活在国度的实际里，让我们成为能够把国度的实现带进来。</div>
+            
+            <div class="content-text">好，与我们旁边的弟兄姊妹有点祷告。</div>
+            
+            
+            
+        </div>
+        
+            
+            
+        </div>
+        
+        
+    </div>
+</div>
+
+<style>
+.details-page {
+    padding: 5px;
+}
+
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    margin: 15px 0;
+}
+
+.font-btn {
+    min-width: 46px;
+    min-height: 46px;
+    padding: 10px 14px;
+    background: var(--btn-secondary-bg);
+    border: 1px solid var(--btn-secondary-border);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--btn-secondary-text);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: var(--shadow-sm);
+}
+
+.font-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+
+.font-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+.details-content {
+    margin-top: 15px;
+    line-height: 1.8;
+    text-align: justify;
+}
+
+.section {
+    margin-bottom: 18px;
+}
+
+.section-level1, .section-level2, .section-level3, .section-level4 {
+    font-weight: 600;
+    margin: 20px 0 12px 0;
+    line-height: 1.8;
+    color: var(--heading);
+}
+
+.section-level1 {
+    font-size: 1em;
+    color: var(--heading);
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+.section-level2 {
+    font-size: 0.9375em;
+    padding-left: 10px;
+    color: var(--heading-soft);
+    border-left: 3px solid var(--brand);
+}
+
+.section-level3 {
+    font-size: 0.9375em;
+    padding-left: 16px;
+    color: var(--text-soft);
+}
+
+.section-level4 {
+    font-size: 0.9375em;
+    padding-left: 24px;
+    color: var(--text-soft);
+}
+
+.content-text {
+    margin: 14px 0;
+    padding-left: 14px;
+    color: var(--text);
+    text-indent: 2em;
+    line-height: 1.8;
+    font-size: 0.9375em;
+}
+
+@media (min-width: 768px) {
+    .details-page {
+        padding: 20px 0;
+    }
+    
+    .details-content {
+        margin-top: 30px;
+    }
+    
+    .section {
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .font-size-controls {
+        gap: 6px;
+        margin: 8px 0;
+    }
+    
+    .font-btn {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+</style>
+
+<script>
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            // 读取所有内容文本
+            const contentTexts = document.querySelectorAll('.content-text');
+            contentTexts.forEach(p => {
+                const t = getCleanText(p);
+                if (t) text += t + '。';
+            });
+            
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>202506 感恩节相调特会训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

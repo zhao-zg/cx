@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第7篇 - 听抄</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第7篇 向众召会说话的那灵，拿着大卫的钥匙者，以及要与得胜者一同坐席者</h2>
+</div>
+
+        
+        <div class="content">
+            
+<div class="message-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="7_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="7_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="7_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="7_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    
+    <div class="scripture">读经：启三7~22</div>
+    
+    
+    <div class="message-content">
+        
+        
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　需要被主的话构成
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我要先提起一件事，就是服事的弟兄们在会前总是同心合意地为着聚会中的说话祷告。无论哪一位弟兄在讲台上说话，都如同五旬节时彼得同十一位使徒站起来对众人说话（徒二14）。我们愿意让主有路向我们说话，也盼望我们众人都有耳可听主向我们所说的话。</p>
+                
+                <p class="content-text">此外，主说，“从婴孩和吃奶的口中，你使赞美得以完全。”（太二一16）能够听见年轻人说主的话，实在是很宝贵。我们特别要鼓励青年人，在这末了的时代，就是在启示录这卷书的时代，要寻求在这卷书的领会上得以超越；不仅知道一些预言，乃是能够明白主话语的内在意义，并且花时间得着构成。在今天这个启示录的时代，不只在信徒当中，甚至在世人当中，都有一个需要，就是听见真理。我们不是用一种外在的表现来传扬、宣扬真理，乃是需要有年轻人被真理构成，在校园里或职场中，将他们所享受，并且构成到他们里面的话说出来。</p>
+                
+                <p class="content-text">为此，我们要在主的话上劳苦，抓住机会赎回光阴。在主的恢复里，在时代的职事之下，有深深挖掘真理的机会，使我们能被真理构成。盼望我们都有这样的渴望，将主的话当作金矿挖掘。起先进入时不一定看见那么多，但需要不断地挖掘，好得着金子，得着一切宝贵的矿物。这是需要时间的，需要我们更多赎回光阴，因为日子邪恶（弗五16）。撒但的诡计就是叫青年人浪费时间，所以我们要赎回光阴，付代价追求真理。但愿青年人都有这样的渴慕，好好运用时间被真理构成，这不仅对自己有益，对别人也有益；这在我们中间是极其需要的。</p>
+                
+                <p class="content-text">本篇信息的篇题是“向众召会说话的那灵，拿着大卫的钥匙者，以及要与得胜者一同坐席者”，信息内容是根据启示录三章七至二十二节，这段经文是给非拉铁非召会以及老底嘉召会的书信。我们需要特别留意主在启示录二、三章的话，因为写给七个召会的书信揭示主所称许的是什么，主所不称许的是什么。这是我们该注意的。这两章所包含的七封书信，是写给当时存在的七个召会。当然，当时的召会不只七个，但这里特别指出这七个召会；这是出于主的主宰。我们知道启示录是一卷表号的书，所以接受这七封书信的七个召会也是表号，给我们看见历史上召会进程的七个阶段。每一封书信开头，都看见主在说话，祂以某种方式表明祂自己，这是照着祂所看到那个召会的需要。祂看到召会的某种情形，某种光景，就在书信开头，指明祂自己的所是，来应付那个召会的需要。然而，主对那七个召会个别的说话，也成了那灵向众召会普遍的说话。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　在启示录二、三章，
+基督是向众召会说话的那灵
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　在启示录二、三章，基督在每封书信开头
+向七个召会个别的说话，
+七倍加强之灵在每封书信末了向七个召会普遍的说话
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">在启示录二、三章，基督是向众召会说话的那灵。在启示录二、三章，那无限、释放生命、七倍加强、是灵的基督，在每封书信开头向七个召会个别的说话（二1、8、12、18，三1、7、14），成了七倍加强、包罗万有、赐生命之灵，在每封书信末了向七个召会普遍的说话（二7、11、17、29，三6、13、22）。启示录首先有作见证的基督，个别地向七个召会说话；但在每一封书信末了，乃是包罗万有赐生命的灵，向七个召会普遍地说话。换句话说，向每一个召会所说的话，都成了向我们众人所说的话；这乃是赐生命之灵向各地所有人的说话。所以我们需要留意启示录二、三章。我们要成为追求主话的人，不仅学得一些对主话语的知识，更要进入这话语中的异象，有所看见并领受，使我们能有所构成。保罗就是这事的榜样，我们中间许多弟兄也是这样追求的榜样。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　因此，说话的基督成了向众召会说话的那灵；基督是向特定的地方召会说话，而那灵是向宇宙的身体说话
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">因此，说话的基督成了说话的那灵，就是向众召会说话的那灵；基督是向特定的地方召会说话，而那灵是向宇宙的身体说话。首先，在每一封书信的开头有说话的基督，到书信末了就有向众召会说话的那灵。基督是向特定的地方召会说话，而那灵是向宇宙的身体说话。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　这不仅指明那灵就是主，主就是那灵，
+并且强调在召会堕落的黑暗中，那灵是极其重要的
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">这不仅指明那灵就是主，主就是那灵，并且强调在召会堕落的黑暗中，那灵是极其重要的，就如一章四节之七倍加强的灵所指明的。这里有两个重点，首先，主就是那灵，那灵就是主，这是极其重大的真理。李弟兄曾因着教导这真理，被诬告为讲异端。然而，主的话明确地给我们看见，主如何就是那灵。为着这个真理在我们中间的恢复，感谢主。我得救的头几年，是在基督教里游荡。我曾参加一个五旬节派的聚会，受教导说，人有基督还不够，还需要圣灵，因此要追求圣灵的恩赐，就是要说方言。我照着他们的带领祷告等待所谓圣灵的恩赐，但一无所获。这种对那灵的认识，是何等的混乱。今天，我们该为着主就是那灵这个真理的恢复感谢神。主作为那灵，对我们是何等的便利。我从小就珍赏拿撒勒人耶稣在地上的尽职，也很羡慕能在当时作祂的门徒；但是今天我们能接触主作为那灵，对我们是那样便利又真实。如果我们不认识这真理，主对我们就不会那么真实，我们对主也难有多少经历。感谢主，祂就是那灵，那灵就是主。</p>
+                
+                <p class="content-text">这里的第二个重点，就是一章四节所说到七倍加强的灵。这是我在进入主的恢复之前，从来没有听过的。现在我们都知道，在黑暗的时代，那灵加强了七倍来应付召会的需要。如今我们能够享受这样一位七倍加强的灵。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　启示录二、三章里的七封书信是主耶稣所说的话，
+但今天神的七灵就在我们的灵里向我们说这些话；
+那灵的说话就是基督的注入
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">启示录二、三章里的七封书信是主耶稣所说的话，但我们今天读到这两章时，神的七灵为着神经纶的缘故，就在我们的灵里向我们说这些话；主在每封书信开头的话是对某个地方召会说的，但历世历代的人读的时候，就成了那灵对众召会的说话。那灵的说话总是把我们转向基督的注入；那灵的说话就是基督的注入（参林后三16~18）。我们碰着那灵，就接受那灵的说话，并得着基督的注入。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　我们听神的七灵向众召会的说话，
+就在宝贵、甜美、亲切的传输之下；
+这种注入会变化我们，将我们建造到神的建造里
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">什么时候我们听神的七灵向众召会的说话，我们立刻就在一种宝贵、甜美、亲切的传输之下；这种注入会改变我们，变化我们，使我们成为合式的材料，将我们建造到神的建造里。我们要保守自己在七灵的说话之下，不要被仇敌欺骗或打岔而离开七灵的说话。若是我们总是思考，如何改良自己作一个更好的信徒，就可能受打岔，离开那灵的说话，因而失去基督的注入。唯有基督的注入才会改变并变化我们。当然我们必须留意主写出来的话，并维持与身体的交通；但同时也要运用我们的灵来碰着七灵。这样主就有立场，把祂的生命注入我们里面。这样的注入与行为的改良完全不同，也毫无天然的成分。借着七灵向众召会所说的话，神圣的元素就注入我们里面，变化我们，使我们成为神建造的材料。这就是为何我们一再需要借着特会和训练，让七灵在这堕落黑暗的时代里向我们说话。我们不是仅仅参加查经聚会，我们乃是在七灵的说话之下。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　在七眼的注视之下，被基督一切的所是注入，
+好成为新耶路撒冷的一部分
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">凡必须到火湖去的，都被七灯（启四5）烧掉了，现今我们是在七眼（五6）的注视之下，被基督一切的所是注入，好成为新耶路撒冷的一部分。我们有七灵、七眼、七灯，因为在启示录的时代，主在我们里面的工作与运行是加强的，好使祂能借着注入与传输，照着祂的心意完成祂所要的。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　得胜者的呼召
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">虽然在众召会中的信徒有地位来听见那灵说话，因而很容易有能听的耳，但未必个个都能紧紧跟随祂的说话；所以才有得胜者的呼召。那灵的说话一面是警告，另一面乃是呼召。我们能够在此回应得胜者的呼召，是何等蒙福！</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　那灵向众召会所说的话，凡有耳的，就应当听；
+听了就要成为得胜者
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">那灵向众召会所说的话，凡有耳的，就应当听；听了就要成为得胜者。得胜不在于努力作超级基督徒，比别人更圣别或更属灵；得胜乃在于听并接受那灵的说话所带来的传输。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　主总是愿意开通我们的耳朵，好听见祂的声音
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">主总是愿意开通我们的耳朵，好听见祂的声音，使我们能照着祂的经纶看事物（伯三三14~16，赛五十4~5，出二一6）。我们何等需要有能听的耳朵。求主使我们的耳朵被调整，对准那灵的说话。以赛亚五十章四至五节说，“主每早晨唤醒我；祂唤醒我的耳朵，使我能听，像受教者一样。主耶和华开通我的耳朵；我并没有违背，也没有退后。”我们要一直对付我们的听，使我们能领受主的说话。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　发沉的耳朵需要受割礼
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">发沉的耳朵需要受割礼（耶六10，徒七51）。耶利米六章十节说，“现在我可以向谁说话作见证，使他们听呢？他们的耳朵未受割礼，不能听见。耶和华的话，他们以为羞辱，不以为喜悦。”这话对我们是个警告，但愿这事不发生在我们身上。若是我们的耳朵发沉不能听见，就表示我们的耳朵需要受割礼；我们需要奉献我们的耳朵，使其被圣别，使我们能敞开接受那灵的说话。</p>
+                
+                <p class="content-text">各地召会都会为即将进行的特会或训练祷告。然而，我们也需要个人花时间在主面前，让祂对我们的耳朵行割礼，叫我们的耳朵被血洁净，使我们能听见那灵的说话。我们参加特会或训练，不是仅有一种外在的与会，诸如能听到一些话，对主有些享受，与一些不常见面的圣徒相聚等等。那灵向我们的说话不仅是团体的，更是个别、亲密、情深的。我们都需要从主得着雷玛（rhema）的话，就是即时的话、活的话。</p>
+                
+                <p class="content-text">历年来，我们每次参加李弟兄的训练，总是会有一篇特别的信息，或一句特别的话，对我们产生确实的冲击力，使我们的人生不一样，鼓励我们继续往前。现今每次参加训练或节期时，我们仍需要得着这样特别的话；为此我们需要主对付我们的听。行传七章五十一节说，“你们这硬着颈项，心与耳未受割礼的人，时常抗拒圣灵，你们的祖宗怎样，你们也怎样。”但愿我们不是硬着颈项、心与耳未受割礼的人。有时我们不能接受主的话，是因为我们觉得被冒犯，或是有意见；我们需要对付那样的情形。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　罪人的耳朵需要用救赎的血洁净，并用那灵膏抹
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">罪人的耳朵需要用救赎的血洁净，并用那灵膏抹（利十四14、17、28）。利未记十四章十四节说，“祭司要取些赎愆祭牲的血，抹在求洁净之人的右耳垂上，和右手的大拇指上，并右脚的大拇指上。”我们的耳朵需要被洁净，使我们能听话。我们的耳朵是接受传输的工具。借着听主的话，我们就得着亲密的传输，使我们能在属灵一面有所看见。听那灵的说话是极其重要的，如果我们错过那灵的说话，不仅无法得着益处，甚至可能使我们落到抗拒主的情形里；所以我们的耳朵需要被洁净。右手的大拇指需要被洁净，是关乎我们的为主作工。右脚的大拇指被洁净，是让主有立场带领我们走祂的道路。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　我们要作祭司事奉主，耳朵就必须用救赎的血洁净；
+那灵向众召会说话时，
+我们的耳朵都必须被开通，好听见那灵说话
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们要作祭司事奉主，耳朵就必须用救赎的血洁净（出二九20，利八23~24）。那灵向众召会说话时，我们的耳朵都必须被开通、受割礼、得洁净且被膏抹，好听见那灵说话。那灵一直在说话，但问题在于我们听见并接受了多少。我们需要有被开通、受割礼、得洁净且被膏抹的耳朵。我们若参加聚会却没有得着享受，就很容易批评聚会。事实上，这往往是因着我们耳朵的情形，因为我们被其他因素霸占了。这不是聚会有问题，而是我们的领受有问题。我们要对付我们的“听”，使我们的耳朵受割礼，否则我们就不能从那灵向众召会的说话中得益处。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　那灵的说话是关于召会历史中的七类召会
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">那灵的说话是关于召会历史中的七类召会：初期的召会（以弗所）、受苦的召会（士每拿）、属世的召会（别迦摩）、背道的召会（推雅推喇）、改革的召会（撒狄）、恢复的召会（非拉铁非）以及恢复后又堕落的召会（老底嘉）。</p>
+                
+                <p class="content-text">以弗所召会，是第一世纪末的召会，离弃了起初的爱。从第一世纪末到第四世纪初，召会在罗马帝国的逼迫下，许多圣徒殉道；这是受苦的召会（士每拿）。在第四世纪初，当康斯坦丁把召会联于罗马政权时，召会就与世界联婚了；这是属世的召会（别迦摩）。第四个召会是背道的召会（推雅推喇），是由属世的召会演变而来，自教皇制度设立后，约从第六世纪后期开始。以弗所、士每拿、别迦摩这三个召会如今已不存在，但从推雅推喇起的四个召会，将一直存留到主再来。多数圣经学者认为推雅推喇是指天主教，倪弟兄在“教会的正统”第四章中也清楚指出这事。第五个召会是改革的召会（撒狄），始于十六世纪初的改教运动，并延续到主再来。</p>
+                
+                <p class="content-text">第六个召会是恢复的召会（非拉铁非）；非拉铁非是从撒狄出来的。因着英国弟兄们在主的名里聚集，脱离公会制度，实行召会生活，他们有非拉铁非召会的特点，就是持守主的话，不否认主的名。一八二五年，弟兄们在爱尔兰都柏林开始擘饼聚会。当时，他们看见马太十八章二十节的亮光：“无论在哪里，有两三个人被聚集到我的名里，哪里就有我在他们中间。”因此，他们认为公会制度不合乎圣经，唯有在主的名里聚集才合乎圣经，便如此实行，不断增长。这就是非拉铁非的召会—恢复的召会。在启示录二、三章，非拉铁非是最蒙主称许的召会。</p>
+                
+                <p class="content-text">末了，第七个召会是恢复后又堕落的召会（老底嘉）。虽然前述的弟兄们（后称弟兄会）摸着非拉铁非的实际，但他们又堕落了，现今仍在堕落的情形里，因此有老底嘉的光景。我们需要研读启示录二、三章，好能透彻领会并看见什么是讨主喜悦的；我们要从这些召会的失败有所学习。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　后四类召会都要存留到主回来；
+唯有恢复的召会能成就神永远的定旨
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">后四类召会都要存留到主回来。无疑的，唯有恢复的召会能成就神永远的定旨，也唯有她是主所要的；我们必须接受主的选择。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　老底嘉是变相的非拉铁非，不冷不热并有属灵的骄傲
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">老底嘉是变相的非拉铁非，不冷不热并有属灵的骄傲（三14~17）。这是非常严肃的事，我们该关切并蒙光照。不要自以为是非拉铁非；我们仍需小心，即使主在我们中间作工，我们仍要渴望进入非拉铁非的实际。倪弟兄曾说，“所以弟兄姊妹要记得，你们如果要继续在非拉铁非的道路上，你们就得学习在神面前谦卑。有的时候，我听见有的弟兄说，‘神的祝福在我们中间。’我承认这话，但是说这话的时候，特别要小心。一不小心，你就觉得说，那一个是老底嘉的味道。我们是富足，我们已经发了财，我们一样都不缺。我告诉你们，如果有一天你站在那一个地位上，你是很近老底嘉了！”（初信造就下册，二八五页）因此，即使主祝福了我们，我们也要谨慎，提防属灵的骄傲。弟兄会后来正是因着对道理、知识的自满而骄傲，自以为胜过他人，最终成为老底嘉。因此，我们必须提防并避免任何属灵的骄傲。</p>
+                
+                <p class="content-text">老底嘉，就是说起来样样都知道，事实上没有一样是热切的；说起来，样样都有，但是没有一样是能够把命拚上的；记得已往时候的光荣，却忘记了今天在神面前的光景。我们如果要继续走非拉铁非的路，就必须记得在神面前谦卑（参启三7~22，赛五七15，六六1~2）。实际上，我们还没有完全达到非拉铁非的光景，也不该自以为已经达到，否则就十分危险，可能堕落到老底嘉的光景。我们要蒙保守，就必须在神面前谦卑。这是主的恢复，一切都是主所作的，是主兴起许多在各地的召会；并非因我们作了什么，一切都是祂的主宰与怜悯。我们为着主的恢复和祂在全地的行动感谢主，但我们要提防属灵的骄傲，承认自己并不比别人强。我们都会犯这样的错。当我年轻时，和人谈话都有一种属灵骄傲的味道，自以为看见了别人未曾看见的。如今回想起来，实在不堪回首。我们真正的保护，乃是在主面前谦卑。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　在恢复的召会里，
+基督乃是肩头上放着神家之钥匙的一位
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　基督是那拿着大卫的钥匙，有权柄开关的
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">在恢复的召会（非拉铁非）里，基督乃是肩头上放着神家（由为着建造神国的大卫家所预表）之（宝库的）钥匙的一位（二二22，启三7）。对于恢复的召会，基督是那拿着大卫的钥匙，就是国度的钥匙，有权柄开关的；主给同心合意之恢复的召会一个敞开的门，无人能关（8，参诗一三三）。主赐给我们敞开的门，使我们不仅能享受基督的丰富，更有路得以扩展祂的丰富。这门是敞开的，反对并不能关闭这门；大卫的钥匙不在反对者手上，乃在基督手中。祂照着自己的旨意和目的，有权柄开关；祂所开的没有人能关，祂所关的也没有人能开。有时反对会使我们受挫，但反对与批评对我们并非新事；我们知道主耶稣在宝座上，握有大卫的钥匙，因此我们不因反对而失望，乃要保守自己在主面前谦卑，保守我们与主是一，使主有路带我们往前。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　大卫的钥匙为我们开门，
+使我们变化成为白石，并被建造到神的殿中作柱子
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">大卫的钥匙为我们开门，使我们变化成为白石，并被建造到神的殿中作柱子，有神的名，新耶路撒冷的名，并主的新名（启二17，三12）。我们需要领悟，大卫的钥匙与我们的变化有关。这钥匙打开神家的门，使我们能进入神的家，享受基督所是的一切丰富，就是享受神圣的元素。当我们进到祂话语的丰富里，进入那灵的说话里，这神圣的元素就渐渐变化我们，使我们成为白石，为着神的建造。白石指明蒙主称义并称许。当我们被变化成为白石，我们就与主是一，并与祂联合，被建造到神的殿中，成为有神的名写在其上的柱子。因着基督拿着大卫的钥匙，为我们开了门，就使我们得以被变化。神的建造在于我们的变化，而这变化是因着我们享受基督，得着生命的供应。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　我们要被建造到神里面，成为新耶路撒冷的构成成分，
+并成为新的基督的一部分
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们要被建造到神里面，成为新耶路撒冷的构成成分，并成为新的基督的一部分，就人说是不可能的，但我们里面生命之灵的律包含一个元素，能对付不可能（罗八2，启三7~13，参创二八12~19，约一51）。无论我们有多少天然干才，都不能叫我们被建造到神里面；但生命之灵的律，借着那灵的说话传输到我们里面，给我们享受；这律包含一个元素，能对付“不可能”，而使我们被建造到神里面。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　基督有支配神宝库之门的钥匙，
+我们经历到祂将这些丰富向我们打开，也向我们关闭
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">需要保持与主有接触</p>
+                
+                <p class="content-text">基督有支配神宝库之门的钥匙，在这宝库中，有神在基督里的丰富作我们的享受；我们经历到祂将这些丰富向我们打开，也向我们关闭（弗四30，帖前五17，约壹一7、9）。我们要享受祂的丰富作宝藏，就需要留在与主的接触里，照着生命的感觉，灵里贫穷并清心地保持与主有接触（林后二10，罗八6，十12~13，西三16，太五3、8）。</p>
+                
+                <p class="content-text">基督拿着钥匙，管治并支配神宝库的门，使我们能进入并得着其中的丰富。这是我们享受基督之丰富的条件。基督拿着钥匙，这表明神的心愿是要我们享受基督的丰富；这是神盼望我们能达到的。圣经开头说到生命树（创二9），给我们看见神的心意就是要我们享受祂，接受祂作我们生命的供应。然而，在我们这一面，需要与祂合作。我们需要照着生命的感觉，灵里贫穷并清心地保持与主有接触。为此，我们要操练运用我们的灵祷告：“主啊，保守我灵里贫穷并且清心。”甚至当我们读纲要和信息时，那灵就在这里说话；信息的话语乃是说话之灵的具体化。所以我们要祷告，让那灵能在我们里面运行，使我们能享受这些丰富。</p>
+                
+                <p class="content-text">需要被基督除去并顶替</p>
+                
+                <p class="content-text">我们要享受祂的丰富作宝藏，就需要学习运用否认己、背起十字架并丧失魂生命的钥匙；我们众人都是“舍伯那”，该被基督除去并顶替，使祂在我们里面成为我们的一切，也经过我们并为着我们作一切（赛二二15~19，太十六24~25）。以赛亚二十二章说到舍伯那乃是王的家宰（15）。家宰的职责是管理家中的行政，提供保护和供应，照顾家里的人。然而，舍伯那被以利亚敬顶替了。按照达秘的解释，舍伯那预表假基督。以利亚敬预表基督作神家的管家来服事我们，管理我们。十五至十六节上半说，“主万军之耶和华这样说：你去见作管家的，就是王的家宰舍伯那，对他说，你在这里作什么？”许多时候，我们都要问问自己：“你在这里作什么？”当你被弟兄得罪，对召会或圣徒有意见，有负面的情绪，以致对召会的态度不太正确；这时你要问自己：“你在这里作什么？”你需要被基督顶替。我们要享受基督的丰富，就要学习运用否认己、背起十字架并丧失魂生命的钥匙。当我们有消极的想法和态度时，我们都要问问自己：“你在这里作什么？”我们需要被基督顶替。</p>
+                
+                <p class="content-text">诗歌四百零二首第一节说，“不是字句律法，乃是生命主，神愿赐给我们，救我脱重负；不是任何道理，乃是主基督，使我脱离自己，不再作罪奴。”第二节说，“任何一种仪式，任何的教训，不能点活我灵，不能变化魂；乃是活的基督，赐给我生命，使我活出神命，照神所命定。”第三节说，“不是任何哲学，任何的伦理，能照基督模出祂的众肢体；乃是基督自己，在我人性里，借祂复活大能，作成祂身体。”第四节说，“不是任何宗教，也非基督教，能将神旨成就，构上神所要；乃是内住基督，作我的一切，成全神的心意，问题全解决。”第五节说，“我们从主所得恩赐与功用，全都不能顶替基督的内容；必须基督自己作我的一切，唯有基督自己是我之所缺。”这首诗歌说到顶替基督的东西，如字句的律法、哲学与宗教等；这一切都是顶替基督的“舍伯那”，都该被基督除去并顶替，使祂在我们里面成为我们的一切。主有大卫的钥匙，祂已预备好把门敞开，只需要我们的合作；我们要享受基督的丰富，就要否认己，并丧失魂生命。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　在恢复后又堕落的召会中，
+基督是那位要与得胜者一同坐席，
+赐得胜者在宝座上与祂同坐的
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">在恢复后又堕落的召会中，基督是那位要与得胜者一同坐席，赐得胜者在宝座上与祂同坐的，就如祂得了胜，在祂父的宝座上与父同坐一样（启三20~21）。老底嘉乃是堕落的非拉铁非；在堕落的召会中需要得胜者。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　“看哪，我站在门外叩门；若有听见我声音就开门的，我要进到他那里，我与他，他与我要一同坐席”
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">“看哪，我站在门外叩门；若有听见我声音就开门的，我要进到他那里，我与他，他与我要一同坐席。”（20）这里的门不是个人的心门，乃是召会的门；主是召会的元首，祂站在堕落召会的门外叩门。这门是召会的门，但需要个别的信徒打开；在老底嘉的召会有知识，却没有主的同在。</p>
+                
+                <p class="content-text">在主眼中，那恢复后又堕落的召会是：㈠困苦，因为她夸口她在道理上虚空知识的丰富，而实际上她在对基督之丰富的经历上是极其贫穷的；㈡可怜，因为她是赤身、瞎眼、满了羞耻和黑暗的；㈢贫穷，因为她在经历基督上，并在神经纶的属灵实际上是贫穷的；㈣瞎眼，因为她在真实属灵的事上，缺少真实属灵的内在眼光；㈤赤身，因为她不凭基督活着，不活基督作她主观的义，作她在日常生活中的第二件衣服（15~17，参诗四五1、9~14）。主是在对付整个召会，但接受主的对付，必须是个人主观的事。老底嘉召会已经严重堕落，却不自知。我们何等需要蒙光照并得拯救，脱离老底嘉的堕落，而真正经历基督的丰富。</p>
+                
+                <p class="content-text">与主一同坐席不单是吃一种食物，乃是吃丰盛的筵席；这可指以色列人吃迦南美地丰富出产之预表的应验（书五10~12）。借着享受基督作生命树、隐藏的吗哪和筵席，我们将在构成上与祂调和，成为一个实体，作新耶路撒冷以彰显祂（启二7、17，三20）。生命树、隐藏的吗哪和筵席，这些都是给召会中得胜者的赏赐。这也是旧约里吃的三个阶段：首先在伊甸园有生命树，接着以色列人在旷野吃吗哪，至终他们进入美地，就享受筵席，向耶和华守节。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　“得胜的，我要赐他在我宝座上与我同坐，
+就如我得了胜，在我父的宝座上与祂同坐一样”
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　在主的宝座上与主同坐，乃是给得胜者的赏赐
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">“得胜的，我要赐他在我宝座上与我同坐，就如我得了胜，在我父的宝座上与祂同坐一样。”（三21）在主的宝座上与主同坐，乃是给得胜者的赏赐，使他在要来的千年国有分于主的权柄，与主同王，管理全地（路十九11~27，太二五21、23）。我们若要认识神的同在，必须到宝座这里。老底嘉的召会不在主的同在里，因为主是站在门外叩门（启三20）；但那里有一个对得胜者的呼召，要他们进入主的同在中，在宝座上与主同坐。唯有得胜者能达到宝座。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　神的心意是要将祂自己作到人里面，
+并在人身上作工，使人能在宝座上
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">神的心意是要将祂自己作到人里面，并在人身上作工，使人能在宝座上；祂的心愿是要使我们成为属宝座的人（二26~27，三21，二二5，参赛十四12~14）。这虽是神的心意，但代价并不便宜，并非我们得救，就能得到通往宝座的门票；要达到宝座需要我们出代价。撒但抵挡神的宝座，但今天是神掌权还是撒但掌权，在于我们是否与神合作。除非我们被带到宝座，神就不能得着完满的荣耀。</p>
+                
+                <p class="content-text">在创世记一章二十六节，神不仅按着自己的形像和样式造人，也给人管治权管理万有；所以圣经从起头就给我们看见，神的心意是要带我们达到宝座。作为一个人，主耶稣已经完成了救赎的工作，并达到宝座，但祂不要独自坐宝座，祂乃是要领祂的许多弟兄都达到宝座。这是神的心意；在那里我们得荣耀，祂也得荣耀，这就叫撒但蒙羞。堕落的人能被变化到一个地步，甚至能达到神的宝座，这对神是荣耀。盼望我们对此有深刻的印象，就是神的心愿是要使我们成为属宝座的人。</p>
+                
+                <p class="content-text">在启示录三章二十一节，主应许老底嘉召会的得胜者：“得胜的，我要赐他在我宝座上与我同坐，就如我得了胜，在我父的宝座上与祂同坐一样。”得胜者被提，乃是被提到宝座那里（十二5）。我们若渴望成为得胜者，在宝座上联于主，就需要出代价，向己死并丧失我们的魂生命，好让主在我们身上完成祂所需要作的一切。</p>
+                
+                <p class="content-text">要成为属宝座的人，我们也需要对付我们的良心。以西结一章二十六节说到“穹苍之上，有宝座的样式，像蓝宝石的样子”。我们属灵经历的最高点，就是有清明的天，其上有宝座；为此我们需要有清洁的良心、无亏的良心。当我们的良心没有亏欠，我们里面的天就是清明的，在那里就有神的宝座。一天过一天，我们需要注意我们的良心，并对付我们的良心。有时我们对彼此有消极的感觉，这就证明我们没有充分、透彻地对付我们的良心。可能我们的言语或态度得罪了人，也可能是我们被别人冒犯，这都需要我们求主洁净并对付。我们都是基督身体上的肢体，为什么你会喜欢这人，却讨厌那人？这是因为我们的良心不清洁，就叫撒但有机会，把对弟兄姊妹消极的思想注入我们里面。我们都需要操练，对神对人常存无亏的良心，这样我们里面就会有清明的天，其上有宝座，我们就成为属宝座的人。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　主耶稣经过了钉十字架、复活并升天，就被带到宝座
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">主耶稣经过了钉十字架、复活并升天，就被带到宝座；一位名叫耶稣的真人，如今坐在宝座上（结一26）；如今，天地的主，宇宙的主，乃是一个人；这就是为什么我们宣告“耶稣是主”，并呼喊“哦，主耶稣”。二十六节不仅说到清明的天和宝座，也说到“在宝座的样式以上，有一位的样式好像人的样子”，这一位就是主耶稣。祂不满意于独自坐在宝座上，祂要我们联于祂，与祂同坐宝座。一天过一天，当我们经过一件又一件的事情，愿我们都让主在我们里面有更多的立场，来对付我们的良心，好使我们达到宝座。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　主耶稣是开拓者，是先锋，
+开了到宝座的路，又领头使我们能跟随
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">主耶稣领头到达宝座；祂是开拓者，是先锋（来六20，二6~9），开了到宝座的路；祂开了路，又领头使我们能跟随（10~12）。神对我们的心意不是仅仅要我们作好、不犯罪，更是要我们得胜，使我们与基督同坐宝座。祂是开拓者，是先锋，已经为我们开了到宝座的路；盼望我们从主领受怜悯和恩典，忠信的跟随祂。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　如今我们正迈向宝座，因为神的心意是
+要领我们进荣耀里去，并使我们坐在宝座上
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">如今我们正迈向宝座，因为神的心意是要领我们进荣耀里去，并使我们坐在宝座上；神渴望借着人显明祂自己，并借着人掌权、管理；神的心意是要将撒但摔下，并救赎许多曾被撒但掳掠的人，将他们带到神的宝座去。启示录二十二章一节说，“天使又指给我看在城内街道当中一道生命水的河，明亮如水晶，从神和羔羊的宝座流出来。”在新耶路撒冷，生命水的河是从宝座流出；这说出宝座是赐生命的宝座，真正的权柄总是在于生命的分赐。关于权柄和宝座，李弟兄有以下的话：</p>
+                
+                <p class="content-text">一个人自居权柄管辖圣徒，指明他根本没有权柄。只要我们是在清明的天底下，其上有宝座，我们就无须自居权柄，因为权柄就在那里。我们绝不该想把别人带到自己的权下。这种事乃是阶级制度；是属于组织的东西。我们不该想要管辖圣徒，只该谦卑自己，留在清明的天以上的宝座之下。</p>
+                
+                <p class="content-text">在地方召会中若有人自居权柄，乃是羞耻的事。……在召会生活中，我们没有任何组织或阶级制度。……我们没有总部，也没有任何一种组织。我们只有清明的天，其上有宝座。</p>
+                
+                <p class="content-text">我能见证，我只怕一件事，就是失去我主的同在。许多次我独自在房间里，向全宇宙并向自己宣告，我唯一怕的事，就是失去主的同在。只要我有主的同在，我就一无所惧。我只在意祂的同在，我不在意任何别的事。换句话说，我只在意清明的天，同其上的宝座（以西结书生命读经，一四八至一五一页）。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　我们需要神在我们里面并在我们身上作工，
+使我们够资格作王
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们已经蒙召成为神的儿子，且命定要作王，但我们需要神在我们里面并在我们身上作工，使我们够资格作王（罗五17、21，参结一22、26，太八9）。愿我们都有可听的耳朵，听见主在这篇信息对我们所说的，并把自己更新地奉献给主，操练有无亏的良心，使我们能成为属宝座的人。这不是便宜的路，愿我们都出代价，让主在我们里面有完全的立场，好叫我们联于祂，与祂同坐宝座。（R. M.）</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+    </div>
+</div>
+
+<style>
+.message-page {
+    padding: 5px;
+}
+
+.message-content {
+    margin-top: 15px;
+    line-height: 1.8;
+    font-size: 1em; /* 明确设置为 18px，确保与 body 一致 */
+    text-align: justify;
+}
+
+/* 章节结构样式 - 使用 base.html 统一样式 */
+.section {
+    margin-bottom: 18px;
+}
+
+/* 标题不需要悬挂缩进 */
+.message-page [class^="section-level"] {
+    text-indent: 0;
+    padding-left: 0;
+}
+
+.section-content {
+    margin: 12px 0 16px 0;
+    
+}
+
+.subsections {
+    margin-left: 0;
+}
+
+/* 使用 base.html 的统一 .content-text 样式 */
+
+.no-content {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 24px 16px;
+    font-size: 0.9375em;
+}
+
+@media (min-width: 768px) {
+    .message-page {
+        padding: 20px 0;
+    }
+    
+    .message-content {
+        margin-top: 30px;
+    }
+    
+    .section {
+        margin-bottom: 30px;
+       
+    }
+}
+
+/* 移动端样式继承 base.html */
+</style>
+
+<script>
+// 等待 CXSpeech 加载完成后初始化
+function initSpeech() {
+    // 检查控制元素
+    var controlBar = document.getElementById('bottomControlBar');
+    var playBtn = document.getElementById('playPauseBtn');
+    
+    if (!controlBar || !playBtn) {
+        return; // 元素不存在，不初始化
+    }
+    
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            // 方案1: 获取所有 section 标题和内容
+            const sections = document.querySelectorAll('.section');
+            
+            sections.forEach(section => {
+                // 读取 section 标题（支持所有级别）
+                const levelElem = section.querySelector('[class^="section-level"]');
+                if (levelElem) {
+                    const t = levelElem.textContent.trim();
+                    if (t) text += t + '。';
+                }
+                // 读取 section 内容
+                const sectionContent = section.querySelector('.section-content');
+                if (sectionContent) {
+                    const paragraphs = sectionContent.querySelectorAll('.content-text');
+                    paragraphs.forEach(p => {
+                        const t = p.textContent.trim();
+                        if (t) text += t + '。';
+                    });
+                }
+            });
+
+            // 方案2: 如果没有 section 结构，直接读取所有 content-text
+            if (sections.length === 0) {
+                const paragraphs = document.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+            
+            // 方案3: 如果还是没有内容，读取整个 message-content
+            if (!text || text.length < 10) {
+                const messageContent = document.querySelector('.message-content');
+                if (messageContent) {
+                    text = messageContent.textContent.trim();
+                }
+            }
+            
+            // 清理文本：移除多余的空白字符和特殊字符
+            text = text
+                .replace(/\s+/g, ' ')           // 多个空白字符替换为单个空格
+                .replace(/[\r\n\t]/g, '')       // 移除换行和制表符
+                .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '') // 只保留中英文、数字和常用标点
+                .trim();
+            
+            // 如果文本为空，在页面上显示提示
+            if (!text || text.length < 10) {
+                var timeElem = document.getElementById('speechTime');
+                if (timeElem) {
+                    timeElem.textContent = '无内容';
+                    timeElem.style.color = '#999';
+                    setTimeout(function() {
+                        timeElem.textContent = '00:00 / 00:00';
+                        timeElem.style.color = '';
+                    }, 3000);
+                }
+            }
+
+            return text;
+        }
+    });
+}
+
+// 检查并初始化 CXSpeech
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        // 等待 CXSpeech 加载，最多等待 5 秒
+        var attempts = 0;
+        var maxAttempts = 50;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                // 5秒后仍未加载，可能是脚本加载失败
+                console.log('[朗读] CXSpeech 加载超时');
+            }
+        }, 100);
+    }
+}
+
+// DOM 加载完成后检查并初始化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>202507 冬季训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

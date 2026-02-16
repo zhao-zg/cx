@@ -1,0 +1,3116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第6篇 - 晨兴</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+<style>
+.morning-revival-page{padding:5px;max-width:820px;margin:0 auto}
+.day-navigation{display:flex;flex-wrap:nowrap;gap:0;margin:15px 0;padding:8px;background:var(--surface-alt);border-radius:8px;justify-content:space-between;font-size:0.85em;box-sizing:border-box;overflow:hidden}
+.day-link{height:40px;padding:0 10px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:0;color:var(--btn-secondary-text);font-size:0.88em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box}
+.day-link + .day-link{border-left:1px solid var(--border)}
+.day-link:first-child{border-top-left-radius:6px;border-bottom-left-radius:6px}
+.day-link:last-child{border-top-right-radius:6px;border-bottom-right-radius:6px}
+.day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:rgba(102,126,234,.5)}
+.day-link.active{font-weight:700}
+.pages-container{position:relative;min-height:400px;touch-action:pan-y}
+.day-page{background:var(--surface);padding:0;display:none}
+.day-page.is-active{display:block}
+.page-controls{display:flex;justify-content:space-between;align-items:center;margin:20px 0 15px;padding:10px;background:var(--surface-alt);border-radius:12px;border:1px solid var(--border)}
+.prev-btn,.next-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:12px 16px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:5px;color:var(--btn-secondary-text);font-size:0.9375em;cursor:pointer;font-weight:600;transition:background .2s}
+.prev-btn:hover,.next-btn:hover{background:var(--btn-secondary-hover-bg)}
+.prev-btn:active,.next-btn:active{background:var(--btn-secondary-active-bg)}
+.prev-btn:disabled,.next-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-indicator{font-size:0.94em;color:var(--text-muted);font-weight:800}
+</style>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第6篇 基督作为那有天上地上所有权柄的一位</h2>
+</div>
+
+        
+        <div class="content">
+            
+
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="6_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="6_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="6_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="6_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container" data-total-pages="6">
+        
+        <div class="day-page is-active" data-day="1" data-page="0">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day1-壹" data-level="1">
+    <div class="outline-item level-1">
+        
+        壹　我们需要有关于权柄的定义—太七29：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-壹')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-壹" style="display: none;" onclick="toggleScripture('scripture-day1-壹')">
+            
+            
+            <div class="verse-line">太7:29	因为祂教训他们，像有权柄的人，不像他们的经学家。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　权柄最好的定义是“下命令、作决定并要求顺从的权力或权利，通常源自职位权力或专长”。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　在圣经里，权柄是“行使权力的道德正当性，终极来自并起源于神”。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-贰" data-level="1">
+    <div class="outline-item level-1">
+        
+        贰　神是最高的权柄；祂有一切的权柄—罗九21~22：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-贰')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-贰" style="display: none;" onclick="toggleScripture('scripture-day1-贰')">
+            
+            
+            <div class="verse-line">罗9:21	窑匠难道没有权柄，从同一团泥里，拿一块作成贵重的器皿，又拿一块作成卑贱的器皿么？</div>
+            
+            
+            
+            <div class="verse-line">罗9:22	若是神愿意显示祂的忿怒，彰显祂的能力，就多用恒忍宽容那些可怒、预备遭毁灭的器皿，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　神的权柄代表神自己；神的能力仅代表神的作为—太二一24，路五24。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一" style="display: none;" onclick="toggleScripture('scripture-day1-一')">
+            
+            
+            <div class="verse-line">太21:24	耶稣回答他们说，我也要问你们一句话，你们若告诉我，我就告诉你们，我仗着什么权柄作这些事。</div>
+            
+            
+            
+            <div class="verse-line">路5:24	但要叫你们知道人子在地上有赦罪的权柄—就对瘫子说，我吩咐你起来，拿你的小卧榻回家去吧！</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　神的权柄实际上就是神自己；权柄是出于神自己的所是—启二二1。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-二" style="display: none;" onclick="toggleScripture('scripture-day1-二')">
+            
+            
+            <div class="verse-line">启22:1	天使又指给我看在城内街道当中一道生命水的河，明亮如水晶，从神和羔羊的宝座流出来。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　无论什么权柄—属灵的、地位的、行政的—都是出于神—林后十8，十三10，约十九10~11，创九6。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-三" style="display: none;" onclick="toggleScripture('scripture-day1-三')">
+            
+            
+            <div class="verse-line">林后10:8	主赐给我们的权柄，是为建造，并不是为拆毁你们，我即使为这权柄稍微过多地夸口，也不至于惭愧。</div>
+            
+            
+            
+            <div class="verse-line">林后13:10	所以我不在的时候，写这些事，好叫我同在的时候，不必照着主所赐给我的权柄，严厉地待你们；这权柄是为着建造人，并不是为着拆毁人。</div>
+            
+            
+            
+            <div class="verse-line">约19:10	彼拉多对祂说，你不对我说话么？你岂不知我有权柄释放你，也有权柄把你钉十字架么？</div>
+            
+            
+            
+            <div class="verse-line">约19:11	耶稣回答说，若不是从上头赐给你的，你就毫无权柄办我；所以把我交给你的那人，罪更重了。</div>
+            
+            
+            
+            <div class="verse-line">创9:6	凡流人血的，他的血也必被人所流，因为神造人是按自己的形像造的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-四')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        四　我们摸到神的权柄，就是摸到神自己—赛六1~5：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-四" style="display: none;" onclick="toggleScripture('scripture-day1-四')">
+            
+            
+            <div class="verse-line">赛6:1	当乌西雅王崩的那年，我看见主坐在高高的宝座上，祂的衣袍垂下，遮满圣殿。</div>
+            
+            
+            
+            <div class="verse-line">赛6:2	其上有撒拉弗侍立，各有六个翅膀：用两个翅膀遮脸，两个翅膀遮脚，两个翅膀飞翔。</div>
+            
+            
+            
+            <div class="verse-line">赛6:3	彼此呼喊说，圣哉，圣哉，圣哉，万军之耶和华；祂的荣光充满全地。</div>
+            
+            
+            
+            <div class="verse-line">赛6:4	因呼喊者的声音，门槛的根基震动，殿充满了烟云。</div>
+            
+            
+            
+            <div class="verse-line">赛6:5	那时我说，祸哉，我灭亡了！因为我是嘴唇不洁的人，又住在嘴唇不洁的民中；又因我眼见大君王万军之耶和华。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-四" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-四-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　碰见神权柄的，就是遇见了神—摩四12。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-四-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-四-1" style="display: none;" onclick="toggleScripture('scripture-day1-四-1')">
+            
+            
+            <div class="verse-line">摩4:12	因此，以色列啊，我必向你这样行；以色列啊，我既必这样行，你当预备迎见你的神。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-四-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　得罪神的权柄，就是得罪神自己。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        五　在我们与神的关系中，没有什么比碰着权柄更重要—徒九5，太十一25。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-五')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-五" style="display: none;" onclick="toggleScripture('scripture-day1-五')">
+            
+            
+            <div class="verse-line">徒9:5	他说，主啊，你是谁？主说，我就是你所逼迫的耶稣。</div>
+            
+            
+            
+            <div class="verse-line">太11:25	那时，耶稣回答说，父啊，天地的主，我颂扬你，因为你将这些事，向智慧通达人藏起来，向婴孩却启示出来。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-六" data-level="1">
+    <div class="outline-item level-2">
+        
+        六　认识权柄是里面的开启，不是外面的教导—徒二二6~16。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-六')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-六" style="display: none;" onclick="toggleScripture('scripture-day1-六')">
+            
+            
+            <div class="verse-line">徒22:6	我将到大马色，正走的时候，约在中午，忽然从天上发出大光，四面照着我，</div>
+            
+            
+            
+            <div class="verse-line">徒22:7	我就仆倒在地，听见有声音对我说，扫罗，扫罗，你为什么逼迫我？</div>
+            
+            
+            
+            <div class="verse-line">徒22:8	我回答说，主啊，你是谁？祂对我说，我就是你所逼迫的拿撒勒人耶稣。</div>
+            
+            
+            
+            <div class="verse-line">徒22:9	与我同行的人看见了那光，却没有听明那对我说话者的声音。</div>
+            
+            
+            
+            <div class="verse-line">徒22:10	我说，主啊，我当作什么？主对我说，起来，进大马色去，在那里要将所派你作的一切事都告诉你。</div>
+            
+            
+            
+            <div class="verse-line">徒22:11	我因那光的荣耀，不能看见，就由同行的人牵着我的手，进了大马色。</div>
+            
+            
+            
+            <div class="verse-line">徒22:12	有一个人名叫亚拿尼亚，按着律法是虔诚人，为一切住在那里的犹太人所称赞。</div>
+            
+            
+            
+            <div class="verse-line">徒22:13	他到我这里来，站在旁边对我说，扫罗弟兄，你看见吧。我当时一看，就看见了他。</div>
+            
+            
+            
+            <div class="verse-line">徒22:14	他又说，我们祖宗的神预先选定了你，叫你认识祂的旨意，又得见那义者，且得听祂口中所出的声音；</div>
+            
+            
+            
+            <div class="verse-line">徒22:15	因为你要将所看见所听见的，向万人为祂作见证。</div>
+            
+            
+            
+            <div class="verse-line">徒22:16	现在你为什么耽延？起来，呼求着祂的名受浸，洗去你的罪。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启二二1	天使又指给我看在城内街道当中一道生命水的河，明亮如水晶，从神和羔羊的宝座流出来。</div>
+                
+                <div class="feeding-scripture">罗九21　	窑匠难道没有权柄，从同一团泥里，拿一块作成贵重的器皿，又拿一块作成卑贱的器皿么？</div>
+                
+                
+                
+                <p class="content-text">无论什么权柄都是出于神的，因为都是神定规的。……神在一切权柄之上，所有的权柄都在神之下。你摸到神的权柄，就是摸到神自己。神的工作基本的不是用能力，乃是用权柄；祂是用权柄的话托住万有，祂是用权柄的命令创造一切。命令就是权柄。</p>
+                
+                <p class="content-text">〔马太八章〕那个百夫长的仆人病了，他知道他顺服在上掌权的，也有在下的顺服他。因此他只要主说一句话，相信事就那样成了，因为一切的权柄都在主的手里，他信主的权柄。所以主说，没有信心比这个再大（5~10）。碰见神权柄的，就是遇见了神。……宇宙中一切的轨道是祂所建立的，世界中一切的办法也是祂所建立的，所以就都在祂的权柄底下。无论在哪里，得罪神的权柄，就是得罪神自己。基督徒应该顺服权柄（倪柝声文集第三辑第一册，一三○至一三一页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们是作主工的，是作神的仆人，第一碰着的就是权柄。……我们必须有一次碰着权柄，被权柄打倒了，这时才能作神的工。在与神整个的关系中，就是我们是否碰着权柄？若碰着了，到处都会遇到权柄，我们这个人才会受神约束，才起首能被神所使用。</p>
+                
+                <p class="content-text">宇宙有两个原则：一是神权柄的原则，一是撒但背叛的原则。我们不能一面事奉神，一面又走背叛的路，带着背叛的灵。……事奉的对面就是权柄。到底我们要服或不服神的权柄？我们这班事奉神的人，必须要有一次基本的认识。比方人一次碰着了电，以后就晓得不能随便了。同样，人若一次碰着神的权柄，给神打倒，以后眼睛就越过越会明亮，不独会审判自己，也会审判别人。</p>
+                
+                <p class="content-text">关于〔那些背叛的人〕所说，摩西没有把他们领到流奶与蜜之地，没有把田地和葡萄园分给他们为产业，〔民十六14，〕这些话也是有道理的。……但是请注意，人凭道理、凭肉眼所见，就走道理的路，但服权柄的人是凭信心走到迦南地。属灵的路绝非讲理由、讲道理的人所能走得上的。凡凭信心，接受云柱、火柱以及代表的权柄—摩西—率领的人，必定能享受属灵的丰满。地开口就是为那些不服权柄的人开了速速下到阴间的路，死亡的路。……只有像是瞎眼的人，专凭信心摸索前进，不看当前的荒凉，因为属灵的道理是凭信心的眼睛看到将来美好的应许，这等人才能进迦南。所以人总得碰着权柄，受神的约束，也受代表权柄的引领。人若只碰着父亲、哥哥、姐姐，他尚不认识何谓权柄，所以也就碰不到神。总之，权柄问题是里面的开启，不是外面的教导（倪柝声文集第三辑第一册，一二四、一二六、一四六至一四七页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day2-七" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day2-七')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        七　只有神是人直接的权柄；其他一切的权柄都是间接的权柄—神设立的代表权柄—但四32、34~37：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-七')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-七" style="display: none;" onclick="toggleScripture('scripture-day2-七')">
+            
+            
+            <div class="verse-line">但4:32	你必被赶出离开人类，与野地的兽同住；你必吃草如牛，且要经过七个时期，等你知道至高者才是人国的掌权者，要将国赐与谁，就赐与谁。</div>
+            
+            
+            
+            <div class="verse-line">但4:34	那些日子过后，我尼布甲尼撒举目望天，我的理性复归于我，我便颂赞至高者，赞美尊敬那永活者；因为祂的权柄是永远的权柄，祂的国存到万代。</div>
+            
+            
+            
+            <div class="verse-line">但4:35	地上所有的居民，都算为虚无；但在天上的万军和地上的居民中，祂照自己的意旨行事；无人能拦住祂的手，或对祂说，你作什么呢？</div>
+            
+            
+            
+            <div class="verse-line">但4:36	那时，我的理性复归于我；为了我国的荣耀，我的威严和光耀也都复归于我；我的谋士和大臣也来求见我，我又得坚立在国位上，超越的尊大加增于我。</div>
+            
+            
+            
+            <div class="verse-line">但4:37	现在我尼布甲尼撒赞美、高举、尊敬天上的王，因为祂一切的作为全是真的，祂的道路是公平的，因为祂能使那行动骄傲的降为卑。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day2-七" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day2-七-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　唯有我们碰着神的权柄，我们才能顺服神所设立的代表权柄—太二八18，来十三17，彼前五5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-七-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-七-1" style="display: none;" onclick="toggleScripture('scripture-day2-七-1')">
+            
+            
+            <div class="verse-line">太28:18	耶稣进前来，对他们说，天上地上所有的权柄，都赐给我了。</div>
+            
+            
+            
+            <div class="verse-line">来13:17	你们要信从那些带领你们的，且要服从；因他们为你们的魂儆醒，好像要交账的人；你们要使他们欢乐地作这事，不至叹息；若叹息，就与你们无益了。</div>
+            
+            
+            
+            <div class="verse-line">彼前5:5	照样，年幼的，要服从年长的；你们众人彼此相待，也都要以谦卑束腰，因为神敌挡狂傲的人，赐恩给谦卑的人。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-七-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　神不只要我们顺服祂自己，也要我们顺服祂一切的代表权柄—罗十三1~7，林后十8，十三10，来十三17。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-七-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-七-2" style="display: none;" onclick="toggleScripture('scripture-day2-七-2')">
+            
+            
+            <div class="verse-line">罗13:1	在上有权柄的，人人都当服从，因为没有权柄不是从神来的，凡掌权的都是神所设立的。</div>
+            
+            
+            
+            <div class="verse-line">罗13:2	所以抗拒掌权的，就是抗拒神的设立；抗拒的必自招处罚。</div>
+            
+            
+            
+            <div class="verse-line">罗13:3	作官的原不是叫行善的惧怕，乃是叫作恶的惧怕。你愿意不惧怕掌权的么？你只要行善，就可得他的称赞，</div>
+            
+            
+            
+            <div class="verse-line">罗13:4	因为他是神的仆人，是与你有益的。但你若作恶，就当惧怕，因为他不是徒然佩剑，他是神的仆人，是伸冤的，使忿怒临到那作恶的。</div>
+            
+            
+            
+            <div class="verse-line">罗13:5	所以你们必须服从，不但是因为忿怒，也是因为良心。</div>
+            
+            
+            
+            <div class="verse-line">罗13:6	你们上税也为这缘故，因他们是神的仆役，为这差事专责服役。</div>
+            
+            
+            
+            <div class="verse-line">罗13:7	凡人所当得的，就给他们：当得税的，就给他上税；当得捐的，就给他纳捐；当惧怕的，就惧怕他；当尊敬的，就尊敬他。</div>
+            
+            
+            
+            <div class="verse-line">林后10:8	主赐给我们的权柄，是为建造，并不是为拆毁你们，我即使为这权柄稍微过多地夸口，也不至于惭愧。</div>
+            
+            
+            
+            <div class="verse-line">林后13:10	所以我不在的时候，写这些事，好叫我同在的时候，不必照着主所赐给我的权柄，严厉地待你们；这权柄是为着建造人，并不是为着拆毁人。</div>
+            
+            
+            
+            <div class="verse-line">来13:17	你们要信从那些带领你们的，且要服从；因他们为你们的魂儆醒，好像要交账的人；你们要使他们欢乐地作这事，不至叹息；若叹息，就与你们无益了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-七-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　一切不顺服神间接权柄的人，都是不服神直接的权柄。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-七-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　神要我们顺服间接的权柄（即代表权柄），而得到属灵的供应。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-八" data-level="1">
+    <div class="outline-item level-2">
+        
+        八　我们总得碰着权柄，受神约束，也受代表权柄的引导—赛三七16，腓二12，来十三17。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-八')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-八" style="display: none;" onclick="toggleScripture('scripture-day2-八')">
+            
+            
+            <div class="verse-line">赛37:16	坐在二基路伯中间万军之耶和华以色列的神啊，唯独你是地上万国的神，你曾创造诸天与地。</div>
+            
+            
+            
+            <div class="verse-line">腓2:12	这样，我亲爱的，你们既是常顺从的，不但我与你们同在的时候，就是我如今不在的时候，更是顺从的，就当恐惧战兢，作成你们自己的救恩，</div>
+            
+            
+            
+            <div class="verse-line">来13:17	你们要信从那些带领你们的，且要服从；因他们为你们的魂儆醒，好像要交账的人；你们要使他们欢乐地作这事，不至叹息；若叹息，就与你们无益了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">来十三17	你们要信从那些带领你们的，且要服从；因他们为你们的魂儆醒，好像要交账的人……。</div>
+                
+                <div class="feeding-scripture">彼前五5	照样，年幼的，要服从年长的；你们众人彼此相待，也都要以谦卑束腰，因为神敌挡狂傲的人，赐恩给谦卑的人。</div>
+                
+                
+                
+                <p class="content-text">你……需要接受别的肢体的功用。当我们服在看见的权柄底下，我们和元首即毫无间隔，因为供应即是权柄。谁有恩赐，谁就是那个职事；谁是职事，谁就是权柄。……神所派的职事，就是权柄，别人不该不接受他。人都愿意直接接受神的权柄，但神有更多的间接权柄（即代表权柄）要我们顺服，而得到属灵的供应（倪柝声文集第三辑第一册，一九三页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">除了神自己，连主耶稣在地上都得服权柄。我们该到处看到权柄。……有的人从来不认识谁是他的权柄，一个人都未顺服过。……你若知道该顺服的是谁，你就自然而然地知道在身体里该站的地位，会站住自己的地位。但今天许多基督徒连顺服的意念都还没有。……这是作工的人头一个要学习的，也是工作最大的部分。</p>
+                
+                <p class="content-text">要身体合一，第一要有元首的生命，第二要有元首的权柄。没有元首的生命，就没有身体；没有元首的权柄，也没有身体的合一。我们必须让元首的生命掌权，叫身体合一。神不只要我们顺服祂自己，也要我们顺服祂一切的代表权柄。</p>
+                
+                <p class="content-text">保罗……看见光，也看见权柄。他说，“主啊，我当作什么？”（徒二二10）这是保罗将自己直接摆在主自己的权柄之下。但这时主却将保罗摆在祂设立的代表权柄之下，主说，“起来，进城去，你所当作的事，必有人告诉你。”（九6）保罗从此就认识权柄。……主头一次就把保罗摆在代表权柄之下。……我们信主至今，到底曾顺服多少代表的权柄？……从前我们没有光，今天该严重地看见神的代表权柄。……神注重的不是祂自己直接的权柄，乃是祂所设立间接的权柄。一切不顺服神间接权柄的人，都是不服神直接的权柄（倪柝声文集第三辑第一册，一三一至一三三、一八一至一八二页）。</p>
+                
+                <p class="content-text">在宇宙当中，只有神是人直接的权柄；除祂以外，一切的权柄都是代表的。父母作儿女的权柄，是代表神作权柄；丈夫作妻子的权柄，是代表神作权柄；政府的首长作百姓的权柄，是代表神作权柄；连学校里的师长，店铺里的经理，马路上的警察，都是我们的代表权柄。召会中的长老也是代表神作权柄。</p>
+                
+                <p class="content-text">今天人服神直接的权柄容易，服神所设立的代表权柄不容易，因为你看那些代表权柄不一定比你好，不一定比你强。……你到了一个地方召会中，可能那里的长老得救不如你早，属灵不如你高，教育程度不如你好，干才也不如你大；但是你到了那里，你就得服那个代表的权柄，接受那个代表的权柄（李常受文集一九六○年第二册，二○五至二○六页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day3-叁" data-level="1">
+    <div class="outline-item level-1">
+        
+        叁　宇宙中有两个大原则—神的权柄和撒但的背叛；神和撒但之间所争执的唯一问题，与权柄有关—徒二六18，西一13：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-叁')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-叁" style="display: none;" onclick="toggleScripture('scripture-day3-叁')">
+            
+            
+            <div class="verse-line">徒26:18	我差你到他们那里去，叫他们的眼睛得开，从黑暗转入光中，从撒但权下转向神，又因信入我，得蒙赦罪，并在一切圣别的人中得着基业。</div>
+            
+            
+            
+            <div class="verse-line">西1:13	祂拯救了我们脱离黑暗的权势，把我们迁入祂爱子的国里；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　背叛乃是否认神的权柄，也是拒绝神的管治：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　撒但原是神所造的天使长，但由于他的骄傲，他高举自己，干犯神的主宰、背叛神，就成了神的对头，并建立他自己的国—赛十四12~14，结二八2~19，太十二26。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-一-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-一-1" style="display: none;" onclick="toggleScripture('scripture-day3-一-1')">
+            
+            
+            <div class="verse-line">赛14:12	明亮之星，清晨之子啊，你何竟从天坠落！你这攻败列国的，何竟被砍倒在地上！</div>
+            
+            
+            
+            <div class="verse-line">赛14:13	你心里曾说，我要升到天上；我要高举我的宝座在神众星以上。我要坐在聚会的山上，在北方的极处。</div>
+            
+            
+            
+            <div class="verse-line">赛14:14	我要升到高云之上；我要使自己与至高者一样。</div>
+            
+            
+            
+            <div class="verse-line">结28:2	人子啊，你对推罗的君王说，主耶和华如此说，因你心里高傲，说，我是神；我在海中心坐在神的位上。你虽然居心自比神，也不过是人，并不是神。</div>
+            
+            
+            
+            <div class="verse-line">结28:3	你比但以理更有智慧，什么秘密的事都不能向你隐藏；</div>
+            
+            
+            
+            <div class="verse-line">结28:4	你靠自己的智慧聪明得了财富，积聚金银在库中。</div>
+            
+            
+            
+            <div class="verse-line">结28:5	你靠自己的大智慧和贸易增添财富，却因财富心里高傲。</div>
+            
+            
+            
+            <div class="verse-line">结28:6	所以主耶和华如此说，因你居心自比神，</div>
+            
+            
+            
+            <div class="verse-line">结28:7	我必使外邦人，就是列国中最凶残的人临到你这里；他们必拔刀攻击你因智慧而有的美丽，污辱你的光彩。</div>
+            
+            
+            
+            <div class="verse-line">结28:8	他们必使你下坑；你必死在海中心，与被杀的人一样。</div>
+            
+            
+            
+            <div class="verse-line">结28:9	在杀你的人面前，你还能说我是神么？其实你在杀害你的人手中，不过是人，并不是神。</div>
+            
+            
+            
+            <div class="verse-line">结28:10	你必死在外邦人手中，与未受割礼的人一样，因为我已经说了，这是主耶和华说的。</div>
+            
+            
+            
+            <div class="verse-line">结28:11	耶和华的话又临到我，说，</div>
+            
+            
+            
+            <div class="verse-line">结28:12	人子啊，你要为推罗王举哀，对他说，主耶和华如此说，你完美全备，满有智慧，全然美丽。</div>
+            
+            
+            
+            <div class="verse-line">结28:13	你曾在伊甸神的园中，佩戴各样宝石，就是红宝石、黄玉、金钢石、黄璧玺、红玛瑙、碧玉、蓝宝石、红玉和绿宝石，带着黄金；又有精巧的鼓和笛在你那里，都是在你受造之日预备齐全的。</div>
+            
+            
+            
+            <div class="verse-line">结28:14	你是那受膏遮掩约柜的基路伯；我将你安置在神的圣山上；你在发光如火的宝石中间往来。</div>
+            
+            
+            
+            <div class="verse-line">结28:15	你从受造之日所行的都完全，直到在你中间察出不义。</div>
+            
+            
+            
+            <div class="verse-line">结28:16	因你贸易很多，你中间就被强暴的事充满，以致你犯了罪。所以我将你当作俗污之物，从神的山驱逐你。遮掩约柜的基路伯啊，我已将你从发光如火的宝石中除灭。</div>
+            
+            
+            
+            <div class="verse-line">结28:17	你因美丽心中高傲，又因荣光败坏智慧；我已将你摔倒在地，将你摆在君王面前，好叫他们目睹眼见。</div>
+            
+            
+            
+            <div class="verse-line">结28:18	你因罪孽众多，贸易不义，亵渎了你的圣所。故此，我使火从你中间发出，烧灭你，使你在所有观看的人眼前变为地上的炉灰。</div>
+            
+            
+            
+            <div class="verse-line">结28:19	众民中凡认识你的，都必因你惊奇。你令人惊恐，永不再存留。</div>
+            
+            
+            
+            <div class="verse-line">太12:26	若撒但赶逐撒但，他就自相分争，他的国怎能站住？</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　当人犯罪时，就背叛神，否认神的权柄，并拒绝神的管治；在巴别那里，人集体背叛神，要从地上废除神的权柄—创三1~6，十一1~9。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-一-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-一-2" style="display: none;" onclick="toggleScripture('scripture-day3-一-2')">
+            
+            
+            <div class="verse-line">创3:1	耶和华神所造的，唯有蛇比田野一切的活物更狡猾。蛇对女人说，神岂是真说，你们不可吃园中所有树上的果子么？</div>
+            
+            
+            
+            <div class="verse-line">创3:2	女人对蛇说，园中树上的果子，我们可以吃；</div>
+            
+            
+            
+            <div class="verse-line">创3:3	唯有园当中那棵树上的果子，神曾说，你们不可吃，也不可摸，免得你们死。</div>
+            
+            
+            
+            <div class="verse-line">创3:4	蛇对女人说，你们不一定死；</div>
+            
+            
+            
+            <div class="verse-line">创3:5	因为神知道，你们吃的日子眼睛就开了，你们便如神知道善恶。</div>
+            
+            
+            
+            <div class="verse-line">创3:6	于是女人见那棵树的果子好作食物，也悦人的眼目，且是可喜爱的，能使人有智慧，就摘下果子来吃了，又给与她一起的丈夫，她丈夫也吃了。</div>
+            
+            
+            
+            <div class="verse-line">创11:1	那时，全地的人只有一种语言，都说同样的话语。</div>
+            
+            
+            
+            <div class="verse-line">创11:2	他们往东边迁移的时候，在示拿地发现一片平原，就住在那里。</div>
+            
+            
+            
+            <div class="verse-line">创11:3	他们彼此商量说，来吧，我们作砖，把砖烧透。他们就拿砖当石头，又拿石漆当灰泥。</div>
+            
+            
+            
+            <div class="verse-line">创11:4	他们说，来吧，我们建造一座城和一座塔，塔顶通天；我们要宣扬我们的名，免得我们分散在全地上。</div>
+            
+            
+            
+            <div class="verse-line">创11:5	耶和华降临，要看看世人所建造的城和塔。</div>
+            
+            
+            
+            <div class="verse-line">创11:6	耶和华说，看哪，他们是一样的人民，都说一样的语言；这不过是他们开头要作的事，以后他们所图谋要作的，就没有能阻挡的了。</div>
+            
+            
+            
+            <div class="verse-line">创11:7	来吧，我们下去，在那里变乱他们的语言，使他们的言语彼此不通。</div>
+            
+            
+            
+            <div class="verse-line">创11:8	于是耶和华使他们从那里分散在全地上；他们就停工，不造那城了。</div>
+            
+            
+            
+            <div class="verse-line">创11:9	因为耶和华在那里变乱全地人的语言，使众人分散在全地上，所以那城名叫巴别。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　撒但虽然干犯神的权柄，人也干犯神的权柄，背叛神，神却不让这个背叛继续下去，祂要在地上建立祂的国—启十一15。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-二" style="display: none;" onclick="toggleScripture('scripture-day3-二')">
+            
+            
+            <div class="verse-line">启11:15	第七位天使吹号，天上就有大声音说，世上的国，成了我主和祂基督的国，祂要作王，直到永永远远。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　宇宙中争执的中心，乃是谁该得着权柄—四2~3：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-三" style="display: none;" onclick="toggleScripture('scripture-day3-三')">
+            
+            
+            <div class="verse-line">启4:2	我立刻就在灵里；看哪，有一个宝座安置在天上，又有一位坐在宝座上。</div>
+            
+            
+            
+            <div class="verse-line">启4:3	那位坐着的，显出来的样子好像碧玉和红宝石，又有虹围着宝座，显出来的样子好像绿宝石</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　我们要和撒但争执，肯定权柄是属于神的—徒十七24、30。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-三-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-三-1" style="display: none;" onclick="toggleScripture('scripture-day3-三-1')">
+            
+            
+            <div class="verse-line">徒17:24	创造宇宙和其中万物的神，既是天地的主，就不住人手所造的殿，</div>
+            
+            
+            
+            <div class="verse-line">徒17:30	世人蒙昧无知的时候，神并不鉴察，如今却吩咐各处的人都要悔改，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　我们要存心顺服神的权柄，维持神的权柄—太十一25。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-三-2" style="display: none;" onclick="toggleScripture('scripture-day3-三-2')">
+            
+            
+            <div class="verse-line">太11:25	那时，耶稣回答说，父啊，天地的主，我颂扬你，因为你将这些事，向智慧通达人藏起来，向婴孩却启示出来。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        四　背叛的罪比什么罪都厉害—撒上十五23。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-四" style="display: none;" onclick="toggleScripture('scripture-day3-四')">
+            
+            
+            <div class="verse-line">撒上15:23	悖逆与行邪术的罪相等；顽梗与拜虚神和家神相同。你既厌弃耶和华的话，耶和华也厌弃你作王。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启四2　	我立刻就在灵里；看哪，有一个宝座安置在天上，又有一位坐在宝座上。</div>
+                
+                <div class="feeding-scripture">太十一25	那时，耶稣回答说，父阿，天地的主，我颂扬你……。</div>
+                
+                
+                
+                <p class="content-text">天使的堕落和人类的堕落，影响宇宙有多大，给神的难处有多大，你们注意过么？神要受造之物接受祂的权柄，而这两类受造之物却都拒绝了神的权柄。……虽然如此，神却不肯撤退祂的权柄。……所以神一面维持权柄制度，一面建立祂的国。撒但虽然干犯神的权柄，人也天天干犯神的权柄，天天背叛神，神却不让这个背叛继续下去，祂要设立祂自己的国。</p>
+                
+                <p class="content-text">主在地上一切所行的，没有一样是不顺服的。……主完全顺服，完全让神的权柄通行，就在那个范围内设立了神的国，通行了神的权柄。照样今天召会也要因着顺服，而有神权柄的通行，有神国度的彰显（倪柝声文集第三辑第一册，一六二至一六三页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">宇宙中争执的中心，乃是谁该得着权柄；我们要和撒但争执，肯定权柄是属于神的。我们要存心顺服神的权柄，维持神的权柄。</p>
+                
+                <p class="content-text">保罗在未认识权柄之先，想要从地上铲除召会，但在大马色路上遇见主以后，看见用脚（人的能力）踢犁棒（神的权柄）是难的，他立刻倒下来，承认耶稣是主，就在大马色城内能顺服亚拿尼亚的指示〔徒九10〕。</p>
+                
+                <p class="content-text">人若未在大马色路上遇见权柄，就不会在大马色城里顺服一个无名的小弟兄。这给我们看见，凡遇见权柄的人就只和权柄发生关系，不和人发生关系。我们应该只想到权柄而不想到人，因为不是顺服那个人，乃是顺服他身上神的权柄。</p>
+                
+                <p class="content-text">我们这些自以为是（实在是瞎眼）的人总要有一次碰着神的权柄。……人必须遇见了神的权柄，然后才能顺服神所设立的代表权柄。</p>
+                
+                <p class="content-text">在民数记十六章里有两个背叛：从一至四十节是首领们的背叛，从四十一至五十节是全会众的背叛。背叛的灵是会传染的。二百五十人被审判，不能使全会众受警戒。他们亲眼看见有火从神那里出来，烧灭了那献香的二百五十人，还是背叛，竟然说是摩西杀了他们。摩西、亚伦不能叫地开口，是神开的；摩西不能叫火烧人，是从耶和华神那里出来了火，施行审判。人的眼睛只看见人，没有认识权柄是出乎神。这样的人胆量很大，看见审判也不知害怕，因为他没有认识权柄的知识，这是很危险的。</p>
+                
+                <p class="content-text">有许多罪是神受得住，且是可原谅的；但一背叛，神就不能容忍，因为背叛是死亡的原则，是撒但的原则。所以背叛的罪比什么罪都厉害。每当有人抵挡权柄，神立刻审判，这是何等严肃的事！（倪柝声文集第三辑第一册，一二○至一二二、一四七至一四八页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day4-肆" data-level="1">
+    <div class="outline-item level-1">
+        
+        肆　以权柄（代表权柄）代表神的人必须有以下的资格：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　他必须服权柄—太八8~9。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一" style="display: none;" onclick="toggleScripture('scripture-day4-一')">
+            
+            
+            <div class="verse-line">太8:8	百夫长回答说，主啊，我不配你到舍下来，只要你说一句话，我的仆人就必得医治。</div>
+            
+            
+            
+            <div class="verse-line">太8:9	因为我也是一个在权柄之下的人，有兵在我以下；我对这个说，去，他就去；对那个说，来，他就来；对我的奴仆说，作这事，他就作。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　他必须认识他自己并没有权柄—二八18，林后十8，十三10。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-二" style="display: none;" onclick="toggleScripture('scripture-day4-二')">
+            
+            
+            <div class="verse-line">太28:18	耶稣进前来，对他们说，天上地上所有的权柄，都赐给我了。</div>
+            
+            
+            
+            <div class="verse-line">林后10:8	主赐给我们的权柄，是为建造，并不是为拆毁你们，我即使为这权柄稍微过多地夸口，也不至于惭愧。</div>
+            
+            
+            
+            <div class="verse-line">林后13:10	所以我不在的时候，写这些事，好叫我同在的时候，不必照着主所赐给我的权柄，严厉地待你们；这权柄是为着建造人，并不是为着拆毁人。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　他必须认识神的旨意—弗一9，五17。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-三" style="display: none;" onclick="toggleScripture('scripture-day4-三')">
+            
+            
+            <div class="verse-line">弗1:9	照着祂的喜悦，使我们知道祂意愿的奥秘；这喜悦是祂在自己里面预先定下的，</div>
+            
+            
+            
+            <div class="verse-line">弗5:17	所以不要作愚昧人，却要明白什么是主的旨意。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        四　他必须是否认己的人—太十六24。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-四" style="display: none;" onclick="toggleScripture('scripture-day4-四')">
+            
+            
+            <div class="verse-line">太16:24	于是耶稣对门徒说，若有人要跟从我，就当否认己，背起他的十字架，并跟从我。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        五　他必须与主是一，时刻活在与祂亲密的交通里—林前六17，一9，约壹一3。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-五')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-五" style="display: none;" onclick="toggleScripture('scripture-day4-五')">
+            
+            
+            <div class="verse-line">林前6:17	但与主联合的，便是与主成为一灵。</div>
+            
+            
+            
+            <div class="verse-line">林前1:9	神是信实的，你们乃是为祂所召，进入了祂儿子我们主耶稣基督的交通。</div>
+            
+            
+            
+            <div class="verse-line">约壹1:3	我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-六" data-level="1">
+    <div class="outline-item level-2">
+        
+        六　他必须不主观，不照着自己的感觉行事—林后三5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-六')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-六" style="display: none;" onclick="toggleScripture('scripture-day4-六')">
+            
+            
+            <div class="verse-line">林后3:5	并不是我们凭自己够资格将什么估计作像是出于我们自己的；我们之所以够资格，乃是出于神；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-七" data-level="1">
+    <div class="outline-item level-2">
+        
+        七　他必须对人亲切、有恩典—路六35，参罗五15~16，林前二12。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-七')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-七" style="display: none;" onclick="toggleScripture('scripture-day4-七')">
+            
+            
+            <div class="verse-line">路6:35	但你们要爱你们的仇敌，也要善待他们；并且要借给人，不指望偿还；你们的赏赐就必大了，你们且要成为至高者的儿子，因为祂恩待那忘恩的和作恶的。</div>
+            
+            
+            
+            <div class="verse-line">罗5:15	只是过犯不如恩赐；若因一人的过犯，多人都死了，神的恩典，与耶稣基督一人恩典中白白的恩赐，就更加洋溢地临到多人。</div>
+            
+            
+            
+            <div class="verse-line">罗5:16	并且一人犯罪的结果，也不如白白的恩赐；因为审判是由于一次过犯而定罪，恩赐乃是由于许多过犯而称义。</div>
+            
+            
+            
+            <div class="verse-line">林前2:12	我们所领受的，并不是世上的灵，乃是那出于神的灵，使我们能知道神白白恩赐我们的事；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-八" data-level="1">
+    <div class="outline-item level-2">
+        
+        八　他必须是在复活里的人，活在基督复活的生命里—林后一9，四14。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-八')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-八" style="display: none;" onclick="toggleScripture('scripture-day4-八')">
+            
+            
+            <div class="verse-line">林后1:9	自己里面也断定是必死的，叫我们不信靠自己，只信靠那叫死人复活的神；</div>
+            
+            
+            
+            <div class="verse-line">林后4:14	知道那叫主耶稣复活的，也必叫我们与耶稣一同复活，并且叫我们与你们一同站在祂面前。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-九" data-level="1">
+    <div class="outline-item level-2">
+        
+        九　他在神面前必须站在卑微的地位上—民十四5，十六3~4、22、45，太十一29，罗十二16，路十四7~11，彼前五5~6。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-九')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-九" style="display: none;" onclick="toggleScripture('scripture-day4-九')">
+            
+            
+            <div class="verse-line">民14:5	摩西、亚伦就在以色列人全会众前，面伏于地。</div>
+            
+            
+            
+            <div class="verse-line">民16:3	聚集攻击摩西、亚伦，说，你们太过分了；全会众个个既是圣别的，耶和华也在他们中间，你们为什么高抬自己，超过耶和华的会众呢？</div>
+            
+            
+            
+            <div class="verse-line">民16:4	摩西听见了，就面伏于地。</div>
+            
+            
+            
+            <div class="verse-line">民16:22	摩西、亚伦却面伏于地，说，神啊，万人之灵的神啊，一人犯罪，你就要向全会众发怒么？</div>
+            
+            
+            
+            <div class="verse-line">民16:45	你们从这会众中间离开，我好在片刻之间把他们灭绝。他们二人就面伏于地。</div>
+            
+            
+            
+            <div class="verse-line">太11:29	我心里柔和谦卑，因此你们要负我的轭，且要跟我学，你们魂里就必得安息；</div>
+            
+            
+            
+            <div class="verse-line">罗12:16	要彼此思念相同的事，不要思念高傲的事，倒要俯就卑微的人，不要自以为精明。</div>
+            
+            
+            
+            <div class="verse-line">路14:7	耶稣注意到被请的客人怎样选择首位，就对他们讲了一个比喻说，</div>
+            
+            
+            
+            <div class="verse-line">路14:8	你被人请去赴婚筵，不要坐在首位上，恐怕有比你尊贵的被他请来；</div>
+            
+            
+            
+            <div class="verse-line">路14:9	那请你们的人前来对你说，让座给这一位吧。你就羞羞惭惭地坐到末位上去了。</div>
+            
+            
+            
+            <div class="verse-line">路14:10	你被请的时候，要去坐在末位上，好叫那请你的人来，对你说，朋友，请上坐。那时你在同席的人面前就有光采了。</div>
+            
+            
+            
+            <div class="verse-line">路14:11	因为凡高抬自己的，必降为卑；降卑自己的，必升为高。</div>
+            
+            
+            
+            <div class="verse-line">彼前5:5	照样，年幼的，要服从年长的；你们众人彼此相待，也都要以谦卑束腰，因为神敌挡狂傲的人，赐恩给谦卑的人。</div>
+            
+            
+            
+            <div class="verse-line">彼前5:6	所以你们要谦卑，服在神大能的手下，使祂到了时候，可以叫你们升高。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-十" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-十')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        十　他必须是受得起顶撞的—出十六7，民十四2、5、9、27，太六14~15，林前四6~13。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-十')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-十" style="display: none;" onclick="toggleScripture('scripture-day4-十')">
+            
+            
+            <div class="verse-line">出16:7	早晨，你们要看见耶和华的荣耀，因为耶和华听见你们向祂所发的怨言了。我们算什么，你们竟向我们发怨言？</div>
+            
+            
+            
+            <div class="verse-line">民14:2	以色列众人向摩西、亚伦发怨言；全会众对他们说，巴不得我们早死在埃及地，或是死在这旷野。</div>
+            
+            
+            
+            <div class="verse-line">民14:5	摩西、亚伦就在以色列人全会众前，面伏于地。</div>
+            
+            
+            
+            <div class="verse-line">民14:9	只是你们不可背叛耶和华，也不要怕那地的民；因为他们是我们的食物。荫庇他们的已经离开他们，有耶和华与我们同在；不要怕他们。</div>
+            
+            
+            
+            <div class="verse-line">民14:27	这恶会众向我发怨言，我忍耐他们要到几时呢？以色列人向我所发的怨言，我都听见了。</div>
+            
+            
+            
+            <div class="verse-line">太6:14	因为你们若赦免人的过犯，你们的天父也必赦免你们；</div>
+            
+            
+            
+            <div class="verse-line">太6:15	你们若不赦免人的过犯，你们的父也必不赦免你们的过犯。</div>
+            
+            
+            
+            <div class="verse-line">林前4:6	弟兄们，我为你们的缘故，将这些事转比到自己和亚波罗身上，叫你们从我们学习不越过所写的，免得你们自高自大，高看这个，鄙视那个。</div>
+            
+            
+            
+            <div class="verse-line">林前4:7	使你与人不同的是谁？你有什么不是领受的？若真是领受的，你为什么夸口，仿佛不是领受的？</div>
+            
+            
+            
+            <div class="verse-line">林前4:8	你们已经饱足了，已经丰富了，不用我们，自己就作王了。我巴不得你们果真作王，叫我们也得与你们一同作王。</div>
+            
+            
+            
+            <div class="verse-line">林前4:9	我想神把我们使徒显列在末后，好像定了死罪的人，因为我们对世界，就是对天使和世人，成了一台戏。</div>
+            
+            
+            
+            <div class="verse-line">林前4:10	我们为基督的缘故是愚拙的，你们在基督里倒是精明的；我们软弱，你们倒强壮；你们有荣耀，我们倒被轻视。</div>
+            
+            
+            
+            <div class="verse-line">林前4:11	直到今时，我们还是又饥，又渴，又赤身露体，又挨拳打，又居无定所；</div>
+            
+            
+            
+            <div class="verse-line">林前4:12	并且劳苦，亲手作工；被人咒骂，我们就祝福；被人逼迫，我们就忍受；</div>
+            
+            
+            
+            <div class="verse-line">林前4:13	被人毁谤，我们就善劝；我们成了世界上的污秽，万物中的渣滓，直到如今。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-十" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-十-十一" data-level="2">
+    <div class="outline-item level-2">
+        
+        十一　他必须自己觉得不行，自以为不配—出三11，四6~7、10，林后三5，林前十五10。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-十-十一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-十-十一" style="display: none;" onclick="toggleScripture('scripture-day4-十-十一')">
+            
+            
+            <div class="verse-line">出3:11	摩西对神说，我是谁，竟能去法老那里，将以色列人从埃及领出来呢？</div>
+            
+            
+            
+            <div class="verse-line">出4:6	耶和华又对他说，把手放在怀里。他就把手放在怀里，及至抽出来，不料，手长了麻风，像雪那样白。</div>
+            
+            
+            
+            <div class="verse-line">出4:7	耶和华说，再把手放在怀里。他就再把手放在怀里，及至从怀里抽出来，不料，手已经复原，像身上别处的肉一样。</div>
+            
+            
+            
+            <div class="verse-line">出4:10	摩西对耶和华说，主啊，我向来不是能言的人，就是从你对仆人说话以后，还是这样；我本是拙口笨舌的。</div>
+            
+            
+            
+            <div class="verse-line">林后3:5	并不是我们凭自己够资格将什么估计作像是出于我们自己的；我们之所以够资格，乃是出于神；</div>
+            
+            
+            
+            <div class="verse-line">林前15:10	然而因着神的恩，我成了我今天这个人，并且神的恩临到我，不是徒然的；反而我比众使徒格外劳苦，但这不是我，乃是神的恩与我同在。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-十-十二" data-level="2">
+    <div class="outline-item level-2">
+        
+        十二　他必须是正确代表神的人—民二十2~13，林后五18、20，弗六20。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-十-十二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-十-十二" style="display: none;" onclick="toggleScripture('scripture-day4-十-十二')">
+            
+            
+            <div class="verse-line">民20:2	会众没有水喝，就聚集攻击摩西、亚伦。</div>
+            
+            
+            
+            <div class="verse-line">民20:3	百姓向摩西争闹说，巴不得我们的弟兄死在耶和华面前的时候，我们也死了！</div>
+            
+            
+            
+            <div class="verse-line">民20:4	你们为何把耶和华的会众领到这旷野，使我们和牲畜都死在这里？</div>
+            
+            
+            
+            <div class="verse-line">民20:5	你们为何把我们从埃及带上来，领我们到这坏地方？这地方不好撒种，也没有无花果树、葡萄树、石榴树，甚至没有水喝。</div>
+            
+            
+            
+            <div class="verse-line">民20:6	摩西、亚伦离开会众，到会幕门口，面伏于地；耶和华的荣光向他们显现。</div>
+            
+            
+            
+            <div class="verse-line">民20:7	耶和华对摩西说，</div>
+            
+            
+            
+            <div class="verse-line">民20:8	你拿着杖，和你的哥哥亚伦招聚会众，在他们眼前吩咐磐石发出水来；这样，你就为他们使水从磐石中流出来，给会众和他们的牲畜喝。</div>
+            
+            
+            
+            <div class="verse-line">民20:9	于是摩西照耶和华所吩咐的，从耶和华面前取了杖去。</div>
+            
+            
+            
+            <div class="verse-line">民20:10	摩西、亚伦就招聚会众到磐石前；摩西对他们说，你们这些背叛的人听我说，我们要为你们使水从这磐石中流出来么？</div>
+            
+            
+            
+            <div class="verse-line">民20:11	摩西举手，用杖击打磐石两下，就有许多水流出来，会众和他们的牲畜都喝了。</div>
+            
+            
+            
+            <div class="verse-line">民20:12	耶和华对摩西、亚伦说，因为你们不信我，不在以色列人眼前尊我为圣，所以你们必不得领这会众进我所赐给他们的地去。</div>
+            
+            
+            
+            <div class="verse-line">民20:13	这就是米利巴水；以色列人在那里向耶和华争闹，耶和华就在他们中间显为圣。</div>
+            
+            
+            
+            <div class="verse-line">林后5:18	一切都是出于神，祂借着基督使我们与祂自己和好，又将这和好的职事赐给我们；</div>
+            
+            
+            
+            <div class="verse-line">林后5:20	所以我们为基督作了大使，就好像神借我们劝你们一样；我们替基督求你们：要与神和好。</div>
+            
+            
+            
+            <div class="verse-line">弗6:20	（我为这奥秘作了带锁链的大使，）使我在这奥秘上，照我所当讲的，放胆讲说。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">太八9　	因为我也是一个在权柄之下的人，有兵在我以下；我对这个说，去，他就去；对那个说，来，他就来；对我的奴仆说，作这事，他就作。</div>
+                
+                <div class="feeding-scripture">十六24	于是耶稣对门徒说，若有人要跟从我，就当否认己，背起他的十字架，并跟从我。</div>
+                
+                
+                
+                <p class="content-text">一个要作神代表权柄的人，除了他自己必须认识神的权柄，并顺服神的权柄之外，还有三点基本的要求是必须有的：</p>
+                
+                <p class="content-text">〔首先，〕一个作代表权柄的人必须记得，没有权柄不是出于神的。……他身上如果有权柄，乃是出于神的；他自己并不是权柄。没有人可以立自己作权柄。你个人的意见，不能成为别人的律法；你自己的意见、看法或主张，并没有被接受的价值。……只有由神出来，显在你身上的权柄，你才可以叫弟兄姊妹服。作代表权柄的人，只应该代表神的权柄。……所有作代表权柄的人，都必须记得：他只是代表神的权柄，他自己并没有任何的权柄。</p>
+                
+                <p class="content-text">一个人是作权柄的人，乃在于他是认识神的旨意，有神的思想，有神的意思（倪柝声文集第三辑第一册，二二九至二三○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">一个作代表权柄的人，第二个基本的要求乃是要弃绝自己。当你不认识神的旨意时，就不可开口，不可随便使用权柄。一个作神代表权柄的人，不仅要在积极方面认识何为神的权柄，也要在消极方面学习弃绝自己。请你记得，你的意见，神并不宝贝，弟兄姊妹也不宝贝。……你以为你的意见是最好的，你以为你的意见，神宝贝，弟兄姊妹也宝贝。你乃是在梦里。你千万不要愚昧到一个地步，硬将自己的意见压在别人心上。</p>
+                
+                <p class="content-text">一个作神代表权柄的人，第三个基本要求，就是必须时刻与神有亲密的交通。不只有来往的交通（communion），并且是有东西的交通（communication）。有些人一天到晚有许多意见，他必须学习丢弃他的意见。他每碰到一个意见，都要带到神面前办交涉，看看这些意见是出于肉体的，还是出于神的。这样，神就能逐渐将祂的心意指教他。</p>
+                
+                <p class="content-text">所以我们要作代表权柄，就必须有属灵的条件，加上谦卑的条件。作权柄的条件，乃是根据自以为不配，自己觉得不行。我觉得有一句话不错：在新旧约圣经中我们看见，神所用的人，没有一个是骄傲的人。我顶直地告诉你，人一有骄傲，神立时把他摆在一边。我站作工地位二十余年，从来没有看见一个骄傲的人是神能用的。人在那里偷偷地骄傲，迟早会在话语里显出来，因为话语是走漏里面消息的。就是谦卑的人，将来在神的审判台前还不知要有多少的惊骇！而骄傲人的惊骇也不知要超过谦卑人多少倍！我们必须觉得自己不行，因为神只用无用的仆人。这不是我们客气，乃是真觉得我们是无用的仆人；虽然放了羊、耕了地，但回来时，仍说自己是无用的仆人。我们总要站在仆人的地位上（路十七10）。神绝不把权柄交给自以为是、自以为行的人。我们要拒绝骄傲，学习谦卑温柔（倪柝声文集第三辑第一册，二三三、二三七、三二四页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day5-伍" data-level="1">
+    <div class="outline-item level-1">
+        
+        伍　最重要、最属灵的祷告，乃是权柄的祷告—太十八18，可十一20~24：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-伍')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-伍" style="display: none;" onclick="toggleScripture('scripture-day5-伍')">
+            
+            
+            <div class="verse-line">太18:18	我实在告诉你们，凡你们在地上捆绑的，必是在诸天之上已经捆绑的；凡你们在地上释放的，必是在诸天之上已经释放的。</div>
+            
+            
+            
+            <div class="verse-line">可11:20	早晨，他们从那里经过，看见那无花果树连根都枯干了。</div>
+            
+            
+            
+            <div class="verse-line">可11:21	彼得想起来，就对祂说，拉比，请看，你所咒诅的无花果树，已经枯干了。</div>
+            
+            
+            
+            <div class="verse-line">可11:22	耶稣回答说，你们要信神。</div>
+            
+            
+            
+            <div class="verse-line">可11:23	我实在告诉你们，无论谁对这座山说，你得挪开，投在海里，他若心里不疑惑，只信他所说的成了，就必给他成了。</div>
+            
+            
+            
+            <div class="verse-line">可11:24	所以我告诉你们，凡你们祷告祈求的，无论是什么，只要信已经得着了，就必得着。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　权柄的祷告乃是用权柄来吩咐—赛四五11，可十一20~24：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-一" style="display: none;" onclick="toggleScripture('scripture-day5-一')">
+            
+            
+            <div class="verse-line">赛45:11	耶和华以色列的圣者，就是那塑造以色列的，如此说，关于我众子将来的事，你们可以问我；关于我手的工作，你们可以吩咐我。</div>
+            
+            
+            
+            <div class="verse-line">可11:20	早晨，他们从那里经过，看见那无花果树连根都枯干了。</div>
+            
+            
+            
+            <div class="verse-line">可11:21	彼得想起来，就对祂说，拉比，请看，你所咒诅的无花果树，已经枯干了。</div>
+            
+            
+            
+            <div class="verse-line">可11:22	耶稣回答说，你们要信神。</div>
+            
+            
+            
+            <div class="verse-line">可11:23	我实在告诉你们，无论谁对这座山说，你得挪开，投在海里，他若心里不疑惑，只信他所说的成了，就必给他成了。</div>
+            
+            
+            
+            <div class="verse-line">可11:24	所以我告诉你们，凡你们祷告祈求的，无论是什么，只要信已经得着了，就必得着。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　权柄的祷告乃是吩咐的祷告—赛四五11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-一-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-一-1" style="display: none;" onclick="toggleScripture('scripture-day5-一-1')">
+            
+            
+            <div class="verse-line">赛45:11	耶和华以色列的圣者，就是那塑造以色列的，如此说，关于我众子将来的事，你们可以问我；关于我手的工作，你们可以吩咐我。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　我们若真要祷告在神面前有分量、有价值，就必须能在神面前发出权柄的命令来—可十一23。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-一-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-一-2" style="display: none;" onclick="toggleScripture('scripture-day5-一-2')">
+            
+            
+            <div class="verse-line">可11:23	我实在告诉你们，无论谁对这座山说，你得挪开，投在海里，他若心里不疑惑，只信他所说的成了，就必给他成了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　权柄的祷告有两方面—捆绑和释放—太十八18：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-二" style="display: none;" onclick="toggleScripture('scripture-day5-二')">
+            
+            
+            <div class="verse-line">太18:18	我实在告诉你们，凡你们在地上捆绑的，必是在诸天之上已经捆绑的；凡你们在地上释放的，必是在诸天之上已经释放的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-二" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-二-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　普通的祷告是求神捆绑，求神释放的祷告。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-二-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　权柄的祷告是我们用权柄来捆绑，来释放。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　权柄的祷告就是马可十一章二十至二十四节的祷告—这个祷告不是对神说，乃是对“这座山”说—23节：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-三" style="display: none;" onclick="toggleScripture('scripture-day5-三')">
+            
+            
+            <div class="verse-line">可11:20	早晨，他们从那里经过，看见那无花果树连根都枯干了。</div>
+            
+            
+            
+            <div class="verse-line">可11:21	彼得想起来，就对祂说，拉比，请看，你所咒诅的无花果树，已经枯干了。</div>
+            
+            
+            
+            <div class="verse-line">可11:22	耶稣回答说，你们要信神。</div>
+            
+            
+            
+            <div class="verse-line">可11:23	我实在告诉你们，无论谁对这座山说，你得挪开，投在海里，他若心里不疑惑，只信他所说的成了，就必给他成了。</div>
+            
+            
+            
+            <div class="verse-line">可11:24	所以我告诉你们，凡你们祷告祈求的，无论是什么，只要信已经得着了，就必得着。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　权柄的祷告，不是求神作什么，乃是用神的权柄，把神的权柄拿来对付难处，对付那该除去的事—23节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-三-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-三-1" style="display: none;" onclick="toggleScripture('scripture-day5-三-1')">
+            
+            
+            <div class="verse-line">可11:23	我实在告诉你们，无论谁对这座山说，你得挪开，投在海里，他若心里不疑惑，只信他所说的成了，就必给他成了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　权柄的祷告不是直接向神求，乃是直接用神的权柄来对付难处—出十四15~27。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-三-2" style="display: none;" onclick="toggleScripture('scripture-day5-三-2')">
+            
+            
+            <div class="verse-line">出14:15	耶和华对摩西说，你为什么向我呼求？你吩咐以色列人往前行。</div>
+            
+            
+            
+            <div class="verse-line">出14:16	你举杖向海伸手，把海分开；以色列人要下到海中走干地。</div>
+            
+            
+            
+            <div class="verse-line">出14:17	我要使埃及人的心刚硬，他们就跟着下去；我要借着法老和他的全军，借着他的战车和马兵，荣耀我自己。</div>
+            
+            
+            
+            <div class="verse-line">出14:18	我借着法老和他的战车、马兵荣耀我自己的时候，埃及人就知道我是耶和华了。</div>
+            
+            
+            
+            <div class="verse-line">出14:19	在以色列营前行走的神的使者，转到他们后边行走；云柱也从他们前边转到他们后边立住。</div>
+            
+            
+            
+            <div class="verse-line">出14:20	在埃及营和以色列营之间有云柱，一边黑暗，一边发光；终夜双方不得相近。</div>
+            
+            
+            
+            <div class="verse-line">出14:21	摩西向海伸手，耶和华便用强大的东风，使海水一夜退去，叫海成了干地；水就分开了。</div>
+            
+            
+            
+            <div class="verse-line">出14:22	以色列人下到海中，走在干地上，水在他们的左右作了墙垣。</div>
+            
+            
+            
+            <div class="verse-line">出14:23	埃及人追赶他们，法老一切的马匹、战车和马兵，都跟着下到海中。</div>
+            
+            
+            
+            <div class="verse-line">出14:24	到了晨更的时候，耶和华从云火柱中向埃及人的营观看，使埃及人的营混乱了；</div>
+            
+            
+            
+            <div class="verse-line">出14:25	祂又使他们的车轮偏歪，难以行驶，以致埃及人说，我们从以色列人面前逃跑吧！因耶和华为他们争战，攻击埃及人了。</div>
+            
+            
+            
+            <div class="verse-line">出14:26	耶和华对摩西说，你向海伸手，叫水回流，淹没埃及人并他们的战车、马兵。</div>
+            
+            
+            
+            <div class="verse-line">出14:27	摩西就向海伸手，到了天亮，海水回流复原。埃及人避水逃跑的时候，耶和华把他们推翻在海中。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-三-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　得胜者最要紧的工作，就是把宝座上的权柄带到地上来；我们若要作得胜者，就必须学会权柄的祷告，对山说话—启十一15，十二10。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-三-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-三-3" style="display: none;" onclick="toggleScripture('scripture-day5-三-3')">
+            
+            
+            <div class="verse-line">启11:15	第七位天使吹号，天上就有大声音说，世上的国，成了我主和祂基督的国，祂要作王，直到永永远远。</div>
+            
+            
+            
+            <div class="verse-line">启12:10	我听见天上有大声音说，我们神的救恩、能力、国度、并祂基督的权柄，现在都来到了，因为那在我们神面前昼夜控告我们弟兄们的控告者，已经被摔下去了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">可十一23~24	我实在告诉你们，无论谁对这座山说，你得挪开，投在海里，他若心里不疑惑，只信他所说的成了，就必给他成了。所以我告诉你们，凡你们祷告祈求的，无论是什么，只要信已经得着了，就必得着。</div>
+                
+                
+                
+                <p class="content-text">在圣经中有一个最高的祷告，有一个最属灵的祷告，可是很少有人有这个祷告，很少有人注意这个祷告。……这个祷告就是“权柄的祷告”。我们知道有赞美的祷告，有感谢的祷告，有祈求的祷告，有哀求的祷告。……权柄的祷告，就是吩咐的祷告。这一种祷告乃是圣经中最紧要，最属灵的祷告。这一种祷告乃是权柄的代表，乃是权柄的命令（倪柝声文集第二辑第二册，二二四页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">权柄的祷告可以分两方面：一方面是捆绑，一方面是释放。在地上所捆绑的，在天上也要捆绑；在地上所释放的，在天上也要释放；地上如何，天上也如何。这是马太十八章十八节所说的。接下去十九节是说到祷告的事。……普通祈求的祷告是求神捆绑，求神释放。权柄的祷告是我们用权柄来捆绑，来释放。神所以如此捆绑，就是因为召会已经先捆绑了；神所以如此释放，就是因为召会已经先释放了。神把权柄赐给召会，召会用这权柄去如何说，神就如何作。</p>
+                
+                <p class="content-text">什么是权柄的祷告呢？简单地说，就是马可十一章里的祷告。……二十四节开头说“所以”，“所以”是承上接下之辞。……二十四节是说到祷告的事，可见二十三节也是说到祷告的事。希奇的就是在这里不像普通的祷告，这里不是对神说，“神啊，求你把这座山挪开此地投在海里。”在这里说什么呢？这里是说，“无论谁对这座山说，你得挪开，投在海里。”……我们想，祷告总是要向神说，“神啊，求你把这座山挪开此地投在海里。”但主在这里所说的是另一方面。……叫我们面向山，对山说。不是对神说，乃是直接对山说，“你得挪开，投在海里。”主恐怕我们以为这不是祷告，所以在二十四节就来解释说，这也是祷告。在这里有一个祷告不是对神说的，但也是祷告。对山说，……这就是权柄的祷告。权柄的祷告，不是求神作什么，乃是用神的权柄，把神的权柄拿来直接对付难处，直接对付那该除去的事。这种祷告，是每一个得胜者所必须学习的。每一个得胜者必须学会如何直接对山说话。</p>
+                
+                <p class="content-text">我们有许多软弱的地方，像脾气、污秽的思想或者身体的病痛等等，如果去对神说，好像不容易见效；但你如果把神的权柄拿来，对山说话，它立刻就跑掉了。……把神的权柄拿来直接去对难处说话，说“奉我主的名叫你离开我”，“我不能容让你留在我身上”，这一种的祷告是很少的。权柄的祷告是你要对那拦阻你的说，“离开我！”你要对你的脾气说，“离开我！”你要对你的疾病说，“离开我！我要靠着主复活的生命仍然起来。”</p>
+                
+                <p class="content-text">权柄的祷告不是直接向神求，乃是直接用神的权柄来对付难处。这山，我们人人都有，不过不一定是一样大小的就是了，……总之就是在属灵的道路上拦阻你的那个东西，你可以命令它离开你。这就是权柄的祷告（倪柝声文集第二辑第二册，二三六、二三○至二三二页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day6-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day6-四')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        四　召会用权柄祷告，就管理阴府—太十六18：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-四" style="display: none;" onclick="toggleScripture('scripture-day6-四')">
+            
+            
+            <div class="verse-line">太16:18	我还告诉你，你是彼得，我要把我的召会建造在这磐石上，阴间的门不能胜过她。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day6-四" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day6-四-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　召会有权柄能管理一切属乎撒但的。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-四-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　召会该用祷告来治服邪灵在各方面的活动，并该借着祷告来掌权—路十17~19，太十八18。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-四-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-四-2" style="display: none;" onclick="toggleScripture('scripture-day6-四-2')">
+            
+            
+            <div class="verse-line">路10:17	那七十个人欢欢喜喜地回来，说，主啊，在你的名里，就是鬼也服了我们。</div>
+            
+            
+            
+            <div class="verse-line">路10:18	耶稣对他们说，我看见撒但从天上坠落，像闪电一样。</div>
+            
+            
+            
+            <div class="verse-line">路10:19	看哪，我已经给你们权柄，可以践踏蛇和蝎子，并胜过仇敌一切的能力，绝没有什么能伤害你们。</div>
+            
+            
+            
+            <div class="verse-line">太18:18	我实在告诉你们，凡你们在地上捆绑的，必是在诸天之上已经捆绑的；凡你们在地上释放的，必是在诸天之上已经释放的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        五　我们若要有权柄的祷告，首先必须服在神的权柄之下；除非我们服神地位上的权柄，在日常生活上，并在一切实行的事上，都服神的权柄，我们就不能有权柄的祷告—赛四五11，彼前五6，启二二1。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-五')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-五" style="display: none;" onclick="toggleScripture('scripture-day6-五')">
+            
+            
+            <div class="verse-line">赛45:11	耶和华以色列的圣者，就是那塑造以色列的，如此说，关于我众子将来的事，你们可以问我；关于我手的工作，你们可以吩咐我。</div>
+            
+            
+            
+            <div class="verse-line">彼前5:6	所以你们要谦卑，服在神大能的手下，使祂到了时候，可以叫你们升高。</div>
+            
+            
+            
+            <div class="verse-line">启22:1	天使又指给我看在城内街道当中一道生命水的河，明亮如水晶，从神和羔羊的宝座流出来。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-六" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day6-六')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        六　权柄的祷告，乃是以天上为起点，以地上为终点的—歌四8，六10，弗一22~23，二6，六18：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-六')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-六" style="display: none;" onclick="toggleScripture('scripture-day6-六')">
+            
+            
+            <div class="verse-line">歌4:8	我的新妇，求你与我一同从利巴嫩来，与我一同从利巴嫩来，从亚玛拿顶，从示尼珥与黑门顶，从有狮子的洞穴，从有豹子的山岭，来观看。</div>
+            
+            
+            
+            <div class="verse-line">歌6:10	那向前观望如晨光，美丽如月亮，皎洁如日头，威武如展开旌旗军队的是谁呢？</div>
+            
+            
+            
+            <div class="verse-line">弗1:22	将万有服在祂的脚下，并使祂向着召会作万有的头；</div>
+            
+            
+            
+            <div class="verse-line">弗1:23	召会是祂的身体，是那在万有中充满万有者的丰满。</div>
+            
+            
+            
+            <div class="verse-line">弗2:6	祂又叫我们在基督耶稣里一同复活，一同坐在诸天界里，</div>
+            
+            
+            
+            <div class="verse-line">弗6:18	时时在灵里祷告，并尽力坚持，在这事上儆醒，且为众圣徒祈求，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day6-六" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day6-六-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　权柄的祷告，是从天上祷告到地上，乃是站在天上的地位，从天上祷告下来，祷告到地上—二6。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-六-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-六-1" style="display: none;" onclick="toggleScripture('scripture-day6-六-1')">
+            
+            
+            <div class="verse-line">弗2:6	祂又叫我们在基督耶稣里一同复活，一同坐在诸天界里，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-六-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　祷告下来，就是站在基督所给我们在诸天界里的地位上，在那里用权柄命令撒但，拒绝撒但一切的工作，而用权柄宣告说，神所已经命令的都该成功—太六9~10。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-六-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-六-2" style="display: none;" onclick="toggleScripture('scripture-day6-六-2')">
+            
+            
+            <div class="verse-line">太6:9	所以你们要这样祷告：我们在诸天之上的父，愿你的名被尊为圣，</div>
+            
+            
+            
+            <div class="verse-line">太6:10	愿你的国来临，愿你的旨意行在地上，如同行在天上。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-七" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day6-七')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        七　祷告的地位是升天的地位，祷告的权柄也是升天的权柄；所有在升天里的祷告，都是权柄的祷告—弗二6，一22~23：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-七')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-七" style="display: none;" onclick="toggleScripture('scripture-day6-七')">
+            
+            
+            <div class="verse-line">弗2:6	祂又叫我们在基督耶稣里一同复活，一同坐在诸天界里，</div>
+            
+            
+            
+            <div class="verse-line">弗1:22	将万有服在祂的脚下，并使祂向着召会作万有的头；</div>
+            
+            
+            
+            <div class="verse-line">弗1:23	召会是祂的身体，是那在万有中充满万有者的丰满。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day6-七" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day6-七-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　权柄的祷告就是能站在升天的地位上发出命令来—赛四五11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-七-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-七-1" style="display: none;" onclick="toggleScripture('scripture-day6-七-1')">
+            
+            
+            <div class="verse-line">赛45:11	耶和华以色列的圣者，就是那塑造以色列的，如此说，关于我众子将来的事，你们可以问我；关于我手的工作，你们可以吩咐我。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-七-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　我们若在升天的地位上，我们的祷告就等于神的行政，等于在那里执行祂的命令—启八3~5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-七-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-七-2" style="display: none;" onclick="toggleScripture('scripture-day6-七-2')">
+            
+            
+            <div class="verse-line">启8:3	另一位天使拿着金香炉，来站在祭坛旁边，有许多香赐给祂，好同众圣徒的祷告献在宝座前的金坛上。</div>
+            
+            
+            
+            <div class="verse-line">启8:4	那香的烟同众圣徒的祷告，从那天使手中上升于神面前。</div>
+            
+            
+            
+            <div class="verse-line">启8:5	那天使拿着香炉，盛满了坛上的火，丢在地上，于是有雷轰、声音、闪电、地震。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-八" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day6-八')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        八　有了升天的地位，有了升天的权柄，也能发出权柄的祷告来，一到这个时候，我们这个人就是在宝座上，和主一同掌权—弗二5~6，启三21，参结一26：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-八')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-八" style="display: none;" onclick="toggleScripture('scripture-day6-八')">
+            
+            
+            <div class="verse-line">弗2:5	竟然在我们因过犯死了的时候，便叫我们一同与基督活过来（你们得救是靠着恩典），</div>
+            
+            
+            
+            <div class="verse-line">弗2:6	祂又叫我们在基督耶稣里一同复活，一同坐在诸天界里，</div>
+            
+            
+            
+            <div class="verse-line">启3:21	得胜的，我要赐他在我宝座上与我同坐，就如我得了胜，在我父的宝座上与祂同坐一样。</div>
+            
+            
+            
+            <div class="verse-line">结1:26	在他们头以上的穹苍之上，有宝座的样式，像蓝宝石的样子；在宝座的样式以上，有一位的样式好像人的样子。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day6-八" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day6-八-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　到了这个时候，我们的祷告不光是个权柄的祷告，也是个掌权的祷告；我们的祷告就是执掌神的行政，执行神的命令—罗五17、21，太十八18，启八3~5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-八-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-八-1" style="display: none;" onclick="toggleScripture('scripture-day6-八-1')">
+            
+            
+            <div class="verse-line">罗5:17	若因一人的过犯，死就借着这一人作了王，那些受洋溢之恩，并洋溢之义恩赐的，就更要借着耶稣基督一人，在生命中作王了。</div>
+            
+            
+            
+            <div class="verse-line">罗5:21	使罪怎样在死中作王，恩典也照样借着义作王，叫人借着我们的主耶稣基督得永远的生命。</div>
+            
+            
+            
+            <div class="verse-line">太18:18	我实在告诉你们，凡你们在地上捆绑的，必是在诸天之上已经捆绑的；凡你们在地上释放的，必是在诸天之上已经释放的。</div>
+            
+            
+            
+            <div class="verse-line">启8:3	另一位天使拿着金香炉，来站在祭坛旁边，有许多香赐给祂，好同众圣徒的祷告献在宝座前的金坛上。</div>
+            
+            
+            
+            <div class="verse-line">启8:4	那香的烟同众圣徒的祷告，从那天使手中上升于神面前。</div>
+            
+            
+            
+            <div class="verse-line">启8:5	那天使拿着香炉，盛满了坛上的火，丢在地上，于是有雷轰、声音、闪电、地震。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-八-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　我们肯去学的时候，到一个地步，就能发出这样的祷告，叫神永远的定旨得以成就—弗一10~11，三9~11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-八-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-八-2" style="display: none;" onclick="toggleScripture('scripture-day6-八-2')">
+            
+            
+            <div class="verse-line">弗1:10	为着时期满足时的经纶，要将万有，无论是在诸天之上的，或是在地上的，都在基督里归一于一个元首之下；</div>
+            
+            
+            
+            <div class="verse-line">弗1:11	我们既在祂里面，照着那位按祂意愿所决议的，行作万事者的定旨，蒙了预定，也就在祂里面成了所选定的基业，</div>
+            
+            
+            
+            <div class="verse-line">弗3:9	并将那历世历代隐藏在创造万有之神里的奥秘有何等的经纶，向众人照明，</div>
+            
+            
+            
+            <div class="verse-line">弗3:10	为要借着召会，使诸天界里执政的、掌权的，现今得知神万般的智慧，</div>
+            
+            
+            
+            <div class="verse-line">弗3:11	这是照着祂在我们的主基督耶稣里，所立的永远定旨；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">弗一22~23	将万有服在祂的脚下，并使祂向着召会作万有的头；召会是祂的身体，是那在万有中充满万有者的丰满。</div>
+                
+                <div class="feeding-scripture">二6　	祂又叫我们在基督耶稣里一同复活，一同坐在诸天界里。</div>
+                
+                
+                
+                <p class="content-text">召会能用权柄的祷告来管理阴府。因为基督已经远超过这一切了，因为基督是召会的头，所以召会能够管理邪灵和一切属乎撒但的。召会如果没有管理邪灵的权柄，主如果没有把这个权柄赐给召会，召会在地上活都活不成。召会所以能活在地上，就是因为召会有权柄能管理一切属乎撒但的。……我们可以奉主的名赶鬼，我们也可以用祷告管住邪灵在暗中的活动（倪柝声文集第二辑第二册，二三四页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们必须服在神的权柄之下。我们若不服在神的权柄之下，我们就不能有权柄的祷告。我们不只要服神地位上的权柄，我们在生活上，在实行的事情上也要服神的权柄。不然，就不能有权柄的祷告。</p>
+                
+                <p class="content-text">普通的祷告是从地上祷告到天上去。……权柄的祷告，乃是以天上为起点，以地上为终点的。换句话说，权柄的祷告，就是从天上祷告到地上。……如果一个人没有学习过祷告下来的祷告，就是没有学习过权柄的祷告。但在属灵的争战中，祷告下来的祷告是非常要紧的。……就是站在基督所给我们在诸天界里的地位上，在那里用权柄命令撒但，拒绝撒但一切的工作，而用权柄宣告说，神所已经命令的都该成功。比方说，我们为着某一件事情求，我们已经真看见神的旨意是什么了，真知道神所定规的是什么了，这时，我们就……说，“神，你无论如何要这样作，这件事必定要这样成就；神，这件事无论如何要这样成功。”（倪柝声文集第二辑第二册，二三九、二二八页）</p>
+                
+                <p class="content-text">祷告的地位就是升天的地位。……什么时候你从天的境界里出来，你就失去了祷告的地位。你可以祷告，但那个祷告算不得数。……祷告的地位既是升天的地位，祷告的权柄也就是升天的权柄。有祷告的地位，就有祷告的权柄。基督徒所作的一切事，不光是个能力问题，更是权柄问题。……有的人……不光有能力，也有权柄，因为他是在升天的地位上。</p>
+                
+                <p class="content-text">在以赛亚书里面神有一句话说，“你们可以吩咐我。”（四五11）这个吩咐，有的是直接吩咐神，有的是间接吩咐环境。就像摩西在红海边，吩咐海水分开；主耶稣在船上吩咐风和海平静，或者吩咐疾病离开人。……你若摸着了属天的地位，摸着了那个权柄，你都能在那里说，“我吩咐这个贫穷离开我。”</p>
+                
+                <p class="content-text">有了升天的地位，有了升天的权柄，也能发出权柄的祷告来，一到这个时候，你这个人就是在宝座上，和主一同在掌权的地位上。祂如何在神的右边掌权，你也如何与祂一同在升天的境界里掌权。到了这个时候，你的祷告不光是个权柄的祷告，也是个掌权的祷告；你的祷告就是执掌权柄，执行神的命令。所以这个时候，你所有的祷告都变作神的行政，变作神管理的一个执行。……〔当〕大家肯去学的时候，到一个地步，就会摸着这样的祷告（李常受文集一九五九年第四册，二四七、二五○至二五三、二五五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const pagesContainer = document.querySelector('.pages-container');
+    if (!pagesContainer) return;
+    const totalPages = Number(pagesContainer.dataset.totalPages || 0);
+    if (totalPages === 0) return;
+
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach((page, index) => {
+            page.classList.toggle('is-active', index === pageIndex);
+        });
+        
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 仅在用户手动切换时滚动到顶部
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（优化版：支持速度判断和方向识别）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let touchStartTime = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+        touchStartTime = Date.now();
+    }, { passive: true });
+    
+    document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const diffX = touchStartX - touchEndX;
+        const diffY = Math.abs(touchStartY - touchEndY);
+        const diffTime = Date.now() - touchStartTime;
+        const velocity = Math.abs(diffX) / diffTime; // px/ms
+        
+        // 动态阈值：快速滑动大幅降低距离要求
+        const baseThreshold = 40; // 基础阈值降低到40px
+        const velocityThreshold = 0.25; // 降低速度阈值，让更多滑动被判定为"快速"
+        const swipeThreshold = velocity > velocityThreshold ? 25 : baseThreshold;
+        
+        // 适度放宽垂直容忍度
+        const maxVerticalMove = 40; // 垂直移动可以到40px
+        const horizontalRatio = 2.0; // 水平是垂直的2倍即可
+        
+        // 综合判断：距离 + 速度 + 方向
+        if (Math.abs(diffX) > swipeThreshold && 
+            diffY < maxVerticalMove && 
+            Math.abs(diffX) > diffY * horizontalRatio) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    // 初始加载时不滚动
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', function() {
+        initFromHash(false);
+    });
+    
+    // 初始化（不滚动）
+    initFromHash(true);
+})();
+
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page.is-active');
+            if (!activePage) return '';
+
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = getCleanText(item);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+<script src="js/outline.js"></script>
+
+<style>
+/* 纲目和内容样式 */
+.outline-section{margin:18px 0}
+.outline-section .scripture-content{cursor:pointer}
+.content-separator{height:1px;background:var(--border);margin:20px 0}
+.feeding-section,.reading-section{margin:20px 0}
+.feeding-section h4,.reading-section h4{font-size:1.05em;font-weight:600;color:var(--heading);margin:16px 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;text-align:center}
+.feeding-scripture{margin:10px 0;padding:10px 14px;background:var(--surface-alt);border-left:3px solid var(--brand);border-radius:6px;font-size:1.01em;color:var(--text);line-height:1.8;font-weight:550;text-align:justify;letter-spacing:0.1px}
+.prev-btn:active:not(:disabled),.next-btn:active:not(:disabled){background:var(--bg);color:#fff;border-color:rgba(102,126,234,.55)}
+.no-content{color:var(--text-muted);font-style:italic;text-align:center;padding:40px 20px}
+@media(min-width:768px){.feeding-section h4,.reading-section h4{font-size:1.08em}.feeding-scripture{font-size:1.05em;padding:12px 16px}}
+@media(max-width:768px){.day-navigation{gap:0}.page-controls{margin:20px 0 10px}.prev-btn,.next-btn{padding:8px 12px;font-size:14px}.btn-text{display:none}}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>202506 感恩节相调特会训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

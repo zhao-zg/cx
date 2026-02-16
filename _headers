@@ -1,0 +1,26 @@
+# Cloudflare Pages 和 GitHub Pages 的 HTTP 头配置
+
+# Service Worker - 确保正确的 MIME 类型
+/sw.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache
+
+# Manifest
+/manifest.json
+  Content-Type: application/manifest+json; charset=utf-8
+
+# JavaScript 文件
+/js/*.js
+  Content-Type: application/javascript; charset=utf-8
+
+# CSS 文件
+/css/*.css
+  Content-Type: text/css; charset=utf-8
+
+# HTML 文件
+/*.html
+  Content-Type: text/html; charset=utf-8
+
+# 图片
+/icons/*.svg
+  Content-Type: image/svg+xml

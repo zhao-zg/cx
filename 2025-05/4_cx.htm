@@ -1,0 +1,2032 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第4篇 - 晨兴</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+<style>
+.morning-revival-page{padding:5px;max-width:820px;margin:0 auto}
+.day-navigation{display:flex;flex-wrap:nowrap;gap:0;margin:15px 0;padding:8px;background:var(--surface-alt);border-radius:8px;justify-content:space-between;font-size:0.85em;box-sizing:border-box;overflow:hidden}
+.day-link{height:40px;padding:0 10px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:0;color:var(--btn-secondary-text);font-size:0.88em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box}
+.day-link + .day-link{border-left:1px solid var(--border)}
+.day-link:first-child{border-top-left-radius:6px;border-bottom-left-radius:6px}
+.day-link:last-child{border-top-right-radius:6px;border-bottom-right-radius:6px}
+.day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:rgba(102,126,234,.5)}
+.day-link.active{font-weight:700}
+.pages-container{position:relative;min-height:400px;touch-action:pan-y}
+.day-page{background:var(--surface);padding:0;display:none}
+.day-page.is-active{display:block}
+.page-controls{display:flex;justify-content:space-between;align-items:center;margin:20px 0 15px;padding:10px;background:var(--surface-alt);border-radius:12px;border:1px solid var(--border)}
+.prev-btn,.next-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:12px 16px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:5px;color:var(--btn-secondary-text);font-size:0.9375em;cursor:pointer;font-weight:600;transition:background .2s}
+.prev-btn:hover,.next-btn:hover{background:var(--btn-secondary-hover-bg)}
+.prev-btn:active,.next-btn:active{background:var(--btn-secondary-active-bg)}
+.prev-btn:disabled,.next-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-indicator{font-size:0.94em;color:var(--text-muted);font-weight:800}
+</style>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第4篇 怜悯人的人有福了，因为他们必蒙怜悯并领受怜悯</h2>
+</div>
+
+        
+        <div class="content">
+            
+
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="4_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="4_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="4_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="4_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+    <a href="4_zs.htm" class="nav-link" title="职事">职事</a>
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container" data-total-pages="6">
+        
+        <div class="day-page is-active" data-day="1" data-page="0">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day1-壹" data-level="1">
+    <div class="outline-item level-1">
+        
+        壹　“‘我要向谁施怜悯，就向谁施怜悯；……’这样看来，这不在于那定意的，也不在于那奔跑的，只在于那施怜悯的神”—罗九15上、16：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　怜悯是神的属性中够得最远的，比祂的恩典和爱够得更远—太九13：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一" style="display: none;" onclick="toggleScripture('scripture-day1-一')">
+            
+            
+            <div class="verse-line">太9:13	你们去研究，“我要的是怜悯，不是祭祀”，是什么意思；我来本不是召义人，乃是召罪人。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　按我们天然的光景，我们离神太远，完全不配得祂的恩典；我们只适合接受祂的怜悯—弗二4。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一-1" style="display: none;" onclick="toggleScripture('scripture-day1-一-1')">
+            
+            
+            <div class="verse-line">弗2:4	然而神富于怜悯，因祂爱我们的大爱，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　我们的不信从给神的怜悯机会，神的怜悯就领我们得着救恩—罗十一32。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一-2" style="display: none;" onclick="toggleScripture('scripture-day1-一-2')">
+            
+            
+            <div class="verse-line">罗11:32	因为神将众人都圈在不信从之中，为要怜悯众人。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　我们的观念是：那定意的会得着他所定意要得着的，那奔跑的会得着他所追求的—九16：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-二" style="display: none;" onclick="toggleScripture('scripture-day1-二')">
+            
+            
+            <div class="verse-line">罗9:16	这样看来，这不在于那定意的，也不在于那奔跑的，只在于那施怜悯的神。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-二" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-二-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　若情形是这样，那么神的拣选就是照着我们的努力和劳苦了。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-二-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　反之，神的拣选是出于施怜悯的神；我们不需要定意或奔跑，因为神怜悯我们。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-二-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　我们若认识神的怜悯，就不会信靠自己的努力，也不会因自己的失败而失望；我们可怜光景的盼望，是在于神的怜悯—弗二4。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-二-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-二-3" style="display: none;" onclick="toggleScripture('scripture-day1-二-3')">
+            
+            
+            <div class="verse-line">弗2:4	然而神富于怜悯，因祂爱我们的大爱，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">弗二4　	然而神富于怜悯，因祂爱我们的大爱。</div>
+                
+                <div class="feeding-scripture">太九13　	……“我要的是怜悯，不是祭祀，”是什么意思；我来本不是召义人，乃是召罪人。</div>
+                
+                
+                
+                <p class="content-text">怜悯是神的属性中够得最远的。怜悯比恩典〔和爱〕够得更远。神的爱没有祂的恩典够得远，祂的恩典又没有祂的怜悯够得远。……我若是你亲爱的朋友，到你这里来，你送我礼物，那是恩典。然而，我若是可怜、不洁的乞丐，无法为自己作什么，而你送我礼物，那是怜悯。这说明神的怜悯比祂的恩典够得更远的事实。恩典只延及相称的情况。但怜悯够得更远，达到可怜且不配得恩典的情况。按我们天然的光景，我们离神太远，完全不配得祂的恩典。我们只适合接受祂的怜悯（新约总论第一册，一一四页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">神的怜悯不在于人美好的光景。神的怜悯反而显于人可怜的光景。它比恩典够得更远。……临到我们的是神的怜悯。我们没有一人在符合祂恩典的光景里。我们这样贫穷又可怜，需要神的怜悯延及我们堕落的光景。神的怜悯把我们带到祂的恩典里。我们何等需要领悟这点，并为着神的怜悯敬拜祂！即使现在，我们得救并有分于神生命的丰富之后，在有些方面，我们的光景仍需要神的怜悯临到我们。因这缘故，希伯来四章十六节说，我们首先需要受怜悯，然后才能得恩典，作应时的帮助。哦，我们何等需要神的怜悯！我们该宝贵祂的怜悯，像我们珍赏祂的恩典一样。使我们够资格有分于神恩典的，总是祂的怜悯。</p>
+                
+                <p class="content-text">在罗马九章十六节保罗说，“这不在于那定意的，也不在于那奔跑的，只在于那施怜悯的神。”我们的观念是：那定意的会得着他所定意要得着的；那奔跑的会得着他所追求的。若情形是这样，那么神的拣选就是照着我们的努力和劳苦了。但情形并非如此。反之，神的拣选是出于施怜悯的神。我们不需要定意或奔跑，因为神怜悯我们。我们若认识神的怜悯，就不会信靠自己的努力，我们也不会因自己的失败而失望。我们可怜光景的盼望，是在于神的怜悯。</p>
+                
+                <p class="content-text">十一章三十二节说，“因为神将众人都圈在不信从之中，为要怜悯众人。”人的不信从给神的怜悯机会，神的怜悯就将救恩带给人。神的怜悯是何等奇妙！</p>
+                
+                <p class="content-text">神的怜悯和祂的恩典都是神爱的彰显。当我们在可怜的光景中，神的怜悯临到我们，把我们带进一种光景，使神能以恩典厚待我们。路加十五章二十至二十四节说，父亲看见浪子回家，对他动了慈心，这是更深的怜悯，彰显父亲热切的爱。接着，父亲给他儿子穿上上好的袍子，又给他吃肥牛犊。这是恩典，这也显明父的爱。神的怜悯比祂的恩典够得更远，如同一座桥梁，将我们与神的恩典连接起来。</p>
+                
+                <p class="content-text">常常因着我们可怜的光景，我们需要先受怜悯，才能得恩典。我们像乞丐一样来到施恩的宝座前（来四16），光景多少有点像浪子回到父亲那里一样。乞丐和浪子一样，需要怜悯。我们来到施恩的宝座前，也许觉得我们很可怜，并说，“父啊，我什么都不配。”但父会说，“你不配，但我有怜悯。我的怜悯临到你，使你有资格接受我的恩惠。我的怜悯将我带给你，使我给你穿上上好的袍子。”神的怜悯对我们总是便利的（新约总论第一册，一一四至一一六页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day2-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day2-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　我们若要在神新约的经纶里事奉神，就需要认识这完全是在于神主宰的怜悯—罗九15~16，来四16：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三" style="display: none;" onclick="toggleScripture('scripture-day2-三')">
+            
+            
+            <div class="verse-line">罗9:15	因为祂对摩西说，“我要向谁施怜悯，就向谁施怜悯；要对谁动怜恤，就对谁动怜恤。”</div>
+            
+            
+            
+            <div class="verse-line">罗9:16	这样看来，这不在于那定意的，也不在于那奔跑的，只在于那施怜悯的神。</div>
+            
+            
+            
+            <div class="verse-line">来4:16	所以我们只管坦然无惧地来到施恩的宝座前，为要受怜悯，得恩典，作应时的帮助。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day2-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day2-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day2-三-1')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        1　我们若认识神的主宰权柄，就会为着祂的怜悯感谢祂：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day2-三-1" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day2-三-1-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　“主宰的怜悯”一辞，意思是神的怜悯完全在于神主宰的权柄。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-三-1-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　作蒙怜悯的器皿不是我们选择的结果，乃是起源于神的主宰权柄—罗九18、23。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三-1-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三-1-b" style="display: none;" onclick="toggleScripture('scripture-day2-三-1-b')">
+            
+            
+            <div class="verse-line">罗9:18	这样看来，神愿意向谁施怜悯，就向谁施怜悯；愿意叫谁刚硬，就叫谁刚硬。</div>
+            
+            
+            
+            <div class="verse-line">罗9:23	且要在那些蒙怜悯、早预备得荣耀的器皿上，彰显祂荣耀的丰富；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-三-1-c" data-level="3">
+    <div class="outline-item level-4">
+        
+        c　神对我们的怜悯是在于祂主宰的权柄；要解释神对我们的怜悯，我们只能说这是在于祂主宰的权柄，祂已选择要向我们施怜悯—15~16、23节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三-1-c')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三-1-c" style="display: none;" onclick="toggleScripture('scripture-day2-三-1-c')">
+            
+            
+            <div class="verse-line">罗9:15	因为祂对摩西说，“我要向谁施怜悯，就向谁施怜悯；要对谁动怜恤，就对谁动怜恤。”</div>
+            
+            
+            
+            <div class="verse-line">罗9:16	这样看来，这不在于那定意的，也不在于那奔跑的，只在于那施怜悯的神。</div>
+            
+            
+            
+            <div class="verse-line">罗9:23	且要在那些蒙怜悯、早预备得荣耀的器皿上，彰显祂荣耀的丰富；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　在神主宰的怜悯里，我们的心倾向于祂；因着祂给我们的怜悯，我们天天寻求祂—耶二九13，申四29，赛五五6。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三-2" style="display: none;" onclick="toggleScripture('scripture-day2-三-2')">
+            
+            
+            <div class="verse-line">耶29:13	你们寻求我，若全心寻求，就必寻见。</div>
+            
+            
+            
+            <div class="verse-line">申4:29	但你们在那里必寻求耶和华你的神；你若全心全魂寻求祂，就必寻见。</div>
+            
+            
+            
+            <div class="verse-line">赛55:6	当趁耶和华可寻找的时候寻找祂，相近的时候呼求祂。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-三-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　我们越看见与我们有关的每件事都在于神的怜悯，就越会在主面前背负我们的责任；然而，甚至我们乐意背负责任也是出于神的怜悯。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-三-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　因着神的怜悯，我们对福音有反应而别人没有反应，我们接受关于基督是生命的话而别人拒绝接受，我们走主恢复的路而别人退后不走这条路。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-三-5" data-level="2">
+    <div class="outline-item level-3">
+        
+        5　就着神的恢复来说，神向祂所要施怜悯的人施了怜悯。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">罗九15~16	因为祂对摩西说，“我要向谁施怜悯，就向谁施怜悯；要对谁动怜恤，就对谁动怜恤。”这样看来，这不在于那定意的，也不在于那奔跑的，只在于那施怜悯的神。</div>
+                
+                
+                
+                <p class="content-text">我们是蒙怜悯得尊贵和荣耀的器皿，照着神主宰的怜悯蒙祂拣选（罗九11~16）。……作蒙怜悯的器皿不是我们拣选的结果，乃是起源于神的主宰权柄。神把我们造成蒙怜悯的器皿，盛装祂自己，这是出于神的主宰。祂的主宰是祂拣选的基础。</p>
+                
+                <p class="content-text">神甚至在我们出生以前，事实上，是在创立世界以前，就拣选了我们（弗一4）。人的拣选在于人本身是怎样的人。那些善良可爱、前途光明或大有成就的人，可能被拣选。但神的拣选不在于我们的所是，而完全在于神的主宰和祂的愿望。</p>
+                
+                <p class="content-text">罗马九章给我们看见神主宰怜悯的〔一个〕描绘，就是窑匠和泥。……神这窑匠对泥土有权柄〔20~21〕。祂若愿意，祂能拿一块作成贵重的器皿，又拿一块作成卑贱的器皿。这不在于我们的拣选—这乃在于祂的主宰（新约总论第五册，一四五至一四六页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">在罗马九章二十三至二十四节保罗接着问：“且要在那些蒙怜悯、早预备得荣耀的器皿上，彰显祂荣耀的丰富；这器皿就是我们这蒙祂所召的，不但从犹太人中，也从外邦人中，这有什么不可？”一切在于神的权柄。神有权柄把我们，就是祂所拣选并呼召的，作成蒙怜悯的器皿盛装祂，使祂荣耀的丰富得着彰显、显明。照着祂主宰的权柄，祂早已预备我们得荣耀。</p>
+                
+                <p class="content-text">我们被祂的主宰所预定，作祂的容器，就是蒙怜悯得尊贵和荣耀的器皿，以彰显祂。这件事全然是神主宰的怜悯（新约总论第五册，一四六至一四七页）。</p>
+                
+                <p class="content-text">我们若要在神新约的经纶里事奉神，就需要认识这完全是在于神主宰的怜悯。经过多年的经历，我坚定也深刻地相信，我们遭遇的每件事，都是出于神的怜悯。一切都是神的怜悯。我们越看见这点，就自然越在主面前背负责任。然而，甚至背负责任也是出于神的怜悯。为什么有些信徒愿意背负责任，有些信徒不愿意？答案在于神的怜悯〔罗九15〕。因着神的怜悯，我们对福音有反应而别人没有反应，我们接受关于基督是生命的话而别人拒绝接受，我们走主恢复的路而别人退后不走这条路。……就着神的恢复来说，神向祂所要施怜悯的人施了怜悯。我们在主的恢复里，……完全是由于神的怜悯。你若想想主如何将你带进主恢复里的召会生活，就要为祂的怜悯敬拜祂。就着福音、生命的职事和召会生活来说，神已经怜悯了我们。我们必须为着祂主宰的怜悯赞美祂，为着祂的怜悯敬拜祂！</p>
+                
+                <p class="content-text">〔在以弗所二章四节〕我们看见，神因祂向着我们的大爱，富于怜悯。爱的对象应该是在可爱的光景里，但怜悯的对象总是在可怜的光景里。因着神的爱，神的怜悯临到了我们。神爱我们，因为我们是祂拣选的对象；然而我们因着堕落变得极为可怜，甚至死在过犯并罪之中，所以我们需要神的怜悯临到我们。因着祂的大爱，神是富于怜悯的，把我们从可怜的地位，救到适合祂爱的光景。神这够得最远的属性，该使我们的心回应祂的爱（新约总论第一册，一一六至一一七页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day3-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-四')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        四　罗马九章所启示的原则乃是：一切皆在于神的怜悯—15~16节：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-四" style="display: none;" onclick="toggleScripture('scripture-day3-四')">
+            
+            
+            <div class="verse-line">罗9:15	因为祂对摩西说，“我要向谁施怜悯，就向谁施怜悯；要对谁动怜恤，就对谁动怜恤。”</div>
+            
+            
+            
+            <div class="verse-line">罗9:16	这样看来，这不在于那定意的，也不在于那奔跑的，只在于那施怜悯的神。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-四" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-四-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　使徒保罗把这原则应用在以色列人身上，叫我们看见一切发生在以色列人身上的事，都是出于神的怜悯—16、23节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-四-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-四-1" style="display: none;" onclick="toggleScripture('scripture-day3-四-1')">
+            
+            
+            <div class="verse-line">罗9:16	这样看来，这不在于那定意的，也不在于那奔跑的，只在于那施怜悯的神。</div>
+            
+            
+            
+            <div class="verse-line">罗9:23	且要在那些蒙怜悯、早预备得荣耀的器皿上，彰显祂荣耀的丰富；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-四-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-四-2')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        2　我们总得有一次看见神的怜悯，并且确定地碰见神的怜悯—弗二4，太九13：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-四-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-四-2" style="display: none;" onclick="toggleScripture('scripture-day3-四-2')">
+            
+            
+            <div class="verse-line">弗2:4	然而神富于怜悯，因祂爱我们的大爱，</div>
+            
+            
+            
+            <div class="verse-line">太9:13	你们去研究，“我要的是怜悯，不是祭祀”，是什么意思；我来本不是召义人，乃是召罪人。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-四-2" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-四-2-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　对于这件事，我们需要眼睛得开而看见，一切皆在于神的怜悯。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-四-2-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　不论我们是一次的看见，或是经过一段过程而领悟，当我们摸到这件事，就摸着一个事实，而非一个感觉；这事实就是：一切皆在于神的怜悯。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">罗九18　	这样看来，神愿意向谁施怜悯，就向谁施怜悯；愿意叫谁刚硬，就叫谁刚硬。</div>
+                
+                <div class="feeding-scripture">23　	且要在那些蒙怜悯、早预备得荣耀的器皿上，彰显祂荣耀的丰富。</div>
+                
+                
+                
+                <p class="content-text">罗马九章……启示的原则乃是，一切皆是神的怜悯。使徒把这一个原则应用在以色列人身上。叫我们看见一切发生在以色列人身上的事，都是出于神的怜悯。</p>
+                
+                <p class="content-text">十六节说，“这不在于那定意的，也不在于那奔跑的，只在于那施怜悯的神。”热心与追求并没有用，……等太久或不等，跑得太快或者跑得太慢，都没有用。在这里、在那里，多听、少听，都没有用；一切都在于神的怜悯。只有圣灵才能引领人到正确的地步。你……起码要有一次专一的看见，一切在于神的怜悯。不论你是一次的看见，或是经过一段过程的看见，当你摸到这件事，就会有一个事实产生；不是一个感觉，乃是一个事实。这事实就是：一切皆在于神的怜悯（倪柝声文集第三辑第十一册，一至二页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">神的怜悯乃是一个事实，事实是不在乎感觉的。……人……总得有一次清楚地碰见神的怜悯。</p>
+                
+                <p class="content-text">有三种人是应当受神的对付的，就是意志强的人、情感强的人和心思强的人。许多人是受这三种情形的支配；这三件事需要被神打断。神要对付人的强点，过于对付他的弱点。有的时候，强点拦阻人灵命的进步多过他的弱点。人在这三方面没有受过对付，就不能认识神的怜悯。</p>
+                
+                <p class="content-text">人被神对付过，在他的属灵生命上就有了调整。许多事多一点和少一点，皆不相宜。有的人等太久，有的人不等。这些都需要调整。有的人里面的人不够大，外面的人太大。……有的人心思太强，有的人情感、意志太强，而里面的人不够大。这些光景都需要调整。</p>
+                
+                <p class="content-text">我们的属灵生命若要有合式的调整，就需要我们这个人的光景是恰好的，也不太多，也没有不够。好比打弹球机（pinball machine），需要球送得刚刚好，才能拿到分数，不然左边有钉，右边也有钉。在属灵的追求上有许多的试探，我们的心思、情感和意志都会成为拦阻，太过和不够都会落在危险里。</p>
+                
+                <p class="content-text">一切都是在于神的怜悯。我〔倪柝声弟兄〕没有得救以前，准备留美。假如早去两个月，就不会与余慈度小姐相会，或许就永远不会得救。即使后来有机会，我也不一定能信。乃是神的怜悯叫我不早不晚，刚好在那个时候碰见余慈度小姐。</p>
+                
+                <p class="content-text">只有神能够作得恰到好处。我们人说话，总是容易说得太过或者不够。没有一个人能传一篇道是适合各种人的需要的，即使是使徒保罗、彼得也是一样。因为话讲出来，总不容易说得恰到好处，因此就容易叫人误会。</p>
+                
+                <p class="content-text">召会二千年以来的道路乃是仰望神的怜悯。只有神的怜悯，才能够叫我们被调整过来。我常对一些青年人说，五年以后，你才会知道，一切都是在于神的怜悯（倪柝声文集第三辑第十一册，二至五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day4-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-五')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        五　“所以我们只管坦然无惧地来到施恩的宝座前，为要受怜悯，得恩典，作应时的帮助”—来四16：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-五" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-五-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　神的怜悯和祂的恩典都是神爱的彰显。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-五-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　当我们在可怜的光景中，神的怜悯先临到我们，把我们带进一种光景，使神能以恩典厚待我们。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-五-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　神的怜悯和恩典对我们总是便利的，然而我们需要运用灵，来到施恩的宝座前，才能受怜悯，得恩典—16节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-五-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-五-3" style="display: none;" onclick="toggleScripture('scripture-day4-五-3')">
+            
+            
+            <div class="verse-line">来4:16	所以我们只管坦然无惧地来到施恩的宝座前，为要受怜悯，得恩典，作应时的帮助。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-六" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-六')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        六　父神已经在祂的主宰中怜悯了我们；因此，我们必须为着祂主宰的怜悯赞美、敬拜祂：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-六" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-六-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　“我今享受你的怜悯，永远不旧、永远新；每日早晨临到我身，犹如甘露施滋润。何等甜美、何等甜美，满心赞美你怜悯”—诗歌二十二首，第五节。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-六-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　“父，你怜悯并你恩惠、慈爱，我已得尝；你这怜悯带来你的同在，并你面光。因你怜悯，我今向你下拜，赞你怜悯，歌颂直到万代”—诗歌二十三首，第三节。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">来二17　	所以祂凡事该与祂的弟兄一样，为要在关于神的事上，成为怜悯、忠信的大祭司，好为百姓的罪成就平息。</div>
+                
+                <div class="feeding-scripture">四16　	所以我们只管坦然无惧地来到施恩的宝座前，为要受怜悯，得恩典，作应时的帮助。</div>
+                
+                
+                
+                <p class="content-text">基督成为人，并且在地上生活为人，经过人生一切的苦难〔来二17〕。……祂知道如何怜悯人，因祂是有人生经历，就是有人生苦难经历的人。</p>
+                
+                <p class="content-text">为了有资格作大祭司，基督成为肉体，与我们一样。我们甚至可以说，祂不只是与我们一样，因为祂在为人生活中遭遇了我们所没有遭遇过的事。祂成了和我们一样的，同情我们一切的软弱。</p>
+                
+                <p class="content-text">甚至如今，虽然我们得救了，但在有些方面，我们的光景仍需要主的怜悯够到我们。因这缘故，希伯来四章十六节说，我们首先需要受怜悯，然后才能得恩典，作应时的帮助。基督的怜悯对我们总是便利的。然而，我们需要运用我们的灵，接触那在我们一切软弱中同情我们的大祭司，借此接受怜悯（新约总论第三册，一五三至一五四页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">感谢神，在神的爱里不只有恩典，在神的爱里还有一个大的东西，就是怜悯。在圣经里，也非常注重怜悯这一件事。……爱的出路，如果不是往恩典去，就是往怜悯去。……怜悯是对于目前的状况说的，恩典是对于将来的状况说的。怜悯是对于你目前的情形怎样可怜，恩典是对于你将来的情形，怎样把你救出来，到光明的前途去。我们作罪人，神对于我们所发出来的感觉，那一个叫作怜悯。</p>
+                
+                <p class="content-text">神在我们身上作事情，叫我们成为神的儿女，这一个叫作恩典。怜悯是对于我们已有的情况所发生的，恩典是对于我们尚未得着的工作所发生的。</p>
+                
+                <p class="content-text">神在旧约的时候是怜悯，因为那时工作还没有作成功。所以旧约里充满了怜悯，神在这四千多年之中一直怜悯。但是到了今天，到了新约，就是恩典了，因为主耶稣已经成功了工作，祂已经来担当了我们的罪。所以我们今天不是得着怜悯，而是得着恩典。</p>
+                
+                <p class="content-text">怜悯是从爱生的，必须是到恩去。怜悯如果不是从爱生的，就必定不到恩去。如果怜悯是发乎爱，就必止乎恩。在福音书里有一个瞎子，他碰着主的时候不是说，“主，爱我吧！”也不是说，“主，恩待我吧！”乃是说，“大卫的子孙耶稣，可怜我吧！”〔可十47〕因为是现在的状况，因为是现在的难处，因为是目前痛苦的情形，所以求主可怜他。他知道，如果主耶稣可怜他，怜恤他，主耶稣不会就停止在怜悯那里，主耶稣必定有所作为。</p>
+                
+                <p class="content-text">在新约里也有几个地方提起怜悯。……为什么必须要有怜悯呢？请记得，我们人是无依无靠的。我们如果到神的面前去求祂爱我们，我们没有胆量这样求。我们是属乎肉体的，我们对于神知道得不够清楚。虽然神在光中显出来给我们看见，但是我们不敢亲近祂。如果我们到祂那里去求爱，我们觉得这是不可能的事。同时，如果我们在祂面前求恩典，指明要这一个祝福，要那一个祝福，我们也没有这么大的信心。对于神的爱，我们没有法子求；对于神的恩典，我们也没有那么大的信心（倪柝声文集第二辑第八册，四二至四五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day5-贰" data-level="1">
+    <div class="outline-item level-1">
+        
+        贰　“怜悯人的人有福了，因为他们必蒙怜悯”—太五7：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　义是将人所当得的给人；怜悯是将优于人所当得的给人。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　为着诸天的国，我们不仅需要是义的，还需要是怜悯人的。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　蒙怜悯是得着我们所不当得的。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        四　我们若怜悯别人，主就要怜悯我们（提后一16、18），特别要在祂的审判台前怜悯我们—雅二12~13。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-四" style="display: none;" onclick="toggleScripture('scripture-day5-四')">
+            
+            
+            <div class="verse-line">提后1:16	愿主怜悯阿尼色弗一家，因他屡次使我舒爽，且不以我的锁链为耻；</div>
+            
+            
+            
+            <div class="verse-line">提后1:18	愿主使他在那日从主得着怜悯。他在以弗所怎样多方地服事我，你知道得最清楚。</div>
+            
+            
+            
+            <div class="verse-line">雅2:12	你们既然要按自由的律法受审判，就该照这律法说话行事。</div>
+            
+            
+            
+            <div class="verse-line">雅2:13	因为那不怜悯人的，也要受无怜悯的审判；怜悯原是向审判夸胜。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        五　我们必须学习对自己公义，对别人怜悯。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-叁" data-level="1">
+    <div class="outline-item level-1">
+        
+        叁　“愿恩典、怜悯、平安，从父神和我们的主基督耶稣归与你”—提后一2：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　在保罗的书信里，只有提摩太前后书开头的问安说到神的怜悯。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　神的怜悯比神的恩典达到的更远。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　在召会堕落的光景中，神的怜悯是需要的。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        四　这怜悯带进神丰富的恩典，够应对任何的堕落。
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">太五7　　	怜悯人的人有福了，因为他们必蒙怜悯。</div>
+                
+                <div class="feeding-scripture">提后一16	愿主怜悯阿尼色弗一家，因他屡次使我舒爽，且不以我的锁链为耻。</div>
+                
+                <div class="feeding-scripture">18	愿主使他在那日从主得着怜悯。他在以弗所怎样多方地服事我，你知道得最清楚。</div>
+                
+                
+                
+                <p class="content-text">义是将人所当得的给人；怜悯〔太五7〕是将优于人所当得的给人。为着诸天的国，我们不仅需要是义的，还需要是怜悯人的。蒙怜悯是得着我们所不当得的。我们若怜悯别人，主就要怜悯我们（提后一16、18），特别要在祂的审判台前怜悯我们（雅二12~13）。</p>
+                
+                <p class="content-text">马太五章七节给我们的应许是，怜悯人的人必蒙怜悯。……所以，我们对待自己该严格，对待别人却该富于怜悯。这也是与我们里面的所是有关的事（新约总论第六册，一七○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">一般人一旦学习用公义约束自己，就难免用同样严格甚至更加苛刻的尺度要求别人。主却给我们看见，一个活在诸天之国里的人，尽管对待自己是绝对的公义，对待别人却是满了怜悯。</p>
+                
+                <p class="content-text">怜悯是比恩典更低就人的。……比方，你白白送一笔钱给朋友，这是恩典。但你若把这笔钱送给一个乞丐，就不单是恩典，还有怜悯。因为你所给他的恩典，完全是他不配得的。</p>
+                
+                <p class="content-text">一个让诸天掌权的人，不仅恩待那些像样、配得恩典的人，并且也怜悯那些不像样、不配得恩典的人。……公义是绝对有要求，完全严格，而怜悯正好相反。</p>
+                
+                <p class="content-text">这样待人的结果，就是蒙神的怜悯。……神如何待我们，正是根据我们如何待人〔参太七12〕。我们因着怜悯别人，就能在神面前蒙怜悯（李常受文集一九五五年第三册，七九至八○页）。</p>
+                
+                <p class="content-text">你若真对自己严格，那么你就会晓得如何对别人怜悯。但你不先对自己公义，就不要想对别人怜悯。每个松散的人都怜悯别人，因为他已经怜悯自己了。如果他每天早晨睡得很晚，他就会非常怜悯那些睡得很晚的人。这种怜悯根本就不是怜悯；这完全是错的。……只有严格的人，公义的人，才知道如何怜悯。你若要照着〔马太五章的〕第五福怜悯别人，你就必须先照着第四福对自己公义。</p>
+                
+                <p class="content-text">我们对自己必须是公义、严格的，绝不要为自己找借口。但别人得罪我们，因而暴露出他们的缺点时，我们必须怜悯他们。所有自义的人都定罪别人，不让别人过去。……我们对自己必须公义且严格，认真且清明。但我们对别人必须怜悯。神自己是公义的。然而，祂对待我们若公义至极，我们都会被击杀。虽然神对自己是公义的，但祂对待我们却满了怜悯。我们是堕落的罪人，实在需要神的怜悯。我们也必须学习对自己公义，对别人怜悯。对自己公义，对别人怜悯，首要的不是外面的行为，乃是里面的态度，里面的所是（马太福音生命读经，二一六至二一七页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day6-肆" data-level="1">
+    <div class="outline-item level-1">
+        
+        肆　“那不怜悯人的，也要受无怜悯的审判；怜悯原是向审判夸胜”—雅二13：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　轻看贫穷的弟兄，就是无怜悯。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day6-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　凡这样轻看弟兄的，显在基督审判台前的时候，也必不蒙怜悯—罗十四10，林后五10：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-二" style="display: none;" onclick="toggleScripture('scripture-day6-二')">
+            
+            
+            <div class="verse-line">罗14:10	你为什么审判你的弟兄？又为什么轻视你的弟兄？我们都要站在神的审判台前，</div>
+            
+            
+            
+            <div class="verse-line">林后5:10	因为我们众人，必要在基督的审判台前显露出来，叫各人按着本身所行的，或善或恶，受到应得的报应。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day6-二" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day6-二-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　我们来到主面前受审判的时候，祂也不会怜悯我们，因为我们不怜悯弟兄。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-二-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　我们必须怜悯人，因为怜悯原是向审判夸胜。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-二-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　我们今天若怜悯弟兄，将来在主审判台前也要蒙主怜悯。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-伍" data-level="1">
+    <div class="outline-item level-1">
+        
+        伍　我们要在主面前俯伏，为着祂的怜悯敬拜祂—诗一四五，赛六三9，约十10，罗三24，十一32，林后四1，弗二4~5：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-伍')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-伍" style="display: none;" onclick="toggleScripture('scripture-day6-伍')">
+            
+            
+            <div class="verse-line">诗145:1	我的神我的王啊，我要尊崇你；我要永永远远颂赞你的名。</div>
+            
+            
+            
+            <div class="verse-line">诗145:2	我要天天颂赞你，我要永永远远赞美你的名。</div>
+            
+            
+            
+            <div class="verse-line">诗145:3	耶和华本为大，该受大赞美；其大无法测度。</div>
+            
+            
+            
+            <div class="verse-line">诗145:4	这一代要对另一代称颂你的作为，他们要传扬你的大能。</div>
+            
+            
+            
+            <div class="verse-line">诗145:5	我要默想你威严的尊荣，和你奇妙的作为。</div>
+            
+            
+            
+            <div class="verse-line">诗145:6	人要讲说你可畏之事的能力，我也要述说你的伟大。</div>
+            
+            
+            
+            <div class="verse-line">诗145:7	他们要记念且说出你至大的美善，并要欢唱你的公义。</div>
+            
+            
+            
+            <div class="verse-line">诗145:8	耶和华有恩典，有怜恤，不轻易发怒，大有慈爱。</div>
+            
+            
+            
+            <div class="verse-line">诗145:9	耶和华善待万有，祂的怜恤覆庇祂一切所造的。</div>
+            
+            
+            
+            <div class="verse-line">诗145:10	耶和华啊，你一切所造的，都要赞美你；你的虔诚人也要颂赞你。</div>
+            
+            
+            
+            <div class="verse-line">诗145:11	他们要讲说你国的荣耀，谈论你的大能，</div>
+            
+            
+            
+            <div class="verse-line">诗145:12	好叫世人知道你大能的作为，并你国度的威荣。</div>
+            
+            
+            
+            <div class="verse-line">诗145:13	你的国是永远的国，你的管治权存到万代。</div>
+            
+            
+            
+            <div class="verse-line">诗145:14	耶和华扶持一切跌倒的人，扶起一切被压下的人。</div>
+            
+            
+            
+            <div class="verse-line">诗145:15	众人的眼目都仰望你，你按时给他们食物。</div>
+            
+            
+            
+            <div class="verse-line">诗145:16	你张开手，使一切有生命的物都随愿饱足。</div>
+            
+            
+            
+            <div class="verse-line">诗145:17	耶和华在祂一切所行的，无不公义；在祂一切所作的，都有慈爱。</div>
+            
+            
+            
+            <div class="verse-line">诗145:18	凡呼求耶和华的，就是真实呼求祂的，耶和华便与他们相近。</div>
+            
+            
+            
+            <div class="verse-line">诗145:19	敬畏祂的，祂必成就他们的心愿，也必听他们的呼求，拯救他们。</div>
+            
+            
+            
+            <div class="verse-line">诗145:20	耶和华保护一切爱祂的人，却要灭绝一切的恶人。</div>
+            
+            
+            
+            <div class="verse-line">诗145:21	我的口要说出赞美耶和华的话，凡有血肉的都要永永远远颂赞祂的圣名。</div>
+            
+            
+            
+            <div class="verse-line">赛63:9	他们在一切苦难中，祂也同受苦难；并且祂面前的使者拯救他们；祂在自己的爱和怜悯中救赎他们，在古时的一切日子保抱他们，怀揣他们。</div>
+            
+            
+            
+            <div class="verse-line">约10:10	贼来了，无非是要偷窃、杀害、毁坏；我来了，是要叫羊得生命，并且得的更丰盛。</div>
+            
+            
+            
+            <div class="verse-line">罗3:24	但因神的恩典，借着在基督耶稣里的救赎，就白白地得称义。</div>
+            
+            
+            
+            <div class="verse-line">罗11:32	因为神将众人都圈在不信从之中，为要怜悯众人。</div>
+            
+            
+            
+            <div class="verse-line">林后4:1	因此，我们既照所蒙的怜悯，受了这职事，就不丧胆，</div>
+            
+            
+            
+            <div class="verse-line">弗2:4	然而神富于怜悯，因祂爱我们的大爱，</div>
+            
+            
+            
+            <div class="verse-line">弗2:5	竟然在我们因过犯死了的时候，便叫我们一同与基督活过来（你们得救是靠着恩典），</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　我们越为着主的怜悯敬拜祂，就越被拔高。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　神拣选我们、预定我们、呼召我们，并且把我们摆在祂的恢复里，这是何等的怜悯！
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　对于我们的将来，我们不信靠自己，我们乃是信靠祂，以及祂奇妙的怜悯。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        四　我们同主前行，并不在于我们的定意或奔跑，乃在于神的怜悯。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        五　神的怜悯行奇妙的事。
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">提后一2	写信给我亲爱的孩子提摩太：愿恩典、怜悯、平安，从父神和我们的主基督耶稣归与你。</div>
+                
+                
+                
+                <p class="content-text">雅二12~13	你们既然要按自由的律法受审判，就该照这律法说话行事。因为那不怜悯人的，也要受无怜悯的审判；怜悯原是向审判夸胜。</p>
+                
+                <p class="content-text">在保罗的书信里，只有提摩太前后书开头的问安说到神的怜悯。神的怜悯比神的恩典达到的更远。在召会堕落的光景中，神的怜悯是需要的。这怜悯带进神丰富的恩典，够应对任何的堕落（提摩太后书生命读经，二页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">轻看贫穷的弟兄，就是无怜悯。凡这样轻看弟兄的，显在基督审判台前的时候，也必不蒙怜悯。……〔在雅各书二章十三节〕雅各告诉我们，不可轻看我们的弟兄。倘若我们轻看弟兄，意思就是不怜悯他；那么，我们来到主面前受审判的时候，祂也不会怜悯我们，因为我们不怜悯弟兄。因此，我们必须怜悯人，因为正如雅各所说，怜悯原是向审判夸胜、夸耀〔13〕。我们今天若怜悯弟兄，将来在主审判台前也要蒙主怜悯（雅各书生命读经，六三页）。</p>
+                
+                <p class="content-text">我们若要服事主，就必须认识那灵、那灵里的生命以及神的义。不仅如此，我们还必须认识神在祂恩典拣选里的怜悯。……我仰望主，使我们对祂拣选我们的怜悯这件事有深刻的印象。不要信靠你能作什么，或是你计划要作什么；反之，要在主面前俯伏，为着祂的怜悯敬拜祂。你越为着主的怜悯敬拜祂，你就越被拔高。不要挣扎努力去背负责任；你会发现在主的怜悯里，乃是主在背负你。我们都需要这样来认识主。主拣选我们、预定我们、呼召我们，并且把我们摆在祂的恢复里，这是何等的怜悯！对于我们的将来，我们不信靠自己，我们乃是信靠祂，以及祂奇妙的怜悯。每一件与我们有关的事，都是主发起的。一切都在于祂，没有一件事是出于我们的。我能作见证，我们越为着神的怜悯敬拜祂，我们就越深入祂的心，也越与祂是一。</p>
+                
+                <p class="content-text">不要挣扎着想背负什么责任，反要为着神的拣选敬拜祂。你若这样作，祂就要背负着你来负责任。我们越想凭自己来负责任，我们里面就越受苦，并且满了苦味。但我们若为着主的怜悯敬拜祂，并经历祂背负着我们来负责任，我们里面就满了甜如蜜的味道。我天天喜乐的原因之一，就是我学会信靠主的怜悯，并且为此敬拜祂。多年前，我常求主为我作许多事，但现在我的祷告则是为着祂的怜悯感谢祂。祂说，祂要向谁施怜悯，就向谁施怜悯，要对谁动怜恤，就对谁动怜恤。我们若享受主的怜悯，为着祂的拣选敬拜祂，我们就要在诸天界里了。</p>
+                
+                <p class="content-text">我们同主前行，并不在于我们的定意或奔跑，乃在于神的怜悯。我们的定意是无益的，我们的奔跑是徒然的。然而，神的怜悯却行奇妙的事。我们是善变的，总是刻变时翻。我们属灵的光景有如不稳定的天气。因此，我们需要看见，恩典的拣选并不在于我们，乃在于神在创立世界以前就拣选了我们。我们今天所经历的，与神在已过永远里的拣选有关。我们若看见这个，就会转眼不看自己，不看我们的环境，只定睛注视祂（罗马书生命读经，七二四至七二五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const pagesContainer = document.querySelector('.pages-container');
+    if (!pagesContainer) return;
+    const totalPages = Number(pagesContainer.dataset.totalPages || 0);
+    if (totalPages === 0) return;
+
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach((page, index) => {
+            page.classList.toggle('is-active', index === pageIndex);
+        });
+        
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 仅在用户手动切换时滚动到顶部
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（优化版：支持速度判断和方向识别）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let touchStartTime = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+        touchStartTime = Date.now();
+    }, { passive: true });
+    
+    document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const diffX = touchStartX - touchEndX;
+        const diffY = Math.abs(touchStartY - touchEndY);
+        const diffTime = Date.now() - touchStartTime;
+        const velocity = Math.abs(diffX) / diffTime; // px/ms
+        
+        // 动态阈值：快速滑动大幅降低距离要求
+        const baseThreshold = 40; // 基础阈值降低到40px
+        const velocityThreshold = 0.25; // 降低速度阈值，让更多滑动被判定为"快速"
+        const swipeThreshold = velocity > velocityThreshold ? 25 : baseThreshold;
+        
+        // 适度放宽垂直容忍度
+        const maxVerticalMove = 40; // 垂直移动可以到40px
+        const horizontalRatio = 2.0; // 水平是垂直的2倍即可
+        
+        // 综合判断：距离 + 速度 + 方向
+        if (Math.abs(diffX) > swipeThreshold && 
+            diffY < maxVerticalMove && 
+            Math.abs(diffX) > diffY * horizontalRatio) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    // 初始加载时不滚动
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', function() {
+        initFromHash(false);
+    });
+    
+    // 初始化（不滚动）
+    initFromHash(true);
+})();
+
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page.is-active');
+            if (!activePage) return '';
+
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = getCleanText(item);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+<script src="js/outline.js"></script>
+
+<style>
+/* 纲目和内容样式 */
+.outline-section{margin:18px 0}
+.outline-section .scripture-content{cursor:pointer}
+.content-separator{height:1px;background:var(--border);margin:20px 0}
+.feeding-section,.reading-section{margin:20px 0}
+.feeding-section h4,.reading-section h4{font-size:1.05em;font-weight:600;color:var(--heading);margin:16px 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;text-align:center}
+.feeding-scripture{margin:10px 0;padding:10px 14px;background:var(--surface-alt);border-left:3px solid var(--brand);border-radius:6px;font-size:1.01em;color:var(--text);line-height:1.8;font-weight:550;text-align:justify;letter-spacing:0.1px}
+.prev-btn:active:not(:disabled),.next-btn:active:not(:disabled){background:var(--bg);color:#fff;border-color:rgba(102,126,234,.55)}
+.no-content{color:var(--text-muted);font-style:italic;text-align:center;padding:40px 20px}
+@media(min-width:768px){.feeding-section h4,.reading-section h4{font-size:1.08em}.feeding-scripture{font-size:1.05em;padding:12px 16px}}
+@media(max-width:768px){.day-navigation{gap:0}.page-controls{margin:20px 0 10px}.prev-btn,.next-btn{padding:8px 12px;font-size:14px}.btn-text{display:none}}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>202505 国际长老及负责弟兄训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

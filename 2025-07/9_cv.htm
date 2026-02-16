@@ -1,0 +1,2557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第9篇 - 纲目</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+<style>
+/* 展开级别控制按钮 - 关键CSS放head避免FOUC */
+.outline-level-controls{display:flex;justify-content:center;gap:8px;margin:15px 0;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md)}
+.level-btn{min-width:60px;min-height:36px;padding:8px 14px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:14px;font-weight:600;color:var(--btn-secondary-text);cursor:pointer;transition:all 0.2s ease;box-shadow:var(--shadow-sm)}
+.level-btn.active{background:var(--bg);border-color:var(--brand);color:#fff;box-shadow:0 2px 6px rgba(102,126,234,0.3)}
+</style>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第9篇 得胜之初熟果子所跟随的羔羊</h2>
+</div>
+
+        
+        <div class="content">
+            
+
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="9_cv.htm" class="nav-link active" title="纲目">纲目</a>
+    <a href="9_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="9_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="9_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：启十四1~5，创五22~24，来十一5~6，太二四45~51</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;" onclick="toggleScripture('chapter-scripture')">
+            
+                
+                <div class="verse-line">启14:1	我又观看，看哪，羔羊站在锡安山上，同祂还有十四万四千人，额上都写着祂的名，和祂父的名。</div>
+                
+            
+                
+                <div class="verse-line">启14:2	我听见从天上有声音，像众水的声音，又像大雷的声音，并且我所听见的，好像弹琴的所弹的琴声。</div>
+                
+            
+                
+                <div class="verse-line">启14:3	他们在宝座前，并在四活物和众长老前唱新歌；除了从地上买来的那十四万四千人以外，没有人能学这歌。</div>
+                
+            
+                
+                <div class="verse-line">启14:4	这些人未曾与妇女在一起受到玷污，他们原是童身。羔羊无论往哪里去，他们都跟随祂。他们是从人间买来的，作初熟的果子归与神和羔羊；</div>
+                
+            
+                
+                <div class="verse-line">启14:5	在他们口中找不着谎言，他们是没有瑕疵的。</div>
+                
+            
+                
+                <div class="verse-line">创5:22	以诺生玛土撒拉之后，与神同行三百年，并且生儿生女。</div>
+                
+            
+                
+                <div class="verse-line">创5:23	以诺共活了三百六十五岁。</div>
+                
+            
+                
+                <div class="verse-line">创5:24	以诺与神同行，神将他取去，他就不在世了。</div>
+                
+            
+                
+                <div class="verse-line">来11:5	以诺因着信被接去，不至于见死，人也找不着他，因为神把他接去了；原来他被接去以前，已经得了蒙神喜悦的见证。</div>
+                
+            
+                
+                <div class="verse-line">来11:6	人非有信，就不能得神的喜悦；因为到神面前来的人，必须信有神，且信祂赏赐那寻求祂的人。</div>
+                
+            
+                
+                <div class="verse-line">太24:45	这样，谁是那忠信又精明的奴仆，为主人所派，管理他的家人，按时分粮给他们？</div>
+                
+            
+                
+                <div class="verse-line">太24:46	主人来到，看见他这样行，那奴仆就有福了。</div>
+                
+            
+                
+                <div class="verse-line">太24:47	我实在告诉你们，主人要派他管理一切的家业。</div>
+                
+            
+                
+                <div class="verse-line">太24:48	若是那恶仆心里说，我的主人必来得迟，</div>
+                
+            
+                
+                <div class="verse-line">太24:49	就动手打那些和他同作奴仆的，又和酒醉的人一同吃喝，</div>
+                
+            
+                
+                <div class="verse-line">太24:50	在想不到的日子，不知道的时辰，那奴仆的主人要来，</div>
+                
+            
+                
+                <div class="verse-line">太24:51	把他割断，定他和假冒为善的人同受处分；在那里必要哀哭切齿了。</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <!-- 展开级别控制按钮 -->
+    <div class="outline-level-controls">
+        <button class="level-btn" onclick="expandToLevel(1)" title="只显示大纲（一级）">大纲</button>
+        <button class="level-btn" onclick="expandToLevel(2)" title="显示大纲和中纲（一二级）">大中纲</button>
+        <button class="level-btn active" onclick="expandToLevel(4)" title="显示全部内容">全部</button>
+    </div>
+    
+    <div class="outline-content">
+        
+
+
+
+<div class="section" id="section-壹" data-level="1">
+    <div class="outline-item level-1">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        壹　启示录十四章一至五节启示，基督是得胜之初熟果子所跟随的羔羊：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹" style="display: none;" onclick="toggleScripture('scripture-壹')">
+            
+            
+            <div class="verse-line">启14:1	我又观看，看哪，羔羊站在锡安山上，同祂还有十四万四千人，额上都写着祂的名，和祂父的名。</div>
+            
+            
+            
+            <div class="verse-line">启14:2	我听见从天上有声音，像众水的声音，又像大雷的声音，并且我所听见的，好像弹琴的所弹的琴声。</div>
+            
+            
+            
+            <div class="verse-line">启14:3	他们在宝座前，并在四活物和众长老前唱新歌；除了从地上买来的那十四万四千人以外，没有人能学这歌。</div>
+            
+            
+            
+            <div class="verse-line">启14:4	这些人未曾与妇女在一起受到玷污，他们原是童身。羔羊无论往哪里去，他们都跟随祂。他们是从人间买来的，作初熟的果子归与神和羔羊；</div>
+            
+            
+            
+            <div class="verse-line">启14:5	在他们口中找不着谎言，他们是没有瑕疵的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-一" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　初熟的果子乃是活着的得胜者，他们在神的田地里是初熟的；因此他们要在庄稼收割以先被收割，作初熟的果子归与神和羔羊：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹-一" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-一-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　初熟的果子要被提到天上的锡安山，到第三层天神的居所那里，得以在神与基督面前。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-一-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　被提的意思就是被接到主的同在里；我们要被接到主的同在里，今天就必须是在祂的同在里—路二一36，林后二10，何六2，提后四8，徒二六16。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-一-2" style="display: none;" onclick="toggleScripture('scripture-壹-一-2')">
+            
+            
+            <div class="verse-line">路21:36	但你们要时时儆醒，常常祈求，使你们得胜，能逃避这一切要发生的事，得以站立在人子面前。</div>
+            
+            
+            
+            <div class="verse-line">林后2:10	你们饶恕谁什么，我也饶恕；我若曾有所饶恕，我所已经饶恕的，是在基督的面前，为你们饶恕的；</div>
+            
+            
+            
+            <div class="verse-line">何6:2	过两天祂必使我们活过来，第三天祂必使我们兴起，我们就在祂面前活着。</div>
+            
+            
+            
+            <div class="verse-line">提后4:8	从此以后，有公义的冠冕为我存留，就是主，那公义的审判者，在那日要赏赐我的；不但赏赐我，也赏赐凡爱祂显现的人。</div>
+            
+            
+            
+            <div class="verse-line">徒26:16	你起来站着，我向你显现，正是要选定你作执事和见证人，将你所看见我的事，和我将要显现给你的事，见证出来；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-一-3" data-level="3">
+    <div class="outline-item level-3">
+        
+        3　被提是为着击败仇敌，并使神满足；主固然需要男孩子与祂的仇敌争战，但祂更需要初熟的果子作祂的满足和享受—启十二5，十四1、4下。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-一-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-一-3" style="display: none;" onclick="toggleScripture('scripture-壹-一-3')">
+            
+            
+            <div class="verse-line">启12:5	妇人生了一个男孩子，是将来要用铁杖辖管万国的；她的孩子被提到神和祂的宝座那里去了。</div>
+            
+            
+            
+            <div class="verse-line">启14:1	我又观看，看哪，羔羊站在锡安山上，同祂还有十四万四千人，额上都写着祂的名，和祂父的名。</div>
+            
+            
+            
+            <div class="verse-line">启14:4下	……他们是从人间买来的，作初熟的果子归与神和羔羊；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-二" data-level="2">
+    <div class="outline-item level-2">
+        
+        二　圣经启示被提的两面：得胜者在大灾难之前被提，以及大体信徒在大灾难末了被提—太二四40~41，路二一36，启三10，帖前四15~17，启十二5，十四1。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-二" style="display: none;" onclick="toggleScripture('scripture-壹-二')">
+            
+            
+            <div class="verse-line">太24:40	那时，两个人在田里，取去一个，撇下一个。</div>
+            
+            
+            
+            <div class="verse-line">太24:41	两个女人在磨坊推磨，取去一个，撇下一个。</div>
+            
+            
+            
+            <div class="verse-line">路21:36	但你们要时时儆醒，常常祈求，使你们得胜，能逃避这一切要发生的事，得以站立在人子面前。</div>
+            
+            
+            
+            <div class="verse-line">启3:10	你既遵守我忍耐的话，我也必保守你免去那将要临到普天下，试炼一切住在地上之人试炼的时候。</div>
+            
+            
+            
+            <div class="verse-line">帖前4:15	我们现在凭着主的话，告诉你们这件事，就是我们这些活着还存留到主来临的人，绝不能在那已经睡了的人之先；</div>
+            
+            
+            
+            <div class="verse-line">帖前4:16	因为主必亲自从天降临，有发令的呼叫，有天使长的声音，又有神的号声，那在基督里死了的人必先复活，</div>
+            
+            
+            
+            <div class="verse-line">帖前4:17	然后我们这些活着还存留的人，必同时与他们一起被提到云里，在空中与主相会；这样，我们就要和主常常同在。</div>
+            
+            
+            
+            <div class="verse-line">启12:5	妇人生了一个男孩子，是将来要用铁杖辖管万国的；她的孩子被提到神和祂的宝座那里去了。</div>
+            
+            
+            
+            <div class="verse-line">启14:1	我又观看，看哪，羔羊站在锡安山上，同祂还有十四万四千人，额上都写着祂的名，和祂父的名。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-三" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　在利未记二十三章十节，我们看到被提的预表，就是田里农作物成熟的预表—太十三24，启十四14~16：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-三" style="display: none;" onclick="toggleScripture('scripture-壹-三')">
+            
+            
+            <div class="verse-line">利23:10	你要对以色列人说，你们进了我赐给你们的地，收割庄稼的时候，要将初熟的庄稼一捆带给祭司；</div>
+            
+            
+            
+            <div class="verse-line">太13:24	耶稣在他们跟前另设一个比喻，说，诸天的国好比人撒好种在他的田里；</div>
+            
+            
+            
+            <div class="verse-line">启14:14	我又观看，看哪，有一片白云，云上坐着一位好像人子，头上戴着金冠冕，手里拿着快镰刀。</div>
+            
+            
+            
+            <div class="verse-line">启14:15	又有一位天使从殿中出来，向那坐在云上的大声喊着说，伸出你的镰刀来收割，因为收割的时候到了，地上的庄稼已经熟了。</div>
+            
+            
+            
+            <div class="verse-line">启14:16	那坐在云上的，把镰刀扔在地上，地上的庄稼就被收割了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹-三" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-三-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　收割神的农作物，我们称之为被提；这收割指明信徒要从地上被取去—太十三30、39下。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-三-1" style="display: none;" onclick="toggleScripture('scripture-壹-三-1')">
+            
+            
+            <div class="verse-line">太13:30	让这两样一齐长，直到收割。在收割的时候，我要对收割的人说，先薅集稗子，捆成捆，好把它们烧了，麦子却要收到我的仓里。</div>
+            
+            
+            
+            <div class="verse-line">太13:39下	……收割的时候就是这世代的终结，收割的人就是天使。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-三-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　一部分农作物—初熟的果子—成熟在先，就先收割；其余部分的农作物—庄稼—成熟较晚，就后收割。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-三-3" data-level="3">
+    <div class="outline-item level-3">
+        
+        3　根据启示录十四章，有两种的被提，就是初熟果子的被提和庄稼的被提—4节下、14~16节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-三-3" style="display: none;" onclick="toggleScripture('scripture-壹-三-3')">
+            
+            
+            <div class="verse-line">启14:4下	……他们是从人间买来的，作初熟的果子归与神和羔羊；</div>
+            
+            
+            
+            <div class="verse-line">启14:14	我又观看，看哪，有一片白云，云上坐着一位好像人子，头上戴着金冠冕，手里拿着快镰刀。</div>
+            
+            
+            
+            <div class="verse-line">启14:15	又有一位天使从殿中出来，向那坐在云上的大声喊着说，伸出你的镰刀来收割，因为收割的时候到了，地上的庄稼已经熟了。</div>
+            
+            
+            
+            <div class="verse-line">启14:16	那坐在云上的，把镰刀扔在地上，地上的庄稼就被收割了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-四" data-level="2">
+    <div class="outline-item level-2">
+        
+        四　初熟的果子是被提到锡安神的家中，作神新鲜的享受；这是为着神的满足—出二三19上，利二三10，参约二十17上。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-四" style="display: none;" onclick="toggleScripture('scripture-壹-四')">
+            
+            
+            <div class="verse-line">出23:19上	地里首先初熟之物，要带到耶和华你神的殿中。……</div>
+            
+            
+            
+            <div class="verse-line">利23:10	你要对以色列人说，你们进了我赐给你们的地，收割庄稼的时候，要将初熟的庄稼一捆带给祭司；</div>
+            
+            
+            
+            <div class="verse-line">约20:17上	耶稣对她说，不要摸我，因我还没有升到父那里；……</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-五" data-level="2">
+    <div class="outline-item level-2">
+        
+        五　初熟的果子额上都写着羔羊的名和祂父的名，表明他们与羔羊和父是一，属于羔羊和父—启十四1下。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-五" style="display: none;" onclick="toggleScripture('scripture-壹-五')">
+            
+            
+            <div class="verse-line">启14:1下	……看哪，羔羊站在锡安山上，同祂还有十四万四千人，额上都写着祂的名，和祂父的名。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-六" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-六')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        六　初熟的果子是神农作物中最早成熟的一批—来五14~六1，林前二6，弗四13，腓三15：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-六" style="display: none;" onclick="toggleScripture('scripture-壹-六')">
+            
+            
+            <div class="verse-line">来5:14	只有长成的人，才能吃干粮，他们的官能因习用而受了操练，就能分辨好坏了。</div>
+            
+            
+            
+            <div class="verse-line">来6:1	所以，我们既离开了那论到基督之开端的话，就当竭力前进，达到完全、成熟，不再立根基，就是悔改脱开死行，信靠神，</div>
+            
+            
+            
+            <div class="verse-line">林前2:6	然而在长成的人中，我们也讲智慧，但不是这世代的智慧，也不是这世代有权有位正被废掉之人的智慧。</div>
+            
+            
+            
+            <div class="verse-line">弗4:13	直到我们众人都达到了信仰上并对神儿子之完全认识上的一，达到了长成的人，达到了基督丰满之身材的度量，</div>
+            
+            
+            
+            <div class="verse-line">腓3:15	所以我们凡是长成的人，都要思念这事；你们若思念任何别的事，神也必将这事启示你们。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹-六" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-六-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　变化乃是在我们天然生命里有改变；成熟乃是被那改变我们的神圣生命所充满—罗十二2，弗三19下。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-六-1" style="display: none;" onclick="toggleScripture('scripture-壹-六-1')">
+            
+            
+            <div class="verse-line">罗12:2	不要模仿这世代，反要借着心思的更新而变化，叫你们验证何为神那美好、可喜悦、并纯全的旨意。</div>
+            
+            
+            
+            <div class="verse-line">弗3:19下	……使你们被充满，成为神一切的丰满。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-六-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　要作神的彰显就需要成熟；唯有成熟的生命能有神的形像并施行祂的管治—创一26，罗五10、17、21。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-六-2" style="display: none;" onclick="toggleScripture('scripture-壹-六-2')">
+            
+            
+            <div class="verse-line">创1:26	神说，我们要按着我们的形像，照着我们的样式造人，使他们管理海里的鱼、空中的鸟、地上的牲畜、和全地、并地上所爬的一切爬物。</div>
+            
+            
+            
+            <div class="verse-line">罗5:10	因为我们作仇敌的时候，且借着神儿子的死得与神和好，既已和好，就更要在祂的生命里得救了。</div>
+            
+            
+            
+            <div class="verse-line">罗5:17	若因一人的过犯，死就借着这一人作了王，那些受洋溢之恩，并洋溢之义恩赐的，就更要借着耶稣基督一人，在生命中作王了。</div>
+            
+            
+            
+            <div class="verse-line">罗5:21	使罪怎样在死中作王，恩典也照样借着义作王，叫人借着我们的主耶稣基督得永远的生命。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-贰" data-level="1">
+    <div class="outline-item level-1">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        贰　我们要跟随羔羊并往前达到成熟，成为初熟的果子，就必须凭信与神同行，以逃避死亡并得着蒙神喜悦的见证：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-贰" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-贰-一" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　逃避死亡并得着蒙神喜悦之见证的路，乃是与神同行—创五22~24，来十一5~6：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-一" style="display: none;" onclick="toggleScripture('scripture-贰-一')">
+            
+            
+            <div class="verse-line">创5:22	以诺生玛土撒拉之后，与神同行三百年，并且生儿生女。</div>
+            
+            
+            
+            <div class="verse-line">创5:23	以诺共活了三百六十五岁。</div>
+            
+            
+            
+            <div class="verse-line">创5:24	以诺与神同行，神将他取去，他就不在世了。</div>
+            
+            
+            
+            <div class="verse-line">来11:5	以诺因着信被接去，不至于见死，人也找不着他，因为神把他接去了；原来他被接去以前，已经得了蒙神喜悦的见证。</div>
+            
+            
+            
+            <div class="verse-line">来11:6	人非有信，就不能得神的喜悦；因为到神面前来的人，必须信有神，且信祂赏赐那寻求祂的人。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-贰-一" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-贰-一-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　与神同行就是不越过神，不自以为是，不照着自己的观念和愿望行事，不照着今世的潮流行事，也不在神以外作任何事—参诗十九12~13，书九14下，路二四15。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-一-1" style="display: none;" onclick="toggleScripture('scripture-贰-一-1')">
+            
+            
+            <div class="verse-line">诗19:12	谁能察知自己的错失呢？愿你不定罪我隐而未现的过错。</div>
+            
+            
+            
+            <div class="verse-line">诗19:13	还求你拦阻仆人，不犯任意妄为的罪；不容这罪辖制我；我便可以完全，免犯大过。</div>
+            
+            
+            
+            <div class="verse-line">书9:14下	……并没有求耶和华指示。</div>
+            
+            
+            
+            <div class="verse-line">路24:15	正谈话讨论的时候，耶稣亲自就近他们，和他们同行。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-一-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　与神同行乃是以神为我们的中心和一切，生活行事照着神并同着神、照着祂的启示和引导，而与祂同作一切事—罗八4、13~14，加二2上，林后五14~15。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-一-2" style="display: none;" onclick="toggleScripture('scripture-贰-一-2')">
+            
+            
+            <div class="verse-line">罗8:4	使律法义的要求，成就在我们这不照着肉体，只照着灵而行的人身上。</div>
+            
+            
+            
+            <div class="verse-line">罗8:13	因为你们若照肉体活着，必要死；但你们若靠着那灵治死身体的行为，必要活着。</div>
+            
+            
+            
+            <div class="verse-line">罗8:14	因为凡被神的灵引导的，都是神的儿子。</div>
+            
+            
+            
+            <div class="verse-line">加2:2上	我是照着启示上去的，把我在外邦人中所传的福音，对他们陈述；……</div>
+            
+            
+            
+            <div class="verse-line">林后5:14	原来基督的爱困迫我们，因我们断定：一人既替众人死，众人就都死了；</div>
+            
+            
+            
+            <div class="verse-line">林后5:15	并且祂替众人死，是叫那些活着的人，不再向自己活，乃向那替他们死而复活者活。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-一-3" data-level="3">
+    <div class="outline-item level-3">
+        
+        3　与神同行的意思是我们生活不凭自己所是的或所能作的，乃凭不朽坏的生命，就是基督自己—4、9节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-一-3" style="display: none;" onclick="toggleScripture('scripture-贰-一-3')">
+            
+            
+            <div class="verse-line">林后5:4	因为我们在这帐幕里的人，负重叹息，是因不愿脱下这个，乃愿穿上那个，好叫这必死的被生命吞灭了。</div>
+            
+            
+            
+            <div class="verse-line">林后5:9	所以我们也怀着雄心大志，无论是在家，或是离家，都要讨主的喜悦。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-一-4" data-level="3">
+    <div class="outline-item level-3">
+        
+        4　与神同行就是习惯地与神交通，不断地接触主，并在祂不断地注入之下—约壹一3，腓四6，林后三16、18。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-一-4" style="display: none;" onclick="toggleScripture('scripture-贰-一-4')">
+            
+            
+            <div class="verse-line">约壹1:3	我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。</div>
+            
+            
+            
+            <div class="verse-line">腓4:6	应当一无挂虑，只要凡事借着祷告、祈求，带着感谢，将你们所要的告诉神；</div>
+            
+            
+            
+            <div class="verse-line">林后3:16	但他们的心几时转向主，帕子就几时除去了。</div>
+            
+            
+            
+            <div class="verse-line">林后3:18	但我们众人既然以没有帕子遮蔽的脸，好像镜子观看并返照主的荣光，就渐渐变化成为与祂同样的形像，从荣耀到荣耀，乃是从主灵变化成的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-一-5" data-level="3">
+    <div class="outline-item level-3">
+        
+        5　与神同行乃是不断地操练我们的灵，享受可称颂的神圣三一—犹14、19~21。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-5')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-一-5" style="display: none;" onclick="toggleScripture('scripture-贰-一-5')">
+            
+            
+            <div class="verse-line">犹14	亚当的七世孙以诺，也曾预言这些人说，看哪，主带着祂的千万圣者来临，</div>
+            
+            
+            
+            <div class="verse-line">犹19	这就是那些制造分裂，属魂而没有灵的人。</div>
+            
+            
+            
+            <div class="verse-line">犹20	亲爱的，你们却要在至圣的信仰上建造自己，在圣灵里祷告，</div>
+            
+            
+            
+            <div class="verse-line">犹21	保守自己在神的爱中，等候我们主耶稣基督的怜悯，以至于永远的生命。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-一-6" data-level="3">
+    <div class="outline-item level-3">
+        
+        6　与神同行含示否认己并否认出于己的一切，使我们能与祂是一；这含示我们把自己交给祂，并愿意降服于祂，让祂引导—太十六24~25，林后二13~14。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一-6')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-一-6" style="display: none;" onclick="toggleScripture('scripture-贰-一-6')">
+            
+            
+            <div class="verse-line">太16:24	于是耶稣对门徒说，若有人要跟从我，就当否认己，背起他的十字架，并跟从我。</div>
+            
+            
+            
+            <div class="verse-line">太16:25	因为凡要救自己魂生命的，必丧失魂生命；凡为我丧失自己魂生命的，必得着魂生命。</div>
+            
+            
+            
+            <div class="verse-line">林后2:13	那时没有找到我的弟兄提多，我灵里不安，便辞别那里的人，往马其顿去了。</div>
+            
+            
+            
+            <div class="verse-line">林后2:14	感谢神，祂常在基督里，在凯旋的行列中帅领我们，并借着我们在各处显扬那因认识基督而有的香气；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-二" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　与神同行乃是凭信行事为人—五7，来十一5~6：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-二" style="display: none;" onclick="toggleScripture('scripture-贰-二')">
+            
+            
+            <div class="verse-line">林后5:7	（因我们行事为人，是凭着信心，不是凭着眼见；）</div>
+            
+            
+            
+            <div class="verse-line">来11:5	以诺因着信被接去，不至于见死，人也找不着他，因为神把他接去了；原来他被接去以前，已经得了蒙神喜悦的见证。</div>
+            
+            
+            
+            <div class="verse-line">来11:6	人非有信，就不能得神的喜悦；因为到神面前来的人，必须信有神，且信祂赏赐那寻求祂的人。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-贰-二" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-贰-二-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-二-1')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        1　信就是信神是—1~2、6节，林后四13、18：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-二-1" style="display: none;" onclick="toggleScripture('scripture-贰-二-1')">
+            
+            
+            <div class="verse-line">来11:1	信就是所望之事的质实，是未见之事的确证。</div>
+            
+            
+            
+            <div class="verse-line">来11:2	古人在这信上得了美好的见证。</div>
+            
+            
+            
+            <div class="verse-line">来11:6	人非有信，就不能得神的喜悦；因为到神面前来的人，必须信有神，且信祂赏赐那寻求祂的人。</div>
+            
+            
+            
+            <div class="verse-line">林后4:13	并且照经上所记：“我信，所以我说话；”我们既有这同样信心的灵，也就信，所以也就说话，</div>
+            
+            
+            
+            <div class="verse-line">林后4:18	我们原不是顾念所见的，乃是顾念所不见的，因为所见的是暂时的，所不见的才是永远的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-贰-二-1" data-parent-level="3" style="display: block;">
+        
+        
+
+<div class="section" id="section-贰-二-1-a" data-level="4">
+    <div class="outline-item level-4">
+        
+        a　人非有信，就不能得神的喜悦，不能使神快乐—来十一6上。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-1-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-二-1-a" style="display: none;" onclick="toggleScripture('scripture-贰-二-1-a')">
+            
+            
+            <div class="verse-line">来11:6上	人非有信，就不能得神的喜悦；……</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-二-1-b" data-level="4">
+    <div class="outline-item level-4">
+        
+        b　信神是，就是信祂是我们的一切，而我们一无所是—约八58，传一2。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-1-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-二-1-b" style="display: none;" onclick="toggleScripture('scripture-贰-二-1-b')">
+            
+            
+            <div class="verse-line">约8:58	耶稣对他们说，我实实在在地告诉你们，还没有亚伯拉罕，我就是。</div>
+            
+            
+            
+            <div class="verse-line">传1:2	传道者说，虚空的虚空，虚空的虚空，凡事都是虚空。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-二-1-c" data-level="4">
+    <div class="outline-item level-4">
+        
+        c　信神是，含示我们不是；祂必须在凡事上是唯一的一位，独一的一位，我们必须在凡事上什么也不是—创五24，来十一5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-1-c')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-二-1-c" style="display: none;" onclick="toggleScripture('scripture-贰-二-1-c')">
+            
+            
+            <div class="verse-line">创5:24	以诺与神同行，神将他取去，他就不在世了。</div>
+            
+            
+            
+            <div class="verse-line">来11:5	以诺因着信被接去，不至于见死，人也找不着他，因为神把他接去了；原来他被接去以前，已经得了蒙神喜悦的见证。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-二-1-d" data-level="4">
+    <div class="outline-item level-4">
+        
+        d　信神是，就是否认我们的己；在全宇宙中祂是，我们众人什么也不是—路九23。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-1-d')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-二-1-d" style="display: none;" onclick="toggleScripture('scripture-贰-二-1-d')">
+            
+            
+            <div class="verse-line">路9:23	耶稣又对众人说，若有人要跟从我，就当否认己，天天背起他的十字架，并跟从我。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-二-1-e" data-level="4">
+    <div class="outline-item level-4">
+        
+        e　我应当什么都不是；我应当不存在；唯独祂应当存在—不再是我，乃是基督—加二20。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-1-e')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-二-1-e" style="display: none;" onclick="toggleScripture('scripture-贰-二-1-e')">
+            
+            
+            <div class="verse-line">加2:20	我已经与基督同钉十字架；现在活着的，不再是我，乃是基督在我里面活着；并且我如今在肉身里所活的生命，是我在神儿子的信里，与祂联结所活的，祂是爱我，为我舍了自己。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-二-1-f" data-level="4">
+    <div class="outline-item level-4">
+        
+        f　大数的扫罗悔改信主时，主告诉他说，“我就是……耶稣”—徒九5：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-1-f')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-二-1-f" style="display: none;" onclick="toggleScripture('scripture-贰-二-1-f')">
+            
+            
+            <div class="verse-line">徒13:9	扫罗，又名保罗，被圣灵充溢，定睛看他，说，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-二-1-g" data-level="4">
+    <div class="outline-item level-4">
+        
+        g　这就是信—“哦，何等喜乐，能够一无所有，一无所是，一无所见，唯见在荣耀里活的基督！并且一无所顾，唯顾祂在此地的权益”—达秘（J. N. Darby）。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-二-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-二-2')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        2　信的意思乃是我们信神赏赐那寻求（寻找出）祂的人—来十一6，创十五1，腓三8、14：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-二-2" style="display: none;" onclick="toggleScripture('scripture-贰-二-2')">
+            
+            
+            <div class="verse-line">来11:6	人非有信，就不能得神的喜悦；因为到神面前来的人，必须信有神，且信祂赏赐那寻求祂的人。</div>
+            
+            
+            
+            <div class="verse-line">创15:1	这些事以后，耶和华的话在异象中临到亚伯兰，说，亚伯兰，你不要惧怕；我是你的盾牌，是你极大的赏赐。</div>
+            
+            
+            
+            <div class="verse-line">腓3:8	不但如此，我也将万事看作亏损，因我以认识我主基督耶稣为至宝；我因祂已经亏损万事，看作粪土，为要赢得基督，</div>
+            
+            
+            
+            <div class="verse-line">腓3:14	向着标竿竭力追求，要得神在基督耶稣里，召我向上去得的奖赏。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-贰-二-2" data-parent-level="3" style="display: block;">
+        
+        
+
+<div class="section" id="section-贰-二-2-a" data-level="4">
+    <div class="outline-item level-4">
+        
+        a　以诺的赏赐，乃是生命最高的程度—逃避了死—来十一5上，林后五4，罗八6、10~11，五17。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-2-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-二-2-a" style="display: none;" onclick="toggleScripture('scripture-贰-二-2-a')">
+            
+            
+            <div class="verse-line">来11:5上	以诺因着信被接去，不至于见死，人也找不着他，因为神把他接去了；……</div>
+            
+            
+            
+            <div class="verse-line">林后5:4	因为我们在这帐幕里的人，负重叹息，是因不愿脱下这个，乃愿穿上那个，好叫这必死的被生命吞灭了。</div>
+            
+            
+            
+            <div class="verse-line">罗8:6	因为心思置于肉体，就是死；心思置于灵，乃是生命平安。</div>
+            
+            
+            
+            <div class="verse-line">罗8:10	但基督若在你们里面，身体固然因罪是死的，灵却因义是生命。</div>
+            
+            
+            
+            <div class="verse-line">罗8:11	然而那叫耶稣从死人中复活者的灵，若住在你们里面，那叫基督从死人中复活的，也必借着祂住在你们里面的灵，赐生命给你们必死的身体。</div>
+            
+            
+            
+            <div class="verse-line">罗5:17	若因一人的过犯，死就借着这一人作了王，那些受洋溢之恩，并洋溢之义恩赐的，就更要借着耶稣基督一人，在生命中作王了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-二-2-b" data-level="4">
+    <div class="outline-item level-4">
+        
+        b　主是赏赐者，我们需要成为寻求主的人—诗二七4、8，四二1~2，四三4，七三25，一一九2、10。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二-2-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-二-2-b" style="display: none;" onclick="toggleScripture('scripture-贰-二-2-b')">
+            
+            
+            <div class="verse-line">诗27:4	有一件事，我曾求耶和华，我仍要寻求；就是一生一世住在耶和华的殿中，瞻仰祂的荣美，在祂的殿里求问。</div>
+            
+            
+            
+            <div class="verse-line">诗27:8	你说，你们当寻求我的面；那时我的心向你说，耶和华啊，你的面我正要寻求。</div>
+            
+            
+            
+            <div class="verse-line">诗42:1	神啊，我的魂切慕你，如鹿切慕溪水。</div>
+            
+            
+            
+            <div class="verse-line">诗42:2	我的魂渴想神，就是活神。我几时才可以来朝见神呢？</div>
+            
+            
+            
+            <div class="verse-line">诗43:4	我就到神的祭坛，到我最喜乐的神那里；神啊，我的神，我要弹琴赞美你。</div>
+            
+            
+            
+            <div class="verse-line">诗73:25	除你以外，在天上我有谁呢？除你以外，在地上我也没有所爱慕的。</div>
+            
+            
+            
+            <div class="verse-line">诗119:2	遵守祂的法度，全心寻求祂的，这样的人是有福的。</div>
+            
+            
+            
+            <div class="verse-line">诗119:10	我全心寻求了你，求你不要叫我偏离你的诫命。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-三" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　以诺作为第一个被提的人，乃是一切活着被提之得胜者的代表—太二四37~51，启十四1，路二一34~36：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-三" style="display: none;" onclick="toggleScripture('scripture-贰-三')">
+            
+            
+            <div class="verse-line">太24:37	挪亚的日子怎样，人子来临也要怎样。</div>
+            
+            
+            
+            <div class="verse-line">太24:38	因为就如在洪水以前的那些日子，人又吃又喝，又娶又嫁，直到挪亚进方舟的那日，</div>
+            
+            
+            
+            <div class="verse-line">太24:39	并不知道审判要来，直到洪水来了，把他们全都冲去；人子来临也要这样。</div>
+            
+            
+            
+            <div class="verse-line">太24:40	那时，两个人在田里，取去一个，撇下一个。</div>
+            
+            
+            
+            <div class="verse-line">太24:41	两个女人在磨坊推磨，取去一个，撇下一个。</div>
+            
+            
+            
+            <div class="verse-line">太24:42	所以你们要儆醒，因为不知道你们的主哪一天要来。</div>
+            
+            
+            
+            <div class="verse-line">太24:43	但你们要知道，家主若晓得贼在几更天要来，他就必儆醒，不容他的房屋被人挖透。</div>
+            
+            
+            
+            <div class="verse-line">太24:44	所以你们也要预备，因为在你们想不到的时辰，人子就来了。</div>
+            
+            
+            
+            <div class="verse-line">太24:45	这样，谁是那忠信又精明的奴仆，为主人所派，管理他的家人，按时分粮给他们？</div>
+            
+            
+            
+            <div class="verse-line">太24:46	主人来到，看见他这样行，那奴仆就有福了。</div>
+            
+            
+            
+            <div class="verse-line">太24:47	我实在告诉你们，主人要派他管理一切的家业。</div>
+            
+            
+            
+            <div class="verse-line">太24:48	若是那恶仆心里说，我的主人必来得迟，</div>
+            
+            
+            
+            <div class="verse-line">太24:49	就动手打那些和他同作奴仆的，又和酒醉的人一同吃喝，</div>
+            
+            
+            
+            <div class="verse-line">太24:50	在想不到的日子，不知道的时辰，那奴仆的主人要来，</div>
+            
+            
+            
+            <div class="verse-line">太24:51	把他割断，定他和假冒为善的人同受处分；在那里必要哀哭切齿了。</div>
+            
+            
+            
+            <div class="verse-line">启14:1	我又观看，看哪，羔羊站在锡安山上，同祂还有十四万四千人，额上都写着祂的名，和祂父的名。</div>
+            
+            
+            
+            <div class="verse-line">路21:34	你们要小心，恐怕因酗酒、沉醉并今生的思虑，累住你们的心，那日子就如同网罗忽然临到你们，</div>
+            
+            
+            
+            <div class="verse-line">路21:35	因为那日子要这样临到全地面上一切居住的人。</div>
+            
+            
+            
+            <div class="verse-line">路21:36	但你们要时时儆醒，常常祈求，使你们得胜，能逃避这一切要发生的事，得以站立在人子面前。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-贰-三" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-贰-三-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　我们被提是在于我们与神同行，而在神圣的生命里成熟—来六1上。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-三-1" style="display: none;" onclick="toggleScripture('scripture-贰-三-1')">
+            
+            
+            <div class="verse-line">来6:1上	所以，我们既离开了那论到基督之开端的话，就当竭力前进，达到完全、成熟，……</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-三-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　以诺与神同行三百年，昼夜不断上行，每天更接近神，更与神是一，直到“神将他取去，他就不在世〔直译，不是〕了”—创五24，参歌八5上。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-三-2" style="display: none;" onclick="toggleScripture('scripture-贰-三-2')">
+            
+            
+            <div class="verse-line">歌8:5上	那从旷野上来，靠着她良人的是谁呢？……</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-叁" data-level="1">
+    <div class="outline-item level-1">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        叁　我们要跟随羔羊并往前达到成熟，成为初熟的果子，就必须在主的使命上忠信服事，将神当作粮食分给祂的家人，使我们在要来的国度里，赢得基督作我们的赏赐—太二四45~51：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁" style="display: none;" onclick="toggleScripture('scripture-叁')">
+            
+            
+            <div class="verse-line">太24:45	这样，谁是那忠信又精明的奴仆，为主人所派，管理他的家人，按时分粮给他们？</div>
+            
+            
+            
+            <div class="verse-line">太24:46	主人来到，看见他这样行，那奴仆就有福了。</div>
+            
+            
+            
+            <div class="verse-line">太24:47	我实在告诉你们，主人要派他管理一切的家业。</div>
+            
+            
+            
+            <div class="verse-line">太24:48	若是那恶仆心里说，我的主人必来得迟，</div>
+            
+            
+            
+            <div class="verse-line">太24:49	就动手打那些和他同作奴仆的，又和酒醉的人一同吃喝，</div>
+            
+            
+            
+            <div class="verse-line">太24:50	在想不到的日子，不知道的时辰，那奴仆的主人要来，</div>
+            
+            
+            
+            <div class="verse-line">太24:51	把他割断，定他和假冒为善的人同受处分；在那里必要哀哭切齿了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-叁" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-叁-一" data-level="2">
+    <div class="outline-item level-2">
+        
+        一　神有一个家庭和家庭的行政，经纶，要将祂自己当作粮食分赐给祂的家人，使祂得着彰显—提前一4，三15，弗二19。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-一" style="display: none;" onclick="toggleScripture('scripture-叁-一')">
+            
+            
+            <div class="verse-line">提前1:4	也不可注意虚构无稽之事，和无穷的家谱；这等事只引起辩论，对于神在信仰里的经纶并无助益。</div>
+            
+            
+            
+            <div class="verse-line">提前3:15	倘若我耽延，你也可以知道在神的家中当怎样行；这家就是活神的召会，真理的柱石和根基。</div>
+            
+            
+            
+            <div class="verse-line">弗2:19	这样，你们不再是外人和寄居的，乃是圣徒同国之民，是神家里的亲人，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-二" data-level="2">
+    <div class="outline-item level-2">
+        
+        二　神已经立了忠信精明的奴仆作管理祂家的家庭管理者、管家、供应的管道，好按时分粮给祂的子民—太二四45，林前九17，弗三2，林前四1，彼前四10，腓一25。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-二" style="display: none;" onclick="toggleScripture('scripture-叁-二')">
+            
+            
+            <div class="verse-line">太24:45	这样，谁是那忠信又精明的奴仆，为主人所派，管理他的家人，按时分粮给他们？</div>
+            
+            
+            
+            <div class="verse-line">林前9:17	我若甘心作这事，就有赏赐；若不甘心，管家的职分却已经托付我了。</div>
+            
+            
+            
+            <div class="verse-line">弗3:2	谅必你们曾听见那为着你们所赐给我，神恩典的管家职分，</div>
+            
+            
+            
+            <div class="verse-line">林前4:1	这样，人应当把我们看作基督的执事，和神的奥秘的管家。</div>
+            
+            
+            
+            <div class="verse-line">彼前4:10	各人要照所得的恩赐，将这恩赐彼此供应，作神诸般恩典的好管家。</div>
+            
+            
+            
+            <div class="verse-line">腓1:25	我既然这样深信，就知道仍要留下，继续与你们众人同住，使你们得到信仰上的进步和喜乐，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-三" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　“分粮给他们”，是指在召会里，将神的话和基督当作生命的供应，供应给信徒；作为赐生命之灵的基督是我们的粮食，具体化并实化在生命的话里—约六57、63、68，徒五20：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-三" style="display: none;" onclick="toggleScripture('scripture-叁-三')">
+            
+            
+            <div class="verse-line">约6:57	活的父怎样差我来，我又因父活着，照样，那吃我的人，也要因我活着。</div>
+            
+            
+            
+            <div class="verse-line">约6:63	赐人生命的乃是灵，肉是无益的；我对你们所说的话，就是灵，就是生命。</div>
+            
+            
+            
+            <div class="verse-line">约6:68	西门彼得回答祂说，主啊，你有永远生命的话，我们还归从谁？</div>
+            
+            
+            
+            <div class="verse-line">徒5:20	你们去站在殿里，把这生命的话，都讲给百姓听。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-叁-三" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-叁-三-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　我们要享受主作我们属灵的粮食，使我们能喂养别人，就必须祷告并默想祂的话，借着仔细揣摩而品尝、享受这话—弗六17~18，诗一一九15，结三1~4。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-三-1" style="display: none;" onclick="toggleScripture('scripture-叁-三-1')">
+            
+            
+            <div class="verse-line">弗6:17	还要借着各样的祷告和祈求，接受救恩的头盔，并那灵的剑，那灵就是神的话；</div>
+            
+            
+            
+            <div class="verse-line">弗6:18	时时在灵里祷告，并尽力坚持，在这事上儆醒，且为众圣徒祈求，</div>
+            
+            
+            
+            <div class="verse-line">诗119:15	我要默想你的训辞，看重你的道路。</div>
+            
+            
+            
+            <div class="verse-line">结3:1	祂对我说，人子啊，要吃你所得的；要吃这书卷，然后去对以色列家讲说。</div>
+            
+            
+            
+            <div class="verse-line">结3:2	于是我开口，祂就使我吃那书卷。</div>
+            
+            
+            
+            <div class="verse-line">结3:3	祂又对我说，人子啊，要把我所赐给你的这书卷吃下，充满你的肚腹。我就吃了，口中觉得其甜如蜜。</div>
+            
+            
+            
+            <div class="verse-line">结3:4	祂对我说，人子啊，你往以色列家那里去，对他们讲说我的话。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-三-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　我们必须专心祷告，并尽话语的职事—徒六4，林后三6、8，约七37~39，参来七25，八2。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-三-2" style="display: none;" onclick="toggleScripture('scripture-叁-三-2')">
+            
+            
+            <div class="verse-line">徒6:4	但我们要坚定持续地祷告，并尽话语的职事。</div>
+            
+            
+            
+            <div class="verse-line">林后3:6	祂使我们够资格作新约的执事，这些执事不是属于字句，乃是属于灵，因为那字句杀死人，那灵却叫人活。</div>
+            
+            
+            
+            <div class="verse-line">林后3:8	何况那灵的职事，岂不更带着荣光？</div>
+            
+            
+            
+            <div class="verse-line">约7:37	节期的末日，就是最大之日，耶稣站着高声说，人若渴了，可以到我这里来喝。</div>
+            
+            
+            
+            <div class="verse-line">约7:38	信入我的人，就如经上所说，从他腹中要流出活水的江河来。</div>
+            
+            
+            
+            <div class="verse-line">约7:39	耶稣这话是指着信入祂的人将要受的那灵说的；那时还没有那灵，因为耶稣尚未得着荣耀。</div>
+            
+            
+            
+            <div class="verse-line">来7:25	所以，那借着祂来到神面前的人，祂都能拯救到底；因为祂是长远活着，为他们代求。</div>
+            
+            
+            
+            <div class="verse-line">来8:2	作了圣所，就是真帐幕的执事；这帐幕是主所支的，不是人所支的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-四" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁-四')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        四　我们心里说，我们的主人必来得迟，这乃是爱现今邪恶的世代，不爱主的显现—太二四48，提后四8、10，参徒二六16：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-四" style="display: none;" onclick="toggleScripture('scripture-叁-四')">
+            
+            
+            <div class="verse-line">太24:48	若是那恶仆心里说，我的主人必来得迟，</div>
+            
+            
+            
+            <div class="verse-line">提后4:8	从此以后，有公义的冠冕为我存留，就是主，那公义的审判者，在那日要赏赐我的；不但赏赐我，也赏赐凡爱祂显现的人。</div>
+            
+            
+            
+            <div class="verse-line">提后4:10	因为底马爱了现今的世代，就离弃我往帖撒罗尼迦去了；革勒士往加拉太去，提多往挞马太去。</div>
+            
+            
+            
+            <div class="verse-line">徒26:16	你起来站着，我向你显现，正是要选定你作执事和见证人，将你所看见我的事，和我将要显现给你的事，见证出来；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-叁-四" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-叁-四-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　我们必须提防贪婪，不为自己积财，却要对神富足—路十二15~20，林后六10，弗三8。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-四-1" style="display: none;" onclick="toggleScripture('scripture-叁-四-1')">
+            
+            
+            <div class="verse-line">路12:15	于是对众人说，你们要当心，要自守，免去一切的贪婪；因为人的生命，不在于家业丰富。</div>
+            
+            
+            
+            <div class="verse-line">路12:16	耶稣就告诉他们一个比喻，说，有一个财主的田地出产丰盛；</div>
+            
+            
+            
+            <div class="verse-line">路12:17	他自己心里思量说，我的出产没有地方收藏，怎么办？</div>
+            
+            
+            
+            <div class="verse-line">路12:18	又说，我要这样办：要把我的仓房拆了，另盖更大的，好在那里收藏我一切的麦子和财物。</div>
+            
+            
+            
+            <div class="verse-line">路12:19	然后要对我的魂说，魂哪，你有许多财物积存，可供多年享用，你休息吧，吃喝快乐吧。</div>
+            
+            
+            
+            <div class="verse-line">路12:20	神却对他说，无知的人哪，今夜必要你的魂；你所预备的，要归谁？</div>
+            
+            
+            
+            <div class="verse-line">林后6:10	似乎忧愁，却常常喜乐；似乎贫穷，却叫许多人富足；似乎一无所有，却拥有万有。</div>
+            
+            
+            
+            <div class="verse-line">弗3:8	这恩典赐给了我这比众圣徒中最小者还小的，叫我将基督那追测不尽的丰富，当作福音传给外邦人，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-四-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　“你们要回想罗得的妻子”，这对贪爱世界的信徒是个严肃的警告—路十七31~32，参罗一21、25。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-四-2" style="display: none;" onclick="toggleScripture('scripture-叁-四-2')">
+            
+            
+            <div class="verse-line">路17:31	当那日，人在房顶上，器具在屋子里，不要下来拿；在田地里的，也照样不要回去。</div>
+            
+            
+            
+            <div class="verse-line">路17:32	你们要回想罗得的妻子。</div>
+            
+            
+            
+            <div class="verse-line">罗1:21	因为他们虽然知道神，却不当作神荣耀祂，也不感谢祂，反倒在他们的推想上变为虚妄，他们无知的心就昏暗了。</div>
+            
+            
+            
+            <div class="verse-line">罗1:25	他们将神的真实换为虚谎，去敬拜事奉受造之物，不敬拜事奉那创造者；祂乃是当受颂赞的，直到永远。阿们。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-四-3" data-level="3">
+    <div class="outline-item level-3">
+        
+        3　我们必须儆醒并祈求，叫主来临的那日子不致如同网罗忽然临到我们—路二一34~36，参太二3。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-四-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-四-3" style="display: none;" onclick="toggleScripture('scripture-叁-四-3')">
+            
+            
+            <div class="verse-line">路21:34	你们要小心，恐怕因酗酒、沉醉并今生的思虑，累住你们的心，那日子就如同网罗忽然临到你们，</div>
+            
+            
+            
+            <div class="verse-line">路21:35	因为那日子要这样临到全地面上一切居住的人。</div>
+            
+            
+            
+            <div class="verse-line">路21:36	但你们要时时儆醒，常常祈求，使你们得胜，能逃避这一切要发生的事，得以站立在人子面前。</div>
+            
+            
+            
+            <div class="verse-line">太2:3	希律王听见了，就惊慌不安，全耶路撒冷也同他一样。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-五" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁-五')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        五　动手打那些和我们同作奴仆的，乃是虐待作我们同伴的信徒—二四49上，十八3~7，徒九4：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-五" style="display: none;" onclick="toggleScripture('scripture-叁-五')">
+            
+            
+            <div class="verse-line">太24:49上	就动手打那些和他同作奴仆的，……</div>
+            
+            
+            
+            <div class="verse-line">太18:3	我实在告诉你们，你们若不回转，变成像小孩子一样，绝不能进诸天的国。</div>
+            
+            
+            
+            <div class="verse-line">太18:4	所以凡降卑自己像这小孩子的，这人在诸天的国里就是最大的。</div>
+            
+            
+            
+            <div class="verse-line">太18:5	凡因我的名，接待一个这样小孩子的，就是接待我。</div>
+            
+            
+            
+            <div class="verse-line">太18:6	凡绊跌一个信入我的小子的，倒不如把大磨石挂在他的脖子上，沉没在深海里。</div>
+            
+            
+            
+            <div class="verse-line">太18:7	世界因着绊跌人的事有祸了；绊跌人的事是免不了的，但那绊跌人的有祸了。</div>
+            
+            
+            
+            <div class="verse-line">徒9:4	他就仆倒在地，听见有声音对他说，扫罗，扫罗，你为什么逼迫我？</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-叁-五" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-叁-五-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　我们不该审判、定罪作我们同伴的信徒，乃要以恩慈待他们，心存慈怜，饶恕他们，如同神在基督里饶恕了我们一样—路六37，弗四31~32。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-五-1" style="display: none;" onclick="toggleScripture('scripture-叁-五-1')">
+            
+            
+            <div class="verse-line">路6:37	你们不要审判，就绝不会受审判；你们不要定罪，就绝不会被定罪；你们要赦免人，就必蒙赦免。</div>
+            
+            
+            
+            <div class="verse-line">弗4:31	一切苦毒、恼恨、忿怒、喧嚷、毁谤，同一切的恶毒，都要从你们中间除掉。</div>
+            
+            
+            
+            <div class="verse-line">弗4:32	你们要以恩慈相待，心存慈怜，彼此饶恕，正如神在基督里饶恕了你们一样。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-五-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁-五-2')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        2　我们不可辱骂或批评我们的弟兄，乃要看他们比我们强—林前六10，腓二2~3、29：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-五-2" style="display: none;" onclick="toggleScripture('scripture-叁-五-2')">
+            
+            
+            <div class="verse-line">林前6:10	偷窃的、贪婪的、醉酒的、辱骂的、勒索的，都不能承受神的国。</div>
+            
+            
+            
+            <div class="verse-line">腓2:2	你们就要使我的喜乐满足，就是要思念相同的事，有相同的爱，魂里联结，思念同一件事，</div>
+            
+            
+            
+            <div class="verse-line">腓2:3	凡事都不私图好争，也不贪图虚荣，只要心思卑微，各人看别人比自己强；</div>
+            
+            
+            
+            <div class="verse-line">腓2:29	因此你们要在主里欢欢喜喜地接待他，并且要尊重这样的人，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-叁-五-2" data-parent-level="3" style="display: block;">
+        
+        
+
+<div class="section" id="section-叁-五-2-a" data-level="4">
+    <div class="outline-item level-4">
+        
+        a　辱骂弟兄，就是用侮辱性的语言，粗鲁的批评他或贬低他。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-五-2-b" data-level="4">
+    <div class="outline-item level-4">
+        
+        b　听毁谤的话，与说毁谤的话一样要负责任；这样的话破坏基督的身体。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-五-2-c" data-level="4">
+    <div class="outline-item level-4">
+        
+        c　神绝不将权柄信托给那些本性就喜欢批评别人的人。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-五-3" data-level="3">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁-五-3')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        3　我们不可作主辖管作我们同伴的信徒，乃要作奴仆服事他们，以复活的基督这赐生命的灵喂养他们—彼前五3，太二十25~28：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-五-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-五-3" style="display: none;" onclick="toggleScripture('scripture-叁-五-3')">
+            
+            
+            <div class="verse-line">彼前5:3	也不是作主辖管所委托你们的产业，乃是作群羊的榜样。</div>
+            
+            
+            
+            <div class="verse-line">太20:25	于是耶稣叫了他们来，说，你们知道外邦人有君王为主治理他们，也有大臣操权管辖他们。</div>
+            
+            
+            
+            <div class="verse-line">太20:26	但你们中间不是这样；反倒你们中间无论谁想要为大，就必作你们的仆役；</div>
+            
+            
+            
+            <div class="verse-line">太20:27	你们中间无论谁想要为首，就必作你们的奴仆。</div>
+            
+            
+            
+            <div class="verse-line">太20:28	正如人子来，不是要受人的服事，乃是要服事人，并且要舍命，作多人的赎价。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-叁-五-3" data-parent-level="3" style="display: block;">
+        
+        
+
+<div class="section" id="section-叁-五-3-a" data-level="4">
+    <div class="outline-item level-4">
+        
+        a　作主辖管圣徒，意思是在圣徒的生活上取代主，为他们作决定，或告诉他们搬去哪里，因而干犯基督的元首身分和主权。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-五-3-b" data-level="4">
+    <div class="outline-item level-4">
+        
+        b　我们若告诉别人他们该去哪里，却没有鼓励他们去祷告寻求主的引导，在身体里有合式的交通，这对主乃是极大的悔辱！
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-六" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-叁-六')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        六　和酒醉的人一同吃喝，乃是与沉醉在属世事物里的世人为伴—太二四49下，参弗五18：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-六" style="display: none;" onclick="toggleScripture('scripture-叁-六')">
+            
+            
+            <div class="verse-line">太24:49下	……又和酒醉的人一同吃喝，</div>
+            
+            
+            
+            <div class="verse-line">弗5:18	不要醉酒，醉酒使人放荡，乃要在灵里被充满，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-叁-六" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-叁-六-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　因着信徒神圣的性情和圣别的地位，他们不该跟不信者同负一轭；这不只该应用在信徒与不信者之间的婚姻和事业上，也该应用在他们各种亲密的关系上—林后六14，林前十五33，参箴十三20。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-六-1" style="display: none;" onclick="toggleScripture('scripture-叁-六-1')">
+            
+            
+            <div class="verse-line">林后6:14	你们跟不信的，不要不配地同负一轭，因为义和不法有什么合伙？光对黑暗有什么交通？</div>
+            
+            
+            
+            <div class="verse-line">林前15:33	你们不要受迷惑：滥交败坏善行。</div>
+            
+            
+            
+            <div class="verse-line">箴13:20	与智慧人同行的，必得智慧；和愚昧人作伴的，必受亏损。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-叁-六-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　我们必须逃避青年人的私欲，同那清心呼求主的人，竭力追求包罗万有的基督—提后二22。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-叁-六-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-叁-六-2" style="display: none;" onclick="toggleScripture('scripture-叁-六-2')">
+            
+            
+            <div class="verse-line">提后2:22	你要逃避青年人的私欲，同那清心呼求主的人，竭力追求公义、信、爱、和平。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+    </div>
+</div>
+
+<style>
+.outline-page{padding:5px}
+.level-btn:active{transform:scale(0.95)}
+.outline-content{margin-top:20px}
+.subsections{margin-left:0;display:block}
+.scripture-section{margin:15px 0;padding:12px 15px;background:var(--surface-alt);border-radius:8px}
+.chapter-scripture-content{margin-top:6px;margin-left:0;background:var(--surface);border:1px solid rgba(102,126,234,0.18)}
+.scripture-content{cursor:pointer}
+</style>
+
+<script src="js/outline.js"></script>
+<script>
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            // 读取所有纲目项目
+            const outlineItems = document.querySelectorAll('.outline-item');
+            outlineItems.forEach(item => {
+                // 获取纲目文本，排除按钮和经文内容
+                const clone = item.cloneNode(true);
+                const buttons = clone.querySelectorAll('button');
+                buttons.forEach(btn => btn.remove());
+                const scriptures = clone.querySelectorAll('.scripture-content');
+                scriptures.forEach(sc => sc.remove());
+                const verseLines = clone.querySelectorAll('.verse-line');
+                verseLines.forEach(vl => vl.remove());
+                
+                const t = clone.textContent.trim();
+                if (t) {
+                    text += t + '。';
+                }
+            });
+            
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>202507 冬季训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

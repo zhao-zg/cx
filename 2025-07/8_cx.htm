@@ -1,0 +1,2355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第8篇 - 晨兴</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+<style>
+.morning-revival-page{padding:5px;max-width:820px;margin:0 auto}
+.day-navigation{display:flex;flex-wrap:nowrap;gap:0;margin:15px 0;padding:8px;background:var(--surface-alt);border-radius:8px;justify-content:space-between;font-size:0.85em;box-sizing:border-box;overflow:hidden}
+.day-link{height:40px;padding:0 10px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:0;color:var(--btn-secondary-text);font-size:0.88em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box}
+.day-link + .day-link{border-left:1px solid var(--border)}
+.day-link:first-child{border-top-left-radius:6px;border-bottom-left-radius:6px}
+.day-link:last-child{border-top-right-radius:6px;border-bottom-right-radius:6px}
+.day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:rgba(102,126,234,.5)}
+.day-link.active{font-weight:700}
+.pages-container{position:relative;min-height:400px;touch-action:pan-y}
+.day-page{background:var(--surface);padding:0;display:none}
+.day-page.is-active{display:block}
+.page-controls{display:flex;justify-content:space-between;align-items:center;margin:20px 0 15px;padding:10px;background:var(--surface-alt);border-radius:12px;border:1px solid var(--border)}
+.prev-btn,.next-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:12px 16px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:5px;color:var(--btn-secondary-text);font-size:0.9375em;cursor:pointer;font-weight:600;transition:background .2s}
+.prev-btn:hover,.next-btn:hover{background:var(--btn-secondary-hover-bg)}
+.prev-btn:active,.next-btn:active{background:var(--btn-secondary-active-bg)}
+.prev-btn:disabled,.next-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-indicator{font-size:0.94em;color:var(--text-muted);font-weight:800}
+</style>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第8篇 男孩子、天上的争战以及得胜的圣徒</h2>
+</div>
+
+        
+        <div class="content">
+            
+
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="8_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="8_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="8_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="8_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container" data-total-pages="6">
+        
+        <div class="day-page is-active" data-day="1" data-page="0">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day1-壹" data-level="1">
+    <div class="outline-item level-1">
+        
+        壹　“妇人生了一个男孩子，是将来要用铁杖辖管万国的；她的孩子被提到神和祂的宝座那里去了”—启十二5：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　这里的“生”表征复活，与行传十三章三十三至三十四节者同：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一" style="display: none;" onclick="toggleScripture('scripture-day1-一')">
+            
+            
+            <div class="verse-line">徒13:33	神已经向我们这作儿女的完全应验，叫耶稣复活了，正如诗篇第二篇上所记：“你是我的儿子，我今日生了你。”</div>
+            
+            
+            
+            <div class="verse-line">徒13:34	论到神叫祂从死人中复活，不再归于朽坏，就这样说：“我必将大卫那圣的，那可靠的，赐给你们。”</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　男孩子是由那些死了且复活的得胜圣徒组成的。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　这可由启示录十二章十一节“他们虽至于死”的话得到证明。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一-2" style="display: none;" onclick="toggleScripture('scripture-day1-一-2')">
+            
+            
+            <div class="verse-line">启12:11	弟兄们胜过他，是因羔羊的血，并因自己所见证的话，他们虽至于死，也不爱自己的魂生命。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　在圣经中，女人象征较软弱的，男人象征较刚强的—彼前三7：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-二" style="display: none;" onclick="toggleScripture('scripture-day1-二')">
+            
+            
+            <div class="verse-line">彼前3:7	照样，作丈夫的，要按情理与妻子同住，因为她是比你软弱的器皿，是女性；又要按她应得的分敬重她，因为她是与你一同承受生命之恩的，好叫你们的祷告不受拦阻。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-二" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-二-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　启示录十二章的男孩子象征神子民中较刚强的部分。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-二-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　这男孩子将来要用铁杖辖管万国，指明男孩子是由得胜者（如二章二十六至二十七节所提的）组成的。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-二-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-二-2" style="display: none;" onclick="toggleScripture('scripture-day1-二-2')">
+            
+            
+            <div class="verse-line">启2:26	得胜的，又守住我的工作到底的，我要赐给他权柄制伏列国；</div>
+            
+            
+            
+            <div class="verse-line">启2:27	他必用铁杖辖管他们，将他们如同窑户的瓦器打得粉碎，像我从我父领受的权柄一样；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　男孩子被提：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　男孩子的被提，和帖前四章十七节所说大体信徒的被提不同。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-三-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-三-1" style="display: none;" onclick="toggleScripture('scripture-day1-三-1')">
+            
+            
+            <div class="verse-line">帖前4:17	然后我们这些活着还存留的人，必同时与他们一起被提到云里，在空中与主相会；这样，我们就要和主常常同在。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　那里大体信徒的被提乃是：提到空中；在末次号筒（林前十五52，帖前四16），就是第七号（启十一15）之时。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-三-2" style="display: none;" onclick="toggleScripture('scripture-day1-三-2')">
+            
+            
+            <div class="verse-line">林前15:52	就是在一刹那，眨眼之间，末次号筒的时候；因号筒要响，死人要复活，成为不朽坏的，我们也要改变。</div>
+            
+            
+            
+            <div class="verse-line">帖前4:16	因为主必亲自从天降临，有发令的呼叫，有天使长的声音，又有神的号声，那在基督里死了的人必先复活，</div>
+            
+            
+            
+            <div class="verse-line">启11:15	第七位天使吹号，天上就有大声音说，世上的国，成了我主和祂基督的国，祂要作王，直到永永远远。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-三-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　这里男孩子的被提乃是：提到神的宝座前；在一千二百六十天之前，也就是在第五号（九1）以前，从第六印开始的三年半（四十二个月—十二14，十三5，十一2）大灾难之前。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-三-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-三-3" style="display: none;" onclick="toggleScripture('scripture-day1-三-3')">
+            
+            
+            <div class="verse-line">启9:1	第五位天使吹号，我就看见一个星从天落到地上，有无底坑的钥匙赐给他。</div>
+            
+            
+            
+            <div class="verse-line">启12:14	于是有大鹰的两个翅膀赐给妇人，叫她能飞到旷野，到自己的地方，躲避那蛇，她在那里被养活一年、二年、半年。</div>
+            
+            
+            
+            <div class="verse-line">启13:5	那龙又给它说夸大、亵渎话的口，并给它权柄，可以任意而行四十二个月。</div>
+            
+            
+            
+            <div class="verse-line">启11:2	但殿外的院子，要丢弃不量，因为这是给了外邦人的，他们要践踏圣城四十二个月。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启十二5	妇人生了一个男孩子，是将来要用铁杖辖管万国的；她的孩子被提到神和祂的宝座那里去了。</div>
+                
+                <div class="feeding-scripture">二26~27	得胜的，又守住我的工作到底的，我要赐给他权柄制伏列国；……像我从我父领受的权柄一样。</div>
+                
+                
+                
+                <p class="content-text">启示录十二章二节说妇人怀了孕，而五节说，“妇人生了一个男孩子。”这里的孩子是男孩子，象征神子民中较刚强的部分。……这里的男孩子不是指婴孩，乃是指妇人里面较刚强的部分。妇人代表神全体的子民。但历代以来，神子民中总有些较刚强的人。在圣经里，这些人被视为一个集体单位，为神争战，将神的国带到地上（启示录生命读经，四八九页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">历史证明，在神的子民中，并非每一个人都是刚强的。……这在列祖时代就是如此。……我信在那时，神还有数以百计的子民，只是挪亚是其中刚强的人。在以色列国的时代，属神的人也有成千成万，但是其中只有很少数的人是刚强的，例如以利亚和耶利米就是刚强的人。毫无疑问，大多数神的子民都是真的，却不是刚强的。新约时代也有同样的情形。在早期虽然有成千的基督徒，但真正刚强的却不多。就是在目前，也有成万甚至百万计的基督徒，但刚强的并不多。我鼓励你们都作刚强的。</p>
+                
+                <p class="content-text">我们不仅要作妇人的一部分，也要作男孩子的一部分。……男孩子由复活的得胜者组成。男孩子是“将来要用铁杖辖管万国的”（启十二5）。这指明男孩子包括启示录二章二十六至二十七节所说的得胜者，这些得胜者是已经去世的人。</p>
+                
+                <p class="content-text">十二章五节说，妇人“生”了一个男孩子。这里的“生”表征复活，与行传十三章三十三至三十四节者同。男孩子是由那些死了且复活的得胜圣徒组成的，这可由启示录十二章十一节“他们虽至于死”的话得到证明。主耶稣是在复活里生为神的长子。对祂而言，复活就是生。行传十三章三十三和三十四节是引用诗篇二篇七节的话，启示说当主复活时，祂是生为神的长子。在复活以前，祂是神的独生子，带着神性；但借着复活，祂生为神的长子，兼有神性和人性。所有死去的得胜者都是男孩子的一部分。借着复活，男孩子要完全产生出来。……今天你若是得胜者，并且一直活着到主回来，你就不算是男孩子的一部分，反而可能是启示录十四章所说初熟的果子之一。你如果是得胜者，又在主来之前死了，到时候你就要复活，成为男孩子的一部分。</p>
+                
+                <p class="content-text">十二章五节又说，男孩子“被提到神和祂的宝座那里去了”。这里男孩子的被提，和帖前四章十七节所说大体信徒的被提不同。在帖撒罗尼迦前书，大体信徒的被提，是在末次号筒（林前十五52，帖前四16），就是第七号（启十一15）之时，被提到空中。但这里男孩子要被提到神的宝座前，并且是在一千二百六十天之前，也就是在第五号（九1）以前，从第六印开始的三年半（四十二个月—十二14，十三5，十一2）大灾难之前（启示录生命读经，四八九、四九六至四九七、五○五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day2-贰" data-level="1">
+    <div class="outline-item level-1">
+        
+        贰　“天上起了争战”—十二7上：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day2-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　男孩子被提到天上以后，米迦勒和他的使者就开始与撒但争战：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day2-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day2-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　这指明男孩子，就是神子民中较刚强的部分，总是从事与神仇敌撒但的争战。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　他们在地上不断与撒但争战。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-一-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　如今天上正等待他们到达那里，好进行争战，把撒但从天上摔下去。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-一-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　圣经启示两位天使的名字—米迦勒和加百列。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-一-5" data-level="2">
+    <div class="outline-item level-3">
+        
+        5　加百列是报信者，带消息给神的子民（但八16，九21~22，路一19、26）；米迦勒是争战者，为神的子民争战（但十13、21，十一1，十二1，犹9）。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-一-5')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-一-5" style="display: none;" onclick="toggleScripture('scripture-day2-一-5')">
+            
+            
+            <div class="verse-line">但8:16	我又听见乌莱河两岸间有人声呼叫说，加百列啊，要使此人明白这异象。</div>
+            
+            
+            
+            <div class="verse-line">但9:21	正当我祷告说话的时候，起初在异象中所见的那人加百列，在我精疲力竭时，约在献晚祭的时候就近我。</div>
+            
+            
+            
+            <div class="verse-line">但9:22	他指教我，对我说，但以理啊，现在我出来要使你有见识，有聪明。</div>
+            
+            
+            
+            <div class="verse-line">路1:19	天使回答说，我是站在神面前的加百列，奉差遣对你说话，将这些事的好信息报给你。</div>
+            
+            
+            
+            <div class="verse-line">路1:26	到了第六个月，天使加百列奉神差遣，往加利利的一座城去，这城名叫拿撒勒。</div>
+            
+            
+            
+            <div class="verse-line">但10:13	但波斯国的魔君，拦阻我二十一日；然而大君中的一位米迦勒来帮助我，因我单独滞留在波斯诸王那里。</div>
+            
+            
+            
+            <div class="verse-line">但10:21	但我要将那记录在真理书上的事告诉你。除了你们的君米迦勒之外，没有刚强帮助我抵挡这两魔君的。</div>
+            
+            
+            
+            <div class="verse-line">但11:1	我在玛代王大利乌元年，曾起来扶助他，使他坚强。</div>
+            
+            
+            
+            <div class="verse-line">但12:1	那时保护你本民的大君米迦勒必起来；并且必有困苦的时期，是从有国以来直到那时未曾发生过的；那时，你本民中凡记录在册上的，必得拯救。</div>
+            
+            
+            
+            <div class="verse-line">犹9	天使长米迦勒与魔鬼争辩，为摩西的身体争论的时候，尚且不敢以神对他的判辞毁谤他，只说，主责备你吧。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　“龙和它的使者也争战”（启十二7下）；这些使者该是那些跟随撒但背叛神的堕落天使（太二五41）。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-二" style="display: none;" onclick="toggleScripture('scripture-day2-二')">
+            
+            
+            <div class="verse-line">太25:41	然后祂又要对那左边的说，你们这被咒诅的，离开我，进入那为魔鬼和他的使者所预备的永火里去。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day2-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　神的仇敌撒但，已经被主耶稣在十字架上审判了—约十二31，十六11：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三" style="display: none;" onclick="toggleScripture('scripture-day2-三')">
+            
+            
+            <div class="verse-line">约12:31	现在这世界受审判，这世界的王要被赶出去。</div>
+            
+            
+            
+            <div class="verse-line">约16:11	为审判，是因这世界的王受了审判。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day2-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day2-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　接着，需要得胜的信徒完成这审判，执行这判决。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　得胜的信徒和撒但争战，实际上就是执行主对撒但的审判。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-三-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　至终，借着他们的争战，撒但要从天上被摔下去—启十二7~9。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三-3" style="display: none;" onclick="toggleScripture('scripture-day2-三-3')">
+            
+            
+            <div class="verse-line">启12:7	天上起了争战，米迦勒和他的使者与龙争战，龙和它的使者也争战，</div>
+            
+            
+            
+            <div class="verse-line">启12:8	并没有得胜，天上再没有他们的地方。</div>
+            
+            
+            
+            <div class="verse-line">启12:9	大龙就被摔下去，它是那古蛇，名叫魔鬼，又叫撒但，是迷惑普天下的，它被摔在地上，它的使者也一同被摔下去。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启十二7~9	天上起了争战，米迦勒和他的使者与龙争战，龙和它的使者也争战，并没有得胜，天上再没有他们的地方。大龙就被摔下去，它是那古蛇，名叫魔鬼，又叫撒但，是迷惑普天下的，它被摔在地上……。</div>
+                
+                
+                
+                <p class="content-text">男孩子被提到天上以后，米迦勒和他的使者就开始与撒但争战〔启十二7〕。这指明男孩子，就是神子民中较刚强的部分，总是从事与神仇敌撒但的争战。得胜者在地上不断与撒但争战，甚至争战至死，并且把撒但打败。如今天上正等待他们到达那里，好进行争战，把撒但从天上摔下去（启示录生命读经，五二三页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">主已把击败仇敌最有效的方法指示了我们。我们所要作的，就是取用神的约，就是神的话，将主为我们所作成的，向撒但传讲。……每当我们的脾气又要发作时，先不要管脾气，要向撒但传讲。我们要到问题的源头，就是撒但面前，向他传讲说，“撒但，你已经被钉在十字架上了。”你越向撒但传讲，你就越得释放。</p>
+                
+                <p class="content-text">当男孩子生出来，被提到宝座那里，他要说，“撒但，你在地上已被我打败，你还要躲在天上么？”……然后，男孩子会说，“撒但，你不应该再在这里，出去！”男孩子一宣布这话，天使长米迦勒就率领他的使者与龙争战。……神在诸天之上正等待着这个执行者。谁是执行者？就是我们这班男孩子！盼望我们都到那里去向撒但传讲。但要在那里作这事，我们必须先在地上打败撒但。在地上打败撒但后，我们要争战到天上，至终还要从天上争战到地上。现在当我们面对撒但时，就要向他讲许多信息；以后到了天上遇见他时，还要再向他传讲。等到撒但被摔到地上破坏地的时候，我们还要下来对他说，“撒但，你还在这里么？我再向你讲一篇道，现在就是你下无底坑的时候了。”然后，千年国以后，要再向撒但讲第四篇道。那时，撒但要煽动人起来背叛神，而我们就要说，“撒但，听我们说！这是我们的最后一篇道，现在你要到你命定的地方—火湖—去。”</p>
+                
+                <p class="content-text">你若想够格有分于这事，现在就必须争战。不要无所谓。我盼望你……能强有力地向仇敌说，“撒但，你欺骗我多年，现在我……眼睛已被开启，不能再无所谓了。撒但，你不仅是神的仇敌，也是我的仇敌。从今以后，我要绝对地为着主，再也不听你的话了。”……你若这样对撒但传讲，就会变成另一个人，并且很可能不久就包括在那妇人较刚强的部分里。从现在开始，我们都要够资格，装备好，被成全，在那些被提到天上，对撒但执行审判的人中间。我们必须告诉仇敌说，“撒但，今天我在地上向你传讲，不久也要在天上向你传讲；随后我会在地上见你，再次向你传讲；至终我要再向你讲一篇信息，然后你就要被扔到火湖里去。”</p>
+                
+                <p class="content-text">被提并非为着我们的快乐，乃是为着神的定旨。我们的神正等待着一班得胜者，就是男孩子，到天上去执行祂对仇敌的审判。能有分于此，是何等的权利！天使没有地位享受这权利，我们却有。现在我们都有立场说，“赞美主！我有地位可以作得胜者。”（启示录生命读经，五二四至五二六页）</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day3-贰" data-level="1">
+    <div class="outline-item level-1">
+        
+        贰　“天上起了争战”—十二7上：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　男孩子被提到天上以后，米迦勒和他的使者就开始与撒但争战：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　这指明男孩子，就是神子民中较刚强的部分，总是从事与神仇敌撒但的争战。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　他们在地上不断与撒但争战。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-一-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　如今天上正等待他们到达那里，好进行争战，把撒但从天上摔下去。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-一-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　圣经启示两位天使的名字—米迦勒和加百列。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-一-5" data-level="2">
+    <div class="outline-item level-3">
+        
+        5　加百列是报信者，带消息给神的子民（但八16，九21~22，路一19、26）；米迦勒是争战者，为神的子民争战（但十13、21，十一1，十二1，犹9）。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-一-5')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-一-5" style="display: none;" onclick="toggleScripture('scripture-day3-一-5')">
+            
+            
+            <div class="verse-line">但8:16	我又听见乌莱河两岸间有人声呼叫说，加百列啊，要使此人明白这异象。</div>
+            
+            
+            
+            <div class="verse-line">但9:21	正当我祷告说话的时候，起初在异象中所见的那人加百列，在我精疲力竭时，约在献晚祭的时候就近我。</div>
+            
+            
+            
+            <div class="verse-line">但9:22	他指教我，对我说，但以理啊，现在我出来要使你有见识，有聪明。</div>
+            
+            
+            
+            <div class="verse-line">路1:19	天使回答说，我是站在神面前的加百列，奉差遣对你说话，将这些事的好信息报给你。</div>
+            
+            
+            
+            <div class="verse-line">路1:26	到了第六个月，天使加百列奉神差遣，往加利利的一座城去，这城名叫拿撒勒。</div>
+            
+            
+            
+            <div class="verse-line">但10:13	但波斯国的魔君，拦阻我二十一日；然而大君中的一位米迦勒来帮助我，因我单独滞留在波斯诸王那里。</div>
+            
+            
+            
+            <div class="verse-line">但10:21	但我要将那记录在真理书上的事告诉你。除了你们的君米迦勒之外，没有刚强帮助我抵挡这两魔君的。</div>
+            
+            
+            
+            <div class="verse-line">但11:1	我在玛代王大利乌元年，曾起来扶助他，使他坚强。</div>
+            
+            
+            
+            <div class="verse-line">但12:1	那时保护你本民的大君米迦勒必起来；并且必有困苦的时期，是从有国以来直到那时未曾发生过的；那时，你本民中凡记录在册上的，必得拯救。</div>
+            
+            
+            
+            <div class="verse-line">犹9	天使长米迦勒与魔鬼争辩，为摩西的身体争论的时候，尚且不敢以神对他的判辞毁谤他，只说，主责备你吧。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　“龙和它的使者也争战”（启十二7下）；这些使者该是那些跟随撒但背叛神的堕落天使（太二五41）。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-二" style="display: none;" onclick="toggleScripture('scripture-day3-二')">
+            
+            
+            <div class="verse-line">太25:41	然后祂又要对那左边的说，你们这被咒诅的，离开我，进入那为魔鬼和他的使者所预备的永火里去。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　神的仇敌撒但，已经被主耶稣在十字架上审判了—约十二31，十六11：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-三" style="display: none;" onclick="toggleScripture('scripture-day3-三')">
+            
+            
+            <div class="verse-line">约12:31	现在这世界受审判，这世界的王要被赶出去。</div>
+            
+            
+            
+            <div class="verse-line">约16:11	为审判，是因这世界的王受了审判。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　接着，需要得胜的信徒完成这审判，执行这判决。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　得胜的信徒和撒但争战，实际上就是执行主对撒但的审判。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-三-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　至终，借着他们的争战，撒但要从天上被摔下去—启十二7~9。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-三-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-三-3" style="display: none;" onclick="toggleScripture('scripture-day3-三-3')">
+            
+            
+            <div class="verse-line">启12:7	天上起了争战，米迦勒和他的使者与龙争战，龙和它的使者也争战，</div>
+            
+            
+            
+            <div class="verse-line">启12:8	并没有得胜，天上再没有他们的地方。</div>
+            
+            
+            
+            <div class="verse-line">启12:9	大龙就被摔下去，它是那古蛇，名叫魔鬼，又叫撒但，是迷惑普天下的，它被摔在地上，它的使者也一同被摔下去。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">约十二31	现在这世界受审判，这世界的王要被赶出去。</div>
+                
+                <div class="feeding-scripture">启十二10	我听见天上有大声音说，我们神的救恩、能力、国度、并祂基督的权柄，现在都来到了，因为那在我们神面前昼夜控告我们弟兄们的控告者，已经被摔下去了。</div>
+                
+                
+                
+                <p class="content-text">男孩子被提到天上以后，争战就开始了。我年轻的时候，就寻求要明白，为什么男孩子被提到宝座以后，争战就立刻开始？又想知道，为什么男孩子没有实际的争战，而是米迦勒和他的使者与撒但争战？原因乃是：男孩子是执行者，执行者无须动手，只须发令。当我们这班执行者发令后，那些服侍我们的天使就会为我们争战。……当我们说，“撒但，走开！”米迦勒就领头与撒但争战。……你愿意作那妇人较刚强的部分么？若愿意，就必须学习向撒但传讲。撒但一直搅扰你，但只要你决定向他传讲，他就会跑开，因为他知道你要作什么。因此，你要说，“撒但，别走，等我叫你离开你再离开，留在这里听我讲完了再走。”（启示录生命读经，五二六页）</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">天使已经准备好了要与龙争战。或许米迦勒甚至要说，“男孩子，上来吧！向我们发令，我们就执行。”然而，我们若想够资格到诸天之上对撒但执行审判，如今在地上就要开始对他执行审判。我们要说，“撒但，我不会放你过去，我要捆绑你，打败你。”</p>
+                
+                <p class="content-text">因着男孩子被提到天上，天上就起了争战。……被提不只是为着我们，更是为着神的经纶和神的战略。神的仇敌如今还在天上。虽然他已受了审判，判决也宣告了，但在已过的十九个世纪里，神还没有得着一班人，可以在仇敌身上执行祂的判决。神的仇敌撒但，已经被主耶稣在十字架上审判了（约十二31，十六11）。……得胜的信徒和撒但争战，实际上就是执行主对撒但的审判。至终，借着他们的争战，撒但要从天上被摔下去（启十二9）。谁能到天上去执行神的审判，命令那已被定罪、审判、判决的仇敌离开天上？天使作不到，……因为他们是天使，撒但以前也在他们中间，与他们有同等地位，所以他们没有地位作这事。神需要一个人来完成这工作，人子耶稣就是这人的头。祂是男孩子的头，也是所有得胜者的先锋。神需要这样的人来执行祂对撒但的判决。神为着这个人等待好久了。</p>
+                
+                <p class="content-text">我们必须被提到诸天之上，以满足神的需要。……宗教就是为叫人快乐，盼望死后在乐土里过好日子。这是出于魔鬼的思想。然而，可叹的，这种观念已经渗透了整个基督教。……我们需要被提到天上，但不是为我们的快乐，乃是为完成神的定旨。我们必须到天上去执行神对祂仇敌的审判，今天神正等待这个。</p>
+                
+                <p class="content-text">男孩子复活，被提到天上以后，就不容撒但再留在诸天之上。就是在今天，我们也不该容撒但在召会中；我们应当和他争战。你若今天与撒但争战，将来就够资格在诸天之上与他争战。我们被提到神的宝座以后，就会看到撒但，他也要惧怕我们。我们看到他的时候，必不容他继续留在那里，我们会对他说，“撒但，你还想留在我们神的圣所里么？这不是你的地方。撒但，你必须走开！”（启示录生命读经，五二六、五二二至五二三、五二八至五二九页）</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day4-叁" data-level="1">
+    <div class="outline-item level-1">
+        
+        叁　“我们神的救恩、能力、国度、并祂基督的权柄，现在都来到了，因为那在我们神面前昼夜控告我们弟兄们的控告者，已经被摔下去了。弟兄们胜过他〔魔鬼〕，
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　他们胜过他，是因羔羊的血：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　撒但会控告我们，但我们可以答复说，神儿子耶稣基督的血洗净了我们一切的罪—约壹一7。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-1" style="display: none;" onclick="toggleScripture('scripture-day4-一-1')">
+            
+            
+            <div class="verse-line">约壹1:7	但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　当我们认罪并应用血之后，若有任何明显的定罪仍不停止，那必定不是神的光照，乃是撒但的控告—9节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-2" style="display: none;" onclick="toggleScripture('scripture-day4-一-2')">
+            
+            
+            <div class="verse-line">约壹1:9	我们若认自己的罪，神是信实的，是公义的，必要赦免我们的罪，洗净我们一切的不义。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-一-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　我们不仅必须拒绝没有理由的控告，也必须拒绝一切有理由的控告。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-一-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　当我们犯罪时，我们固然不荣耀神，但是当我们不信靠宝血，我们更是不尊崇祂—太二六28，参来十29。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-4" style="display: none;" onclick="toggleScripture('scripture-day4-一-4')">
+            
+            
+            <div class="verse-line">太26:28	因为这是我立约的血，为多人流出来，使罪得赦。</div>
+            
+            
+            
+            <div class="verse-line">来10:29	何况那践踏神的儿子，将他借以成圣的立约之血当作俗物，又亵慢恩典之灵的，你们想，他该受怎样更重的刑罚？</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-一-5" data-level="2">
+    <div class="outline-item level-3">
+        
+        5　我们必须常常应用主的血，告诉魔鬼，我们虽然不完全，却是在宝血底下—彼前一18~19，徒二十28。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-5')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-5" style="display: none;" onclick="toggleScripture('scripture-day4-一-5')">
+            
+            
+            <div class="verse-line">彼前1:18	知道你们得赎，脱离你们祖宗所传流虚妄的生活，不是用能坏的金银等物，</div>
+            
+            
+            
+            <div class="verse-line">彼前1:19	乃是用基督的宝血，如同无瑕疵无玷污的羔羊之血。</div>
+            
+            
+            
+            <div class="verse-line">徒20:28	圣灵立你们作全群的监督，你们就当为自己谨慎，也为全群谨慎，牧养神的召会，就是祂用自己的血所买来的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启十二11	弟兄们胜过他〔魔鬼〕，是因羔羊的血，并因自己所见证的话，他们虽至于死，也不爱自己的魂生命。</div>
+                
+                <div class="feeding-scripture">约壹一7	……祂儿子耶稣的血也洗净我们一切的罪。</div>
+                
+                
+                
+                <p class="content-text">当我们认罪并且应用血之后，若有任何明显的“定罪”仍不停止，那必是出自魔鬼。我们一旦认清了这个，就应该向撒但说，“住了吧！我不会再认罪了。……这不是神的光照，这乃是你的控告！我虽然不完全，但是你该知道，我在羔羊的血底下，这血就是我的完全。……我是胜过你的弟兄之一，不是因为我完全，乃是因着我救赎主的血。”</p>
+                
+                <p class="content-text">这血究竟有多少功效，我们无人能完全知道，只有神知道。魔鬼也知道得比我们多。……从经历中，我们看见羔羊之血的大能和权柄。我们必须常常应用这血，告诉魔鬼，我们虽然不完全，却是在完全的血底下。……不管我们是否知道这血所含示的，只要我们取用它，就能得着它所含示的一切（启示录生命读经，四九九至五○一页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">怎样胜过撒但的控告呢？天上的声音告诉我们说，“弟兄们胜过他，是因羔羊的血。”（启十二11）血是得胜的根据，血是胜过撒但的工具。撒但会控告我们，但我们可以答复说，神儿子耶稣的血洗净了我们一切的罪（约壹一7）。“一切的罪”，无论是大的罪，小的罪，任何的罪，神儿子的血都洗净了！撒但说我们不对，但是我们有主耶稣的血。主耶稣的血洗净我们许许多多的罪。这是神的话。</p>
+                
+                <p class="content-text">我们不只是拒绝没有理由的控告，就是有理由的控告，我们也不接受。神的儿女即使作错了事情，也只需要祂儿子耶稣的血，不需要撒但的控告。……神的话语并没有说，有了罪就用得着控告。……如果我们承认了，还有什么话说？有罪而不承认，那才用得着控告。没有罪，就没有控告的理由。</p>
+                
+                <p class="content-text">我们承认我们是有罪的，我们不是说我们没有罪；但是，我们不接受撒但的控告。我们在神面前还是洁净的，因为我们有宝血。我们不能相信控告过于相信宝血。……我们要学习相信羔羊的血。</p>
+                
+                <p class="content-text">“弟兄们胜过他，是因羔羊的血”〔启十二11〕，这句话是何等宝贵。弟兄们胜过他，不是因为他们的长处，不是因为他们的长进，不是因为他们的经历；弟兄们胜过他，乃是因为羔羊的血。撒但一有控告的时候，我们就得用血去对付。我们一接受血，撒但的能力就消灭了。我们的一切都是靠着血，我们天天需要血。我们得救的那一天如何靠着血，相信血，以后每天我们也要如何靠着血，相信血。血是唯一的根基。……我们不要以为天天受控告是谦卑，我们要学习胜过控告。……得胜者必须知道血的价值。我们虽不能知道血的价值到底有多大，但是我们可以对主说，“主啊，按着你所知道的血的价值，来成功在我们身上。”不是按着我们所知道的，乃是按着主所知道的血的价值，去对付撒但的能力（倪柝声文集第二辑第十四册，一○二至一○四、一○六至一○七页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day5-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　他们胜过他，是因自己所见证的话：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-二" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-二-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　“见证”的意思是告诉人在基督里有什么，见证的话就是所必须说出的事。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-二-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　得胜者必须经常宣告基督的得胜，见证魔鬼已经受了主的审判—约壹三8，来二14。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-二-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-二-2" style="display: none;" onclick="toggleScripture('scripture-day5-二-2')">
+            
+            
+            <div class="verse-line">约壹3:8	犯罪的是出于魔鬼，因为魔鬼从起初就犯罪。为此，神的儿子显现出来，是要消除魔鬼的作为。</div>
+            
+            
+            
+            <div class="verse-line">来2:14	儿女既同有血肉之体，祂也照样亲自有分于血肉之体，为要借着死，废除那掌死权的，就是魔鬼，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-二-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-二-3')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        3　撒但不怕我们和他讲理，但他怕我们宣告基督得胜的属灵事实—参代下二十20~22：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-二-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-二-3" style="display: none;" onclick="toggleScripture('scripture-day5-二-3')">
+            
+            
+            <div class="verse-line">代下20:20	次日清早，众人起来出到提哥亚的旷野去。出去的时候，约沙法站着说，犹大人和耶路撒冷的居民哪，你们听我说；相信耶和华你们的神，就必稳固；相信祂的申言者，就必亨通。</div>
+            
+            
+            
+            <div class="verse-line">代下20:21	约沙法既与民商议了，就设立一些人，穿着圣别的礼服走在军前，向耶和华歌唱，称谢说，当称谢耶和华，因祂的慈爱永远长存。</div>
+            
+            
+            
+            <div class="verse-line">代下20:22	众人一开始欢呼歌唱赞美，耶和华就派伏兵击杀那来攻击犹大人的亚扪人、摩押人、和西珥山人，他们就被打败了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-二-3" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-二-3-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　耶稣的名远超万名，乃是一个属灵的事实，我们必须凭信，不仅向人宣告，也向撒但宣告—腓二9~11，林前十二3下。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-二-3-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-二-3-a" style="display: none;" onclick="toggleScripture('scripture-day5-二-3-a')">
+            
+            
+            <div class="verse-line">腓2:9	所以神将祂升为至高，又赐给祂那超乎万名之上的名，</div>
+            
+            
+            
+            <div class="verse-line">腓2:10	叫天上的、地上的和地底下的，在耶稣的名里，万膝都要跪拜，</div>
+            
+            
+            
+            <div class="verse-line">腓2:11	万口都要公开承认耶稣基督为主，使荣耀归与父神。</div>
+            
+            
+            
+            <div class="verse-line">林前12:3下	……若不是在圣灵里，也没有人能说，主，耶稣！</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-二-3-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　我们必须向撒但和他的污鬼宣告耶稣是主，主是得胜的，并且撒但已经践踏在祂的脚下—创三15，约十四30下，罗十六20。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-二-3-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-二-3-b" style="display: none;" onclick="toggleScripture('scripture-day5-二-3-b')">
+            
+            
+            <div class="verse-line">创3:15	我又要叫你和女人彼此为仇，你的后裔和女人的后裔也彼此为仇；女人的后裔要伤你的头，你要伤他的脚跟。</div>
+            
+            
+            
+            <div class="verse-line">约14:30下	……因为这世界的王将到，他在我里面是毫无所有；</div>
+            
+            
+            
+            <div class="verse-line">罗16:20	平安的神快要将撒但践踏在你们的脚下。愿我们主耶稣的恩，与你们同在。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启十二11	弟兄们胜过他，是因羔羊的血，并因自己所见证的话……。</div>
+                
+                <div class="feeding-scripture">约壹三8	……为此，神的儿子显现出来，是要消除魔鬼的作为。</div>
+                
+                
+                
+                <p class="content-text">他们胜过仇敌，也是因“自己所见证的话”〔启十二11〕。这就是他们见证魔鬼已经受主审判的话。每当我们感觉魔鬼的控告，就当开口见证主如何对付了他。……我们不仅对人作见证，也当对鬼作见证，说，“鬼，你们该记得你们的王撒但，已经被我的主耶稣基督打败了，你不该在这里找我的麻烦！”除了向鬼作见证以外，还要向撒但讲道，说，“撒但，你不知道你已经被钉在十字架上了么？你已经受了审判，你的定命就是火湖！”这就是你口述的见证。不要光在心里有这些想法，你必须对着撒但发声说出来。……我就曾向撒但和鬼讲过道，那个讲道不是叫他们悔改，乃是为打退他们。……鬼所怕的并不是我，他们所怕的乃是血。我们需要应用这血（启示录生命读经，五○一至五○二页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">“弟兄们胜过他，是因……自己所见证的话。”（启十二11）良心无亏，口里就有见证，良心一有亏，口里就什么话都说不出，好像越说声音越小。这里的见证是对人说的，不只是对自己。你在神的面前有血，你在神的面前就有胆量，你在人的面前也就有见证。不只见证罪人能得赦免，不只见证人能因着基督蒙悦纳，并且见证神的国。“见证”就是告诉人说，到底在基督里有些什么。见证的话是要说出来的。得胜者要多多的宣告基督的得胜，把这一个事实说了再说，这是撒但最怕的事。有一个事实就是说，诸天的国必定要降临。有一个事实就是说，主要作王。有一个事实就是说，基督是得胜的，基督是永远得胜的。有一个事实就是说，撒但是失败的。有一个事实就是说，那个壮士已经被捆绑起来了，那个壮士在律法上已经被定罪了。有一个事实就是说，基督在十字架上拆毁了撒但所有的作为。把这些事实宣告出来，这就是见证。</p>
+                
+                <p class="content-text">见证的话是撒但所害怕的。……撒但不怕你讲神学，……撒但不怕你解圣经，……撒但就是怕你宣告属灵的事实。有一个属灵的事实，就是“耶稣是主”。……有人用信心在那里宣告耶稣是主，撒但就怕了。撒但所怕的，不是讲道，不是神学，乃是见证的话。在这里有一个属灵的事实，就是耶稣的名是超乎万名之上的名。我们要用信心来宣告，不只对人说，更是对撒但说。许多时候，我们是说给撒但听的，是故意说给他听的，这是见证的话。你一个人在房间里，也可以出声说，你可以说耶稣是主，你可以说主耶稣是比那壮者还要壮，你可以说神的儿子已经捆绑了撒但等等。这就是见证的话。</p>
+                
+                <p class="content-text">我们宣告主耶稣是主，我们宣告主是得胜的，我们宣告撒但被践踏在主的脚底下，我们宣告主已经给我们权柄，可以践踏蛇和蝎子，又胜过仇敌一切的能力。……见证的话，使撒但无法站住；见证的话，是给撒但的一个打击。主耶稣的工作所给我们的，不只是血，使我们能得着保护，并且给我们见证的话，能使撒但溃退（倪柝声文集第二辑第十四册，一○七至一○八、一一一页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day6-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day6-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　他们虽至于死，也不爱自己的魂生命：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day6-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day6-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day6-三-1')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        1　因着亚当堕落，撒但就和人的魂生命，就是人的己联合；我们要胜过撒但，就当不爱自己的魂生命，倒要恨恶并否认—太十六23~24，路十四26，九23：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-三-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-三-1" style="display: none;" onclick="toggleScripture('scripture-day6-三-1')">
+            
+            
+            <div class="verse-line">太16:23	祂却转过来，对彼得说，撒但，退我后面去吧！你是绊跌我的，因为你不思念神的事，只思念人的事。</div>
+            
+            
+            
+            <div class="verse-line">太16:24	于是耶稣对门徒说，若有人要跟从我，就当否认己，背起他的十字架，并跟从我。</div>
+            
+            
+            
+            <div class="verse-line">路14:26	人到我这里来，若不恨自己的父亲、母亲、妻子、儿女、弟兄、姊妹，甚至自己的魂生命，就不能作我的门徒。</div>
+            
+            
+            
+            <div class="verse-line">路9:23	耶稣又对众人说，若有人要跟从我，就当否认己，天天背起他的十字架，并跟从我。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day6-三-1" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day6-三-1-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　撒但要我们凭自己的力量行事，并要我们在自己里面以我们魂的能力，我们天然的才能行动。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-三-1-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　天然的才能就是我们原本有的才能，从未受过十字架运行的对付。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-三-1-c" data-level="3">
+    <div class="outline-item level-4">
+        
+        c　召会的失败，乃是由于人把他天然的才能带进来。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-三-1-d" data-level="3">
+    <div class="outline-item level-4">
+        
+        d　十字架的目的是要对付我们天然的力量和才能，使我们不敢凭自己行动，就如在摩西和彼得身上所见的—徒七23~30，路二二32~34，彼前五5~6。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-三-1-d')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-三-1-d" style="display: none;" onclick="toggleScripture('scripture-day6-三-1-d')">
+            
+            
+            <div class="verse-line">徒7:23	他将到四十岁的时候，心中起意，去看望他的弟兄以色列子孙。</div>
+            
+            
+            
+            <div class="verse-line">徒7:24	他见有一个人被欺负，就护庇他，为那受欺压的人报仇，打死了那埃及人。</div>
+            
+            
+            
+            <div class="verse-line">徒7:25	他以为弟兄必明白神是借着他的手向他们施行拯救，他们却不明白。</div>
+            
+            
+            
+            <div class="verse-line">徒7:26	第二天，有人在争斗，摩西出面想要使他们和睦，说，诸位，你们是弟兄，为什么彼此欺负？</div>
+            
+            
+            
+            <div class="verse-line">徒7:27	那欺负邻舍的把他推开，说，“谁立你作我们的首领和审判官？</div>
+            
+            
+            
+            <div class="verse-line">徒7:28	难道你想要杀我，像昨天杀那埃及人一样么？”</div>
+            
+            
+            
+            <div class="verse-line">徒7:29	摩西因这话就逃走了，在米甸地寄居，在那里生了两个儿子。</div>
+            
+            
+            
+            <div class="verse-line">徒7:30	满了四十年，在西乃山的旷野，有一位天使在荆棘火焰中向摩西显现。</div>
+            
+            
+            
+            <div class="verse-line">路22:32	但我已经为你祈求，叫你不至于失了信心，你回转过来，要坚固你的弟兄。</div>
+            
+            
+            
+            <div class="verse-line">路22:33	彼得说，主啊，我已经预备好，去同你下监，同你受死。</div>
+            
+            
+            
+            <div class="verse-line">路22:34	耶稣说，彼得，我告诉你，今日鸡还没有叫，你要三次否认你认得我。</div>
+            
+            
+            
+            <div class="verse-line">彼前5:5	照样，年幼的，要服从年长的；你们众人彼此相待，也都要以谦卑束腰，因为神敌挡狂傲的人，赐恩给谦卑的人。</div>
+            
+            
+            
+            <div class="verse-line">彼前5:6	所以你们要谦卑，服在神大能的手下，使祂到了时候，可以叫你们升高。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-三-1-e" data-level="3">
+    <div class="outline-item level-4">
+        
+        e　我们该有一个态度，就是绝不凭我们的己生活；我们不看重我们自己的才能，也丝毫不信靠自己—林前二2~4，腓三3，赛十一2下。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-三-1-e')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-三-1-e" style="display: none;" onclick="toggleScripture('scripture-day6-三-1-e')">
+            
+            
+            <div class="verse-line">林前2:2	因为我曾定了主意，在你们中间不知道别的，只知道耶稣基督，并这位钉十字架的。</div>
+            
+            
+            
+            <div class="verse-line">林前2:3	我在你们那里，又软弱，又惧怕，又甚战兢。</div>
+            
+            
+            
+            <div class="verse-line">林前2:4	我说的话，讲的道，不是用智慧动听的言语，乃是用那灵和能力的明证，</div>
+            
+            
+            
+            <div class="verse-line">腓3:3	真受割礼的，乃是我们这凭神的灵事奉，在基督耶稣里夸口，不信靠肉体的。</div>
+            
+            
+            
+            <div class="verse-line">赛11:2下	……认识和敬畏耶和华的灵。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day6-三-2')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        2　我们必须是献上自己的人，是一个奠祭，让基督这属天的酒充满我们，使我们成为献给神的酒—腓二17，提后四6，士九13：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-三-2" style="display: none;" onclick="toggleScripture('scripture-day6-三-2')">
+            
+            
+            <div class="verse-line">腓2:17	然而，即使我成为奠祭，浇奠在你们信心的祭物和供奉上，也是喜乐，并且与你们众人一同喜乐。</div>
+            
+            
+            
+            <div class="verse-line">提后4:6	我现在被浇奠，我离世的时候到了。</div>
+            
+            
+            
+            <div class="verse-line">士9:13	葡萄树对他们说，我岂可停止生产我那使神和人喜乐的新酒，去飘摇在众树之上呢？</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day6-三-2" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day6-三-2-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　奠祭预表基督是在神前作为真酒倾倒出来，使神满足的那一位—出二九40~41。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-三-2-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-三-2-a" style="display: none;" onclick="toggleScripture('scripture-day6-三-2-a')">
+            
+            
+            <div class="verse-line">出29:40	和这一只羊羔同献的，要用细面一伊法的十分之一，与捣成的油一欣的四分之一调和；又用酒一欣的四分之一，作为奠祭。</div>
+            
+            
+            
+            <div class="verse-line">出29:41	那一只羊羔要在黄昏的时候献上，要像在早晨的时候一样，与素祭和奠祭一同献上，作为献给耶和华怡爽香气的火祭。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-三-2-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　使徒保罗成为奠祭，浇奠在圣徒信心的祭物和供奉上—腓二17，提后四6。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-三-2-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-三-2-b" style="display: none;" onclick="toggleScripture('scripture-day6-三-2-b')">
+            
+            
+            <div class="verse-line">腓2:17	然而，即使我成为奠祭，浇奠在你们信心的祭物和供奉上，也是喜乐，并且与你们众人一同喜乐。</div>
+            
+            
+            
+            <div class="verse-line">提后4:6	我现在被浇奠，我离世的时候到了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-三-2-c" data-level="3">
+    <div class="outline-item level-4">
+        
+        c　奠祭不仅预表基督自己，也预表这位基督以祂自己作属天的酒浸透我们，直到祂与我们成为一而被浇奠，为着神的享受和满足，并为着神的建造—太九17，腓二17，提后四6。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-三-2-c')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-三-2-c" style="display: none;" onclick="toggleScripture('scripture-day6-三-2-c')">
+            
+            
+            <div class="verse-line">太9:17	也没有人把新酒装在旧皮袋里；不然，皮袋胀裂，酒泻出来，皮袋也就坏了。人乃是把新酒装在新皮袋里，两样就都得保全。</div>
+            
+            
+            
+            <div class="verse-line">腓2:17	然而，即使我成为奠祭，浇奠在你们信心的祭物和供奉上，也是喜乐，并且与你们众人一同喜乐。</div>
+            
+            
+            
+            <div class="verse-line">提后4:6	我现在被浇奠，我离世的时候到了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启十二11	弟兄们胜过他，是因……他们虽至于死，也不爱自己的魂生命。</div>
+                
+                <div class="feeding-scripture">太十六24	于是耶稣对门徒说，若有人要跟从我，就当否认己，背起他的十字架，并跟从我。</div>
+                
+                
+                
+                <p class="content-text">因着亚当堕落，撒但就和人的魂生命，就是人的己联合（太十六23~24）。因此，我们要胜过撒但，就当不爱自己的魂生命，倒要恨恶并否认（路十四26，九23）。那些构成男孩子的得胜信徒，“虽至于死，也不爱自己的魂生命。”只有那些不爱自己魂生命的人，才甘心殉道。我们必须恨恶我们的己。只要我们爱自己的魂生命，就成为土，好作撒但的食物。但我们若不爱自己的魂生命，不爱我们的己，就不会成为土，这就叫撒但被杀死。当我们的魂生命被杀死，撒但也就被杀死。这是我们作为妇人的较刚强部分，胜过撒但的路（启示录生命读经，五○三至五○四页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">撒但对付我们最好的办法，就是使我们用自己的力量来作事。撒但……要我们用自己天然的才能，血气的能力来为神工作。</p>
+                
+                <p class="content-text">天然的才能就是我们原有的才能，从未受过十字架运行的对付，也就是在我们的人格里所带来的东西。有的人，他天然的能力是他的聪明……；有的人，他天然的能力是他的口才，他不必特别得着圣灵的能力，就很会说话。但是，人不能借着没有经过十字架对付的天然的能力来事奉神。……我们总得被神带到一个地步，变成一个战兢恐惧的人，变成一个离了主不能作什么的人（不是口里说说，乃是的确如此的人），才能在神的手里有用处。</p>
+                
+                <p class="content-text">我们要学习认识十字架。十字架就是对付我们，使我们不敢凭着自己动。我们光是讲十字架的道理没有用，光是听十字架的道理也没有用。神所需要的，是经过十字架，受过十字架对付的人。你所传的信息对了还不够，还要问你这个人是谁。保罗说，“我……在你们中间不知道别的，只知道耶稣基督，并这位钉十字架的。我在你们那里，又软弱，又惧怕，又甚战兢。我说的话，讲的道，不是用智慧动听的言语……。”（林前二2~4）前面是说出他的信息，后面是说出他是怎样的人。我们想，像保罗这样的人，上讲台是绰绰有余了。但是保罗……传的信息是十字架，他自己是又软弱，又惧怕，又甚战兢。……如果我们受过了十字架的对付，我们就没有把握，就不敢夸口。</p>
+                
+                <p class="content-text">从我们这一方面来看，十字架就是除去一切不是出于神的，十字架就是只留下从神出来的。……有的弟兄说，我从前这样救人，那样救人，现在学习受十字架的对付，这样对付，那样对付，被它对付完了，好像没有事情可作了。这就是证明他从前的一切都是出于他自己的。因为凡出于神的，都是十字架所杀不死的。……经过十字架还爬得起来的，就是出于神的；经过十字架爬不起来的，就是出于人的。主耶稣是出于神的，祂经过了十字架能起来。所有魂的生命，血气的生命，我们要不爱惜它，一直到死的地步。……我们的态度是：我们不凭着自己作人，我们不能作一个自以为有本领，自以为有把握的人，我们要战战兢兢地作人，我们知道自己是一个软弱的人（倪柝声文集第二辑第十四册，一一二至一一四页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const pagesContainer = document.querySelector('.pages-container');
+    if (!pagesContainer) return;
+    const totalPages = Number(pagesContainer.dataset.totalPages || 0);
+    if (totalPages === 0) return;
+
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach((page, index) => {
+            page.classList.toggle('is-active', index === pageIndex);
+        });
+        
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 仅在用户手动切换时滚动到顶部
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（优化版：支持速度判断和方向识别）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let touchStartTime = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+        touchStartTime = Date.now();
+    }, { passive: true });
+    
+    document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const diffX = touchStartX - touchEndX;
+        const diffY = Math.abs(touchStartY - touchEndY);
+        const diffTime = Date.now() - touchStartTime;
+        const velocity = Math.abs(diffX) / diffTime; // px/ms
+        
+        // 动态阈值：快速滑动大幅降低距离要求
+        const baseThreshold = 40; // 基础阈值降低到40px
+        const velocityThreshold = 0.25; // 降低速度阈值，让更多滑动被判定为"快速"
+        const swipeThreshold = velocity > velocityThreshold ? 25 : baseThreshold;
+        
+        // 适度放宽垂直容忍度
+        const maxVerticalMove = 40; // 垂直移动可以到40px
+        const horizontalRatio = 2.0; // 水平是垂直的2倍即可
+        
+        // 综合判断：距离 + 速度 + 方向
+        if (Math.abs(diffX) > swipeThreshold && 
+            diffY < maxVerticalMove && 
+            Math.abs(diffX) > diffY * horizontalRatio) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    // 初始加载时不滚动
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', function() {
+        initFromHash(false);
+    });
+    
+    // 初始化（不滚动）
+    initFromHash(true);
+})();
+
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page.is-active');
+            if (!activePage) return '';
+
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = getCleanText(item);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+<script src="js/outline.js"></script>
+
+<style>
+/* 纲目和内容样式 */
+.outline-section{margin:18px 0}
+.outline-section .scripture-content{cursor:pointer}
+.content-separator{height:1px;background:var(--border);margin:20px 0}
+.feeding-section,.reading-section{margin:20px 0}
+.feeding-section h4,.reading-section h4{font-size:1.05em;font-weight:600;color:var(--heading);margin:16px 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;text-align:center}
+.feeding-scripture{margin:10px 0;padding:10px 14px;background:var(--surface-alt);border-left:3px solid var(--brand);border-radius:6px;font-size:1.01em;color:var(--text);line-height:1.8;font-weight:550;text-align:justify;letter-spacing:0.1px}
+.prev-btn:active:not(:disabled),.next-btn:active:not(:disabled){background:var(--bg);color:#fff;border-color:rgba(102,126,234,.55)}
+.no-content{color:var(--text-muted);font-style:italic;text-align:center;padding:40px 20px}
+@media(min-width:768px){.feeding-section h4,.reading-section h4{font-size:1.08em}.feeding-scripture{font-size:1.05em;padding:12px 16px}}
+@media(max-width:768px){.day-navigation{gap:0}.page-controls{margin:20px 0 10px}.prev-btn,.next-btn{padding:8px 12px;font-size:14px}.btn-text{display:none}}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>202507 冬季训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

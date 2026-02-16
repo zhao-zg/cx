@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第10篇 - 听抄</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第10篇 按着神牧养</h2>
+</div>
+
+        
+        <div class="content">
+            
+<div class="message-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="10_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="10_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="10_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="10_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    
+    <div class="scripture">读经：约二一15~17，十9~17，彼前五2、4，二25，来十三20</div>
+    
+    
+    <div class="message-content">
+        
+        
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　照着那从天上来的异象来牧养
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我不确定我们众人是否都看见牧养的这方面。要看见牧养实行的一面并不难。当我们讲到牧养，可能焦点都放在我们该作什么。我的意思不是说没有作的需要，而是我们首先需要领会，我们所作、所实行、所执行的每一件事，都必须照着那从天上来的异象。我们不只是去实行，把事作成；乃要问：我们有没有异象？我们的异象是什么？我们要看见，牧养这件事其实是为着完成神永远的经纶。没有牧养，神永远的经纶就无法完成。我们可以说，牧养是圣经中最大的事之一，从旧约到新约都是如此。我们过往可能只注意并认识到要有好的实行。然而，我们必须先被神经纶清楚的异象校正。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　用基督来牧养人
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">另一面，我们必须对基督有足够的经历和享受而被其构成。当我们去牧养时，我们用什么来牧养人？是用我们的热心、好心，或是我们对人的关切，并预备许多物质的东西给人？我们要看见，必须用基督来牧养人，这是不可或缺的。本篇信息要特别强调这件事。我们需要领会实行牧养不仅仅是作一件事。有圣徒说，我们总是一直口头上讲牧养，谈牧养；事实上，我们去作就对了，我们应该作的更多。不错，我们应该作的更多，更多去实行。但那灵知道，在按着神牧养这件事上，我们还需要更多地被成全。我们不是按着一些指导、鼓励、推动或要求来实行牧养；我们的牧养必须是按着神。</p>
+                
+                <p class="content-text">感谢主，祂没有放弃我们，祂一再把我们带回到这个主题。盼望我们不会感觉，这些交通只是一再地重复，老调重弹；我们只要去作就是了。我们应该谦卑自己，知道我们在实行牧养的事上，有许多的软弱、失败和短缺。当然，我们有实行一面的短缺，但是，我们需要的不仅仅是去实行而已。主必须有路，叫我们能按着神，按着神的心意，与祂是一，照着神经纶的异象来牧养。</p>
+                
+                <p class="content-text">盼望借着再次说到这个主题，主能在我们里面得着更多的立场。我们不该只是外在地来接受这件事，我们要来到主面前，在属天异象的光照之下，更多接受基督的分赐注入到我们全人里面，才能成为一个合式的牧人，好按着神牧养。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　神自己是牧人
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">“按着神牧养”可以说是整本圣经中最大的题目之一。我们领会神是牧人么？大卫在诗篇二十三篇说，“耶和华是我的牧者。”（1）神有一个性情，祂喜爱牧养人。我们若读整本旧约，就能看见，神所兴起的亚伯拉罕、以撒、雅各、约瑟、摩西、大卫等人，都是牧人。</p>
+                
+                <p class="content-text">在以西结三十四章二节，耶和华责备以色列的官长，说，“以色列的牧人有祸了！他们只知牧养自己。牧人岂不当牧养群羊么？”耶和华发怒，要审判他们，因为神立他们作群羊的牧人，但他们却牧养自己。祂很强地对这些所谓的牧人说话。耶和华关切祂的群羊，但祂的羊却被这些有名无实的牧人错待、苦待。到了十五节，祂说，“我必亲自牧养我的羊群，使他们得以躺卧。”以色列的牧人不忠信、自私，只顾着喂养、牧养自己。现在神要亲自来牧养祂的羊群，使他们得以躺卧。当主耶稣作为神成为肉体来到地上时，祂说，“我是好牧人。”（约十11）我们的神乃是牧人。整本圣经都讲到牧养。没有牧养，神的经纶就无法实现和成就。</p>
+                
+                <p class="content-text">盼望我们都领会，我们要就着整本圣经中这个重大的题目来往前。牧养不仅是一件神圣的事，也是一件属人的事。我们要与主好好配合，不能单顾到属人一面的需要，却没有领会，我们的所是需要有合式的内容和构成。这样，我们牧养时，才能说我们是按着神牧养。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　按着神牧养是带进新的复兴的要素
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">李弟兄在离世前，把牧养视为带进主回来之最后、终极、新的复兴的三要素之一。我们信主会作成这事；祂要完成祂所起始的事。祂把我们带到了神圣启示的最高峰，给我们看见了正确的神人生活，现在祂还要成全我们来按着神牧养，引进那新的、终极的复兴，使祂能够回来。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　牧养是给群羊周全、柔细的照顾；
+牧养是指顾到羊一切的需要
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">牧养是给群羊周全、柔细的照顾；牧养是指顾到羊一切的需要（约二一15~17，徒二十28）。我们要来看约翰二十一章，这美妙的一章是关于牧养最恰切的说明。在主复活之后，门徒们多少有点灰心。他们的主离开了，现在他们要如何维生？在门徒们灰心失望时，彼得对他们说，“我打鱼去。”他们说，“我们也和你同去。”他们就出去，上了船，那一夜并没有打着什么。天将亮的时候，耶稣站在岸上，对他们说，“孩子们，你们有鱼吃么？”（3~5）</p>
+                
+                <p class="content-text">主并没有对他们说，“在最适合打鱼的时候，你们这些职业渔夫竟什么都没有打着！你们到底在作什么？”主只是说，“孩子们，你们有鱼吃么？”那时，门徒们可能已经几天没有食物吃了，他们必定非常饥饿。他们回答说，“没有。”主就对他们说，“把网撒在船的右边，就必得着。”门徒们便撒下网去，竟拉不上来，因为那网满了大鱼，共一百五十三条。当时，约翰就对彼得说，“是主！”那时西门彼得赤着身子，一听见是主，就束上外衣，跳进海里。其余的门徒离岸不远，他们上了岸，就看见那里放着炭火，上面放着鱼和饼。耶稣对他们说，“来吃早饭。”（6~12）即使门徒们后来打到满满的鱼，但他们吃的却不是自己捕到的鱼，而是主预备的鱼和饼。</p>
+                
+                <p class="content-text">我们可以说，当时彼得退后了，他想放弃，因为他很失望，几乎要失去信心（参路二二32）。当他们为着生计忧虑时，耶稣却请他们来吃早饭。主耶稣没有暴露彼得的失败，也没有责备、斥责他说，“彼得，你在作什么？我呼召你，你不仅没有忠信，还带头退后？”每次我们去照顾、看望人时，也许当面没有责备，但当我们看见一个人没有参加聚会，还被世界霸占多年，我们心里也许多少会对他有一些意见和感觉。然而，主耶稣请门徒们来吃早饭时，完全没有摸他们的失败与退后；那是何等柔细的牧养。门徒们不是没有情感的物件，而是活生生的人。所以他们会灰心，会处在不知如何往前的光景，甚至想回到世界里。在这样的情形之下，主显出对门徒们柔细的照顾。之后，主问西门彼得说，“你爱我……么？……你喂养我的小羊。……牧养我的羊。……喂养我的羊。”（约二一15~17）在约翰二十一章里，主给我们看见，什么叫作柔细的照顾；这就是牧养。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　牧养的两个基本元素是顾惜和喂养
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　牧养是安慰、抚慰、
+以柔爱养育并以亲切的照料维护
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">牧养的两个基本元素是顾惜和喂养（弗五29）。牧养是安慰、抚慰、以柔爱养育并以亲切的照料维护。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　我们牧养别人时，应当先顾惜他们，
+使他们快乐，然后就要喂养他们
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们牧养别人时，应当先顾惜他们，使他们快乐，然后就要喂养他们。在歌罗西二章，保罗要歌罗西人看见关于基督的启示，完全认识神的奥秘乃是基督（2）。当时，歌罗西人被许多哲学、学说所打岔并搅扰，所以保罗在对他们讲说神的经纶与神的奥秘之前，他先说，“要叫他们的心得安慰，在爱里结合一起，以致丰丰富富地在悟性上有充分的确信。”（2）这是保罗顾惜人的方式。这些受搅扰的歌罗西人，在心得安慰之后，才能领受关于基督之高的启示。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　在主今日的恢复里，
+迫切需要牧养
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">在主今日的恢复里，迫切需要牧养（约二一16，彼前五2、4）。一九二二年，主借着倪弟兄兴起祂的恢复。这一百多年来，主一直在美妙地牧养祂的恢复。虽然倪弟兄与李弟兄这两位时代的执事都过去了，亲爱的弟兄姊妹，感谢主，我们今天还在这里。我们能够在主的恢复里，这是何等的祝福。我们何等有福，能看见这分职事传遍了全地，能看见神圣启示的高峰与许多丰富的真理，能参加一场又一场的特会、训练，能看见数以千计的召会在全地兴起。这次有超过一百个国家的圣徒，在现场与在线上参加训练；这实在是主对祂恢复的祝福。</p>
+                
+                <p class="content-text">这次训练也有许多青年人参加。每一次看见在主的恢复里一批批的青年人，我们就得着鼓励。然而，若是没有牧养，所有我们听见、学习之高的真理，不过只是客观的知识。唯有借着牧养，我们才能被带进实际，将我们所领受之高的启示实行出来。若是没有牧养，这数以千计的召会可能流于其聚会形式。真实的召会生活，必须是牧养的生活，否则我们所有的可能只是例行公事。若是没有按着神牧养，不仅无法养育所有主恢复中的青年人、新人，更谈不上他们能在召会生活中受成全而尽功用。在主今日的恢复里，的确迫切需要牧养。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　我们中间最大的缺欠，
+就是牧养这件事；
+在神生机的救恩里，
+神先重生我们，再牧养我们，
+使我们在祂的生命中存活并长大，直到永远
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们中间最大的缺欠，就是牧养这件事。在神生机的救恩里，父神先用灵神重生我们，再在作我们牧人的子神里牧养我们，使我们在祂的生命中存活并长大，直到永远（一3，约十11，启七17）。神生机救恩的项目，包括重生、圣别、更新、变化、模成、荣化。但李弟兄在一次的信息中讲到，神生机救恩的项目应当加上牧养与建造（参“神救恩生机的一面”，第二、四篇）。牧养不仅是个实行，更是神生机救恩的一项，为要帮助圣徒在祂的生命中存活并长大，直到永远。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　牧养信徒
+对于他们在神圣生命里的长大以至于成熟，
+为着建造基督的身体，是极其重要的
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">牧养信徒对于他们在神圣生命里的长大以至于成熟，为着建造基督的身体，是极其重要的（弗四13~16）。以弗所四章里，为着建造基督的身体，不仅有使徒兴起并建立召会，申言者为神说话，传福音者传扬福音，还有牧人和教师（11~12）；基督身体建造的工作不仅是由这些有恩赐的肢体来完成，更是借着每一部分依其度量而有的功用，叫身体渐渐长大，以致在爱里把自己建造起来（16）。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　那建造基督身体的牧养，
+乃是相互的牧养
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">那建造基督身体的牧养，乃是相互的牧养（林前十二23~26）。基督教倚靠牧师来牧养会众，这不是主话中的启示。关于基督身体的建造，主的话告诉我们：在召会中，升天的基督赐下恩赐，这些恩赐者要成全圣徒作他们所作的事，乃是借着这一班受成全的圣徒直接建造召会─基督的身体。这不仅仅是那些专业的牧师、执事来牧养人，乃是所有肢体都要相互牧养。</p>
+                
+                <p class="content-text">在林前十二章二十三至二十七节，保罗告诉我们：“身上肢体我们以为比较不体面的，就给它加上更丰盈的体面；我们不俊美的肢体，就得着更丰盈的俊美；至于我们俊美的肢体，就不需要了。但神将这身体调和在一起，把更丰盈的体面加给那有缺欠的肢体，免得身体上有了分裂，总要肢体彼此同样相顾。若一个肢体受苦，所有的肢体就一同受苦；若一个肢体得荣耀，所有的肢体就一同欢乐。你们就是基督的身体，并且各自作肢体。”按着神牧养，乃是一种相互的牧养。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　所有的信徒，无论属灵生命长大有多少，都需要牧养；
+我们都有缺点和短处，需要别人牧养我们
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">所有的信徒，无论属灵生命长大有多少，都需要牧养；我们都有缺点和短处，需要别人牧养我们。我们不该以为，只有青年人或新人需要牧养，其实释放信息的弟兄们也都需要得牧养。老年人也很需要得牧养，甚至比青年人更需要。当一个年轻人来跟一个年长的弟兄打招呼，简单说声：“弟兄，你好么？”也是很好的顾惜。你可能以为牧养只是年长的、成熟的来牧养年幼的，实际上，在基督的身体里，我们是彼此互相作肢体，彼此互相来牧养。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　我们都需要在基督生机的牧养之下，
+并与祂是一，而牧养别人；
+我们是羊也是牧人，彼此互相牧养并接受牧养；
+借着这相互的牧养，召会就被建造成为基督的身体
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们都需要在基督生机的牧养之下，并与祂是一，而牧养别人（约十11、16，来十三20~21，彼前五4，二25）。我们是羊也是牧人，彼此互相牧养并接受牧养；借着这相互的牧养，召会就被建造成为基督的身体（来五14，弗四12~13）。一面，我们是羊，另一面，我们也是牧人；我们是牧养羊的羊。一面，我们是羊，接受牧养；另一面，我们也是牧人，来牧养羊。启示录七章十七节说，“宝座中的羔羊必牧养他们，领他们到生命水的泉。”所以，青年人和新人，不要小看自己，觉得自己知道的不多；只要你是基督身体上的肢体，你不只是羊，也是牧人。你有一位大牧人，也有牧人的生命在你里面。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　我们越被基督构成，就越自然而然地
+过牧养的生活，有负担照顾别人
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们越被基督构成，就越自然而然地过牧养的生活，有负担照顾别人（西一27，三10~11、14）。我们若真正得着了基督的分赐，被基督构成，就必然有确定的果效─自然而然地有一种渴望要去牧养人。因着构成在我们里面的基督乃是牧人，因此构成在我们里面的生命，就是牧养的生命。</p>
+                
+                <p class="content-text">第三篇信息提到，雅歌中的寻求者“嘴唇滴下新蜜；……舌下有蜜有奶；……所种的萌芽，成了石榴园，有佳美的果子、凤仙花与哪哒树，有哪哒和番红花，菖蒲和肉桂，并各样乳香木、没药、沉香，与一切上等的香料”（四11、13~14）。寻求者追求主并享受良人的许多方面，这一切就都构成到她里面；至终，她能够有所生产。她对基督所有的经历，成了她的出产，好将其献给良人基督，并供应、服事人。不仅她的舌下有蜜有奶（四11），她的两手滴下没药（五5），也被乳香所熏透（三6，四6、14），她完全被基督的死与复活所浸透。所以到了七章，她说，“我的良人，来吧，你我可以出到田间；你我可以在村庄住宿。”（11）这乃是被基督所构成一种自然而然的结果─过牧养的生活。换句话说，我们若说自己享受主，并接受祂的分赐，却不关心也不牧养其他的羊，我们所接受的分赐就有问题。然而，我们若真正接受了基督，让祂分赐到我们里面，将祂自己构成到我们里面，应该就有一种自然而然的结果─牧养。我们对人就有正确的关切和负担。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　基督在我们属灵生命里的构成，有牧养的一面
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">基督在我们属灵生命里的构成，有牧养的一面（约二一15~17）。约翰一至二十章讲到，神在基督里如何来作人的生命，借着成为肉体将神带进人里面，又借着死与复活将人带进神里面，使神在人里、人在神里，完全调和并构建在一起。二十一章给我们看见，这生命乃是牧养的生命。主不是单单嘱咐彼得要去牧养、喂养祂的羊，祂乃是三次问彼得：“约翰的儿子西门，你爱我比这些更深么？……你爱我么？……你爱我么？”（15~17）这表明我们的牧养该是出于我们对主的爱；牧养是一个爱的使命。主不是仅仅嘱咐彼得去作“牧养”这件事，主的头一个问题乃是：“你爱我么？”因此，我们若爱主，就会与祂联结，与祂是一，自然就有一个结果，就是去喂养、牧养主的羊。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　牧养不是因为别人鼓励才去作的事
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">牧养不是因为别人鼓励才去作的事。读到这点，不禁想到我们常常鼓励别人去牧养。我们有牧养计划、牧养训练，我发现自己和圣徒们，通常都是因着别人的鼓励才去牧养。因为负责弟兄很有负担，鼓励我们要过牧养的召会生活，于是我们就订定一周要牧养几个人，每周按时回报。弟兄姊妹，我们不是在作行销计划。我们要知道，召会是活神的家（提前三15），我们的牧养不是运动，不是计划，更不是组织。当然，因着我们常常懒惰被动，需要被鼓励、被督促。然而，当我们去牧养时，里面应该有一种光照：牧养不该是因着别人的劝戒、嘱咐或要求，牧养该出于我们对主的爱。我们对所爱的基督有所经历与享受，使祂能将祂自己构成在我们里面，自然而然产生一个结果，就是牧养。我们绝不可把牧养作成一种活动或运动。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　牧养乃是被基督构成的结果；
+我们这人由基督构成的部分，就是牧养别人的部分
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">牧养乃是被基督构成的结果（西三4、10~11）。我们这人由基督构成的部分，就是牧养别人的部分。如果身体上的某个部分被基督构成了，那个部分就能牧养人。我们的嘴唇、手、心思、思想、感觉，我们里面的每一部分都需要被基督牧养，被基督构成；只有那些由基督构成的部分，才能牧养人。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　我们无法牧养任何人；
+构成到我们里面的基督才是牧人
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们无法牧养任何人；构成到我们里面的基督才是牧人（约十11，彼前二25，五2、4，来十三20）。我们都要谦卑地承认，我们不是牧人。我们凭天然的生命没有办法牧养；我们需要另一个生命。赞美主，祂就是另一个生命。祂已经进到你我里面。祂在你我里面，我们要转向祂，让祂来作，与祂合作。这位构成到我们里面的，祂才是牧人。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　我们需要按着父神爱和柔细的心，
+并按着救主基督寻找和牧养的灵，
+来牧养神的群羊
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们需要按着我们父神爱和柔细的心，并按着我们救主基督寻找和牧养的灵，来牧养神的群羊（路十五1~32）。这是路加十五章浪子回家和牧人寻羊的比喻所启示的。在浪子回家的比喻里，浪子带着家产离开父家之后，生活放荡，挥霍掉所有的家产。他穷乏到一个地步，只能去放猪，甚至恨不得拿猪所吃的豆荚充饥，也没有人给他。至终，他醒悟过来，就起来，往父亲那里去。相离还远，他父亲看见，就动了慈心，跑去抱着他的颈项，热切地与祂亲嘴。请注意，父亲并没有数落浪子说，“你终于回来了，你终于醒过来了。”不，父亲没有这样说。他似乎已忘记浪子是如何地挥霍家产。父亲只知道儿子回家是何等喜乐！我们若要牧养人，就要忘掉他们所有的短缺。我们可能一直记得他们所犯的错，但请记得，父亲并没有改正浪子；反之，父亲是说，“快把那上好的袍子拿出来给他穿，把戒指戴在他手上，把鞋穿在他脚上，把那肥牛犊牵来宰了，让我们吃喝快乐。”（22~23）这说出父神爱和柔细、赦免的心。</p>
+                
+                <p class="content-text">此外，在牧人寻羊的比喻里，有一只羊走失了。也许是走错方向，或是因忧虑烦恼而迷失了。但无论如何，牧人把那九十九只羊撇在旷野，去找那失去的一只，直到找着，就欢欢喜喜地扛在自己肩上，回到家里（4~5）。这该是我们的灵。我们牧养人，必须有父神爱和柔细的心，以及救主基督寻找和牧养的灵。</p>
+                
+                <p class="content-text">我们需要在爱里彼此牧养（林前十三1~13）。实在来说，我们缺少牧养，是因为我们缺少爱。李弟兄在《对同工长老们以及爱主寻求主者爱心的话》一书里，语重心长地向我们指出：“不牧养、不寻找的灵，以及没有爱和赦免的灵，正在主的恢复里到处蔓延。我相信，没有父神爱和赦免的心，没有救主牧养和寻找的灵，乃是我们不结果子的原因。”（四二页）我们中间有一种优越的灵，觉得自己比别人优越，比别人好，比别人高，但那不是爱的灵；我们中间若有这样的灵，我们就无法结果子，无法牧养人。我们迫切的需要乃是爱，爱是神内在的元素。我们需要在爱里彼此牧养。试问：爱是什么？爱与我们的想法和观念不同，不是那种卿卿我我的感觉。借着祷读林前十三章，可以帮助我们领悟什么是爱：“爱是恒久忍耐，又有恩慈；爱是……不计算人的恶，……凡事包容，凡事相信，凡事盼望，凡事忍耐。爱是永不败落。”（4~8）</p>
+                
+                <p class="content-text">在我们的所是和所作上，爱乃是极超越的路（十二31下）。神赐给我们的，乃是爱的灵（提后一7）。神乃是爱，我们既已蒙神重生，成为神的种类，就应当是爱（约壹四8，约三6）。我们不仅应该被爱构成，我们应当是爱；因为神是爱，我们也应当是爱。</p>
+                
+                <p class="content-text">基督的身体在爱里把自己建造起来（弗四16）。当人进到我们中间，或是我们去到人那里，我们不该给人一种感觉，仿佛进到冰库般的冰冷。为着牧养人，我们需要爱；这爱就是神自己在祂柔细、内里的元素里彰显出来。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　基督是好牧人、大牧人、牧长
+以及我们魂的牧人
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">基督是好牧人、大牧人、牧长以及我们魂的牧人（约十9~ 17，来十三20~21，彼前五4，二25）。新约论到基督是牧人的四方面，是由新约最主要的三位著者（约翰、保罗、彼得）所写。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　主耶稣作好牧人，
+来使我们得生命，并且得的更丰盛
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">主耶稣作好牧人，来使我们得生命，并且得的更丰盛（约十10~11）。祂舍了祂的魂生命，就是人的生命，为祂的羊成功救赎，使他们能有分于祂的奏厄（zoe）生命，就是祂神圣的生命（11、15、17）。主舍了祂的魂生命，是指祂为我们的罪被钉死在十字架上。因此，每当我们来到主的桌子前该有一种感觉：主是为我的罪而死。我们原是不配的，乃因主的救赎才有地位能有分于祂的筵席。我们应当记念所得的救恩。</p>
+                
+                <p class="content-text">祂领祂的羊出羊圈，进入祂自己这草场，就是得喂养的地方，使他们可以自由地吃祂，得着祂的喂养（9）。主使犹太和外邦信徒在祂的牧养下合为一群（召会，基督的身体）（16）。主把我们与所有的圣徒，所有的肢体，所有的羊，合为一群。在这次训练里，我们能够来在一起，岂不是很美妙？众人都很喜乐地来在一起，合为一群。赞美主，祂把我们合为一群。祂不仅为我们死，也喂养我们，更使我们合为一群，使我们成为召会，基督的身体。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　神“凭永约之血”，
+使“群羊的大牧人我们的主耶稣”从死人中复活
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">神“凭永约之血”，使“群羊的大牧人我们的主耶稣”从死人中复活（来十三20）。主耶稣为我们流血，为我们而死。神使祂这群羊的大牧人从死人中上来，是凭“永约之血”。这永约乃是指新约，正如希伯来八章十至十二节所说的：“我要将我的律法赐在他们心思里，并且将这些律法写在他们心上；我要作他们的神，他们要作我的子民。他们各人绝不用教导自己同国之民，各人也绝不用教导自己的弟兄，说，你该认识主；因为他们从最小的到至大的，都必认识我；因为我要宽恕他们的不义，绝不再记念他们的罪。”这新约乃是神借着耶稣的血与祂子民所立定的。神凭基督的血，使群羊的大牧人我们的主耶稣从死人中复活，为要得着祂团体的子民，就是群羊。</p>
+                
+                <p class="content-text">永约乃是借着牧养来终极完成新耶路撒冷。永约就是新遗命的约，为要得着群羊，就是召会，结果带进基督的身体，并终极完成于新耶路撒冷。复活的基督是大牧人，要执行、成就神与我们立定的约，使我们成为祂的召会，就是基督的身体，终极完成于新耶路撒冷。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　基督作牧长，借着众召会的长老牧养祂的群羊
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">基督作牧长，借着众召会的长老牧养祂的群羊（彼前五4）。升天的基督将恩赐赐给人，并在各地召会借着使徒们设立长老，作召会的监督。地方召会乃是神的群羊，主在其中设立长老，不是要控制，而是要监督、牧养祂的群羊。基督是牧长，需要长老借着监督、牧养祂的群羊，来与祂合作。</p>
+                
+                <p class="content-text">若没有长老的牧养，召会就无法得着建造。长老的牧养该是基督借着他们的牧养。因此，长老在召会中主要的责任就是牧养神的群羊。长老不该辖管、控制圣徒，乃该牧养圣徒（3）。牧长基督需要所有长老的合作来牧养众召会。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　是灵的基督作我们魂的牧人，
+监督我们里面的光景，顾到我们内里所是的情形
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">是灵的基督作我们魂的牧人，监督我们里面的光景，顾到我们内里所是的情形（二25）。基督作我们魂的牧人来牧养我们，不仅顾到我们外在的需要，更顾到我们里面的需要，特别是我们魂的情形。祂是借着顾到我们魂的益处，并借着监督我们内里所是的光景，而牧养我们。因为我们的魂很复杂，所以我们需要那在我们灵里是赐生命之灵的基督，在我们的魂里牧养我们，为要照顾我们的心思、情感和意志，并顾到我们的难处、需要和创伤。我们的魂很复杂，也有许多的难处。随着年纪渐长，我们的心思和记性不再像以前那样灵光。我们的情感、意志、心思，甚至精神可能都有一些难处，以至于有一些希奇古怪的想法。这种种的情形都说出，我们何等需要基督的牧养，来顾到我们魂的益处。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　“务要〔按着神〕牧养你们中间神的群羊”
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">“务要〔按着神〕牧养你们中间神的群羊。”（五2）</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　“按着神”意思是我们活神
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">“按着神”意思是我们活神（帖前三8，五10）。按着神意思是我们完全同意祂，并且活祂；我们与祂同心，与祂一致。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　当我们与神是一，在我们牧养别人时，我们就是神
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">当我们与神是一，我们就在生命和性情上，但不在神格上，成为神，并且在我们牧养别人时，我们就是神（罗十一24）。我们不可能成为在神格里的神，而是在生命和性情上与祂是一。当我们牧养新人或青年人时，不是活出在雷轰、闪电中的神，而是活出祂的生命和性情。根据罗马十一章，我们已经接枝在祂里面。我们属人的生命虽然满了短缺，但如今我们已接枝到祂神圣、健康的生命里。所以我们需要学习凭着这调和的生命来生活，才能与神是一，在生命和性情上成为神。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　按着神牧养，就是按着神的性情、
+心意、作法和荣耀牧养
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">按着神牧养，就是按着神的性情、心意、作法和荣耀，而不是按着我们的偏好、兴趣、目的和个性牧养。神的性情是圣别的；神的心意是要得着召会，就是基督的身体；神的作法是借着生命；神的荣耀就是神得着彰显。按着神牧养，就是按着神圣别的性情，按着神要得着一个生机体的心意，按着祂生命的作法，以及按着祂彰显的荣耀，而不是按着我们的偏好、兴趣、目的和个性来牧养。我们不是按着自身的利益来牧养（彼前五2）。在牧养上，我们没有任何自己的拣选或偏好。我们不该想牧养某种人，而不想牧养另一种人。神就是爱（约壹四8、16），神不以貌取人（申十17），神爱所有的世人（约三16）。神已将这爱放在我们里面，要我们用这爱来牧养人。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　按着神牧养，就是按着神在祂属性上的所是牧养
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">按着神牧养，就是按着神在祂属性上的所是牧养（弗四18，约壹四8，启十五3）。神的属性指神的所是，主要的是爱、光、义、圣。神的属性要成为我们人性的美德，使我们应用在牧养上。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　我们要按着神牧养，就必须在生命、
+性情、彰显和功用上成为神
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们要按着神牧养，就必须在生命、性情、彰显和功用上成为神。我们必须被神圣的生命所满溢，享受三一神作源、泉、川，而成为神圣生命的总和，甚至成为神圣生命的本身（约四14，西三4）。我们必须在神那爱、光、义、圣的属性上成为神。我们必须成为基督的复制，就是神的彰显，使我们在牧养上彰显神，而不是彰显我们的己，连同个性与乖僻。我们必须在神的功用上成为神，照着祂的所是并照着祂经纶中的目标，牧养神的群羊。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　我们若要按着神牧养，就需要与神成为一
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们若要按着神牧养，就需要与神成为一（约十四20，林前六17）。圣经的基本原则是神在祂的经纶里，使自己与人成为一，并使人与祂成为一（约十五4，林前六17）。神渴望神圣的生命与属人的生命能联为一个生命，过一个生活（约六57，加二20）。</p>
+                
+                <p class="content-text">牧养是神圣的，也是属人的；既是属人的，也是神圣的。神圣的和属人的必须调和为一。属人的是器皿，不过是凭借；神圣的才是内容。有时候，你请人喝杯饮料，似乎非常有人性，但除了人性的一面，还要顾到神圣的一面，就是将神圣的生命构成在人里面。关于圣经你可能只字未提，但你在与人谈话时就在彰显基督，将基督以非常人性的方式供应到人里面。神的爱就在人的爱里得着彰显，神的属性就成了你的人性美德。我们不仅要有人性，也要一直操练与主成为一灵，来牧养人。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　按着神牧养，要求我们被神构成
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">按着神牧养，要求我们被神构成。神渴望将祂自己分赐到我们里面，使我们的所是由祂的所是所构成，以致与祂的所是成为一个构成（弗三17上，西三10~11）。神这神圣的一位用祂的元素注入我们里面，使我们在生命和性情上，但不在神格上，与祂一样（林后十三14）。歌罗西三章十一节说，“唯有基督是一切，又在一切之内。”基督需要成为我们的一切，就是说基督要构成在我们里面，作我们的一切。祂是我们的忍耐，是我们的怜恤，是我们的怜悯。基督要作为这一切而构成在我们里面。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　唯有活神的人，才能按着神牧养
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">唯有活神的人，才能按着神牧养（腓一21上）。神的经纶是要将祂自己作到我们里面，使我们可以接受祂作我们的生命和生命的供应，好活祂（约十一25，六48、57）。我们现今正有分于神圣的生命和神圣的性情，使我们能在人性里活神（加二20）。我们需要天天操练活神。我们吃祂，就因祂活着（约六57）。我们活祂，就能按着神牧养人。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　我们要作按着神牧养的人，
+就需要代表神，尽代理之神的功用
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们要作按着神牧养的人，就需要代表神，尽代理之神的功用。我们牧养人的时候，不总是和善、亲切、甜美地安慰人，有时候神也带领我们，需要讲一些诚实话，甚至是较严厉（却带着爱）的话，来帮助偏离的圣徒，将他带回。这样，我们在牧养时，就是尽代理之神的功用。也许当时对方不见得那么容易接受，但之后他会明白那是神在牧养他。有时人走错了路，主要借着我们按着神牧养，来将人带回。</p>
+                
+                <p class="content-text">耶和华使摩西“在法老面前作神”；在摩西身上，神得着一个代表祂并执行祂旨意的人（出七1，三16~18，五1）。作为神的代表，撒母耳乃是代理的神（撒上一11，二35，七3，八22）。撒母耳能作代理的神，因为他的所是和神的心乃是一（二35）。撒母耳的生活和工作乃是为着完成一切在神心中的事。</p>
+                
+                <p class="content-text">申言者以利沙在他的职事中，作为神人（直译，属神的人），行事如同神的代表，如同代理的神；今天我们在基督里的信徒，也能这样（王下四9，提前六11）。我们该作属神的人，却不该高举自己，觉得自己像神一样，代表神来到人那里。想这样表现的人，就绝不是代理的神。我们若与神是一，被神构成，成为活神的人，就会成为神的代表，如同代理的神，将神的思想和心意向人陈明。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　按着神牧养，就是将神供应给人
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">按着神牧养，就是将神供应给人（林后十三14）。三一神已经具体化身在基督里，并且实化为终极完成的灵；这是我们所敬拜、传扬并供应给人的神（西二9，林前十五45下，林后一3~4、12、15~16，二10，十三14）。我们若要彼此供应神，就需要讲说恩典、真理、灵和生命的话，供应那作到我们里面之经过过程的神（弗三16~17上，四25、29，约六63）。</p>
+                
+                <p class="content-text">约壹五章十六节说，“人若看见他的弟兄犯了不至于死的罪，就当为他祈求，将生命赐给他，就是给那些犯了不至于死之罪的。”这里不是说神，也不是说基督，而是说我们要将生命赐给那犯了不至于死之罪的弟兄；这就是牧养他。我们能供应生命，将生命赐给人，不是凭着自己，乃是借着那作到我们里面的生命，就是构成在我们里面的基督。我们要将恩典的话、真理的话和生命的话，说到人里面，也说到彼此里面。</p>
+                
+                <p class="content-text">牧养实在是主恢复中极其重大的事，更是我们迫切的需要。在主回来之前，要得着新妇，祂的身体必须建造起来，因此就需要牧养。愿主怜悯我们，盼望借着这篇信息，使我们在牧养的生活上能再往前一步。（J. L.）</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+    </div>
+</div>
+
+<style>
+.message-page {
+    padding: 5px;
+}
+
+.message-content {
+    margin-top: 15px;
+    line-height: 1.8;
+    font-size: 1em; /* 明确设置为 18px，确保与 body 一致 */
+    text-align: justify;
+}
+
+/* 章节结构样式 - 使用 base.html 统一样式 */
+.section {
+    margin-bottom: 18px;
+}
+
+/* 标题不需要悬挂缩进 */
+.message-page [class^="section-level"] {
+    text-indent: 0;
+    padding-left: 0;
+}
+
+.section-content {
+    margin: 12px 0 16px 0;
+    
+}
+
+.subsections {
+    margin-left: 0;
+}
+
+/* 使用 base.html 的统一 .content-text 样式 */
+
+.no-content {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 24px 16px;
+    font-size: 0.9375em;
+}
+
+@media (min-width: 768px) {
+    .message-page {
+        padding: 20px 0;
+    }
+    
+    .message-content {
+        margin-top: 30px;
+    }
+    
+    .section {
+        margin-bottom: 30px;
+       
+    }
+}
+
+/* 移动端样式继承 base.html */
+</style>
+
+<script>
+// 等待 CXSpeech 加载完成后初始化
+function initSpeech() {
+    // 检查控制元素
+    var controlBar = document.getElementById('bottomControlBar');
+    var playBtn = document.getElementById('playPauseBtn');
+    
+    if (!controlBar || !playBtn) {
+        return; // 元素不存在，不初始化
+    }
+    
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            // 方案1: 获取所有 section 标题和内容
+            const sections = document.querySelectorAll('.section');
+            
+            sections.forEach(section => {
+                // 读取 section 标题（支持所有级别）
+                const levelElem = section.querySelector('[class^="section-level"]');
+                if (levelElem) {
+                    const t = levelElem.textContent.trim();
+                    if (t) text += t + '。';
+                }
+                // 读取 section 内容
+                const sectionContent = section.querySelector('.section-content');
+                if (sectionContent) {
+                    const paragraphs = sectionContent.querySelectorAll('.content-text');
+                    paragraphs.forEach(p => {
+                        const t = p.textContent.trim();
+                        if (t) text += t + '。';
+                    });
+                }
+            });
+
+            // 方案2: 如果没有 section 结构，直接读取所有 content-text
+            if (sections.length === 0) {
+                const paragraphs = document.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+            
+            // 方案3: 如果还是没有内容，读取整个 message-content
+            if (!text || text.length < 10) {
+                const messageContent = document.querySelector('.message-content');
+                if (messageContent) {
+                    text = messageContent.textContent.trim();
+                }
+            }
+            
+            // 清理文本：移除多余的空白字符和特殊字符
+            text = text
+                .replace(/\s+/g, ' ')           // 多个空白字符替换为单个空格
+                .replace(/[\r\n\t]/g, '')       // 移除换行和制表符
+                .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '') // 只保留中英文、数字和常用标点
+                .trim();
+            
+            // 如果文本为空，在页面上显示提示
+            if (!text || text.length < 10) {
+                var timeElem = document.getElementById('speechTime');
+                if (timeElem) {
+                    timeElem.textContent = '无内容';
+                    timeElem.style.color = '#999';
+                    setTimeout(function() {
+                        timeElem.textContent = '00:00 / 00:00';
+                        timeElem.style.color = '';
+                    }, 3000);
+                }
+            }
+
+            return text;
+        }
+    });
+}
+
+// 检查并初始化 CXSpeech
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        // 等待 CXSpeech 加载，最多等待 5 秒
+        var attempts = 0;
+        var maxAttempts = 50;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                // 5秒后仍未加载，可能是脚本加载失败
+                console.log('[朗读] CXSpeech 加载超时');
+            }
+        }, 100);
+    }
+}
+
+// DOM 加载完成后检查并初始化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>202504 夏季训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

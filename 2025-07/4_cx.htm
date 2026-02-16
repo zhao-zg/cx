@@ -1,0 +1,2205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第4篇 - 晨兴</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+<style>
+.morning-revival-page{padding:5px;max-width:820px;margin:0 auto}
+.day-navigation{display:flex;flex-wrap:nowrap;gap:0;margin:15px 0;padding:8px;background:var(--surface-alt);border-radius:8px;justify-content:space-between;font-size:0.85em;box-sizing:border-box;overflow:hidden}
+.day-link{height:40px;padding:0 10px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:0;color:var(--btn-secondary-text);font-size:0.88em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box}
+.day-link + .day-link{border-left:1px solid var(--border)}
+.day-link:first-child{border-top-left-radius:6px;border-bottom-left-radius:6px}
+.day-link:last-child{border-top-right-radius:6px;border-bottom-right-radius:6px}
+.day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:rgba(102,126,234,.5)}
+.day-link.active{font-weight:700}
+.pages-container{position:relative;min-height:400px;touch-action:pan-y}
+.day-page{background:var(--surface);padding:0;display:none}
+.day-page.is-active{display:block}
+.page-controls{display:flex;justify-content:space-between;align-items:center;margin:20px 0 15px;padding:10px;background:var(--surface-alt);border-radius:12px;border:1px solid var(--border)}
+.prev-btn,.next-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:12px 16px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:5px;color:var(--btn-secondary-text);font-size:0.9375em;cursor:pointer;font-weight:600;transition:background .2s}
+.prev-btn:hover,.next-btn:hover{background:var(--btn-secondary-hover-bg)}
+.prev-btn:active,.next-btn:active{background:var(--btn-secondary-active-bg)}
+.prev-btn:disabled,.next-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-indicator{font-size:0.94em;color:var(--text-muted);font-weight:800}
+</style>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第4篇 狮子羔羊</h2>
+</div>
+
+        
+        <div class="content">
+            
+
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="4_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="4_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="4_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="4_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container" data-total-pages="6">
+        
+        <div class="day-page is-active" data-day="1" data-page="0">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day1-壹" data-level="1">
+    <div class="outline-item level-1">
+        
+        壹　启示录这卷书是耶稣基督的一幅图画；全书二十二章乃是一幅图画，描绘并描述这位耶稣—一1~2、5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-壹')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-壹" style="display: none;" onclick="toggleScripture('scripture-day1-壹')">
+            
+            
+            <div class="verse-line">启1:1	耶稣基督的启示，就是神赐给祂，叫祂将必要快发生的事指示祂的众奴仆；祂就借着祂的使者传达，用表号指示祂的奴仆约翰。</div>
+            
+            
+            
+            <div class="verse-line">启1:2	约翰便将神的话，和耶稣基督的见证，凡自己所看见的，都见证出来。</div>
+            
+            
+            
+            <div class="verse-line">启1:5	并从那忠信的见证人、死人中的首生者、为地上君王元首的耶稣基督，归与你们。祂爱我们，用自己的血，把我们从我们的罪中释放了；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-贰" data-level="1">
+    <div class="outline-item level-1">
+        
+        贰　“看哪，犹大支派中的狮子，大卫的根，祂已得胜”—五5中：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　狮子表征基督，描绘出祂是抵挡仇敌的刚强战士，如创世记四十九章八至九节所启示的。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一" style="display: none;" onclick="toggleScripture('scripture-day1-一')">
+            
+            
+            <div class="verse-line">创49:8	犹大啊，你弟兄们必赞美你；你手必掐住仇敌的颈项；你父亲的儿子们必向你下拜。</div>
+            
+            
+            
+            <div class="verse-line">创49:9	犹大是个小狮子；我儿啊，你抓了食便上山去。他蹲伏如公狮，又如母狮，谁敢惹他？</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　基督的得胜使祂够资格展开那书卷，揭开它的七印—启五5~10。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-二" style="display: none;" onclick="toggleScripture('scripture-day1-二')">
+            
+            
+            <div class="verse-line">启5:5	长老中有一位对我说，不要哭；看哪，犹大支派中的狮子，大卫的根，祂已得胜，能以展开那书卷，揭开它的七印。</div>
+            
+            
+            
+            <div class="verse-line">启5:6	我又看见宝座与四活物中间，并众长老中间，有羔羊站立，像是刚被杀过的，有七角和七眼，就是神的七灵，奉差遣往全地去的。</div>
+            
+            
+            
+            <div class="verse-line">启5:7	这羔羊前来，从坐宝座的右手中拿了书卷。</div>
+            
+            
+            
+            <div class="verse-line">启5:8	当祂拿书卷的时候，四活物和二十四位长老，都俯伏在羔羊面前，各拿着琴，和盛满了香的金炉，这香炉就是众圣徒的祷告。</div>
+            
+            
+            
+            <div class="verse-line">启5:9	他们唱新歌，说，你配拿书卷，配揭开它的七印，因为你曾被杀，用自己的血从各支派、各方言、各民族、各邦国中，买了人来归与神，</div>
+            
+            
+            
+            <div class="verse-line">启5:10	又叫他们成为国度，作祭司，归与我们的神；他们要在地上执掌王权。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　“大卫的根”这名称表征基督是大卫的根源；因此，大卫虽是祂的先祖，也称祂为“主”—太二二42~45。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-三" style="display: none;" onclick="toggleScripture('scripture-day1-三')">
+            
+            
+            <div class="verse-line">太22:42	论到基督，你们怎么看？祂是谁的子孙？他们说，是大卫的。</div>
+            
+            
+            
+            <div class="verse-line">太22:43	耶稣对他们说，这样，大卫在灵里怎么还称祂为主，说，</div>
+            
+            
+            
+            <div class="verse-line">太22:44	“主对我主说，你坐在我的右边，等我把你的仇敌，放在你的脚下？”</div>
+            
+            
+            
+            <div class="verse-line">太22:45	大卫既称祂为主，祂怎么又是大卫的子孙？</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-四')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        四　基督是犹大支派中的狮子，胜过并击败了背叛神的仇敌撒但，并且祂是救赎的羔羊，除去了堕落之人的罪：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-四" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-四-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　借此祂去掉了成全神旨意的拦阻。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-四-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　结果乃是祂配展开关于神经纶的书卷。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启一1	耶稣基督的启示，就是神赐给祂，叫祂将必要快发生的事指示祂的众奴仆；祂就借着祂的使者传达，用表号指示祂的奴仆约翰。</div>
+                
+                <div class="feeding-scripture">五5	长老中有一位对我说，不要哭；看哪，犹大支派中的狮子，大卫的根，祂已得胜，能以展开那书卷，揭开它的七印。</div>
+                
+                
+                
+                <p class="content-text">基督是犹大支派中的狮子〔启五5〕，击败了背叛神的仇敌撒但，并且祂是救赎的羔羊，除去了堕落之人的罪，借此祂去掉了成全神旨意的拦阻。所以祂配展开关于神经纶的书卷（新约总论第十四册，一四六页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">狮子表征基督，描绘出祂是抵挡仇敌的刚强战士，如创世记四十九章八至九节所预言的。祂的得胜使祂够资格展开那书卷，揭开它的七印。</p>
+                
+                <p class="content-text">启示录这卷书……乃是一幅“图画”，描绘并描述耶稣。……全书二十二章是犹大支派狮子的一幅好画，这些章节里也有陪衬。除了狮子以外，还有带角的兽，甚至有一条龙（十三1~2、11，十二3）。约翰曾因看到天上的景象而大哭，但犹大支派中的狮子来到时，却有大欢乐（五3~4、8~14）。至终，狮子作为羔羊娶了新妇，这新妇成为方正的城，而羔羊同神坐在宝座上（十九7，二一16，二二1）。狮子在新耶路撒冷的中心登宝座，作万王之王、万主之主。然后从这宝座有一道生命水的河流出，明亮如水晶，河里长着生命树。这乃是启示录这卷启示耶稣基督的书里，神圣狮子的“图画”。</p>
+                
+                <p class="content-text">在启示录这卷书里，我们只该看见一个人物—耶稣基督，因为这卷书乃是启示并揭示耶稣基督。启示录的主角是作为犹大支派狮子的基督（五5）。……我们必须转眼不看青蛙、兽、蝗虫、龙和蛇；反之，我们必须将眼目转到这狮子身上。……启示录中所提到一切较小的项目，都是主要画面的背景和陪衬，这主要的画面乃是基督这犹大支派中的狮子。……对于我们，狮子是救赎的羔羊；但对于仇敌，羔羊是得胜的狮子。不仅如此，祂完全彰显于灯台（一）、被赎的大批群众（七）、光明的妇人连同她的男孩子（十二）、庄稼和初熟的果子（十四）、玻璃海上的得胜者（十五）、为着婚娶预备好了的新妇（十九）、军队（十九）和新耶路撒冷（二一~二二）。</p>
+                
+                <p class="content-text">在祂的升天里，基督是狮子羔羊。……当约翰发现“没有能展开、能观看那书卷的”（五3），因而大哭的时候，长老中有一位对他说，“不要哭；看哪，犹大支派中的狮子，大卫的根，祂已得胜，能以展开那书卷，揭开它的七印。”（5）在基督钉十字架以前，约翰要哭还有理由，但在基督升天后哭，就太愚昧了。今天你还哭泣么？如果你还在哭泣，就表示你还没有看见启示录五章里升天基督的异象。我们应当观看这犹大支派中的狮子。</p>
+                
+                <p class="content-text">创世记四十九章八至九节预言，基督是犹大的狮子；但是只有启示录告诉我们，基督是犹大支派中的狮子。犹大支派中的狮子这个称呼，表征基督是得胜的王。一切活的受造之物都在祂以下。没有人能征服祂；祂反倒征服一切（新约总论第十四册，一三六至一三八页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day2-叁" data-level="1">
+    <div class="outline-item level-1">
+        
+        叁　“我又看见宝座……中间，……有羔羊站立，像是刚被杀过的，有七角和七眼，就是神的七灵，奉差遣往全地去的”—启五6，一4，三1：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-叁')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-叁" style="display: none;" onclick="toggleScripture('scripture-day2-叁')">
+            
+            
+            <div class="verse-line">启1:4	约翰写信给在亚西亚的七个召会：愿恩典与平安，从那今是昔是以后永是的，从祂宝座前的七灵，</div>
+            
+            
+            
+            <div class="verse-line">启3:1	你要写信给在撒狄的召会的使者，说，那有神的七灵和七星的，这样说，我知道你的行为，按名你是活的，其实是死的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day2-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　在五章有基督升天后诸天之上的景象：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day2-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day2-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　向使徒约翰，基督被引荐为犹大支派中的狮子，但祂向约翰却显为羔羊。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　是狮子，祂是抵挡仇敌的战士；是羔羊，祂是我们的救赎主。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-一-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　祂争战是为救赎我们，如今祂已胜过仇敌，并为我们成功了救赎。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-一-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　对仇敌，祂是狮子，而对我们，祂是羔羊；所以祂是狮子羔羊。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　关于救赎，基督升天后就坐在诸天之上神的右边（来一3，十12）；关于神行政的完成，祂在升天里仍然站着。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-二" style="display: none;" onclick="toggleScripture('scripture-day2-二')">
+            
+            
+            <div class="verse-line">来1:3	祂是神荣耀的光辉，是神本质的印像，用祂大能的话维持、载着并推动万有；祂成就了洗罪的事，就坐在高处至尊至大者的右边；</div>
+            
+            
+            
+            <div class="verse-line">来10:12	唯独这一位既为罪一次献上祭物，就永久在神的右边坐下了；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　“刚被杀过的”，指明羔羊刚刚被杀，也指明启示录五章所描述诸天之上的景象，是紧接在基督升天之后。
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启五6~7	我又看见宝座与四活物中间，并众长老中间，有羔羊站立，像是刚被杀过的，有七角和七眼，就是神的七灵，奉差遣往全地去的。这羔羊前来，从坐宝座的右手中拿了书卷。</div>
+                
+                
+                
+                <p class="content-text">在启示录五章五至十节我们看见，我们可以经历并享受基督作狮子羔羊。从五章一节至六章一节，我们看见一个异象，在神的宝座与四活物中间，并宇宙的二十四位长老中间，祂是狮子羔羊，展开神宇宙行政的七印。……对仇敌，祂乃是狮子；对我们蒙救赎的人，祂乃是亲爱的、宝贵的羔羊〔五5~6〕。基督是羔羊，完成神的救赎，也是狮子，为神的国争战。为着神的救赎，祂是羔羊；为着神的国，祂是争战的狮子，犹大支派的狮子。祂争战是为救赎我们，如今祂已胜过仇敌，并为我们成功了救赎（新约总论第十四册，一三四页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">在约翰福音，施浸者约翰说，“看哪，神的羔羊”（一29），但在启示录，长老中有一位说，“看哪，犹大支派中的狮子。”（五5）在约翰福音我们看见，基督在肉体里来，作为神的羔羊，主要的是除去世人的罪；但在启示录我们看见，基督是狮子羔羊，不仅除去罪，也胜过并击败祂的仇敌。</p>
+                
+                <p class="content-text">基督作羔羊，已经完成了救赎，洗净了我们的罪；基督作狮子，已经对付了撒但。祂足能应付我们的需要，并解决我们的难处。现在罪已经过去，撒但已被了结，我们已蒙救赎，并且已从仇敌篡窃的手中蒙拯救。</p>
+                
+                <p class="content-text">我们若爱主，祂对我们就是羔羊；但对那些不爱祂的人，祂乃是狮子。对于我们，祂是羔羊；对于仇敌、世界、有罪的事物，祂乃是狮子。因着我们确实爱祂，祂对于我们就是羔羊。为什么祂也必须是狮子？因为我们里面仍有许多消极的事物。祂作为神的羔羊，死在十字架上以救赎我们；但即使我们蒙救赎之后，仍然与许多消极的事物搀混一起。因此，祂必须也是狮子，以对付这些事物。</p>
+                
+                <p class="content-text">启示录五章六节中“刚被杀过的”这辞句，指明羔羊刚刚被杀，也指明本章所描述诸天之上的景象，是紧接在基督升天之后。基督经过死、复活、升天之后，就站在宝座与四活物中间。在天上，有一位复活的羔羊站在宝座前。……这只狮子羔羊是站着，不是坐着，并且祂的七眼如同闪电。这指明祂的工作并没有完成。……关于救赎，基督升天后就坐在诸天之上神的右边（来一3，十12）；然而，关于神行政的完成，祂在升天里仍然站着。</p>
+                
+                <p class="content-text">赎罪的羔羊现今站在宇宙的中心，神的宝座前，这启示救赎主现今乃是在神的行政里。祂是宇宙的行政管理者，执行神的经纶。……整个宇宙都在观看这个景象。四活物、二十四位长老、千千万万的天使和所有其他的受造之物都儆醒、留意、观察着。在这种光景中他们大声喊着说，“但愿颂赞、尊贵、荣耀、权能，都归与坐宝座的和羔羊，直到永永远远。”（启五13）这位狮子羔羊站在宇宙的中心，有如同闪电、焚烧的眼睛！祂要把我们从寂静、冷淡和懒惰中拯救出来！我们的异象必须拔高，看见这位羔羊完成了一项永远而广阔的工作（新约总论第十四册，一三四至一三五、一四七至一四八页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day3-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-四')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        四　主有七角—6节下：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-四" style="display: none;" onclick="toggleScripture('scripture-day3-四')">
+            
+            
+            <div class="verse-line">启5:6下	……有七角和七眼，就是神的七灵，奉差遣往全地去的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-四" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-四-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　角象征争战的力量—申三三17。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-四-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-四-1" style="display: none;" onclick="toggleScripture('scripture-day3-四-1')">
+            
+            
+            <div class="verse-line">申33:17	他像头生的公牛，有威严；他的角是野牛的角，用以抵触万民，直到地极。这角是以法莲的万万，玛拿西的千千。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-四-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　基督虽是救赎的羔羊，却有争战的角。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-四-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　祂乃是争战的救赎主；祂的争战在神的行动中是完整的，如七这数字所表明的。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-五')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        五　眼是为着鉴察并搜寻：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-五" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-五-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　基督是救赎的羔羊，有鉴察并搜寻的七眼，为着执行神对宇宙的审判，以成就神永远的定旨，这要完成于新耶路撒冷的建造。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-五-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　撒迦利亚三章九节预言基督是石头，就是带着七眼，为着神建造的顶石（四7）。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-五-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-五-2" style="display: none;" onclick="toggleScripture('scripture-day3-五-2')">
+            
+            
+            <div class="verse-line">亚3:9	看哪，我在约书亚面前所安置的石头，在一块石头上有七眼。万军之耶和华说，我要亲自雕刻这石头，并要在一日之间除掉那地的罪孽。</div>
+            
+            
+            
+            <div class="verse-line">亚4:7	大山哪，你算什么？在所罗巴伯面前你必成为平地；他必搬出那块顶石，人必大声欢呼，说，愿恩典恩典，归与这石！</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-五-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　这七眼就是神的七灵，奉差遣往普天下去，遍察全地的—10节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-五-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-五-3" style="display: none;" onclick="toggleScripture('scripture-day3-五-3')">
+            
+            
+            <div class="verse-line">亚4:10	谁藐视这日的事为小呢？这七眼乃是耶和华的眼睛，遍察全地，见所罗巴伯手拿线铊就欢喜。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-五-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　按希腊文文法，启示录五章六节中“就是”的前述辞是七眼。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-五-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-五-4" style="display: none;" onclick="toggleScripture('scripture-day3-五-4')">
+            
+            
+            <div class="verse-line">启5:6	我又看见宝座与四活物中间，并众长老中间，有羔羊站立，像是刚被杀过的，有七角和七眼，就是神的七灵，奉差遣往全地去的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-五-5" data-level="2">
+    <div class="outline-item level-3">
+        
+        5　神的七灵，只指羔羊的七眼，不包含祂的七角。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">申三三17	……他的角是野牛的角，用以抵触万民，直到地极……。</div>
+                
+                <div class="feeding-scripture">启三1　	……那有神的七灵……的，这样说……。</div>
+                
+                
+                
+                <p class="content-text">在启示录五章六节约翰说，羔羊有七角。角象征争战的力量（申三三17）。基督虽是救赎的羔羊，却有争战的角。祂乃是争战的救赎主。祂的争战在神的行动中是完整（完全而完整）的，如七这数字所表明的。……启示录五章六节也说，羔羊有“七眼，就是神的七灵，奉差遣往全地去的”。眼是为着鉴察并搜寻。我们用眼睛看人，就把人搜寻出来。我们可以知道他们的态度、他们的为人以及他们的感觉。基督是救赎的羔羊，有鉴察并搜寻的七眼，为着执行神对宇宙的审判，以成就神永远的定旨，这要完成于新耶路撒冷的建造。所以，撒迦利亚三章九节预言〔基督〕是石头，就是带着七眼，为着神建造的顶石（四7）。……基督的七眼就是神的七灵，奉差遣往普天下去，遍察全地的（10）（新约总论第十四册，一四九至一五○页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们到召会的聚会中，就在一种特别的鉴察之下。……在我们去聚会之前，我们也许随意地说话，但去了以后，基督就规正我们的谈论。到了晚上，有一种内里的声音，在里面催促我们去聚会。照我们天然的选择，我们实在不想去，但不得不去。然后，当我们到了聚会中，我们摸着了活的基督。基督是赐生命的灵，祂那焚烧、搜寻、光照和鉴察的实际，是在众召会里。</p>
+                
+                <p class="content-text">七灵乃是基督用来表达祂自己的七眼。……每逢主用眼看我们，我们就能晓得祂是高兴还是不高兴。……祂借着看我们，就把祂一切所是传输到我们里面。祂的七眼一直注视我们，将神传输到我们里面。</p>
+                
+                <p class="content-text">羔羊的七眼作为神新约经纶的执行者，乃是七个灯台（七个召会）所托住的七灯，作耶稣的见证照耀并光照（启一9下、11~12）。这位焚烧、审判、洁净、炼净并生产的灵，乃是灯台（召会）所托住的灯。这意思是说，众召会借着灯照耀，这灯是那灵，是真实的见证。今天七灵在审判、洁净、炼净并产生众召会。……我们若不让七灵炼净我们，七灵就无法照耀，也就没有见证了。七灵的照耀就是见证。我们越让那灵洁净、炼净，祂就越借着我们照耀，这照耀就是召会的见证。这就是何以我们必须敞开自己，天天欢迎祂进入我们全人里面，来炼净、审判、清理并洁净我们。然后祂就要借着我们照耀，这照耀就是召会的见证，也就是耶稣的见证。耶稣的见证乃是七灵在众召会中，从所有信徒里面所有的照耀。</p>
+                
+                <p class="content-text">我们应该祷告：“亲爱的神圣火焰，来审判吧！来洁净吧！来炼净，好使你能产生金灯台。”靠着祂的怜悯，我们必须向祂敞开。我们每天都需要告诉主：“主，来吧；我向你敞开！我全人的每一通道都向你敞开。光照我，搜寻我里面，并且暴露我。我愿被你光照，并且在你的光中被暴露。”我们不该把自己关闭起来，向祂有所隐藏；我们都必须祷告：“主，我们是敞开的。来照耀在我们身上，从我们里面照耀，光照我们全人的每一通道，每一角落。我们渴慕被暴露，被清理，被炼净。”（新约总论第十四册，一五五至一五九页）</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day4-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-四')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        四　主有七角—6节下：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-四" style="display: none;" onclick="toggleScripture('scripture-day4-四')">
+            
+            
+            <div class="verse-line">启5:6下	……有七角和七眼，就是神的七灵，奉差遣往全地去的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-四" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-四-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　角象征争战的力量—申三三17。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-四-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-四-1" style="display: none;" onclick="toggleScripture('scripture-day4-四-1')">
+            
+            
+            <div class="verse-line">申33:17	他像头生的公牛，有威严；他的角是野牛的角，用以抵触万民，直到地极。这角是以法莲的万万，玛拿西的千千。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-四-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　基督虽是救赎的羔羊，却有争战的角。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-四-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　祂乃是争战的救赎主；祂的争战在神的行动中是完整的，如七这数字所表明的。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-五')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        五　眼是为着鉴察并搜寻：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-五" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-五-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　基督是救赎的羔羊，有鉴察并搜寻的七眼，为着执行神对宇宙的审判，以成就神永远的定旨，这要完成于新耶路撒冷的建造。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-五-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　撒迦利亚三章九节预言基督是石头，就是带着七眼，为着神建造的顶石（四7）。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-五-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-五-2" style="display: none;" onclick="toggleScripture('scripture-day4-五-2')">
+            
+            
+            <div class="verse-line">亚3:9	看哪，我在约书亚面前所安置的石头，在一块石头上有七眼。万军之耶和华说，我要亲自雕刻这石头，并要在一日之间除掉那地的罪孽。</div>
+            
+            
+            
+            <div class="verse-line">亚4:7	大山哪，你算什么？在所罗巴伯面前你必成为平地；他必搬出那块顶石，人必大声欢呼，说，愿恩典恩典，归与这石！</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-五-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　这七眼就是神的七灵，奉差遣往普天下去，遍察全地的—10节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-五-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-五-3" style="display: none;" onclick="toggleScripture('scripture-day4-五-3')">
+            
+            
+            <div class="verse-line">亚4:10	谁藐视这日的事为小呢？这七眼乃是耶和华的眼睛，遍察全地，见所罗巴伯手拿线铊就欢喜。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-五-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　按希腊文文法，启示录五章六节中“就是”的前述辞是七眼。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-五-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-五-4" style="display: none;" onclick="toggleScripture('scripture-day4-五-4')">
+            
+            
+            <div class="verse-line">启5:6	我又看见宝座与四活物中间，并众长老中间，有羔羊站立，像是刚被杀过的，有七角和七眼，就是神的七灵，奉差遣往全地去的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-五-5" data-level="2">
+    <div class="outline-item level-3">
+        
+        5　神的七灵，只指羔羊的七眼，不包含祂的七角。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">亚三9	……我在约书亚面前所安置的石头，在一块石头上有七眼。万军之耶和华说，我要亲自雕刻这石头，并要在一日之间除掉那地的罪孽。</div>
+                
+                <div class="feeding-scripture">四10	……这七眼乃是耶和华的眼睛，遍察全地，见所罗巴伯手拿线铊就欢喜。</div>
+                
+                
+                
+                <p class="content-text">撒迦利亚三章九节……说到雕刻石头，指明这石头就是基督。主耶稣作为建造的石头，为着神百姓的罪孽，曾在十字架上被神雕刻、对付。因着在十字架上所受的雕刻，就在一日之间，主耶稣除去了神百姓所有的罪。这符合约翰一章二十九节所说的：“看哪，神的羔羊，除去世人之罪的！”……简言之，撒迦利亚三章九节里那有七眼的石头，就是启示录五章六节里那有七眼的羔羊（新约总论第十四册，一五九页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">撒迦利亚四章二节说，“一个灯台，全是金的，顶上有油碗；灯台上有七灯……。”在三章九节，那建造的石头有七眼；在四章二节，灯台上有七灯。这启示灯台等于石头。石头和灯台都是基督。石头是为着建造，灯台是为着发光照明。在石头上有七眼，而在灯台上有七灯，所以灯台上的七灯，必定就是石头上的七眼。</p>
+                
+                <p class="content-text">石头上的七眼乃是“耶和华的眼睛，遍察全地”〔四10〕。这节与启示录五章六节相符，那里说到羔羊的七眼，就是奉差遣往全地去的神的七灵。这指明神的七眼就是神的七灵。撒迦利亚四章四至六节也含示，七眼，就是七灯，与那灵有关。撒迦利亚在二节说到金灯台上的七灯之后，就在四节问天使：“这些是什么意思？”在此，撒迦利亚实际上是在问，一个灯台上有七灯，这是什么意思。在六节天使回答：“这是耶和华给所罗巴伯的话，说，万军之耶和华说，不是倚靠权势，不是倚靠能力，乃是倚靠我的灵。”这明显是指着说，那一个灯台带着七灯，乃是“我的灵”，就是神的灵。在此，七灯表征神的七灵。这是因为启示录指明，神的七眼，就是七灯，乃是神的七灵。……撒迦利亚书启示，神的七眼就是灯台上的七灯，也是石头的七眼。借着这七眼，启示录五章所揭示基督是狮子和羔羊，就与撒迦利亚三章所说的石头连起来了。所以那位有七眼的，不仅是“狮子—羔羊”，也是石头。祂是“狮子—羔羊—石头”：狮子毁灭仇敌，羔羊救赎我们，石头建造神的家。……在祂死而复活以后，召会时期就来了；召会就是神的建造。为着建造召会，基督是磐石〔参太十六18〕。</p>
+                
+                <p class="content-text">神建造的完成，需要经过祂的审判。基督有发火焰的七眼，焚烧、光照、鉴察、洁净并炼净我们，借此执行神的审判。最终，这些发火焰的眼睛，将祂一切的所是注入到我们里面，新陈代谢地把我们变化成为像祂一样。整座新耶路撒冷城的素质和显出来的样子，都与神一样。启示录四章里坐宝座的神显出来的样子好像碧玉（3），而在二十一章里，新耶路撒冷，特别是城墙，显出来的样子也是碧玉（11、18~19）。所以，神与这城的素质和显出来的样子，是相同的。唯有这位神借着传输作到我们里面，才能成就这事（新约总论第十四册，一五九至一六三页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day5-肆" data-level="1">
+    <div class="outline-item level-1">
+        
+        肆　“神的七灵”— 一4，三1，四5，五6下：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-肆')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-肆" style="display: none;" onclick="toggleScripture('scripture-day5-肆')">
+            
+            
+            <div class="verse-line">启1:4	约翰写信给在亚西亚的七个召会：愿恩典与平安，从那今是昔是以后永是的，从祂宝座前的七灵，</div>
+            
+            
+            
+            <div class="verse-line">启3:1	你要写信给在撒狄的召会的使者，说，那有神的七灵和七星的，这样说，我知道你的行为，按名你是活的，其实是死的。</div>
+            
+            
+            
+            <div class="verse-line">启4:5	有闪电、声音、雷轰，从宝座中发出。又有七盏火灯在宝座前点着，这七灯就是神的七灵。</div>
+            
+            
+            
+            <div class="verse-line">启5:6下	……有七角和七眼，就是神的七灵，奉差遣往全地去的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　启示录一章四节说到“祂宝座前的七灵”：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　七灵，无疑是神的灵，因为一章四至五节将其列在三一神中。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-一-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-一-1" style="display: none;" onclick="toggleScripture('scripture-day5-一-1')">
+            
+            
+            <div class="verse-line">启1:4	约翰写信给在亚西亚的七个召会：愿恩典与平安，从那今是昔是以后永是的，从祂宝座前的七灵，</div>
+            
+            
+            
+            <div class="verse-line">启1:5	并从那忠信的见证人、死人中的首生者、为地上君王元首的耶稣基督，归与你们。祂爱我们，用自己的血，把我们从我们的罪中释放了；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　七既是神工作中完整的数字，七灵就必是为着神在地上的行动。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-一-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-一-3')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        3　在本质和存在上，神的灵是一个；在神行动加强的功用和工作上，神的灵是七倍的：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-一-3" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-一-3-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　这就如撒迦利亚四章二节的灯台。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-一-3-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-一-3-a" style="display: none;" onclick="toggleScripture('scripture-day5-一-3-a')">
+            
+            
+            <div class="verse-line">亚4:2	他问我说，你看见什么？我说，我看见一个灯台，全是金的，顶上有油碗；灯台上有七灯，顶上的七灯各有七个管子；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-一-3-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　在存在上，是一个灯台；在功用上，是七盏灯。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-一-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-一-4')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        4　约翰写启示录时，召会已经堕落：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-一-4" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-一-4-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　世代又是黑暗的。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-一-4-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　神在地上的行动和工作，需要神七倍加强的灵。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　在马太二十八章十九节，三一神的次序是父、子、圣灵；在启示录一章四至五节，次序更改了：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-二" style="display: none;" onclick="toggleScripture('scripture-day5-二')">
+            
+            
+            <div class="verse-line">太28:19	所以你们要去，使万民作我的门徒，将他们浸入父、子、圣灵的名里，</div>
+            
+            
+            
+            <div class="verse-line">启1:4	约翰写信给在亚西亚的七个召会：愿恩典与平安，从那今是昔是以后永是的，从祂宝座前的七灵，</div>
+            
+            
+            
+            <div class="verse-line">启1:5	并从那忠信的见证人、死人中的首生者、为地上君王元首的耶稣基督，归与你们。祂爱我们，用自己的血，把我们从我们的罪中释放了；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-二" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-二-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　神的七灵列在第二位，不在第三位。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-二-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　这启示神七倍的灵功用加强的重要。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-二-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　二章七节、十一节、十七节、二十九节，三章六节、十三节、二十二节，十四章十三节和二十二章十七节，一再强调那灵的说话，证实这点。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-二-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-二-3" style="display: none;" onclick="toggleScripture('scripture-day5-二-3')">
+            
+            
+            <div class="verse-line">启2:7	那灵向众召会所说的话，凡有耳的，就应当听。得胜的，我必将神乐园中生命树的果子赐给他吃。</div>
+            
+            
+            
+            <div class="verse-line">启2:11	那灵向众召会所说的话，凡有耳的，就应当听。得胜的，绝不会受第二次死的害。</div>
+            
+            
+            
+            <div class="verse-line">启2:17	那灵向众召会所说的话，凡有耳的，就应当听。得胜的，我必将那隐藏的吗哪赐给他，并赐他一块白石，上面写着新名，除了那领受的以外，没有人认识。</div>
+            
+            
+            
+            <div class="verse-line">启2:29	那灵向众召会所说的话，凡有耳的，就应当听。</div>
+            
+            
+            
+            <div class="verse-line">启3:6	那灵向众召会所说的话，凡有耳的，就应当听。</div>
+            
+            
+            
+            <div class="verse-line">启3:13	那灵向众召会所说的话，凡有耳的，就应当听。</div>
+            
+            
+            
+            <div class="verse-line">启3:22	那灵向众召会所说的话，凡有耳的，就应当听。</div>
+            
+            
+            
+            <div class="verse-line">启14:13	我听见从天上有声音说，你要写下，从今以后，在主里死了的人有福了。那灵说，是的，他们息了自己的劳苦，他们的工作也随着他们。</div>
+            
+            
+            
+            <div class="verse-line">启22:17	那灵和新妇说，来！听见的人也该说，来！口渴的人也当来；愿意的都可以白白取生命的水喝。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　其他书信开头只提父和子：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　恩典与平安从父和子归与受信者。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　在启示录一章四至五节，灵包括在其中；恩典与平安也从灵分赐给众召会。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-三-2" style="display: none;" onclick="toggleScripture('scripture-day5-三-2')">
+            
+            
+            <div class="verse-line">启1:4	约翰写信给在亚西亚的七个召会：愿恩典与平安，从那今是昔是以后永是的，从祂宝座前的七灵，</div>
+            
+            
+            
+            <div class="verse-line">启1:5	并从那忠信的见证人、死人中的首生者、为地上君王元首的耶稣基督，归与你们。祂爱我们，用自己的血，把我们从我们的罪中释放了；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-三-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　这表明为着神的行动，极需那灵，以对抗召会的堕落。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        四　七灵在众召会里作工，众召会必定会往前去。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        五　今天我们需要看见并经历七倍的灵、加强的灵、恢复的灵—4~5节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-五')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-五" style="display: none;" onclick="toggleScripture('scripture-day5-五')">
+            
+            
+            <div class="verse-line">启1:4	约翰写信给在亚西亚的七个召会：愿恩典与平安，从那今是昔是以后永是的，从祂宝座前的七灵，</div>
+            
+            
+            
+            <div class="verse-line">启1:5	并从那忠信的见证人、死人中的首生者、为地上君王元首的耶稣基督，归与你们。祂爱我们，用自己的血，把我们从我们的罪中释放了；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启一4~5	约翰写信给在亚西亚的七个召会：愿恩典与平安，从那今是昔是以后永是的，从祂宝座前的七灵，……归与你们。……四5	有闪电、声音、雷轰，从宝座中发出。又有七盏火灯在宝座前点着，这七灯就是神的七灵。</div>
+                
+                
+                
+                <p class="content-text">启示录里所说三一神的次序，和马太福音里的次序不同。在马太二十八章十九节，三一神的次序是：父、子、圣灵。但在启示录一章四至五节，次序更改了，神的七灵列在第二位，不在第三位。这启示神七倍的灵功用加强的重要。二章七节、十一节、十七节、二十九节，三章六节、十三节、二十二节，十四章十三节，二十二章十七节，一再强调那灵的说话，证实这点。新约书信的开头只提恩典与平安从父和子归与受信者。但在启示录，又加了圣灵，恩典与平安从父和子，也从灵分赐给众召会。这也表明为着神的行动，极需那灵，以对抗召会的堕落（启示录生命读经，四六页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">为什么启示录中，灵在神圣三一的次序中占第二位？因为到了启示录，时代……从子转到灵了。启示录是灵的时代，在这个时代，那灵加强了。</p>
+                
+                <p class="content-text">一章四节的灵，是神加强的灵，因此称为七灵。七灵无疑是神的灵，因为四至五节将其列在三一神中。……这里的七，不是说七个不同的灵，乃是指一个七倍的灵。</p>
+                
+                <p class="content-text">“七”是神时代行动中完整的数字，而“十二”是神永远行政中完整的数字。例如，神创造地的工作，是六天加上安息日。……为着神今日的行动，召会的数字也是七。启示录里的七印、七号、七碗，都是为着神时代的行动。所以，七倍的灵乃是神今日行动中加强的灵。</p>
+                
+                <p class="content-text">在本质和存在上，神的灵是一个；在神行动加强的功用和工作上，神的灵是七倍的。就如撒迦利亚四章二节的灯台，在存在上，是一个灯台；在功用上，是七盏灯。约翰写启示录时，召会已经堕落，世代又是黑暗的。所以，神在地上的行动和工作，需要神七倍加强的灵。我们知道有一种灯泡，可以调节三种光度。……同样，灯台上的七个灯盏，乃是七倍加强的光。在四福音里，神的灵是一度，因为那时不需要太亮。然而，召会堕落以后，世代也变得极其黑暗，因此需要七倍加强的圣灵。这样，神的一灵成了七倍的灵。在存在上，圣灵就像撒迦利亚书的灯台那样是一个；但在功用上，圣灵却是七。</p>
+                
+                <p class="content-text">神的七灵是羔羊的七眼（启五6，亚三9，四10）。眼睛是为着行动；如果我们瞎了，就难以行动。在神今日的行动中，基督为神的羔羊，有七个眼睛。羔羊的七眼是为着鉴察、观看并传输。……你怎么知道别人爱你？爱能借着眼睛传送。……当基督以祂的七眼看着我们的时候，起初可能会叫我们害怕，但到后来，这七眼要把基督的元素传输到我们里面（启示录生命读经，四七至四八页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day6-伍" data-level="1">
+    <div class="outline-item level-1">
+        
+        伍　“他们唱新歌，说，你配拿书卷，配揭开它的七印，因为你曾被杀，用自己的血从各支派、各方言、各民族、各邦国中，买了人来归与神”—五9：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　这里的歌是新的，因为他们所赞美的羔羊，是刚被杀的。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day6-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　在全宇宙中，除了那得胜的狮子，救赎的羔羊基督之外，没有一位配揭开神经纶的奥秘：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day6-二" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day6-二-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　祂是得胜的狮子，为神击败了撒但。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-二-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　祂是救赎的羔羊，为我们除去了罪。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-二-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　唯有基督够资格揭开并完成神经纶的奥秘。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-二-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　我们需要认识，基督配揭开神经纶之秘密的七印；主在这方面的配，是宇宙性的，是无法测量的。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-二-5" data-level="2">
+    <div class="outline-item level-3">
+        
+        5　基督配得我们的赞美，甚至配得着我们的一生。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启五9~10	他们唱新歌，说，你配拿书卷，配揭开它的七印，因为你曾被杀，用自己的血从各支派、各方言、各民族、各邦国中，买了人来归与神，又叫他们成为国度，作祭司，归与我们的神；他们要在地上执掌王权。</div>
+                
+                
+                
+                <p class="content-text">在启示录五章九至十节，我们看见长老们向着羔羊唱赞美的新歌。……这里的歌是新的，因为他们所赞美的羔羊，是刚被杀的。这新歌赞美羔羊是配，因为……在全宇宙中，除了那得胜的狮子，救赎的羔羊基督之外，没有一位配揭开神经纶的奥秘。祂是得胜的狮子，为神击败了撒但；又是救赎的羔羊，为我们除去了罪。唯有祂够资格揭开神经纶的奥秘，并且把它执行出来（启示录生命读经，二七七页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们的救主是羔羊也是狮子。这一位配展开那书卷；除祂以外，宇宙中再没有一位，配揭开神经纶的秘密和奥秘。只有狮子羔羊配，因为祂完成了救赎，并且胜过了撒但。祂已经将神的权柄带到地上，祂是犹大支派中得胜的狮子，又是为神所拣选的人成功了完全救赎的羔羊。因此，祂完全有资格和地位，揭开神经纶的奥秘。……大多数基督徒不认识祂配揭开神经纶之秘密的七印。主在这方面的配，是宇宙性的，是无法测量的。当然，基督配得我们的赞美，甚至配得着我们的一生。即使如此，我们还必须看见，根据启示录五章，基督的配是在于配揭开神经纶的秘密。宇宙本是一个奥秘，是科学家所无法解明的；</p>
+                
+                <p class="content-text">他们完全不知道宇宙的意义和目的，因为这对他们乃是一个秘密。但基督配揭开这秘密，因为祂配揭开神经纶的七印。</p>
+                
+                <p class="content-text">书卷是羊皮或别的材料作的，因为是卷起来的，所以很难断定究竟有多长。启示录五章里的书卷，有永远那么长，只有基督配展开这卷有永远那么长的书卷。……我们需要永世，才能把其中的一切看完。我们在新耶路撒冷的时候，还要把这书卷一直读下去。直到永远，我们都要说，“现在我多看到一些东西了。”……到永世的时候，我们会说，“主〔展开书卷所带给我们〕的惊奇是永远的，虽然我们如今在永世里了，仍然还看不到尽头。”</p>
+                
+                <p class="content-text">基督从神得了权柄，治理整个宇宙（1、6~7）。基督是诸天之上并地上万国的真正治理者。在马太二十八章十八节，主告诉门徒说，天上地上所有的权柄，都赐给祂了。在启示录五章，基督是神的羔羊，站在四活物和众长老之中。坐在宝座上的那一位，手握着用七印封严的书卷。神坐在宝座上握着这书卷，就是祂在整个宇宙中治理的时间表。这书卷如同“时间表”，列明从基督升天到新耶路撒冷所要发生的事。封闭这书卷的七印，事实上就是书卷的内容。这七印乃是宇宙的七个秘密，就是神经纶的奥秘。基督这位狮子羔羊够资格展开这书卷，就是揭开神经纶的奥秘，并将它完成。这指明基督是得着权柄治理整个宇宙的那一位。我们都必须敬拜基督是治理者，是那在诸天之上治理一切，为着完成神经纶的一位（新约总论第十四册，一六六至一六七页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const pagesContainer = document.querySelector('.pages-container');
+    if (!pagesContainer) return;
+    const totalPages = Number(pagesContainer.dataset.totalPages || 0);
+    if (totalPages === 0) return;
+
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach((page, index) => {
+            page.classList.toggle('is-active', index === pageIndex);
+        });
+        
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 仅在用户手动切换时滚动到顶部
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（优化版：支持速度判断和方向识别）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let touchStartTime = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+        touchStartTime = Date.now();
+    }, { passive: true });
+    
+    document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const diffX = touchStartX - touchEndX;
+        const diffY = Math.abs(touchStartY - touchEndY);
+        const diffTime = Date.now() - touchStartTime;
+        const velocity = Math.abs(diffX) / diffTime; // px/ms
+        
+        // 动态阈值：快速滑动大幅降低距离要求
+        const baseThreshold = 40; // 基础阈值降低到40px
+        const velocityThreshold = 0.25; // 降低速度阈值，让更多滑动被判定为"快速"
+        const swipeThreshold = velocity > velocityThreshold ? 25 : baseThreshold;
+        
+        // 适度放宽垂直容忍度
+        const maxVerticalMove = 40; // 垂直移动可以到40px
+        const horizontalRatio = 2.0; // 水平是垂直的2倍即可
+        
+        // 综合判断：距离 + 速度 + 方向
+        if (Math.abs(diffX) > swipeThreshold && 
+            diffY < maxVerticalMove && 
+            Math.abs(diffX) > diffY * horizontalRatio) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    // 初始加载时不滚动
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', function() {
+        initFromHash(false);
+    });
+    
+    // 初始化（不滚动）
+    initFromHash(true);
+})();
+
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page.is-active');
+            if (!activePage) return '';
+
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = getCleanText(item);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+<script src="js/outline.js"></script>
+
+<style>
+/* 纲目和内容样式 */
+.outline-section{margin:18px 0}
+.outline-section .scripture-content{cursor:pointer}
+.content-separator{height:1px;background:var(--border);margin:20px 0}
+.feeding-section,.reading-section{margin:20px 0}
+.feeding-section h4,.reading-section h4{font-size:1.05em;font-weight:600;color:var(--heading);margin:16px 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;text-align:center}
+.feeding-scripture{margin:10px 0;padding:10px 14px;background:var(--surface-alt);border-left:3px solid var(--brand);border-radius:6px;font-size:1.01em;color:var(--text);line-height:1.8;font-weight:550;text-align:justify;letter-spacing:0.1px}
+.prev-btn:active:not(:disabled),.next-btn:active:not(:disabled){background:var(--bg);color:#fff;border-color:rgba(102,126,234,.55)}
+.no-content{color:var(--text-muted);font-style:italic;text-align:center;padding:40px 20px}
+@media(min-width:768px){.feeding-section h4,.reading-section h4{font-size:1.08em}.feeding-scripture{font-size:1.05em;padding:12px 16px}}
+@media(max-width:768px){.day-navigation{gap:0}.page-controls{margin:20px 0 10px}.prev-btn,.next-btn{padding:8px 12px;font-size:14px}.btn-text{display:none}}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>202507 冬季训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第10篇 - 听抄</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第10篇 基督—国度的建立者，以及神的话—万王之王，万主之主</h2>
+</div>
+
+        
+        <div class="content">
+            
+<div class="message-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="10_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="10_h.htm" class="nav-link active" title="听抄">听抄</a>
+    
+    <a href="10_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="10_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    
+    <div class="scripture">读经：启二十1~6，十九11~16、19~21</div>
+    
+    
+    <div class="message-content">
+        
+        
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　基督建立神的国的过程
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">启示录二十章给我们看见，基督乃是国度的建立者（1~6），这实在是件重大的事。首先，我们众人，特别是青年人，需要认识什么是神的国。基督徒对于国度有各种不同的观念和观点；但照着圣经，简单地说，神的国就是一个从永远到永远的范围。在这范围中，神可以自由地施行祂的管治权，来管理并作王掌权。神的国从已过的永远，横跨到将来的永远，何其伟大。</p>
+                
+                <p class="content-text">创世记中神造人的图画，启示出祂的心意和愿望，是我们认识神的国的基准点。祂是按着祂的形像，照着祂的样式造人，并且赐给人管治权管理全地（一26）。这个管治权就含示了一个神可以施行权柄的范围，就是国度。有了这个管治权，神就能得着国度以成就三件事：第一，制伏、征服并击败仇敌；第二，恢复全地，因为地已被仇敌篡夺并败坏，祂需要借着国度来恢复地；第三，施行祂的权柄，让祂在其中得以掌权管治。神实在需要国度，祂需要借着这班按祂形像、照祂样式被造的人来得着国度。</p>
+                
+                <p class="content-text">遗憾的是，受造的亚当族类失败了，没有达到神的心意。因此神来呼召亚伯拉罕，作为蒙召族类之父；神应许要使他成为大国─不仅仅是一个大家庭，更是一个大的国度（十二2）。借着亚伯拉罕和他的后裔，神在地上得着了一个国度和一班属祂的子民，就是以色列人和以色列国。可以说，旧约中神的国就在于以色列国。</p>
+                
+                <p class="content-text">然而，以色列国也没有让神完全自由地在他们中间掌权。因此四千年后，神亲自来成为人，就是耶稣基督。主耶稣乃是国度的实际，在祂身上，神的旨意得以畅行无阻；神对地的管治权和权柄得以借着这人来代表并完全彰显出来。不仅如此，主耶稣来成了国度的撒种者，将国度的种子撒到所有神所拣选的人里面（太十三1~23）。从那时候开始，国度不再仅仅是外在客观的国；反之，神的国已经种到了人的心里，成为主观的、生命的，以种子的形式正在所有信徒里面生长。</p>
+                
+                <p class="content-text">所有新约信徒的集体就是召会。保罗在罗马十四章给我们看见，今天召会就是实行的神的国（17）。因着旧约的以色列人向神不忠信，没有让神在他们中间自由、绝对地掌权，所以主耶稣说，神的国必从他们夺去，赐给那能结果子的百姓，就是召会（太二一43）。现今，神的国就在这里，神的国并没有被虚悬起来；神的国就在我们中间。</p>
+                
+                <p class="content-text">主耶稣作为国度的撒种者而来，祂撒了国度的种子，并要使每个信徒里面国度的种子都得着生长。当国度正在我们里面生长时，基督已经升到父那里，先得着了国度。祂在等待一个正确的时候─世代的终结，使国度显现出来。那时祂要将国度带到地上，地上所有消极事物都将被对付，全数被解决。祂盼望神的国在所有的信徒里面长大并实际地显现出来，好使祂能够在地上建立千年国。那时，不仅基督要作王，所有得胜的圣徒也要与祂一同作王。这就是基督建立神的国的过程。</p>
+                
+                <p class="content-text">简单地说，国度从已过的永远跨越到将来的永远：旧约的时候，是在以色列人、以色列国当中；新约的时候，则是在召会当中；在这世代末了，当主回来时，祂要建立千年国，将我们领进新天新地，至终新耶路撒冷要成为神永远的国。愿这简短的交通，带我们认识神国建立的过程。我鼓励你们花时间研读“国度”这本书。现今我们是在启示录的时代，国度这事对于神的经纶极其关键且重要。没有国度，神就无法成就祂的心意。神需要国度，祂需要一个范围、一班子民与祂是一，让祂在其中得以自由地作王掌权，让祂畅所欲为。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　基督乃是国度的建立者
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　基督与祂所有的仇敌争战之后，要在地上建立神的国；
+全地必须得着清理，以备神的国来临
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">基督乃是国度的建立者（启二十1~6）。基督与祂所有的仇敌争战之后，要在地上建立神的国，就是千年国，并与祂得胜的信徒一同作王一千年（2）。全地必须得着清理，以备神的国来临。建立神的国不是简单的事，需要一个过程，使所有消极的事物都得着清理，以预备神的国来临。启示录十九章说到，在哈米吉顿将有争战发生，敌基督和假申言者的众军要与基督和祂的军兵争战（11~21），祂的名称为神的话（13），祂是“万王之王，万主之主”（16）。敌基督和假申言者都要被擒拿，活活地被扔在火湖里（20）。但届时，撒但没有被扔进火湖，他要被捉住，扔在无底坑里，关起来，封上印，被锁链捆绑一千年（二十1~3）。在此我们看见，为着建立神的国，得胜的基督要清理全地，以备神的国来临。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　只有一样还留着，就是撒但，他是一切难处的源头
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">只有一样还留着，就是撒但，他是一切难处的源头。撒但在全时间控告我们，他也许控告我们不配参加聚会，因为我们刚刚发了脾气，或是作了什么消极的事情。他无时无刻不控告我们。当撒但控告我们时，我们要告诉他：“撒但你说谎，下火湖去吧！”撒但需要受对付，他是最后一样还留着的。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　启示录二十章是关于千年国，
+这章首先提到撒但被捆绑
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">启示录二十章是关于千年国，这章首先提到撒但被捆绑。启示录二十章一至三节说，“我又看见一位天使从天降下，手里拿着无底坑的钥匙，和一条大锁链。他捉住那龙，就是古蛇，也就是魔鬼，撒但，把他捆绑一千年，扔在无底坑里，关起来，封上印，使他不得再迷惑列国，等那一千年完了；以后必须暂时释放他。”魔鬼最终的结局在这时还没有到，等一千年完了，他要暂时得释放，那时撒但要出来最后一次迷惑地上四方的列国（他们未蒙重生），挑起他们里面背叛的天性，使他们背叛神。四方的列国，就是歌革和玛各，要带进最后一次难处。那时就有火从天降下，烧灭他们。那迷惑他们的魔鬼，则要被扔在硫磺火湖里，直到永永远远（7~10）。神经过一千年后，再次使用撒但，清理在复兴的列国中有背叛天性的人。在地完全得着清理后，撒但与属撒但的就要完全被除去。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　虽然主在十字架上已经审判了撒但，
+但那审判还没有完全执行
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">虽然主在十字架上已经审判了撒但，但那审判还没有完全执行。从人第一次堕落起，至今约六千年，神正在对付撒但的过程中。在创世记三章的伊甸园中，蛇迷惑人，使人堕落，神就咒诅蛇并预言说，“你既作了这事，就必受咒诅，……我又要叫你和女人彼此为仇，你的后裔和女人的后裔也彼此为仇；女人的后裔要伤你的头，你要伤他的脚跟。”（14~15）</p>
+                
+                <p class="content-text">四千年后，基督作为人而来，祂是王来施行神的权柄─赶鬼、医病、洁净麻风。在约翰十二章三十一节，主说，“现在这世界受审判，这世界的王要被赶出去。”这世界的王就是指撒但，主宣告撒但要被赶出去。</p>
+                
+                <p class="content-text">当主在十字架上被钉死时，祂是作为铜蛇被举起；祂有蛇形而无蛇毒（参三14与注1）。当祂被挂在十字架上，不仅是为你我的罪死在那里，也是为要了结那蛇撒但。希伯来二章十四节说，“祂也照样亲自有分于血肉之体，为要借着死，废除那掌死权的，就是魔鬼。”基督在十字架上，摧毁、击败并废除了掌死权的魔鬼。然而，基督在那里所作的不过是宣判，距离行刑，还需要二千年的时间。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　主再来时，才要完全执行祂对撒但的审判；
+撒但要被捆绑，扔在无底坑里；
+到时候，全地要成为基督的国
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">主再来时，才要完全执行祂在十字架上所成就那对撒但的审判。撒但要被捆绑，扔在无底坑里，他就不能再有行动，苦害什么人；到时候，全地要成为基督的国。当基督再来时，祂要在地上建立祂的国，并在哈米吉顿击败所有仇敌。撒但要被捆绑，扔在无底坑里。再过一千年，经过最后的争战，至终撒但要被扔在硫磺火湖里，直到永永远远。阿利路亚！撒但再也不能控告、搅扰我们。那是神对撒但最后的对付。</p>
+                
+                <p class="content-text">我们需要认识，撒但的定命就是火湖。当他来搅扰我们，我们要告诉他：“撒但，你命定要下火湖去！”不要让撒但有机会迷惑、欺骗我们，不要听他的谎言。我们要向他宣告我们自己所见证的话（启十二11），给他看见他的结局是在火湖里。起头，在创世记三章，神宣告并预言：女人的后裔要伤蛇的头。然后，基督作为女人的后裔在十字架上审判了撒但。而最后的执行是在千年国后，基督要将撒但扔在火湖里；届时，全地要成为基督的国。这是神对付撒但的整个过程。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　照着圣经的预言，千年国有两部分：
+上端属天的部分和下端属地的部分
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">照着圣经的预言，千年国有两部分：上端属天的部分和下端属地的部分。千年国上端的部分称为父的国（太十三43），下端的部分称为人子的国（41）。弥赛亚国是千年国下端部分的另一名称。千年国上端的部分，乃是父的国，属于所有得胜的信徒，得胜的信徒要去到那里，有分于千年国属天的部分；下端的部分，称为人子的国，就是所谓的弥赛亚国，也称为大卫的帐幕，得复兴的以色列国（赛十六5，徒十五16），这属于得救的犹太人，他们要作祭司，教导外邦人（万民）认识神的道路和神的身位，也要教导万民敬拜事奉神（参亚八20注1）。</p>
+                
+                <p class="content-text">在今世末了，基督回到地上时，地上的居民都要在祂荣耀的宝座前受审判。在大灾难中看顾主那些有需要的百姓者，乃是被称义的绵羊，他们要被迁入千年国作属地部分的列国（参启十一18注4，二一24注1）。得救的以色列遗民是祭司，教导他们。而我们盼望成为得胜的信徒，在千年国上端的部分，就是在父的国里，与主一同作王。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　启示录二十章四至六节启示，
+基督是国度的建立者，要与得胜的圣徒一同作王
+            </div>
+            
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　主要作王一千年，得胜者也要与基督一同作王一千年；
+启示录二十章四节说，“我又看见几个宝座和坐在上面的，
+有审判的权柄赐给他们”
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">启示录二十章四至六节启示，基督是国度的建立者，要与得胜的圣徒一同作王。因着得胜者带进耶稣基督的国，主要作王一千年，得胜者也要与基督一同作王一千年。基督不会单独作王，所有得胜者要与祂一同作王。启示录二十章四节说，“我又看见几个宝座和坐在上面的，有审判的权柄赐给他们。”“他们”指得胜者。这时，他们已坐在宝座上，有审判的权柄赐给他们。得着审判的权柄，意即得着国度（参但七10、18、22）。启示录二十章四节指明，得胜者那时已经得着国度，并且正在享受国度。</p>
+                
+                <p class="content-text">神的眼目正注视国度，我们也该如此。我们不该只看外在的环境，或只注意眼前的召会生活，我们的眼目需要注视国度。路加十二章三十二节说，“你们这小群，不要惧怕，因为你们的父乐意把国赐给你们。”父乐意把国度赐给我们，国度是我们的分，国度属于我们。得胜的信徒要与基督一同作王，这实在是宝贝，也非常重要。我们需要看见神的心意，不仅仅是要基督作王，更是要所有的信徒与祂一同作王。</p>
+                
+                <p class="content-text">从创世记一章我们看见，神创造人就是要人能作王掌权；这一面是说到基督的管治权，但同时也说出神渴望人与基督一同施行这管治权。当我们信入主时，就与祂有生机的联结。以弗所二章说，“〔神〕便叫我们一同与基督活过来，……祂又叫我们在基督耶稣里一同复活，一同坐在诸天界里。”（5~6）当基督升天坐在宝座上，我们也与祂一同坐在宝座上。基督要来建立国度，我们也要与祂一同作王管理。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　神完全的救恩是要使我们与基督一同作王
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">神的救恩不仅是把我们从沉沦灭亡中救出来，拯救我们脱离罪和各种难处；神完满救恩的目标，就是要把我们带到宝座上，能够与基督一同作王管理。罗马五章说到，“那些受洋溢之恩，并洋溢之义恩赐的，就更要借着耶稣基督一人，在生命中作王了。……恩典也照样借着义作王。”（17、21）我们不该满意于低浅的救恩，使我们从罪、世界、灭亡中得救；神乃是要把我们救到宝座上，我们是国度的子民，神要我们与基督一同作王。</p>
+                
+                <p class="content-text">作王并非高高在上，用权柄命令人作事。一九九七年的华语特会是李弟兄最后一次公开尽职，他讲到“经历神生机的救恩等于在基督的生命中作王”，指出在基督的生命中作王，乃是经历并活出罗马六至十六章所有生命经历丰富的要点。从圣别一直到众召会之间的关切，这每一方面，都是在生命里与基督一同作王的描绘。这生命使信徒彼此接纳，彼此相爱，彼此赦免，这给我们看见，在生命中作王，不是我们天然观念中去管辖人，命令人；正好相反，乃是将自己服在基督的生命之下，个别又团体的活出并彰显这生命一切的美德和丰富，这才是与基督一同作王。与基督一同作王，是我们拔尖的分和最高的赏赐。所有的得胜者，都要被带到这种水平，在千年国与基督一同作王。至终，所有的信徒都要在永远的国度中，作神的祭司和君王。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　得胜者因着有耶稣的人性作到他们里面，
+而够资格与基督一同作王
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">得胜者因着有耶稣的人性作到他们里面，而够资格与基督一同作王（启二26）。要达到与基督一同作王的地步，不是一蹴可几的。相反的，这需要一段长大、成熟的预备过程。比如一个六岁的小男孩，虽然他是王室的储君，有一天要继承王位，但这时他还需要长大，需要学习许多事，学习如何作人，如何有庄重的表显。</p>
+                
+                <p class="content-text">神对我们每一个人的目标，就是要把我们带到宝座上。我们里面有作王的生命。我们的定命就是要与基督一同作王掌权。撒但的定命是在火湖里受痛苦直到永远；我们的定命是要与基督一同作王。我们该有这种渴望：“主啊。我要与你一同作王。我将自己献上，受你的训练和成全，来活出这王的生命，使我够资格与基督一同作王。”</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　在生命里长大成熟，好与基督一同作王
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">我们要预备自己，好与基督一同作王，有三件事需要注意。第一，我们需要在生命里长大成熟。若是我们长不大，如何能与基督一同作王？如果我们只是一个六岁的孩子，就算被指定登上王位，但是当有事情要我们处理和决断时，我们可能一筹莫展，只想去户外玩耍。所以，你我的生命需要足够长大，甚至成熟，好能与基督一同作王。</p>
+                
+                <p class="content-text">正如上篇信息说到的，得胜者是初熟的果子，他们是预备好、是成熟的。我们不该觉得失望，以为自己绝对不会是初熟的果子。不，我们里面有王的生命，我们已经与这位王联结成为一灵了（林前六17）。若是我们向祂敞开，与祂合作，如同第二篇信息所说的，时间绝不会太早，也不会太晚，因为是神预定我们要成为王，是祂命定我们要在宝座上。不要轻看自己，作王是我们的定命！今天我们需要长大以至于成熟。我们可能都在生命经历的不同阶段。《生命的经历》这本书，讲到灵命经历的第四层，其中一项就是掌权，也就是在生命中作王。掌权就是达到第四层的经历。所以，我们在这些日子特别要向主祷告：“主啊，加强我到里面的人里，安家在我的心里。在我里面深深地扎根，使我从肤浅的情形和光景中蒙拯救。”我们要追求祂，让祂更深地在我们里面扎根，好除去里面一切的打岔、障碍、假冒为善等，使主的生命能在我们里面不受拦阻地长大，以致成熟。</p>
+                
+                <p class="content-text">我很爱全时间训练的学员，我与他们交通时，常感觉他们非常可爱。他们非常年轻，很有活力，能作许多事。他们学习真理，也讲得很好。但不知他们能否再给主十年时间，好叫他们在主里长大？有些学员就要毕业了，我不知道他们离开训练中心后，主会怎么带领他们。但无论主带领他们全时间服事，或继续升学，或在职工作，都无关紧要。对主来说，差别不大。我们需要领会，无论主量给我们什么，都是为要我们得着祂，要我们生命长大并成熟。千万不要觉得，唯有全时间服事才有最好的机会得以在生命里长大；不一定是这样。有些在职的弟兄姊妹，在老板的压榨之下，承受许多的要求和压力，那样的环境却成为他们生命长大的好机会。</p>
+                
+                <p class="content-text">我认识一些训练学员已经结训十年、二十年了。我看见他们有一些成熟，他们在召会中担负责任，属灵的分量也不同了。即将结训的学员，你们现在虽有一点点属灵的分量，但十年后会有更多的分量，这就是生命成熟的过程。请相信这不是轻率的话。</p>
+                
+                <p class="content-text">有很多青年人参加这次的半年度训练：接近百分之二十的弟兄姊妹，是二十五岁以下的。他们大有潜力可以学习、长大，但他们必须给主机会，这需要时间。一面说，我们知道主就要来了，主的来临已近。但另一面我们也相信，我们还有时间可以长大。我们要抓住机会与祂合作，寻求学习生命长大的各样功课。十年后，甚至只要五年后，你们里面属灵的分量就不一样。甚至我们也能见证，有些训练学员参加过第三年的延伸训练后，就有更多的分量了。仅仅一年，就不一样了。所以我们要预备好与基督一同作王，就需要长大成熟。这件事没有捷径。我们必须在神所量给的各种环境中与祂合作。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　与基督一同坐在诸天界里，好与基督一同作王
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">第二，我们必须学习与基督同有一个地位。前一篇信息提到歌罗西三章，讲到要寻求并思念在上面的事（1~2）。我们的地位该是与基督一同坐在诸天界里。那是我们的地位，意思是我们该在基督所在的地方。我们还年轻、不成熟时，可能在特会或训练里觉得很兴奋，就一直喊阿利路亚，赞美神。但一周后，因着一些情形，我们里面有了不同的感觉，开始觉得很沮丧、忧郁。接下来两周人就消失不见了。我们见过一些很操练、很殷勤、很火热的弟兄，过了一段时间，突然消失了。这到底是怎么一回事？乃因他们离开了与基督同在的地位。</p>
+                
+                <p class="content-text">基督在宝座上。一切顺利时，祂在宝座上；问题接踵而至时，祂仍然在宝座上，祂的地位没有改变。在召会中，我们需要这样坚定地与基督同坐，同在一个地位上，不该靠感觉、情感而活，也不该受环境左右，乃该与基督同有一个地位。特别当我们面临困难和艰辛时，就很容易想要放弃，想要妥协。这时，我们要与基督一同留在同一个地位上。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level3">
+                　有拔高、平衡的人性，好与基督一同作王
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">第三，我们要与基督一同作王，需要有拔高、平衡的人性。得胜者因着有耶稣的人性作到他们里面，而够资格与基督一同作王。我们需要有耶稣拔高、平衡的人性。请记得，那在宝座上的一位有人的样子（结一26）。那位作王掌权的乃是一个人，因此我们若要与基督一同作王掌权，就必须有耶稣的人性。我们需要顾到作人的每一方面，不是按照属世的标准和观念作一个有道德的人，而是作一个属天、复活的人，满有基督复活的人性。</p>
+                
+                <p class="content-text">今天这黑暗的世代，满了不道德、不法、不公不义的事。但我们这些“将来的王”，里面有王的生命，该按着耶稣的人性生活并行事为人。林前六章九至十一节，加拉太五章十九至二十一节，和以弗所五章五节，这三段经文列出许多消极的事，包括许多肮脏、粗鄙的罪，以及不道德的事。圣经明文说到，行这些事的人不能有分并承受神的国。但是，像争竞、忌恨、恼怒、分立、嫉妒、醉酒、荒宴这些事，也许我们不觉得是严重的罪，但圣经仍然说，行这些事的人（指习惯性的犯罪），是活在另一范围里，不能承受神的国，遑论在神的国中作王了。上面所提及许多的情形，都与我们的人性密切相关。</p>
+                
+                <p class="content-text">李弟兄在《基督是实际》一书中，说到耶稣的人性是由素祭所预表，是那样的均匀、柔细。在今天这个时代，主迫切需要一种拔高、刚强的人性，正如皂荚木所表征基督那品质坚刚、标准崇高的人性，如同竖板站立在地上作神的见证。在地上败坏的人中间，神要得着一班人有分于基督拔高的人性好成为祂的国度。李弟兄还在世时，常提醒我们要注意穿着和仪态。在一次训练聚会里，他对受训者说，我们的坐姿不要侵占到别人的空间。他也常提醒我们生活上的小细节，诸如该如何穿着、如何应对进退等。我们也要常面带微笑，有时我们的面容会让人避之唯恐不及，当然我们不是天使，但也不是老虎，我们乃是人。我们要与基督一同作王，就需要在日常行事为人上有拔高、平衡的人性，这是极其重要的。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　在千年国里与基督一同作王的得胜者，
+要享受上好的复活
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">在千年国里与基督一同作王的得胜者，要享受上好的复活。启示录二十章六节说到“头一次复活”。这节说，“在头一次复活有分的有福了，圣别了，第二次的死在他们身上没有权柄；他们还要作神和基督的祭司，并要与基督一同作王一千年。”头一次复活也是“杰出的复活”，也就是使徒保罗所追求特殊的复活（腓三11）。在腓立比三章十一节，保罗说，“或者我可以达到那从死人中杰出的复活。”我们要知道，所有的死人都要复活，不仅信徒要复活，不信者也要复活。不信者复活，是要在千年国后的白色大宝座前受审判，那是死亡的复活，因为他们要被扔在火湖里（启二十11~15）；而在末次号筒响的时候（林前十五52），所有在基督里死了的信徒都要复活，这是生命的复活。但在信徒中间有些人是得胜者，他们要有分于保罗所说那杰出的复活。这就好比学生毕业时，人人都得通过考试，但有人只是勉强通过，有人却得着优异的成绩，甚至被表扬。外面看来，大家都毕业了，但有些人的毕业是被表扬、带着荣耀的。我们不该只满意于复活以得到生命，更要追求有分于头一次的复活作为赏赐。第二次的死在得胜者身上没有权柄，他们还要与基督一同作王一千年；这正是那杰出的复活。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　“在头一次复活有分的有福了，圣别了”；
+这必是最高的福分─
+承受在地上显出的国度，甚至在其中为王
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">启示录二十章六节上半说，“在头一次复活有分的有福了，圣别了；”这必是最高的福分─承受在地上显出的国度，甚至在其中为王。盼望这成为我们的渴望。愿我们向主祷告：“主啊，怜悯我们，给我们这特别一分的恩典来与你合作，使我们不仅仅得救，而是能达到那杰出、上好的复活，甚至在千年国里与你一同作王。”</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　“他们还要作神和基督的祭司，
+并要与基督一同作王一千年”
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">“他们还要作神和基督的祭司，并要与基督一同作王一千年”（6下）；在千年国里，得胜者要作祭司接触神，又要与基督一同作王辖管列国（二26~27，十二5）。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　基督被启示为神的话─万王之王，万主之主
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">在启示录十九章十一至十六节和十九至二十一节里，基督被启示为神的话─万王之王，万主之主。这段经文描绘将来在哈米吉顿的战争。</p>
+                
+            </div>
+            
+            
+            
+            <div class="subsections">
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　在婚筵之后，基督要带着祂的新妇，
+就是得胜的信徒，与敌基督争战
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">在婚筵之后（7），基督要以作战将军的身分，带着祂的新妇，就是得胜的信徒，作祂的军队，前来与敌基督争战；人竟敢兴起战争，直接对抗这位万主之主，万王之王。得胜的信徒是基督的新妇，也是祂的军队。新妇的礼服就是她的战袍，新妇军队要与基督一同争战。敌基督、假申言者以及十王和他们的军队，要与羔羊争战。这乃是地对抗天，人反对神的争战。基督的仇敌要变得更邪恶，甚至对祂宣战。实在令人惊奇，人竟敢向神宣战。真是令人难以置信，人竟然背叛到这个地步，公然地挑战神，向神宣战。新郎基督要同着祂的新妇而来，与他们争战。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　“看哪，有一匹白马，骑在马上的，
+称为忠信真实，祂审判、争战都凭着公义”
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">“看哪，有一匹白马，骑在马上的，称为忠信真实，祂审判、争战都凭着公义。”（11）“忠信真实”是基督的名称。基督对神并对那些相信祂的人都是忠信的。祂凭这忠信击败并毁灭了那些反对神并逼迫信徒的人。祂在完成神的经纶，并照顾相信祂者的事上也是真实的。这里的真实，是实际的意思，在原文是 alethinos，阿利提诺，指向那位真实的（约壹五20）。基督是那位忠信的，那真实的。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　基督是神忠信真实的见证人，骑在白马上，
+审判、争战都凭着公义
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">基督是神忠信真实的见证人，骑在白马上，审判、争战都凭着公义。在启示录六章二节，那骑在白马上的，乃是指福音，宣扬基督得胜的福音。到了十九章十一节，我们看见基督这忠信真实的见证人骑在白马上，祂审判、争战都凭着公义。基督将会回来与撒但不义的势力争战，这势力今天是不法的奥秘运行在世界里，这势力也将产生敌基督，就是不法的人（帖后二3、7~8）。全世界都在撒但不义的势力之下。基督将回来，凭着公义与敌基督和他所有同伙所实行的不义争战。基督不仅凭着公义审判，也凭着公义争战；祂借着争战而审判。</p>
+                
+                <p class="content-text">公义和公平是神宝座的根基（诗八九14，九七2），基督乃是凭着公义争战。今天，这世界满了不公、不义、不法、背叛。我们期待基督骑在白马上，凭着公义审判。公义就是按着神义的手续，对神、对人都是对的。现今在这世界上充满了不法，各人按自己眼中看为正的而行。我们切切期待那位公义的王和管治者回来，祂要凭公义审判，也凭公义争战。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　“祂的名称为神的话”
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">“祂的名称为神的话”（启十九13下）。神的话就是祂的名字。约翰一章一节说，“太初有话，话与神同在，话就是神。”这话带给我们生命（4），恩典和实际（14），也为我们成功救赎（29）。到这世代的末了，进行终极争战时，骑在白马上的基督称为神的话（启十九13）。祂作为话，不仅赐生命、恩典和实际，并且有利剑从祂口中出来，用以击杀仇敌（15）。</p>
+                
+                <p class="content-text">我们需要神的话作生命、恩典和享受，也需要神的话来争战。在属灵争战中，我们需要神的话。借着一次又一次的特会和训练，神释放祂的话。如果没有祂的话，我们就缺少供应，没有方向，也无法与仇敌争战。在这黑暗、混乱、不法的时代，神的话需要得胜、胜利的传遍四处。很遗憾，有些基督徒团体不在乎神的话，只在意福利、平安，对神话的渴慕在他们中间逐渐衰微，他们甚至脱离了神的话。但在主的恢复里，我们所得最大的祝福就是神的话不仅供应、照亮我们，也为着这终极的争战来装备并预备我们。</p>
+                
+                <p class="content-text">这指明主自己就是神的话。主的名称为神的话，意思是祂是神的彰显、见证和说话。神的话乃是神的解释、说明和彰显。我们要认识神，就需要研读、研究、观看、默想并注视基督这神的话。训练的信息不是只为叫我们得着一些资讯或灵感；我们乃要花时间研读、消化并吸收这些话，使我们满有神的话来与仇敌争战。我们必须认识神的话，装备神的话并被神的话充满，才能充分的讲说神的话。</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+                
+        
+        <div class="section">
+            <div class="section-level2">
+                　基督作为神的话，执行神的审判
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">在启示录十九章，基督作为神的话，为神说话，在背叛的人身上执行神的审判。甚至在主争战的时候，祂还是为神说话并彰显神。神不是混乱的神；祂是公义并主宰一切的；祂也是一位有次序的神，因此，祂无法容忍紊乱和背叛。基督与仇敌争战时，要说出神是主宰一切、公义且有次序的。祂要宣告神是管治每一个人的神，祂不会容忍背叛祂权柄的事。我们要讲说神的话，并宣告神的话，这对不信者是福音，对信徒乃是真理。实行神命定之路就是要把召会作到家里，并且将真理作到圣徒里。我们要在各种场合，抓住机会操练讲说神的话。</p>
+                
+                <p class="content-text">这战士乃是话；祂的争战就是说出神的话。主在哈米吉顿的争战将是一个强有力的说话。这说话要告诉撒但、敌基督、假申言者和全宇宙，神是主宰一切的，没有人可以背叛祂。这位有次序的神要清除一切的背叛。在这无知、黑暗的世代，需要神的子民讲说神的话。青年人想要学习神的话，最佳途径就是花两年参加全时间训练，借此受装备，被神的话构成，好能讲说神的话。如果我们都讲说神的话，全地就会改观，我们的国家社会也将大不相同。当我们满了神的话，并且无论在何处，或在校园、或在职场、或在社区里，都去讲说神的话，那将是何等荣耀的光景！</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+                
+            </div>
+            
+        </div>
+        
+        
+        
+        
+        <div class="section">
+            <div class="section-level1">
+                　基督要在国度里作王，
+同着祂得胜的信徒治理列国
+            </div>
+            
+            
+            <div class="section-content">
+                
+                <p class="content-text">基督据有全地以后，要在国度里作王管理全地，同着祂得胜的信徒治理列国（二十4、6，二26~27）。祂是要来的王，将成为千年国时神要来之国度里的元首和中心。这将是以赛亚三十二章一节，耶利米二十三章五节，和撒迦利亚十四章九节、十七节的应验。以赛亚三十二章一节说，“看哪，必有一王凭公义作王，必有首领按公平掌权。”耶利米二十三章五节说，“耶和华说，日子将到，我要给大卫兴起一个公义的苗；祂必作王掌权，行事精明，在地上施行公理和公义。”撒迦利亚十四章九节说，“耶和华必作全地的王；那日，耶和华必为独一的神，祂的名也是独一的名。”耶和华要作王！</p>
+                
+                <p class="content-text">基督救赎了地和其上所有的人（西一20）作祂国的范围和组成成分，祂变卖了一切买了国度（太十三44），祂拯救了地同其上所有的人脱离撒但的霸占（启二十2~3）。祂将有完全的权利，作得恢复之地和得恢复之列国的王。诗篇九十七篇一节说，“耶和华作王！愿地欢腾，愿众海岛喜乐。”让我们欢喜快乐，因为祂作王了。祂完全作王的日子就要来到，我们要与祂一同作王。阿利路亚！</p>
+                
+                <p class="content-text">在祂要来的掌权里，神的权柄和荣耀要完全得显明（太六13），全地连同其上的人也要被带进公义、平安、喜乐以及神创造完满的福分里（赛三二1、16~18，三五1~2、5~7）。阿利路亚！耶和华掌权、作王。祂的国度要来到，全地都是祂的。祂要作为神的话而来，祂是万王之王，万主之主。祂要施行审判，恢复次序，在地上以公义建立祂的国。我们要凭着祂的怜悯，与祂一同作王。这是我们的盼望、我们的期待。我们要祷告：“主啊，把我带到宝座上。愿我与你合作，预备好，装备好，将来与你一同作王。”（J. L.）</p>
+                
+            </div>
+            
+            
+            
+        </div>
+        
+        
+        
+    </div>
+</div>
+
+<style>
+.message-page {
+    padding: 5px;
+}
+
+.message-content {
+    margin-top: 15px;
+    line-height: 1.8;
+    font-size: 1em; /* 明确设置为 18px，确保与 body 一致 */
+    text-align: justify;
+}
+
+/* 章节结构样式 - 使用 base.html 统一样式 */
+.section {
+    margin-bottom: 18px;
+}
+
+/* 标题不需要悬挂缩进 */
+.message-page [class^="section-level"] {
+    text-indent: 0;
+    padding-left: 0;
+}
+
+.section-content {
+    margin: 12px 0 16px 0;
+    
+}
+
+.subsections {
+    margin-left: 0;
+}
+
+/* 使用 base.html 的统一 .content-text 样式 */
+
+.no-content {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 24px 16px;
+    font-size: 0.9375em;
+}
+
+@media (min-width: 768px) {
+    .message-page {
+        padding: 20px 0;
+    }
+    
+    .message-content {
+        margin-top: 30px;
+    }
+    
+    .section {
+        margin-bottom: 30px;
+       
+    }
+}
+
+/* 移动端样式继承 base.html */
+</style>
+
+<script>
+// 等待 CXSpeech 加载完成后初始化
+function initSpeech() {
+    // 检查控制元素
+    var controlBar = document.getElementById('bottomControlBar');
+    var playBtn = document.getElementById('playPauseBtn');
+    
+    if (!controlBar || !playBtn) {
+        return; // 元素不存在，不初始化
+    }
+    
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            // 方案1: 获取所有 section 标题和内容
+            const sections = document.querySelectorAll('.section');
+            
+            sections.forEach(section => {
+                // 读取 section 标题（支持所有级别）
+                const levelElem = section.querySelector('[class^="section-level"]');
+                if (levelElem) {
+                    const t = levelElem.textContent.trim();
+                    if (t) text += t + '。';
+                }
+                // 读取 section 内容
+                const sectionContent = section.querySelector('.section-content');
+                if (sectionContent) {
+                    const paragraphs = sectionContent.querySelectorAll('.content-text');
+                    paragraphs.forEach(p => {
+                        const t = p.textContent.trim();
+                        if (t) text += t + '。';
+                    });
+                }
+            });
+
+            // 方案2: 如果没有 section 结构，直接读取所有 content-text
+            if (sections.length === 0) {
+                const paragraphs = document.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+            
+            // 方案3: 如果还是没有内容，读取整个 message-content
+            if (!text || text.length < 10) {
+                const messageContent = document.querySelector('.message-content');
+                if (messageContent) {
+                    text = messageContent.textContent.trim();
+                }
+            }
+            
+            // 清理文本：移除多余的空白字符和特殊字符
+            text = text
+                .replace(/\s+/g, ' ')           // 多个空白字符替换为单个空格
+                .replace(/[\r\n\t]/g, '')       // 移除换行和制表符
+                .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '') // 只保留中英文、数字和常用标点
+                .trim();
+            
+            // 如果文本为空，在页面上显示提示
+            if (!text || text.length < 10) {
+                var timeElem = document.getElementById('speechTime');
+                if (timeElem) {
+                    timeElem.textContent = '无内容';
+                    timeElem.style.color = '#999';
+                    setTimeout(function() {
+                        timeElem.textContent = '00:00 / 00:00';
+                        timeElem.style.color = '';
+                    }, 3000);
+                }
+            }
+
+            return text;
+        }
+    });
+}
+
+// 检查并初始化 CXSpeech
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        // 等待 CXSpeech 加载，最多等待 5 秒
+        var attempts = 0;
+        var maxAttempts = 50;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                // 5秒后仍未加载，可能是脚本加载失败
+                console.log('[朗读] CXSpeech 加载超时');
+            }
+        }, 100);
+    }
+}
+
+// DOM 加载完成后检查并初始化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>202507 冬季训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

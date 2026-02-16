@@ -1,0 +1,2032 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第8篇 - 晨兴</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+<style>
+.morning-revival-page{padding:5px;max-width:820px;margin:0 auto}
+.day-navigation{display:flex;flex-wrap:nowrap;gap:0;margin:15px 0;padding:8px;background:var(--surface-alt);border-radius:8px;justify-content:space-between;font-size:0.85em;box-sizing:border-box;overflow:hidden}
+.day-link{height:40px;padding:0 10px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:0;color:var(--btn-secondary-text);font-size:0.88em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box}
+.day-link + .day-link{border-left:1px solid var(--border)}
+.day-link:first-child{border-top-left-radius:6px;border-bottom-left-radius:6px}
+.day-link:last-child{border-top-right-radius:6px;border-bottom-right-radius:6px}
+.day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:rgba(102,126,234,.5)}
+.day-link.active{font-weight:700}
+.pages-container{position:relative;min-height:400px;touch-action:pan-y}
+.day-page{background:var(--surface);padding:0;display:none}
+.day-page.is-active{display:block}
+.page-controls{display:flex;justify-content:space-between;align-items:center;margin:20px 0 15px;padding:10px;background:var(--surface-alt);border-radius:12px;border:1px solid var(--border)}
+.prev-btn,.next-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:12px 16px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:5px;color:var(--btn-secondary-text);font-size:0.9375em;cursor:pointer;font-weight:600;transition:background .2s}
+.prev-btn:hover,.next-btn:hover{background:var(--btn-secondary-hover-bg)}
+.prev-btn:active,.next-btn:active{background:var(--btn-secondary-active-bg)}
+.prev-btn:disabled,.next-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-indicator{font-size:0.94em;color:var(--text-muted);font-weight:800}
+</style>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第8篇 先寻求神的国和祂的义</h2>
+</div>
+
+        
+        <div class="content">
+            
+
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="8_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="8_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="8_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="8_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+    <a href="8_zs.htm" class="nav-link" title="职事">职事</a>
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container" data-total-pages="6">
+        
+        <div class="day-page is-active" data-day="1" data-page="0">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day1-壹" data-level="1">
+    <div class="outline-item level-1">
+        
+        壹　父的国是今天诸天之国的实际，就是今天召会生活的实际，也是来世诸天之国的实现—太五3，十三43：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-壹')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-壹" style="display: none;" onclick="toggleScripture('scripture-day1-壹')">
+            
+            
+            <div class="verse-line">太5:3	灵里贫穷的人有福了，因为诸天的国是他们的。</div>
+            
+            
+            
+            <div class="verse-line">太13:43	那时，义人在他们父的国里，要发光如同太阳。有耳可听的，就应当听。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　“不要为自己积蓄财宝在地上，……只要为自己积蓄财宝在天上”—六19上、20上：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　信徒对于钱财，基本的存心是不要贪爱—来十三5，提前六10，提后三2。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一-1" style="display: none;" onclick="toggleScripture('scripture-day1-一-1')">
+            
+            
+            <div class="verse-line">来13:5	你们生活为人不可贪爱钱财，要以现有的为足；因为主曾说，“我绝不撇下你，也绝不丢弃你。”</div>
+            
+            
+            
+            <div class="verse-line">提前6:10	因为贪财是万恶之根，有人贪恋钱财，就受迷惑，离弃了信仰，用许多苦痛把自己刺透了。</div>
+            
+            
+            
+            <div class="verse-line">提后3:2	因为那时人要成为爱自己者、爱钱财者、自夸者、狂傲的、毁谤者、违背父母的、忘恩负义的、不圣的、</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　我们如果把财宝积蓄在地上，就总是事奉了玛门，不是事奉神—太六19上、24。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一-2" style="display: none;" onclick="toggleScripture('scripture-day1-一-2')">
+            
+            
+            <div class="verse-line">太6:19上	不要为自己积蓄财宝在地上，……</div>
+            
+            
+            
+            <div class="verse-line">太6:24	没有人能事奉两个主；因为他不是恨这个爱那个，就是忠于这个轻视那个。你们不能事奉神，又事奉玛门。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-一-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　这是管治的原则：积蓄财宝在地上乃是违反神的经纶，也表示我们不相信祂的怜悯和照顾—32节下~33节。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　“你的财宝在哪里，你的心也必在哪里”—21节：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-二" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-二-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　我们的心必定是跟着财宝走的。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-二-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　不管怎么说，我们的财宝在哪里，我们的心必定在哪里。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　“没有人能事奉两个主；因为他不是恨这个爱那个，就是忠于这个轻视那个。你们不能事奉神，又事奉玛门”—24节：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　要事奉神，我们的心就必须单一；我们不能同时事奉神又事奉玛门（钱财）—路十六13。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-三-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-三-1" style="display: none;" onclick="toggleScripture('scripture-day1-三-1')">
+            
+            
+            <div class="verse-line">路16:13	没有一个家仆能事奉两个主；因为他不是恨这个爱那个，就是忠于这个轻视那个。你们不能事奉神，又事奉玛门。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　玛门的不义与其性质有关（9、11）；玛门是撒但所发明的，其性质在神面前是与神各方面都不合的，所以在神看是不义的。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-三-2" style="display: none;" onclick="toggleScripture('scripture-day1-三-2')">
+            
+            
+            <div class="verse-line">路16:9	我又告诉你们，要借着那不义的钱财，为自己结交朋友，到了钱财无用的时候，他们可以接你们到永远的帐幕里去。</div>
+            
+            
+            
+            <div class="verse-line">路16:11	你们若是在不义的钱财上不忠信，谁还把那真实的信托你们？</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-三-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　宇宙争执的中心乃是：人到底是拜神，或者是拜玛门—太四9~10，六24。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-三-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-三-3" style="display: none;" onclick="toggleScripture('scripture-day1-三-3')">
+            
+            
+            <div class="verse-line">太4:9	对祂说，你若俯伏拜我，我就把这一切都给你。</div>
+            
+            
+            
+            <div class="verse-line">太4:10	耶稣说，撒但，退去吧！因为经上记着，“当拜主你的神，单要事奉祂。”</div>
+            
+            
+            
+            <div class="verse-line">太6:24	没有人能事奉两个主；因为他不是恨这个爱那个，就是忠于这个轻视那个。你们不能事奉神，又事奉玛门。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-三-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　脱离玛门乃是事奉神最起码、最基本的条件—21、24节，路十六13，来十三5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-三-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-三-4" style="display: none;" onclick="toggleScripture('scripture-day1-三-4')">
+            
+            
+            <div class="verse-line">太6:21	因为你的财宝在哪里，你的心也必在哪里。</div>
+            
+            
+            
+            <div class="verse-line">太6:24	没有人能事奉两个主；因为他不是恨这个爱那个，就是忠于这个轻视那个。你们不能事奉神，又事奉玛门。</div>
+            
+            
+            
+            <div class="verse-line">路16:13	没有一个家仆能事奉两个主；因为他不是恨这个爱那个，就是忠于这个轻视那个。你们不能事奉神，又事奉玛门。</div>
+            
+            
+            
+            <div class="verse-line">来13:5	你们生活为人不可贪爱钱财，要以现有的为足；因为主曾说，“我绝不撇下你，也绝不丢弃你。”</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">太六19~20	不要为自己积蓄财宝在地上，地上有虫蛀、锈蚀，也有贼挖洞偷窃；只要为自己积蓄财宝在天上，天上没有虫蛀、锈蚀，也没有贼挖洞偷窃。</div>
+                
+                
+                
+                <p class="content-text">在马太六章十九至二十节王颁布〔国度宪法〕说，国度子民不要为自己积蓄财宝在地上，只要积蓄财宝在天上。积蓄财宝在天上，乃是将财物分给贫穷的人（十九21），并顾到缺乏的圣徒（徒二45，四34~35，十一29，罗十五26），以及主的仆人（腓四16~17）。</p>
+                
+                <p class="content-text">马太六章二十一节说，“因为你的财宝在哪里，你的心也必在哪里。”国度子民必须将他们的财宝送到天上，使他们的心也能在天上。他们去哪里以前，他们的财宝和他们的心必须先到哪里（马太福音生命读经，三○三页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们的两眼一次只能注视一样东西，倘若想要同时看两样东西，眼光就会模糊。我们的眼睛若只注视一样东西，眼光就会单一，并且我们的全身就明亮〔太六22〕。我们若将财宝积蓄在天上，又积蓄在地上，我们的眼光就会模糊。我们若要有单一的眼光，就必须将财宝积蓄在一处。</p>
+                
+                <p class="content-text">马太六章二十三节说，“但你的眼睛若不专，全身就黑暗。所以你里面的光若黑暗了，那黑暗是何等的大！”不专，直译，恶。同时看两样东西而不专视，会叫我们的眼睛变恶（参二十15，申十五9，箴二八22）。这样，我们的全身就黑暗。我们的心若专注于那积蓄在地上的财宝，我们里面的光就成为黑暗，并且那黑暗是大的。</p>
+                
+                <p class="content-text">马太六章二十四节说，“没有人能事奉两个主；因为他不是恨这个爱那个，就是忠于这个轻视那个。你们不能事奉神，又事奉玛门。”玛门这辞是亚兰文，指钱财、财富。这里的玛门与神对立，指明钱财或财富是神的对头，夺取神子民对神的事奉。</p>
+                
+                <p class="content-text">二十五节说，“所以我告诉你们，不要为生命忧虑，吃什么，喝什么；也不要为身体忧虑，穿什么。生命不胜于食物么？身体不胜于衣服么？”在本节中，主告诉我们不要为生命忧虑。这里的“生命”一辞，直译，魂。指魂生命，其中有对饮食和穿着的欲望和嗜好（赛二九8）。我们的生命胜于食物，身体胜于衣服。我们的生命和身体，不是因我们的忧虑，乃是因神而有的。神既然为我们创造了生命和身体，祂必定会顾念我们生命和身体的需要。国度子民不需要为此忧虑。</p>
+                
+                <p class="content-text">马太六章三十一节说，“所以不要忧虑，说，我们要吃什么？喝什么？披戴什么？”这里我们来到十九至三十四节的重点。表面看来，在〔国度〕宪法的这一段，主说到国度子民的理财，事实上，祂论到忧虑的事。……在这些经节里，“忧虑”这辞用了七次（25、27、28、31、34）。主似乎也在摸我们的心，因为我们的财宝在哪里，我们的心也在哪里。然而，我们的心不只与财富有关，也与许多其他的事有关。</p>
+                
+                <p class="content-text">在马太六章，表面看来，主论到财物的事。然而实际上，祂在摸忧虑的事，就是我们为人生活的基本问题。……十九至三十四节似乎是摸我们的钱财、财富；事实上，主在这里的心意是要摸忧虑，就是我们日常生活问题的根源。全世界都被忧虑纠缠（马太福音生命读经，三○四至三○六、三○八页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day2-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day2-四')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        四　“不要为生命忧虑，……因为这一切都是外邦人所急切寻求的，……你们不要为明天忧虑”—太六25上、32上、34上：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day2-四" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day2-四-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　我们的人生就是挂虑的人生，是由忧虑所构成—32节上。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-四-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-四-1" style="display: none;" onclick="toggleScripture('scripture-day2-四-1')">
+            
+            
+            <div class="verse-line">太6:32上	因为这一切都是外邦人所急切寻求的，……</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-四-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　在神圣的生命和神圣的性情里没有忧虑；神的生命是享受、安息、安慰和满足的生命—腓四6~7，彼前五7。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-四-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-四-2" style="display: none;" onclick="toggleScripture('scripture-day2-四-2')">
+            
+            
+            <div class="verse-line">腓4:6	应当一无挂虑，只要凡事借着祷告、祈求，带着感谢，将你们所要的告诉神；</div>
+            
+            
+            
+            <div class="verse-line">腓4:7	神那超越人所能理解的平安，必在基督耶稣里，保卫你们的心怀意念。</div>
+            
+            
+            
+            <div class="verse-line">彼前5:7	你们要将一切的忧虑卸给神，因为祂顾念你们。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">太六25~26	所以我告诉你们，不要为生命忧虑，吃什么，喝什么；也不要为身体忧虑，穿什么。生命不胜于食物么？身体不胜于衣服么？你们看天空的飞鸟，它们既不种，也不收，又不收积在仓里，你们的天父尚且养活它们。你们不比它们贵重么？</div>
+                
+                
+                
+                <p class="content-text">马太五至七章虽然没有真正用“生命”和“性情”这些辞，但从上下文我们可以看见，没有父的神圣生命和性情，这几章就是白写了。没有父的生命和性情，就没有一个人能满足诸天之国的要求。每种宪法都是基于某种生命。……主耶稣在山上所颁赐的宪法是给神的众子，这乃是基于父的生命和性情。在五章有两节指明这事实。九节说，“制造和平的人有福了，因为他们必称为神的儿子。”四十八节说，“所以你们要完全，像你们的天父完全一样。”（马太福音生命读经，三○六页）</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">在神圣的生命和神圣的性情里没有忧虑。忧虑不属于神圣的生命，乃属于人的生命，正如吠叫属于狗的生命，不属于鸟的生命。我们人的生命是忧虑的生命，而神的生命是享受、安息、安慰和满足的生命。对神而言，忧虑是陌生的辞，在祂没有忧虑这样的事。你想神忧虑过么？……虽然神有许多愿望，祂却没有忧虑。反之，我们人的生命是由忧虑组成的，由忧虑构成的。从人拿去忧虑，结果就是死亡。死人没有忧虑。……但只要你是活人，你就免不了忧虑。</p>
+                
+                <p class="content-text">忧虑是使世界活动的齿轮，它刺激全人类的文化。我们的生活若没有忧虑，就没有人会作什么，反而人人都会闲懒。因此，主〔在马太六章十九至三十四节〕摸我们的忧虑，就摸着为人生活的齿轮。</p>
+                
+                <p class="content-text">青年人听见这话，也许会说，“阿利路亚！因着主耶稣摸着了忧虑，就是为人生活的齿轮，我们就不需要努力读书或工作了。我们若饿了，只要吃点剩菜剩饭就行了。”这观念是错误的。在马太六章二十六节，主耶稣说，“你们看天空的飞鸟，它们既不种，也不收，又不收积在仓里，你们的天父尚且养活它们。”主耶稣若在这里，我会问祂：“主，你把我们比喻为飞鸟。飞鸟既不种，也不收；它们只在空中飞，什么也不作。主，这是不是说我们不该作什么？……主耶稣，你的意思是我们该占别人的便宜么？我们该忘掉工作，只作空中的飞鸟，享受生活，享受别人的劳苦么？”我也会问主说，“主，你也把我们比喻为百合花。百合花不作什么，却披戴得比所罗门更荣耀（太六28~30）。你是说我们不该作什么，只该享受空气、阳光、土壤和水么？”这是许多引用主耶稣这些话的青年人所持有的观念。他们说，“让我们作空中的飞鸟和谷中的百合花吧！”……我问这些问题，因为我晓得青年人的心理。他们求学多年之后，也许对读书厌倦了。当他们从初中到高中，从高中到大学，再从大学到研究所，课程就变得更为艰难。许多青年人不愿这么辛苦地读书，宁愿像鸟一样在空中飞翔。如果青年人诚实，他们会承认自己有这样的观念。</p>
+                
+                <p class="content-text">主是要青年人完成学业，还是要他们中途退学，像空中的飞鸟一样？忧虑是不对的，因为忧虑不属于神圣的生命。神的生命没有忧虑。然而主并不是说，我们不该尽自己的本分（马太福音生命读经，三○六至三○九页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day3-3" data-level="1">
+    <div class="outline-item level-3">
+        
+        3　我们尽人生的本分工作维生时，不该因着忧虑作什么，因为我们有不知忧虑的神圣生命—路十二25。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-3" style="display: none;" onclick="toggleScripture('scripture-day3-3')">
+            
+            
+            <div class="verse-line">路12:25	你们中间谁能因忧虑使自己的身量多加一肘？</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-4" data-level="1">
+    <div class="outline-item level-3">
+        
+        4　国度子民绝不该活在明天，只该活在今天—太六34。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-4" style="display: none;" onclick="toggleScripture('scripture-day3-4')">
+            
+            
+            <div class="verse-line">太6:34	所以你们不要为明天忧虑，因为明天自有明天的忧虑，一天的难处一天当就够了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-5" data-level="1">
+    <div class="outline-item level-3">
+        
+        5　关于我们的生活，我们有天父自己顾念我们；当祂顾念我们物质的需要，祂就将祂的元素分赐到我们里面，我们就借着父顾念我们物质的需要，经历神圣的分赐—32~33节，约十六27上，弗一3。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-5')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-5" style="display: none;" onclick="toggleScripture('scripture-day3-5')">
+            
+            
+            <div class="verse-line">太6:32	因为这一切都是外邦人所急切寻求的，你们的天父原知道你们需要这一切。</div>
+            
+            
+            
+            <div class="verse-line">太6:33	但你们要先寻求祂的国和祂的义，这一切就都要加给你们了。</div>
+            
+            
+            
+            <div class="verse-line">约16:27上	父自己爱你们，因为你们已经爱我，……</div>
+            
+            
+            
+            <div class="verse-line">弗1:3	我们主耶稣基督的神与父，是当受颂赞的，祂在基督里，曾用诸天界里各样属灵的福分，祝福了我们；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">太六32　	因为这一切都是外邦人所急切寻求的，你们的天父原知道你们需要这一切。</div>
+                
+                <div class="feeding-scripture">34　	所以你们不要为明天忧虑，因为明天自有明天的忧虑，一天的难处一天当就够了。</div>
+                
+                
+                
+                <p class="content-text">要在这地上为神而活，你必须完成你的教育。但你在读书并完成教育时，必须与世人不同。世人因着忧虑而读书；你不该因着忧虑而读书，乃要尽自己的本分。你若没有看见这点，〔马太六章十九至三十四节〕这段话对你就不过是律法。</p>
+                
+                <p class="content-text">几年之后，我们许多青年人都将获得学位。我信在主主宰的祝福之下，许多财富会进来。那时你需要记得，你进学校读书不是因着忧虑，乃是要尽本分。……你的本分就是给，就是积蓄财宝在天上。……要学习给，积蓄财宝在天上。要把你的财宝从地上转到天上。这样，你就不是地上的百万富翁，乃是天上的百万富翁。……要照着天父的生命和性情，作个乐意施舍的人。这乃是这段话的意义（马太福音生命读经，三一一至三一二页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们尽自己的本分时，不该因着忧虑作什么，因为我们有不知忧虑的神圣生命，并且我们有全能、包罗万有的天父，祂在各方面都眷顾我们。今天的世界满了忧虑，但国度子民不该为任何事忧虑。我们不能因忧虑使我们的身量多加一肘（太六27）。关于道德，我们里面有父的生命和性情，使我们能满足最高道德的要求。关于我们的生活，有天父自己眷顾我们。……虽然我们必须尽本分，但我们不该忧虑。就像以色列人一样，他们足够维持生活，就把一部分给出去为着各种的用途；我们也该有收成，并且乐意把一些给出去为着各种的用途。最终，我们所给的都会积蓄在天上的银行里，我们的财富都会在那里。</p>
+                
+                <p class="content-text">这也与我们每天在生命里长大有关。懒散和忧虑都会耽延我们在生命里长大。没有一个闲懒、不尽本分的人，会在生命里长大。凡在生命里长大的人，都是殷勤、奋发的。当然，这种殷勤和奋发会得到报酬，一些物质的财富会临到你。这些财富都不可为着你的忧虑使用，而必须为着给出去。忧虑必须除去，……你所得的任何盈余都不该为着忧虑，却要用来增加天上银行的积蓄。你若这样作，我保证你会在生命里长大。只有殷勤却不为着忧虑使用其盈余的人，才能在生命里长大。你需要勤奋读书，得着好成绩，并且获得最高的学位。然而，那些临到你的财富不该为着你的忧虑使用。我们劳苦，尽我们的本分，但我们没有忧虑。这是在父的生命里长大的正确之路。</p>
+                
+                <p class="content-text">国度子民有天父神圣的生命，作他们遵行国度新律法的力量。他们也有天父顾念他们物质的需要，使他们不需要为此忧虑〔参32〕。天父是他们力量和供应的源头。因此，他们无需软弱，也无需缺乏。</p>
+                
+                <p class="content-text">国度子民绝不该活在明天，只该活在今天。〔马太六章三十四节的〕“难处”，或译作，邪恶；在此指烦扰、苦难。这指明国度的王已清楚指示国度子民，他们为着国度在地上所过的，将是烦扰、苦难的日子，而非安逸、舒适的日子（马太福音生命读经，三一二至三一四页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day4-贰" data-level="1">
+    <div class="outline-item level-1">
+        
+        贰　父的义乃是因遵行国度新律法而显出的义（太五20）；这义就是国度子民所活出的基督：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-贰')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-贰" style="display: none;" onclick="toggleScripture('scripture-day4-贰')">
+            
+            
+            <div class="verse-line">太5:20	我告诉你们，你们的义，若不超过经学家和法利赛人的义，绝不能进诸天的国。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　按照新约，义有四个主要方面：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　义就是按着神公义且严格的要求，与人事物都是对的—太五20。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-1" style="display: none;" onclick="toggleScripture('scripture-day4-一-1')">
+            
+            
+            <div class="verse-line">太5:20	我告诉你们，你们的义，若不超过经学家和法利赛人的义，绝不能进诸天的国。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-一-2')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        2　义乃是那作为赐生命之灵活在我们里面之基督外面的彰显—林后三9、18，林前十五45下：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-2" style="display: none;" onclick="toggleScripture('scripture-day4-一-2')">
+            
+            
+            <div class="verse-line">林后3:9	若定罪的职事有荣光，那称义的职事，就越发充盈着荣光了。</div>
+            
+            
+            
+            <div class="verse-line">林后3:18	但我们众人既然以没有帕子遮蔽的脸，好像镜子观看并返照主的荣光，就渐渐变化成为与祂同样的形像，从荣耀到荣耀，乃是从主灵变化成的。</div>
+            
+            
+            
+            <div class="verse-line">林前15:45下	……末后的亚当成了赐生命的灵。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-一-2" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-一-2-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　那灵是神的素质，在我们里面生活、运行、行动；义是神的素质显于外，作为神的形像彰显祂—弗四24，西三10。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-2-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-2-a" style="display: none;" onclick="toggleScripture('scripture-day4-一-2-a')">
+            
+            
+            <div class="verse-line">弗4:24	并且穿上了新人，这新人是照着神，在那实际的义和圣中所创造的。</div>
+            
+            
+            
+            <div class="verse-line">西3:10	并且穿上了新人；这新人照着创造他者的形像渐渐更新，以致有充足的知识；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-一-2-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　神圣素质写到我们里面，必定会有一种特别的彰显；这彰显就是义—林后三3、9，太五20。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-2-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-2-b" style="display: none;" onclick="toggleScripture('scripture-day4-一-2-b')">
+            
+            
+            <div class="verse-line">林后3:3	你们显明是基督的信，由我们供职所写的，不是用墨，乃是用活神的灵写的，不是写在石版上，乃是写在肉版，就是心上。</div>
+            
+            
+            
+            <div class="verse-line">林后3:9	若定罪的职事有荣光，那称义的职事，就越发充盈着荣光了。</div>
+            
+            
+            
+            <div class="verse-line">太5:20	我告诉你们，你们的义，若不超过经学家和法利赛人的义，绝不能进诸天的国。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-一-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-一-3')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        3　义是神国的事—六33：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-3" style="display: none;" onclick="toggleScripture('scripture-day4-一-3')">
+            
+            
+            <div class="verse-line">太6:33	但你们要先寻求祂的国和祂的义，这一切就都要加给你们了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-一-3" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-一-3-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　神的宝座是以公义为根基建立的—诗八九14，九七2。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-3-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-3-a" style="display: none;" onclick="toggleScripture('scripture-day4-一-3-a')">
+            
+            
+            <div class="verse-line">诗89:14	公义和公平，是你宝座的根基；慈爱和真实，行在你面前。</div>
+            
+            
+            
+            <div class="verse-line">诗97:2	密云和幽暗，在祂的四围；公义和公平，是祂宝座的根基。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-一-3-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　义出自神，为着祂的行政，因此与神的掌权和管治有关—赛三二1。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-3-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-3-b" style="display: none;" onclick="toggleScripture('scripture-day4-一-3-b')">
+            
+            
+            <div class="verse-line">赛32:1	看哪，必有一王凭公义作王，必有首领按公平掌权。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-一-3-c" data-level="3">
+    <div class="outline-item level-4">
+        
+        c　义首先带进神的形像，然后建立神的国—罗八4、29，十四17。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-3-c')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-3-c" style="display: none;" onclick="toggleScripture('scripture-day4-一-3-c')">
+            
+            
+            <div class="verse-line">罗8:4	使律法义的要求，成就在我们这不照着肉体，只照着灵而行的人身上。</div>
+            
+            
+            
+            <div class="verse-line">罗8:29	因为神所预知的人，祂也预定他们模成神儿子的形像，使祂儿子在许多弟兄中作长子。</div>
+            
+            
+            
+            <div class="verse-line">罗14:17	因为神的国不在于吃喝，乃在于公义、和平、并圣灵中的喜乐。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-一-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-一-4')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        4　义是在我们的所是上与神是对的—林前十五34，林后五21：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-4" style="display: none;" onclick="toggleScripture('scripture-day4-一-4')">
+            
+            
+            <div class="verse-line">林前15:34	你们要按着义清醒过来，不要犯罪，因为你们中间有人对神是无知的。我说这话，是要叫你们羞愧。</div>
+            
+            
+            
+            <div class="verse-line">林后5:21	神使那不知罪的，替我们成为罪，好叫我们在祂里面成为神的义。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-一-4" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-一-4-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　在我们的所是上与神是对的，是指我们里面的人是透亮的，像水晶一样纯净，亦即里面的人是在神的心思和意愿里—启二一11、18下、21下，二二1。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-4-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-4-a" style="display: none;" onclick="toggleScripture('scripture-day4-一-4-a')">
+            
+            
+            <div class="verse-line">启21:11	城中有神的荣耀；城的光辉如同极贵的宝石，好像碧玉，明如水晶；</div>
+            
+            
+            
+            <div class="verse-line">启21:18下	……城是纯金的，如同明净的玻璃。</div>
+            
+            
+            
+            <div class="verse-line">启21:21下	……城内的街道是纯金，好像透明的玻璃。</div>
+            
+            
+            
+            <div class="verse-line">启22:1	天使又指给我看在城内街道当中一道生命水的河，明亮如水晶，从神和羔羊的宝座流出来。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-一-4-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　这样成为义的，就是在基督里成为神的义—林后五21。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一-4-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一-4-b" style="display: none;" onclick="toggleScripture('scripture-day4-一-4-b')">
+            
+            
+            <div class="verse-line">林后5:21	神使那不知罪的，替我们成为罪，好叫我们在祂里面成为神的义。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">太六33　	但你们要先寻求祂的国和祂的义，这一切就都要加给你们了。</div>
+                
+                <div class="feeding-scripture">林后五21	神使那不知罪的，替我们成为罪，好叫我们在祂里面成为神的义。</div>
+                
+                
+                
+                <p class="content-text">父的国是今天诸天之国的实际（就是今天召会生活的实际），也是来世诸天之国的实现；父的义乃是因遵行国度新律法而有的义（就是国度子民所活出的基督）。……因着国度子民先寻求他们天父的国和祂的义，不仅祂的国和祂的义要赐给他们，连他们一切的需用也都要加给他们（马太福音生命读经，三一二至三一四页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">爱是神的性质，圣别是神的性情，荣耀是神的自己。但是公义是神的手续，是神的道路，是神的方法。神因着是公义的缘故，所以就不能随着祂自己的爱来爱人。神不能随着自己所要的赐给人恩典，神不能凭着心里所想的来救人。不错，神救人是因为祂爱人，但祂这样作必须与祂自己的义，与祂自己的手续，与祂自己的道德，与祂自己的道路，与祂自己的尊严，与祂自己的威严相合，才可以。</p>
+                
+                <p class="content-text">神必须用祂的义来拯救我们。……神凭着祂的爱，可以立刻救我们；但是凭着祂的义，必须顶公义地救我们才可以。</p>
+                
+                <p class="content-text">神如果说，我要毫无怜恤地审判罪，神就没有爱。神如果说，让你们去，不审判，神就没有义。神因为爱世人，同时又是义的缘故，所以神就叫主耶稣来。祂因为是义的缘故，所以祂不能不审判罪。但是祂因为是爱的缘故，所以祂替人担当人的罪。我要着重地说这两句话：神因为是义的缘故，神就不能不审判罪。神因为是爱的缘故，所以神自己亲自来担当人所当受的审判和刑罚。祂不审判，就没有义；祂审判，就没有爱。……祂在主耶稣里面显明祂的爱，同时也显明祂的义。</p>
+                
+                <p class="content-text">十字架是表明神公义的地方。十字架表明神是多恨罪。神是定规要审判罪的，祂宁可出这么大的代价，把祂的儿子钉在十字架上。……神因为不肯放弃祂的义，所以宁可叫祂的儿子死，来保全祂的义。</p>
+                
+                <p class="content-text">同时十字架也是显明神爱的地方。担子在我们身上，不挑是不义，挑了吃不消，所以祂自己来挑。挑了是神的义，祂挑是神的爱。刑罚我们受，是义不是爱；我们不受，是爱不是义。但是祂把这刑罚挪到祂自己身上去，所以是爱也是义。阿利路亚！十字架解决了义的问题，十字架也解决了爱的问题。</p>
+                
+                <p class="content-text">神使主耶稣成为罪〔林后五21〕。主耶稣原来根本是没有罪的，根本是与罪没有关系的，现在神审判祂就像审判罪一样，……“好叫我们在祂里面成为神的义。”人只要看见我们，就看见神的义。今天我们这些有罪的人，因为主耶稣替我们成为罪，因为祂背负了我们的罪，因为我们的罪得了赦免，我们这些人就是主耶稣基督里神的义。我们是活的神的义，是会在马路上走的神的义。我们在主耶稣里面就是神义的代表（倪柝声文集第二辑第八册，一○○、一○二、一○六至一○七、一二○页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day5-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　基督成为信徒的义有两面：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-二" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-二-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　基督是信徒的义，使他们在悔改归向神并信入基督时，客观地在神面前得称义—罗三24~26，徒十三39，加三24下、27。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-二-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-二-1" style="display: none;" onclick="toggleScripture('scripture-day5-二-1')">
+            
+            
+            <div class="verse-line">罗3:24	但因神的恩典，借着在基督耶稣里的救赎，就白白地得称义。</div>
+            
+            
+            
+            <div class="verse-line">罗3:25	神摆出基督耶稣作平息处，是凭着祂的血，借着人的信，为要在神以宽容越过人先时所犯的罪上，显示祂的义；</div>
+            
+            
+            
+            <div class="verse-line">罗3:26	为着在今时显示祂的义，使祂能是义的，也能称那以信耶稣为本的人为义。</div>
+            
+            
+            
+            <div class="verse-line">徒13:39	在一切你们靠摩西的律法不得称义的事上，靠这人，凡信的就都得称义了。</div>
+            
+            
+            
+            <div class="verse-line">加3:24下	……带我们归于基督，好使我们本于信得称义。</div>
+            
+            
+            
+            <div class="verse-line">加3:27	你们凡浸入基督的，都已经穿上了基督。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-二-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　基督是信徒的义，从他们活出来作神的显明；这位神就是在基督里赐给信徒的义，使他们主观地蒙神称义—罗四25，彼前二24上，雅二24，太五20，启十九8。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-二-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-二-2" style="display: none;" onclick="toggleScripture('scripture-day5-二-2')">
+            
+            
+            <div class="verse-line">罗4:25	耶稣被交给人是为我们的过犯，复活是为我们的称义。</div>
+            
+            
+            
+            <div class="verse-line">彼前2:24上	祂在木头上，在祂的身体里，亲自担当了我们的罪，使我们既然向罪死了，就得以向义活着；……</div>
+            
+            
+            
+            <div class="verse-line">雅2:24	可见人得称义是本于行为，不是单本于信。</div>
+            
+            
+            
+            <div class="verse-line">太5:20	我告诉你们，你们的义，若不超过经学家和法利赛人的义，绝不能进诸天的国。</div>
+            
+            
+            
+            <div class="verse-line">启19:8	又赐她得穿明亮洁净的细麻衣，这细麻衣就是圣徒所行的义。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-二-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day5-二-3')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        3　这两面由路加十五章二十二至二十三节里上好的袍子和肥牛犊所预表：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-二-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-二-3" style="display: none;" onclick="toggleScripture('scripture-day5-二-3')">
+            
+            
+            <div class="verse-line">路15:22	父亲却吩咐奴仆说，快把那上好的袍子拿出来给他穿，把戒指戴在他手上，把鞋穿在他脚上，</div>
+            
+            
+            
+            <div class="verse-line">路15:23	把那肥牛犊牵来宰了，让我们吃喝快乐。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day5-二-3" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day5-二-3-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　上好的袍子预表基督作神赐给信徒的义，在外面遮盖他们，作他们在神面前客观的义。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day5-二-3-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　肥牛犊预表基督作神赐给信徒的义，作他们生命的供应，使他们在基督里将神活出来，作他们主观的义。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">腓三9　	并且给人看出我是在祂里面，不是有自己那本于律法的义，乃是有那借着信基督而有的义，就是那基于信、本于神的义。</div>
+                
+                <div class="feeding-scripture">林前一30	但你们得在基督耶稣里，是出于神，这基督成了从神给我们的智慧：公义、圣别和救赎。</div>
+                
+                
+                
+                <p class="content-text">基督成为从神给信徒的义有两面。第一面是祂作信徒的义，使他们在悔改归向神并信入基督时，客观地在神面前得称义（罗三24~26，徒十三39，加三24下、27）。……基督是神给我们的美丽，给我们穿上，作我们的衣服，作我们的锦衣〔诗歌二三七首〕。这是外面的、客观的。</p>
+                
+                <p class="content-text">第二面是基督作信徒的义，从他们活出来作神的显明；这位神就是在基督里赐给信徒的义，使他们主观地蒙神称义（罗四25，彼前二24上，雅二24，太五20，启十九8）。我们原是罪人，如今向神悔改并信入主耶稣；神就立即将基督赐给我们作锦衣，遮盖我们，使我们能合乎义地、外在地蒙神悦纳。这是客观的义。并且，当神把基督赐给我们，给我们穿上时，祂就进到我们里面，作我们的生命和生命的供应，好从我们里面活出祂自己来。这个活出来就是神在基督里的显明。这在神眼中是好的。……现今我们看见了这两面—外面的和里面的。我们穿上了基督，基督也进到我们里面，好从我们里面活出神来，作我们主观的义（李常受文集一九九四至一九九七年第一册，三一六页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">〔基督作信徒的义〕这两面也由诗篇四十五篇十三至十四节王后的两件衣服所预表。所罗门有一个王后，那王后有两件衣服。第一件相当于客观的义，使我们得称义。另一件相当于主观的义（启十九8），使我们得胜。这件衣服等于马太二十二章十一至十二节婚筵的礼服（李常受文集一九九四至一九九七年第一册，三一八页）。</p>
+                
+                <p class="content-text">为什么路加十五章里面有一个浪子的比方？……浪子将家产都花光了回家，父亲爱是爱他，但是最少该说他几句。……如果路加十五章只有浪子的比方，我们就要承认神是不义。神把罪马虎了，神对于罪不审判。……但是感谢神，赞美神，路加十五章有三个比方：第一个是牧人救羊的比方，第二个是妇人找钱的比方，第三个才是父亲接纳浪子的比方。因为在第一个比方里已经有好牧人为羊舍命，因为已经有主耶稣来，因为已经有主耶稣死了，因为浪子的罪已经在第一个比方里受审判了，以后才有第二个比方，一个妇人点灯找银币。因为主耶稣已经完成了救恩，所以圣灵用光来照。……罪的问题已经在牧人舍命的比方里弄清楚了，你里面的感觉已经在妇人点灯的比方里看见了。……主耶稣已经赦免了我们的罪，圣灵已经用光照我们，叫我们为罪、为义、为审判，知罪自责，所以后来到父亲那里，罪的问题一句都不必提了，父亲就只作欢迎的工作了。在前两个比方里，神的义已经显明，神的爱也已经显明（倪柝声文集第二辑第八册，一二一至一二二页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day6-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day6-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　“从此以后，有公义的冠冕为我存留，就是主，那公义的审判者，在那日要赏赐我的”—提后四8上：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day6-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day6-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　冠冕象征荣耀，是在主的救恩之外，当作奖赏赐给奔跑赛程的得胜者—林前九25。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-三-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-三-1" style="display: none;" onclick="toggleScripture('scripture-day6-三-1')">
+            
+            
+            <div class="verse-line">林前9:25	凡较力争胜的，诸事都有节制；他们不过是要得能坏的华冠，我们却是要得不能坏的华冠。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　这奖赏乃是本于公义并借着行为（太十六27，启二二12，林后五10），不像救恩是本于恩典并借着信（弗二5、8~9）。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-三-2" style="display: none;" onclick="toggleScripture('scripture-day6-三-2')">
+            
+            
+            <div class="verse-line">太16:27	因为人子要在祂父的荣耀里，同着众天使来临，那时祂要照各人的行为报应各人。</div>
+            
+            
+            
+            <div class="verse-line">启22:12	看哪，我必快来！赏罚在我，我要照各人所行的报应他。</div>
+            
+            
+            
+            <div class="verse-line">林后5:10	因为我们众人，必要在基督的审判台前显露出来，叫各人按着本身所行的，或善或恶，受到应得的报应。</div>
+            
+            
+            
+            <div class="verse-line">弗2:5	竟然在我们因过犯死了的时候，便叫我们一同与基督活过来（你们得救是靠着恩典），</div>
+            
+            
+            
+            <div class="verse-line">弗2:8	你们得救是靠着恩典，借着信；这并不是出于你们，乃是神的恩赐；</div>
+            
+            
+            
+            <div class="verse-line">弗2:9	也不是出于行为，免得有人夸口。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day6-三-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　这样的奖赏要赏赐给信徒，不是照着主的恩典，乃是照着主的公义；因此是公义的冠冕—提后四8上。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-三-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-三-3" style="display: none;" onclick="toggleScripture('scripture-day6-三-3')">
+            
+            
+            <div class="verse-line">提后4:8上	从此以后，有公义的冠冕为我存留，就是主，那公义的审判者，在那日要赏赐我的；……</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">提后四8	从此以后，有公义的冠冕为我存留，就是主，那公义的审判者，在那日要赏赐我的；不但赏赐我，也赏赐凡爱祂显现的人。</div>
+                
+                <div class="feeding-scripture">林前九25	凡较力争胜的，诸事都有节制；他们不过是要得能坏的华冠，我们却是要得不能坏的华冠。</div>
+                
+                
+                
+                <p class="content-text">冠冕象征荣耀，是在主的救恩之外，当作奖赏赐给奔跑赛程的得胜者（林前九25）。这奖赏乃是本于公义并借着行为（太十六27，启二二12，林后五10），不像救恩是本于恩并借着信（弗二5、8~9）。这样的奖赏要赏赐给信徒，不是照着主的恩典，乃是照着主的公义；因此是公义的冠冕〔提后四8上〕。这冠冕的赏赐者，乃是主这公义的审判者。保罗确信这样的奖赏已经为他存留，到主第二次显现的那日要赏赐给他。</p>
+                
+                <p class="content-text">主的显现，主的回来，乃是我们的警告、鼓励和激励。我们应当爱主的显现，并以热切的期待和喜乐盼望这事（新约总论第十二册，二四七页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">很少信徒晓得，主耶稣回来时，不会是怜悯的神或恩惠的救主，乃是公义的审判者。……我们必须宣告这事实，主回来时将是所有人（信徒和不信者）的审判者。根据马太二十五章，所有主的仆人都必须向祂交账。主或者要说，“好，良善又忠信的奴仆。”（21）或者说，“又恶又懒的奴仆。”（26）主要凭祂的公义断定我们是否得赏赐。</p>
+                
+                <p class="content-text">保罗在提后四章十八节宣告说，“主必救我脱离各样凶恶的事，也必救我进入祂属天的国。愿荣耀归与祂，直到永永远远。”这里各样凶恶的事，主要的是指人的逼迫；人的逼迫通常是出于撒但的邪恶（太六13）。</p>
+                
+                <p class="content-text">保罗蒙拯救脱离各样凶恶的事，甚至包括他最后的殉道。因为殉道将保罗引进属天的国，这样的引进，对他乃是一种拯救。主没有一个时候像信徒殉道之时，那样大量地将祂自己分赐到他们里面。每当信徒由于爱主而受逼迫、遭患难甚至殉道时，主就将祂一切的丰富注入、分赐到他们里面，使他们得着加力而得胜，脱离各样凶恶的事。这样的拯救，是我们每个信徒在患难中所应当相信、盼望并经历的，也是主喜欢赐给我们的。</p>
+                
+                <p class="content-text">这属天的国是“他们父的国”（十三43），“我父的国”（二六29），“基督和神的国”（弗五5），以及“我们主和救主耶稣基督永远的国”（彼后一11）。这国是给得胜圣徒的赏赐，等于提后四章八节公义的冠冕，作信徒奔跑属天赛程的激励。……保罗有把握得胜的宣告，他必得救进入这属天的国。</p>
+                
+                <p class="content-text">保罗知道他要……殉道，他要被弃绝，杀害，从属地的国剪除。但他也有把握说，主必救他进入属天的国。因此，他遭受殉道，没有得到神奇的拯救。保罗里面没有神奇之事的思想，他的思想乃是满了属灵、神圣的实际。我们这些跟随主耶稣的人，不该盼望主为我们行神奇的事。但我们有完全的权利要求主必须为我们作属灵、神圣和属天的事（新约总论第十二册，二四七至二五○页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const pagesContainer = document.querySelector('.pages-container');
+    if (!pagesContainer) return;
+    const totalPages = Number(pagesContainer.dataset.totalPages || 0);
+    if (totalPages === 0) return;
+
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach((page, index) => {
+            page.classList.toggle('is-active', index === pageIndex);
+        });
+        
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 仅在用户手动切换时滚动到顶部
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（优化版：支持速度判断和方向识别）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let touchStartTime = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+        touchStartTime = Date.now();
+    }, { passive: true });
+    
+    document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const diffX = touchStartX - touchEndX;
+        const diffY = Math.abs(touchStartY - touchEndY);
+        const diffTime = Date.now() - touchStartTime;
+        const velocity = Math.abs(diffX) / diffTime; // px/ms
+        
+        // 动态阈值：快速滑动大幅降低距离要求
+        const baseThreshold = 40; // 基础阈值降低到40px
+        const velocityThreshold = 0.25; // 降低速度阈值，让更多滑动被判定为"快速"
+        const swipeThreshold = velocity > velocityThreshold ? 25 : baseThreshold;
+        
+        // 适度放宽垂直容忍度
+        const maxVerticalMove = 40; // 垂直移动可以到40px
+        const horizontalRatio = 2.0; // 水平是垂直的2倍即可
+        
+        // 综合判断：距离 + 速度 + 方向
+        if (Math.abs(diffX) > swipeThreshold && 
+            diffY < maxVerticalMove && 
+            Math.abs(diffX) > diffY * horizontalRatio) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    // 初始加载时不滚动
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', function() {
+        initFromHash(false);
+    });
+    
+    // 初始化（不滚动）
+    initFromHash(true);
+})();
+
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page.is-active');
+            if (!activePage) return '';
+
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = getCleanText(item);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+<script src="js/outline.js"></script>
+
+<style>
+/* 纲目和内容样式 */
+.outline-section{margin:18px 0}
+.outline-section .scripture-content{cursor:pointer}
+.content-separator{height:1px;background:var(--border);margin:20px 0}
+.feeding-section,.reading-section{margin:20px 0}
+.feeding-section h4,.reading-section h4{font-size:1.05em;font-weight:600;color:var(--heading);margin:16px 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;text-align:center}
+.feeding-scripture{margin:10px 0;padding:10px 14px;background:var(--surface-alt);border-left:3px solid var(--brand);border-radius:6px;font-size:1.01em;color:var(--text);line-height:1.8;font-weight:550;text-align:justify;letter-spacing:0.1px}
+.prev-btn:active:not(:disabled),.next-btn:active:not(:disabled){background:var(--bg);color:#fff;border-color:rgba(102,126,234,.55)}
+.no-content{color:var(--text-muted);font-style:italic;text-align:center;padding:40px 20px}
+@media(min-width:768px){.feeding-section h4,.reading-section h4{font-size:1.08em}.feeding-scripture{font-size:1.05em;padding:12px 16px}}
+@media(max-width:768px){.day-navigation{gap:0}.page-controls{margin:20px 0 10px}.prev-btn,.next-btn{padding:8px 12px;font-size:14px}.btn-text{display:none}}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>202505 国际长老及负责弟兄训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+{
+  "version": "20260216003932",
+  "generation_time": "2026年02月16日 00:39",
+  "trainings": [
+    {
+      "year": 2025,
+      "season": "07 冬季训练",
+      "title": "冬季训练",
+      "chapter_count": 12,
+      "path": "2025-07",
+      "images": [
+        "images/hymn_2_晨兴.png",
+        "images/hymn_10_晨兴2.png",
+        "images/hymn_5_晨兴.png",
+        "images/hymn_4_晨兴.png",
+        "images/标语诗歌.png",
+        "images/hymn_6_晨兴.png",
+        "images/hymn_11_晨兴2.png",
+        "images/hymn_9_晨兴2.png",
+        "images/hymn_8_晨兴2.png",
+        "images/hymn_7_晨兴2.png",
+        "images/hymn_3_晨兴.png",
+        "images/hymn_1_晨兴.png",
+        "images/hymn_12_晨兴2.png"
+      ]
+    },
+    {
+      "year": 2025,
+      "season": "06 感恩节相调特会",
+      "title": "二〇二五年感恩节相调特会",
+      "chapter_count": 6,
+      "path": "2025-06",
+      "images": [
+        "images/hymn_2_晨兴.png",
+        "images/hymn_5_晨兴.png",
+        "images/hymn_4_晨兴.png",
+        "images/hymn_6_晨兴.png",
+        "images/hymn_3_晨兴.png",
+        "images/hymn_1_晨兴.png"
+      ]
+    },
+    {
+      "year": 2025,
+      "season": "05 国际长老及负责弟兄训练",
+      "title": "国　际 长老及负责弟兄训练",
+      "chapter_count": 9,
+      "path": "2025-05",
+      "images": [
+        "images/hymn_2_晨兴.png",
+        "images/hymn_5_晨兴.png",
+        "images/hymn_4_晨兴.png",
+        "images/hymn_7_晨兴.png",
+        "images/hymn_6_晨兴.png",
+        "images/hymn_3_晨兴.png",
+        "images/hymn_1_晨兴.png",
+        "images/hymn_8_晨兴.png",
+        "images/hymn_9_晨兴.png"
+      ]
+    },
+    {
+      "year": 2025,
+      "season": "04 夏季训练",
+      "title": "夏季训练",
+      "chapter_count": 12,
+      "path": "2025-04",
+      "images": [
+        "images/hymn_2_晨兴.png",
+        "images/hymn_10_晨兴2.png",
+        "images/hymn_5_晨兴.png",
+        "images/hymn_4_晨兴.png",
+        "images/标语诗歌.png",
+        "images/hymn_6_晨兴.png",
+        "images/hymn_11_晨兴2.png",
+        "images/hymn_9_晨兴2.png",
+        "images/hymn_8_晨兴2.png",
+        "images/hymn_7_晨兴2.png",
+        "images/hymn_3_晨兴.png",
+        "images/hymn_1_晨兴.png",
+        "images/hymn_12_晨兴2.png"
+      ]
+    }
+  ],
+  "total_chapters": 39
+}

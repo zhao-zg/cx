@@ -1,0 +1,2362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第3篇 - 晨兴</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+<style>
+.morning-revival-page{padding:5px;max-width:820px;margin:0 auto}
+.day-navigation{display:flex;flex-wrap:nowrap;gap:0;margin:15px 0;padding:8px;background:var(--surface-alt);border-radius:8px;justify-content:space-between;font-size:0.85em;box-sizing:border-box;overflow:hidden}
+.day-link{height:40px;padding:0 10px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:0;color:var(--btn-secondary-text);font-size:0.88em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box}
+.day-link + .day-link{border-left:1px solid var(--border)}
+.day-link:first-child{border-top-left-radius:6px;border-bottom-left-radius:6px}
+.day-link:last-child{border-top-right-radius:6px;border-bottom-right-radius:6px}
+.day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:rgba(102,126,234,.5)}
+.day-link.active{font-weight:700}
+.pages-container{position:relative;min-height:400px;touch-action:pan-y}
+.day-page{background:var(--surface);padding:0;display:none}
+.day-page.is-active{display:block}
+.page-controls{display:flex;justify-content:space-between;align-items:center;margin:20px 0 15px;padding:10px;background:var(--surface-alt);border-radius:12px;border:1px solid var(--border)}
+.prev-btn,.next-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:12px 16px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:5px;color:var(--btn-secondary-text);font-size:0.9375em;cursor:pointer;font-weight:600;transition:background .2s}
+.prev-btn:hover,.next-btn:hover{background:var(--btn-secondary-hover-bg)}
+.prev-btn:active,.next-btn:active{background:var(--btn-secondary-active-bg)}
+.prev-btn:disabled,.next-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-indicator{font-size:0.94em;color:var(--text-muted);font-weight:800}
+</style>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第3篇 基督是人子在金灯台中间行走</h2>
+</div>
+
+        
+        <div class="content">
+            
+
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="3_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="3_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="3_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="3_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container" data-total-pages="6">
+        
+        <div class="day-page is-active" data-day="1" data-page="0">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day1-壹" data-level="1">
+    <div class="outline-item level-1">
+        
+        壹　我们要看见基督是人子在金灯台中间行走的异象，就必须是主得胜的使者，就是那些在召会的立场上，在我们的灵里，在耶稣的患难、国度、忍耐里一同有分的人—启一9~13、20：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-壹')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-壹" style="display: none;" onclick="toggleScripture('scripture-day1-壹')">
+            
+            
+            <div class="verse-line">启1:9	我约翰，就是你们的弟兄，和你们在耶稣的患难、国度、忍耐里一同有分的，为神的话和耶稣的见证，曾在那名叫拔摩的海岛上。</div>
+            
+            
+            
+            <div class="verse-line">启1:10	当主日我在灵里，听见在我后面有大声音如吹号说，</div>
+            
+            
+            
+            <div class="verse-line">启1:11	你所看见的，当写在书上，寄给那七个召会：给以弗所、给士每拿、给别迦摩、给推雅推喇、给撒狄、给非拉铁非、给老底嘉。</div>
+            
+            
+            
+            <div class="verse-line">启1:12	我转过身来，要看是谁发声与我说话；既转过来，就看见七个金灯台；</div>
+            
+            
+            
+            <div class="verse-line">启1:13	灯台中间，有一位好像人子，身穿长袍，直垂到脚，胸间束着金带。</div>
+            
+            
+            
+            <div class="verse-line">启1:20	论到你所看见在我右手中的七星，和七个金灯台的奥秘，那七星就是七个召会的使者，七灯台就是七个召会。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　早期召会生活的实行，乃是一个城一个召会，一个城只有一个召会；没有一个城有一个以上的召会—徒八1，十三1，启一11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一" style="display: none;" onclick="toggleScripture('scripture-day1-一')">
+            
+            
+            <div class="verse-line">徒8:1	就在那日，在耶路撒冷的召会大遭逼迫，除了使徒以外，门徒都分散在犹太和撒玛利亚各地。</div>
+            
+            
+            
+            <div class="verse-line">徒13:1	在安提阿当地的召会中，有几位申言者和教师，就是巴拿巴和称呼尼结的西面，古利奈人路求，与分封王希律同养的马念，并扫罗。</div>
+            
+            
+            
+            <div class="verse-line">启1:11	你所看见的，当写在书上，寄给那七个召会：给以弗所、给士每拿、给别迦摩、给推雅推喇、给撒狄、给非拉铁非、给老底嘉。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day1-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　在一的真正立场，就是在神所选择的地方上聚会，有四个特征—参申十二5：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-二" style="display: none;" onclick="toggleScripture('scripture-day1-二')">
+            
+            
+            <div class="verse-line">申12:5	但耶和华你们的神从你们各支派中，所选择出来立祂名的地方，就是祂的居所，那是你们当寻求的，你们要往那里去，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day1-二" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day1-二-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　首先，神的子民总该是一，他们中间不该有分裂—诗一三三，约十七11、21~23，林前一10，弗四3。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-二-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-二-1" style="display: none;" onclick="toggleScripture('scripture-day1-二-1')">
+            
+            
+            <div class="verse-line">诗133:1	看哪，弟兄和睦同居，是何等的善，何等的美！</div>
+            
+            
+            
+            <div class="verse-line">诗133:2	这好比那上好的油，浇在亚伦的头上，流到胡须，又流到他的衣襟；</div>
+            
+            
+            
+            <div class="verse-line">诗133:3	又好比黑门的甘露，降在锡安山；因为在那里有耶和华所命定的福，就是永远的生命。</div>
+            
+            
+            
+            <div class="verse-line">约17:11	我不再在世上，他们却在世上，我往你那里去。圣父啊，求你在你的名，就是你所赐给我的名里，保守他们，使他们成为一，像我们一样。</div>
+            
+            
+            
+            <div class="verse-line">约17:21	使他们都成为一；正如你父在我里面，我在你里面，使他们也在我们里面，叫世人可以信你差了我来。</div>
+            
+            
+            
+            <div class="verse-line">约17:22	你所赐给我的荣耀，我已赐给他们，使他们成为一，正如我们是一一样。</div>
+            
+            
+            
+            <div class="verse-line">约17:23	我在他们里面，你在我里面，使他们被成全成为一，叫世人知道是你差了我来，并且知道你爱他们如同爱我一样。</div>
+            
+            
+            
+            <div class="verse-line">林前1:10	弟兄们，我借我们主耶稣基督的名，恳求你们都说一样的话，你们中间也不可有分裂，只要在一样的心思和一样的意见里，彼此和谐。</div>
+            
+            
+            
+            <div class="verse-line">弗4:3	以和平的联索，竭力保守那灵的一：</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-二-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　第二，神的子民该聚集到独一的名里，这名就是主耶稣基督的名，其实际乃是那灵；用任何别的名称，乃是宗派的、分裂的；这是属灵的淫乱—太十八20，林前一12~13，十二3下。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-二-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-二-2" style="display: none;" onclick="toggleScripture('scripture-day1-二-2')">
+            
+            
+            <div class="verse-line">太18:20	因为无论在哪里，有两三个人被聚集到我的名里，哪里就有我在他们中间。</div>
+            
+            
+            
+            <div class="verse-line">林前1:12	我是说，你们各人说，我是属保罗的，我是属亚波罗的，我是属矶法的，我是属基督的。</div>
+            
+            
+            
+            <div class="verse-line">林前1:13	基督是分开的么？保罗为你们钉了十字架么？或者你们是浸入保罗的名里么？</div>
+            
+            
+            
+            <div class="verse-line">林前12:3下	……若不是在圣灵里，也没有人能说，主，耶稣！</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-二-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　第三，在新约里神的住处，神的居所，乃是特别设在我们的灵里，也就是在我们调和的灵里，在我们蒙神圣的灵重生并内住之人的灵里；我们在敬拜神的聚会里，必须操练我们的灵，并在灵里作一切事—约三6下，罗八16，提后四22，弗二22，约四24，启一10，林前十四15。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-二-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-二-3" style="display: none;" onclick="toggleScripture('scripture-day1-二-3')">
+            
+            
+            <div class="verse-line">约3:6下	……从那灵生的，就是灵。</div>
+            
+            
+            
+            <div class="verse-line">罗8:16	那灵自己同我们的灵见证我们是神的儿女。</div>
+            
+            
+            
+            <div class="verse-line">提后4:22	愿主与你的灵同在。愿恩典与你们同在。</div>
+            
+            
+            
+            <div class="verse-line">弗2:22	你们也在祂里面同被建造，成为神在灵里的居所。</div>
+            
+            
+            
+            <div class="verse-line">约4:24	神是灵；敬拜祂的，必须在灵和真实里敬拜。</div>
+            
+            
+            
+            <div class="verse-line">启1:10	当主日我在灵里，听见在我后面有大声音如吹号说，</div>
+            
+            
+            
+            <div class="verse-line">林前14:15	这却怎么样？我要用灵祷告，也要用心思祷告；我要用灵歌唱，也要用心思歌唱。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day1-二-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　第四，我们敬拜神时，必须真实地应用祭坛所表征之基督的十字架（申十二5~6、27），拒绝肉体、己和天然生命，并单单凭基督来敬拜神（太十六24，加二20）。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-二-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-二-4" style="display: none;" onclick="toggleScripture('scripture-day1-二-4')">
+            
+            
+            <div class="verse-line">申12:5	但耶和华你们的神从你们各支派中，所选择出来立祂名的地方，就是祂的居所，那是你们当寻求的，你们要往那里去，</div>
+            
+            
+            
+            <div class="verse-line">申12:6	将你们的燔祭和别的祭，十分取一之物，和手中的举祭，并还愿祭、甘心祭，以及牛群羊群中头生的，都奉到那里；</div>
+            
+            
+            
+            <div class="verse-line">申12:27	你的燔祭，连肉带血，都要献在耶和华你神的坛上；至于你别的祭，血要倒在耶和华你神的坛上，肉你可以吃。</div>
+            
+            
+            
+            <div class="verse-line">太16:24	于是耶稣对门徒说，若有人要跟从我，就当否认己，背起他的十字架，并跟从我。</div>
+            
+            
+            
+            <div class="verse-line">加2:20	我已经与基督同钉十字架；现在活着的，不再是我，乃是基督在我里面活着；并且我如今在肉身里所活的生命，是我在神儿子的信里，与祂联结所活的，祂是爱我，为我舍了自己。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">弗四3　	以和平的联索，竭力保守那灵的一。</div>
+                
+                <div class="feeding-scripture">太十八20	因为无论在哪里，有两三个人被聚集到我的名里，哪里就有我在他们中间。</div>
+                
+                
+                
+                <p class="content-text">申命记十二章至少在四方面与新约中的启示相符。</p>
+                
+                <p class="content-text">首先，……神的子民总该是一。为着保守以色列人的一，神不让十二支派各有自己的敬拜中心。……神在祂的智慧里，不让祂的子民有自己的选择或偏好；祂要求他们接受祂的选择，即使去那地对许多人并不方便，他们也要一年三次到独一的敬拜中心去。</p>
+                
+                <p class="content-text">许多人偏爱自己的方式，而不要神的方式。……所有的宗派都是按着人的偏好。……主的恢复乃是按着神的喜好，回到神的方式（申命记生命读经，八八页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">第二，……神保守祂子民在一里的路，乃是有一个立祂名，就是那独一之名的地方。……今天基督徒只该聚集到一个独一的名里，就是主耶稣的名里（太十八20）。然而，基督徒习惯于聚集到别的名里，就如浸信会、长老会、圣公会、路德会、循理会。</p>
+                
+                <p class="content-text">按照申命记十二章的预表，聚集到主独一的名以外的名里，乃是严肃的事。我们的敬拜若有别的名，是可憎的；这是属灵的淫乱。我们是基督的配偶，祂的妻子。我们既是祂的配偶，就不该在祂的名以外有别的名。……妻子如何该冠夫姓，不可冠任何别人的姓；照样，我们在基督里的信徒，也只该冠基督的名字，而不可冠任何别的名字。</p>
+                
+                <p class="content-text">第三，申命记十二章和新约都启示，神所选择要我们敬拜祂的地方，乃是祂居所的地方。……按照以弗所二章二十二节，神的住处，神的居所，乃是在我们的灵里。……我们若在基督的名下聚在一起，却没有操练我们的灵，反而留在天然的心思里，或者甚至留在肉体里，我们就不是在神的居所里。我们聚集在一起，要借着享受基督来敬拜神，就必须聚集到基督的名里，也必须在灵里。不然，我们就会失去召会的正确立场。</p>
+                
+                <p class="content-text">在有关敬拜神的一切事上，我们都必须操练我们的灵。当我们歌唱，我们该用灵唱；当我们赞美，我们该用灵赞美；当我们说话，我们该用灵说。我们若这样作，聚会就要在神的居所中。</p>
+                
+                <p class="content-text">第四，在申命记十二章和新约里都有祭坛，就是十字架。……保罗在林前二章二节指明这事的重要：“我曾定了主意，在你们中间不知道别的，只知道耶稣基督，并这位钉十字架的。”</p>
+                
+                <p class="content-text">召会的入口乃是十字架，凡要进到召会里的人，都必须经历十字架并且被钉死。经历十字架就是你这个人被摆在一边、被废除、被减为无有。召会中只该有基督，不该有我们。我们该在哪里？我们该在十字架上。这就是说，我们不该将任何属于旧人、肉体、己或天然生命的东西带进召会。我们在十字架上时，就真是在灵里了。</p>
+                
+                <p class="content-text">我们预备来聚会时，可以祷告说，“主，我若仍然有肉体、己和天然生命，求你赦免我，并且除去这些东西。主，我需要被除去，然后被你自己所膏抹。”我们若都是这样来聚会，就是在基督的名里聚会，在神的居所里聚会，并且在十字架的应用下聚会（申命记生命读经，八八至九一页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day2-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day2-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　我们在耶稣的患难里一同有分：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day2-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day2-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　“在耶稣里”的意思是，当我们凭内住之耶稣的灵，就是一个有充足力量忍受患难之人的灵，跟随拿撒勒人耶稣时，我们就会受苦并遭逼迫—徒十六6~7。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三-1" style="display: none;" onclick="toggleScripture('scripture-day2-三-1')">
+            
+            
+            <div class="verse-line">徒16:6	圣灵既然禁止他们在亚西亚讲道，他们就经过弗吕家和加拉太地区。</div>
+            
+            
+            
+            <div class="verse-line">徒16:7	到了每西亚的边界，他们试着要往庇推尼去，耶稣的灵却不许，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　今天我们受苦时，主耶稣在我们里面并同着我们受苦—九4~5，来十三13。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三-2" style="display: none;" onclick="toggleScripture('scripture-day2-三-2')">
+            
+            
+            <div class="verse-line">徒9:4	他就仆倒在地，听见有声音对他说，扫罗，扫罗，你为什么逼迫我？</div>
+            
+            
+            
+            <div class="verse-line">徒9:5	他说，主啊，你是谁？主说，我就是你所逼迫的耶稣。</div>
+            
+            
+            
+            <div class="verse-line">来13:13	这样，我们也当出到营外就了祂去，忍受祂所受的凌辱。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-三-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　我们进入国度，要经历许多患难—徒十四22。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三-3" style="display: none;" onclick="toggleScripture('scripture-day2-三-3')">
+            
+            
+            <div class="verse-line">徒14:22	坚固门徒的魂，劝勉他们恒守信仰，又说，我们进入神的国，必须经历许多患难。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-三-4" data-level="2">
+    <div class="outline-item level-3">
+        
+        4　借着基督复活的大能，我们能有分于祂的受苦，并过钉十字架的生活，模成祂的死—腓三10，西一24，歌二8~9、14。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三-4" style="display: none;" onclick="toggleScripture('scripture-day2-三-4')">
+            
+            
+            <div class="verse-line">腓3:10	使我认识基督、并祂复活的大能、以及同祂受苦的交通，模成祂的死，</div>
+            
+            
+            
+            <div class="verse-line">西1:24	现在我因着为你们所受的苦难喜乐，并且为基督的身体，就是为召会，在我一面，在我肉身上补满基督患难的缺欠；</div>
+            
+            
+            
+            <div class="verse-line">歌2:8	听啊，是我良人的声音；看哪，他蹿山越岭而来。</div>
+            
+            
+            
+            <div class="verse-line">歌2:9	我的良人好像羚羊，或像小牡鹿。他站在我们墙壁后，从窗户往里观看，从窗棂往里探视。</div>
+            
+            
+            
+            <div class="verse-line">歌2:14	我的鸽子啊，你在磐石穴中，在陡岩的隐密处，求你让我得见你的面貌，得听你的声音；因为你的声音甘甜，你的面貌秀美。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-三-5" data-level="2">
+    <div class="outline-item level-3">
+        
+        5　我们应当虽至于死，也不爱自己的魂生命，并且也当为弟兄舍命—启十二11，约壹三16。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三-5')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三-5" style="display: none;" onclick="toggleScripture('scripture-day2-三-5')">
+            
+            
+            <div class="verse-line">启12:11	弟兄们胜过他，是因羔羊的血，并因自己所见证的话，他们虽至于死，也不爱自己的魂生命。</div>
+            
+            
+            
+            <div class="verse-line">约壹3:16	主为我们舍命，在此我们就知道何为爱；我们也当为弟兄舍命。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day2-四')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        四　我们在耶稣的国度里一同有分：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day2-四" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day2-四-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　国度就是召会生活，忠信的信徒在其中生活，使他们在生命上长大，并在生命上变化—太十六18~19，罗十四17，林前三7，林后三18。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-四-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-四-1" style="display: none;" onclick="toggleScripture('scripture-day2-四-1')">
+            
+            
+            <div class="verse-line">太16:18	我还告诉你，你是彼得，我要把我的召会建造在这磐石上，阴间的门不能胜过她。</div>
+            
+            
+            
+            <div class="verse-line">太16:19	我要把诸天之国的钥匙给你，凡你在地上捆绑的，必是在诸天之上已经捆绑的；凡你在地上释放的，必是在诸天之上已经释放的。</div>
+            
+            
+            
+            <div class="verse-line">罗14:17	因为神的国不在于吃喝，乃在于公义、和平、并圣灵中的喜乐。</div>
+            
+            
+            
+            <div class="verse-line">林前3:7	可见栽种的算不得什么，浇灌的也算不得什么，只在那叫他生长的神。</div>
+            
+            
+            
+            <div class="verse-line">林后3:18	但我们众人既然以没有帕子遮蔽的脸，好像镜子观看并返照主的荣光，就渐渐变化成为与祂同样的形像，从荣耀到荣耀，乃是从主灵变化成的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-四-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　我们要实行国度的生活，就必须同那清心呼求主的人，追求公义、信、爱、和平—提后二22。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-四-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-四-2" style="display: none;" onclick="toggleScripture('scripture-day2-四-2')">
+            
+            
+            <div class="verse-line">提后2:22	你要逃避青年人的私欲，同那清心呼求主的人，竭力追求公义、信、爱、和平。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-四-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　我们要实行国度的生活，就必须顾到犯罪的弟兄，好挽回他们—太十八15~22；约壹五16。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day2-五')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        五　我们在耶稣的忍耐里一同有分：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day2-五" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day2-五-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　我们必须抗拒撒但折磨人的策略—但七25。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-五-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-五-1" style="display: none;" onclick="toggleScripture('scripture-day2-五-1')">
+            
+            
+            <div class="verse-line">但7:25	他必向至高者说顶撞的话，并折磨至高者的圣民；他想要改变节期和律法；圣民必交付在他手中一年、二年、半年。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-五-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　当我们住在基督里面，我们就遵守祂忍耐的话，而有忍耐以忍受苦难和反对—启三10。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-五-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-五-2" style="display: none;" onclick="toggleScripture('scripture-day2-五-2')">
+            
+            
+            <div class="verse-line">启3:10	你既遵守我忍耐的话，我也必保守你免去那将要临到普天下，试炼一切住在地上之人试炼的时候。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day2-五-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　我们能以我们所享受并经历之基督的忍耐来忍耐—帖后三5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-五-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-五-3" style="display: none;" onclick="toggleScripture('scripture-day2-五-3')">
+            
+            
+            <div class="verse-line">帖后3:5	愿主修直你们心中的途径，引导你们的心，进入神的爱以爱神，并进入基督的忍耐以忍耐。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启一9　	我约翰，就是你们的弟兄，和你们在耶稣的患难、国度、忍耐里一同有分的，为神的话和耶稣的见证，曾在那名叫拔摩的海岛上。</div>
+                
+                <div class="feeding-scripture">徒十四22	……我们进入神的国，必须经历许多患难。</div>
+                
+                
+                
+                <p class="content-text">“在耶稣里”是形容患难、国度和忍耐〔启一9〕；我们要特别注意这辞。……按照〔主〕一生经过的事实，祂的名字耶稣，就指明祂是多受痛苦、常经忧患的人（赛五三3）。……〔我们〕若说我们是有分于“在耶稣里”的患难、国度和忍耐，意思就是我们跟从拿撒勒人耶稣时，我们是在受苦，在受逼迫。……启示录是为着那些“在耶稣里”受患难之苦的人。这就是说，那些等候主耶稣回来的人，必定是那些在耶稣里受患难之苦的人（启示录生命读经，七四至七五页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">因为我们不肯和宗教合作，所以宗教就逼迫我们。今天我们所受的逼迫，乃是在耶稣里的逼迫。祂现今是和祂的跟随者一同忍受逼迫（徒九4~5）。……当大数的扫罗到大马色去，要捉拿那些呼求耶稣之名的人时，在途中主耶稣把他打倒在地上，说，“扫罗，扫罗，你为什么逼迫我？”（4）扫罗说，“主啊，你是谁？”耶稣回答说，“我就是你所逼迫的耶稣。”（5）……主耶稣认为扫罗是在逼迫祂，因为在那时，祂是在司提反、彼得、约翰以及祂所有别的肢体里面，与他们是一。今天也是一样，当热心宗教的人逼迫我们时，他们实际上是在逼迫耶稣，因为耶稣是在我们里面，并与我们是一。……我们是在耶稣的患难里一同有分。</p>
+                
+                <p class="content-text">我们若在耶稣的患难里一同有分，也就在国度里一同有分。有分于在耶稣里的逼迫，就是有分于国度。……正确地说来，召会就是国度〔参太十六18~19〕。罗马十四章十七节也证明，我们在召会里，就是在国度里。所以正确的召会生活就是国度生活。……神圣的生命把我们带进神圣的国里。约翰三章五节所说，我们重生进去的国度，就是约翰在启示录一章九节所说的那个国度。……我们重生进到国度里之后，应当一直留在里面。……你若留在国度里，生活在其中，就绝不会与丈夫、妻子或别人吵架了。就是仇敌挑拨你争吵，属天国度的管治也会约束你。</p>
+                
+                <p class="content-text">约翰在启示录一章九节还说，他是在耶稣的忍耐里一同有分的。为着患难和国度，我们需要忍耐。好多圣徒，连我们在主恢复里的人在内，都缺少忍耐。有人从他们的亲戚、朋友、邻居那里遭受逼迫，但最终他们的忍耐用尽了。他们只能抵挡逼迫一段时间，但因缺少忍耐，不能支持长久。主耶稣在地上的时候，忍受了逼迫（来十二2~3），今天仍在忍受人的反对和凌辱。</p>
+                
+                <p class="content-text">我们住在基督里，就有分于祂的忍耐，且有忍耐以忍受痛苦和反对。连主的话也称为忍耐的话（启三10）。今天全世界都在反对祂，拒绝祂，但祂并不反击，只单单地忍受。我们现在与祂交通，并住在祂里面，我们就有分于祂的忍耐。我们是跟随祂的人，就当存心忍耐，跟着祂走同一个路径（来十二1）。这样，我们也能忍受逼迫、谣言、拒绝、反对。这是强有力的证明，我们乃是等候主回来的人（启示录生命读经，七八、八○至八二、八四至八五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day3-贰" data-level="1">
+    <div class="outline-item level-1">
+        
+        贰　人子基督是大祭司，“身穿长袍，直垂到脚，胸间束着金带”（启一13），在祂的人性里顾惜众召会，并在祂的神性里喂养众召会：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　人子是在祂的人性里，金带表征祂的神性，胸是爱的表号：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-一" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-一-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　基督原来是腰间束带，为着神圣的工作得加力（出二八4，但十5），以产生众召会，但如今祂在胸间束带，借着祂的爱照顾祂所产生的众召会。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-一-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-一-1" style="display: none;" onclick="toggleScripture('scripture-day3-一-1')">
+            
+            
+            <div class="verse-line">出28:4	他们要作这些衣服：胸牌、以弗得、外袍、编织的内袍、顶冠、腰带；要为你哥哥亚伦和他儿子们作这圣衣，使他们可以作祭司事奉我。</div>
+            
+            
+            
+            <div class="verse-line">但10:5	举目观看，见有一人身穿细麻衣，腰束乌法精金带。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-一-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　金带表征基督的神性作祂神圣的力量，胸表征这金的力量是由祂的爱并凭祂的爱来运用并推动的，好喂养众召会。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　基督作为人子，在祂的人性里照顾众召会，以顾惜众召会—启一13上：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-二" style="display: none;" onclick="toggleScripture('scripture-day3-二')">
+            
+            
+            <div class="verse-line">启1:13上	灯台中间，有一位好像人子，……</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-二" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-二-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-二-1')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        1　祂收拾灯台的灯，使灯正确合宜，就是在顾惜我们，使我们快乐、愉快、舒适—出三十7，参诗四二5、11：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-二-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-二-1" style="display: none;" onclick="toggleScripture('scripture-day3-二-1')">
+            
+            
+            <div class="verse-line">出30:7	亚伦要在坛上烧馨香的香；每早晨他收拾灯的时候，要烧这香。</div>
+            
+            
+            
+            <div class="verse-line">诗42:5	我的魂哪，你为何忧闷？为何在我里面烦躁？应当仰望神；因祂的脸是我的救恩，我还要赞美祂。</div>
+            
+            
+            
+            <div class="verse-line">诗42:11	我的魂哪，你为何忧闷？为何在我里面烦躁？应当仰望神；因我还要赞美祂，祂是我脸上的救恩，是我的神。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-二-1" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-二-1-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　主的同在带来一种柔细、温暖的气氛，顾惜我们的全人，给我们安息、安慰、医治、洁净和鼓励。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-二-1-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　我们在召会里能享受主同在的顾惜气氛，以得着生命的滋养供应—弗五29，参提前四6，弗四11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-二-1-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-二-1-b" style="display: none;" onclick="toggleScripture('scripture-day3-二-1-b')">
+            
+            
+            <div class="verse-line">弗5:29	从来没有人恨恶自己的身体，总是保养顾惜，正像基督待召会一样，</div>
+            
+            
+            
+            <div class="verse-line">提前4:6	你将这些事提醒弟兄们，便是基督耶稣的好执事，在信仰的话，并你向来所紧紧跟随善美教训的话上，得了喂养。</div>
+            
+            
+            
+            <div class="verse-line">弗4:11	祂所赐的，有些是使徒，有些是申言者，有些是传福音者，有些是牧人和教师，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-二-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day3-二-2')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        2　祂修剪灯台的灯芯，把一切拦阻我们照耀的消极事物剪除—出二五38：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-二-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-二-2" style="display: none;" onclick="toggleScripture('scripture-day3-二-2')">
+            
+            
+            <div class="verse-line">出25:38	灯台的灯剪和灯花盘，也是要纯金的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day3-二-2" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-day3-二-2-a" data-level="3">
+    <div class="outline-item level-4">
+        
+        a　灯芯烧焦的部分，灯花，表征那些不照着神定旨、必须被剪除的事物，就如我们的肉体、天然的人、己和旧造。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day3-二-2-b" data-level="3">
+    <div class="outline-item level-4">
+        
+        b　祂把众召会中间一切的不同（过错、短处、失败、缺点）修剪掉，使众召会在素质、样子和彰显上相同—参林前一10，林后十二18，腓二2。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-二-2-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-二-2-b" style="display: none;" onclick="toggleScripture('scripture-day3-二-2-b')">
+            
+            
+            <div class="verse-line">林前1:10	弟兄们，我借我们主耶稣基督的名，恳求你们都说一样的话，你们中间也不可有分裂，只要在一样的心思和一样的意见里，彼此和谐。</div>
+            
+            
+            
+            <div class="verse-line">林后12:18	我劝了提多，又差了那位弟兄同去。提多占过你们的便宜么？我们行事，不是在同一的灵里么？不是在同一的脚踪里么？</div>
+            
+            
+            
+            <div class="verse-line">腓2:2	你们就要使我的喜乐满足，就是要思念相同的事，有相同的爱，魂里联结，思念同一件事，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启一13	灯台中间，有一位好像人子，身穿长袍，直垂到脚，胸间束着金带。</div>
+                
+                <div class="feeding-scripture">弗五29	从来没有人恨恶自己的身体，总是保养顾惜，正像基督待召会一样。</div>
+                
+                
+                
+                <p class="content-text">顾惜人就是使人觉得快乐、舒适；喂养人是供应人，给他们东西吃。……基督这位人子作大祭司，照顾作为灯台的众召会（启一12~13）。一面，祂在人性里顾惜众召会；另一面，祂在神性里喂养众召会。……当我们探访人，邀请他们到我们家，或在聚会前、后接触人的时候，我们必须与基督是一，来顾惜并喂养他们（李常受文集一九九四至一九九七年第五册，二○五页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">基督是顾惜和喂养最好的模型。……基督作为人子，身穿长袍，照顾灯台。这长袍乃是祭司袍（出二八33~35），这给我们看见，基督是我们尊大的大祭司。</p>
+                
+                <p class="content-text">祂也胸间束着金带〔胸是爱的表号〕。……金带是一片金子，成了束身的带子。人子是在祂的人性里，金带表征祂的神性。</p>
+                
+                <p class="content-text">旧约的祭司在供职时，腰间束带（出二八4）。在但以理十章五节，基督也是腰束精金带。腰间束带是为着作工得加力。基督已经完成产生众召会的神圣工作。如今祂正在凭爱照顾祂所产生的众召会。……如今祂照顾众召会，不是在腰间束带，乃是在表征爱的胸间束带。我盼望大家都看见，这些日子，甚至在我们中间，基督乃是在胸间束着金带。</p>
+                
+                <p class="content-text">基督在祂神性里的总和，成了一条带子。金带表征基督的神性成了祂的力量，而胸表征这金的力量是由祂的爱所运行、所推动。祂神圣的力量是由祂的爱并凭祂的爱来运用并推动的，好喂养祂的众召会。</p>
+                
+                <p class="content-text">基督作为“人子”，在祂的人性里照顾作为灯台的众召会，以顾惜众召会（启一13上）。基督作我们的大祭司，照顾祂所建立的众召会，首先是在祂的人性里，顾惜众召会，使众召会快乐、愉悦和舒适。</p>
+                
+                <p class="content-text">在旧约里，大祭司每天早晨收拾灯台的灯（出三十7）。收拾灯就是使灯的情形正确合宜。……基督借着修剪灯台的灯芯，来照顾灯台，正如在旧约里祭司照着预表所作的一样（出二五38）。灯芯烧过以后，就变焦发黑，所以祭司必须来把灯芯焦黑的部分剪掉。……灯芯烧焦的部分，表征那些不照着神定旨的东西，需要剪除；这些东西就如我们的肉体、天然的人、己和旧造。所有的灯台都是生机的，是活的灯台。因为每一个召会都是活的灯台，所以每个召会都很有感觉。一个召会若有了烧焦的灯芯，必会觉得不舒适。</p>
+                
+                <p class="content-text">我感谢主，今天在祂的恢复里，祂乃是在人性里的大祭司。……我们并非有一位不能同情我们软弱的大祭司，祂乃是在各方面受过试诱，与我们一样，只是没有罪（来四15）。我们的基督与我们是一样的。……祂在人性里总是同情我们的软弱。祂是在人性里的大祭司，借着一直顾惜我们，来照顾我们（李常受文集一九九四至一九九七年第五册，二○九至二一一页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day4-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-day4-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　基督在神性里以祂胸间金带所表征的神圣之爱照顾众召会，以喂养众召会—启一13下：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-三" style="display: none;" onclick="toggleScripture('scripture-day4-三')">
+            
+            
+            <div class="verse-line">启1:13下	……身穿长袍，直垂到脚，胸间束着金带。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-day4-三" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-day4-三-1" data-level="2">
+    <div class="outline-item level-3">
+        
+        1　祂在祂三个时期的丰满职事中，以祂自己这包罗万有的基督来喂养我们，使我们在神圣的生命中长大成熟，成为祂的得胜者，以完成祂永远的经纶。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-三-2" data-level="2">
+    <div class="outline-item level-3">
+        
+        2　作为行走的基督，祂知道每一个召会的情形；作为说话的灵，祂修剪灯台，并且用新油，就是那灵的供应，充满灯台—二1、7。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-三-2" style="display: none;" onclick="toggleScripture('scripture-day4-三-2')">
+            
+            
+            <div class="verse-line">启2:1	你要写信给在以弗所的召会的使者，说，那右手中握着七星，在七个金灯台中间行走的，这样说，</div>
+            
+            
+            
+            <div class="verse-line">启2:7	那灵向众召会所说的话，凡有耳的，就应当听。得胜的，我必将神乐园中生命树的果子赐给他吃。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-day4-三-3" data-level="2">
+    <div class="outline-item level-3">
+        
+        3　我们要有分于祂的行动，并享受祂的照顾，就必须在召会中。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启二1	……那右手中握着七星，在七个金灯台中间行走的，这样说。</div>
+                
+                <div class="feeding-scripture">7	那灵向众召会所说的话，凡有耳的，就应当听。得胜的，我必将神乐园中生命树的果子赐给他吃。</div>
+                
+                
+                
+                <p class="content-text">基督这位大祭司在祂的神性里以祂神圣的爱（由祂胸间的金带所表征），照顾作为灯台的众召会，以喂养众召会（启一13下）。基督不仅是属人的，也是神圣的。祂是人子带着金带，表征祂的神性作祂的神圣力量。祂的神性作神圣的力量，多方喂养众召会。</p>
+                
+                <p class="content-text">一面，祂修剪召会的灯芯，剪掉写给七个召会的七封书信中所提的一切过错、短处、失败和缺点。基督在人性里作了最好的修剪工作，来顾惜众召会。另一面，在这七封书信中，我们在每一封书信里都看见基督的喂养（李常受文集一九九四至一九九七年第五册，二一二页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">我们可以说，〔启示录二章七节〕是指国度时代的预言，得胜者要在国度时代里，在神的乐园中享受基督作生命树。但我们今天在召会生活中若不享受基督作生命树，我们必不会在国度时代有分于生命树。……如果我在这里不吃基督，我就无法在国度时代吃祂。</p>
+                
+                <p class="content-text">在第七封书信里，主劝在老底嘉的召会，要买金子、白衣和眼药，好救他们免于不冷不热的堕落光景（三18）。祂应许要与那些给祂开门的人一同坐席（20）。我们可以看见，这乃是基督在祂神性里的喂养，是由祂的爱并凭祂的爱所运行的。……祂在神性里喂养众召会，使众召会能在祂神圣的生命中长大成熟，而在祂七倍的加强里成为得胜者。</p>
+                
+                <p class="content-text">我们的基督今天是我们的大祭司。在祂的人性里，祂很容易同情我们的软弱。祂同情我们的软弱，因为祂在各方面受过试诱，与我们一样。祂乃是在人性里顾惜我们。同时，祂也在神性里，用启示录二至三章里写给七个召会的七封书信中所启示，祂人位里一切积极的方面，来喂养我们。……祂在人性里顾惜我们，使我们正确合宜，好叫我们快乐、愉快、舒适。祂在神性里喂养我们，使我们在神圣的生命中长大成熟，成为祂的得胜者，以完成祂永远的经纶（李常受文集一九九四至一九九七年第五册，二一二至二一五页）。</p>
+                
+                <p class="content-text">正如一个孩子因他母亲的同在得了顾惜，我们也因主的同在得了顾惜。……主的同在产生一种柔和温暖的气氛，顾惜我们全人。</p>
+                
+                <p class="content-text">在你家里的交通不论有多享受，那里的气氛都不像在〔召会〕聚会里那样能顾惜人。……主乃是借着祂覆翼的同在所产生的气氛，来顾惜召会。在这种空气、这种气氛、这种环境里，我们就得着安息、安慰、医治、洁净和鼓励。……为这缘故，我不愿意漏掉任何一次召会的聚会。</p>
+                
+                <p class="content-text">保养和顾惜是并行的。借着保养，我们在内里享受生命的供应；借着顾惜，我们在外面经历抚慰、安慰的空气。每当我们在顾惜的气氛里，我们就能吸收职事的每一句话。这指明在顾惜之下，我们得着保养（以弗所书生命读经，五四四至五四五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day5-叁" data-level="1">
+    <div class="outline-item level-1">
+        
+        叁　主属天的亘古常在，乃是由祂的头与发皆白，如白羊毛、如雪所描述—一14上，但七9，伯十五10，参歌五11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-叁')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-叁" style="display: none;" onclick="toggleScripture('scripture-day5-叁')">
+            
+            
+            <div class="verse-line">启1:14上	祂的头与发皆白，如白羊毛、如雪，……</div>
+            
+            
+            
+            <div class="verse-line">但7:9	我观看，见有些宝座设立，那亘古常在者坐下了。祂的衣服洁白如雪，头发如纯净的羊毛；祂的宝座乃是火焰，其轮乃是烈火。</div>
+            
+            
+            
+            <div class="verse-line">伯15:10	我们中间有白发的，也有年纪老迈的，岁数比你父亲还大。</div>
+            
+            
+            
+            <div class="verse-line">歌5:11	他的头像至精的金子；他的头发鬈曲，黑如乌鸦。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-肆" data-level="1">
+    <div class="outline-item level-1">
+        
+        肆　主的七眼如同火焰，是为着注视、鉴察、搜寻、借光照而审判以及传输—启一14下，五6，但十6：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-肆')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-肆" style="display: none;" onclick="toggleScripture('scripture-day5-肆')">
+            
+            
+            <div class="verse-line">启1:14下	……眼目如同火焰，</div>
+            
+            
+            
+            <div class="verse-line">启5:6	我又看见宝座与四活物中间，并众长老中间，有羔羊站立，像是刚被杀过的，有七角和七眼，就是神的七灵，奉差遣往全地去的。</div>
+            
+            
+            
+            <div class="verse-line">但10:6	祂身体如水苍玉，面貌如闪电，眼目如火把，手和脚如闪耀发亮的铜，说话的声音如大众的声音。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　基督的眼目是为着神在地上的行动与工作，因为七是神行动中完整的数字。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　主的眼目如同火焰，主要的是为着祂的审判—七9~10，启二18，十九11~12。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-二" style="display: none;" onclick="toggleScripture('scripture-day5-二')">
+            
+            
+            <div class="verse-line">但7:9	我观看，见有些宝座设立，那亘古常在者坐下了。祂的衣服洁白如雪，头发如纯净的羊毛；祂的宝座乃是火焰，其轮乃是烈火。</div>
+            
+            
+            
+            <div class="verse-line">但7:10	从祂面前有火河流出。事奉祂的有千千，侍立在祂面前的有万万。审判者已经坐庭，案卷都展开了。</div>
+            
+            
+            
+            <div class="verse-line">启2:18	你要写信给在推雅推喇的召会的使者，说，那眼目如火焰，脚像明亮之铜的神之子，这样说，</div>
+            
+            
+            
+            <div class="verse-line">启19:11	我看见天开了，并且看哪，有一匹白马，骑在马上的，称为忠信真实，祂审判、争战都凭着公义。</div>
+            
+            
+            
+            <div class="verse-line">启19:12	祂的眼睛如火焰，头上戴着许多冠冕，又有写着的名字，除了祂自己没有人晓得。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-伍" data-level="1">
+    <div class="outline-item level-1">
+        
+        伍　主的脚好像在炉中锻炼过明亮的铜，表征祂完全且明亮的行事为人，使祂够资格施行神圣的审判—一15上，结一7，但十6。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-伍')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-伍" style="display: none;" onclick="toggleScripture('scripture-day5-伍')">
+            
+            
+            <div class="verse-line">启1:15上	脚好像在炉中锻炼过明亮的铜，……</div>
+            
+            
+            
+            <div class="verse-line">结1:7	他们的腿是直的，脚掌好像牛犊之蹄，都灿烂如明亮的铜。</div>
+            
+            
+            
+            <div class="verse-line">但10:6	祂身体如水苍玉，面貌如闪电，眼目如火把，手和脚如闪耀发亮的铜，说话的声音如大众的声音。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-陆" data-level="1">
+    <div class="outline-item level-1">
+        
+        陆　主的声音如同众水的声音（启一15下，参十四2），这是一种哄嚷的声音，乃是全能神的声音（结一24，四三2），既严肃又庄重（参启十3）。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-陆')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-陆" style="display: none;" onclick="toggleScripture('scripture-day5-陆')">
+            
+            
+            <div class="verse-line">启1:15下	……声音如同众水的声音。</div>
+            
+            
+            
+            <div class="verse-line">启14:2	我听见从天上有声音，像众水的声音，又像大雷的声音，并且我所听见的，好像弹琴的所弹的琴声。</div>
+            
+            
+            
+            <div class="verse-line">结1:24	活物行走的时候，我听见翅膀的响声，像大水的声音，像全能者的声音；是哄嚷的声音，像军队的声音。活物站住的时候，便将翅膀垂下。</div>
+            
+            
+            
+            <div class="verse-line">结43:2	以色列神的荣光从东方的路而来，祂的声音如同多水的声音，地就因祂的荣耀发光。</div>
+            
+            
+            
+            <div class="verse-line">启10:3	大声呼喊，好像狮子吼叫，呼喊完了，就有七雷发声说话。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启一14~15	祂的头与发皆白，如白羊毛、如雪，眼目如同火焰，脚好像在炉中锻炼过明亮的铜，声音如同众水的声音。</div>
+                
+                
+                
+                <p class="content-text">雅歌五章十一节描述祂的头发是黑的，表征祂那永不衰残、永远长存的力量，但〔启示录一章十四节〕这里所描绘基督的白发，是指明祂的亘古常在〔参伯十五10〕。</p>
+                
+                <p class="content-text">我们在〔启示录〕一章看见祂的头与发都是白的，好像白羊毛和雪一样。白羊毛是出于生命的性质，白雪是从天降下的。……白羊毛是基督性情的颜色。祂的古是出自祂的性情。雪之所以白，是因从天而来，没有属地的污秽或玷污。因此，在十四节和但以理七章九节的白羊毛，表征基督的亘古常在，乃是出于祂的性质，并非年纪老迈；白雪表征祂的亘古常在是属天的，不是属地的（启示录生命读经，一二三页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">在雅歌五章十二节，基督的眼好像鸽子，为了表露祂的爱。在〔启示录一章十四节〕，“祂的……眼目如同火焰”，这是为着祂来鉴察并搜寻，使祂借着光照施行审判。……祂的眼不是两个，乃是七个（五6）；七是神行动中完整的数字。因此，在启示录祂的眼是为着神的工作。祂这七眼是“七盏火灯在宝座前点着，这七灯就是神的七灵”（四5，参但十6）。点着的火等于火焰，是为着鉴察并搜寻。神的七灵奉差遣往全地去（启五6），也是为着神在地上的行动。因此在启示录中，基督的眼就是神的七灵，为着神今天在地上的行动与工作。</p>
+                
+                <p class="content-text">基督的眼睛是为着注视、鉴察、搜寻、借光照而审判以及传输。我们必须经历祂眼睛各面的功用，特别是传输这一面。祂的眼睛把祂一切的所是灌注到我们里面。……自从我们得救的那天，基督的眼睛就像烧着的火一样，光照并灌注我们。祂的眼睛也挑旺我们，使我们火热。……许多时候，主是以刺透人的眼睛临到我们。也许你要将某些事情对你的妻子隐瞒，这时候主发光的七眼就临到你，戳穿你的全人，暴露你真实的情形。我有过几百次这样的经历。当我正与别人争论，特别与我亲近的人争论时，主那发光的眼就临到我，叫我说不下去。祂的光照打住了我的说话。</p>
+                
+                <p class="content-text">启示录是一卷带有审判性质的书。火是为着神圣的审判（林前三13，来六8，十27）。“我们的神乃是烈火”（十二29）；祂的宝座乃是火焰，其轮乃是烈火，从祂面前有火河流出（但七9~10），这一切都是为着审判。主的眼目如同火焰，主要的是为着祂的审判（启二18~23，十九11~12）。</p>
+                
+                <p class="content-text">铜在象征上，表征神圣的审判（出二七1~6）。基督在地上的时候，祂属地的行动和每天的生活，都受过试炼并试验。因着祂的行事为人都经过试验，所以能发光。现在基督的脚好像明亮的铜，就如以西结一章七节和但以理十章六节也说到的，表征祂完全且明亮的行事为人，使祂够资格施行神圣的审判。……当主来借着审判据有这地时，祂的两脚要像火柱（启十1）。</p>
+                
+                <p class="content-text">祂的“声音如同众水的声音”〔一15〕，……这是一种哄嚷的声音，乃是全能神的声音（结一24，四三2）。这表征神的说话既严肃又庄重（参启十3）。有时候主的声音很温柔，但有的时候祂的声音却像雷轰一样震撼我们。……祂的声音，就是全能之神的声音，警告并唤醒我们（启示录生命读经，一二三至一二六页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day6-柒" data-level="1">
+    <div class="outline-item level-1">
+        
+        柒　基督是握着众召会光明使者的那一位—一16上、20：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-柒')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-柒" style="display: none;" onclick="toggleScripture('scripture-day6-柒')">
+            
+            
+            <div class="verse-line">启1:16上	祂右手中拿着七星，……</div>
+            
+            
+            
+            <div class="verse-line">启1:20	论到你所看见在我右手中的七星，和七个金灯台的奥秘，那七星就是七个召会的使者，七灯台就是七个召会。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　使者是众召会中属灵的人，担负着耶稣的见证的责任。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　使者像星一样，有属天的性质，并在属天的地位上，他们有从主来新鲜的信息，给祂的子民—二1上。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-二" style="display: none;" onclick="toggleScripture('scripture-day6-二')">
+            
+            
+            <div class="verse-line">启2:1上	你要写信给在以弗所的召会的使者，说，那右手中握着七星，在七个金灯台中间行走的，……</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　领头的人既然都在祂的右手中，就无须退缩；基督的确为着祂的见证担负责任。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-捌" data-level="1">
+    <div class="outline-item level-1">
+        
+        捌　从基督口中出来一把两刃的利剑，就是祂那辨明、审判、击杀的话，为着对付消极的人事物—一16中，来四12，弗六17。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-捌')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-捌" style="display: none;" onclick="toggleScripture('scripture-day6-捌')">
+            
+            
+            <div class="verse-line">启1:16中	……从祂口中出来一把两刃的利剑，……</div>
+            
+            
+            
+            <div class="verse-line">来4:12	因为神的话是活的，是有功效的，比一切两刃的剑更锋利，能以刺入、甚至剖开魂与灵，骨节与骨髓，连心中的思念和主意都能辨明。</div>
+            
+            
+            
+            <div class="verse-line">弗6:17	还要借着各样的祷告和祈求，接受救恩的头盔，并那灵的剑，那灵就是神的话；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-玖" data-level="1">
+    <div class="outline-item level-1">
+        
+        玖　基督的面貌如同烈日中天发光（但十6），为着审判的光照，以带进国度（启一16下，十1，太十七2，参玛四2，士五31，太十三43）。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-玖')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-玖" style="display: none;" onclick="toggleScripture('scripture-day6-玖')">
+            
+            
+            <div class="verse-line">但10:6	祂身体如水苍玉，面貌如闪电，眼目如火把，手和脚如闪耀发亮的铜，说话的声音如大众的声音。</div>
+            
+            
+            
+            <div class="verse-line">启1:16下	……面貌如同烈日中天发光。</div>
+            
+            
+            
+            <div class="verse-line">启10:1	我又看见另一位大力的天使，从天降下，披着云彩，头上有虹，脸面像日头，两脚像火柱，</div>
+            
+            
+            
+            <div class="verse-line">太17:2	就在他们面前变了形像，脸面发光如日头，衣服变白如光。</div>
+            
+            
+            
+            <div class="verse-line">玛4:2	但向你们敬畏我名的人，必有公义的日头升起，其翅膀有医治之能；你们必如圈里的肥牛犊出来跳跃。</div>
+            
+            
+            
+            <div class="verse-line">士5:31	耶和华啊，愿你的仇敌都这样灭亡。愿爱你的人如日头出现，光辉烈烈。这样，那地太平四十年。</div>
+            
+            
+            
+            <div class="verse-line">太13:43	那时，义人在他们父的国里，要发光如同太阳。有耳可听的，就应当听。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-拾" data-level="1">
+    <div class="outline-item level-1">
+        
+        拾　基督是首先的，也是末后的，这向我们保证，祂永不会叫祂的工作半途而废；基督也是那活着的，使祂的身体所显出来的众召会也成为活而新鲜并刚强的—启一17~18上。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-拾')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-拾" style="display: none;" onclick="toggleScripture('scripture-day6-拾')">
+            
+            
+            <div class="verse-line">启1:17	我一看见，就仆倒在祂脚前，像死了一样。祂用右手按着我说，不要惧怕；我是首先的，我是末后的，</div>
+            
+            
+            
+            <div class="verse-line">启1:18上	又是那活着的；……</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　死是聚拢者，阴间是守留者，但基督在十字架上已经废掉了死，又在复活里胜过了阴间—提后一10，徒二24。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-一" style="display: none;" onclick="toggleScripture('scripture-day6-一')">
+            
+            
+            <div class="verse-line">提后1:10	但如今借着我们救主基督耶稣的显现，才显明出来。祂已经把死废掉，借着福音将生命和不朽坏照耀出来；</div>
+            
+            
+            
+            <div class="verse-line">徒2:24	神却将死的痛苦解除，叫祂复活了，因为祂不能被死拘禁。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　只要我们借着操练否认己、背起十字架并丧失魂生命，而让主有地位、机会和通路在我们中间运行并作工，死亡和阴间就会在祂的控制之下—太十六18、21~26。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-二" style="display: none;" onclick="toggleScripture('scripture-day6-二')">
+            
+            
+            <div class="verse-line">太16:18	我还告诉你，你是彼得，我要把我的召会建造在这磐石上，阴间的门不能胜过她。</div>
+            
+            
+            
+            <div class="verse-line">太16:21	从那时候，耶稣才指示祂的门徒，祂必须往耶路撒冷去，受长老、祭司长和经学家许多的苦，并且被杀，第三日复活。</div>
+            
+            
+            
+            <div class="verse-line">太16:22	彼得就拉祂到一边，责劝祂说，主啊，神眷怜你，这事绝不会临到你。</div>
+            
+            
+            
+            <div class="verse-line">太16:23	祂却转过来，对彼得说，撒但，退我后面去吧！你是绊跌我的，因为你不思念神的事，只思念人的事。</div>
+            
+            
+            
+            <div class="verse-line">太16:24	于是耶稣对门徒说，若有人要跟从我，就当否认己，背起他的十字架，并跟从我。</div>
+            
+            
+            
+            <div class="verse-line">太16:25	因为凡要救自己魂生命的，必丧失魂生命；凡为我丧失自己魂生命的，必得着魂生命。</div>
+            
+            
+            
+            <div class="verse-line">太16:26	人若赚得全世界，却赔上自己的魂生命，有什么益处？人还能拿什么换自己的魂生命？</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">启一16	祂右手中拿着七星，从祂口中出来一把两刃的利剑，面貌如同烈日中天发光。</div>
+                
+                <div class="feeding-scripture">来四12	因为神的话是活的，是有功效的，比一切两刃的剑更锋利，能以刺入、甚至剖开魂与灵，骨节与骨髓，连心中的思念和主意都能辨明。</div>
+                
+                
+                
+                <p class="content-text">启示录一章十六节说，“祂右手中拿着七星。”二十节清楚地说，“七星就是七个召会的使者。”使者是众召会中属灵的人，担负着“耶稣的见证”的责任。他们应当像星一样，有属天的性质，并在属天的地位上。</p>
+                
+                <p class="content-text">在召会堕落的黑夜里，需要集体的召会发光，也需要单个的使者发光。基督行走在众召会中间的时候，祂的右手握着这些领头的人。这是何等的安慰！召会中领头的人都当赞美祂，因为他们在主的手中，并且主也一直地握住他们。</p>
+                
+                <p class="content-text">在启示录里，没有提到召会里的长老，只有使者。写这卷书的时候，召会已经堕落了，因此在启示录里，主抛弃了所有的形式。作长老或许有点形式化，所以不要盼望作长老，要羡慕作发光的星（启示录生命读经，一二六至一二七页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">启示录一章十六节告诉我们，“从祂口中出来一把两刃的利剑。”……这就是祂那辨明、审判、击杀的话（来四12，弗六17）。恩言是为着供应恩典给祂所喜爱的人，两刃的利剑是为着对付消极的人事物。……要记得，今天说话的灵，就是这位口中出来一把两刃利剑的基督。这里是有审判的，我们都经历过这样的审判。……所有的基督徒，今天都需要主话的审判。许多时候，我们因着作错了事，离开了主，就经历到这样的审判。因着我们流荡离开了祂，祂就来审判我们。今天祂的说话，大都是一种审判。我能作见证，主若是对你说话，祂的话大部分是审判的话。祂说话时，就是在审判。今天在召会中，祂口中出来的每一句话，都像一把利刃，审判我们。从主口中所出来的话是锋利的，刺入我们这人，把我们的灵与魂分开，甚至辨明我们心中的意念。这就是我们今天在召会生活中所经历的基督。</p>
+                
+                <p class="content-text">我们是人，都有许多意见。但就如我们都能见证的，每次一个意见兴起时，那把剑就把它切成碎片。你越想你的意见，就越被切得粉碎。这不是道理，乃是我们的经历。每当两位弟兄快要打起来了，第三方，就是最强的一方就出现，用利剑把这两位弟兄的意见切除。……这位第三方就是人子基督，祂是那行走在众召会中间，并在爱里照顾众召会的大祭司。</p>
+                
+                <p class="content-text">启示录一章十六节也告诉我们，祂的“面貌如同烈日中天发光”。在雅歌五章十、十三节，祂的面貌可爱美丽，为给追求祂者欣赏；在书信里，祂的脸面返照神的荣耀（林后四6），为将生命分赐到祂的信徒里面；但在〔启示录〕，祂的面貌如同烈日中天发光，正如但以理十章六节所说的，这是为着审判的光照，以带进国度。祂变化形像，脸面发光如日头时，那就是祂在国度里的来临（太十六28~十七2）。当祂来为国度取得这地时，祂的脸面要像日头一样（启十1）（启示录生命读经，一二八至一三○页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能
+(function() {
+    const pagesContainer = document.querySelector('.pages-container');
+    if (!pagesContainer) return;
+    const totalPages = Number(pagesContainer.dataset.totalPages || 0);
+    if (totalPages === 0) return;
+
+    let currentPage = 0;
+    const pages = document.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+    
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+        
+        // 隐藏所有页面
+        pages.forEach((page, index) => {
+            page.classList.toggle('is-active', index === pageIndex);
+        });
+        
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        // 更新当前页
+        currentPage = pageIndex;
+        
+        // 更新导航按钮状态
+        dayLinks.forEach((link, index) => {
+            if (index === currentPage) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+        
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+        
+        // 仅在用户手动切换时滚动到顶部
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // 上一页
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+            showPage(currentPage - 1);
+        }
+    });
+    
+    // 下一页
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            showPage(currentPage + 1);
+        }
+    });
+    
+    // 导航按钮点击
+    dayLinks.forEach((link, index) => {
+        link.addEventListener('click', () => {
+            showPage(index);
+        });
+    });
+    
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            nextBtn.click();
+        }
+    });
+    
+    // 移动端滑动支持（优化版：支持速度判断和方向识别）
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let touchStartTime = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+        touchStartTime = Date.now();
+    }, { passive: true });
+    
+    document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const diffX = touchStartX - touchEndX;
+        const diffY = Math.abs(touchStartY - touchEndY);
+        const diffTime = Date.now() - touchStartTime;
+        const velocity = Math.abs(diffX) / diffTime; // px/ms
+        
+        // 动态阈值：快速滑动大幅降低距离要求
+        const baseThreshold = 40; // 基础阈值降低到40px
+        const velocityThreshold = 0.25; // 降低速度阈值，让更多滑动被判定为"快速"
+        const swipeThreshold = velocity > velocityThreshold ? 25 : baseThreshold;
+        
+        // 适度放宽垂直容忍度
+        const maxVerticalMove = 40; // 垂直移动可以到40px
+        const horizontalRatio = 2.0; // 水平是垂直的2倍即可
+        
+        // 综合判断：距离 + 速度 + 方向
+        if (Math.abs(diffX) > swipeThreshold && 
+            diffY < maxVerticalMove && 
+            Math.abs(diffX) > diffY * horizontalRatio) {
+            if (diffX > 0) {
+                // 向左滑动 - 下一页
+                nextBtn.click();
+            } else {
+                // 向右滑动 - 上一页
+                prevBtn.click();
+            }
+        }
+    }
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    // 初始加载时不滚动
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', function() {
+        initFromHash(false);
+    });
+    
+    // 初始化（不滚动）
+    initFromHash(true);
+})();
+
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page.is-active');
+            if (!activePage) return '';
+
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = getCleanText(item);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+<script src="js/outline.js"></script>
+
+<style>
+/* 纲目和内容样式 */
+.outline-section{margin:18px 0}
+.outline-section .scripture-content{cursor:pointer}
+.content-separator{height:1px;background:var(--border);margin:20px 0}
+.feeding-section,.reading-section{margin:20px 0}
+.feeding-section h4,.reading-section h4{font-size:1.05em;font-weight:600;color:var(--heading);margin:16px 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;text-align:center}
+.feeding-scripture{margin:10px 0;padding:10px 14px;background:var(--surface-alt);border-left:3px solid var(--brand);border-radius:6px;font-size:1.01em;color:var(--text);line-height:1.8;font-weight:550;text-align:justify;letter-spacing:0.1px}
+.prev-btn:active:not(:disabled),.next-btn:active:not(:disabled){background:var(--bg);color:#fff;border-color:rgba(102,126,234,.55)}
+.no-content{color:var(--text-muted);font-style:italic;text-align:center;padding:40px 20px}
+@media(min-width:768px){.feeding-section h4,.reading-section h4{font-size:1.08em}.feeding-scripture{font-size:1.05em;padding:12px 16px}}
+@media(max-width:768px){.day-navigation{gap:0}.page-controls{margin:20px 0 10px}.prev-btn,.next-btn{padding:8px 12px;font-size:14px}.btn-text{display:none}}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>202507 冬季训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>

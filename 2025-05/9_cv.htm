@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.2">
+    <title>第9篇 - 纲目</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+<style>
+/* 展开级别控制按钮 - 关键CSS放head避免FOUC */
+.outline-level-controls{display:flex;justify-content:center;gap:8px;margin:15px 0;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md)}
+.level-btn{min-width:60px;min-height:36px;padding:8px 14px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:14px;font-weight:600;color:var(--btn-secondary-text);cursor:pointer;transition:all 0.2s ease;box-shadow:var(--shadow-sm)}
+.level-btn.active{background:var(--bg);border-color:var(--brand);color:#fff;box-shadow:0 2px 6px rgba(102,126,234,0.3)}
+</style>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第9篇 实行父的旨意，使我们得以在“那日”，就是基督审判台的日子，进入父的国</h2>
+</div>
+
+        
+        <div class="content">
+            
+
+<div class="outline-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="9_cv.htm" class="nav-link active" title="纲目">纲目</a>
+    <a href="9_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="9_cx.htm" class="nav-link" title="晨兴">晨兴</a>
+    
+    
+    <a href="9_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+    <a href="9_zs.htm" class="nav-link" title="职事">职事</a>
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    
+    <div class="scripture-section">
+        <div class="scripture">读经：启四11，太七21~23，西一9</div>
+        
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;" onclick="toggleScripture('chapter-scripture')">
+            
+                
+                <div class="verse-line">启4:11	我们的主，我们的神，你是配得荣耀、尊贵、能力的，因为你创造了万有，并且万有是因你的旨意存在并被创造的。</div>
+                
+            
+                
+                <div class="verse-line">太7:21	不是每一个对我说，主啊，主啊的人，都能进诸天的国，唯独实行我诸天之上父旨意的人，才能进去。</div>
+                
+            
+                
+                <div class="verse-line">太7:22	当那日，许多人要对我说，主啊，主啊，我们不是在你的名里预言过，在你的名里赶鬼过，并在你的名里行过许多异能么？</div>
+                
+            
+                
+                <div class="verse-line">太7:23	那时，我要向他们宣告：我从来不认识你们，你们这些行不法的人，离开我去吧。</div>
+                
+            
+                
+                <div class="verse-line">西1:9	所以，我们自从听见的日子，也就为你们不住地祷告祈求，愿你们在一切属灵的智慧和悟性上，充分认识神的旨意，</div>
+                
+            
+        </div>
+        
+    </div>
+    
+    
+    <!-- 展开级别控制按钮 -->
+    <div class="outline-level-controls">
+        <button class="level-btn" onclick="expandToLevel(1)" title="只显示大纲（一级）">大纲</button>
+        <button class="level-btn" onclick="expandToLevel(2)" title="显示大纲和中纲（一二级）">大中纲</button>
+        <button class="level-btn active" onclick="expandToLevel(4)" title="显示全部内容">全部</button>
+    </div>
+    
+    <div class="outline-content">
+        
+
+
+
+<div class="section" id="section-壹" data-level="1">
+    <div class="outline-item level-1">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        壹　“我们的主，我们的神，你是配得荣耀、尊贵、能力的，因为你创造了万有，并且万有是因你的旨意存在并被创造的”—启四11：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-一" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-一')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        一　神是一位有定旨的神，有照着祂自己喜悦的旨意：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹-一" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-一-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　祂为着自己的旨意，创造了万有，好成就并完成祂的定旨。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-一-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　启示录这卷书揭示神宇宙的行政，给我们看见神的定旨。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-一-3" data-level="3">
+    <div class="outline-item level-3">
+        
+        3　当二十四位长老为着神的创造而赞美时，说出祂的创造与祂的旨意有关。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-二" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-二')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        二　神的意愿（旨意）乃是神的愿望；神的意愿是祂所想要作的—弗一9：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-二" style="display: none;" onclick="toggleScripture('scripture-壹-二')">
+            
+            
+            <div class="verse-line">弗1:9	照着祂的喜悦，使我们知道祂意愿的奥秘；这喜悦是祂在自己里面预先定下的，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹-二" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-二-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　神的喜悦是出于祂的意愿，并且具体表现在祂的意愿里，所以祂的意愿在先—5节。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-二-1" style="display: none;" onclick="toggleScripture('scripture-壹-二-1')">
+            
+            
+            <div class="verse-line">弗1:5	按着祂意愿所喜悦的，预定了我们，借着耶稣基督得儿子的名分，归于祂自己，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-二-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　神借着祂在基督里的启示，就是借着基督的成为肉体、钉十字架、复活并升天，使我们知道祂意愿的奥秘—9节，三9。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-二-2" style="display: none;" onclick="toggleScripture('scripture-壹-二-2')">
+            
+            
+            <div class="verse-line">弗1:9	照着祂的喜悦，使我们知道祂意愿的奥秘；这喜悦是祂在自己里面预先定下的，</div>
+            
+            
+            
+            <div class="verse-line">弗3:9	并将那历世历代隐藏在创造万有之神里的奥秘有何等的经纶，向众人照明，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-二-3" data-level="3">
+    <div class="outline-item level-3">
+        
+        3　神乃是按祂意愿所决议的，行作万事。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-二-4" data-level="3">
+    <div class="outline-item level-3">
+        
+        4　神的意愿指祂的目的；而神的决议指祂的思量，要怎样完成祂的意愿或目的—一11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-二-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-二-4" style="display: none;" onclick="toggleScripture('scripture-壹-二-4')">
+            
+            
+            <div class="verse-line">弗1:11	我们既在祂里面，照着那位按祂意愿所决议的，行作万事者的定旨，蒙了预定，也就在祂里面成了所选定的基业，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-三" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-三')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        三　神的旨意集中于基督，并为着基督；在神的旨意中，基督是一切—西一9：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-三" style="display: none;" onclick="toggleScripture('scripture-壹-三')">
+            
+            
+            <div class="verse-line">西1:9	所以，我们自从听见的日子，也就为你们不住地祷告祈求，愿你们在一切属灵的智慧和悟性上，充分认识神的旨意，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹-三" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-三-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　在九节，神的旨意是指基督；神的旨意是深奥的，与我们认识、经历并活这位包罗万有、延展无限的基督息息相关，祂是神、人以及宇宙中一切正面事物的实际—二9、16~17。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-三-1" style="display: none;" onclick="toggleScripture('scripture-壹-三-1')">
+            
+            
+            <div class="verse-line">西1:9	所以，我们自从听见的日子，也就为你们不住地祷告祈求，愿你们在一切属灵的智慧和悟性上，充分认识神的旨意，</div>
+            
+            
+            
+            <div class="verse-line">西2:9	因为神格一切的丰满，都有形有体地居住在基督里面，</div>
+            
+            
+            
+            <div class="verse-line">西2:16	所以不拘在饮食上、或在节期、月朔、或安息日方面，都不可让人论断你们，</div>
+            
+            
+            
+            <div class="verse-line">西2:17	这些原是要来之事的影儿，那实体却属于基督。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-三-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　基督是居首位者，在凡事上都居第一位—一18。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-三-2" style="display: none;" onclick="toggleScripture('scripture-壹-三-2')">
+            
+            
+            <div class="verse-line">西1:18	祂也是召会身体的头；祂是元始，是从死人中复活的首生者，使祂可以在万有中居首位；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-三-3" data-level="3">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-三-3')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        3　包罗万有、延展无限的基督，乃是神经纶的中心与普及，中心与圆周—15~27节，弗一10：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-三-3" style="display: none;" onclick="toggleScripture('scripture-壹-三-3')">
+            
+            
+            <div class="verse-line">西1:15	爱子是那不能看见之神的像，是一切受造之物的首生者。</div>
+            
+            
+            
+            <div class="verse-line">西1:16	因为万有，无论是在诸天之上的、在地上的、能看见的、不能看见的、或是有位的、主治的、执政的、掌权的，都是在祂里面造的；万有都是借着祂并为着祂造的；</div>
+            
+            
+            
+            <div class="verse-line">西1:17	祂在万有之先，万有也在祂里面得以维系；</div>
+            
+            
+            
+            <div class="verse-line">西1:18	祂也是召会身体的头；祂是元始，是从死人中复活的首生者，使祂可以在万有中居首位；</div>
+            
+            
+            
+            <div class="verse-line">西1:19	因为一切的丰满，乐意居住在祂里面，</div>
+            
+            
+            
+            <div class="verse-line">西1:20	并且既借着祂在十字架上的血，成就了和平，便借着祂叫万有，无论是在地上的、或是在诸天之上的，都与自己和好了。</div>
+            
+            
+            
+            <div class="verse-line">西1:21	你们从前是隔绝的，因着恶行心思里与祂为敌，</div>
+            
+            
+            
+            <div class="verse-line">西1:22	但如今祂在基督肉体的身体里，借着死，叫你们与自己和好了，把你们圣别、没有瑕疵、无可责备地呈献在自己面前；</div>
+            
+            
+            
+            <div class="verse-line">西1:23	只要你们一直留于信仰中，根基立定，坚定不移，不被移动离开福音的盼望；这福音就是你们所听过，传与天下一切受造之物的，我保罗也作了这福音的执事。</div>
+            
+            
+            
+            <div class="verse-line">西1:24	现在我因着为你们所受的苦难喜乐，并且为基督的身体，就是为召会，在我一面，在我肉身上补满基督患难的缺欠；</div>
+            
+            
+            
+            <div class="verse-line">西1:25	我照神为你们所赐我的管家职分，作了召会的执事，要完成神的话，</div>
+            
+            
+            
+            <div class="verse-line">西1:26	就是历世历代以来所隐藏的奥秘，但如今向祂的圣徒显明了；</div>
+            
+            
+            
+            <div class="verse-line">西1:27	神愿意叫他们知道，这奥秘的荣耀在外邦人中是何等的丰富，就是基督在你们里面成了荣耀的盼望；</div>
+            
+            
+            
+            <div class="verse-line">弗1:10	为着时期满足时的经纶，要将万有，无论是在诸天之上的，或是在地上的，都在基督里归一于一个元首之下；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹-三-3" data-parent-level="3" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-三-3-a" data-level="4">
+    <div class="outline-item level-4">
+        
+        a　在神的经纶里，基督是一切；神要的是基督，并且祂只要基督，就是那奇妙、居首位、包罗万有的基督，祂是一切，又在一切之内—太十七5，西三10~11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-3-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-三-3-a" style="display: none;" onclick="toggleScripture('scripture-壹-三-3-a')">
+            
+            
+            <div class="verse-line">太17:5	他还说话的时候，看哪，有一朵光明的云彩遮盖他们；看哪，又有声音从云彩里出来，说，这是我的爱子，我所喜悦的，你们要听祂。</div>
+            
+            
+            
+            <div class="verse-line">西3:10	并且穿上了新人；这新人照着创造他者的形像渐渐更新，以致有充足的知识；</div>
+            
+            
+            
+            <div class="verse-line">西3:11	在此并没有希利尼人和犹太人、受割礼的和未受割礼的、化外人、西古提人、为奴的、自主的，唯有基督是一切，又在一切之内。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-三-3-b" data-level="4">
+    <div class="outline-item level-4">
+        
+        b　神经纶的目的，乃是要将这位奇妙、包罗万有、延展无限的基督作到我们里面，作我们的生命和一切，使我们成为三一神团体的彰显—一27，三4、10~11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-3-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-三-3-b" style="display: none;" onclick="toggleScripture('scripture-壹-三-3-b')">
+            
+            
+            <div class="verse-line">西1:27	神愿意叫他们知道，这奥秘的荣耀在外邦人中是何等的丰富，就是基督在你们里面成了荣耀的盼望；</div>
+            
+            
+            
+            <div class="verse-line">西3:4	基督是我们的生命，祂显现的时候，你们也要与祂一同显现在荣耀里。</div>
+            
+            
+            
+            <div class="verse-line">西3:10	并且穿上了新人；这新人照着创造他者的形像渐渐更新，以致有充足的知识；</div>
+            
+            
+            
+            <div class="verse-line">西3:11	在此并没有希利尼人和犹太人、受割礼的和未受割礼的、化外人、西古提人、为奴的、自主的，唯有基督是一切，又在一切之内。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-三-4" data-level="3">
+    <div class="outline-item level-3">
+        
+        4　神的旨意是要包罗万有、延展无限的基督成为我们的分—一9、12。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-三-4" style="display: none;" onclick="toggleScripture('scripture-壹-三-4')">
+            
+            
+            <div class="verse-line">西1:9	所以，我们自从听见的日子，也就为你们不住地祷告祈求，愿你们在一切属灵的智慧和悟性上，充分认识神的旨意，</div>
+            
+            
+            
+            <div class="verse-line">西1:12	感谢父，叫你们够资格在光中同得所分给众圣徒的分；</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-三-5" data-level="3">
+    <div class="outline-item level-3">
+        
+        5　神的旨意乃是要我们认识基督、经历基督、享受基督、被基督浸透并得着基督作我们的人位和生命—三4、11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-三-5')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-三-5" style="display: none;" onclick="toggleScripture('scripture-壹-三-5')">
+            
+            
+            <div class="verse-line">西3:4	基督是我们的生命，祂显现的时候，你们也要与祂一同显现在荣耀里。</div>
+            
+            
+            
+            <div class="verse-line">西3:11	在此并没有希利尼人和犹太人、受割礼的和未受割礼的、化外人、西古提人、为奴的、自主的，唯有基督是一切，又在一切之内。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-四" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-四')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        四　神的旨意是要得着召会作基督的身体—弗一9，西一18，二19，三15：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-四" style="display: none;" onclick="toggleScripture('scripture-壹-四')">
+            
+            
+            <div class="verse-line">弗1:9	照着祂的喜悦，使我们知道祂意愿的奥秘；这喜悦是祂在自己里面预先定下的，</div>
+            
+            
+            
+            <div class="verse-line">西1:18	祂也是召会身体的头；祂是元始，是从死人中复活的首生者，使祂可以在万有中居首位；</div>
+            
+            
+            
+            <div class="verse-line">西2:19	不持定元首；本于祂，全身借着节和筋，得了丰富的供应，并结合一起，就以神的增长而长大。</div>
+            
+            
+            
+            <div class="verse-line">西3:15	又要让基督的平安在你们心里作仲裁，你们在一个身体里蒙召，也是为了这平安；且要感恩。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹-四" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-四-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-四-1')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        1　神的旨意乃是要为基督得着一个身体，作祂的丰满，就是祂的彰显—罗十二2、5，弗一5、9、11、22~23，四16：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-四-1" style="display: none;" onclick="toggleScripture('scripture-壹-四-1')">
+            
+            
+            <div class="verse-line">罗12:2	不要模仿这世代，反要借着心思的更新而变化，叫你们验证何为神那美好、可喜悦、并纯全的旨意。</div>
+            
+            
+            
+            <div class="verse-line">罗12:5	我们这许多人，在基督里是一个身体，并且各个互相作肢体，也是如此。</div>
+            
+            
+            
+            <div class="verse-line">弗1:5	按着祂意愿所喜悦的，预定了我们，借着耶稣基督得儿子的名分，归于祂自己，</div>
+            
+            
+            
+            <div class="verse-line">弗1:9	照着祂的喜悦，使我们知道祂意愿的奥秘；这喜悦是祂在自己里面预先定下的，</div>
+            
+            
+            
+            <div class="verse-line">弗1:11	我们既在祂里面，照着那位按祂意愿所决议的，行作万事者的定旨，蒙了预定，也就在祂里面成了所选定的基业，</div>
+            
+            
+            
+            <div class="verse-line">弗1:22	将万有服在祂的脚下，并使祂向着召会作万有的头；</div>
+            
+            
+            
+            <div class="verse-line">弗1:23	召会是祂的身体，是那在万有中充满万有者的丰满。</div>
+            
+            
+            
+            <div class="verse-line">弗4:16	本于祂，全身借着每一丰富供应的节，并借着每一部分依其度量而有的功用，得以联络在一起，并结合在一起，便叫身体渐渐长大，以致在爱里把自己建造起来。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹-四-1" data-parent-level="3" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-四-1-a" data-level="4">
+    <div class="outline-item level-4">
+        
+        a　过身体的生活，就是“验证何为神……的旨意”—罗十二2、4~5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-1-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-四-1-a" style="display: none;" onclick="toggleScripture('scripture-壹-四-1-a')">
+            
+            
+            <div class="verse-line">罗12:2	不要模仿这世代，反要借着心思的更新而变化，叫你们验证何为神那美好、可喜悦、并纯全的旨意。</div>
+            
+            
+            
+            <div class="verse-line">罗12:4	正如我们一个身体上有好些肢体，但肢体不都有一样的功用；</div>
+            
+            
+            
+            <div class="verse-line">罗12:5	我们这许多人，在基督里是一个身体，并且各个互相作肢体，也是如此。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-四-1-b" data-level="4">
+    <div class="outline-item level-4">
+        
+        b　如果我们是身体上正确的肢体，在召会生活里活动并尽功用，我们就会是在神旨意里的人—林前一1~2，弗一1，五17，罗十二2、4~5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-1-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-四-1-b" style="display: none;" onclick="toggleScripture('scripture-壹-四-1-b')">
+            
+            
+            <div class="verse-line">林前1:1	凭神旨意，蒙召作基督耶稣使徒的保罗，和弟兄所提尼，</div>
+            
+            
+            
+            <div class="verse-line">林前1:2	写信给在哥林多神的召会，就是给在基督耶稣里被圣别，蒙召的圣徒，同着所有在各处呼求我们主耶稣基督之名的人；祂是他们的，也是我们的；</div>
+            
+            
+            
+            <div class="verse-line">弗1:1	凭神旨意，作基督耶稣使徒的保罗，写信给在以弗所的圣徒，就是在基督耶稣里的忠信者：</div>
+            
+            
+            
+            <div class="verse-line">弗5:17	所以不要作愚昧人，却要明白什么是主的旨意。</div>
+            
+            
+            
+            <div class="verse-line">罗12:2	不要模仿这世代，反要借着心思的更新而变化，叫你们验证何为神那美好、可喜悦、并纯全的旨意。</div>
+            
+            
+            
+            <div class="verse-line">罗12:4	正如我们一个身体上有好些肢体，但肢体不都有一样的功用；</div>
+            
+            
+            
+            <div class="verse-line">罗12:5	我们这许多人，在基督里是一个身体，并且各个互相作肢体，也是如此。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-四-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　召会是基督的身体，就是由三一神和祂所拣选并救赎之人所构成的实体—弗一22~23，四4~6。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-四-2" style="display: none;" onclick="toggleScripture('scripture-壹-四-2')">
+            
+            
+            <div class="verse-line">弗1:22	将万有服在祂的脚下，并使祂向着召会作万有的头；</div>
+            
+            
+            
+            <div class="verse-line">弗1:23	召会是祂的身体，是那在万有中充满万有者的丰满。</div>
+            
+            
+            
+            <div class="verse-line">弗4:4	一个身体和一位灵，正如你们蒙召，也是在一个盼望中蒙召的；</div>
+            
+            
+            
+            <div class="verse-line">弗4:5	一主，一信，一浸；</div>
+            
+            
+            
+            <div class="verse-line">弗4:6	一位众人的神与父，就是那超越众人，贯彻众人，也在众人之内的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-四-3" data-level="3">
+    <div class="outline-item level-3">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-四-3')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        3　基督是身体的头，我们是祂身体的肢体—西一18上，二19，弗四15~16：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-四-3" style="display: none;" onclick="toggleScripture('scripture-壹-四-3')">
+            
+            
+            <div class="verse-line">西1:18上	祂也是召会身体的头；……</div>
+            
+            
+            
+            <div class="verse-line">西2:19	不持定元首；本于祂，全身借着节和筋，得了丰富的供应，并结合一起，就以神的增长而长大。</div>
+            
+            
+            
+            <div class="verse-line">弗4:15	唯在爱里持守着真实，我们就得以在一切事上长到祂，就是元首基督里面；</div>
+            
+            
+            
+            <div class="verse-line">弗4:16	本于祂，全身借着每一丰富供应的节，并借着每一部分依其度量而有的功用，得以联络在一起，并结合在一起，便叫身体渐渐长大，以致在爱里把自己建造起来。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹-四-3" data-parent-level="3" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-四-3-a" data-level="4">
+    <div class="outline-item level-4">
+        
+        a　活在身体里，就是在头之下与众肢体同过团体的生活—15节，西二19。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-3-a')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-四-3-a" style="display: none;" onclick="toggleScripture('scripture-壹-四-3-a')">
+            
+            
+            <div class="verse-line">弗4:15	唯在爱里持守着真实，我们就得以在一切事上长到祂，就是元首基督里面；</div>
+            
+            
+            
+            <div class="verse-line">西2:19	不持定元首；本于祂，全身借着节和筋，得了丰富的供应，并结合一起，就以神的增长而长大。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-四-3-b" data-level="4">
+    <div class="outline-item level-4">
+        
+        b　我们要过身体的生活，就必须在头之下，并以头为我们的生命，为我们全人的主体和中心—一18上，二19。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-3-b')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-四-3-b" style="display: none;" onclick="toggleScripture('scripture-壹-四-3-b')">
+            
+            
+            <div class="verse-line">西1:18上	祂也是召会身体的头；……</div>
+            
+            
+            
+            <div class="verse-line">西2:19	不持定元首；本于祂，全身借着节和筋，得了丰富的供应，并结合一起，就以神的增长而长大。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-四-4" data-level="3">
+    <div class="outline-item level-3">
+        
+        4　身体以神的增长而长大；基督身体的长大在于我们里面神的增长，神的加添，神的增多—19节，弗四16。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-四-4')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-四-4" style="display: none;" onclick="toggleScripture('scripture-壹-四-4')">
+            
+            
+            <div class="verse-line">西2:19	不持定元首；本于祂，全身借着节和筋，得了丰富的供应，并结合一起，就以神的增长而长大。</div>
+            
+            
+            
+            <div class="verse-line">弗4:16	本于祂，全身借着每一丰富供应的节，并借着每一部分依其度量而有的功用，得以联络在一起，并结合在一起，便叫身体渐渐长大，以致在爱里把自己建造起来。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-五" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-五')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        五　凡实行父旨意的，就是主耶稣的亲人—太十二50：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-五" style="display: none;" onclick="toggleScripture('scripture-壹-五')">
+            
+            
+            <div class="verse-line">太12:50	因为凡实行我在诸天之上父旨意的，就是我的弟兄、姊妹和母亲了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹-五" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-五-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　基督这位属天的君王，总是降服于父的旨意，接受神的旨意作祂的分，不抵抗任何事—十一28~30，二六39。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-五-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-五-1" style="display: none;" onclick="toggleScripture('scripture-壹-五-1')">
+            
+            
+            <div class="verse-line">太11:28	凡劳苦担重担的，可以到我这里来，我必使你们得安息。</div>
+            
+            
+            
+            <div class="verse-line">太11:29	我心里柔和谦卑，因此你们要负我的轭，且要跟我学，你们魂里就必得安息；</div>
+            
+            
+            
+            <div class="verse-line">太11:30	因为我的轭是容易的，我的担子是轻省的。</div>
+            
+            
+            
+            <div class="verse-line">太26:39	祂就稍往前走，面伏于地，祷告说，我父啊，若是可能，就叫这杯离开我；然而不要照我的意思，只要照你的意思。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-五-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　凡实行父旨意的，就是帮助主耶稣的弟兄，同情祂的姊妹，以及柔和慈爱的母亲。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-六" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-壹-六')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        六　国度完全是神旨意的事，并全然完成了神的旨意；事实上，国度就是神的旨意—六10：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-六" style="display: none;" onclick="toggleScripture('scripture-壹-六')">
+            
+            
+            <div class="verse-line">太6:10	愿你的国来临，愿你的旨意行在地上，如同行在天上。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-壹-六" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-壹-六-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　诸天之国宪法的终极结果，乃是天父的旨意—七21。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-六-1" style="display: none;" onclick="toggleScripture('scripture-壹-六-1')">
+            
+            
+            <div class="verse-line">太7:21	不是每一个对我说，主啊，主啊的人，都能进诸天的国，唯独实行我诸天之上父旨意的人，才能进去。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-六-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　我们是国度的子民，在地上实行神的旨意—十二50。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-六-2')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-六-2" style="display: none;" onclick="toggleScripture('scripture-壹-六-2')">
+            
+            
+            <div class="verse-line">太12:50	因为凡实行我在诸天之上父旨意的，就是我的弟兄、姊妹和母亲了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-壹-七" data-level="2">
+    <div class="outline-item level-2">
+        
+        七　国度子民需要祷告，愿父的旨意行在地上，如同行在天上；这就是将诸天的国带到地上—六10。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-壹-七')">展开经文</button>
+        <div class="scripture-content" id="scripture-壹-七" style="display: none;" onclick="toggleScripture('scripture-壹-七')">
+            
+            
+            <div class="verse-line">太6:10	愿你的国来临，愿你的旨意行在地上，如同行在天上。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+
+<div class="section" id="section-贰" data-level="1">
+    <div class="outline-item level-1">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        贰　“不是每一个对我说，主啊，主啊的人，都能进诸天的国，唯独实行我诸天之上父旨意的人，才能进去”—七21：
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-贰" data-parent-level="1" style="display: block;">
+        
+        
+
+<div class="section" id="section-贰-一" data-level="2">
+    <div class="outline-item level-2">
+        
+        一　呼求主够叫我们得救，但要进诸天的国，还需要实行天父的旨意—罗十13，十二2，太十二50，弗五17，西一9。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-一" style="display: none;" onclick="toggleScripture('scripture-贰-一')">
+            
+            
+            <div class="verse-line">罗10:13	因为“凡呼求主名的，就必得救。”</div>
+            
+            
+            
+            <div class="verse-line">罗12:2	不要模仿这世代，反要借着心思的更新而变化，叫你们验证何为神那美好、可喜悦、并纯全的旨意。</div>
+            
+            
+            
+            <div class="verse-line">太12:50	因为凡实行我在诸天之上父旨意的，就是我的弟兄、姊妹和母亲了。</div>
+            
+            
+            
+            <div class="verse-line">弗5:17	所以不要作愚昧人，却要明白什么是主的旨意。</div>
+            
+            
+            
+            <div class="verse-line">西1:9	所以，我们自从听见的日子，也就为你们不住地祷告祈求，愿你们在一切属灵的智慧和悟性上，充分认识神的旨意，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-二" data-level="2">
+    <div class="outline-item level-2">
+        
+        二　进诸天的国，既然还要实行天父的旨意，就显然与借着重生进神的国不同—约三3、5。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-二" style="display: none;" onclick="toggleScripture('scripture-贰-二')">
+            
+            
+            <div class="verse-line">约3:3	耶稣回答说，我实实在在地告诉你，人若不重生，就不能见神的国。</div>
+            
+            
+            
+            <div class="verse-line">约3:5	耶稣回答说，我实实在在地告诉你，人若不是从水和灵生的，就不能进神的国。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-三" data-level="2">
+    <div class="outline-item level-2">
+        
+        三　进诸天的国是借着神圣生命的生活—一12~13，三5~6，太七21，十二50。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-三" style="display: none;" onclick="toggleScripture('scripture-贰-三')">
+            
+            
+            <div class="verse-line">约1:12	凡接受祂的，就是信入祂名的人，祂就赐他们权柄，成为神的儿女。</div>
+            
+            
+            
+            <div class="verse-line">约1:13	这等人不是从血生的，不是从肉体的意思生的，也不是从人的意思生的，乃是从神生的。</div>
+            
+            
+            
+            <div class="verse-line">约3:5	耶稣回答说，我实实在在地告诉你，人若不是从水和灵生的，就不能进神的国。</div>
+            
+            
+            
+            <div class="verse-line">约3:6	从肉体生的，就是肉体；从那灵生的，就是灵。</div>
+            
+            
+            
+            <div class="verse-line">太7:21	不是每一个对我说，主啊，主啊的人，都能进诸天的国，唯独实行我诸天之上父旨意的人，才能进去。</div>
+            
+            
+            
+            <div class="verse-line">太12:50	因为凡实行我在诸天之上父旨意的，就是我的弟兄、姊妹和母亲了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-四" data-level="2">
+    <div class="outline-item level-2">
+        
+        <button class="toggle-btn expanded" onclick="toggleSection('subsection-贰-四')">
+            <span class="toggle-icon"></span>
+        </button>
+        
+        四　主耶稣斥责那些在祂的名里预言过，赶鬼过，并行过许多异能的人，因为他们这些“行不法的人”作那些事，是出于他们自己，不是因顺从神的旨意而作—七22~23：
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-四" style="display: none;" onclick="toggleScripture('scripture-贰-四')">
+            
+            
+            <div class="verse-line">太7:22	当那日，许多人要对我说，主啊，主啊，我们不是在你的名里预言过，在你的名里赶鬼过，并在你的名里行过许多异能么？</div>
+            
+            
+            
+            <div class="verse-line">太7:23	那时，我要向他们宣告：我从来不认识你们，你们这些行不法的人，离开我去吧。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+    <div class="subsections" id="subsection-贰-四" data-parent-level="2" style="display: block;">
+        
+        
+
+<div class="section" id="section-贰-四-1" data-level="3">
+    <div class="outline-item level-3">
+        
+        1　宇宙中有两个原则：一是神权柄的原则，一是撒但背叛的原则—徒一7，赛十四13~14。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-1')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-四-1" style="display: none;" onclick="toggleScripture('scripture-贰-四-1')">
+            
+            
+            <div class="verse-line">徒1:7	耶稣对他们说，父凭着自己的权柄所定的时候或时期，不是你们可以知道的。</div>
+            
+            
+            
+            <div class="verse-line">赛14:13	你心里曾说，我要升到天上；我要高举我的宝座在神众星以上。我要坐在聚会的山上，在北方的极处。</div>
+            
+            
+            
+            <div class="verse-line">赛14:14	我要升到高云之上；我要使自己与至高者一样。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-四-2" data-level="3">
+    <div class="outline-item level-3">
+        
+        2　我们不能一面事奉神，一面又走背叛的路。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-四-3" data-level="3">
+    <div class="outline-item level-3">
+        
+        3　我们必须脱离不法的原则，不走背叛的路—太二八18，犹11。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-四-3')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-四-3" style="display: none;" onclick="toggleScripture('scripture-贰-四-3')">
+            
+            
+            <div class="verse-line">太28:18	耶稣进前来，对他们说，天上地上所有的权柄，都赐给我了。</div>
+            
+            
+            
+            <div class="verse-line">犹11	他们有祸了！因为走了该隐的道路，又为工价向着巴兰的错谬直闯，并在可拉的背叛中灭亡了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-四-4" data-level="3">
+    <div class="outline-item level-3">
+        
+        4　事奉神的对面就是祂的权柄。
+        
+    </div>
+    
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-四-5" data-level="3">
+    <div class="outline-item level-3">
+        
+        5　权柄的问题若没有好好解决，就在事奉上，各种样的难处都会发生。
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+        
+        
+
+<div class="section" id="section-贰-五" data-level="2">
+    <div class="outline-item level-2">
+        
+        五　愿主保守我们的事奉，乃是在服从神的权柄与父的旨意的原则里—徒一7，太七21，十二50。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-贰-五')">展开经文</button>
+        <div class="scripture-content" id="scripture-贰-五" style="display: none;" onclick="toggleScripture('scripture-贰-五')">
+            
+            
+            <div class="verse-line">徒1:7	耶稣对他们说，父凭着自己的权柄所定的时候或时期，不是你们可以知道的。</div>
+            
+            
+            
+            <div class="verse-line">太7:21	不是每一个对我说，主啊，主啊的人，都能进诸天的国，唯独实行我诸天之上父旨意的人，才能进去。</div>
+            
+            
+            
+            <div class="verse-line">太12:50	因为凡实行我在诸天之上父旨意的，就是我的弟兄、姊妹和母亲了。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+        
+    </div>
+    
+</div>
+
+
+
+    </div>
+</div>
+
+<style>
+.outline-page{padding:5px}
+.level-btn:active{transform:scale(0.95)}
+.outline-content{margin-top:20px}
+.subsections{margin-left:0;display:block}
+.scripture-section{margin:15px 0;padding:12px 15px;background:var(--surface-alt);border-radius:8px}
+.chapter-scripture-content{margin-top:6px;margin-left:0;background:var(--surface);border:1px solid rgba(102,126,234,0.18)}
+.scripture-content{cursor:pointer}
+</style>
+
+<script src="js/outline.js"></script>
+<script>
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            let text = '';
+            const titleElem = document.querySelector('.chapter-title');
+            if (titleElem) text += titleElem.textContent.trim() + '。';
+
+            const scriptureElem = document.querySelector('.scripture');
+            if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
+
+            // 读取所有纲目项目
+            const outlineItems = document.querySelectorAll('.outline-item');
+            outlineItems.forEach(item => {
+                // 获取纲目文本，排除按钮和经文内容
+                const clone = item.cloneNode(true);
+                const buttons = clone.querySelectorAll('button');
+                buttons.forEach(btn => btn.remove());
+                const scriptures = clone.querySelectorAll('.scripture-content');
+                scriptures.forEach(sc => sc.remove());
+                const verseLines = clone.querySelectorAll('.verse-line');
+                verseLines.forEach(vl => vl.remove());
+                
+                const t = clone.textContent.trim();
+                if (t) {
+                    text += t + '。';
+                }
+            });
+            
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+        </div>
+        
+        <div class="footer">
+            <p>202505 国际长老及负责弟兄训练训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>
