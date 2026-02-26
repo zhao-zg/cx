@@ -579,6 +579,7 @@ def main():
     success_count = 0
     failed_count = 0
     skip_existing = batch_config.get('skip_existing', False)
+    strict_exit_on_batch_failure = batch_config.get('strict_exit_on_batch_failure', False)
     batch_results = []  # 收集成功的批次信息
     
     for batch_folder in batch_folders:
@@ -703,7 +704,22 @@ def main():
     
     print("="*60)
     
-    return 0 if failed_count == 0 else 1
+    # 退出码策略：
+    # 1) 全部成功 -> 0
+    # 2) 部分失败但有成功 -> 默认 0（便于 CI 持续打包），可通过 strict_exit_on_batch_failure=true 切回严格模式
+    # 3) 全部失败 -> 1
+    if failed_count == 0:
+        return 0
+
+    if success_count == 0:
+        return 1
+
+    if strict_exit_on_batch_failure:
+        print("⚠ 检测到批次失败，严格模式启用：返回失败退出码")
+        return 1
+
+    print("⚠ 检测到批次失败，但已有成功批次：继续并返回成功退出码")
+    return 0
 
 
 if __name__ == '__main__':
