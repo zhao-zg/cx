@@ -3,6 +3,7 @@ batch_processing:
   enabled: true
   skip_existing: false
   strict_exit_on_batch_failure: false  # false: 部分失败也返回0；true: 只要有失败就返回1
+  max_latest_trainings: 7  # GitHub 打包最多保留最新 N 个训练
   # specific_trainings: []  # 注释掉此行，默认生成所有可用训练
 
 # 全局配置

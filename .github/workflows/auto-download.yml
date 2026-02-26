@@ -6,6 +6,10 @@ on:
     - cron: '0 1 * * *'
   workflow_dispatch: # 允许手动触发
 
+concurrency:
+  group: auto-download-resources
+  cancel-in-progress: false
+
 permissions:
   contents: write  # 允许推送代码
 
@@ -50,92 +54,61 @@ jobs:
             git diff --staged --stat
           fi
 
+      - name: Bump app version
+        id: bump_version
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git fetch --tags --force
+
+          NEW_VERSION=$(python - << 'PY'
+          import json
+
+          with open('app_config.json', 'r', encoding='utf-8') as f:
+              config = json.load(f)
+
+          version = str(config.get('version', '1.0.0'))
+          parts = version.split('.')
+          while len(parts) < 3:
+              parts.append('0')
+
+          major, minor, patch = int(parts[0]), int(parts[1]), int(parts[2])
+          patch += 1
+          new_version = f"{major}.{minor}.{patch}"
+          config['version'] = new_version
+
+          with open('app_config.json', 'w', encoding='utf-8') as f:
+              json.dump(config, f, ensure_ascii=False, indent=2)
+              f.write('\n')
+
+          print(new_version)
+          PY
+          )
+
+          NEW_TAG="v${NEW_VERSION}"
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "new_tag=${NEW_TAG}" >> $GITHUB_OUTPUT
+          echo "✅ 版本已递增: ${NEW_VERSION}"
+
       - name: Commit and push changes
         if: steps.check_changes.outputs.has_changes == 'true'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -m "🤖 自动下载: 新增训练资源 $(date +'%Y-%m-%d %H:%M')"
+          git add resource/ app_config.json
+          git commit -m "🤖 自动下载: 新增训练资源 + 版本${{ steps.bump_version.outputs.new_version }}"
           git push
 
-      - name: Install LibreOffice
-        if: steps.check_changes.outputs.has_changes == 'true'
-        run: |
-          echo "📦 安装 LibreOffice..."
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq libreoffice-writer libreoffice-core --no-install-recommends
-          echo "✓ LibreOffice 已安装"
-
-      - name: Generate HTML and version info
-        if: steps.check_changes.outputs.has_changes == 'true'
-        run: |
-          echo "🔨 生成静态文件..."
-          python main.py
-          
-          echo "📋 生成版本信息..."
-          python generate_version.py
-          
-          echo "✓ 静态文件生成完成"
-          du -sh output/
-          
-          echo "📄 检查 version.json..."
-          if [ -f output/version.json ]; then
-            echo "✓ version.json 已生成"
-            cat output/version.json | head -20
-          else
-            echo "⚠️ version.json 未生成"
-          fi
-
-      - name: Setup Node.js
-        if: steps.check_changes.outputs.has_changes == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Deploy to Cloudflare Pages
-        if: steps.check_changes.outputs.has_changes == 'true'
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          echo "🚀 部署到 Cloudflare Pages（热更新）..."
-          
-          # 安装 wrangler
-          npm install -g wrangler
-          
-          # 获取 commit 信息
-          COMMIT_HASH=$(git rev-parse --short HEAD)
-          COMMIT_MSG="Hot update: New resources $COMMIT_HASH"
-          
-          # 部署
-          wrangler pages deploy output \
-            --project-name=cx \
-            --branch=main \
-            --commit-hash="$COMMIT_HASH" \
-            --commit-message="$COMMIT_MSG"
-          
-          echo "✓ Cloudflare Pages 部署完成（热更新）"
-
-      - name: Deploy to GitHub Pages
-        if: steps.check_changes.outputs.has_changes == 'true'
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./output
-          publish_branch: gh-pages
-          force_orphan: true
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_message: '热更新: 新增训练资源'
-          cname: cx.xzdjx.dynv6.net
+          git tag "${{ steps.bump_version.outputs.new_tag }}"
+          git push origin "${{ steps.bump_version.outputs.new_tag }}"
 
       - name: Summary
         if: always()
         run: |
           if [ "${{ steps.check_changes.outputs.has_changes }}" == "true" ]; then
-            echo "✅ 成功下载新资源并部署（热更新）"
-            echo "📦 用户可以通过热更新获取新内容"
-            echo "🔄 无需重新安装APK"
+            echo "✅ 成功下载并提交新资源"
+            echo "🏷️ 已创建版本标签: ${{ steps.bump_version.outputs.new_tag }}"
+            echo "🚀 部署将由 deploy.yml 自动触发执行"
+            echo "📱 APK 将由标签触发自动打包"
           else
             echo "ℹ️ 没有新资源需要更新"
           fi

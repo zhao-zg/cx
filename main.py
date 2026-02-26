@@ -115,6 +115,29 @@ def scan_resource_folders(resource_dir='resource'):
     return sorted(folders)
 
 
+def extract_year_month_from_folder(folder_name: str):
+    """
+    从批次文件夹名提取 (year, month)
+    支持格式：
+      - 2025-04 夏季训练
+      - 2025-04-夏季训练
+
+    Returns:
+        (year, month) 或 None
+    """
+    import re
+    match = re.match(r'^(\d{4})-(\d{2})', folder_name)
+    if not match:
+        return None
+
+    year = int(match.group(1))
+    month = int(match.group(2))
+    if month < 1 or month > 12:
+        return None
+
+    return (year, month)
+
+
 def url_safe_name(name):
     """
     将文件夹名转换为 URL 安全的名称
@@ -564,6 +587,38 @@ def main():
     else:
         # 扫描所有可用训练
         batch_folders = scan_resource_folders(resource_dir)
+
+        # 仅保留最新 N 个训练（用于控制 GitHub 打包体积）
+        max_latest_trainings = batch_config.get('max_latest_trainings', 7)
+        if isinstance(max_latest_trainings, int) and max_latest_trainings > 0 and len(batch_folders) > max_latest_trainings:
+            folders_with_date = []
+            folders_without_date = []
+
+            for folder in batch_folders:
+                folder_name = os.path.basename(folder)
+                year_month = extract_year_month_from_folder(folder_name)
+                if year_month:
+                    folders_with_date.append((year_month, folder))
+                else:
+                    folders_without_date.append(folder)
+
+            # 按时间倒序，取最新 N 个
+            folders_with_date.sort(key=lambda x: x[0], reverse=True)
+            selected_dated_folders = [folder for _, folder in folders_with_date[:max_latest_trainings]]
+
+            # 若可识别日期的不足 N 个，则补充其他文件夹（保持原顺序）
+            if len(selected_dated_folders) < max_latest_trainings and folders_without_date:
+                remaining_slots = max_latest_trainings - len(selected_dated_folders)
+                selected_dated_folders.extend(folders_without_date[:remaining_slots])
+
+            # 最终按时间顺序处理（旧 -> 新），便于日志阅读
+            def folder_sort_key(folder_path):
+                folder_name = os.path.basename(folder_path)
+                year_month = extract_year_month_from_folder(folder_name)
+                return year_month if year_month else (0, 0)
+
+            batch_folders = sorted(selected_dated_folders, key=folder_sort_key)
+            print(f"ℹ 已启用最新训练保留策略：仅处理最新 {max_latest_trainings} 个批次")
     
     if not batch_folders:
         print(f"✗ 在 {resource_dir} 目录下未找到任何批次文件夹")
