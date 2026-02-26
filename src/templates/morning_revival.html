@@ -211,12 +211,12 @@
         const velocity = Math.abs(diffX) / diffTime; // px/ms
         
         // 动态阈值：快速滑动大幅降低距离要求
-        const baseThreshold = 40; // 基础阈值降低到40px
-        const velocityThreshold = 0.25; // 降低速度阈值，让更多滑动被判定为"快速"
+        const baseThreshold = 50; // 基础阈值50px
+        const velocityThreshold = 0.8; // 降低速度阈值，让更多滑动被判定为"快速"
         const swipeThreshold = velocity > velocityThreshold ? 25 : baseThreshold;
         
         // 适度放宽垂直容忍度
-        const maxVerticalMove = 40; // 垂直移动可以到40px
+        const maxVerticalMove = 50; // 垂直移动可以到50px
         const horizontalRatio = 2.0; // 水平是垂直的2倍即可
         
         // 综合判断：距离 + 速度 + 方向
