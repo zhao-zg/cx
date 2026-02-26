@@ -18,9 +18,9 @@
 .day-link:last-child{border-top-right-radius:6px;border-bottom-right-radius:6px}
 .day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:rgba(102,126,234,.5)}
 .day-link.active{font-weight:700}
-.pages-container{position:relative;overflow:hidden;touch-action:pan-y}
-.pages-track{display:flex;will-change:transform;transition:transform .3s cubic-bezier(.25,.46,.45,.94)}
-.day-page{background:var(--surface);padding:0;flex:0 0 100%;width:100%;min-width:0}
+.pages-container{position:relative;overflow:hidden;touch-action:pan-y;transition:height .2s ease}
+.pages-track{display:flex;align-items:flex-start;will-change:transform;transition:transform .3s cubic-bezier(.25,.46,.45,.94)}
+.day-page{background:var(--surface);padding:0;flex:0 0 100%;width:100%;min-width:0;height:auto}
 .page-controls{display:flex;justify-content:space-between;align-items:center;margin:20px 0 15px;padding:10px;background:var(--surface-alt);border-radius:12px;border:1px solid var(--border)}
 .prev-btn,.next-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:12px 16px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:5px;color:var(--btn-secondary-text);font-size:0.9375em;cursor:pointer;font-weight:600;transition:background .2s}
 .prev-btn:hover,.next-btn:hover{background:var(--btn-secondary-hover-bg)}
@@ -127,6 +127,14 @@
         track.style.transform = `translateX(${pct}%)`;
     }
 
+    function updateContainerHeight() {
+        const activePage = pages[currentPage];
+        if (!activePage) return;
+
+        const pageHeight = activePage.offsetHeight;
+        pagesContainer.style.height = `${pageHeight}px`;
+    }
+
     // 显示指定页面，scrollToTop 控制是否滚动到顶部
     function showPage(pageIndex, scrollToTop) {
         if (pageIndex < 0 || pageIndex >= totalPages) return;
@@ -150,6 +158,8 @@
 
         // 更新页码指示器
         pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+
+        updateContainerHeight();
 
         if (scrollToTop !== false) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -253,6 +263,9 @@
         }
         showPage(0, !isInitial);
     }
+
+    window.addEventListener('resize', updateContainerHeight);
+    window.addEventListener('load', updateContainerHeight);
 
     window.addEventListener('hashchange', () => initFromHash(false));
     initFromHash(true);
