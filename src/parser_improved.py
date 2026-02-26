@@ -1786,8 +1786,8 @@ class ImprovedParser:
         prev_text_clean = prev_text.strip()
         current_text_clean = current_text.strip()
         
-        # 如果前一行以完整句子标点结尾，通常不需要合并
-        if prev_text_clean.endswith(('。', '！', '？', '；', '：', '）', '"', '”')):
+        # 如果前一行以完整句子标点或省略号结尾，通常不需要合并
+        if prev_text_clean.endswith(('。', '！', '？', '；', '：', '）', '"', '”', '…', '……', '...', '⋯⋯')):
             return False
             
         # 如果当前行很短，可能是标题或独立内容，不合并
