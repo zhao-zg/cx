@@ -7,7 +7,7 @@
             <span class="toggle-icon"></span>
         </button>
         {% endif %}
-        {{ section.level }}　{{ section.title }}
+        {{ section.level }}　{{ section.title | scripture_ref_wrap }}
         {% if section.scripture and section.scripture.strip() and show_scripture %}
         <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-{{ section_id }}')">展开经文</button>
         <div class="scripture-content" id="scripture-{{ section_id }}" style="display: none;" onclick="toggleScripture('scripture-{{ section_id }}')">

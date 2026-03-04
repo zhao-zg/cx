@@ -3,8 +3,10 @@
 HTML生成器
 """
 import os
+import re
 import shutil
 from jinja2 import Environment, FileSystemLoader
+from markupsafe import Markup, escape
 from .models import TrainingData, Chapter
 
 
@@ -26,6 +28,7 @@ class HTMLGenerator:
         # 添加自定义过滤器
         self.env.filters['extract_day'] = self._extract_day_name
         self.env.filters['outline_level_class'] = self._get_outline_level_class
+        self.env.filters['scripture_ref_wrap'] = self._wrap_scripture_ref
         
         # 确保输出目录存在
         os.makedirs(output_dir, exist_ok=True)
@@ -85,6 +88,24 @@ class HTMLGenerator:
             return day_str.split('•')[1].strip()
         return day_str
     
+    def _wrap_scripture_ref(self, text: str):
+        """将纲目标题中破折号后的经文引用包裹在 <span class="scripture-ref"> 中，
+        以便朗读时跳过。支持 — (U+2014) 和 ─ (U+2500) 形式的破折号。
+        取最后一个、且其后含有阿拉伯数字的破折号作为分割点，
+        避免误匹配"—普通説明文字—经文引用" 中的第一个破折号。
+        """
+        split_pos = None
+        for m in reversed(list(re.finditer(r'[—─]', text))):
+            after = text[m.start() + 1:]
+            if re.search(r'\d', after):
+                split_pos = m.start()
+                break
+        if split_pos is not None:
+            main = escape(text[:split_pos])
+            ref = escape(text[split_pos:])
+            return Markup(f'{main}<span class="scripture-ref">{ref}</span>')
+        return text
+
     def _get_outline_level_class(self, level_str: str) -> str:
         """
         根据纲目序号判断应该使用的CSS类名

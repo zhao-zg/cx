@@ -280,7 +280,7 @@ function initSpeech() {
 
             function getCleanText(node) {
                 var clone = node.cloneNode(true);
-                var ignored = clone.querySelectorAll('.scripture-content, .verse-line');
+                var ignored = clone.querySelectorAll('button, .scripture-content, .verse-line, .scripture-ref');
                 ignored.forEach(function(el) { el.remove(); });
                 return clone.textContent.trim();
             }
