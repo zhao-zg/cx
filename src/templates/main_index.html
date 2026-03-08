@@ -921,8 +921,8 @@
             return;
         }
         
-        // 如果是安卓设备且不在 APP 内，显示 APK 下载按钮
-        if (CX_ENV.isAndroid && !CX_ENV.isInApp && !CX_ENV.isCapacitor) {
+        // 安卓设备只要不是 Capacitor APP 内，都显示 APK 下载按钮（含平板/PWA）
+        if (CX_ENV.isAndroid && !CX_ENV.isCapacitorApp) {
             installSection.classList.add('show');
             androidApkBtn.style.display = 'inline-flex';
             
