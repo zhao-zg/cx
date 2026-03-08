@@ -1,0 +1,1869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 防止主题跳色：在渲染前设置主题 -->
+    <script>(function(){var t=localStorage.getItem('readingTheme')||'cool';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f0f0ee">
+    <meta name="app-version" content="1.0.8">
+    <title>第3篇 - 晨兴</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="js/speech.js" as="script">
+    <!-- CSS 变量定义 - 放在最前面供所有样式使用 -->
+    <style>
+        :root{
+            --brand:#667eea;
+            --brand-dark:#5B67D4;
+            --bg:linear-gradient(135deg,#667EEA,#5B67D4);
+            --radius-sm:6px;
+            --radius-md:8px;
+            --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+            --shadow-md:0 6px 16px rgba(0,0,0,.08);
+            --btn-primary-bg:var(--bg);
+            --btn-primary-text:#fff;
+            --btn-primary-border:var(--brand);
+        }
+        /* 冷色模式（默认） */
+        :root,
+        [data-theme="cool"]{
+            --surface:#fff;
+            --surface-alt:#f5f6fb;
+            --page-bg:#f7f8fc;
+            --header-bg:var(--brand);
+            --nav-hover:#f0f4ff;
+            --scripture-bg:#f6f7fa;
+            --muted:#f5f6fb;
+            --border:#e6e8f0;
+            --text:#2f343a;
+            --text-soft:#635f5a;
+            --text-muted:#8b8783;
+            --heading:#2a2926;
+            --heading-strong:#1f1d1a;
+            --heading-soft:#3d3935;
+            --heading-muted:#544f4a;
+            --btn-secondary-bg:#fafaf9;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f2f2f0;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 冷色模式 */
+        /* 暖色模式 */
+        [data-theme="warm"]{
+            --surface:#fafaf9;
+            --surface-alt:#f5f5f3;
+            --page-bg:#f0f0ee;
+            --header-bg:var(--brand);
+            --nav-hover:#f2f2f0;
+            --scripture-bg:#f6f6f4;
+            --muted:#f5f5f3;
+            --border:#e5e5e3;
+            --text:#3a3532;
+            --text-soft:#596170;
+            --text-muted:#7b8697;
+            --heading:#1b2436;
+            --heading-strong:#141c2b;
+            --heading-soft:#2a3954;
+            --heading-muted:#3a4a67;
+            --btn-secondary-bg:#fff;
+            --btn-secondary-text:var(--brand);
+            --btn-secondary-border:rgba(113,136,227,.22);
+            --btn-secondary-hover-bg:#f5f7ff;
+            --btn-secondary-active-bg:rgba(113,136,227,.12);
+        }
+        /* 设置按钮样式 */
+        .theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+        .theme-toggle-btn:hover{background:rgba(102,126,234,.12);transform:scale(1.08);opacity:1}
+        .theme-toggle-btn:active{transform:scale(.95)}
+        .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
+        .theme-toggle-btn:hover svg{transform:rotate(30deg)}
+        @media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+        /* 设置面板样式 */
+        .theme-panel{position:fixed;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);width:260px;z-index:998;display:none;opacity:0;transform:translateY(-8px) scale(.95);transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1)}
+        .theme-panel.show{display:block;opacity:1;transform:translateY(0) scale(1)}
+        @media (max-width:768px){.theme-panel{top:64px;right:10px;width:min(260px,calc(100vw - 20px))}}
+        .theme-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .theme-panel-close{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+        .theme-panel-close:hover{background:var(--surface-alt);color:var(--heading)}
+        .theme-panel-title{font-size:15px;font-weight:600;color:var(--heading);margin:0}
+        .theme-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+        .theme-section:last-child{border-bottom:none}
+        .theme-section-title{font-size:12px;color:var(--text-secondary);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+        .theme-options{display:flex;gap:8px}
+        .theme-option{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);font-size:14px;color:var(--text);background:var(--page-bg)}
+        .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,.15)}
+        .theme-option.active{border-color:var(--brand);background:rgba(102,126,234,.08)}
+        .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
+        .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
+        .theme-preview.warm{background:linear-gradient(to right,#fafaf9,#f5f5f3)}
+        .theme-preview.cool{background:linear-gradient(to right,#fff,#f5f6fb)}
+        .theme-option-content{display:flex;align-items:center;gap:6px}
+        .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+        .theme-label{font-size:13px;font-weight:500}
+        .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+        .font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
+        .font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+        .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}
+        .font-size-slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(102,126,234,.3)}
+        .font-size-slider::-moz-range-thumb:hover{transform:scale(1.15);box-shadow:0 3px 10px rgba(102,126,234,.4)}
+        .font-size-value{text-align:center;font-size:13px;color:var(--text-secondary);font-weight:500}
+        .font-size-indicator{text-align:center;font-size:11px;color:var(--text-muted);margin-top:4px}
+    </style>
+    
+<style>
+.morning-revival-page{padding:5px;max-width:820px;margin:0 auto}
+.day-navigation{display:flex;flex-wrap:nowrap;gap:0;margin:15px 0;padding:8px;background:var(--surface-alt);border-radius:8px;justify-content:space-between;font-size:0.85em;box-sizing:border-box;overflow:hidden}
+.day-link{height:40px;padding:0 10px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:0;color:var(--btn-secondary-text);font-size:0.88em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box}
+.day-link + .day-link{border-left:1px solid var(--border)}
+.day-link:first-child{border-top-left-radius:6px;border-bottom-left-radius:6px}
+.day-link:last-child{border-top-right-radius:6px;border-bottom-right-radius:6px}
+.day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:rgba(102,126,234,.5)}
+.day-link.active{font-weight:700}
+.pages-container{position:relative;overflow:hidden;touch-action:pan-y;transition:height .2s ease}
+.pages-track{display:flex;align-items:flex-start;will-change:transform;transition:transform .3s cubic-bezier(.25,.46,.45,.94)}
+.day-page{background:var(--surface);padding:0;flex:0 0 100%;width:100%;min-width:0;height:auto}
+.page-controls{display:flex;justify-content:space-between;align-items:center;margin:20px 0 15px;padding:10px;background:var(--surface-alt);border-radius:12px;border:1px solid var(--border)}
+.prev-btn,.next-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:12px 16px;background:var(--surface);border:1px solid var(--btn-secondary-border);border-radius:5px;color:var(--btn-secondary-text);font-size:0.9375em;cursor:pointer;font-weight:600;transition:background .2s}
+.prev-btn:hover,.next-btn:hover{background:var(--btn-secondary-hover-bg)}
+.prev-btn:active,.next-btn:active{background:var(--btn-secondary-active-bg)}
+.prev-btn:disabled,.next-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-indicator{font-size:0.94em;color:var(--text-muted);font-weight:800}
+</style>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:8px 8px 0;font-size:18px;-webkit-font-smoothing:antialiased}
+        .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
+        .header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
+        .header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+        .header h1{font-size:1.17em;margin-bottom:8px;color:#fff;line-height:1.8;font-weight:600}
+        .header .subtitle{font-size:0.88em;color:rgba(255,255,255,.9);line-height:1.8}
+        .header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:#fff}
+        @media(min-width:768px){
+            .container{padding:16px}
+            .header{margin-bottom:18px;padding:25px 20px}
+            .header h1{font-size:1.5em;margin-bottom:10px}
+        }
+        .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
+        .nav a{color:var(--btn-secondary-text);text-decoration:none;padding:10px 16px;border-radius:var(--radius-sm);font-size:0.88em;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);font-weight:600;box-shadow:var(--shadow-sm)}
+        .nav a:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .nav a:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.4)}
+        .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15)}
+        a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(102,126,234,.35);outline-offset:2px;border-radius:10px}
+        @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+        .content{max-width:860px;margin:0 auto}
+        .cx-highlight{cursor:pointer;border-radius:2px;padding:0 2px;transition:opacity .2s;color:inherit !important}
+        .cx-highlight:hover{opacity:.8}
+        .highlight-toolbar{position:absolute;z-index:9999;display:flex;gap:8px;padding:10px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--border);max-width:calc(100vw - 20px);transition:opacity .15s ease;-webkit-user-select:none;user-select:none}
+        .highlight-color-btn{width:40px;height:40px;border:2px solid #fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-color-btn:hover{transform:scale(1.1)}
+        .highlight-color-btn:active{transform:scale(.95)}
+        .highlight-clear-btn{padding:6px 12px;background:var(--bg);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;-webkit-tap-highlight-color:transparent;flex-shrink:0;white-space:nowrap;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+        .highlight-clear-btn:hover{opacity:.9}
+        .highlight-clear-btn:active{transform:scale(.95)}
+        @keyframes slideUp{
+            from{transform:translate(-50%,100%);opacity:0}
+            to{transform:translate(-50%,0);opacity:1}
+        }
+        .page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:8px 0 12px;padding:8px;background:var(--surface-alt);border-radius:var(--radius-md);font-size:0.85em;box-sizing:border-box;overflow:hidden}
+        .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 10px;border-radius:0;font-size:0.88em;background:var(--surface);border:1px solid var(--btn-secondary-border);height:40px;line-height:40px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
+        .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
+        .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
+        .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
+        .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+        .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.3)}
+        .page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+        ::selection{background:rgba(102,126,234,.22)}
+        .chapter-title{font-size:1.15em;font-weight:700;margin:0 0 20px;color:var(--heading-strong);line-height:1.8;text-align:center;padding:18px 15px;background:var(--surface-alt);border-radius:12px;box-shadow:var(--shadow-sm)}
+        @media(min-width:768px){.chapter-title{font-size:1.5em;padding:20px 18px;margin-bottom:22px}}
+        .font-size-controls{display:flex;gap:10px;justify-content:center;margin:15px 0;padding:10px}
+        .font-btn{min-width:44px;min-height:44px;padding:8px 16px;border:1px solid var(--btn-secondary-border);border-radius:var(--radius-md);background:var(--btn-secondary-bg);color:var(--btn-secondary-text);font-size:16px;font-weight:600;cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+        .font-btn:active{transform:translateY(0)}
+        .font-btn:disabled{opacity:.5;cursor:not-allowed}
+        .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
+        .scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+        .scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+        .section{margin:18px 0}
+        @media(min-width:768px){
+            .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
+            .section{margin:20px 0}
+        }
+        .section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+        .section-level3,.outline-item.level-3{font-size:1.05em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+        .outline-item .outline-level,.outline-item .outline-text{display:inline}
+        .outline-children{margin-left:0}
+        .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+        @media(min-width:768px){
+            .content-text{padding-left:2px;font-size:1.05em}
+            .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
+            .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
+            .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+        }
+        .outline-item{position:relative}
+        .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
+        .toggle-btn:active{background:rgba(102,126,234,.1)}
+        .toggle-icon{width:0;height:0;border-left:8px solid var(--brand);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform 0.2s}
+        .toggle-btn.expanded .toggle-icon{transform:rotate(90deg)}
+        .collapsible{overflow:hidden;transition:max-height .3s ease}
+        .collapsed{max-height:0}
+        .expanded{max-height:10000px}
+        .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
+        .scripture-toggle-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text);cursor:pointer;font-size:0.72em;min-height:32px;padding:6px 10px;margin:4px 0 0 8px;display:inline-block;border-radius:5px;font-weight:500}
+        .scripture-toggle-btn:active{background:var(--btn-secondary-active-bg);border-color:rgba(102,126,234,.5)}
+        .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+        .scripture-section{margin:8px 0;padding:6px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .scripture-ref{color:var(--text-muted);font-size:0.78em;margin-left:8px}
+        .verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+        .verse-line:last-child{margin-bottom:0}
+        .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
+        .bottom-control-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0;padding:8px 12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
+        .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .control-btn:active{transform:scale(.95)}
+        .bottom-control-bar{flex-wrap:wrap}
+        .bottom-control-bar .control-group{order:1;flex:0 0 100%;justify-content:center}
+        .bottom-control-bar .play-pause-btn{order:2}
+        .bottom-control-bar .progress-section{order:3;flex:1 1 240px}
+        .play-pause-btn{font-size:16px}
+        .progress-section{flex:1 1 220px;min-width:80px;display:flex;gap:6px;align-items:center}
+        .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
+        .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(102,126,234,.15);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}
+        .progress-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .progress-bar::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--bg);cursor:grab;border:none;box-shadow:0 2px 6px rgba(102,126,234,.4)}
+        .progress-bar::-moz-range-thumb:active{cursor:grabbing;transform:scale(1.2)}
+        .speech-time{font-size:10px;color:var(--text-soft);font-family:'Courier New',monospace;font-weight:500;white-space:nowrap;display:block;line-height:1;margin-top:8px;padding-left:25px}
+        .control-group{display:flex;gap:4px;flex:1 1 100%;justify-content:center}
+        .control-btn.font-btn{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-text)}
+        .bottom-control-bar .font-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:13px;color:var(--btn-secondary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
+        .bottom-control-bar .font-btn:active{transform:scale(.95)}
+        .control-select{min-width:50px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--brand);font-weight:600;cursor:pointer;flex-shrink:0}
+        @media(max-width:768px){
+            .highlight-toolbar{position:fixed!important;bottom:10px!important;left:50%!important;top:auto!important;transform:translateX(-50%)!important;gap:6px;padding:10px 12px;box-shadow:0 -2px 20px rgba(0,0,0,.3);border-radius:12px;animation:slideUp .2s ease;z-index:10000!important}
+            .highlight-color-btn{width:42px;height:42px}
+            .highlight-clear-btn{min-height:42px;padding:6px 10px;font-size:13px}
+            body{padding:6px 6px 0}
+            .container{padding:10px}
+            .header{padding:14px 10px}
+            .content-text{padding-left:2px}
+            .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
+            .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
+            .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+            .nav{gap:6px}
+            .page-navigation{gap:0}
+            .bottom-control-bar{gap:5px;padding:4px 10px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:38px;min-height:38px;padding:5px;font-size:14px}
+            .play-pause-btn{font-size:16px}
+            .speech-time{font-size:10px}
+            .control-select{min-width:48px;min-height:34px;padding:4px 6px;font-size:11px}
+            .control-group{gap:4px}
+        }
+        @media(max-width:480px){
+            body{padding-bottom:0}
+            .bottom-control-bar{gap:4px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+            .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
+            .play-pause-btn{font-size:15px}
+            .control-select{min-width:44px;min-height:32px;padding:3px 5px;font-size:10px}
+            .speech-time{font-size:9px}
+        }
+        .update-message{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 24px;background:rgba(0,0,0,.85);color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:90%;text-align:center}
+        .download-progress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px;max-width:90%}
+        .progress-content{text-align:center}
+        .progress-text{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px}
+        .progress-bar-container{width:100%;height:8px;background:rgba(102,126,234,.15);border-radius:4px;overflow:hidden;margin-bottom:12px}
+        .progress-bar-fill{height:100%;background:var(--bg);border-radius:4px;transition:width .3s ease}
+        .progress-percent{font-size:14px;color:var(--text-muted);font-weight:600}
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        
+<div class="header header--chapter">
+    <h2 class="chapter-title">第3篇 得胜者的胜利，见于但以理和他的同伴</h2>
+</div>
+
+        
+        <div class="content">
+            
+
+<div class="morning-revival-page">
+    <!-- 页面间跳转导航 -->
+<div class="page-navigation">
+    <a href="./index.html" class="nav-link" title="返回目录">返回</a>
+    <a href="3_cv.htm" class="nav-link" title="纲目">纲目</a>
+    <a href="3_h.htm" class="nav-link" title="听抄">听抄</a>
+    
+    <a href="3_cx.htm" class="nav-link active" title="晨兴">晨兴</a>
+    
+    
+    <a href="3_sg.htm" class="nav-link" title="诗歌">诗歌</a>
+    
+    
+</div>
+
+<!-- 内容页功能栏 -->
+<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">
+    <button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">
+        <span class="play-icon">▶</span>
+        <span class="pause-icon" style="display:none;">⏸</span>
+    </button>
+    
+    <div class="progress-section">
+        <div class="progress-column">
+            <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            <span class="speech-time" id="speechTime">00:00 / 00:00</span>
+        </div>
+        <select id="rateSelect" class="control-select" title="语速">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+</div>
+
+    <!-- 天导航栏 -->
+    
+    <div class="day-navigation">
+        
+        <button class="day-link" data-day="0">周一</button>
+        
+        <button class="day-link" data-day="1">周二</button>
+        
+        <button class="day-link" data-day="2">周三</button>
+        
+        <button class="day-link" data-day="3">周四</button>
+        
+        <button class="day-link" data-day="4">周五</button>
+        
+        <button class="day-link" data-day="5">周六</button>
+        
+    </div>
+    
+    
+    <!-- 分页容器 -->
+    
+    <div class="pages-container" data-total-pages="6">
+    <div class="pages-track">
+        
+        <div class="day-page" data-day="1" data-page="0">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day1-壹" data-level="1">
+    <div class="outline-item level-1">
+        
+        壹　主恢复的原则可见于“但以理和他的同伴”（哈拿尼雅、米沙利和亚撒利雅），他们是得胜者，绝对与神是一，胜过撒但的诡计<span class="scripture-ref">—但二13、17，参启十七14，太二二14：</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-壹')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-壹" style="display: none;" onclick="toggleScripture('scripture-day1-壹')">
+            
+            
+            <div class="verse-line">但2:13	于是命令发出，哲士将要被杀；人就寻找但以理和他的同伴，要杀他们。</div>
+            
+            
+            
+            <div class="verse-line">但2:17	但以理回到他的家，将这事告诉他的同伴哈拿尼雅、米沙利、亚撒利雅，</div>
+            
+            
+            
+            <div class="verse-line">启17:14	他们要与羔羊争战，羔羊必胜过他们，因为羔羊是万主之主，万王之王。同着羔羊的，就是蒙召被选忠信的人，也必得胜。</div>
+            
+            
+            
+            <div class="verse-line">太22:14	因为被召的多，选上的少。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　尼布甲尼撒在他对但以理及其同伴所施那属鬼魔的试诱中，将原来指明他们是属于神的名字，改为使他们与偶像成为一的名字<span class="scripture-ref">—但一6~7。</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-一" style="display: none;" onclick="toggleScripture('scripture-day1-一')">
+            
+            
+            <div class="verse-line">但1:6	他们中间有犹大族的人，但以理、哈拿尼雅、米沙利、亚撒利雅；</div>
+            
+            
+            
+            <div class="verse-line">但1:7	太监长给他们起名，称但以理为伯提沙撒，称哈拿尼雅为沙得拉，称米沙利为米煞，称亚撒利雅为亚伯尼歌。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　但以理这名，意思是“神是我的审判者”，被改为伯提沙撒，意思是“彼勒的王子”，或“彼勒所宠爱的”<span class="scripture-ref">—赛四六1。</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day1-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day1-二" style="display: none;" onclick="toggleScripture('scripture-day1-二')">
+            
+            
+            <div class="verse-line">赛46:1	彼勒屈身，尼波弯腰；巴比伦的偶像驮在走兽和牲畜上；你们所抬的如今成了重驮，成了使牲畜疲乏的负担。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　哈拿尼雅这名，意思是“耶和华曾以恩慈赐与”，或“蒙耶和华恩宠”，被改为沙得拉，意思是“蒙日神光照”。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        四　米沙利这名，意思是“谁是神所是的”，被改为米煞，意思是“谁能像女神煞克”。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        五　亚撒利雅这名，意思是“耶和华曾帮助”，被改为亚伯尼歌，意思是“火神尼歌的忠仆”。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-贰" data-level="1">
+    <div class="outline-item level-1">
+        
+        贰　但以理和他的同伴胜过属鬼的饮食—但一：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day1-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　尼布甲尼撒那属鬼魔的试诱，首先引诱神失败的选民中四个卓越的年轻后裔，就是但以理和他的三个同伴，要使他们有分于王不洁的食物，就是献给偶像的食物，而受玷污。
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">但一3~4	王吩咐太监长……从以色列人中，……带进几个人来，就是年少没有残疾，相貌俊美，通晓各样智慧，知识通达，思想敏捷，足能侍立在王宫里的……。</div>
+                
+                <div class="feeding-scripture">7　	太监长给他们起名……。</div>
+                
+                
+                
+                <p class="content-text">但以理书只有两段。第一段包括一至六章，说到神堕落的选民中年轻的后裔（包括但以理），在被掳之中，胜过撒但进一步的诡计。这得胜乃是胜过属鬼的饮食（一3~21）；胜过那阻止人看见尼布甲尼撒梦中大人像（全人类历史中人类政权的总和）之鬼魔的蒙蔽（二章）；胜过拜偶像的引诱（三章）；胜过那拦阻人看见诸天之神的诸天掌权的遮蔽（四章）；胜过对在神面前荒淫放荡，亵渎神的圣别之结果的无知（五章）；胜过那禁止得胜者忠信敬拜神的诡计（六章）。</p>
+                
+                <p class="content-text">尼布甲尼撒在他对但以理及其同伴所施那属鬼魔的试诱中，也将原来指明他们是属于神的名字，改为使他们与偶像成为一的名字。但以理这名，意思是“神是审判者”，或“神是我的审判者”，被改为伯提沙撒—“彼勒（赛四六1）的王子”，或“彼勒所宠爱的”。哈拿尼雅这名，意思是“耶和华曾以恩慈赐与”，或“蒙耶和华恩宠”，被改为沙得拉 —“蒙日神光照”。米沙利这名，意思是“谁是神所是的？”但他的名被改为米煞 —“谁能像女神煞克？”亚撒利雅这名，意思是“耶和华曾帮助”，被改为亚伯尼歌—“火神尼歌的忠仆”（但以理书生命读经，七至八、一三页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">在迁徙到巴比伦时，神殿中的一些器皿被带到示拿地，放在偶像庙里（代下三六6~7），这使神选民敬拜耶和华独一之神的见证，完全被毁。</p>
+                
+                <p class="content-text">“王吩咐太监长亚施毗拿，从以色列人中，从王室后裔和贵胄中，带进几个人来……。”（但一3~4）在这些以色列人中，有一些年轻的得胜者，是神用以胜过撒但进一步诡计的。撒但可能以为神已经失败了，地上再也没有对神的敬拜了；神的选民已经失败了，神在地上的定旨受到亏损了。然而，神却不失望，因为祂还有一些得胜者 —但以理和他的同伴。在祂主宰的安排下，这些年轻人被带到巴比伦，在那里作祂的得胜者。</p>
+                
+                <p class="content-text">原则上，一切临到我们的试诱，都与吃有关。尼布甲尼撒那属鬼魔的试诱，首先引诱神失败的选民中四个卓越的年轻后裔，就是但以理和他的三个同伴，要使他们有分于王不洁的食物，就是献给偶像的食物，而受玷污。……对但以理来说，王所用的膳食实际上就是善恶知识树。这树联于撒但，甚至与撒但是一；但生命树联于神，且与神是一。吃善恶知识树，就联于撒但；吃生命树，就联于神。当但以理和他的同伴拒绝吃尼布甲尼撒不洁的食物，而拣选吃蔬菜时，他们实际上是在拒绝善恶知识树，而接受生命树。因此，甚至在尼布甲尼撒的宫里，也有这两棵树（但以理书生命读经，一○至一二页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="2" data-page="1">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day2-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　但以理和他的同伴若吃那些食物，就是接受玷污，接受偶像，因而与撒但成为一<span class="scripture-ref">—参林前十19~21。</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-二" style="display: none;" onclick="toggleScripture('scripture-day2-二')">
+            
+            
+            <div class="verse-line">林前10:19	这样，我是怎么说的？岂是说祭偶像之物算得什么？或是说偶像算得什么？</div>
+            
+            
+            
+            <div class="verse-line">林前10:20	我乃是说，外邦人所献的祭，是祭鬼，不是祭神；我不愿意你们成为与鬼交通的人。</div>
+            
+            
+            
+            <div class="verse-line">林前10:21	你们不能喝主的杯，又喝鬼的杯；不能有分于主的筵席，又有分于鬼的筵席。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　当但以理和他的同伴拒绝吃尼布甲尼撒不洁的食物，而拣选吃蔬菜时（但一8~16），原则上，他们就是拒绝善恶知识树（参创三1~6），而接受生命树，使他们与神成为一（参二9、16~17）。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-三" style="display: none;" onclick="toggleScripture('scripture-day2-三')">
+            
+            
+            <div class="verse-line">但1:8	但以理却立定心意，不以王的膳和王所饮的酒玷污自己，所以求太监长容他不玷污自己。</div>
+            
+            
+            
+            <div class="verse-line">但1:9	神使但以理在太监长眼前蒙恩惠，受怜恤；</div>
+            
+            
+            
+            <div class="verse-line">但1:10	太监长对但以理说，我惧怕我主我王，他已经派定你们的饮食；为何叫他看见你们的面貌，比你们同岁的少年人瘦弱难看呢？这样，你们就使我的头在王那里难保。</div>
+            
+            
+            
+            <div class="verse-line">但1:11	但以理对太监长所派管理但以理、哈拿尼雅、米沙利、亚撒利雅的委办说，</div>
+            
+            
+            
+            <div class="verse-line">但1:12	求你试试仆人们十天，给我们蔬菜吃，白水喝，</div>
+            
+            
+            
+            <div class="verse-line">但1:13	然后当面察看我们的面貌，和用王膳那些少年人的面貌；就照你所看的待仆人吧。</div>
+            
+            
+            
+            <div class="verse-line">但1:14	委办便允准他们这件事，试看他们十天。</div>
+            
+            
+            
+            <div class="verse-line">但1:15	过了十天，见他们的面貌更显俊美，比用王膳的一切少年人更加健壮；</div>
+            
+            
+            
+            <div class="verse-line">但1:16	于是委办撤去派定他们用的膳、饮的酒，只给他们蔬菜吃。</div>
+            
+            
+            
+            <div class="verse-line">创3:1	耶和华神所造的，唯有蛇比田野一切的活物更狡猾。蛇对女人说，神岂是真说，你们不可吃园中所有树上的果子么？</div>
+            
+            
+            
+            <div class="verse-line">创3:2	女人对蛇说，园中树上的果子，我们可以吃；</div>
+            
+            
+            
+            <div class="verse-line">创3:3	唯有园当中那棵树上的果子，神曾说，你们不可吃，也不可摸，免得你们死。</div>
+            
+            
+            
+            <div class="verse-line">创3:4	蛇对女人说，你们不一定死；</div>
+            
+            
+            
+            <div class="verse-line">创3:5	因为神知道，你们吃的日子眼睛就开了，你们便如神知道善恶。</div>
+            
+            
+            
+            <div class="verse-line">创3:6	于是女人见那棵树的果子好作食物，也悦人的眼目，且是可喜爱的，能使人有智慧，就摘下果子来吃了，又给与她一起的丈夫，她丈夫也吃了。</div>
+            
+            
+            
+            <div class="verse-line">创2:9	耶和华神使各样的树从地里长出来，可以悦人的眼目，也好作食物；园子当中有生命树，还有善恶知识树。</div>
+            
+            
+            
+            <div class="verse-line">创2:16	耶和华神吩咐那人说，园中各样树上的果子，你可以随意吃，</div>
+            
+            
+            
+            <div class="verse-line">创2:17	只是善恶知识树上的果子，你不可吃，因为你吃的日子必定死。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        四　主的恢复乃是恢复吃耶稣，为着建造召会<span class="scripture-ref">—9、16~17节，启二7、17，三20。</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-四" style="display: none;" onclick="toggleScripture('scripture-day2-四')">
+            
+            
+            <div class="verse-line">创2:9	耶和华神使各样的树从地里长出来，可以悦人的眼目，也好作食物；园子当中有生命树，还有善恶知识树。</div>
+            
+            
+            
+            <div class="verse-line">创2:16	耶和华神吩咐那人说，园中各样树上的果子，你可以随意吃，</div>
+            
+            
+            
+            <div class="verse-line">创2:17	只是善恶知识树上的果子，你不可吃，因为你吃的日子必定死。</div>
+            
+            
+            
+            <div class="verse-line">启2:7	那灵向众召会所说的话，凡有耳的，就应当听。得胜的，我必将神乐园中生命树的果子赐给他吃。</div>
+            
+            
+            
+            <div class="verse-line">启2:17	那灵向众召会所说的话，凡有耳的，就应当听。得胜的，我必将那隐藏的吗哪赐给他，并赐他一块白石，上面写着新名，除了那领受的以外，没有人认识。</div>
+            
+            
+            
+            <div class="verse-line">启3:20	看哪，我站在门外叩门；若有听见我声音就开门的，我要进到他那里，我与他，他与我要一同坐席。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        五　我们能借着吃主的话，并借着谨慎接触那清心呼求主的人，且同他们在一起，而吃耶稣<span class="scripture-ref">—耶十五16，提后二22，林前十五33，箴十三20。</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-五')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-五" style="display: none;" onclick="toggleScripture('scripture-day2-五')">
+            
+            
+            <div class="verse-line">耶15:16	耶和华万军之神啊，我得着你的言语，就当食物吃了；你的言语成了我心中的欢喜快乐；因我是称为你名下的人。</div>
+            
+            
+            
+            <div class="verse-line">提后2:22	你要逃避青年人的私欲，同那清心呼求主的人，竭力追求公义、信、爱、和平。</div>
+            
+            
+            
+            <div class="verse-line">林前15:33	你们不要受迷惑：滥交败坏善行。</div>
+            
+            
+            
+            <div class="verse-line">箴13:20	与智慧人同行的，必得智慧；和愚昧人作伴的，必受亏损。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-叁" data-level="1">
+    <div class="outline-item level-1">
+        
+        叁　但以理和他的同伴胜过那阻止人看见那大人像以及那砸人的石头（就是人类历史中的神圣历史）之鬼魔的蒙蔽—但二：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　团体的基督（石头和山），也就是新郎和新妇，有神的气之团体的属神之人，要用祂口中的气，就是剑，砸碎并击杀敌基督和他的军队<span class="scripture-ref">—34~35、44~45节，帖后二8，启十九11~21，创十一4~9，参赛三三22。</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-一" style="display: none;" onclick="toggleScripture('scripture-day2-一')">
+            
+            
+            <div class="verse-line">但2:34	你观看，见有一块非人手凿出来的石头，打在这像半铁半泥的脚上，把脚砸碎。</div>
+            
+            
+            
+            <div class="verse-line">但2:35	于是铁、泥、铜、银、金，都一同砸得粉碎，成如夏天禾场上的糠秕，被风吹散，无处可寻。打碎这像的石头，变成一座大山，充满全地。</div>
+            
+            
+            
+            <div class="verse-line">但2:44	当那列王在位的日子，天上的神必兴起一国，永不败灭，国权也不留归别民，却要打碎灭绝那一切国；这国必存到永远。</div>
+            
+            
+            
+            <div class="verse-line">但2:45	你既看见非人手凿出来的一块石头，从山而出，打碎铁、铜、泥、银、金，那就是至大的神把后来必发生的事给王指明。这梦准是这样，这讲解也是可信的。</div>
+            
+            
+            
+            <div class="verse-line">帖后2:8	那时这不法者必显露出来，主耶稣要用祂口中的气除灭他，并用祂来临的显现废掉他。</div>
+            
+            
+            
+            <div class="verse-line">启19:11	我看见天开了，并且看哪，有一匹白马，骑在马上的，称为忠信真实，祂审判、争战都凭着公义。</div>
+            
+            
+            
+            <div class="verse-line">启19:12	祂的眼睛如火焰，头上戴着许多冠冕，又有写着的名字，除了祂自己没有人晓得。</div>
+            
+            
+            
+            <div class="verse-line">启19:13	祂穿着蘸过血的衣服，祂的名称为神的话。</div>
+            
+            
+            
+            <div class="verse-line">启19:14	在天上的众军，骑着白马，穿着细麻衣，又白又洁，跟随着祂。</div>
+            
+            
+            
+            <div class="verse-line">启19:15	有利剑从祂口中出来，可以用以击杀列国；祂必用铁杖辖管他们，并要踹全能神烈怒的酒醡。</div>
+            
+            
+            
+            <div class="verse-line">启19:16	在祂衣服和大腿上，有名字写着：万王之王，万主之主。</div>
+            
+            
+            
+            <div class="verse-line">启19:17	我又看见一位天使站在日头中，向天空顶点所有的飞鸟大声喊着说，你们来，聚集起来赴神的大筵席，</div>
+            
+            
+            
+            <div class="verse-line">启19:18	好吃君王的肉、将军的肉、壮士的肉、马和骑马者的肉、并一切自主的、为奴的、以及大小人民的肉。</div>
+            
+            
+            
+            <div class="verse-line">启19:19	我看见那兽和地上的君王、并他们的众军都聚拢，要与骑白马的并祂的军兵争战。</div>
+            
+            
+            
+            <div class="verse-line">启19:20	那兽被擒拿，那在兽面前曾行奇事，借此迷惑受兽印记，并拜兽像之人的假申言者，也与兽同被擒拿。他们两个就活活地被扔在烧着硫磺的火湖里。</div>
+            
+            
+            
+            <div class="verse-line">启19:21	其余的被骑白马者口中出来的剑杀了，所有的飞鸟都吃饱了他们的肉。</div>
+            
+            
+            
+            <div class="verse-line">创11:4	他们说，来吧，我们建造一座城和一座塔，塔顶通天；我们要宣扬我们的名，免得我们分散在全地上。</div>
+            
+            
+            
+            <div class="verse-line">创11:5	耶和华降临，要看看世人所建造的城和塔。</div>
+            
+            
+            
+            <div class="verse-line">创11:6	耶和华说，看哪，他们是一样的人民，都说一样的语言；这不过是他们开头要作的事，以后他们所图谋要作的，就没有能阻挡的了。</div>
+            
+            
+            
+            <div class="verse-line">创11:7	来吧，我们下去，在那里变乱他们的语言，使他们的言语彼此不通。</div>
+            
+            
+            
+            <div class="verse-line">创11:8	于是耶和华使他们从那里分散在全地上；他们就停工，不造那城了。</div>
+            
+            
+            
+            <div class="verse-line">创11:9	因为耶和华在那里变乱全地人的语言，使众人分散在全地上，所以那城名叫巴别。</div>
+            
+            
+            
+            <div class="verse-line">赛33:22	因为耶和华是审判我们的，耶和华是给我们设律法的，耶和华是我们的王；祂必拯救我们。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day2-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　基督是神建筑的宝贵活石、基石、房角石和顶石，以祂自己的宝贵灌注我们，好把我们变化为宝贵的活石，为着祂的建造<span class="scripture-ref">—彼前二4~8，赛二八16，亚三9，四7、9~10。</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day2-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day2-二" style="display: none;" onclick="toggleScripture('scripture-day2-二')">
+            
+            
+            <div class="verse-line">彼前2:4	你们来到祂这为人所弃绝，却为神所拣选所宝贵的活石跟前，</div>
+            
+            
+            
+            <div class="verse-line">彼前2:5	也就像活石，被建造成为属灵的殿，成为圣别的祭司体系，借着耶稣基督献上神所悦纳的属灵祭物。</div>
+            
+            
+            
+            <div class="verse-line">彼前2:6	因为经上记着说，“看哪，我把所拣选所宝贵的房角石，安放在锡安，信靠祂的人，必不至于羞愧。”</div>
+            
+            
+            
+            <div class="verse-line">彼前2:7	所以祂在你们信的人是宝贵的，在那不信的人却是“匠人所弃的石头，已成了房角的头块石头”，</div>
+            
+            
+            
+            <div class="verse-line">彼前2:8	又是“绊脚的石头，并跌人的磐石”。他们既不信从，就在这话上绊跌，他们这样绊跌也是预定的。</div>
+            
+            
+            
+            <div class="verse-line">赛28:16	所以主耶和华如此说：看哪，我在锡安放一块石头，作为根基，是试验过的石头，是宝贵的房角石，作为稳固的根基；信靠的人必不着急。</div>
+            
+            
+            
+            <div class="verse-line">亚3:9	看哪，我在约书亚面前所安置的石头，在一块石头上有七眼。万军之耶和华说，我要亲自雕刻这石头，并要在一日之间除掉那地的罪孽。</div>
+            
+            
+            
+            <div class="verse-line">亚4:7	大山哪，你算什么？在所罗巴伯面前你必成为平地；他必搬出那块顶石，人必大声欢呼，说，愿恩典恩典，归与这石！</div>
+            
+            
+            
+            <div class="verse-line">亚4:9	所罗巴伯的手立了这殿的根基，他的手也必完成这工；你就知道万军之耶和华差遣我到你们这里来了。</div>
+            
+            
+            
+            <div class="verse-line">亚4:10	谁藐视这日的事为小呢？这七眼乃是耶和华的眼睛，遍察全地，见所罗巴伯手拿线铊就欢喜。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">但一8　	但以理却立定心意，不以王的膳和王所饮的酒玷污自己，所以求太监长容他不玷污自己。</div>
+                
+                <div class="feeding-scripture">16　	于是委办撤去派定他们用的膳、饮的酒，只给他们蔬菜吃。</div>
+                
+                
+                
+                <p class="content-text">王自己所用的膳食是玷污人的、不洁的，因为曾献给尼布甲尼撒的诸神。但以理和他的同伴若吃那些食物，就是接受玷污，接受偶像，因而与撒但成为一。他们若这样作，神就失败了，在这地上就没有什么能为着神自己〔但一10〕和神的权益了。这样撒但就能夸口说，“神啊，你已经完全失败了。在这地上，你已经没有什么可以代表你，也没有什么可以与你成为一了。”神在祂选民身上已经失败了。现今如果他们被掳的后裔，年轻的一代，也跟随他们先祖的脚踪，神就要完全失败了。然而但以理和他的同伴是为着神的；他们紧紧联于神，忠心持守神，因着接受神而与神是一。</p>
+                
+                <p class="content-text">吃尼布甲尼撒自己所用的膳食，就是接受撒但作我们的供应而与撒但成为一。我担心你们会去吃今日的尼布甲尼撒所供应给你们，他所用的膳食。我们在饮食、购物、所到之处、所行的事上必须谨慎，否则很可能接受与偶像有关、属鬼的事物。我们吃什么，就是什么。我们若吃属神的食物—就是说，我们若吃“神食物”，神作我们的食物—我们就与神是一了（但以理书生命读经，一二至一三页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">〔在但以理一章里，我们首先看见〕一个人物，就是争战得胜的将军尼布甲尼撒，他刚从耶路撒冷回到巴比伦，带着许多俘虏跟在后面。第二，我们看见被掳的人中有四个卓越的年轻人。第三，这几个年轻人特别从被掳的人中选上，有王自己所用的膳食摆在他们面前。第四，他们立定心志为着神，拒吃王膳，只吃蔬菜。然而，他们四个长得非常可爱、快乐并健康。结果，神与他们同在，他们有神的智慧、聪明，能领会事情，胜过迦勒底的一切术士十倍（但以理书生命读经，三七至三八页）。</p>
+                
+                <p class="content-text">启示录二至三章有主耶稣直接写给众召会的七封书信。每封书信的末了都有应许。……这些应许不但是为着将来，也是为着今天。……当然，我们将来要吃生命树，因为启示录二十二章这样告诉我们，但我们今天也能享受生命树。圣经有个原则，凡是将来有全享的，我们今天就有预尝。今天我们能吃生命树、隐藏的吗哪和筵席。</p>
+                
+                <p class="content-text">全本圣经在吃以产生建造的事上，是何等的一贯。甚至创世记二章也有吃生命树的启示。……主的恢复乃是恢复吃耶稣，为着建造召会。这不仅是为着今世，也是为着永世。……我们需要吃耶稣以长大，被变化，并被建造在一起。这样我们就会有召会的建造。</p>
+                
+                <p class="content-text">借此，主要使祂关于召会建造的预言得应验。这预言乃是借着吃耶稣得应验。……吃保守一，吃建造人。你若是分裂的，就指明你在吃的事上是错了。你若在吃的事上是正确的，你必然会被联结，甚至去联结人。你会成为被建造，也建造别人的人。主要何时建造祂的召会？现在！主要如何建造祂的召会？借着我们吃耶稣！（李常受文集一九七二年第三册，六四二至六四三、六四七页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="3" data-page="2">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day3-肆" data-level="1">
+    <div class="outline-item level-1">
+        
+        肆　但以理和他的同伴胜过拜偶像的引诱<span class="scripture-ref">—但三，参太四9~10：</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-肆')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-肆" style="display: none;" onclick="toggleScripture('scripture-day3-肆')">
+            
+            
+            <div class="verse-line">太4:9	对祂说，你若俯伏拜我，我就把这一切都给你。</div>
+            
+            
+            
+            <div class="verse-line">太4:10	耶稣说，撒但，退去吧！因为经上记着，“当拜主你的神，单要事奉祂。”</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　任何东西若不是在我们重生之灵里的真神，就是顶替神的偶像；任何不在灵里或不属于灵的，都是偶像<span class="scripture-ref">—约壹五21。</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-一" style="display: none;" onclick="toggleScripture('scripture-day3-一')">
+            
+            
+            <div class="verse-line">约壹5:21	孩子们，你们要保守自己，远避偶像。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　身体的仇敌乃是己，用自利、自高、自荣、己的美丽和己的力量顶替神；在身体里并为着身体，我们否认己，
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　但以理的同伴有真实殉道的灵；他们以性命为代价，为主这独一的神站住，抵挡偶像敬拜，被尼布甲尼撒下令扔在烈火的窑中<span class="scripture-ref">—但三19~23。</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-三" style="display: none;" onclick="toggleScripture('scripture-day3-三')">
+            
+            
+            <div class="verse-line">但3:19	当时尼布甲尼撒怒气填胸，向沙得拉、米煞、亚伯尼歌变了脸色，吩咐人把窑烧热，比平常更热七倍。</div>
+            
+            
+            
+            <div class="verse-line">但3:20	又吩咐他军中的几个壮士，将沙得拉、米煞、亚伯尼歌捆起来，扔在烈火的窑中。</div>
+            
+            
+            
+            <div class="verse-line">但3:21	当时这三个人是穿着衬衣、内袍、外衣、和别的衣服，被捆起来扔在烈火的窑中。</div>
+            
+            
+            
+            <div class="verse-line">但3:22	因为王命严厉，窑又烧得极热，那抬沙得拉、米煞、亚伯尼歌的人，都被火焰烧死。</div>
+            
+            
+            
+            <div class="verse-line">但3:23	沙得拉、米煞、亚伯尼歌这三个人，都被捆着落在烈火的窑中。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-四" data-level="1">
+    <div class="outline-item level-2">
+        
+        四　尼布甲尼撒查看窑时，见有四个人在火中行走（24~25）；这第四个乃是超越的基督作为人子，来与祂三个受苦、遭逼迫的得胜者同在，并使这火成为令人愉悦、可以在其中行走的地方。
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day3-四')">展开经文</button>
+        <div class="scripture-content" id="scripture-day3-四" style="display: none;" onclick="toggleScripture('scripture-day3-四')">
+            
+            
+            <div class="verse-line">但3:24	那时尼布甲尼撒王惊奇，急忙起来，对谋士说，我们岂不是把三个人捆起来扔在火里么？他们回答王说，王啊，确实是的。</div>
+            
+            
+            
+            <div class="verse-line">但3:25	王说，看哪，我见有四个人，并没有捆绑，在火中行走，也没有受伤；那第四个的相貌，好像神子。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day3-五" data-level="1">
+    <div class="outline-item level-2">
+        
+        五　这三位得胜者，不需要求神拯救他们脱离火窑（参17）；人子基督这位够资格并且能在凡事上同情神子民者（来四15~16），来作他们的同伴，在他们受苦时照顾他们；借着祂的同在，祂使他们受苦的地方成为愉快的处境。
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">但三17~18	即便如此，我们所事奉的神，也能将我们从烈火的窑中救出来；王啊，祂必救我们脱离你的手。即或不然，王啊，你当知道，我们决不事奉你的神，也不敬拜你所立的金像。</div>
+                
+                <div class="feeding-scripture">23　	……这三个人，都被捆着落在烈火的窑中。</div>
+                
+                
+                
+                <p class="content-text">在但以理三章，撒但设计谋，要借尼布甲尼撒的盲目，引诱神失败选民中的年轻得胜者拜偶像（1~7）。尼布甲尼撒造了一个大金像，高六十肘（九十英尺），立在巴比伦省的杜拉平原（1）。……尼布甲尼撒将大臣和各等官员，并各省的官员，都招聚来，为他所立的像行开光之礼，且下令各族、各国、各方言的人，都要拜他的金像（2~5）。凡不俯伏敬拜的，必扔在烈火的窑中（6）。</p>
+                
+                <p class="content-text">但以理的三个同伴，就是被掳的犹太人中年轻的得胜者，抵挡鬼魔的敬拜，而遭迦勒底人控告（8~12）。迦勒底人妒忌但以理和他的同伴，就用他们拒绝拜金像为根据，在尼布甲尼撒面前控告他们（但以理书生命读经，三一至三二页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">尼布甲尼撒大发烈怒，试诱年轻的得胜者，再给他们机会拜他的金像，并威胁要把他们扔在烈火的窑中（但三13~15）。</p>
+                
+                <p class="content-text">三个得胜者回答说，“即便如此，我们所事奉的神，也能将我们从烈火的窑中救出来；王啊，祂必救我们脱离你的手。”（17）他们对尼布甲尼撒的回答不但无礼，且非常大胆（16~18）。但他们的回答，仍然有天然的想法。他们说神能将他们从烈火的窑中救出来。事实上，神不需要将他们从窑中救出来；祂将他们留在窑中，却使火失效（25）。</p>
+                
+                <p class="content-text">尼布甲尼撒怒气填胸，向年轻的得胜者变了脸色。他吩咐人把窑烧热，比平常更热七倍。又吩咐他军中的几个壮士，将得胜者捆起来，扔在烈火的窑中（19~21）。……壮士都被火焰烧死，年轻的得胜者被捆着落在烈火的窑中（22~23）。</p>
+                
+                <p class="content-text">那时尼布甲尼撒感到惊奇，对谋士说，“我们岂不是把三个人捆起来扔在火里么？……看哪，我见有四个人，并没有捆绑，在火中行走，也没有受伤；那第四个的相貌，好像神子。”（24~25）这第四个就是基督。基督来与祂三个受苦、遭逼迫的得胜者同在，并使这火成为令人愉悦、可以在其中行走的地方。</p>
+                
+                <p class="content-text">我们天然的想法是：我们需要离开我们环境的火。我们会以为，我们如果有一个麻烦的丈夫或烦人的妻子，就该祷告，求神拯救我们脱离这样的情形。但主会说，“我不喜欢救你脱离你婚姻生活的这个处境；我要把你留在那里，我要来使你的环境成为令人愉悦的地方。”</p>
+                
+                <p class="content-text">当仇敌把我们扔进火窑中时，我们应当知道，我们不需要求主来救我们脱离。祂会来与我们同在，在我们的受苦中照顾我们，使我们受苦的地方成为愉快的处境。……主如何与那些在巴比伦受苦的得胜者同在，今天也照样在我们的受苦里与我们同在（但以理书生命读经，三二至三五页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="4" data-page="3">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day4-伍" data-level="1">
+    <div class="outline-item level-1">
+        
+        伍　但以理和他的同伴胜过那拦阻人看见诸天之神的诸天掌权的遮蔽—但四：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　为使基督居首位，我们蒙神拣选作神的子民，在神诸天的掌权之下，目的是要使基督得以居首位<span class="scripture-ref">—18、23~26、30~32节，罗八28~29，西一18下，林后十13、18，耶九23~24。</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day4-一')">展开经文</button>
+        <div class="scripture-content" id="scripture-day4-一" style="display: none;" onclick="toggleScripture('scripture-day4-一')">
+            
+            
+            <div class="verse-line">但4:18	这是我尼布甲尼撒王所作的梦，伯提沙撒啊，你要说出这梦的讲解，因为我国中的一切哲士，都不能将梦的讲解告诉我；唯独你能，因你里头有圣神明的灵。</div>
+            
+            
+            
+            <div class="verse-line">但4:23	王既看见一位守望者，就是圣者，从天而降，说，将这树砍伐毁坏，树根的𣎴却要留在地内，用铁圈和铜圈箍住，在野地的青草中；让他被天露沾湿，且与走兽同分，直到经过七个时期。</div>
+            
+            
+            
+            <div class="verse-line">但4:24	王啊，这就是讲解；临到我主我王的事，乃是至高者的命令：</div>
+            
+            
+            
+            <div class="verse-line">但4:25	你必被赶出离开人类，与野地的兽同住；你必吃草如牛，被天露沾湿，且要经过七个时期，等你知道至高者才是人国的掌权者，要将国赐与谁，就赐与谁。</div>
+            
+            
+            
+            <div class="verse-line">但4:26	守望者既吩咐存留树根的𣎴，等你知道诸天掌权，以后你的国必定归你。</div>
+            
+            
+            
+            <div class="verse-line">但4:30	他说，这大巴比伦不是我用自己权能的力量建为王家，要显我威严的荣耀么？</div>
+            
+            
+            
+            <div class="verse-line">但4:31	这话在王口中尚未说完，有声音从天降下，说，尼布甲尼撒王啊，有话对你说，你的国位离开你了；</div>
+            
+            
+            
+            <div class="verse-line">但4:32	你必被赶出离开人类，与野地的兽同住；你必吃草如牛，且要经过七个时期，等你知道至高者才是人国的掌权者，要将国赐与谁，就赐与谁。</div>
+            
+            
+            
+            <div class="verse-line">罗8:28	还有，我们晓得万有都互相效力，叫爱神的人得益处，就是按祂旨意被召的人。</div>
+            
+            
+            
+            <div class="verse-line">罗8:29	因为神所预知的人，祂也预定他们模成神儿子的形像，使祂儿子在许多弟兄中作长子。</div>
+            
+            
+            
+            <div class="verse-line">西1:18下	……祂是元始，是从死人中复活的首生者，使祂可以在万有中居首位；</div>
+            
+            
+            
+            <div class="verse-line">林后10:13	我们却不要过了度量夸口，只要照度量的神所分给我们尺度的度量夸口，这度量甚至远达你们。</div>
+            
+            
+            
+            <div class="verse-line">林后10:18	因为蒙称许的，不是自己推荐的，乃是主所推荐的。</div>
+            
+            
+            
+            <div class="verse-line">耶9:23	耶和华如此说，智慧人不要因他的智慧夸口，勇士不要因他的勇力夸口，财主不要因他的财物夸口；</div>
+            
+            
+            
+            <div class="verse-line">耶9:24	夸口的却因他有聪明，认识我是耶和华，又知道我喜悦在地上施行慈爱、公理和公义，以此夸口；这是耶和华说的。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day4-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　“祂能使那行动骄傲的降为卑”<span class="scripture-ref">—但四37下。</span>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">但四34~35	……祂的权柄是永远的权柄，祂的国存到万代。……祂照自己的意旨行事；无人能拦住祂的手……。</div>
+                
+                <div class="feeding-scripture">37　	现在我……赞美、高举、尊敬天上的王，因为祂一切的作为全是真的，祂的道路是公平的，因为祂能使那行动骄傲的降为卑。</div>
+                
+                
+                
+                <p class="content-text">神在祂的经纶里管理宇宙，为要成就祂的定旨，就是基督应该在万有中居首位。……神若没有一班子民，就无法使基督成为居首位的。</p>
+                
+                <p class="content-text">我们蒙神拣选作祂的子民，为叫基督居首位，我们乃是在神属天的掌权之下。……在神属天的掌权下，万有都互相效力，叫我们得益处（罗八28）。……我们〔个人〕的宇宙包括我们自己、我们的家庭以及召会。在我们的宇宙中，每一天都发生许多事，目的乃是要使基督居首位。我们需要看见这事，并顺服神属天的掌权（但以理书生命读经，九○至九一页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">地是在属天行政的管治之下。诸天是为我们掌权，基督也是为着我们的。不仅如此，我们是在神为着基督的属天掌权之下。属天掌权的目的，是要完成神的选民，使基督得以居首位，就是使祂成为首先的—中心，并成为一切—普及。……因着诸天在掌权，所以基督在我们一切的情况中，都与我们同在。我们病了，……我们在风暴中，祂〔都〕与我们同在。</p>
+                
+                <p class="content-text">在〔但以理四〕章里，尼布甲尼撒继续行事高傲，神就使他降为卑。神暴露他，给他看见自己不是君子，乃是走兽。……</p>
+                
+                <p class="content-text">尼布甲尼撒在梦中看见一棵树，高大坚固，叶子华美，果子甚多，可作食物。这棵树表征尼布甲尼撒自己（20~22）。……在但以理〔对二十三节〕的讲解里，他解释说，……至高的神下命令，把尼布甲尼撒赶出离开人类，与野地的兽同住；他必吃草如牛，失去理性七个时期之久，直到他知道至高者才是人国的掌权者（24~25）。二十六节接着说，“守望者既吩咐存留树根的不，等你知道诸天掌权，以后你的国必定归你。”</p>
+                
+                <p class="content-text">但以理劝告尼布甲尼撒之后〔27〕，神给他十二个月的时间悔改。然而，他没有悔改，也没有改变。一天，当王在巴比伦王宫顶上行走的时候，他看着这大城骄傲地说，“这大巴比伦不是我用自己权能的力量建为王家，要显我威严的荣耀么？”（30）……当王的话在王口中尚未说完，有声音从天降下，说，“尼布甲尼撒王啊，有话对你说，你的国位离开你了。”（31）神要教导他认识自己一无所是，并且认识那大能的神乃是一切；祂是人国的掌权者，要将人的国赐与谁，就赐与谁。</p>
+                
+                <p class="content-text">按照尼布甲尼撒的性情和所是，他不是人，乃是兽。因这缘故，他的心变得不是人心，有一个兽心给了他（16）。……从那时起，他就吃草如牛，身被天露沾湿，直到头发长长好像鹰毛，指甲长长如同鸟爪（33）。</p>
+                
+                <p class="content-text">尼布甲尼撒在四章末了的赞美，指明他的确学了功课，降卑自己并认识神。在三章他立了一个金像，因为他非常骄傲。接着，四章就教导他一个很大的功课。虽然他行事像君子，事实上他乃是走兽（但以理书生命读经，九一、四○至四四页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="5" data-page="4">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day5-陆" data-level="1">
+    <div class="outline-item level-1">
+        
+        陆　但以理和他的同伴胜过对在神面前荒淫放荡，亵渎神的圣别之结果的无知—五章：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　伯沙撒将耶路撒冷圣殿中敬拜神所用的器皿拿来，用以拜偶像，那是亵渎神的圣别（4）；他本该从尼布甲尼撒
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　“在他里头有美好的灵，又有知识聪明，能圆梦，释谜语，解难题〔直译，解开绳结〕，这人名叫但以理”<span class="scripture-ref">—12节上。</span>
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day5-三" data-level="1">
+    <div class="outline-item level-2">
+        
+        三　“伯沙撒啊，……你虽知道这一切，你的心仍不谦卑，竟向天上的主自高，使人将祂殿中的器皿拿到你面前，你和大臣、王后、妃嫔用这些器皿饮酒；你又赞美那不能看、不能听，无知无识，用金、银、铜、铁、木、石所造的神；却没有将尊荣归与那手中有你气息，管理你一切道路的神”<span class="scripture-ref">—22~23节，参20节。</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day5-三')">展开经文</button>
+        <div class="scripture-content" id="scripture-day5-三" style="display: none;" onclick="toggleScripture('scripture-day5-三')">
+            
+            
+            <div class="verse-line">但5:20	但他的心高傲，灵也刚愎，甚至行事狂傲，就被革去王位，夺去荣耀。</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">但五22~23	伯沙撒啊，你是他〔尼布甲尼撒〕的子孙，你虽知道这一切，你的心仍不谦卑，竟向天上的主自高，……你又赞美……那用金、银、铜、铁、木、石所造的神；却没有将尊荣归与那手中有你气息，管理你一切道路的神。</div>
+                
+                
+                
+                <p class="content-text">伯沙撒（尼布甲尼撒的后裔，巴比伦的王）为他的一千大臣设摆盛筵，与他们对面饮酒（但五1）。我们在此看见伯沙撒在神面前的荒淫放荡。荒淫放荡就是放纵饮食，为着淫乱的目的。</p>
+                
+                <p class="content-text">伯沙撒因着酒力的影响，吩咐人将他先祖尼布甲尼撒从耶路撒冷殿中所掠的金银器皿拿来，他与大臣、王后、妃嫔好用这些器皿饮酒，赞美那用金、银、铜、铁、木、石所造的神（2~4）。他们把耶路撒冷圣殿中敬拜神所用的器皿拿来，用以拜偶像，那是亵渎神的圣别（但以理书生命读经，四六页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">当他们在饮酒、赞美他们的神时，忽然有人手的指头显出来，在王宫里灯台对面的粉墙上写字（但五5上）。……伯沙撒看见写字的手指头，就变了脸色，心意惊惶。他的腰骨好像脱节，双膝彼此相碰（5下~6）。他甚是恐惧，再没有平安饮酒，没有平安继续荒淫放荡。</p>
+                
+                <p class="content-text">但以理在读出并讲解那文字之前，先以但以理四章所记载尼布甲尼撒的经历，来提醒伯沙撒。但以理认为发生在尼布甲尼撒身上的事，不仅是给尼布甲尼撒的功课，也是给他所有后裔的功课。因此，但以理用责备的语气，向伯沙撒说到他先祖的功课。尼布甲尼撒曾受到神厉害的管教，他学到功课以后，就对神献上赞美。伯沙撒该从这功课有所学习，但他完全不在意这事。……伯沙撒没有想到会受到这样的责备。</p>
+                
+                <p class="content-text">圣经的记载没有指出伯沙撒曾悔改或有任何的改变。可能他没有时间悔改了。……我信当伯沙撒和他的大臣在荒淫放荡时，玛代的军队已经逼近那城。但以理讲解了那文字后不久，玛代的军队就进入城和王宫，杀了伯沙撒。因此，但以理五章三十一节总结说，“玛代人大利乌，约六十二岁，取了迦勒底国。”那就是巴比伦帝国的结束。</p>
+                
+                <p class="content-text">在但以理书头五章里，有许多我们要学习的功课。比方说，一章的功课叫我们不要顾到属世的选择和属世的口味，乃要立定心志为着神，只对蔬菜，对简单的事物有口味。我们只该接受简单的事物。我们若这样作，就会与神是一，且有智慧。</p>
+                
+                <p class="content-text">在五章伯沙撒的事例里，我们看见对神认真，不忽视属灵功课的重要。伯沙撒没有从他先祖尼布甲尼撒在四章所学的功课得着益处。……这该警告我们，我们的成就可能使我们骄傲，这会引进神的审判。神在尼布甲尼撒身上的审判使他减为无有……（35）。在三十七节，尼布甲尼撒继续说，“祂能使那行动骄傲的降为卑。”伯沙撒本该从尼布甲尼撒的经历学功课；然而，他没有学得功课，结果受了亏损（但以理书生命读经，四七至五一页）。</p>
+                
+            </div>
+            
+        </div>
+        
+        <div class="day-page" data-day="6" data-page="5">
+            
+            <div class="outline-section">
+                
+
+
+
+<div class="section" id="section-day6-柒" data-level="1">
+    <div class="outline-item level-1">
+        
+        柒　但以理和他的同伴胜过那禁止得胜者忠信敬拜神的诡计—六章：
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-一" data-level="1">
+    <div class="outline-item level-2">
+        
+        一　但以理六章的中心乃是人的祷告以执行神的经纶；但以理靠祷告作人所无法作的并明白人所无法明白的；除了祷告之外，没有别的路可以把神的经纶带到完满和完成；这是本章的内在秘诀。
+        
+    </div>
+    
+    
+</div>
+
+
+
+
+<div class="section" id="section-day6-二" data-level="1">
+    <div class="outline-item level-2">
+        
+        二　但以理把窗户开向耶路撒冷，一日三次祷告；借着他满有恩典的祷告，神就将以色列人带回他们列祖之地（10，参王上十九12、18）；当我们的祷告是向着神永远经纶里的目标，就是向着基督（由圣地所预表）、向着神的国（由圣城所预表）并向着神的家（由圣殿所预表）时，神必垂听我们的祷告<span class="scripture-ref">—八48~49。</span>
+        
+        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-day6-二')">展开经文</button>
+        <div class="scripture-content" id="scripture-day6-二" style="display: none;" onclick="toggleScripture('scripture-day6-二')">
+            
+            
+            <div class="verse-line">但6:10	但以理知道这文书已经签署了，就到自己家里（他楼上的窗户，开向耶路撒冷），一日三次，双膝跪下，在他神面前祷告感谢，因他素常就是这样行。</div>
+            
+            
+            
+            <div class="verse-line">王上19:12	地震后有火，耶和华也不在火中；火后有微小柔细的声音。</div>
+            
+            
+            
+            <div class="verse-line">王上19:18	但我在以色列中为自己留下了七千人，都是未曾向巴力屈膝，未曾与巴力亲嘴的。</div>
+            
+            
+            
+            <div class="verse-line">王上8:48	他们若在掳掠他们之仇敌的地，全心全魂归向你，又向着自己的地，就是你赐给他们列祖之地，和你所选择的城，并我为你名所建造的殿，向你祷告，</div>
+            
+            
+            
+            <div class="verse-line">王上8:49	求你在天上你的居所垂听他们的祷告和恳求，为他们施行公理，</div>
+            
+            
+        </div>
+        
+    </div>
+    
+    
+</div>
+
+
+
+            </div>
+            
+            
+            
+            <div class="content-separator"></div>
+            
+            
+            
+            <div class="feeding-section">
+                <h4>晨兴喂养</h4>
+                
+                
+                <div class="feeding-scripture">但六10~11	但以理知道这文书已经签署了，就到自己家里（他楼上的窗户，开向耶路撒冷），一日三次，双膝跪下，在他神面前祷告感谢，因他素常就是这样行。那些人就纷纷聚集，见但以理在他神面前祈祷恳求。</div>
+                
+                
+                
+                <p class="content-text">但以理六章非常重要，因为它给我们看见神在祂的选民身上如何执行祂的经纶，为着基督的来临。神要执行祂的经纶，但需要人在地上为着祂的经纶祷告。神是借着人作祂忠信祷告的管道，在地上执行祂的经纶。撒但的计谋是要阻挠那为着神行动的祷告。因此，本章的中心乃是人的祷告以执行神的经纶。</p>
+                
+                <p class="content-text">神的行动就像一列火车，必须有轨道让它行动。人的祷告好像轨道，为神的行动铺路。除了祷告之外，没有别的路可以把神的经纶带到完满和完成。这是本章的内在秘诀（但以理书生命读经，五三页）。</p>
+                
+            </div>
+            
+            
+            
+            <div class="reading-section">
+                <h4>信息选读</h4>
+                
+                <p class="content-text">在但以理六章四至九节我们看见撒但对但以理敬拜神的狡猾攻击。</p>
+                
+                <p class="content-text">总长和总督因着妒忌但以理，就“在国事上寻找但以理的把柄，为要告他，只是找不着他的把柄和过失；因他忠信可靠”（4）。所以，总长和总督，以及国中的大臣彼此商议，要王坚立一条律例，严定一道禁令，三十日内不拘何人，若在王以外向任何神明或任何人求什么，就必扔在狮子坑中（5~7）。……总长和总督意图毁灭但以理，而他们背后之撒但的意图，是要终止或切断神用以执行祂经纶的祷告管道。</p>
+                
+                <p class="content-text">十节启示但以理在敬拜神的事上忠信。……他读过耶利米论到以色列人要服事巴比伦王七十年的预言（九2下，耶二五11）。但以理必定根据这话，多次为着这预言的应验以及被掳之人的归回祷告。他祷告，并且不让任何事停止或阻挠他的祷告。他知道他的祷告乃是在执行神对祂选民的经纶。因此，他的祷告是一件严肃的事。……今天，祷告乃是主恢复的命脉。撒但越要阻挠我们的祷告，我们越该祷告。</p>
+                
+                <p class="content-text">但以理六章二十五至二十八节启示，在地上，甚至在外邦之国，神借着祂失败被掳之选民中的得胜者，在人对神敬拜的事上胜过了撒但。……但以理胜过那禁止得胜者忠信敬拜神的诡计，乃是对撒但的诡计最后一步的得胜。神若没有这些得胜者，就完全被撒但打败，在地上没有得着什么是为着祂自己的。</p>
+                
+                <p class="content-text">当撒但差遣尼布甲尼撒来毁坏圣城同圣殿，除去对神的敬拜和事奉时，似乎神失败了，祂在地上的权益、敬拜和事奉被毁坏了。但在神的主宰下，尼布甲尼撒所拣选，侍立在王宫的少年人中，有四人成了得胜者，保守了对神的敬拜和事奉。神有四个年轻的得胜者，他们天天活在王宫里，绝对与神是一。这对撒但是羞辱，对神却是夸耀。……今天在地上，不管数目多寡，只要有一些得胜者，神就有夸口的理由。当神看见今天的得胜者站在召会的立场上，祂就快乐喜悦（但以理书生命读经，五四至五五、五七至五九页）。</p>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    </div>
+    
+    <!-- 翻页控制 -->
+    <div class="page-controls">
+        <button class="prev-btn" id="prevBtn">
+            <span>←</span>
+            <span class="btn-text">上一天</span>
+        </button>
+        <span class="page-indicator" id="pageIndicator">1 / 6</span>
+        <button class="next-btn" id="nextBtn">
+            <span class="btn-text">下一天</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+</div>
+
+<script>
+// 分页功能（跟手滑动版）
+(function() {
+    const pagesContainer = document.querySelector('.pages-container');
+    if (!pagesContainer) return;
+    const totalPages = Number(pagesContainer.dataset.totalPages || 0);
+    if (totalPages === 0) return;
+
+    let currentPage = 0;
+    const track = pagesContainer.querySelector('.pages-track');
+    const pages = pagesContainer.querySelectorAll('.day-page');
+    const dayLinks = document.querySelectorAll('.day-link');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
+
+    function setTrack(pct, animate) {
+        track.style.transition = animate
+            ? 'transform .3s cubic-bezier(.25,.46,.45,.94)'
+            : 'none';
+        track.style.transform = `translateX(${pct}%)`;
+    }
+
+    function updateContainerHeight() {
+        const activePage = pages[currentPage];
+        if (!activePage) return;
+
+        const pageHeight = activePage.offsetHeight;
+        pagesContainer.style.height = `${pageHeight}px`;
+    }
+
+    // 显示指定页面，scrollToTop 控制是否滚动到顶部
+    function showPage(pageIndex, scrollToTop) {
+        if (pageIndex < 0 || pageIndex >= totalPages) return;
+
+        // 切页时停止朗读，避免误报与状态错乱
+        if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+            window.CXSpeech.cancel();
+        }
+        currentPage = pageIndex;
+        setTrack(-currentPage * 100, true);
+
+        // 保留 is-active 供朗读等功能识别当前页
+        pages.forEach((page, i) => page.classList.toggle('is-active', i === currentPage));
+
+        // 更新天导航按钮
+        dayLinks.forEach((link, i) => link.classList.toggle('active', i === currentPage));
+
+        // 更新翻页按钮状态
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage === totalPages - 1;
+
+        // 更新页码指示器
+        pageIndicator.textContent = `${currentPage + 1} / ${totalPages}`;
+
+        updateContainerHeight();
+
+        if (scrollToTop !== false) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    prevBtn.addEventListener('click', () => { if (currentPage > 0) showPage(currentPage - 1); });
+    nextBtn.addEventListener('click', () => { if (currentPage < totalPages - 1) showPage(currentPage + 1); });
+    dayLinks.forEach((link, i) => link.addEventListener('click', () => showPage(i)));
+
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') prevBtn.click();
+        else if (e.key === 'ArrowRight') nextBtn.click();
+    });
+
+    // ── 跟手滑动 ──────────────────────────────────────────────
+    let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+    let isDragging = false;
+    let isHorizontal = null; // null=未判断  true=水平  false=垂直
+
+    pagesContainer.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+        isDragging = true;
+        isHorizontal = null;
+        track.style.transition = 'none';
+    }, { passive: true });
+
+    pagesContainer.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const dx = e.touches[0].clientX - touchStartX;
+        const dy = e.touches[0].clientY - touchStartY;
+
+        // 移动 6px 以上才判断方向，避免误判
+        if (isHorizontal === null) {
+            if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+            isHorizontal = Math.abs(dx) >= Math.abs(dy);
+        }
+
+        if (!isHorizontal) {
+            // 确认是垂直滚动，放弃拖动并恢复位置
+            isDragging = false;
+            setTrack(-currentPage * 100, true);
+            return;
+        }
+
+        const W = pagesContainer.offsetWidth;
+        let pct = -currentPage * 100 + (dx / W * 100);
+
+        // 边界橡皮筋（阻尼 0.25，首尾页拉到头有弹性）
+        if (currentPage === 0 && dx > 0) {
+            pct = dx / W * 25;
+        } else if (currentPage === totalPages - 1 && dx < 0) {
+            pct = -currentPage * 100 + (dx / W * 25);
+        }
+
+        track.style.transform = `translateX(${pct}%)`;
+    }, { passive: true });
+
+    pagesContainer.addEventListener('touchend', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+
+        if (!isHorizontal) {
+            setTrack(-currentPage * 100, true);
+            return;
+        }
+
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dt = Date.now() - touchStartTime;
+        const W = pagesContainer.offsetWidth;
+        const velocity = Math.abs(dx) / dt; // px/ms
+        const ratio = Math.abs(dx) / W;
+
+        let target = currentPage;
+        // 超过容器宽度 25% 或速度 > 0.35px/ms 触发翻页（对齐主流阅读器）
+        if (ratio > 0.25 || velocity > 0.35) {
+            if (dx < 0 && currentPage < totalPages - 1) target = currentPage + 1;
+            else if (dx > 0 && currentPage > 0) target = currentPage - 1;
+        }
+
+        showPage(target, target !== currentPage);
+    }, { passive: true });
+    // ─────────────────────────────────────────────────────────
+    
+    // 根据 URL hash 初始化页面
+    function initFromHash(isInitial) {
+        const hash = window.location.hash;
+        if (hash) {
+            // 支持 #day1, #day2, ... #day6 格式
+            const match = hash.match(/^#day(\d+)$/);
+            if (match) {
+                const dayNum = parseInt(match[1], 10);
+                if (dayNum >= 1 && dayNum <= totalPages) {
+                    showPage(dayNum - 1, !isInitial);
+                    return;
+                }
+            }
+        }
+        showPage(0, !isInitial);
+    }
+
+    window.addEventListener('resize', updateContainerHeight);
+    window.addEventListener('load', updateContainerHeight);
+
+    window.addEventListener('hashchange', () => initFromHash(false));
+    initFromHash(true);
+})();
+
+// 朗读功能初始化
+function initSpeech() {
+    window.CXSpeech.init({
+        getText: function() {
+            const activePage = document.querySelector('.day-page.is-active');
+            if (!activePage) return '';
+
+            function getCleanText(node) {
+                var clone = node.cloneNode(true);
+                var ignored = clone.querySelectorAll('button, .scripture-content, .verse-line, .scripture-ref');
+                ignored.forEach(function(el) { el.remove(); });
+                return clone.textContent.trim();
+            }
+
+            let text = '';
+
+            const outlineSection = activePage.querySelector('.outline-section');
+            if (outlineSection) {
+                const outlineItems = outlineSection.querySelectorAll('.outline-item');
+                outlineItems.forEach(item => {
+                    const t = getCleanText(item);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const feedingSection = activePage.querySelector('.feeding-section');
+            if (feedingSection) {
+                const paragraphs = feedingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            const readingSection = activePage.querySelector('.reading-section');
+            if (readingSection) {
+                const paragraphs = readingSection.querySelectorAll('.content-text');
+                paragraphs.forEach(p => {
+                    const t = getCleanText(p);
+                    if (t) text += t + '。';
+                });
+            }
+
+            return text;
+        }
+    });
+}
+
+// 等待 CXSpeech 加载
+function checkAndInitSpeech() {
+    if (window.CXSpeech && window.CXSpeech.init) {
+        initSpeech();
+    } else {
+        var attempts = 0;
+        var checkInterval = setInterval(function() {
+            attempts++;
+            if (window.CXSpeech && window.CXSpeech.init) {
+                clearInterval(checkInterval);
+                initSpeech();
+            } else if (attempts >= 50) {
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndInitSpeech);
+} else {
+    checkAndInitSpeech();
+}
+</script>
+
+<script src="js/outline.js"></script>
+
+<style>
+/* 纲目和内容样式 */
+.outline-section{margin:18px 0}
+.outline-section .toggle-btn{display:none}
+.outline-section .scripture-content{cursor:pointer}
+.content-separator{height:1px;background:var(--border);margin:20px 0}
+.feeding-section,.reading-section{margin:20px 0}
+.feeding-section h4,.reading-section h4{font-size:1.05em;font-weight:600;color:var(--heading);margin:16px 0 12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;text-align:center}
+.feeding-scripture{margin:10px 0;padding:10px 14px;background:var(--surface-alt);border-left:3px solid var(--brand);border-radius:6px;font-size:1.01em;color:var(--text);line-height:1.8;font-weight:550;text-align:justify;letter-spacing:0.1px}
+.prev-btn:active:not(:disabled),.next-btn:active:not(:disabled){background:var(--bg);color:#fff;border-color:rgba(102,126,234,.55)}
+.no-content{color:var(--text-muted);font-style:italic;text-align:center;padding:40px 20px}
+@media(min-width:768px){.feeding-section h4,.reading-section h4{font-size:1.08em}.feeding-scripture{font-size:1.05em;padding:12px 16px}}
+@media(max-width:768px){.day-navigation{gap:0}.page-controls{margin:20px 0 10px}.prev-btn,.next-btn{padding:8px 12px;font-size:14px}.btn-text{display:none}}
+</style>
+
+        </div>
+        
+        <div class="footer">
+            <p>202601 国际华语特会训</p>
+        </div>
+    </div>
+
+    <!-- 核心脚本 - 延迟加载非关键脚本 -->
+    <script src="js/theme-toggle.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/highlight.js" defer></script>
+    <script src="js/nav-stack.js"></script>
+    
+    <script>
+    if (window.CXNavStack) {
+        window.CXNavStack.initContentPage();
+    }
+    </script>
+    
+    
+    <!-- 页面记忆功能 -->
+    <script>
+    (function() {
+        // 保存当前页面到 localStorage
+        function saveCurrentPage() {
+            try {
+                var href = window.location.href;
+                localStorage.setItem('cx_last_page', href);
+                localStorage.setItem('cx_last_page_time', Date.now());
+                console.log('[页面记忆] ✓ 保存页面:', href);
+            } catch (e) {
+                console.error('[页面记忆] 保存失败:', e);
+            }
+        }
+        
+        // 页面加载时保存
+        saveCurrentPage();
+        
+        // 页面卸载前保存（用户离开时）
+        window.addEventListener('beforeunload', saveCurrentPage);
+        
+        // 页面隐藏时也保存（移动端切换应用）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveCurrentPage();
+            }
+        });
+    })();
+    </script>
+    
+    
+
+</body>
+</html>
