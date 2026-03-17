@@ -326,11 +326,30 @@ class ImprovedParser:
             if re.match(r'目\s*录|^第[一二三四五六七八九十]+篇', text):
                 break
                 
-            # 识别副标题（"总题："后面的内容）
-            if text == "总题：" and i + 1 < len(doc.paragraphs):
-                next_para = doc.paragraphs[i + 1].text.strip()
-                if next_para and not re.match(r'目\s*录|^第[一二三四五六七八九十]+篇', next_para):
-                    self.training_subtitle = next_para
+            # 识别副标题（"总题："后面的内容，支持多种格式）
+            # 格式1: "总题：内容"（同行，可能只有部分，续行以"—"结尾）
+            # 格式2: "总　题"\n"内容第一行"\n"内容第二行"
+            if re.match(r'^总[　\s]*题[：:]?$', text) or text.startswith("总题：") or text.startswith("总题:"):
+                inline_content = re.sub(r'^总[　\s]*题[：:]?', '', text).strip()
+                if inline_content:
+                    # 同行有内容，检查是否需要续接下一行
+                    if inline_content.endswith('—') and i + 1 < len(doc.paragraphs):
+                        next_line = doc.paragraphs[i + 1].text.strip()
+                        if next_line and not re.match(r'目\s*录|^第[一二三四五六七八九十]+篇|^标[　\s]*语', next_line):
+                            inline_content = inline_content + next_line
+                    self.training_subtitle = inline_content
+                elif i + 1 < len(doc.paragraphs):
+                    # 下一行是内容
+                    line1 = doc.paragraphs[i + 1].text.strip()
+                    if line1 and not re.match(r'目\s*录|^第[一二三四五六七八九十]+篇|^标[　\s]*语', line1):
+                        subtitle_text = line1
+                        # 检查是否还有续行（第一行以"—"结尾）
+                        if line1.endswith('—') and i + 2 < len(doc.paragraphs):
+                            line2 = doc.paragraphs[i + 2].text.strip()
+                            if line2 and not re.match(r'目\s*录|^第[一二三四五六七八九十]+篇|^标[　\s]*语', line2):
+                                subtitle_text = line1 + line2
+                        self.training_subtitle = subtitle_text
+                if self.training_subtitle:
                     print(f"  ✓ 识别副标题: {self.training_subtitle}")
                     subtitle_found = True
                 continue
@@ -456,17 +475,13 @@ class ImprovedParser:
             
                 # 如果有标题缓冲，继续累积直到遇到其他内容
             if chapter_title_buffer:
-                # 检查是否是标题的延续（不是"MC 诗歌"、"读经"、诗歌编号等）
+                # 检查是否是标题的延续（不是诗歌编号行、读经等）
                 if not any([
-                    text.startswith('MC '),
-                    text.startswith('JL '),
-                    text.startswith('SC '),
-                    text.startswith('RM '),
+                    re.match(r'^[A-Z]{2}[/ ]', text),  # 任意两字母前缀（EM、JL、MC等）
                     text.startswith('NL/'),
-                    text.startswith('HL '),
-                    text.startswith('RA '),
                     text.startswith('读经：'),
-                    '诗歌：' in text
+                    '诗歌：' in text,
+                    '诗歌:' in text
                 ]):
                     chapter_title_buffer += text
                     continue
@@ -501,8 +516,8 @@ class ImprovedParser:
                 self.current_chapter.scripture = text.replace('读经：', '').strip()
                 continue
             
-            # 处理诗歌编号
-            if self.current_chapter and ('诗歌：' in text or any(text.startswith(prefix) for prefix in ['JL ', 'MC ', 'SC ', 'RM ', 'NL/', 'HL ', 'RA '])):
+            # 处理诗歌编号（兼容全角/半角冒号和所有两字母大写前缀）
+            if self.current_chapter and ('诗歌：' in text or '诗歌:' in text or re.match(r'^[A-Z]{2}[/ ]', text)):
                 if self.current_chapter.hymn_number:
                     self.current_chapter.hymn_number += ' ' + text
                 else:
