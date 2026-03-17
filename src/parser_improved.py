@@ -474,16 +474,16 @@ class ImprovedParser:
                     # 标题结束，创建章节
                     chapter_num = self._extract_chapter_number(chapter_title_buffer)
                     
-                    # 从标题中提取诗歌信息（夏季格式："...EM 诗歌: s250, s432"）
-                    hymn_match = re.search(r'(EM|RK)\s*诗歌[：:]\s*([^，。]+)', chapter_title_buffer)
+                    # 从标题中提取诗歌信息（支持所有字母前缀，如 EM、RK、EC, MC、MC, KL 等）
+                    hymn_match = re.search(r'([A-Z]{2}[/]?(?:[,，\s]+[A-Z]{2}[/]?)*)\s*诗歌[：:]\s*([^\n，。\s]+)', chapter_title_buffer)
                     if hymn_match:
-                        hymn_number = f"{hymn_match.group(1)} 诗歌: {hymn_match.group(2)}"
+                        hymn_number = f"{hymn_match.group(1).strip()} 诗歌: {hymn_match.group(2).strip()}"
                     else:
                         hymn_number = ""
                     
                     # 从完整标题中提取实际标题（去除"第X篇"部分和诗歌信息）
                     clean_title = re.sub(r'^第[一二三四五六七八九十百]+篇\s*', '', chapter_title_buffer)
-                    clean_title = re.sub(r'(EM|RK)\s*诗歌[：:]\s*[^，。]*', '', clean_title).strip()
+                    clean_title = re.sub(r'\s*[A-Z]{2}[/]?(?:[,，\s]+[A-Z]{2}[/]?)*\s*诗歌[：:]\s*[^\n，。\s]+', '', clean_title).strip()
                     
                     self.current_chapter = Chapter(
                         number=chapter_num,

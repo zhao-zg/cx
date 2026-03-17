@@ -175,6 +175,14 @@ def process_resource_page(session: requests.Session, resource: Dict[str, str]) -
             continue
         if block_type == 'file':
             collect_file(block, documents, current_section)
+
+    # 听抄：多文件时优先保留含 "transcript" 的文件，找不到则保留全部
+    tingchao = documents['听抄']
+    if len(tingchao) > 1:
+        transcript_files = [d for d in tingchao if 'transcript' in d['filename'].lower()]
+        if transcript_files:
+            documents['听抄'] = transcript_files
+
     return documents
 
 
