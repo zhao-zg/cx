@@ -9,7 +9,11 @@
   }
 
   function safeText(text) {
-    return (text || '').replace(/\s+/g, ' ').trim();
+    return (text || '')
+      .replace(/（[^）]*）/g, '')   // 去除全角小括号及其内容
+      .replace(/\([^)]*\)/g, '')    // 去除半角小括号及其内容
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   function formatTime(seconds) {
