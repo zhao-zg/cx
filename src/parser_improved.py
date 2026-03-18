@@ -287,7 +287,7 @@ class ImprovedParser:
             # 如果在标语区域
             if motto_started:
                 # 标语区域结束的条件：遇到"目录"、"训练纲要"、"总题"或章节标题
-                if text and re.match(r'目\s*录|训练纲要|总题：?|^第[一二三四五六七八九十]+篇', text):
+                if text and re.match(r'目\s*录|训练纲要|总[　\s]*题[：:]?|^第[一二三四五六七八九十]+篇', text):
                     motto_started = False
                     break
                 
