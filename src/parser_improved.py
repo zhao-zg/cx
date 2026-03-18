@@ -1164,6 +1164,8 @@ class ImprovedParser:
         week_hymns = []  # 诗歌信息缓冲
         week_ministry = []  # 职事信息缓冲
         in_outline_section = False  # 是否在纲目收集状态
+        # 跨周续接：记录换周前最后一个未完整结尾的纲目位置，供下一行续拼
+        carry_incomplete = None  # (week_num, day_key) or None
         
         for para in doc.paragraphs:
             text = para.text.strip()
@@ -1257,6 +1259,17 @@ class ImprovedParser:
                             week_to_chapter_map[current_week] = chapter_index
                             chapter_index += 1
                         
+                        # 检查刚保存的纲目末尾是否有未完整的条目（句子被栏/页标题截断）
+                        # 若有，记录位置，供下一周第一个续接行反向修补
+                        carry_incomplete = None
+                        prev_week = current_week - 1  # 注意：current_week 已更新为 new_week
+                        # 遍历刚才保存进 all_weeks_outlines 的所有天
+                        if prev_week in all_weeks_outlines:
+                            for dk, ol in all_weeks_outlines[prev_week].items():
+                                if ol and ol[-1].rstrip() and not ol[-1].rstrip()[-1] in '：:。！？…':
+                                    carry_incomplete = (prev_week, dk)
+                                    break
+                        
                         # 清空上一周的纲目映射，准备收集新周的纲目
                         day_outlines = {}
                         current_day_key = None
@@ -1286,6 +1299,7 @@ class ImprovedParser:
                 pending_outline = []
                 in_outline_section = True
                 current_section = 'outline'
+                carry_incomplete = None  # 遇到新的天标记，放弃跨周续接
                 continue
             
             # 检测具体的天标记（第X周 • 周一/周二等）
@@ -1378,12 +1392,27 @@ class ImprovedParser:
             # 收集内容
             if in_outline_section and current_section == 'outline':
                 # 收集纲目内容（在"周期"和"第X周•周X"之间）
-                if style in ['１綱要大點壹', '２綱要中點一', '３綱要小點１', '４綱要分點ａ'] or \
-                   re.match(r'^[壹贰叁肆伍陆柒捌玖拾一二三四五六七八九十\d]+[、\s]', text):
+                is_level_marker = re.match(r'^[壹贰叁肆伍陆柒捌玖拾一二三四五六七八九十\d]+[、\s]', text)
+                is_outline_style = style in ['１綱要大點壹', '２綱要中點一', '３綱要小點１', '４綱要分點ａ']
+
+                # 跨周续接：上一周末尾有未完整的条目，且当前行不带层级标记
+                if carry_incomplete and (is_outline_style or is_level_marker) and not is_level_marker:
+                    # 这是被换周标题（"第X周•纲目"）切断的续接行，反向修补已保存的条目
+                    prev_week, prev_day = carry_incomplete
+                    if prev_week in all_weeks_outlines and prev_day in all_weeks_outlines[prev_week]:
+                        all_weeks_outlines[prev_week][prev_day][-1] += text
+                    carry_incomplete = None
+                    # 不加入本周 pending_outline，直接进行下一段
+                elif is_outline_style or is_level_marker:
+                    # 有层级标记，是正常新条目；或者 carry_incomplete 为 None
+                    carry_incomplete = None  # 一旦看到真正的新条目，清除续接标记
                     pending_outline.append(text)
                 # 检测诗歌（在纲目部分）
                 elif 'EM' in text or 'RK' in text or '诗歌' in text:
                     week_hymns.append(text)
+                elif pending_outline and text and not re.match(r'^第.+周', text):
+                    # 同周内的续接行（段落被普通回车拆断），拼接回去
+                    pending_outline[-1] = pending_outline[-1] + text
             elif current_section in ['feeding', 'reading']:
                 # 收集喂养/选读内容，但要过滤掉周标记文本（如"第二十五周 • 周一"）
                 # 这些文本是分页时的标记，不是实际内容
@@ -1601,7 +1630,14 @@ class ImprovedParser:
             elif current_level2:
                 current_level2.add_content(text)
             elif current_level1:
-                current_level1.add_content(text)
+                # 若 level1 标题不以完整句子标点结尾、且尚无子级，
+                # 说明是被 Word 分页/分栏拆断的续接行，拼回标题
+                title_end = current_level1.title.rstrip()[-1:] if current_level1.title.rstrip() else ''
+                if (not current_level2
+                        and title_end not in ('：', ':', '。', '！', '？', '…')):
+                    current_level1.title = current_level1.title + text
+                else:
+                    current_level1.add_content(text)
         
         return result
     
