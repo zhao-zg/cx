@@ -178,6 +178,7 @@
 
     function resetState(keepText) {
       stopProgressUpdate();
+      playbackGeneration++;         // 使所有旧回调失效
       utterance = null;
       isPaused = false;
       startTime = 0;
@@ -247,8 +248,9 @@
         return;
       }
       
+      var myGen = playbackGeneration;   // 捕获当前代数，用于回调时检验是否已过期
       var chunkText = textChunks[currentChunkIndex];
-      var rate = Number(rateSelect.value) || 0.5;
+      var rate = Number(rateSelect.value) || 1;
       
       if (useCapacitorTTS) {
         // Capacitor TTS 分段播放
@@ -266,10 +268,12 @@
           volume: 1.0,
           category: 'ambient'
         }).then(function() {
+          if (playbackGeneration !== myGen) return;  // 已被新的播放会话取代，丢弃
           currentChunkIndex++;
           // 继续播放下一段
           playNextChunk();
         }).catch(function(error) {
+          if (playbackGeneration !== myGen) return;  // 已被新的播放会话取代，丢弃
           // 尝试播放下一段
           currentChunkIndex++;
           if (currentChunkIndex < textChunks.length) {
@@ -336,12 +340,14 @@
     var textChunks = [];
     var currentChunkIndex = 0;
     var isPlayingChunks = false;
+    // 用于识别过期回调（每次 startSpeakingFromPercent / resetState 时递增）
+    var playbackGeneration = 0;
 
     function startSpeakingFromPercent(percent) {
       if (!fullText) return;
 
       var p = clamp(Number(percent) || 0, 0, 100);
-      var rate = Number(rateSelect.value) || 0.5;
+      var rate = Number(rateSelect.value) || 1;
 
       // Use totalDuration for time mapping; slice text proportionally for approximate seek.
       var targetSeconds = totalDuration ? (p / 100) * totalDuration : 0;
@@ -351,21 +357,13 @@
       var segmentText = safeText(fullText.slice(charIndex));
       if (!segmentText) return;
 
+      // 递增代数，使所有旧回调（.then/.catch）失效，防止语速切换时旧链条干扰新播放
+      playbackGeneration++;
+      var myGen = playbackGeneration;
+
       // 标记正在跳转，防止 cancel 触发的 onerror 重置状态
       isSeekingInternal = true;
-      
-      // 先停止当前播放
-      if (useCapacitorTTS) {
-        try {
-          var TextToSpeech = window.Capacitor.Plugins.TextToSpeech;
-          TextToSpeech.stop();
-        } catch (e) {}
-      } else {
-        try {
-          window.speechSynthesis.cancel();
-        } catch (e) {}
-      }
-      isPlayingChunks = false;
+      isPlayingChunks = false;  // 先置 false，阻止旧 .then() 继续执行
       stopProgressUpdate();
 
       // 立即更新进度条显示
@@ -375,76 +373,90 @@
       if (useCapacitorTTS) {
         // 使用 Capacitor TTS
         var TextToSpeech = window.Capacitor.Plugins.TextToSpeech;
-        
-        // 如果文本很长，使用分段播放
-        if (segmentText.length > 1000) {
-          textChunks = splitTextIntoChunks(segmentText, 500);
-          currentChunkIndex = 0;
-          isPlayingChunks = true;
-          
-          // 设置时间状态
-          isSeekingInternal = false;
-          elapsedOffset = targetSeconds;
-          startTime = Date.now();
-          pauseStartedAt = 0;
-          isPaused = false;
-          
-          // 开始播放第一段
-          playNextChunk();
-          
-        } else {
-          // 短文本直接播放
-          isSeekingInternal = false;
-          elapsedOffset = targetSeconds;
-          startTime = Date.now();
-          pauseStartedAt = 0;
-          isPaused = false;
-          utterance = { capacitor: true }; // 标记为 Capacitor TTS
-          
-          updateButtonState(true);
-          startProgressUpdate();
-          
-          TextToSpeech.speak({
-            text: segmentText,
-            lang: lang,
-            rate: rate,
-            pitch: 1.0,
-            volume: 1.0,
-            category: 'ambient'
-          }).then(function() {
-            isSeekingInternal = false;
-            resetState(false);
-          }).catch(function(error) {
-            isSeekingInternal = false;
+
+        // 构造实际开始播放的函数，在 stop() 完成后调用，确保新语速生效
+        var doStartCapacitor = function() {
+          if (playbackGeneration !== myGen) return;  // 已被更新的调用取代
+
+          // 如果文本很长，使用分段播放
+          if (segmentText.length > 1000) {
+            textChunks = splitTextIntoChunks(segmentText, 500);
+            currentChunkIndex = 0;
+            isPlayingChunks = true;
             
-            // 重置状态
-            stopProgressUpdate();
-            utterance = null;
-            isPaused = false;
-            startTime = 0;
+            // 设置时间状态
+            isSeekingInternal = false;
+            elapsedOffset = targetSeconds;
+            startTime = Date.now();
             pauseStartedAt = 0;
-            elapsedOffset = 0;
-            updateButtonState(false);
-            progressBar.value = '0';
+            isPaused = false;
             
-            // 显示错误信息
-            var shortMsg = '播放失败';
-            if (segmentText.length > 4000) {
-              shortMsg = '文本太长';
-            }
-            speechTime.textContent = shortMsg;
-            speechTime.style.color = '#ff0000';
+            // 开始播放第一段
+            playNextChunk();
             
-            setTimeout(function() {
-              speechTime.textContent = '00:00 / 00:00';
-              speechTime.style.color = '';
-            }, 5000);
-          });
+          } else {
+            // 短文本直接播放
+            isSeekingInternal = false;
+            elapsedOffset = targetSeconds;
+            startTime = Date.now();
+            pauseStartedAt = 0;
+            isPaused = false;
+            utterance = { capacitor: true }; // 标记为 Capacitor TTS
+            
+            updateButtonState(true);
+            startProgressUpdate();
+            
+            var curRate = Number(rateSelect.value) || 1;
+            TextToSpeech.speak({
+              text: segmentText,
+              lang: lang,
+              rate: curRate,
+              pitch: 1.0,
+              volume: 1.0,
+              category: 'ambient'
+            }).then(function() {
+              if (playbackGeneration !== myGen) return;
+              resetState(false);
+            }).catch(function(error) {
+              if (playbackGeneration !== myGen) return;
+              
+              // 重置状态
+              stopProgressUpdate();
+              utterance = null;
+              isPaused = false;
+              startTime = 0;
+              pauseStartedAt = 0;
+              elapsedOffset = 0;
+              updateButtonState(false);
+              progressBar.value = '0';
+              
+              // 显示错误信息
+              var shortMsg = '播放失败';
+              if (segmentText.length > 4000) {
+                shortMsg = '文本太长';
+              }
+              speechTime.textContent = shortMsg;
+              speechTime.style.color = '#ff0000';
+              
+              setTimeout(function() {
+                speechTime.textContent = '00:00 / 00:00';
+                speechTime.style.color = '';
+              }, 5000);
+            });
+          }
+        };
+
+        // 等待 stop() 完成后再设置新语速并开始播放，避免 stop/speak 竞态导致语速不生效
+        try {
+          TextToSpeech.stop().then(doStartCapacitor).catch(doStartCapacitor);
+        } catch (e) {
+          doStartCapacitor();
         }
         
       } else {
-        // 使用 Web Speech API - 分段播放
-        
+        // 使用 Web Speech API - 先取消当前播放
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+
         // 如果文本很长，使用分段播放
         if (segmentText.length > 500) {
           textChunks = splitTextIntoChunks(segmentText, 200);
@@ -585,7 +597,7 @@
         fullText = safeText(getText());
         if (!fullText) return;
 
-        totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
+        totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 1);
         elapsedOffset = 0;
         progressBar.value = '0';
         speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
@@ -647,7 +659,7 @@
       
       // 重新计算新倍速下的总时长
       var oldTotalDuration = totalDuration;
-      totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
+      totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 1);
       
       // 根据实际播放时间计算新的百分比
       var newPercent = 0;

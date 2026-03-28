@@ -195,10 +195,10 @@
         const dx = e.touches[0].clientX - touchStartX;
         const dy = e.touches[0].clientY - touchStartY;
 
-        // 移动 6px 以上才判断方向，避免误判
+        // 移动 10px 以上才判断方向，避免误判
         if (isHorizontal === null) {
-            if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-            isHorizontal = Math.abs(dx) >= Math.abs(dy);
+            if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+            isHorizontal = Math.abs(dx) >= 2 * Math.abs(dy);
         }
 
         if (!isHorizontal) {
