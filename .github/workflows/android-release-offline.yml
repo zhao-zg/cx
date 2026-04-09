@@ -849,7 +849,7 @@ jobs:
           RELEASE_INFO=$(curl -sf "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" || echo "{}")
           
           # 检查 APK 是否存在
-          APK_URL=$(echo "$RELEASE_INFO" | jq -r ".assets[] | select(.name == \"$APK_NAME\") | .browser_download_url // empty")
+          APK_URL=$(echo "$RELEASE_INFO" | jq -r "(.assets // [])[] | select(.name == \"$APK_NAME\") | .browser_download_url // empty")
           
           if [ -n "$APK_URL" ] && [ "$APK_URL" != "null" ]; then
             echo "✓ APK 已上传: $APK_URL"
