@@ -261,7 +261,11 @@
                 }
             }
         }
-        showPage(0, !isInitial);
+        // 没有 hash 时，根据当天星期几自动定位
+        // 0=周日 → page 0（周一内容）；1=周一 → page 0；2=周二 → page 1；…6=周六 → page 5
+        const dow = new Date().getDay(); // 0=周日,...,6=周六
+        const defaultPage = dow === 0 ? 0 : Math.min(dow - 1, totalPages - 1);
+        showPage(defaultPage, !isInitial);
     }
 
     window.addEventListener('resize', updateContainerHeight);

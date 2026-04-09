@@ -105,6 +105,16 @@
                     const startOffset = Math.max(0, highlight.start - nodeStart);
                     const endOffset = Math.min(nodeLength, highlight.end - nodeStart);
 
+                    // 对于整段都在同一文本节点内的情况，验证文本是否匹配
+                    // 若不匹配说明保存的偏移量已失效（如早期划线被删除导致偏差），直接跳过
+                    if (nodeStart <= highlight.start && nodeEnd >= highlight.end) {
+                        const actual = node.textContent.substring(startOffset, endOffset);
+                        if (actual !== highlight.text) {
+                            console.warn('[划线] 文本不匹配，跳过恢复:', JSON.stringify(highlight.text), '→实际:', JSON.stringify(actual));
+                            return;
+                        }
+                    }
+
                     // 创建划线标记
                     const range = document.createRange();
                     range.setStart(node, startOffset);
@@ -137,10 +147,6 @@
                 NodeFilter.SHOW_TEXT,
                 {
                     acceptNode: function(node) {
-                        // 跳过已经被标记的节点
-                        if (node.parentElement && node.parentElement.classList.contains('cx-highlight')) {
-                            return NodeFilter.FILTER_REJECT;
-                        }
                         // 跳过空白节点
                         if (!node.textContent.trim()) {
                             return NodeFilter.FILTER_REJECT;
