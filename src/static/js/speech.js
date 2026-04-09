@@ -258,6 +258,7 @@
         updateButtonState(true);
         if (!progressInterval) startProgressUpdate();
         
+        var chunkGen = speakGeneration; // 捕获当前代次
         TextToSpeech.speak({
           text: chunkText,
           lang: lang,
@@ -266,10 +267,12 @@
           volume: 1.0,
           category: 'ambient'
         }).then(function() {
+          if (chunkGen !== speakGeneration) return; // 旧回调，丢弃
           currentChunkIndex++;
           // 继续播放下一段
           playNextChunk();
         }).catch(function(error) {
+          if (chunkGen !== speakGeneration) return; // 旧回调（如被 stop/rate切换打断），丢弃
           // 尝试播放下一段
           currentChunkIndex++;
           if (currentChunkIndex < textChunks.length) {
@@ -287,6 +290,7 @@
         
       } else {
         // Web Speech API 分段播放
+        var chunkGen = speakGeneration; // 捕获当前代次
         utterance = new SpeechSynthesisUtterance(chunkText);
         utterance.lang = lang;
         utterance.rate = rate;
@@ -297,12 +301,14 @@
         };
         
         utterance.onend = function() {
+          if (chunkGen !== speakGeneration) return; // 旧回调，丢弃
           currentChunkIndex++;
           // 继续播放下一段
           playNextChunk();
         };
         
         utterance.onerror = function(event) {
+          if (chunkGen !== speakGeneration) return; // 旧回调，丢弃
           var err = event && event.error;
           if (err === 'interrupted' || err === 'cancelled') {
             if (isSeekingInternal) return;
@@ -331,6 +337,9 @@
 
     // 用于跳过 cancel 导致的 onerror
     var isSeekingInternal = false;
+
+    // 代次计数器：每次 startSpeakingFromPercent 时自增，旧的异步回调通过对比代次来丢弃自身
+    var speakGeneration = 0;
     
     // Web Speech API 分段播放相关变量
     var textChunks = [];
@@ -342,6 +351,9 @@
 
       var p = clamp(Number(percent) || 0, 0, 100);
       var rate = Number(rateSelect.value) || 0.5;
+
+      // 自增代次，使所有旧的异步回调失效
+      var currentGen = ++speakGeneration;
 
       // Use totalDuration for time mapping; slice text proportionally for approximate seek.
       var targetSeconds = totalDuration ? (p / 100) * totalDuration : 0;
@@ -412,9 +424,11 @@
             volume: 1.0,
             category: 'ambient'
           }).then(function() {
+            if (currentGen !== speakGeneration) return; // 旧回调，丢弃
             isSeekingInternal = false;
             resetState(false);
           }).catch(function(error) {
+            if (currentGen !== speakGeneration) return; // 旧回调（被 stop/rate切换打断），丢弃
             isSeekingInternal = false;
             
             // 重置状态
@@ -529,6 +543,7 @@
     // Expose cancel for page navigation
     window.CXSpeech = window.CXSpeech || {};
     window.CXSpeech.cancel = function () {
+      ++speakGeneration; // 使所有挂起的异步回调失效
       safeCancel();
       resetState(false);
     };
@@ -675,14 +690,26 @@
     // 页面隐藏时暂停朗读（可选）
     document.addEventListener('visibilitychange', function() {
       if (document.hidden && utterance && !isPaused) {
-        try {
-          window.speechSynthesis.pause();
+        if (useCapacitorTTS) {
+          // Capacitor TTS：停止播放，回来后需重新开始
+          try {
+            var TextToSpeech = window.Capacitor.Plugins.TextToSpeech;
+            TextToSpeech.stop();
+          } catch (e) { /* ignore */ }
           isPaused = true;
           updateButtonState(false);
           pauseStartedAt = Date.now();
           stopProgressUpdate();
-        } catch (e) {
-          // ignore
+        } else {
+          try {
+            window.speechSynthesis.pause();
+            isPaused = true;
+            updateButtonState(false);
+            pauseStartedAt = Date.now();
+            stopProgressUpdate();
+          } catch (e) {
+            // ignore
+          }
         }
       }
     });
