@@ -1570,8 +1570,8 @@ class ImprovedParser:
                 continue
             
             # 检测各级纲目 - 使用更灵活的匹配方式
-            # 壹、贰、叁等 (level1)
-            level1_match = re.match(r'^([壹贰叁肆伍陆柒捌玖拾一二三四五六七八九十])[\s　]+(.*)', text)
+            # 壹、贰、叁等 (level1)，支持拾壹(11)、拾贰(12)等多字符大点
+            level1_match = re.match(r'^([壹贰叁肆伍陆柒捌玖拾]+)[\s　]+(.*)', text)
             if level1_match:
                 level = level1_match.group(1)
                 title = level1_match.group(2)

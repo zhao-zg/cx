@@ -122,7 +122,7 @@ class HTMLGenerator:
         level_str = level_str.strip()
         
         # 壹贰叁肆伍陆柒捌玖拾 -> level-1 (大纲)
-        if level_str in '壹贰叁肆伍陆柒捌玖拾':
+        if all(c in '壹贰叁肆伍陆柒捌玖拾' for c in level_str):
             return "level-1"
         
         # 罗马数字 I II III IV V VI VII VIII IX X -> level-1 (大纲)

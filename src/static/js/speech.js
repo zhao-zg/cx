@@ -98,7 +98,10 @@
     function startInit() {
       var engine = detectEngine();
       if (!engine.speechSupported) {
-        if (engine.isNative && initAttempts < maxInitAttempts) {
+        // 前5次(750ms)无条件重试，给 Capacitor 插件留足冷启动时间；
+        // 之后只有检测到原生环境才继续等待插件就绪
+        var shouldRetry = initAttempts < maxInitAttempts && (initAttempts < 5 || engine.isNative);
+        if (shouldRetry) {
           initAttempts++;
           setTimeout(startInit, 150);
           return;
