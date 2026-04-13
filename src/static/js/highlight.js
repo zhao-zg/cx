@@ -93,11 +93,13 @@
             for (var i = 0; i < textNodes.length; i++) {
                 var node = textNodes[i];
                 var nodeLength = node.textContent.length;
+                // 先设 start 再设 end，保证 startContainer===endContainer 时顺序正确
                 if (node === range.startContainer) start = charCount + range.startOffset;
                 if (node === range.endContainer)   { end = charCount + range.endOffset; break; }
                 charCount += nodeLength;
             }
-            return (start >= 0 && end > start) ? { start: start, end: end } : null;
+            // start 未找到（endContainer 先于 startContainer）则返回 null
+            return (start >= 0 && end >= 0 && end > start) ? { start: start, end: end } : null;
         },
 
         // ─── 应用单个划线到 DOM ──────────────────────────────────────
@@ -155,13 +157,15 @@
                         mark.style.backgroundColor = 'transparent';
                     }
 
-                    // 下划线：直线（underline 字段）和波浪线（note 非空）可叠加
-                    var decs = [];
-                    if (highlight.underline) decs.push('underline solid #e53935 2px');
-                    if (highlight.note)      decs.push('underline wavy #e53935 1px');
-                    if (decs.length) {
-                        mark.style.textDecoration     = decs.join(', ');
-                        mark.style.textUnderlineOffset = highlight.note ? '5px' : '3px';
+                    // 下划线：直线用 border-bottom，波浪线用 text-decoration
+                    // 二者属于不同 CSS 属性，可完全叠加，无兼容性问题
+                    if (highlight.underline) {
+                        mark.style.borderBottom    = '2px solid #e53935';
+                        mark.style.paddingBottom   = '2px';
+                    }
+                    if (highlight.note) {
+                        mark.style.textDecoration      = 'underline wavy #eb6c05 1px';
+                        mark.style.textUnderlineOffset = '2px';
                     }
 
                     mark.dataset.highlightId = highlight.id;
@@ -181,16 +185,8 @@
                 charCount += nodeLength;
             }
 
-            // surroundContents 失败时回滚已添加的 mark，避免残留无效节点
-            if (appliedMarks.length && appliedMarks.some(function(m){ return !m.parentNode; })) {
-                appliedMarks.forEach(function (m) {
-                    var parent = m.parentNode;
-                    if (!parent) return;
-                    while (m.firstChild) parent.insertBefore(m.firstChild, m);
-                    parent.removeChild(m);
-                });
-                container.normalize();
-            }
+            // surroundContents 全部失败（appliedMarks 为空）时无需处理；
+            // 部分失败时已成功的 mark 保留（clearAllMarks 会在下次 restore 时清除）
         },
 
         _insertNoteIcon: function (markEl, highlightId) {
@@ -394,13 +390,12 @@
                     '<div class="hl-note-text" id="hl-ann-note-text"></div>' +
                     '<button class="hl-note-expand-btn" id="hl-ann-expand">展开 ▾</button>' +
                 '</div>' +
-                '<div class="hl-menu-row" id="hl-ann-mark-row">' +
-                    '<button class="hl-menu-btn" id="hl-ann-modify-mark">添加标记</button>' +
-                    '<button class="hl-menu-btn hl-menu-btn-danger" id="hl-ann-del-mark">删除标记</button>' +
-                '</div>' +
-                '<div class="hl-menu-row">' +
-                    '<button class="hl-menu-btn" id="hl-ann-edit-note">添加笔记</button>' +
-                    '<button class="hl-menu-btn hl-menu-btn-danger" id="hl-ann-del-note">删除笔记</button>' +
+                '<div class="hl-ann-row" id="hl-ann-mark-row">' +
+                    '<button class="hl-ann-act-btn" id="hl-ann-modify-mark">标记 ▾</button>' +
+                    '<button class="hl-ann-act-btn hl-ann-danger" id="hl-ann-del-mark">删除</button>' +
+                    '<span class="hl-sel-sep"></span>' +
+                    '<button class="hl-ann-act-btn" id="hl-ann-edit-note">笔记</button>' +
+                    '<button class="hl-ann-act-btn hl-ann-danger" id="hl-ann-del-note">删除</button>' +
                 '</div>' +
                 self._colorPanelHTML();
 
@@ -589,12 +584,12 @@
                 preview.style.display = 'none';
             }
 
-            document.getElementById('hl-ann-edit-note').textContent = h.note ? '修改笔记' : '添加笔记';
+            document.getElementById('hl-ann-edit-note').textContent = h.note ? '修改笔记' : '笔记';
             document.getElementById('hl-ann-del-note').style.display = h.note ? '' : 'none';
 
-            // 有标记时：修改标记 + 删除标记；无标记时：仅显示添加标记
+            // 有标记时：修改标记 ▾ + ✕；无标记时：仅显示 + 标记
             var hasVisibleMark = !!(h.color || h.underline);
-            document.getElementById('hl-ann-modify-mark').textContent = hasVisibleMark ? '修改标记' : '添加标记';
+            document.getElementById('hl-ann-modify-mark').textContent = hasVisibleMark ? '修改 ▾' : '标记 ▾';
             document.getElementById('hl-ann-del-mark').style.display = hasVisibleMark ? '' : 'none';
 
             var menu = document.getElementById('hl-annotation-menu');
@@ -642,11 +637,6 @@
             });
         },
 
-        isMobile: function () {
-            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-                || window.innerWidth <= 768;
-        },
-
         // ─── 事件监听 ─────────────────────────────────────────────
         setupEventListeners: function () {
             var self = this;
@@ -673,11 +663,13 @@
                 _hideSelMenu();         // 新触摸开始时隐藏选择菜单
             }, { passive: true });
 
+            // 捕获阶段监听 touchend：菜单内 stopPropagation 无法阻止捕获阶段，
+            // 保证 _pointerDown 在任何情况下都能被重置，避免卡在 true 导致后续选区菜单无法出现
             document.addEventListener('touchend', function () {
                 self._pointerDown = false;
                 clearTimeout(_showTimer);
                 _showTimer = setTimeout(function () { self._handleTextSelection(); }, 200);
-            });
+            }, true);
 
             // iOS / Android 长按选词：系统接管手势，触发 touchcancel 而非 touchend
             // 必须在 touchcancel 里清除 _pointerDown，否则 selectionchange 会被永久拦截
