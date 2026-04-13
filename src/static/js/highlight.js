@@ -161,7 +161,7 @@
                     // 二者属于不同 CSS 属性，可完全叠加，无兼容性问题
                     if (highlight.underline) {
                         mark.style.borderBottom    = '2px solid #e53935';
-                        mark.style.paddingBottom   = '2px';
+                        mark.style.paddingBottom   = '1px';
                     }
                     if (highlight.note) {
                         mark.style.textDecoration      = 'underline wavy #eb6c05 1px';
