@@ -651,8 +651,9 @@
         setupEventListeners: function () {
             var self = this;
             var _showTimer = null;
+            var _scrolled  = false; // 区分真实点击 vs 滚动后 click
 
-            // 隐藏选择菜单（仅隐藏 UI，不清除选区）
+            // 仅隐藏选择菜单（不影响标注菜单）
             function _hideSelMenu() {
                 var m = document.getElementById('hl-selection-menu');
                 if (m && m.style.display !== 'none') m.style.display = 'none';
@@ -669,26 +670,33 @@
             // ─── 移动端 ──────────────────────────────────────────────
             document.addEventListener('touchstart', function () {
                 self._pointerDown = true;
+                _scrolled = false;      // 每次新触摸重置滚动标志
                 clearTimeout(_showTimer);
-                _hideSelMenu(); // 触摸开始（新选择/扩选/滚动）：立即隐藏菜单
+                _hideSelMenu();         // 新触摸开始时隐藏选择菜单
             }, { passive: true });
 
             document.addEventListener('touchend', function () {
                 self._pointerDown = false;
-                self._lastTouchEnd = Date.now(); // 记录时间，用于抑制合成 click
                 clearTimeout(_showTimer);
-                // touchend 后 200ms：iOS 通常已将选区提交给 getSelection()
                 _showTimer = setTimeout(function () { self._handleTextSelection(); }, 200);
             });
 
+            // iOS / Android 长按选词：系统接管手势，触发 touchcancel 而非 touchend
+            // 必须在 touchcancel 里清除 _pointerDown，否则 selectionchange 会被永久拦截
+            document.addEventListener('touchcancel', function () {
+                self._pointerDown = false;
+                clearTimeout(_showTimer);
+                _showTimer = setTimeout(function () { self._handleTextSelection(); }, 300);
+            });
+
+            // 记录真实滚动（用于 click 去抖：滚动后的 click 不关闭标注菜单）
+            window.addEventListener('scroll', function () { _scrolled = true; }, { passive: true });
+
             // ─── selectionchange ──────────────────────────────────────
-            // 选区变化时立即隐藏菜单（避免扩选/滚动时菜单残留导致页面跳动）。
-            // 手指抬起后（没有 _pointerDown 守卫）额外做一次防抖重试，
-            // 处理系统柄拖动（不触发 touchstart）等场景。
             document.addEventListener('selectionchange', function () {
                 clearTimeout(_showTimer);
                 _hideSelMenu();
-                if (self._pointerDown) return; // 手指按下中：等 touchend 负责显示
+                if (self._pointerDown) return; // 手指仍按下，等 touchend/touchcancel 负责
                 _showTimer = setTimeout(function () {
                     var sel = window.getSelection();
                     if (sel && sel.toString().trim().length > 0) self._handleTextSelection();
@@ -697,9 +705,6 @@
 
             // 点击事件：区分"点击高亮/笔记图标"与"点击空白关闭菜单"
             document.addEventListener('click', function (e) {
-                // iOS/Android 在 touchend 后约 300ms 补发合成 click；
-                // 若距上次 touchend < 600ms，跳过"关闭菜单"逻辑，避免刚弹出的菜单被立即关掉
-                if (Date.now() - (self._lastTouchEnd || 0) < 600) return;
                 var ni = e.target.closest ? e.target.closest('.cx-note-icon') : null;
                 var hl = e.target.closest ? e.target.closest('.cx-highlight') : null;
 
@@ -715,6 +720,9 @@
                     self.showAnnotationMenu(hl.dataset.highlightId, hl);
                     return;
                 }
+
+                // 滚动后 iOS 会触发一次 click，忽略它（保留标注菜单）
+                if (_scrolled) { _scrolled = false; return; }
 
                 var selMenu = document.getElementById('hl-selection-menu');
                 var annMenu = document.getElementById('hl-annotation-menu');
