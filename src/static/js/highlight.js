@@ -622,7 +622,7 @@
             menu.style.display   = 'flex';
             menu.style.opacity   = '0';
             requestAnimationFrame(function () {
-                var GAP = 14;
+                var GAP = 16;
                 var viewTop;
                 var belowAvail = window.innerHeight - rect.bottom - GAP;
                 var aboveAvail = rect.top - GAP;
@@ -650,48 +650,48 @@
         // ─── 事件监听 ─────────────────────────────────────────────
         setupEventListeners: function () {
             var self = this;
-            var _reposTimer  = null;
-            var _showTimer   = null;
+            var _showTimer = null;
 
-            // 桌面端：mouseup 后 30ms 快速触发（不等 selectionchange）
+            // 隐藏选择菜单（仅隐藏 UI，不清除选区）
+            function _hideSelMenu() {
+                var m = document.getElementById('hl-selection-menu');
+                if (m && m.style.display !== 'none') m.style.display = 'none';
+            }
+
+            // ─── 桌面端 ──────────────────────────────────────────────
             document.addEventListener('mousedown', function () { self._pointerDown = true; });
-            document.addEventListener('mouseup',   function (e) {
+            document.addEventListener('mouseup', function (e) {
                 self._pointerDown = false;
                 clearTimeout(_showTimer);
                 _showTimer = setTimeout(function () { self._handleTextSelection(e); }, 30);
             });
-            // 移动端：touchend 只更新标志位，不再直接触发菜单；
-            // 依赖 selectionchange 驱动，避免 iOS "touchend 先于 selection 提交" 的时序问题
-            document.addEventListener('touchstart', function () { self._pointerDown = true; }, { passive: true });
-            document.addEventListener('touchend',   function () { self._pointerDown = false; });
 
-            var selChangeTimer = null;
+            // ─── 移动端 ──────────────────────────────────────────────
+            document.addEventListener('touchstart', function () {
+                self._pointerDown = true;
+                clearTimeout(_showTimer);
+                _hideSelMenu(); // 触摸开始（新选择/扩选/滚动）：立即隐藏菜单
+            }, { passive: true });
+
+            document.addEventListener('touchend', function () {
+                self._pointerDown = false;
+                clearTimeout(_showTimer);
+                // touchend 后 200ms：iOS 通常已将选区提交给 getSelection()
+                _showTimer = setTimeout(function () { self._handleTextSelection(); }, 200);
+            });
+
+            // ─── selectionchange ──────────────────────────────────────
+            // 选区变化时立即隐藏菜单（避免扩选/滚动时菜单残留导致页面跳动）。
+            // 手指抬起后（没有 _pointerDown 守卫）额外做一次防抖重试，
+            // 处理系统柄拖动（不触发 touchstart）等场景。
             document.addEventListener('selectionchange', function () {
-                clearTimeout(selChangeTimer);
-                var selMenu = document.getElementById('hl-selection-menu');
-                var menuVisible = selMenu && selMenu.style.display !== 'none';
-                if (menuVisible) {
-                    // 菜单已显示时（拖动选择柄）：防抖 400ms 仅重新定位，不重建菜单
-                    clearTimeout(_reposTimer);
-                    _reposTimer = setTimeout(function () {
-                        var sel = window.getSelection();
-                        if (!sel || sel.toString().trim().length === 0) { self.hideAllMenus(); return; }
-                        if (!sel.rangeCount) return;
-                        var range = sel.getRangeAt(0);
-                        var container = document.querySelector(self.options.containerSelector || '.content');
-                        if (!container || !container.contains(range.commonAncestorContainer)) return;
-                        self._positionMenuByRect(selMenu, range.getBoundingClientRect());
-                    }, 400);
-                } else {
-                    // 菜单未显示时：300ms 防抖
-                    // - 主动拖选时每次事件重置计时，手指抬起后 300ms 才触发
-                    // - iOS 长按选词：selectionchange 在 touchend 前/后均可触发，无需依赖 touchend 时序
-                    // - 不设 _pointerDown 守卫，避免 iOS selectionchange 在 touchend 之前触发被错误拦截
-                    selChangeTimer = setTimeout(function () {
-                        var sel = window.getSelection();
-                        if (sel && sel.toString().trim().length > 0) self._handleTextSelection();
-                    }, 300);
-                }
+                clearTimeout(_showTimer);
+                _hideSelMenu();
+                if (self._pointerDown) return; // 手指按下中：等 touchend 负责显示
+                _showTimer = setTimeout(function () {
+                    var sel = window.getSelection();
+                    if (sel && sel.toString().trim().length > 0) self._handleTextSelection();
+                }, 200);
             });
 
             // 点击事件：区分"点击高亮/笔记图标"与"点击空白关闭菜单"
