@@ -611,29 +611,25 @@
         },
 
         // ─── 菜单定位 ─────────────────────────────────────────────
-        // 统一使用紧贴选区的定位策略（优先在选区下方，空间不足则上方）
-        // 移动端用 position:fixed，桌面端用 position:absolute
+        // 始终用 position:fixed，避免 absolute+大 scrollY 时 top 超大触发页面滚动
         _positionMenu: function (menu, range) {
             this._positionMenuByRect(menu, range.getBoundingClientRect());
         },
 
         _positionMenuByRect: function (menu, rect) {
-            var isMobile = this.isMobile();
-            menu.style.position  = isMobile ? 'fixed' : 'absolute';
+            menu.style.position  = 'fixed';
             menu.style.transform = 'none';
             menu.style.display   = 'flex';
             menu.style.opacity   = '0';
-            var scrollY = isMobile ? 0 : window.scrollY;
             requestAnimationFrame(function () {
-                // 先在视口坐标系里决定位置
                 var GAP = 14;
                 var viewTop;
                 var belowAvail = window.innerHeight - rect.bottom - GAP;
                 var aboveAvail = rect.top - GAP;
                 if (belowAvail >= menu.offsetHeight || belowAvail >= aboveAvail) {
-                    viewTop = rect.bottom + GAP;   // 选区下方（优先）
+                    viewTop = rect.bottom + GAP;
                 } else {
-                    viewTop = rect.top - menu.offsetHeight - GAP; // 选区上方
+                    viewTop = rect.top - menu.offsetHeight - GAP;
                 }
                 viewTop = Math.max(GAP, Math.min(viewTop, window.innerHeight - menu.offsetHeight - GAP));
 
@@ -641,7 +637,7 @@
                 left = Math.max(10, Math.min(left, window.innerWidth - menu.offsetWidth - 10));
 
                 menu.style.left    = left + 'px';
-                menu.style.top     = (viewTop + scrollY) + 'px';
+                menu.style.top     = viewTop + 'px';
                 menu.style.opacity = '1';
             });
         },
@@ -654,27 +650,48 @@
         // ─── 事件监听 ─────────────────────────────────────────────
         setupEventListeners: function () {
             var self = this;
+            var _reposTimer  = null;
+            var _showTimer   = null;
 
-            // 记录指针/触摸是否按下，按下期间不响应 selectionchange
+            // 桌面端：mouseup 后 30ms 快速触发（不等 selectionchange）
             document.addEventListener('mousedown', function () { self._pointerDown = true; });
             document.addEventListener('mouseup',   function (e) {
                 self._pointerDown = false;
-                setTimeout(function () { self._handleTextSelection(e); }, 10);
+                clearTimeout(_showTimer);
+                _showTimer = setTimeout(function () { self._handleTextSelection(e); }, 30);
             });
+            // 移动端：touchend 只更新标志位，不再直接触发菜单；
+            // 依赖 selectionchange 驱动，避免 iOS "touchend 先于 selection 提交" 的时序问题
             document.addEventListener('touchstart', function () { self._pointerDown = true; }, { passive: true });
-            document.addEventListener('touchend',   function (e) {
-                self._pointerDown = false;
-                setTimeout(function () { self._handleTextSelection(e); }, 50);
-            });
+            document.addEventListener('touchend',   function () { self._pointerDown = false; });
 
             var selChangeTimer = null;
             document.addEventListener('selectionchange', function () {
-                if (self._pointerDown) return; // 拖选中不处理
                 clearTimeout(selChangeTimer);
-                selChangeTimer = setTimeout(function () {
-                    var sel = window.getSelection();
-                    if (sel && sel.toString().trim().length > 0) self._handleTextSelection();
-                }, 200);
+                var selMenu = document.getElementById('hl-selection-menu');
+                var menuVisible = selMenu && selMenu.style.display !== 'none';
+                if (menuVisible) {
+                    // 菜单已显示时（拖动选择柄）：防抖 400ms 仅重新定位，不重建菜单
+                    clearTimeout(_reposTimer);
+                    _reposTimer = setTimeout(function () {
+                        var sel = window.getSelection();
+                        if (!sel || sel.toString().trim().length === 0) { self.hideAllMenus(); return; }
+                        if (!sel.rangeCount) return;
+                        var range = sel.getRangeAt(0);
+                        var container = document.querySelector(self.options.containerSelector || '.content');
+                        if (!container || !container.contains(range.commonAncestorContainer)) return;
+                        self._positionMenuByRect(selMenu, range.getBoundingClientRect());
+                    }, 400);
+                } else {
+                    // 菜单未显示时：300ms 防抖
+                    // - 主动拖选时每次事件重置计时，手指抬起后 300ms 才触发
+                    // - iOS 长按选词：selectionchange 在 touchend 前/后均可触发，无需依赖 touchend 时序
+                    // - 不设 _pointerDown 守卫，避免 iOS selectionchange 在 touchend 之前触发被错误拦截
+                    selChangeTimer = setTimeout(function () {
+                        var sel = window.getSelection();
+                        if (sel && sel.toString().trim().length > 0) self._handleTextSelection();
+                    }, 300);
+                }
             });
 
             // 点击事件：区分"点击高亮/笔记图标"与"点击空白关闭菜单"

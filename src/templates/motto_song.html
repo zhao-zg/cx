@@ -101,6 +101,8 @@ if (window.CXNavStack) {
 
     var _lastTap = 0;
     img.addEventListener('touchend', function(e) {
+        // 只有单指触摸结束才判断双击（双指捏合放手不触发）
+        if (e.changedTouches.length !== 1 || e.touches.length > 0) return;
         var now = Date.now();
         if (now - _lastTap < 300) { resetTransform(); _lastTap = 0; return; }
         _lastTap = now;
