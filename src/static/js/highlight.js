@@ -29,6 +29,7 @@
         _pendingHighlightId: null,
         _selectedColor:      'yellow',
         _selectedUnderline:  false,
+        _pointerDown:        false,
 
         // ─── 初始化 ───────────────────────────────────────────────
         init: function () {
@@ -105,7 +106,30 @@
             if (!container) return;
             var textNodes = this.getTextNodes(container);
             var charCount = 0;
+            var appliedMarks = [];   // 记录本次已添加的 mark，surroundContents 失败时回滚
             var self = this;
+
+            // 多节点跨段时，先用字符偏移提取全文做整体校验
+            if (highlight.text) {
+                var fullText = '';
+                for (var j = 0; j < textNodes.length; j++) {
+                    var tn = textNodes[j];
+                    var tnStart = charCount;
+                    var tnEnd   = tnStart + tn.textContent.length;
+                    if (tnEnd > highlight.start && tnStart < highlight.end) {
+                        var s = Math.max(0, highlight.start - tnStart);
+                        var e = Math.min(tn.textContent.length, highlight.end - tnStart);
+                        fullText += tn.textContent.substring(s, e);
+                    }
+                    charCount += tn.textContent.length;
+                    if (tnStart >= highlight.end) break;
+                }
+                charCount = 0; // 重置供下方循环使用
+                if (fullText !== highlight.text) {
+                    console.warn('[划线] 文本不匹配，跳过恢复:', highlight.text, '→', fullText);
+                    return;
+                }
+            }
 
             for (var i = 0; i < textNodes.length; i++) {
                 var node       = textNodes[i];
@@ -116,15 +140,6 @@
                 if (nodeEnd > highlight.start && nodeStart < highlight.end) {
                     var startOffset = Math.max(0, highlight.start - nodeStart);
                     var endOffset   = Math.min(nodeLength, highlight.end - nodeStart);
-
-                    // 验证文本匹配，防止偏移失效
-                    if (nodeStart <= highlight.start && nodeEnd >= highlight.end) {
-                        var actual = node.textContent.substring(startOffset, endOffset);
-                        if (actual !== highlight.text) {
-                            console.warn('[划线] 文本不匹配，跳过恢复:', highlight.text, '→', actual);
-                            return;
-                        }
-                    }
 
                     var range = document.createRange();
                     range.setStart(node, startOffset);
@@ -153,6 +168,7 @@
 
                     try {
                         range.surroundContents(mark);
+                        appliedMarks.push(mark);
                         // 仅在最后一个覆盖节点插入图标，防止多段高亮重复插入
                         if (highlight.note && (nodeStart + endOffset >= highlight.end)) {
                             self._insertNoteIcon(mark, highlight.id);
@@ -163,6 +179,17 @@
                 }
 
                 charCount += nodeLength;
+            }
+
+            // surroundContents 失败时回滚已添加的 mark，避免残留无效节点
+            if (appliedMarks.length && appliedMarks.some(function(m){ return !m.parentNode; })) {
+                appliedMarks.forEach(function (m) {
+                    var parent = m.parentNode;
+                    if (!parent) return;
+                    while (m.firstChild) parent.insertBefore(m.firstChild, m);
+                    parent.removeChild(m);
+                });
+                container.normalize();
             }
         },
 
@@ -599,15 +626,16 @@
             var scrollY = isMobile ? 0 : window.scrollY;
             requestAnimationFrame(function () {
                 // 先在视口坐标系里决定位置
+                var GAP = 14;
                 var viewTop;
-                var belowAvail = window.innerHeight - rect.bottom - 8;
-                var aboveAvail = rect.top - 8;
+                var belowAvail = window.innerHeight - rect.bottom - GAP;
+                var aboveAvail = rect.top - GAP;
                 if (belowAvail >= menu.offsetHeight || belowAvail >= aboveAvail) {
-                    viewTop = rect.bottom + 8;   // 选区下方（优先）
+                    viewTop = rect.bottom + GAP;   // 选区下方（优先）
                 } else {
-                    viewTop = rect.top - menu.offsetHeight - 8; // 选区上方
+                    viewTop = rect.top - menu.offsetHeight - GAP; // 选区上方
                 }
-                viewTop = Math.max(8, Math.min(viewTop, window.innerHeight - menu.offsetHeight - 8));
+                viewTop = Math.max(GAP, Math.min(viewTop, window.innerHeight - menu.offsetHeight - GAP));
 
                 var left = rect.left + rect.width / 2 - menu.offsetWidth / 2;
                 left = Math.max(10, Math.min(left, window.innerWidth - menu.offsetWidth - 10));
@@ -627,15 +655,21 @@
         setupEventListeners: function () {
             var self = this;
 
-            document.addEventListener('mouseup', function (e) {
+            // 记录指针/触摸是否按下，按下期间不响应 selectionchange
+            document.addEventListener('mousedown', function () { self._pointerDown = true; });
+            document.addEventListener('mouseup',   function (e) {
+                self._pointerDown = false;
                 setTimeout(function () { self._handleTextSelection(e); }, 10);
             });
-            document.addEventListener('touchend', function (e) {
+            document.addEventListener('touchstart', function () { self._pointerDown = true; }, { passive: true });
+            document.addEventListener('touchend',   function (e) {
+                self._pointerDown = false;
                 setTimeout(function () { self._handleTextSelection(e); }, 50);
             });
 
             var selChangeTimer = null;
             document.addEventListener('selectionchange', function () {
+                if (self._pointerDown) return; // 拖选中不处理
                 clearTimeout(selChangeTimer);
                 selChangeTimer = setTimeout(function () {
                     var sel = window.getSelection();
