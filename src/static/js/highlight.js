@@ -675,6 +675,7 @@
 
             document.addEventListener('touchend', function () {
                 self._pointerDown = false;
+                self._lastTouchEnd = Date.now(); // 记录时间，用于抑制合成 click
                 clearTimeout(_showTimer);
                 // touchend 后 200ms：iOS 通常已将选区提交给 getSelection()
                 _showTimer = setTimeout(function () { self._handleTextSelection(); }, 200);
@@ -696,6 +697,9 @@
 
             // 点击事件：区分"点击高亮/笔记图标"与"点击空白关闭菜单"
             document.addEventListener('click', function (e) {
+                // iOS/Android 在 touchend 后约 300ms 补发合成 click；
+                // 若距上次 touchend < 600ms，跳过"关闭菜单"逻辑，避免刚弹出的菜单被立即关掉
+                if (Date.now() - (self._lastTouchEnd || 0) < 600) return;
                 var ni = e.target.closest ? e.target.closest('.cx-note-icon') : null;
                 var hl = e.target.closest ? e.target.closest('.cx-highlight') : null;
 
