@@ -651,7 +651,6 @@
         setupEventListeners: function () {
             var self = this;
             var _showTimer = null;
-            var _scrolled  = false; // 区分真实点击 vs 滚动后 click
 
             // 仅隐藏选择菜单（不影响标注菜单）
             function _hideSelMenu() {
@@ -670,7 +669,6 @@
             // ─── 移动端 ──────────────────────────────────────────────
             document.addEventListener('touchstart', function () {
                 self._pointerDown = true;
-                _scrolled = false;      // 每次新触摸重置滚动标志
                 clearTimeout(_showTimer);
                 _hideSelMenu();         // 新触摸开始时隐藏选择菜单
             }, { passive: true });
@@ -689,8 +687,10 @@
                 _showTimer = setTimeout(function () { self._handleTextSelection(); }, 300);
             });
 
-            // 记录真实滚动（用于 click 去抖：滚动后的 click 不关闭标注菜单）
-            window.addEventListener('scroll', function () { _scrolled = true; }, { passive: true });
+            // 滚动时关闭所有菜单
+            window.addEventListener('scroll', function () {
+                self.hideAllMenus();
+            }, { passive: true });
 
             // ─── selectionchange ──────────────────────────────────────
             document.addEventListener('selectionchange', function () {
@@ -720,9 +720,6 @@
                     self.showAnnotationMenu(hl.dataset.highlightId, hl);
                     return;
                 }
-
-                // 滚动后 iOS 会触发一次 click，忽略它（保留标注菜单）
-                if (_scrolled) { _scrolled = false; return; }
 
                 var selMenu = document.getElementById('hl-selection-menu');
                 var annMenu = document.getElementById('hl-annotation-menu');
