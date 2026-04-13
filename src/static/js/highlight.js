@@ -1,134 +1,163 @@
 /**
- * 划线标记功能
- * 支持文本选中后划线、保存到本地存储、恢复划线
+ * 划线标记与笔记功能
+ * 支持文本选中后划线、添加笔记、保存到本地存储、恢复划线
+ *
+ * 数据模型：{id, start, end, text, color, underline, note, timestamp}
+ * underline/note 字段为新增，旧数据读取时自动补默认值。
  */
-(function() {
+(function () {
     'use strict';
 
-    const CXHighlight = {
-        // 配置
+    var CXHighlight = {
+
+        // ─── 配置 ─────────────────────────────────────────────────
         config: {
             storageKey: 'cx_highlights',
             colors: {
                 yellow: '#fff59d',
-                green: '#a5d6a7',
-                blue: '#90caf9',
-                pink: '#f48fb1'
+                green:  '#a5d6a7',
+                blue:   '#90caf9',
+                pink:   '#f48fb1'
             },
             defaultColor: 'yellow'
         },
 
-        // 当前页面的划线数据
         highlights: [],
-        
-        // 当前选中的颜色
-        currentColor: 'yellow',
-        
-        // 选择变化定时器
-        selectionTimeout: null,
 
-        /**
-         * 初始化
-         */
-        init: function() {
-            this.createToolbar();
+        // 操作状态
+        _pendingRange:       null,
+        _pendingHighlightId: null,
+        _selectedColor:      'yellow',
+        _selectedUnderline:  false,
+
+        // ─── 初始化 ───────────────────────────────────────────────
+        init: function () {
+            this._selectedColor = this.config.defaultColor;
+            this.createMenus();
             this.loadHighlights();
             this.restoreHighlights();
             this.setupEventListeners();
         },
 
-        /**
-         * 从本地存储加载划线数据
-         */
-        loadHighlights: function() {
+        // ─── 本地存储 ─────────────────────────────────────────────
+        getPageKey: function () {
+            return window.location.pathname;
+        },
+
+        loadHighlights: function () {
             try {
-                const pageKey = this.getPageKey();
-                const allData = JSON.parse(localStorage.getItem(this.config.storageKey) || '{}');
-                this.highlights = allData[pageKey] || [];
-                console.log('[划线] 加载划线数据:', this.highlights.length, '条');
+                var pageKey = this.getPageKey();
+                var allData = JSON.parse(localStorage.getItem(this.config.storageKey) || '{}');
+                this.highlights = (allData[pageKey] || []).map(function (h) {
+                    if (h.underline === undefined) h.underline = false;
+                    if (h.note      === undefined) h.note      = '';
+                    return h;
+                });
             } catch (e) {
                 console.error('[划线] 加载失败:', e);
                 this.highlights = [];
             }
         },
 
-        /**
-         * 保存划线数据到本地存储
-         */
-        saveHighlights: function() {
+        saveHighlights: function () {
             try {
-                const pageKey = this.getPageKey();
-                const allData = JSON.parse(localStorage.getItem(this.config.storageKey) || '{}');
+                var pageKey = this.getPageKey();
+                var allData = JSON.parse(localStorage.getItem(this.config.storageKey) || '{}');
                 allData[pageKey] = this.highlights;
                 localStorage.setItem(this.config.storageKey, JSON.stringify(allData));
-                console.log('[划线] 保存成功:', this.highlights.length, '条');
             } catch (e) {
                 console.error('[划线] 保存失败:', e);
             }
         },
 
-        /**
-         * 获取当前页面的唯一标识
-         */
-        getPageKey: function() {
-            return window.location.pathname;
+        // ─── 文本节点遍历 ───────────────────────────────────────────
+        // 注意：getTextNodes 和 getSelectionPosition 必须使用相同的过滤逻辑
+        // 这里保留空白节点（不过滤），确保字符偏移计算一致
+        getTextNodes: function (element) {
+            var textNodes = [];
+            var walker = document.createTreeWalker(
+                element,
+                NodeFilter.SHOW_TEXT,
+                null
+            );
+            var node;
+            while ((node = walker.nextNode())) textNodes.push(node);
+            return textNodes;
         },
 
-        /**
-         * 恢复页面上的划线
-         */
-        restoreHighlights: function() {
-            this.highlights.forEach(function(highlight) {
-                this.applyHighlight(highlight);
-            }.bind(this));
+        // ─── 选区 → 绝对字符偏移 ────────────────────────────────────
+        getSelectionPosition: function (container, range) {
+            var textNodes = this.getTextNodes(container);
+            var charCount = 0, start = -1, end = -1;
+            for (var i = 0; i < textNodes.length; i++) {
+                var node = textNodes[i];
+                var nodeLength = node.textContent.length;
+                if (node === range.startContainer) start = charCount + range.startOffset;
+                if (node === range.endContainer)   { end = charCount + range.endOffset; break; }
+                charCount += nodeLength;
+            }
+            return (start >= 0 && end > start) ? { start: start, end: end } : null;
         },
 
-        /**
-         * 应用单个划线
-         */
-        applyHighlight: function(highlight) {
-            const container = document.querySelector('.content');
+        // ─── 应用单个划线到 DOM ──────────────────────────────────────
+        applyHighlight: function (highlight) {
+            var container = document.querySelector('.content');
             if (!container) return;
+            var textNodes = this.getTextNodes(container);
+            var charCount = 0;
+            var self = this;
 
-            // 查找文本节点
-            const textNodes = this.getTextNodes(container);
-            let charCount = 0;
+            for (var i = 0; i < textNodes.length; i++) {
+                var node       = textNodes[i];
+                var nodeLength = node.textContent.length;
+                var nodeStart  = charCount;
+                var nodeEnd    = charCount + nodeLength;
 
-            for (let i = 0; i < textNodes.length; i++) {
-                const node = textNodes[i];
-                const nodeLength = node.textContent.length;
-                const nodeStart = charCount;
-                const nodeEnd = charCount + nodeLength;
-
-                // 检查这个节点是否包含需要划线的文本
                 if (nodeEnd > highlight.start && nodeStart < highlight.end) {
-                    const startOffset = Math.max(0, highlight.start - nodeStart);
-                    const endOffset = Math.min(nodeLength, highlight.end - nodeStart);
+                    var startOffset = Math.max(0, highlight.start - nodeStart);
+                    var endOffset   = Math.min(nodeLength, highlight.end - nodeStart);
 
-                    // 对于整段都在同一文本节点内的情况，验证文本是否匹配
-                    // 若不匹配说明保存的偏移量已失效（如早期划线被删除导致偏差），直接跳过
+                    // 验证文本匹配，防止偏移失效
                     if (nodeStart <= highlight.start && nodeEnd >= highlight.end) {
-                        const actual = node.textContent.substring(startOffset, endOffset);
+                        var actual = node.textContent.substring(startOffset, endOffset);
                         if (actual !== highlight.text) {
-                            console.warn('[划线] 文本不匹配，跳过恢复:', JSON.stringify(highlight.text), '→实际:', JSON.stringify(actual));
+                            console.warn('[划线] 文本不匹配，跳过恢复:', highlight.text, '→', actual);
                             return;
                         }
                     }
 
-                    // 创建划线标记
-                    const range = document.createRange();
+                    var range = document.createRange();
                     range.setStart(node, startOffset);
                     range.setEnd(node, endOffset);
 
-                    const mark = document.createElement('mark');
+                    var mark = document.createElement('mark');
                     mark.className = 'cx-highlight';
-                    mark.style.backgroundColor = this.config.colors[highlight.color] || this.config.colors[this.config.defaultColor];
+
+                    // 背景色：color 为空或 'note' 时透明（向后兼容旧 'note' 数据）
+                    if (highlight.color && highlight.color !== 'note' && self.config.colors[highlight.color]) {
+                        mark.style.backgroundColor = self.config.colors[highlight.color];
+                    } else {
+                        mark.style.backgroundColor = 'transparent';
+                    }
+
+                    // 下划线：直线（underline 字段）和波浪线（note 非空）可叠加
+                    var decs = [];
+                    if (highlight.underline) decs.push('underline solid #e53935 2px');
+                    if (highlight.note)      decs.push('underline wavy #e53935 1px');
+                    if (decs.length) {
+                        mark.style.textDecoration     = decs.join(', ');
+                        mark.style.textUnderlineOffset = highlight.note ? '5px' : '3px';
+                    }
+
                     mark.dataset.highlightId = highlight.id;
-                    
+
                     try {
                         range.surroundContents(mark);
+                        // 仅在最后一个覆盖节点插入图标，防止多段高亮重复插入
+                        if (highlight.note && (nodeStart + endOffset >= highlight.end)) {
+                            self._insertNoteIcon(mark, highlight.id);
+                        }
                     } catch (e) {
-                        // 如果无法直接包裹（跨越多个元素），使用备用方法
                         console.warn('[划线] 无法应用划线:', e);
                     }
                 }
@@ -137,403 +166,534 @@
             }
         },
 
-        /**
-         * 获取容器内所有文本节点
-         */
-        getTextNodes: function(element) {
-            const textNodes = [];
-            const walker = document.createTreeWalker(
-                element,
-                NodeFilter.SHOW_TEXT,
-                {
-                    acceptNode: function(node) {
-                        // 跳过空白节点
-                        if (!node.textContent.trim()) {
-                            return NodeFilter.FILTER_REJECT;
-                        }
-                        return NodeFilter.FILTER_ACCEPT;
-                    }
-                }
-            );
-
-            let node;
-            while (node = walker.nextNode()) {
-                textNodes.push(node);
-            }
-
-            return textNodes;
+        _insertNoteIcon: function (markEl, highlightId) {
+            var icon = document.createElement('span');
+            icon.className = 'cx-note-icon';
+            icon.textContent = '📝';
+            icon.dataset.highlightId = highlightId;
+            markEl.parentNode.insertBefore(icon, markEl.nextSibling);
         },
 
-        /**
-         * 添加新的划线
-         */
-        addHighlight: function(color) {
-            const selection = window.getSelection();
-            if (!selection.rangeCount || selection.isCollapsed) {
-                return;
-            }
+        // ─── 恢复全部划线 ─────────────────────────────────────────
+        restoreHighlights: function () {
+            var self = this;
+            this.highlights.forEach(function (h) { self.applyHighlight(h); });
+        },
 
-            const range = selection.getRangeAt(0);
-            const container = document.querySelector('.content');
-            if (!container || !container.contains(range.commonAncestorContainer)) {
-                return;
-            }
+        // ─── 清除所有 DOM 标记 ────────────────────────────────────
+        clearAllMarks: function () {
+            document.querySelectorAll('.cx-note-icon').forEach(function (el) { el.remove(); });
+            document.querySelectorAll('.cx-highlight').forEach(function (mark) {
+                var parent = mark.parentNode;
+                while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+                parent.removeChild(mark);
+            });
+            // 解包后会产生大量相邻碎片文本节点，normalize 合并它们
+            // 否则 restoreHighlights 里的字符偏移计算会出错
+            var container = document.querySelector('.content');
+            if (container) container.normalize();
+        },
 
-            // 计算选中文本在容器中的位置
-            const position = this.getSelectionPosition(container, range);
-            if (!position) return;
+        // ─── 数据 CRUD ────────────────────────────────────────────
+        addHighlight: function (color, underline) {
+            var range = this._pendingRange;
+            if (!range) return null;
+            var container = document.querySelector('.content');
+            if (!container || !container.contains(range.commonAncestorContainer)) return null;
+            var position = this.getSelectionPosition(container, range);
+            if (!position) return null;
 
-            // 创建划线数据
-            const highlight = {
-                id: Date.now().toString(),
-                start: position.start,
-                end: position.end,
-                text: range.toString(),
-                color: color || this.currentColor,
+            var highlight = {
+                id:        Date.now().toString(),
+                start:     position.start,
+                end:       position.end,
+                text:      range.toString(),
+                // 'note' 和 null 均表示无背景色；其他值使用传入颜色，缺省用默认色
+                color:     (color === null || color === 'note' || color === undefined) ? null : (color || this.config.defaultColor),
+                underline: !!underline,
+                note:      '',
                 timestamp: Date.now()
             };
 
-            // 保存并应用
             this.highlights.push(highlight);
             this.saveHighlights();
-            
-            // 清除选择
-            selection.removeAllRanges();
-            
-            // 重新渲染所有划线
+            window.getSelection().removeAllRanges();
+            this._pendingRange = null;
             this.clearAllMarks();
             this.restoreHighlights();
-
-            console.log('[划线] 添加划线:', highlight);
+            return highlight.id;
         },
 
-        /**
-         * 获取选中文本在容器中的位置
-         */
-        getSelectionPosition: function(container, range) {
-            const textNodes = this.getTextNodes(container);
-            let charCount = 0;
-            let start = -1;
-            let end = -1;
-
-            for (let i = 0; i < textNodes.length; i++) {
-                const node = textNodes[i];
-                const nodeLength = node.textContent.length;
-
-                if (node === range.startContainer) {
-                    start = charCount + range.startOffset;
-                }
-                if (node === range.endContainer) {
-                    end = charCount + range.endOffset;
-                    break;
-                }
-
-                charCount += nodeLength;
-            }
-
-            if (start >= 0 && end >= 0 && end > start) {
-                return { start: start, end: end };
-            }
-
-            return null;
+        updateHighlight: function (id, changes) {
+            var h = this.highlights.find(function (x) { return x.id === id; });
+            if (!h) return;
+            if (changes.color     !== undefined) h.color     = changes.color;
+            if (changes.underline !== undefined) h.underline = changes.underline;
+            this.saveHighlights();
+            this.clearAllMarks();
+            this.restoreHighlights();
         },
 
-        /**
-         * 清除所有划线标记（DOM）
-         */
-        clearAllMarks: function() {
-            const marks = document.querySelectorAll('.cx-highlight');
-            marks.forEach(function(mark) {
-                const parent = mark.parentNode;
-                while (mark.firstChild) {
-                    parent.insertBefore(mark.firstChild, mark);
-                }
-                parent.removeChild(mark);
-            });
+        removeHighlight: function (id) {
+            this.highlights = this.highlights.filter(function (h) { return h.id !== id; });
+            this.saveHighlights();
+            this.clearAllMarks();
+            this.restoreHighlights();
         },
 
-        /**
-         * 清除所有划线数据
-         */
-        clearAllHighlights: function() {
-            if (!confirm('确定要清除本页所有划线吗？')) {
+        // 仅删除标记（背景色 + 下划线），保留笔记
+        removeMark: function (id) {
+            var h = this.highlights.find(function (x) { return x.id === id; });
+            if (!h) return;
+            h.color     = null;
+            h.underline = false;
+            // 标记和笔记都没有了才删整条
+            if (!h.note) {
+                this.removeHighlight(id);
                 return;
             }
+            this.saveHighlights();
+            this.clearAllMarks();
+            this.restoreHighlights();
+        },
 
+        saveNote: function (id, text) {
+            var h = this.highlights.find(function (x) { return x.id === id; });
+            if (!h) return;
+            h.note = text || '';
+            // 无背景、无下划线、无笔记内容 → 删除整条记录（不留不可见的空记录）
+            if (!h.note && !h.color && !h.underline) {
+                this.removeHighlight(id);
+                return;
+            }
+            this.saveHighlights();
+            this.clearAllMarks();
+            this.restoreHighlights();
+        },
+
+        removeNote: function (id) {
+            this.saveNote(id, '');
+        },
+
+        // 保留：清除全页高亮（可由外部调用）
+        clearAllHighlights: function () {
+            if (!confirm('确定要清除本页所有划线吗？')) return;
             this.highlights = [];
             this.saveHighlights();
             this.clearAllMarks();
-            console.log('[划线] 已清除所有划线');
         },
 
-        /**
-         * 删除单个划线
-         */
-        removeHighlight: function(id) {
-            this.highlights = this.highlights.filter(function(h) {
-                return h.id !== id;
-            });
-            this.saveHighlights();
-            this.clearAllMarks();
-            this.restoreHighlights();
+        // ─── 创建所有 UI DOM ──────────────────────────────────────
+        createMenus: function () {
+            this._createSelectionMenu();
+            this._createAnnotationMenu();
+            this._createNoteModal();
         },
 
-        /**
-         * 创建工具栏
-         */
-        createToolbar: function() {
-            const toolbar = document.createElement('div');
-            toolbar.id = 'highlightToolbar';
-            toolbar.className = 'highlight-toolbar';
-            toolbar.style.display = 'none';
-            
-            // 阻止工具栏上的触摸事件冒泡，避免触发文本选择取消
-            toolbar.addEventListener('touchstart', function(e) {
-                e.stopPropagation();
+        // 颜色子面板 HTML（A/B 菜单内共享结构）
+        _colorPanelHTML: function () {
+            var self = this;
+            var dots = Object.keys(self.config.colors).map(function (name) {
+                return '<button class="hl-color-dot" data-color="' + name +
+                       '" style="background:' + self.config.colors[name] +
+                       '" title="' + name + '"></button>';
+            }).join('');
+            return '<div class="hl-color-panel">' +
+                       dots +
+                       '<button class="hl-underline-btn" title="下划线">U_</button>' +
+                   '</div>';
+        },
+
+        // A. 选中新文字时的菜单
+        _createSelectionMenu: function () {
+            var self = this;
+            var menu = document.createElement('div');
+            menu.id        = 'hl-selection-menu';
+            menu.className = 'hl-menu';
+
+            // 颜色圆钮直接内联，点击即应用（无需二次确认）
+            var colorDotsHTML = Object.keys(self.config.colors).map(function (name) {
+                return '<button class="hl-color-dot hl-sel-dot" data-color="' + name +
+                       '" style="background:' + self.config.colors[name] +
+                       '" title="' + name + '"></button>';
+            }).join('');
+
+            menu.innerHTML =
+                '<div class="hl-menu-row hl-sel-row">' +
+                    colorDotsHTML +
+                    '<button class="hl-underline-btn" id="hl-sel-ul" title="下划线">U_</button>' +
+                    '<span class="hl-sel-sep"></span>' +
+                    '<button class="hl-menu-btn hl-sel-note-btn" id="hl-sel-note">添加笔记</button>' +
+                '</div>';
+
+            ['touchstart', 'touchend', 'mousedown'].forEach(function (evt) {
+                menu.addEventListener(evt, function (e) { e.stopPropagation(); });
             });
-            
-            toolbar.addEventListener('touchend', function(e) {
-                e.stopPropagation();
-            });
-            
-            // 颜色按钮
-            Object.keys(this.config.colors).forEach(function(colorName) {
-                const btn = document.createElement('button');
-                btn.className = 'highlight-color-btn';
-                btn.style.backgroundColor = this.config.colors[colorName];
-                btn.title = '划线 - ' + colorName;
-                
-                // 使用 touchend 和 click 双重事件，确保iOS兼容
-                const handleClick = function(e) {
-                    e.preventDefault();
+            document.body.appendChild(menu);
+
+            // 颜色圆钮：点击即刻应用颜色高亮（无下划线）
+            menu.querySelectorAll('.hl-sel-dot').forEach(function (dot) {
+                dot.addEventListener('click', function (e) {
                     e.stopPropagation();
-                    this.addHighlight(colorName);
-                    toolbar.style.display = 'none';
-                }.bind(this);
-                
-                btn.addEventListener('touchend', handleClick);
-                btn.addEventListener('click', handleClick);
-                
-                toolbar.appendChild(btn);
-            }.bind(this));
+                    self.addHighlight(dot.dataset.color, false);
+                    self.hideAllMenus();
+                });
+            });
 
-            // 清除按钮
-            const clearBtn = document.createElement('button');
-            clearBtn.className = 'highlight-clear-btn';
-            clearBtn.textContent = '清除';
-            clearBtn.title = '清除本页所有划线';
-            
-            const handleClearClick = function(e) {
-                e.preventDefault();
+            // U_ 按钮：直接动作，立即应用"无背景色 + 直线下划线"
+            document.getElementById('hl-sel-ul').addEventListener('click', function (e) {
                 e.stopPropagation();
-                this.clearAllHighlights();
-                toolbar.style.display = 'none';
-            }.bind(this);
-            
-            clearBtn.addEventListener('touchend', handleClearClick);
-            clearBtn.addEventListener('click', handleClearClick);
-            
-            toolbar.appendChild(clearBtn);
+                self.addHighlight(null, true);
+                self.hideAllMenus();
+            });
 
-            document.body.appendChild(toolbar);
+            // "添加笔记" → 无背景高亮，使用波浪线下划线标记，打开笔记编辑器
+            document.getElementById('hl-sel-note').addEventListener('click', function (e) {
+                e.stopPropagation();
+                var newId = self.addHighlight('note', false);
+                self.hideAllMenus();
+                if (newId) self.showNoteEditor(newId);
+            });
         },
 
-        /**
-         * 设置事件监听
-         */
-        setupEventListeners: function() {
-            const self = this;
+        // B. 点击已有高亮后的菜单
+        _createAnnotationMenu: function () {
+            var self = this;
+            var menu = document.createElement('div');
+            menu.id        = 'hl-annotation-menu';
+            menu.className = 'hl-menu';
+            menu.innerHTML =
+                '<div class="hl-note-preview" id="hl-ann-note-preview">' +
+                    '<div class="hl-note-text" id="hl-ann-note-text"></div>' +
+                    '<button class="hl-note-expand-btn" id="hl-ann-expand">展开 ▾</button>' +
+                '</div>' +
+                '<div class="hl-menu-row" id="hl-ann-mark-row">' +
+                    '<button class="hl-menu-btn" id="hl-ann-modify-mark">添加标记</button>' +
+                    '<button class="hl-menu-btn hl-menu-btn-danger" id="hl-ann-del-mark">删除标记</button>' +
+                '</div>' +
+                '<div class="hl-menu-row">' +
+                    '<button class="hl-menu-btn" id="hl-ann-edit-note">添加笔记</button>' +
+                    '<button class="hl-menu-btn hl-menu-btn-danger" id="hl-ann-del-note">删除笔记</button>' +
+                '</div>' +
+                self._colorPanelHTML();
 
-            // 监听文本选择（桌面端）
-            document.addEventListener('mouseup', function(e) {
-                setTimeout(function() {
-                    self.handleTextSelection(e);
-                }, 10);
+            ['touchstart', 'touchend', 'mousedown'].forEach(function (evt) {
+                menu.addEventListener(evt, function (e) { e.stopPropagation(); });
             });
+            document.body.appendChild(menu);
 
-            // 监听文本选择（移动端）- 优化响应速度
-            document.addEventListener('touchend', function(e) {
-                setTimeout(function() {
-                    self.handleTextSelection(e);
-                }, 50); // 从150ms减少到50ms，提升响应速度
-            });
-
-            // 监听选择变化（移动端长按选择）- iOS特别需要
-            let selectionChangeTimer = null;
-            document.addEventListener('selectionchange', function() {
-                // 使用防抖，避免频繁触发
-                clearTimeout(selectionChangeTimer);
-                selectionChangeTimer = setTimeout(function() {
-                    const selection = window.getSelection();
-                    if (selection && selection.toString().trim().length > 0) {
-                        self.handleTextSelection();
-                    }
-                }, 200); // 从500ms减少到200ms，提升响应速度
-            });
-
-            // 点击其他地方隐藏工具栏
-            document.addEventListener('mousedown', function(e) {
-                const toolbar = document.getElementById('highlightToolbar');
-                if (toolbar && !toolbar.contains(e.target)) {
-                    toolbar.style.display = 'none';
+            // "修改标记" → 展开颜色/下划线子面板（预填当前高亮样式）
+            document.getElementById('hl-ann-modify-mark').addEventListener('click', function (e) {
+                e.stopPropagation();
+                var panel = menu.querySelector('.hl-color-panel');
+                var isOpen = panel.classList.contains('open');
+                panel.classList.toggle('open', !isOpen);
+                if (!isOpen) {
+                    var h = self.highlights.find(function (x) { return x.id === self._pendingHighlightId; });
+                    if (h) self._syncColorPanel(panel, h.color, h.underline);
                 }
             });
 
-            // 移动端触摸隐藏工具栏
-            document.addEventListener('touchstart', function(e) {
-                const toolbar = document.getElementById('highlightToolbar');
-                if (toolbar && !toolbar.contains(e.target)) {
-                    // 检查是否点击的是已划线的文本
-                    if (!e.target.classList.contains('cx-highlight')) {
-                        // iOS需要延迟隐藏，避免干扰选择
-                        setTimeout(function() {
-                            const selection = window.getSelection();
-                            if (!selection || selection.toString().trim().length === 0) {
-                                toolbar.style.display = 'none';
-                            }
-                        }, 100);
-                    }
-                }
+            // "删除标记"
+            document.getElementById('hl-ann-del-mark').addEventListener('click', function (e) {
+                e.stopPropagation();
+                var id = self._pendingHighlightId;
+                self.hideAllMenus();
+                if (id) self.removeMark(id);
             });
 
-            // 双击划线可以删除
-            document.addEventListener('dblclick', function(e) {
-                if (e.target.classList.contains('cx-highlight')) {
-                    const id = e.target.dataset.highlightId;
-                    if (id && confirm('删除这个划线？')) {
-                        self.removeHighlight(id);
-                    }
-                }
+            // "展开/折叠" 笔记预览
+            document.getElementById('hl-ann-expand').addEventListener('click', function (e) {
+                e.stopPropagation();
+                var noteTextEl = document.getElementById('hl-ann-note-text');
+                var isExpanded = noteTextEl.classList.toggle('expanded');
+                e.currentTarget.textContent = isExpanded ? '收起 ▴' : '展开 ▾';
             });
 
-            // 移动端长按删除划线
-            let longPressTimer;
-            let longPressTarget = null;
-            
-            document.addEventListener('touchstart', function(e) {
-                if (e.target.classList.contains('cx-highlight')) {
-                    longPressTarget = e.target;
-                    const targetId = e.target.dataset.highlightId;
-                    longPressTimer = setTimeout(function() {
-                        if (longPressTarget && targetId) {
-                            if (confirm('删除这个划线？')) {
-                                self.removeHighlight(targetId);
+            // "添加/修改笔记"
+            document.getElementById('hl-ann-edit-note').addEventListener('click', function (e) {
+                e.stopPropagation();
+                var id = self._pendingHighlightId;
+                self.hideAllMenus();
+                if (id) self.showNoteEditor(id);
+            });
+
+            // "删除笔记"
+            document.getElementById('hl-ann-del-note').addEventListener('click', function (e) {
+                e.stopPropagation();
+                var id = self._pendingHighlightId;
+                self.hideAllMenus();
+                if (id) self.removeNote(id);
+            });
+
+            self._bindColorPanel(menu.querySelector('.hl-color-panel'), 'existing');
+        },
+
+        // C. 笔记编辑模态框
+        _createNoteModal: function () {
+            var self = this;
+            var modal = document.createElement('div');
+            modal.id        = 'hl-note-modal';
+            modal.className = 'hl-modal-mask';
+            modal.innerHTML =
+                '<div class="hl-modal-card">' +
+                    '<div class="hl-modal-title">笔记</div>' +
+                    '<textarea class="hl-note-textarea" id="hl-note-textarea" placeholder="输入笔记内容…" rows="5"></textarea>' +
+                    '<div class="hl-modal-actions">' +
+                        '<button class="hl-modal-btn hl-modal-cancel" id="hl-note-cancel">取消</button>' +
+                        '<button class="hl-modal-btn hl-modal-save"   id="hl-note-save">保存</button>' +
+                    '</div>' +
+                '</div>';
+
+            document.body.appendChild(modal);
+
+            document.getElementById('hl-note-cancel').addEventListener('click', function () {
+                var id = modal.dataset.highlightId;
+                modal.style.display = 'none';
+                // 如果是刚创建的纯笔记条目（无背景、无下划线、无内容），取消时删除
+                if (id) {
+                    var h = self.highlights.find(function (x) { return x.id === id; });
+                    if (h && !h.note && !h.color && !h.underline) self.removeHighlight(id);
+                }
+            });
+            document.getElementById('hl-note-save').addEventListener('click', function () {
+                var id   = modal.dataset.highlightId;
+                var text = document.getElementById('hl-note-textarea').value.trim();
+                modal.style.display = 'none';
+                if (id) self.saveNote(id, text);
+            });
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) modal.style.display = 'none';
+            });
+        },
+
+        // ─── 颜色子面板：绑定事件 ────────────────────────────────
+        _bindColorPanel: function (panel, target) {
+            var self = this;
+            panel.querySelectorAll('.hl-color-dot').forEach(function (dot) {
+                dot.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    // 再次点击已选中的颜色 → 取消颜色（只保留下划线）
+                    var isSame = self._selectedColor === dot.dataset.color;
+                    panel.querySelectorAll('.hl-color-dot').forEach(function (d) { d.classList.remove('selected'); });
+                    if (isSame) {
+                        self._selectedColor = null;
+                    } else {
+                        self._selectedColor = dot.dataset.color;
+                        dot.classList.add('selected');
+                    }
+                    if (target === 'existing') {
+                        var id = self._pendingHighlightId;
+                        if (id) {
+                            if (!self._selectedColor && !self._selectedUnderline) {
+                                self.removeMark(id);
+                            } else {
+                                self.updateHighlight(id, { color: self._selectedColor, underline: self._selectedUnderline });
                             }
                         }
-                        longPressTarget = null;
-                    }, 800); // 长按800ms
+                        self.hideAllMenus();
+                    }
+                });
+            });
+            panel.querySelector('.hl-underline-btn').addEventListener('click', function (e) {
+                e.stopPropagation();
+                this.classList.toggle('active');
+                self._selectedUnderline = this.classList.contains('active');
+                if (target === 'existing') {
+                    var id = self._pendingHighlightId;
+                    if (id) {
+                        if (!self._selectedColor && !self._selectedUnderline) {
+                            self.removeMark(id);
+                        } else {
+                            self.updateHighlight(id, { color: self._selectedColor, underline: self._selectedUnderline });
+                        }
+                    }
+                    self.hideAllMenus();
                 }
-            });
-
-            document.addEventListener('touchend', function() {
-                clearTimeout(longPressTimer);
-                longPressTarget = null;
-            });
-
-            document.addEventListener('touchmove', function() {
-                clearTimeout(longPressTimer);
-                longPressTarget = null;
             });
         },
 
-        /**
-         * 处理文本选择
-         */
-        handleTextSelection: function() {
-            const toolbar = document.getElementById('highlightToolbar');
-            if (!toolbar) return;
+        // 颜色子面板：同步当前高亮样式到面板
+        _syncColorPanel: function (panel, color, underline) {
+            panel.querySelectorAll('.hl-color-dot').forEach(function (d) {
+                d.classList.toggle('selected', d.dataset.color === color);
+            });
+            panel.querySelector('.hl-underline-btn').classList.toggle('active', !!underline);
+            this._selectedColor     = color;        // 保留 null，不要回退到默认色
+            this._selectedUnderline = !!underline;
+        },
 
-            const selection = window.getSelection();
-            if (!selection) {
-                toolbar.style.display = 'none';
-                return;
-            }
+        // ─── 显示 / 隐藏菜单 ─────────────────────────────────────
+        hideAllMenus: function () {
+            ['hl-selection-menu', 'hl-annotation-menu'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                el.style.display = 'none';
+                var panel = el.querySelector('.hl-color-panel');
+                if (panel) panel.classList.remove('open');
+            });
+        },
 
-            const selectedText = selection.toString().trim();
+        showSelectionMenu: function (range) {
+            this.hideAllMenus();
+            this._pendingRange      = range;
+            this._selectedColor     = this.config.defaultColor;
+            this._selectedUnderline = false;
+            var menu = document.getElementById('hl-selection-menu');
+            this._positionMenu(menu, range);
+        },
 
-            if (selectedText.length > 0 && selection.rangeCount > 0) {
-                try {
-                    // 检查选择是否在内容区域内
-                    const range = selection.getRangeAt(0);
-                    const container = document.querySelector('.content');
-                    if (!container || !container.contains(range.commonAncestorContainer)) {
-                        toolbar.style.display = 'none';
-                        return;
-                    }
+        showAnnotationMenu: function (highlightId, targetEl) {
+            this.hideAllMenus();
+            this._pendingHighlightId = highlightId;
+            var h = this.highlights.find(function (x) { return x.id === highlightId; });
+            if (!h) return;
 
-                    // 移动端：固定在底部
-                    if (this.isMobile()) {
-                        toolbar.style.position = 'fixed';
-                        toolbar.style.bottom = '10px';
-                        toolbar.style.left = '50%';
-                        toolbar.style.top = 'auto';
-                        toolbar.style.transform = 'translateX(-50%)';
-                        toolbar.style.zIndex = '10000'; // 确保在最上层
-                        toolbar.style.display = 'flex';
-                        
-                        // iOS需要强制重绘
-                        toolbar.style.opacity = '0.99';
-                        setTimeout(function() {
-                            toolbar.style.opacity = '1';
-                        }, 10);
-                    } else {
-                        // 桌面端：使用 requestAnimationFrame 确保流畅显示
-                        const rect = range.getBoundingClientRect();
-                        
-                        toolbar.style.position = 'absolute';
-                        toolbar.style.transform = 'none';
-                        toolbar.style.display = 'flex';
-                        toolbar.style.opacity = '0'; // 先设为透明
-                        
-                        // 使用 requestAnimationFrame 在下一帧计算位置
-                        requestAnimationFrame(() => {
-                            // 计算工具栏位置
-                            let top = rect.top - toolbar.offsetHeight - 10 + window.scrollY;
-                            let left = rect.left + (rect.width / 2) - (toolbar.offsetWidth / 2);
-                            
-                            // 确保工具栏不超出屏幕
-                            const maxLeft = window.innerWidth - toolbar.offsetWidth - 10;
-                            const minLeft = 10;
-                            left = Math.max(minLeft, Math.min(left, maxLeft));
-                            
-                            // 如果工具栏会超出顶部，显示在选择区域下方
-                            if (top < 10) {
-                                top = rect.bottom + 10 + window.scrollY;
-                            }
-                            
-                            toolbar.style.left = left + 'px';
-                            toolbar.style.top = top + 'px';
-                            toolbar.style.opacity = '1'; // 位置设置完成后显示
-                        });
-                    }
-                } catch (e) {
-                    console.warn('[划线] 无法显示工具栏:', e);
-                    toolbar.style.display = 'none';
-                }
+            var preview   = document.getElementById('hl-ann-note-preview');
+            var noteTextEl = document.getElementById('hl-ann-note-text');
+            var expandBtn  = document.getElementById('hl-ann-expand');
+            if (h.note) {
+                noteTextEl.textContent = h.note;
+                noteTextEl.classList.remove('expanded');
+                expandBtn.textContent = '展开 ▾';
+                preview.style.display = 'block';
             } else {
-                toolbar.style.display = 'none';
+                noteTextEl.textContent = '';
+                preview.style.display = 'none';
             }
+
+            document.getElementById('hl-ann-edit-note').textContent = h.note ? '修改笔记' : '添加笔记';
+            document.getElementById('hl-ann-del-note').style.display = h.note ? '' : 'none';
+
+            // 有标记时：修改标记 + 删除标记；无标记时：仅显示添加标记
+            var hasVisibleMark = !!(h.color || h.underline);
+            document.getElementById('hl-ann-modify-mark').textContent = hasVisibleMark ? '修改标记' : '添加标记';
+            document.getElementById('hl-ann-del-mark').style.display = hasVisibleMark ? '' : 'none';
+
+            var menu = document.getElementById('hl-annotation-menu');
+            this._positionMenuByRect(menu, targetEl.getBoundingClientRect());
         },
 
-        /**
-         * 检测是否为移动端
-         */
-        isMobile: function() {
-            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+        showNoteEditor: function (id) {
+            var h     = this.highlights.find(function (x) { return x.id === id; });
+            var modal = document.getElementById('hl-note-modal');
+            modal.dataset.highlightId = id;
+            document.getElementById('hl-note-textarea').value = h ? (h.note || '') : '';
+            modal.style.display = 'flex';
+            setTimeout(function () { document.getElementById('hl-note-textarea').focus(); }, 100);
+        },
+
+        // ─── 菜单定位 ─────────────────────────────────────────────
+        // 统一使用紧贴选区的定位策略（优先在选区下方，空间不足则上方）
+        // 移动端用 position:fixed，桌面端用 position:absolute
+        _positionMenu: function (menu, range) {
+            this._positionMenuByRect(menu, range.getBoundingClientRect());
+        },
+
+        _positionMenuByRect: function (menu, rect) {
+            var isMobile = this.isMobile();
+            menu.style.position  = isMobile ? 'fixed' : 'absolute';
+            menu.style.transform = 'none';
+            menu.style.display   = 'flex';
+            menu.style.opacity   = '0';
+            var scrollY = isMobile ? 0 : window.scrollY;
+            requestAnimationFrame(function () {
+                // 先在视口坐标系里决定位置
+                var viewTop;
+                var belowAvail = window.innerHeight - rect.bottom - 8;
+                var aboveAvail = rect.top - 8;
+                if (belowAvail >= menu.offsetHeight || belowAvail >= aboveAvail) {
+                    viewTop = rect.bottom + 8;   // 选区下方（优先）
+                } else {
+                    viewTop = rect.top - menu.offsetHeight - 8; // 选区上方
+                }
+                viewTop = Math.max(8, Math.min(viewTop, window.innerHeight - menu.offsetHeight - 8));
+
+                var left = rect.left + rect.width / 2 - menu.offsetWidth / 2;
+                left = Math.max(10, Math.min(left, window.innerWidth - menu.offsetWidth - 10));
+
+                menu.style.left    = left + 'px';
+                menu.style.top     = (viewTop + scrollY) + 'px';
+                menu.style.opacity = '1';
+            });
+        },
+
+        isMobile: function () {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
                 || window.innerWidth <= 768;
+        },
+
+        // ─── 事件监听 ─────────────────────────────────────────────
+        setupEventListeners: function () {
+            var self = this;
+
+            document.addEventListener('mouseup', function (e) {
+                setTimeout(function () { self._handleTextSelection(e); }, 10);
+            });
+            document.addEventListener('touchend', function (e) {
+                setTimeout(function () { self._handleTextSelection(e); }, 50);
+            });
+
+            var selChangeTimer = null;
+            document.addEventListener('selectionchange', function () {
+                clearTimeout(selChangeTimer);
+                selChangeTimer = setTimeout(function () {
+                    var sel = window.getSelection();
+                    if (sel && sel.toString().trim().length > 0) self._handleTextSelection();
+                }, 200);
+            });
+
+            // 点击事件：区分"点击高亮/笔记图标"与"点击空白关闭菜单"
+            document.addEventListener('click', function (e) {
+                var ni = e.target.closest ? e.target.closest('.cx-note-icon') : null;
+                var hl = e.target.closest ? e.target.closest('.cx-highlight') : null;
+
+                if (ni) {
+                    e.stopPropagation();
+                    self.showAnnotationMenu(ni.dataset.highlightId, ni);
+                    return;
+                }
+                if (hl) {
+                    var sel = window.getSelection();
+                    if (sel && sel.toString().trim().length > 0) return;
+                    e.stopPropagation();
+                    self.showAnnotationMenu(hl.dataset.highlightId, hl);
+                    return;
+                }
+
+                var selMenu = document.getElementById('hl-selection-menu');
+                var annMenu = document.getElementById('hl-annotation-menu');
+                var outsideSel = selMenu && selMenu.style.display !== 'none' && !selMenu.contains(e.target);
+                var outsideAnn = annMenu && annMenu.style.display !== 'none' && !annMenu.contains(e.target);
+                if (outsideSel || outsideAnn) self.hideAllMenus();
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') self.hideAllMenus();
+            });
+        },
+
+        _handleTextSelection: function (e) {
+            // 若事件来自选择菜单内部（如点击 U_ 按钮），不重置菜单
+            var selMenu = document.getElementById('hl-selection-menu');
+            if (e && e.target && selMenu && selMenu.contains(e.target)) return;
+
+            var sel = window.getSelection();
+            if (!sel || sel.toString().trim().length === 0) return;
+            if (!sel.rangeCount) return;
+            var range     = sel.getRangeAt(0);
+            var container = document.querySelector('.content');
+            if (!container || !container.contains(range.commonAncestorContainer)) return;
+            this.showSelectionMenu(range.cloneRange());
         }
     };
 
-    // 页面加载完成后初始化
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            CXHighlight.init();
-        });
+        document.addEventListener('DOMContentLoaded', function () { CXHighlight.init(); });
     } else {
         CXHighlight.init();
     }
 
-    // 导出到全局
     window.CXHighlight = CXHighlight;
 
 })();
