@@ -213,84 +213,19 @@
             flex-basis: 100%;
         }
         
-        .cache-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 10px 16px;
-            background: var(--bg);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            min-height: 42px;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-            margin: 4px;
-        }
-        
-        .cache-btn:active {
-            transform: scale(0.97);
-        }
-        
-        .cache-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        .cache-btn.cached {
-            background: #48bb78;
-        }
-        
-        .clear-btn {
-            background: #e53e3e;
-        }
-        
-        .install-btn {
-            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
-        }
-        
-        .cache-icon {
-            font-size: 16px;
-        }
-        
-        .cache-status {
-            margin-top: 8px;
-            font-size: 13px;
-            color: #666;
-            padding: 0 16px;
-        }
-        
-        .cache-status.success {
-            color: #48bb78;
-        }
-        
-        .cache-status.error {
-            color: #e53e3e;
-        }
-        
-        @media (max-width: 480px) {
-            .cache-section {
-                padding: 12px 8px;
-            }
-            
-            .cache-btn {
-                padding: 8px 12px;
-                font-size: 13px;
-                min-height: 38px;
-                margin: 3px;
-            }
-            
-            .cache-icon {
-                font-size: 14px;
-            }
-            
-            .cache-status {
-                font-size: 12px;
-                padding: 0 8px;
-            }
-        }
+        .actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+        .action-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:9px 10px;background:var(--surface-alt);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:transform .1s;-webkit-tap-highlight-color:transparent;box-sizing:border-box}
+        .action-btn:active{transform:scale(.98)}
+        .action-btn:disabled{opacity:.5;cursor:not-allowed}
+        .action-btn.danger{color:#c53030;border-color:#fed7d7;background:#fff5f5}
+        .action-btn.danger:active{background:#ffe8e8}
+        .action-btn.cached{color:#276749;border-color:#c6f6d5}
+        .cache-icon{font-size:15px;flex-shrink:0;line-height:1;width:20px;text-align:center}
+        .cache-text{flex:1}
+        .cache-status{margin-top:6px;font-size:12px;color:var(--text-muted);text-align:center;min-height:14px;padding:0}
+        .cache-status.success{color:#38a169}
+        .cache-status.error{color:#e53e3e}
+        .cache-status.warning{color:#d69e2e}
     </style>
 </head>
 <body>

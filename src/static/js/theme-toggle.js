@@ -70,24 +70,24 @@
 
             <div class="theme-section" id="settingsActionsSection" style="display:none">
                 <div class="theme-section-title">操作</div>
-                <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center">
-                    <button class="cache-btn install-btn" id="installBtn" style="display:none;font-size:13px;padding:8px 12px;min-height:36px;margin:2px">
-                        <span class="cache-icon">📲</span><span class="cache-text">安装到桌面</span>
+                <div class="actions-grid">
+                    <button class="action-btn" id="installBtn" style="display:none">
+                        <span class="cache-icon">📲</span><span class="cache-text">发送桌面</span>
                     </button>
-                    <button class="cache-btn" id="androidApkBtn" style="display:none;background:linear-gradient(135deg,#48bb78 0%,#38a169 100%);font-size:13px;padding:8px 12px;min-height:36px;margin:2px">
-                        <span class="cache-icon">📱</span><span class="cache-text">安卓离线版</span>
+                    <button class="action-btn" id="androidApkBtn" style="display:none">
+                        <span class="cache-icon">📱</span><span class="cache-text">安卓APK</span>
                     </button>
-                    <button class="cache-btn clear-btn" id="clearDataBtn" style="display:none;font-size:13px;padding:8px 12px;min-height:36px;margin:2px">
+                    <button class="action-btn danger" id="clearDataBtn" style="display:none">
                         <span class="cache-icon">🧹</span><span class="cache-text">清理数据</span>
                     </button>
-                    <button class="cache-btn" id="cacheAllBtn" style="display:none;font-size:13px;padding:8px 12px;min-height:36px;margin:2px">
+                    <button class="action-btn" id="cacheAllBtn" style="display:none">
                         <span class="cache-icon">📦</span><span class="cache-text">缓存数据</span>
                     </button>
-                    <button class="cache-btn" id="checkUpdateBtn" style="display:none;font-size:13px;padding:8px 12px;min-height:36px;margin:2px">
+                    <button class="action-btn" id="checkUpdateBtn" style="display:none">
                         <span class="cache-icon">🔄</span><span class="cache-text">检查更新</span>
                     </button>
                 </div>
-                <div class="cache-status" id="actionStatus" style="text-align:center;margin-top:8px;padding:0"></div>
+                <div class="cache-status" id="actionStatus"></div>
             </div>
         `;
         document.body.appendChild(panel);
