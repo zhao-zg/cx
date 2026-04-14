@@ -353,6 +353,13 @@ def generate_main_index(config, batch_results):
             for filename in os.listdir(js_dir):
                 if filename.endswith('.js'):
                     training_pages.append(f"./{training_path}/js/{filename}")
+
+        # 自动扫描 css/ 目录下的所有 CSS 文件
+        css_dir = os.path.join(training_dir, 'css')
+        if os.path.exists(css_dir):
+            for filename in os.listdir(css_dir):
+                if filename.endswith('.css'):
+                    training_pages.append(f"./{training_path}/css/{filename}")
     
     # 渲染模板
     env = Environment(loader=FileSystemLoader(template_dir))

@@ -54,7 +54,8 @@ class HTMLGenerator:
                 'outline.js',
                 'toc-redirect.js',
                 'nav-stack.js',
-                'theme-toggle.js'
+                'theme-toggle.js',
+                'app-update.js'
             ]
 
             # 复制 js 目录中需要的文件
@@ -67,6 +68,18 @@ class HTMLGenerator:
                     src_file = os.path.join(js_src_dir, js_file)
                     dst_file = os.path.join(js_dst_dir, js_file)
                     if os.path.isfile(src_file):
+                        shutil.copy2(src_file, dst_file)
+
+            # 复制 css 目录（包含共享 style.css）
+            css_src_dir = os.path.join(static_dir, 'css')
+            css_dst_dir = os.path.join(self.output_dir, 'css')
+
+            if os.path.isdir(css_src_dir):
+                os.makedirs(css_dst_dir, exist_ok=True)
+                for css_file in os.listdir(css_src_dir):
+                    if css_file.endswith('.css'):
+                        src_file = os.path.join(css_src_dir, css_file)
+                        dst_file = os.path.join(css_dst_dir, css_file)
                         shutil.copy2(src_file, dst_file)
                         
         except Exception as e:

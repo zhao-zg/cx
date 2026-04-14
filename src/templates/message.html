@@ -56,65 +56,6 @@
     </div>
 </div>
 
-<style>
-.message-page {
-    padding: 5px;
-}
-
-.message-content {
-    margin-top: 15px;
-    line-height: 1.8;
-    font-size: 1em; /* 明确设置为 18px，确保与 body 一致 */
-    text-align: justify;
-}
-
-/* 章节结构样式 - 使用 base.html 统一样式 */
-.section {
-    margin-bottom: 18px;
-}
-
-/* 标题不需要悬挂缩进 */
-.message-page [class^="section-level"] {
-    text-indent: 0;
-    padding-left: 0;
-}
-
-.section-content {
-    margin: 12px 0 16px 0;
-    
-}
-
-.subsections {
-    margin-left: 0;
-}
-
-/* 使用 base.html 的统一 .content-text 样式 */
-
-.no-content {
-    color: var(--text-muted);
-    font-style: italic;
-    text-align: center;
-    padding: 24px 16px;
-    font-size: 0.9375em;
-}
-
-@media (min-width: 768px) {
-    .message-page {
-        padding: 20px 0;
-    }
-    
-    .message-content {
-        margin-top: 30px;
-    }
-    
-    .section {
-        margin-bottom: 30px;
-       
-    }
-}
-
-/* 移动端样式继承 base.html */
-</style>
 
 <script>
 // 等待 CXSpeech 加载完成后初始化

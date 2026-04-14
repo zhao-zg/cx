@@ -355,6 +355,9 @@
     };
     
     // 统一的环境检测 - 避免重复代码
+    window.CX = window.CX || {};
+    window.CX_ROOT = './';
+
     var CX_ENV = (function() {
         return {
             isAndroid: /Android/i.test(navigator.userAgent),
@@ -456,11 +459,8 @@
             // PWA 模式下仅显示数据工具区
             var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
             if (isStandalone) {
-                var clearDataBtnEl = document.getElementById('clearDataBtn');
                 var cacheAllBtnEl = document.getElementById('cacheAllBtn');
-                if (clearDataBtnEl) clearDataBtnEl.style.display = 'inline-flex';
                 if (cacheAllBtnEl) cacheAllBtnEl.style.display = 'inline-flex';
-                showSettingsActions();
             }
         }
         
@@ -489,27 +489,8 @@
             hostname: window.location.hostname
         });
         
-        // 检查更新按钮只在 Capacitor APK 环境显示（不在 PWA 中显示）
+        // 检查更新按钮只在 Capacitor APK 环境显示（由 theme-toggle.js 的 initSettingsActions 处理）
         if (CX_ENV.isAndroid && CX_ENV.isCapacitorApp) {
-            // 显示检查更新按钮（按钮由 theme-toggle.js 在 DOMContentLoaded 时创建，需等待 DOM 就绪）
-            document.addEventListener('DOMContentLoaded', function() {
-                var checkUpdateBtn = document.getElementById('checkUpdateBtn');
-                if (checkUpdateBtn) {
-                    checkUpdateBtn.style.display = 'inline-flex';
-                    showSettingsActions();
-                    
-                    checkUpdateBtn.addEventListener('click', function() {
-                        // 调用 AppUpdate 模块的更新检查对话框
-                        if (window.AppUpdate && window.AppUpdate.showCloudflareUpdateDialog) {
-                            window.AppUpdate.showCloudflareUpdateDialog();
-                        } else {
-                            console.error('AppUpdate 模块未加载或方法不可用');
-                            alert('更新功能未加载');
-                        }
-                    });
-                }
-            });
-            
             // 隐藏入口：点击 Logo 8 次 + 密码验证（用于 GitHub Release 下载）
             var clickCount = 0;
             var clickTimer = null;
@@ -719,17 +700,7 @@
         }
     }
     
-    // PWA 安装功能
-    var deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', function(e) {
-        e.preventDefault();
-        deferredPrompt = e;
-        var installBtn = document.getElementById('installBtn');
-        if (installBtn) {
-            installBtn.style.display = 'inline-flex';
-            showSettingsActions();
-        }
-    });
+    // PWA 安装由 theme-toggle.js 的 initSettingsActions 统一处理
     
     // 生成单个训练的资源列表（提升到全局作用域）
     /**
@@ -892,83 +863,40 @@
         }
         
         // 安卓设备只要不是 Capacitor APP 内，都显示 APK 下载按钮（含平板/PWA）
-        if (CX_ENV.isAndroid && !CX_ENV.isCapacitorApp) {
-            androidApkBtn.style.display = 'inline-flex';
-            showSettingsActions();
-            
-            androidApkBtn.addEventListener('click', function() {
-                installStatus.textContent = '正在获取最新版本...';
-                installStatus.className = 'cache-status';
-                
-                // 从当前网站获取版本信息（使用相对路径）
-                fetch('version.json?t=' + Date.now(), { cache: 'no-cache' })
-                    .then(function(response) {
-                        if (!response.ok) throw new Error('无法获取版本信息');
-                        return response.json();
-                    })
-                    .then(function(versionInfo) {
-                        var version = versionInfo.apk_version || versionInfo.version;
-                        var apkFile = versionInfo.apk_file || ('TeHui-v' + version + '.apk');
-                        var apkSize = versionInfo.apk_size;
-                        var downloadUrl = apkFile;  // 使用相对路径
-                        var sizeText = apkSize ? ' (' + (apkSize / 1024 / 1024).toFixed(1) + ' MB)' : '';
-                        
-                        installStatus.textContent = '正在下载 v' + version + sizeText + '...';
-                        installStatus.className = 'cache-status success';
-                        window.open(downloadUrl, '_blank');
-                    })
-                    .catch(function(error) {
-                        installStatus.textContent = '获取失败: ' + error.message;
-                        installStatus.className = 'cache-status error';
-                    });
-            });
-        }
-        
-        // 只在 PWA 模式下显示数据工具区
+        // androidApkBtn 由 theme-toggle.js 的 initSettingsActions 统一处理
+
+        // 只在 PWA 模式下显示缓存数据按钮
         if (CX_ENV.isStandalone) {
-            if (clearDataBtn) clearDataBtn.style.display = 'inline-flex';
             if (cacheAllBtn) cacheAllBtn.style.display = 'inline-flex';
-            showSettingsActions();
         }
 
-        // iOS 安装提示
-        if (CX_ENV.isIOS && !CX_ENV.isStandalone) {
-            installBtn.style.display = 'inline-flex';
-            showSettingsActions();
-            installBtn.innerHTML = '<span class="cache-icon">📲</span><span class="cache-text">添加到主屏幕</span>';
-            installBtn.addEventListener('click', function() {
-                installStatus.innerHTML = '请点击浏览器底部 <strong>分享按钮 ↑</strong>，然后选择 <strong>"添加到主屏幕"</strong>';
+        // 非 iOS：注册主页 PWA 安装钩子（含状态文字反馈），供 theme-toggle.js 调用
+        if (!CX_ENV.isIOS) {
+            window.CX.installPWA = function() {
+                var p = window._pwaInstallPrompt;
+                if (!p) return;
+                installStatus.textContent = '正在准备安装...';
                 installStatus.className = 'cache-status';
-            });
-        } else if (installBtn) {
-            installBtn.addEventListener('click', function() {
-                if (deferredPrompt) {
-                    installStatus.textContent = '正在准备安装...';
-                    installStatus.className = 'cache-status';
-                    
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then(function(result) {
-                        if (result.outcome === 'accepted') {
-                            installStatus.textContent = '✓ 安装成功！PWA 已添加到主屏幕';
-                            installStatus.className = 'cache-status success';
-                            
-                            // 等待 Service Worker 就绪
-                            if ('serviceWorker' in navigator) {
-                                navigator.serviceWorker.ready.then(function() {
-                                    installStatus.textContent = '✓ 安装完成！离线功能已启用';
-                                });
-                            }
-                            
-                            setTimeout(function() {
-                                installBtn.style.display = 'none';
-                            }, 3000);
-                        } else {
-                            installStatus.textContent = '';
+                window._pwaInstallPrompt = null;
+                p.prompt();
+                p.userChoice.then(function(result) {
+                    if (result.outcome === 'accepted') {
+                        installStatus.textContent = '✓ 安装成功！PWA 已添加到主屏幕';
+                        installStatus.className = 'cache-status success';
+                        if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.ready.then(function() {
+                                installStatus.textContent = '✓ 安装完成！离线功能已启用';
+                            });
                         }
-                        deferredPrompt = null;
-                    });
-                }
-            });
+                        setTimeout(function() {
+                            var btn = document.getElementById('installBtn');
+                            if (btn) btn.style.display = 'none';
+                        }, 3000);
+                    } else {
+                        installStatus.textContent = '';
+                    }
+                });
+            };
         }
         
         // 清理所有缓存和记忆功能（通过长按 Logo 触发）
@@ -1042,11 +970,8 @@
             clearAllCachesAndMemory({ keepNotes: keepNotes });
         }
 
-        if (clearDataBtn) {
-            clearDataBtn.addEventListener('click', function() {
-                promptClearData();
-            });
-        }
+        // 注册主页清理函数（含保留笔记选项）供 theme-toggle.js 调用
+        window.CX.clearData = promptClearData;
 
         if (cacheAllBtn) {
             cacheAllBtn.addEventListener('click', function() {

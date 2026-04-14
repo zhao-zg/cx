@@ -126,8 +126,142 @@
                 }
             }
         });
+
+        // 初始化操作区按钮（所有页面通用）
+        initSettingsActions();
     }
-    
+
+    // 初始化设置面板操作区（唯一实现；页面通过 window.CX.xxx 注册钩子覆盖默认行为）
+    function initSettingsActions() {
+        window.CX = window.CX || {};
+        var section = document.getElementById('settingsActionsSection');
+        if (section) section.style.display = 'block';
+        var statusEl = document.getElementById('actionStatus');
+
+        // 环境检测
+        var ua = navigator.userAgent;
+        var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
+                             window.Capacitor.isNativePlatform());
+        var isAndroid = /Android/i.test(ua);
+        var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+        var isStandalone = (window.navigator.standalone === true) ||
+                           window.matchMedia('(display-mode: standalone)').matches;
+
+        // ── 清理数据（所有页面）──────────────────────────
+        var clearBtn = document.getElementById('clearDataBtn');
+        if (clearBtn) {
+            clearBtn.style.display = 'inline-flex';
+            clearBtn.addEventListener('click', function() {
+                if (window.CX.clearData) { window.CX.clearData(); }
+                else { defaultPromptClearData(); }
+            });
+        }
+
+        // ── 检查更新（Capacitor APK）──────────────────────
+        if (isCapacitor) {
+            var updateBtn = document.getElementById('checkUpdateBtn');
+            if (updateBtn) {
+                updateBtn.style.display = 'inline-flex';
+                updateBtn.addEventListener('click', function() {
+                    if (window.AppUpdate && window.AppUpdate.showCloudflareUpdateDialog) {
+                        window.AppUpdate.showCloudflareUpdateDialog();
+                    }
+                });
+            }
+        }
+
+        // ── 安卓离线 APK（Android 浏览器，非 Capacitor，所有页面可用）──
+        if (isAndroid && !isCapacitor) {
+            var apkBtn = document.getElementById('androidApkBtn');
+            if (apkBtn) {
+                apkBtn.style.display = 'inline-flex';
+                apkBtn.addEventListener('click', function() {
+                    if (window.CX.downloadApk) { window.CX.downloadApk(); return; }
+                    var root = window.CX_ROOT || './';
+                    if (statusEl) { statusEl.textContent = '正在获取最新版本...'; statusEl.className = 'cache-status'; }
+                    fetch(root + 'version.json?t=' + Date.now(), { cache: 'no-cache' })
+                        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                        .then(function(v) {
+                            var f = v.apk_file || ('TeHui-v' + (v.apk_version || v.version) + '.apk');
+                            var sz = v.apk_size ? ' (' + (v.apk_size / 1024 / 1024).toFixed(1) + ' MB)' : '';
+                            if (statusEl) { statusEl.textContent = '正在下载 v' + (v.apk_version || v.version) + sz + '...'; statusEl.className = 'cache-status success'; }
+                            window.open(root + f, '_blank');
+                        })
+                        .catch(function(e) {
+                            if (statusEl) { statusEl.textContent = '获取失败: ' + e.message; statusEl.className = 'cache-status error'; }
+                        });
+                });
+            }
+        }
+
+        // ── 安装到桌面（PWA / iOS）────────────────────────
+        var installBtn = document.getElementById('installBtn');
+        if (installBtn) {
+            if (isIOS && !isStandalone) {
+                // iOS：直接显示，点击给出操作指引
+                installBtn.style.display = 'inline-flex';
+                installBtn.addEventListener('click', function() {
+                    if (window.CX.installIOS) { window.CX.installIOS(); return; }
+                    if (statusEl) {
+                        statusEl.innerHTML = '请点击浏览器底部 <strong>分享按钮 ↑</strong>，然后选择 <strong>"添加到主屏幕"</strong>';
+                        statusEl.className = 'cache-status';
+                    }
+                });
+            } else {
+                // Chrome/Edge：等 beforeinstallprompt 后显示
+                window.addEventListener('beforeinstallprompt', function(e) {
+                    e.preventDefault();
+                    window._pwaInstallPrompt = e;
+                    installBtn.style.display = 'inline-flex';
+                });
+                installBtn.addEventListener('click', function() {
+                    if (window.CX.installPWA) { window.CX.installPWA(); return; }
+                    var p = window._pwaInstallPrompt;
+                    if (!p) return;
+                    window._pwaInstallPrompt = null;
+                    p.prompt();
+                    p.userChoice.then(function() { installBtn.style.display = 'none'; });
+                });
+            }
+        }
+    }
+
+    // 通用清理数据函数（非主页使用，不含保留笔记逻辑）
+    function defaultPromptClearData() {
+        var ok = confirm('⚠️ 清理所有数据\n\n将删除：\n📦 所有训练的离线缓存\n📖 页面阅读记忆\n🔤 字体大小设置\n🔊 语速设置\n\n⚡ 此操作不可撤销！\n\n下一步可选择是否保留划线笔记。');
+        if (!ok) return;
+        var keepNotes = confirm('💾 是否保留您的划线笔记？\n\n确定 → 保留笔记（推荐）\n取消 → 一并清除');
+        var actionStatus = document.getElementById('actionStatus');
+        if (actionStatus) {
+            actionStatus.textContent = '🧹 正在清理中，请稍候...';
+            actionStatus.className = 'cache-status';
+        }
+        var steps = [];
+        if ('serviceWorker' in navigator) {
+            steps.push(navigator.serviceWorker.getRegistrations().then(function(regs) {
+                return Promise.all(regs.map(function(r) { return r.unregister(); }));
+            }).catch(function() {}));
+        }
+        if ('caches' in window) {
+            steps.push(caches.keys().then(function(keys) {
+                return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+            }).catch(function() {}));
+        }
+        try {
+            var theme = localStorage.getItem('readingTheme');
+            var fontSize = localStorage.getItem('globalFontSize');
+            var highlights = keepNotes ? localStorage.getItem('cx_highlights') : null;
+            for (var i = localStorage.length - 1; i >= 0; i--) {
+                var k = localStorage.key(i);
+                if (k) localStorage.removeItem(k);
+            }
+            if (theme) localStorage.setItem('readingTheme', theme);
+            if (fontSize) localStorage.setItem('globalFontSize', fontSize);
+            if (highlights) localStorage.setItem('cx_highlights', highlights);
+        } catch (e) {}
+        Promise.all(steps).then(function() { window.location.reload(true); });
+    }
+
     // 切换主题面板显示/隐藏
     window.toggleThemePanel = function() {
         const panel = document.getElementById('themePanel');
