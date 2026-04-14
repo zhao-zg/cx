@@ -73,50 +73,63 @@
             console.warn('[APK下载] 无法获取文件大小:', e.message);
         }
         
-        var chunkSize = 1024 * 1024; // 1MB
+        var chunkSize = 2 * 1024 * 1024; // 2MB
         var downloadedBytes = 0;
         
         if (contentLength > 0 && contentLength > chunkSize) {
-            // 大文件分块下载
-            var chunks = [];
+            // 大文件分块下载（批次并发，每批 CONCURRENCY 块）
+            var CONCURRENCY = 3;
             var numChunks = Math.ceil(contentLength / chunkSize);
+            var chunks = new Array(numChunks);
             var lastUpdateTime = Date.now();
             var lastDownloadedBytes = 0;
             
-            console.log('[APK下载] 分', numChunks, '块下载');
+            console.log('[APK下载] 分', numChunks, '块，每批', CONCURRENCY, '块并发下载');
             
-            for (var i = 0; i < numChunks; i++) {
-                var start = i * chunkSize;
+            // 将单块下载封装为函数（闭包捕获索引）
+            function fetchChunk(chunkIndex) {
+                var start = chunkIndex * chunkSize;
                 var end = Math.min(start + chunkSize - 1, contentLength - 1);
-                
-                var chunkResponse = await CapacitorHttp.get({
+                return CapacitorHttp.get({
                     url: downloadUrl,
                     headers: { 'Range': 'bytes=' + start + '-' + end },
                     responseType: 'blob',
                     connectTimeout: 30000,
                     readTimeout: 60000
-                });
-                
-                if (chunkResponse.status !== 200 && chunkResponse.status !== 206) {
-                    throw new Error('分块下载失败: HTTP ' + chunkResponse.status);
-                }
-                
-                var chunkBlob;
-                if (chunkResponse.data instanceof Blob) {
-                    chunkBlob = chunkResponse.data;
-                } else if (typeof chunkResponse.data === 'string') {
-                    var binaryString = atob(chunkResponse.data);
-                    var bytes = new Uint8Array(binaryString.length);
-                    for (var j = 0; j < binaryString.length; j++) {
-                        bytes[j] = binaryString.charCodeAt(j);
+                }).then(function(chunkResponse) {
+                    if (chunkResponse.status !== 200 && chunkResponse.status !== 206) {
+                        throw new Error('分块下载失败: HTTP ' + chunkResponse.status);
                     }
-                    chunkBlob = new Blob([bytes]);
-                } else {
-                    throw new Error('未知的响应数据类型');
+                    var chunkBlob;
+                    if (chunkResponse.data instanceof Blob) {
+                        chunkBlob = chunkResponse.data;
+                    } else if (typeof chunkResponse.data === 'string') {
+                        var binaryString = atob(chunkResponse.data);
+                        var bytes = new Uint8Array(binaryString.length);
+                        for (var j = 0; j < binaryString.length; j++) {
+                            bytes[j] = binaryString.charCodeAt(j);
+                        }
+                        chunkBlob = new Blob([bytes]);
+                    } else {
+                        throw new Error('未知的响应数据类型');
+                    }
+                    return { index: chunkIndex, blob: chunkBlob };
+                });
+            }
+            
+            for (var batchStart = 0; batchStart < numChunks; batchStart += CONCURRENCY) {
+                var batchEnd = Math.min(batchStart + CONCURRENCY, numChunks);
+                var batchPromises = [];
+                for (var i = batchStart; i < batchEnd; i++) {
+                    batchPromises.push(fetchChunk(i));
                 }
                 
-                chunks.push(chunkBlob);
-                downloadedBytes += chunkBlob.size;
+                var batchResults = await Promise.all(batchPromises);
+                
+                batchResults.forEach(function(result) {
+                    chunks[result.index] = result.blob;
+                    downloadedBytes += result.blob.size;
+                });
                 
                 // 更新进度
                 if (onProgress) {
@@ -684,52 +697,56 @@
         getCurrentApkVersion().then(function(currentVersion) {
             statusEl.innerHTML = '当前版本: ' + currentVersion + '<br>正在检查远程版本...';
             
-            // 依次尝试每个服务器
-            var tryServer = function(serverIndex) {
-                if (serverIndex >= CLOUDFLARE_SERVERS.length) {
-                    // 所有服务器都失败
-                    statusEl.innerHTML = '❌ 所有服务器均无法访问';
-                    console.error('[更新检查] 所有服务器均失败');
-                    return Promise.reject(new Error('所有服务器均无法访问'));
-                }
-                
-                var serverUrl = CLOUDFLARE_SERVERS[serverIndex];
-                var versionUrl = serverUrl + 'version.json?t=' + Date.now();
-                
-                console.log('[更新检查] 尝试服务器 ' + (serverIndex + 1) + '/' + CLOUDFLARE_SERVERS.length + ': ' + serverUrl);
-                
-                if (serverIndex > 0) {
-                    statusEl.innerHTML = '当前版本: ' + currentVersion + '<br>正在尝试备用服务器 ' + (serverIndex + 1) + '...';
-                }
-                
+            // 并发请求所有服务器，最快成功者获胜
+            var ts = Date.now();
+            var serverPromises = CLOUDFLARE_SERVERS.map(function(serverUrl, idx) {
+                var versionUrl = serverUrl + 'version.json?t=' + ts;
+                console.log('[更新检查] 并发请求服务器 ' + (idx + 1) + ': ' + serverUrl);
                 return fetch(versionUrl, { cache: 'no-cache' })
                     .then(function(response) {
                         if (!response.ok) throw new Error('HTTP ' + response.status);
                         return response.json();
                     })
                     .then(function(versionInfo) {
-                        console.log('[更新检查] 服务器 ' + (serverIndex + 1) + ' 响应成功:', versionInfo);
-                        
-                        var latestVersion = versionInfo.apk_version || versionInfo.version || '未知';
-                        var apkFile = versionInfo.apk_file || ('TeHui-v' + latestVersion + '.apk');
-                        var apkSize = versionInfo.apk_size;
-                        var currentVersionClean = currentVersion.replace('v', '');
-                        var latestVersionClean = latestVersion.replace('v', '');
-                        
-                        var downloadUrl = serverUrl + apkFile;
-                        var comparison = AppUpdate.compareVersion(latestVersionClean, currentVersionClean);
-                        var sizeText = apkSize ? ' (' + (apkSize / 1024 / 1024).toFixed(1) + ' MB)' : '';
-                        
-                        handleVersionComparison(statusEl, btnEl, comparison, currentVersion, latestVersion, sizeText, downloadUrl);
-                    })
-                    .catch(function(error) {
-                        console.warn('[更新检查] 服务器 ' + (serverIndex + 1) + ' 失败:', error.message);
-                        // 尝试下一个服务器
-                        return tryServer(serverIndex + 1);
+                        console.log('[更新检查] 服务器 ' + (idx + 1) + ' 响应成功:', versionInfo);
+                        return { serverUrl: serverUrl, versionInfo: versionInfo };
                     });
-            };
+            });
             
-            return tryServer(0);
+            // Promise.any 兼容写法：第一个成功者获胜
+            var racePromise = typeof Promise.any === 'function'
+                ? Promise.any(serverPromises)
+                : new Promise(function(resolve, reject) {
+                    var errors = [];
+                    serverPromises.forEach(function(p) {
+                        p.then(resolve).catch(function(e) {
+                            errors.push(e);
+                            if (errors.length === serverPromises.length) {
+                                reject(new Error('所有服务器均无法访问'));
+                            }
+                        });
+                    });
+                });
+            
+            return racePromise.then(function(result) {
+                var serverUrl = result.serverUrl;
+                var versionInfo = result.versionInfo;
+                
+                var latestVersion = versionInfo.apk_version || versionInfo.version || '未知';
+                var apkFile = versionInfo.apk_file || ('TeHui-v' + latestVersion + '.apk');
+                var apkSize = versionInfo.apk_size;
+                var currentVersionClean = currentVersion.replace('v', '');
+                var latestVersionClean = latestVersion.replace('v', '');
+                
+                var downloadUrl = serverUrl + apkFile;
+                var comparison = AppUpdate.compareVersion(latestVersionClean, currentVersionClean);
+                var sizeText = apkSize ? ' (' + (apkSize / 1024 / 1024).toFixed(1) + ' MB)' : '';
+                
+                handleVersionComparison(statusEl, btnEl, comparison, currentVersion, latestVersion, sizeText, downloadUrl);
+            }).catch(function(error) {
+                statusEl.innerHTML = '❌ 所有服务器均无法访问';
+                console.error('[更新检查] 所有服务器均失败:', error.message);
+            });
         }).catch(function(error) {
             console.error('[更新检查] 失败:', error);
             if (!statusEl.innerHTML.includes('❌')) {
