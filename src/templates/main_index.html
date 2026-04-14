@@ -309,41 +309,6 @@
             </div>
         </div>
         
-        <!-- 安装按钮区域 -->
-        <div class="cache-section" id="installSection">
-            <button class="cache-btn install-btn" id="installBtn" style="display:none;">
-                <span class="cache-icon">📲</span>
-                <span class="cache-text">安装到桌面</span>
-            </button>
-            <button class="cache-btn" id="androidApkBtn" style="display:none; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
-                <span class="cache-icon">📱</span>
-                <span class="cache-text">安卓离线版</span>
-            </button>
-            <div class="cache-status" id="installStatus"></div>
-        </div>
-
-        <!-- 数据工具区域 -->
-        <div class="cache-section" id="dataToolsSection" style="display: none;">
-            <button class="cache-btn clear-btn" id="clearDataBtn">
-                <span class="cache-icon">🧹</span>
-                <span class="cache-text">清理数据</span>
-            </button>
-            <button class="cache-btn" id="cacheAllBtn">
-                <span class="cache-icon">📦</span>
-                <span class="cache-text">缓存数据</span>
-            </button>
-            <div class="cache-status" id="dataToolsStatus"></div>
-        </div>
-        
-        <!-- 检查更新按钮（仅在 APP 内显示） -->
-        <div class="cache-section" id="updateSection" style="display: none;">
-            <button class="cache-btn" id="checkUpdateBtn">
-                <span class="cache-icon">🔄</span>
-                <span class="cache-text">检查更新</span>
-            </button>
-            <div class="cache-status" id="updateStatus"></div>
-        </div>
-        
         <div class="footer">
             <p>本站内容仅供主恢复圣徒交通使用</p>
             <p style="margin-top: 10px; font-size: 0.9em;">
@@ -423,6 +388,12 @@
         }
     })();
     
+    // 显示设置面板操作区
+    function showSettingsActions() {
+        var s = document.getElementById('settingsActionsSection');
+        if (s) s.style.display = 'block';
+    }
+
     // 动态加载训练列表
     (function() {
         console.log('[训练列表] 开始加载');
@@ -485,11 +456,11 @@
             // PWA 模式下仅显示数据工具区
             var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
             if (isStandalone) {
-                var dataToolsSection = document.getElementById('dataToolsSection');
-                if (dataToolsSection) {
-                    dataToolsSection.style.display = 'flex';
-                    dataToolsSection.classList.add('show');
-                }
+                var clearDataBtnEl = document.getElementById('clearDataBtn');
+                var cacheAllBtnEl = document.getElementById('cacheAllBtn');
+                if (clearDataBtnEl) clearDataBtnEl.style.display = 'inline-flex';
+                if (cacheAllBtnEl) cacheAllBtnEl.style.display = 'inline-flex';
+                showSettingsActions();
             }
         }
         
@@ -520,24 +491,24 @@
         
         // 检查更新按钮只在 Capacitor APK 环境显示（不在 PWA 中显示）
         if (CX_ENV.isAndroid && CX_ENV.isCapacitorApp) {
-            // 显示检查更新按钮
-            var updateSection = document.getElementById('updateSection');
-            var checkUpdateBtn = document.getElementById('checkUpdateBtn');
-            var updateStatus = document.getElementById('updateStatus');
-            
-            if (updateSection && checkUpdateBtn) {
-                updateSection.style.display = 'block';
-                
-                checkUpdateBtn.addEventListener('click', function() {
-                    // 调用 AppUpdate 模块的更新检查对话框
-                    if (window.AppUpdate && window.AppUpdate.showCloudflareUpdateDialog) {
-                        window.AppUpdate.showCloudflareUpdateDialog();
-                    } else {
-                        console.error('AppUpdate 模块未加载或方法不可用');
-                        alert('更新功能未加载');
-                    }
-                });
-            }
+            // 显示检查更新按钮（按钮由 theme-toggle.js 在 DOMContentLoaded 时创建，需等待 DOM 就绪）
+            document.addEventListener('DOMContentLoaded', function() {
+                var checkUpdateBtn = document.getElementById('checkUpdateBtn');
+                if (checkUpdateBtn) {
+                    checkUpdateBtn.style.display = 'inline-flex';
+                    showSettingsActions();
+                    
+                    checkUpdateBtn.addEventListener('click', function() {
+                        // 调用 AppUpdate 模块的更新检查对话框
+                        if (window.AppUpdate && window.AppUpdate.showCloudflareUpdateDialog) {
+                            window.AppUpdate.showCloudflareUpdateDialog();
+                        } else {
+                            console.error('AppUpdate 模块未加载或方法不可用');
+                            alert('更新功能未加载');
+                        }
+                    });
+                }
+            });
             
             // 隐藏入口：点击 Logo 8 次 + 密码验证（用于 GitHub Release 下载）
             var clickCount = 0;
@@ -756,6 +727,7 @@
         var installBtn = document.getElementById('installBtn');
         if (installBtn) {
             installBtn.style.display = 'inline-flex';
+            showSettingsActions();
         }
     });
     
@@ -871,7 +843,7 @@
 
     function updateCacheAllButtonState() {
         var cacheAllBtn = document.getElementById('cacheAllBtn');
-        var dataToolsStatus = document.getElementById('dataToolsStatus');
+        var dataToolsStatus = document.getElementById('actionStatus');
         if (!cacheAllBtn) return;
 
         var flag = null;
@@ -908,14 +880,12 @@
     }
     
     document.addEventListener('DOMContentLoaded', function() {
-        var installSection = document.getElementById('installSection');
         var installBtn = document.getElementById('installBtn');
         var androidApkBtn = document.getElementById('androidApkBtn');
-        var installStatus = document.getElementById('installStatus');
-        var dataToolsSection = document.getElementById('dataToolsSection');
+        var installStatus = document.getElementById('actionStatus');
         var clearDataBtn = document.getElementById('clearDataBtn');
         var cacheAllBtn = document.getElementById('cacheAllBtn');
-        var dataToolsStatus = document.getElementById('dataToolsStatus');
+        var dataToolsStatus = document.getElementById('actionStatus');
         
         if (!('serviceWorker' in navigator)) {
             return;
@@ -923,8 +893,8 @@
         
         // 安卓设备只要不是 Capacitor APP 内，都显示 APK 下载按钮（含平板/PWA）
         if (CX_ENV.isAndroid && !CX_ENV.isCapacitorApp) {
-            installSection.classList.add('show');
             androidApkBtn.style.display = 'inline-flex';
+            showSettingsActions();
             
             androidApkBtn.addEventListener('click', function() {
                 installStatus.textContent = '正在获取最新版本...';
@@ -956,18 +926,15 @@
         
         // 只在 PWA 模式下显示数据工具区
         if (CX_ENV.isStandalone) {
-            if (dataToolsSection) {
-                dataToolsSection.style.display = 'flex';
-                dataToolsSection.classList.add('show');
-            }
-        } else {
-            // 非 PWA 模式，显示安装区域
-            installSection.classList.add('show');
+            if (clearDataBtn) clearDataBtn.style.display = 'inline-flex';
+            if (cacheAllBtn) cacheAllBtn.style.display = 'inline-flex';
+            showSettingsActions();
         }
 
         // iOS 安装提示
         if (CX_ENV.isIOS && !CX_ENV.isStandalone) {
             installBtn.style.display = 'inline-flex';
+            showSettingsActions();
             installBtn.innerHTML = '<span class="cache-icon">📲</span><span class="cache-text">添加到主屏幕</span>';
             installBtn.addEventListener('click', function() {
                 installStatus.innerHTML = '请点击浏览器底部 <strong>分享按钮 ↑</strong>，然后选择 <strong>"添加到主屏幕"</strong>';
@@ -1098,15 +1065,10 @@
             var keepNotes = options.keepNotes === true;
             console.log('[清理] 开始清理所有缓存和记忆');
             
-            var installStatus = document.getElementById('installStatus');
-            var dataToolsStatus = document.getElementById('dataToolsStatus');
-            if (installStatus) {
-                installStatus.textContent = '🧹 正在清理中，请稍候...';
-                installStatus.className = 'cache-status';
-            }
-            if (dataToolsStatus) {
-                dataToolsStatus.textContent = '🧹 正在清理中，请稍候...';
-                dataToolsStatus.className = 'cache-status';
+            var actionStatus = document.getElementById('actionStatus');
+            if (actionStatus) {
+                actionStatus.textContent = '🧹 正在清理中，请稍候...';
+                actionStatus.className = 'cache-status';
             }
             
             var cleanupSteps = [];
@@ -1222,13 +1184,9 @@
             Promise.all(cleanupSteps).then(function() {
                 console.log('[清理] 所有缓存和记忆已清理完成');
                 
-                if (installStatus) {
-                    installStatus.textContent = '✅ 清理完成！页面即将刷新...';
-                    installStatus.className = 'cache-status success';
-                }
-                if (dataToolsStatus) {
-                    dataToolsStatus.textContent = '✅ 清理完成！页面即将刷新...';
-                    dataToolsStatus.className = 'cache-status success';
+                if (actionStatus) {
+                    actionStatus.textContent = '✅ 清理完成！页面即将刷新...';
+                    actionStatus.className = 'cache-status success';
                 }
                 
                 // 立即刷新页面
@@ -1237,13 +1195,9 @@
                 }, 0);
             }).catch(function(err) {
                 console.error('[清理] 清理过程出错:', err);
-                if (installStatus) {
-                    installStatus.textContent = '⚠ 部分清理完成，页面即将刷新';
-                    installStatus.className = 'cache-status warning';
-                }
-                if (dataToolsStatus) {
-                    dataToolsStatus.textContent = '⚠ 部分清理完成，页面即将刷新';
-                    dataToolsStatus.className = 'cache-status warning';
+                if (actionStatus) {
+                    actionStatus.textContent = '⚠ 部分清理完成，页面即将刷新';
+                    actionStatus.className = 'cache-status warning';
                 }
                 // 即使出错也刷新页面
                 setTimeout(function() {
