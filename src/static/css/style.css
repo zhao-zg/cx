@@ -451,6 +451,22 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{ou
 .cache-status.success{color:#38a169}
 .cache-status.error{color:#e53e3e}
 .cache-status.warning{color:#d69e2e}
+/* \u6e05\u9664\u6570\u636e\u5bf9\u8bdd\u6846 */
+.cx-dialog-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px}
+.cx-dialog{background:var(--surface);border-radius:14px;width:min(320px,calc(100vw - 40px));box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden}
+.cx-dialog-title{font-size:15px;font-weight:600;color:var(--heading);padding:16px 16px 0;text-align:center}
+.cx-dialog-desc{font-size:12px;color:var(--text-secondary);padding:4px 16px 12px;text-align:center;line-height:1.6}
+.cx-dialog-opts{display:flex;flex-direction:column;gap:8px;padding:0 16px 14px}
+.cx-dialog-opt{display:flex;align-items:flex-start;gap:11px;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;background:var(--surface-alt);-webkit-tap-highlight-color:transparent}
+.cx-dialog-opt.selected{border-color:var(--brand);background:#f0f4ff}
+.cx-dialog-opt-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+.cx-dialog-opt-body{flex:1}
+.cx-dialog-opt-title{font-size:13px;font-weight:600;color:var(--heading);margin-bottom:2px}
+.cx-dialog-opt-sub{font-size:11px;color:var(--text-secondary);line-height:1.5}
+.cx-dialog-actions{display:flex;border-top:1px solid var(--border)}
+.cx-dialog-cancel{flex:1;padding:13px;background:none;border:none;font-size:14px;color:var(--text-secondary);cursor:pointer;border-right:1px solid var(--border)}
+.cx-dialog-confirm{flex:1;padding:13px;background:none;border:none;font-size:14px;font-weight:600;color:#c53030;cursor:pointer}
+.cx-dialog-confirm:active,.cx-dialog-cancel:active{background:var(--surface-alt)}
 
 /* ── 二十二、图片查看器（hymn / motto_song 共用）──────────── */
 .image-viewer-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:9999;overflow:hidden;touch-action:none}

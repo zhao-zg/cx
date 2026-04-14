@@ -108,11 +108,14 @@
         }
         updateFontSizeUI();
         
-        // 点击外部关闭面板
+        // 点击外部关闭面板（对话框弹层内的点击不触发）
         document.addEventListener('click', function(e) {
             const panel = document.getElementById('themePanel');
             const btn = document.querySelector('.theme-toggle-btn');
             if (panel && panel.classList.contains('show') && !panel.contains(e.target) && !btn.contains(e.target)) {
+                // 若点击发生在弹出对话框内，不关闭面板
+                var dialogMask = document.getElementById('cxClearDialogMask');
+                if (dialogMask && dialogMask.contains(e.target)) return;
                 panel.classList.remove('show');
             }
         });
@@ -226,41 +229,102 @@
         }
     }
 
-    // 通用清理数据函数（非主页使用，不含保留笔记逻辑）
-    function defaultPromptClearData() {
-        var ok = confirm('⚠️ 清理所有数据\n\n将删除：\n📦 所有训练的离线缓存\n📖 页面阅读记忆\n🔤 字体大小设置\n🔊 语速设置\n\n⚡ 此操作不可撤销！\n\n下一步可选择是否保留划线笔记。');
-        if (!ok) return;
-        var keepNotes = confirm('💾 是否保留您的划线笔记？\n\n确定 → 保留笔记（推荐）\n取消 → 一并清除');
-        var actionStatus = document.getElementById('actionStatus');
-        if (actionStatus) {
-            actionStatus.textContent = '🧹 正在清理中，请稍候...';
-            actionStatus.className = 'cache-status';
-        }
-        var steps = [];
-        if ('serviceWorker' in navigator) {
-            steps.push(navigator.serviceWorker.getRegistrations().then(function(regs) {
-                return Promise.all(regs.map(function(r) { return r.unregister(); }));
-            }).catch(function() {}));
-        }
-        if ('caches' in window) {
-            steps.push(caches.keys().then(function(keys) {
-                return Promise.all(keys.map(function(k) { return caches.delete(k); }));
-            }).catch(function() {}));
-        }
-        try {
-            var theme = localStorage.getItem('readingTheme');
-            var fontSize = localStorage.getItem('globalFontSize');
-            var highlights = keepNotes ? localStorage.getItem('cx_highlights') : null;
-            for (var i = localStorage.length - 1; i >= 0; i--) {
-                var k = localStorage.key(i);
-                if (k) localStorage.removeItem(k);
+    // 清除数据对话框（所有页面共用）
+    // onConfirm(selected) selected = 'regular' | 'notes'
+    function showClearDialog(onConfirm) {
+        if (document.getElementById('cxClearDialogMask')) return;
+        var selected = 'regular';
+        var mask = document.createElement('div');
+        mask.id = 'cxClearDialogMask';
+        mask.className = 'cx-dialog-mask';
+        mask.innerHTML = [
+            '<div class="cx-dialog">',
+            '  <div class="cx-dialog-title">清除数据</div>',
+            '  <div class="cx-dialog-desc">选择要清除的内容</div>',
+            '  <div class="cx-dialog-opts">',
+            '    <div class="cx-dialog-opt selected" data-val="regular">',
+            '      <div class="cx-dialog-opt-icon">🧾</div>',
+            '      <div class="cx-dialog-opt-body">',
+            '        <div class="cx-dialog-opt-title">常规数据</div>',
+            '        <div class="cx-dialog-opt-sub">离线缓存、阅读进度、字体语速设置<br>保留划线笔记</div>',
+            '      </div>',
+            '    </div>',
+            '    <div class="cx-dialog-opt" data-val="notes">',
+            '      <div class="cx-dialog-opt-icon">📝</div>',
+            '      <div class="cx-dialog-opt-body">',
+            '        <div class="cx-dialog-opt-title">划线笔记</div>',
+            '        <div class="cx-dialog-opt-sub">仅清除所有划线和高亮<br>保留其他设置</div>',
+            '      </div>',
+            '    </div>',
+            '  </div>',
+            '  <div class="cx-dialog-actions">',
+            '    <button class="cx-dialog-cancel" data-action="cancel">取消</button>',
+            '    <button class="cx-dialog-confirm" data-action="confirm">确定清除</button>',
+            '  </div>',
+            '</div>'
+        ].join('');
+        document.body.appendChild(mask);
+
+        // 用事件委托代替多个 getElementById，避免时序问题
+        mask.addEventListener('click', function(e) {
+            var t = e.target;
+            // 选项卡片点击
+            var opt = t.closest ? t.closest('.cx-dialog-opt') : null;
+            if (opt && opt.getAttribute('data-val')) {
+                selected = opt.getAttribute('data-val');
+                var opts = mask.querySelectorAll('.cx-dialog-opt');
+                for (var i = 0; i < opts.length; i++) { opts[i].classList.remove('selected'); }
+                opt.classList.add('selected');
+                return;
             }
-            if (theme) localStorage.setItem('readingTheme', theme);
-            if (fontSize) localStorage.setItem('globalFontSize', fontSize);
-            if (highlights) localStorage.setItem('cx_highlights', highlights);
-        } catch (e) {}
-        Promise.all(steps).then(function() { window.location.reload(true); });
+            // 取消按钮
+            if (t.getAttribute('data-action') === 'cancel' || t === mask) {
+                mask.parentNode && mask.parentNode.removeChild(mask);
+                return;
+            }
+            // 确定清除按钮
+            if (t.getAttribute('data-action') === 'confirm') {
+                mask.parentNode && mask.parentNode.removeChild(mask);
+                var statusEl = document.getElementById('actionStatus');
+                if (statusEl) { statusEl.textContent = '🧹 正在清理中，请稍候...'; statusEl.className = 'cache-status'; }
+                if (onConfirm) { onConfirm(selected); return; }
+                // 内置实现（非主页）
+                if (selected === 'notes') {
+                    try { localStorage.removeItem('cx_highlights'); } catch(e) {}
+                    if (statusEl) { statusEl.textContent = '✓ 划线笔记已清除，即将刷新...'; statusEl.className = 'cache-status success'; }
+                    window.location.reload(true);
+                    return;
+                }
+                var steps = [];
+                if ('serviceWorker' in navigator) {
+                    steps.push(navigator.serviceWorker.getRegistrations().then(function(regs) {
+                        return Promise.all(regs.map(function(r) { return r.unregister(); }));
+                    }).catch(function() {}));
+                }
+                if ('caches' in window) {
+                    steps.push(caches.keys().then(function(keys) {
+                        return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                    }).catch(function() {}));
+                }
+                try {
+                    var theme = localStorage.getItem('readingTheme');
+                    var fontSize = localStorage.getItem('globalFontSize');
+                    var highlights = localStorage.getItem('cx_highlights');
+                    for (var i = localStorage.length - 1; i >= 0; i--) {
+                        var k = localStorage.key(i); if (k) localStorage.removeItem(k);
+                    }
+                    if (theme)      localStorage.setItem('readingTheme', theme);
+                    if (fontSize)   localStorage.setItem('globalFontSize', fontSize);
+                    if (highlights) localStorage.setItem('cx_highlights', highlights);
+                } catch(ex) {}
+                Promise.all(steps).then(function() { window.location.reload(true); });
+            }
+        });
     }
+    window.CX = window.CX || {};
+    window.CX.showClearDialog = showClearDialog;
+
+    function defaultPromptClearData() { showClearDialog(); }
 
     // 切换主题面板显示/隐藏
     window.toggleThemePanel = function() {

@@ -212,6 +212,22 @@
         #dataToolsStatus {
             flex-basis: 100%;
         }
+        /* 清除数据对话框 */
+        .cx-dialog-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px}
+        .cx-dialog{background:var(--surface);border-radius:14px;width:min(320px,calc(100vw - 40px));box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden}
+        .cx-dialog-title{font-size:15px;font-weight:600;color:var(--heading);padding:16px 16px 0;text-align:center}
+        .cx-dialog-desc{font-size:12px;color:var(--text-muted);padding:4px 16px 12px;text-align:center;line-height:1.6}
+        .cx-dialog-opts{display:flex;flex-direction:column;gap:8px;padding:0 16px 14px}
+        .cx-dialog-opt{display:flex;align-items:flex-start;gap:11px;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;background:var(--surface-alt);transition:border-color .15s,background .15s;-webkit-tap-highlight-color:transparent}
+        .cx-dialog-opt.selected{border-color:var(--brand);background:#f0f4ff}
+        .cx-dialog-opt-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+        .cx-dialog-opt-body{flex:1}
+        .cx-dialog-opt-title{font-size:13px;font-weight:600;color:var(--heading);margin-bottom:2px}
+        .cx-dialog-opt-sub{font-size:11px;color:var(--text-muted);line-height:1.5}
+        .cx-dialog-actions{display:flex;border-top:1px solid var(--border)}
+        .cx-dialog-cancel{flex:1;padding:13px;background:none;border:none;font-size:14px;color:var(--text-muted);cursor:pointer;border-right:1px solid var(--border)}
+        .cx-dialog-confirm{flex:1;padding:13px;background:none;border:none;font-size:14px;font-weight:600;color:#c53030;cursor:pointer}
+        .cx-dialog-confirm:active,.cx-dialog-cancel:active{background:var(--surface-alt)}
         
         .actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
         .action-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:9px 10px;background:var(--surface-alt);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:transform .1s;-webkit-tap-highlight-color:transparent;box-sizing:border-box}
@@ -899,10 +915,9 @@
         }
 
         function promptClearData() {
-            var ok = confirm('⚠️ 清理所有数据\n\n将删除以下内容：\n\n📦 所有训练的离线缓存\n📖 页面阅读记忆（进度/位置）\n🔤 字体大小设置\n🔊 语速设置\n\n⚡ 此操作不可撤销！\n\n下一步可选择是否保留划线笔记。');
-            if (!ok) return;
-            var keepNotes = confirm('💾 是否保留您的划线笔记？\n\n点击"确定"→ 保留笔记（推荐）\n点击"取消"→ 一并清除笔记');
-            clearAllCachesAndMemory({ keepNotes: keepNotes });
+            window.CX.showClearDialog(function(selected) {
+                clearAllCachesAndMemory({ keepNotes: true, clearNotesOnly: (selected === 'notes') });
+            });
         }
 
         // 注册主页清理函数（含保留笔记选项）供 theme-toggle.js 调用
@@ -923,12 +938,21 @@
         function clearAllCachesAndMemory(options) {
             options = options || {};
             var keepNotes = options.keepNotes === true;
-            console.log('[清理] 开始清理所有缓存和记忆');
-            
+            var clearNotesOnly = options.clearNotesOnly === true;
+            console.log('[清理] 开始清理', clearNotesOnly ? '仅笔记' : '常规数据');
+
             var actionStatus = document.getElementById('actionStatus');
             if (actionStatus) {
                 actionStatus.textContent = '🧹 正在清理中，请稍候...';
                 actionStatus.className = 'cache-status';
+            }
+
+            // 仅清除笔记
+            if (clearNotesOnly) {
+                try { localStorage.removeItem('cx_highlights'); } catch(e) {}
+                if (actionStatus) { actionStatus.textContent = '✓ 划线笔记已清除，即将刷新...'; actionStatus.className = 'cache-status success'; }
+                window.location.reload(true);
+                return;
             }
             
             var cleanupSteps = [];
