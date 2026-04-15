@@ -70,6 +70,7 @@ if (window.CXNavStack) {
         var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
         return Math.sqrt(dx*dx + dy*dy);
     }
+    function isPortrait() { return overlay.classList.contains('portrait'); }
 
     var _lastTap = 0;
     img.addEventListener('touchend', function(e) {
@@ -81,12 +82,13 @@ if (window.CXNavStack) {
     });
 
     img.addEventListener('touchstart', function(e) {
-        e.preventDefault();
         _gestured = false;
         if (e.touches.length === 2) {
+            e.preventDefault();
             _pinchStartDist  = dist(e.touches);
             _pinchStartScale = _scale;
         } else if (e.touches.length === 1) {
+            if (!isPortrait() || _scale > 1) e.preventDefault();
             _panStartX  = e.touches[0].clientX;
             _panStartY  = e.touches[0].clientY;
             _panStartTx = _tx;
@@ -95,13 +97,15 @@ if (window.CXNavStack) {
     }, { passive: false });
 
     img.addEventListener('touchmove', function(e) {
-        e.preventDefault();
         _gestured = true;
         if (e.touches.length === 2) {
+            e.preventDefault();
             var d = dist(e.touches);
             _scale = Math.min(8, Math.max(1, _pinchStartScale * d / _pinchStartDist));
             applyTransform();
-        } else if (e.touches.length === 1 && _scale > 1) {
+        } else if (e.touches.length === 1) {
+            if (isPortrait() && _scale <= 1) return;
+            e.preventDefault();
             _tx = _panStartTx + (e.touches[0].clientX - _panStartX);
             _ty = _panStartTy + (e.touches[0].clientY - _panStartY);
             applyTransform();
@@ -123,7 +127,7 @@ if (window.CXNavStack) {
     closeBtn.addEventListener('touchend', function(e) { e.preventDefault(); closeViewer(); });
 
     function closeViewer() {
-        overlay.classList.remove('show');
+        overlay.classList.remove('show', 'portrait');
         document.body.style.overflow = '';
         resetTransform();
     }
@@ -136,7 +140,18 @@ if (window.CXNavStack) {
         img.src = src;
         overlay.classList.add('show');
         document.body.style.overflow = 'hidden';
-        resetTransform();
+        _scale = 1; _tx = 0; _ty = 0;
+        img.style.transition = '';
+        applyTransform();
+        function fitWidth() {
+            var vw = overlay.clientWidth, vh = overlay.clientHeight;
+            var nw = img.naturalWidth, nh = img.naturalHeight;
+            if (!nw || !nh) return;
+            var cssW = Math.min(vw, vh * nw / nh);
+            if (cssW < vw - 1) { overlay.classList.add('portrait'); }
+        }
+        if (img.complete && img.naturalWidth) { fitWidth(); }
+        else { img.onload = fitWidth; }
     };
     window.closeImageViewer = closeViewer;
 })();
