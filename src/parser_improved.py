@@ -9,6 +9,7 @@ import subprocess
 from docx import Document
 from typing import List, Optional
 from .models import Chapter, Content, TrainingData, MorningRevival
+from .bible_dict import BibleDict
 
 
 def load_document(doc_path: str):
@@ -140,10 +141,103 @@ class ImprovedParser:
     LEVEL3_PATTERN = re.compile(r'^(\d+)[　\s]+(.*)')
     # 经文格式：太5:3	经文内容... 或 腓2:5	经文内容... 或 太五3	经文内容...
     # 支持两种格式: 1) 书卷+中文数字+阿拉伯数字 (太五3), 2) 书卷+阿拉伯数字 (腓2:5)
-    VERSE_PATTERN = re.compile(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼约犹启来](?:[一二三四五六七八九十后前]\d+|\d+):\d+)[　\s\t]+(.+)')
+    VERSE_PATTERN = re.compile(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼约犹启来](?:[一二三四五六七八九十后前上下壹贰叁]\d+|\d+):\d+[上下]?)[　\s\t]+(.+)')
+
+    # ── 中文章节引用解析常量 ──────────────────────────────────────────
+    _BOOK_BASE_PAT = r'[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼犹启来]'
+    _BOOK_MOD_PAT = r'[后前上下壹贰叁]'
+    _CN_CHAP_PAT = (
+        r'(?:一百五十'
+        r'|一百[一二三四][十][一二三四五六七八九]'
+        r'|一百[一二三四][十]'
+        r'|一百零[一二三四五六七八九]'
+        r'|一百'
+        r'|[三四五六七八九][十][一二三四五六七八九]'
+        r'|[三四五六七八九][十]'
+        r'|二十[一二三四五六七八九]'
+        r'|二十'
+        r'|十[一二三四五六七八九]'
+        r'|十'
+        r'|[一二三四五六七八九][一二三四五六七八九][一二三四五六七八九○零]'
+        r'|[二三四五六七八九][一二三四五六七八九]'
+        r'|[一二三四五六七八九])'
+    )
+    # 全称引用：书卷(+可选修饰) + 中文章 + 阿拉伯节[~节][上下]
+    _FULL_REF_RE = re.compile(
+        r'^(' + _BOOK_BASE_PAT + _BOOK_MOD_PAT + r'?)'
+        r'(' + _CN_CHAP_PAT + r')'
+        r'(\d+)([上下]?)(?:~(\d+)([上下]?))?'
+    )
+    # 相对章引用：只有中文章 + 阿拉伯节（同书卷内）
+    _REL_CHAP_RE = re.compile(
+        r'^(' + _CN_CHAP_PAT + r')'
+        r'(\d+)([上下]?)(?:~(\d+)([上下]?))?'
+    )
+    # 纯节续：纯阿拉伯节号（同章内续）
+    _CONT_VERSE_RE = re.compile(
+        r'^(\d+)([上下]?)节?([上下]?)(?:~(\d+)([上下]?)节?([上下]?))?$'
+    )
+
+    # ── 完整书名 → 缩写映射（先替换长名再匹配简称，避免前缀冲突）─────
+    _FULL_BOOK_MAP = {
+        '创世记': '创', '出埃及记': '出', '利未记': '利', '民数记': '民',
+        '申命记': '申', '约书亚记': '书', '士师记': '士', '路得记': '得',
+        '撒母耳记上': '撒上', '撒母耳记下': '撒下',
+        '列王纪上': '王上', '列王纪下': '王下',
+        '历代志上': '代上', '历代志下': '代下',
+        '以斯拉记': '拉', '尼希米记': '尼', '以斯帖记': '斯',
+        '约伯记': '伯', '诗篇': '诗', '箴言': '箴', '传道书': '传',
+        '雅歌': '歌', '以赛亚书': '赛', '耶利米书': '耶',
+        '耶利米哀歌': '哀', '以西结书': '结', '但以理书': '但',
+        '何西阿书': '何', '约珥书': '珥', '阿摩司书': '摩',
+        '俄巴底亚书': '俄', '约拿书': '拿', '弥迦书': '弥',
+        '那鸿书': '鸿', '哈巴谷书': '哈', '西番雅书': '番',
+        '哈该书': '该', '撒迦利亚书': '亚', '玛拉基书': '玛',
+        '马太福音': '太', '马可福音': '可', '路加福音': '路',
+        '约翰福音': '约', '使徒行传': '徒', '罗马书': '罗',
+        '哥林多前书': '林前', '哥林多后书': '林后',
+        '加拉太书': '加', '以弗所书': '弗', '腓立比书': '腓',
+        '歌罗西书': '西',
+        '帖撒罗尼迦前书': '帖前', '帖撒罗尼迦后书': '帖后',
+        '提摩太前书': '提前', '提摩太后书': '提后',
+        '腓利门书': '门', '希伯来书': '来', '雅各书': '雅',
+        '彼得前书': '彼前', '彼得后书': '彼后',
+        '约翰一书': '约壹', '约翰二书': '约贰', '约翰三书': '约叁',
+        '约翰壹书': '约壹', '约翰贰书': '约贰', '约翰叁书': '约叁',
+        '犹大书': '犹', '启示录': '启',
+    }
+    # 预排序（从长到短），避免前缀误替换，仅计算一次
+    _FULL_BOOK_MAP_SORTED = sorted(_FULL_BOOK_MAP.items(), key=lambda x: -len(x[0]))
+
+    # 章/节 引用（书卷 + 中文章 + 章 + 中文节 + 节）
+    _CN_NUM = r'[一二三四五六七八九十百]+'
+    # 格式0：书卷缩写 + 阿拉伯章:节[上下][~节[上下]]（归一化后格式，如 约壹1:1，彼前3:19）
+    _ARABIC_REF_RE = re.compile(
+        r'^(' + _BOOK_BASE_PAT + _BOOK_MOD_PAT + r'?)'
+        r'(\d+):(\d+)([上下]?)(?:~(\d+)([上下]?))?'
+    )
+    # 全称章节式：书卷 + 中文章章 + v1节?[至到v2节] 或 v1[至到v2]节
+    _FULL_CHAP_JING_RE = re.compile(
+        r'^(' + _BOOK_BASE_PAT + _BOOK_MOD_PAT + r'?)'
+        r'([一二三四五六七八九十百]+)章'
+        r'(?:([一二三四五六七八九十百]+)节(?:[至到]([一二三四五六七八九十百]+)节)?'
+        r'|([一二三四五六七八九十百]+)[至到]([一二三四五六七八九十百]+)节)'
+    )
+    # 相对章节式：中文章章 + 同上
+    _REL_CHAP_JING_RE = re.compile(
+        r'^([一二三四五六七八九十百]+)章'
+        r'(?:([一二三四五六七八九十百]+)节(?:[至到]([一二三四五六七八九十百]+)节)?'
+        r'|([一二三四五六七八九十百]+)[至到]([一二三四五六七八九十百]+)节)'
+    )
+    # 纯中文节续：v1节[至到v2节] 或 v1[至到v2]节
+    _CONT_JING_RE = re.compile(
+        r'^(?:([一二三四五六七八九十百]+)节(?:[至到]([一二三四五六七八九十百]+)节)?'
+        r'|([一二三四五六七八九十百]+)[至到]([一二三四五六七八九十百]+)节)$'
+    )
     
-    def __init__(self, output_dir: str = 'output'):
+    def __init__(self, output_dir: str = 'output', bible_dict: BibleDict = None):
         self.output_dir = output_dir
+        self.bible_dict = bible_dict  # 外部传入的持久化经文字典（可选）
         self.training_title = ""  # 训练主标题
         self.training_subtitle = ""  # 训练副标题
         self.first_week_number = None  # 记录第一个晨兴文档的起始周数
@@ -158,45 +252,9 @@ class ImprovedParser:
         self.verse_cache = {}  # 缓存已出现的经文范围内容
     
     def _chinese_to_number(self, chinese_str: str) -> Optional[int]:
-        """
-        转换中文数字为阿拉伯数字
-        例如: "三十一" -> 31, "十二" -> 12, "七" -> 7
-        """
-        if not chinese_str:
-            return None
-        
-        chinese_numerals = {
-            '零': 0, '一': 1, '二': 2, '三': 3, '四': 4,
-            '五': 5, '六': 6, '七': 7, '八': 8, '九': 9,
-            '十': 10, '百': 100
-        }
-        
-        try:
-            # 特殊情况: "十" 单独出现时表示10
-            if chinese_str == '十':
-                return 10
-            
-            result = 0
-            temp = 0
-            
-            for char in chinese_str:
-                if char not in chinese_numerals:
-                    return None
-                
-                num = chinese_numerals[char]
-                
-                if num >= 10:  # 十或百
-                    if temp == 0:
-                        temp = 1
-                    result += temp * num
-                    temp = 0
-                else:
-                    temp = num
-            
-            result += temp
-            return result if result > 0 else None
-        except:
-            return None
+        """转换中文数字为阿拉伯数字（委托给 _cn_to_int）。"""
+        result = self._cn_to_int(chinese_str)
+        return result if result else None
     
     def _is_verse_line(self, text: str) -> bool:
         """
@@ -215,7 +273,7 @@ class ImprovedParser:
         返回: (book, start_verse, end_verse, is_omitted)
         """
         # 匹配 "腓2:5~11 从略。" 或 "腓2:5~11" - 支持两种格式
-        range_match = re.match(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提多彼约犹启来](?:[一二三四五六七八九十后前]\d+|\d+)):(\d+)~(\d+)', text)
+        range_match = re.match(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼约犹启来](?:[一二三四五六七八九十后前上下壹贰叁]\d+|\d+)):(\d+)~(\d+)', text)
         if range_match:
             book = range_match.group(1)
             start = int(range_match.group(2))
@@ -224,7 +282,7 @@ class ImprovedParser:
             return (book, start, end, is_omitted)
         
         # 匹配单节 "腓2:5"
-        single_match = re.match(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提多彼约犹启来](?:[一二三四五六七八九十后前]\d+|\d+)):(\d+)', text)
+        single_match = re.match(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼约犹启来](?:[一二三四五六七八九十后前上下壹贰叁]\d+|\d+)):(\d+)', text)
         if single_match:
             book = single_match.group(1)
             verse = int(single_match.group(2))
@@ -238,17 +296,20 @@ class ImprovedParser:
     
     def _cache_verse(self, text: str):
         """
-        缓存单节经文到verse_cache
+        缓存单节经文到verse_cache，同时写入持久化字典
         例如: "腓2:5	你们里面要思念..." -> cache['腓2:5'] = '腓2:5	你们里面要思念...'
         """
         match = self.VERSE_PATTERN.match(text)
         if match:
             verse_ref = match.group(1)  # 例如: 腓2:5
             self.verse_cache[verse_ref] = text
+            # 同步写入持久化字典（已有条目不覆盖）
+            if self.bible_dict is not None:
+                self.bible_dict.add(verse_ref, text)
     
     def _get_cached_verse_range(self, book: str, start: int, end: int) -> str:
         """
-        从缓存中获取经文范围的内容
+        从缓存中获取经文范围的内容，verse_cache 未命中时 fallback 到持久化字典
         例如: ('腓2', 5, 11) -> 返回 腓2:5 到 腓2:11 的所有经文
         """
         verses = []
@@ -256,6 +317,10 @@ class ImprovedParser:
             verse_key = f"{book}:{verse_num}"
             if verse_key in self.verse_cache:
                 verses.append(self.verse_cache[verse_key])
+            elif self.bible_dict is not None:
+                text = self.bible_dict.get(verse_key)
+                if text:
+                    verses.append(text)
         return '\n'.join(verses) if verses else ''
     
     def parse_outline_doc(self, docx_path: str) -> List[Chapter]:
@@ -619,6 +684,13 @@ class ImprovedParser:
         if self.current_chapter:
             chapters.append(self.current_chapter)
         
+        # 后处理：从 BibleDict 补录空经文节 + 补全章节读经经文
+        if self.bible_dict:
+            for chapter in chapters:
+                default_book = self._extract_primary_book(chapter.scripture)
+                self._fill_empty_section_scriptures(chapter.outline_sections, default_book)
+                self._supplement_chapter_scripture_verses(chapter)
+
         # 清理标语列表：移除末尾的段落分隔符
         while self.mottos and self.mottos[-1] == '###PARAGRAPH_SEPARATOR###':
             self.mottos.pop()
@@ -1896,6 +1968,275 @@ class ImprovedParser:
         text = re.sub(r'^[a-z]\s+', '', text)
         return text.strip()
     
+    # ── 中文章节引用辅助方法 ──────────────────────────────────────────
+
+    @classmethod
+    def _cn_to_int(cls, s: str) -> int:
+        """将中文数字字符串转为整数，支持 1-999（章节通用）。"""
+        if not s:
+            return 0
+        units = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+                 '六': 6, '七': 7, '八': 8, '九': 9}
+        if s == '十':
+            return 10
+        if '百' in s:
+            i = s.index('百')
+            hundreds = (units.get(s[:i], 0) or 1) * 100
+            rest = s[i + 1:]
+            return hundreds + (cls._cn_to_int(rest) if rest else 0)
+        if '十' in s:
+            i = s.index('十')
+            tens = (units.get(s[:i], 0) or 1) * 10
+            rest = s[i + 1:]
+            return tens + (units.get(rest, 0) if rest else 0)
+        # 缩写两字形式：如 三八=38、五七=57（无十字、无百字，两字均为个位数字）
+        if len(s) == 2 and '十' not in s and '百' not in s:
+            t = units.get(s[0], 0)
+            u = units.get(s[1], 0)
+            if t and u:
+                return t * 10 + u
+        # 缩写三字形式：如 一一九=119、一五○=150（三个数字依次为百、十、个，支持○/零作为0）
+        if len(s) == 3 and '十' not in s and '百' not in s:
+            ZERO_CHARS = {'○', '零'}
+            h = units.get(s[0], 0)
+            t = 0 if s[1] in ZERO_CHARS else units.get(s[1], 0)
+            u = 0 if s[2] in ZERO_CHARS else units.get(s[2], 0)
+            if h and (s[1] in ZERO_CHARS or s[1] in units) and (s[2] in ZERO_CHARS or s[2] in units):
+                return h * 100 + t * 10 + u
+        return units.get(s, 0)
+
+    @classmethod
+    def _normalize_book_names(cls, text: str) -> str:
+        """将文本中的完整书名替换为缩写（从长到短，避免前缀误替换）。"""
+        for full, abbrev in cls._FULL_BOOK_MAP_SORTED:
+            if full in text:
+                text = text.replace(full, abbrev)
+        return text
+
+    @classmethod
+    def _extract_primary_book(cls, reading_scripture: str) -> str:
+        """从读经字符串（如'腓四5~9、11下~13'）提取首个书卷名（先归一化完整书名）。"""
+        if not reading_scripture:
+            return ''
+        s = cls._normalize_book_names(reading_scripture)
+        m = re.match(r'^(' + cls._BOOK_BASE_PAT + cls._BOOK_MOD_PAT + r'?)', s)
+        return m.group(1) if m else ''
+
+    @classmethod
+    def _extract_primary_chapter(cls, reading_scripture: str) -> int:
+        """从读经字符串（如'帖前四1~18'）提取首个章号整数。"""
+        if not reading_scripture:
+            return 0
+        s = cls._normalize_book_names(reading_scripture)
+        # 跳过书名
+        m = re.match(r'^(?:' + cls._BOOK_BASE_PAT + cls._BOOK_MOD_PAT + r'?)(.+)', s)
+        rest = m.group(1) if m else s
+        # 先试中文章号
+        cm = re.match(r'(' + cls._CN_CHAP_PAT + r')', rest)
+        if cm:
+            return cls._cn_to_int(cm.group(1)) or 0
+        # 再试阿拉伯章号（如 4:1）
+        cm = re.match(r'(\d+)', rest)
+        return int(cm.group(1)) if cm else 0
+
+    @staticmethod
+    def _emit_verse_range(book: str, chap: int, v1: int, mod1: str,
+                          v2: int, mod2: str, out: list):
+        """向 out 追加 v1..v2 的标准化 ref 字符串（含半节修饰符）。"""
+        for v in range(v1, v2 + 1):
+            if v == v1 and mod1:
+                mod = mod1
+            elif v == v2 and mod2:
+                mod = mod2
+            else:
+                mod = ''
+            out.append(f'{book}{chap}:{v}{mod}')
+
+    @classmethod
+    def _expand_cn_scripture_refs(cls, ref_text: str, default_book: str = '', default_chapter: int = 0) -> list:
+        """
+        将中文章节引用文字解析为标准化 ref 列表。
+
+        支持以下格式（逗号/顿号/、分隔多段）：
+          全称简称: 腓四5~9  →  ['腓4:5','腓4:6',...]
+          相对章:   一19~21上  →  ['腓1:19','腓1:20','腓1:21上']（需 default_book）
+          纯节续:   11下~13  →  ['腓4:11下','腓4:12','腓4:13']（需 default_book + chapter）
+          章节式:   彼前三章十九节  →  ['彼前3:19']
+          全书名:   彼得前书三章十九节  →  ['彼前3:19']（先归一化为简称）
+        """
+        # 先将完整书名替换为缩写
+        ref_text = cls._normalize_book_names(ref_text)
+
+        refs = []
+        current_book = default_book
+        current_chapter = default_chapter
+
+        parts = re.split(r'[,，、；。]', ref_text.strip().rstrip('：:；;。'))
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+            # 去掉「参」/「参看」/「参阅」前缀（例：参路六20 → 路六20）
+            part = re.sub(r'^参[看阅]?\s*', '', part).strip()
+            if not part:
+                continue
+
+            # 0. 阿拉伯章:节格式（归一化后，如 约壹1:1，彼前3:19~20）
+            m = cls._ARABIC_REF_RE.match(part)
+            if m:
+                current_book = m.group(1)
+                current_chapter = int(m.group(2))
+                v1 = int(m.group(3)); mod1 = m.group(4) or ''
+                v2_s = m.group(5);    mod2 = m.group(6) or ''
+                cls._emit_verse_range(current_book, current_chapter,
+                                      v1, mod1, int(v2_s) if v2_s else v1,
+                                      mod2 if v2_s else mod1, refs)
+                continue
+
+            # 1. 全称：书卷 + 中文章 + 阿拉伯节（腓四5~9）
+            m = cls._FULL_REF_RE.match(part)
+            if m:
+                current_book = m.group(1)
+                current_chapter = cls._cn_to_int(m.group(2))
+                if not current_chapter:
+                    continue
+                v1 = int(m.group(3)); mod1 = m.group(4) or ''
+                v2_s = m.group(5);    mod2 = m.group(6) or ''
+                cls._emit_verse_range(current_book, current_chapter,
+                                      v1, mod1, int(v2_s) if v2_s else v1,
+                                      mod2 if v2_s else mod1, refs)
+                continue
+
+            # 2. 全称章节式：书卷 + 章(中文)章 + 节范围
+            m = cls._FULL_CHAP_JING_RE.match(part)
+            if m:
+                current_book = m.group(1)
+                current_chapter = cls._cn_to_int(m.group(2))
+                # 格式A: group(3)=v1节, group(4)=v2节(可选); 格式B: group(5)=v1, group(6)=v2节
+                if m.group(3):
+                    v1 = cls._cn_to_int(m.group(3))
+                    v2 = cls._cn_to_int(m.group(4)) if m.group(4) else v1
+                else:
+                    v1 = cls._cn_to_int(m.group(5))
+                    v2 = cls._cn_to_int(m.group(6))
+                if current_chapter and v1:
+                    cls._emit_verse_range(current_book, current_chapter, v1, '', v2, '', refs)
+                continue
+
+            # 3. 相对章：只有中文章 + 阿拉伯节（一19~21上）
+            if current_book:
+                m = cls._REL_CHAP_RE.match(part)
+                if m:
+                    current_chapter = cls._cn_to_int(m.group(1))
+                    if not current_chapter:
+                        continue
+                    v1 = int(m.group(2)); mod1 = m.group(3) or ''
+                    v2_s = m.group(4);    mod2 = m.group(5) or ''
+                    cls._emit_verse_range(current_book, current_chapter,
+                                          v1, mod1, int(v2_s) if v2_s else v1,
+                                          mod2 if v2_s else mod1, refs)
+                    continue
+
+            # 4. 相对章节式：中文章章 + 节范围（同书卷）
+            if current_book:
+                m = cls._REL_CHAP_JING_RE.match(part)
+                if m:
+                    current_chapter = cls._cn_to_int(m.group(1))
+                    if m.group(2):
+                        v1 = cls._cn_to_int(m.group(2))
+                        v2 = cls._cn_to_int(m.group(3)) if m.group(3) else v1
+                    else:
+                        v1 = cls._cn_to_int(m.group(4))
+                        v2 = cls._cn_to_int(m.group(5))
+                    if current_chapter and v1:
+                        cls._emit_verse_range(current_book, current_chapter, v1, '', v2, '', refs)
+                    continue
+
+            # 5. 纯节续：阿拉伯数字[上下][~数字[上下]]（同书同章）
+            if current_book and current_chapter:
+                m = cls._CONT_VERSE_RE.match(part)
+                if m:
+                    v1 = int(m.group(1)); mod1 = m.group(2) or m.group(3) or ''
+                    v2_s = m.group(4);    mod2 = m.group(5) or m.group(6) or ''
+                    cls._emit_verse_range(current_book, current_chapter,
+                                          v1, mod1, int(v2_s) if v2_s else v1,
+                                          mod2 if v2_s else mod1, refs)
+                    continue
+
+            # 6. 纯中文节续：v1节[至到v2节] 或 v1[至到v2]节（同书同章）
+            if current_book and current_chapter:
+                m = cls._CONT_JING_RE.match(part)
+                if m:
+                    if m.group(1):  # 格式A: v1节
+                        v1 = cls._cn_to_int(m.group(1))
+                        v2 = cls._cn_to_int(m.group(2)) if m.group(2) else v1
+                    else:           # 格式B: v1至v2节
+                        v1 = cls._cn_to_int(m.group(3))
+                        v2 = cls._cn_to_int(m.group(4))
+                    if v1:
+                        cls._emit_verse_range(current_book, current_chapter, v1, '', v2, '', refs)
+        return refs
+
+    def _extract_title_inline_refs(self, title: str, default_book: str) -> list:
+        """从标题最后一个经文破折号后，提取中文章节引用。
+        支持阿拉伯数字（腓四5）和纯中文章节（彼前三章十九节）两种格式。"""
+        split_pos = None
+        for m in reversed(list(re.finditer(r'[—─]', title))):
+            after = title[m.start() + 1:]
+            # 有阿拉伯数字，或含 章/节 关键字，均视为经文引用
+            if re.search(r'\d|[章节]', after):
+                split_pos = m.start()
+                break
+        if split_pos is None:
+            return []
+        ref_part = title[split_pos + 1:].rstrip('：:；;。')
+        return self._expand_cn_scripture_refs(ref_part, default_book)
+
+    def _fill_empty_section_scriptures(self, sections: list, default_book: str):
+        """后处理：对 section.scripture 为空但标题含内联引用的节，从 BibleDict 补录经文。"""
+        if not self.bible_dict:
+            return
+        for s in sections:
+            if not s.scripture:
+                refs = self._extract_title_inline_refs(s.title, default_book)
+                verse_lines = [self.bible_dict.get(r) for r in refs if self.bible_dict.get(r)]
+                if verse_lines:
+                    s.scripture = '\n'.join(verse_lines)
+            if s.children:
+                self._fill_empty_section_scriptures(s.children, default_book)
+
+    def _supplement_chapter_scripture_verses(self, chapter):
+        """从 BibleDict 补充 chapter.scripture_verses 中声明范围内缺失的节。"""
+        if not self.bible_dict or not chapter.scripture:
+            return
+        default_book = self._extract_primary_book(chapter.scripture)
+        if not default_book:
+            return
+        declared_refs = self._expand_cn_scripture_refs(chapter.scripture, default_book)
+        if not declared_refs:
+            return
+        # 已有节的 ref set
+        existing = set()
+        if chapter.scripture_verses:
+            for line in chapter.scripture_verses.split('\n'):
+                line = line.strip()
+                m = self.VERSE_PATTERN.match(line)
+                if m:
+                    existing.add(m.group(1))
+        # 补充缺失节
+        additions = []
+        for ref in declared_refs:
+            if ref not in existing:
+                line = self.bible_dict.get(ref)
+                if line:
+                    additions.append(line)
+                    existing.add(ref)
+        if additions:
+            sep = '\n' if chapter.scripture_verses else ''
+            chapter.scripture_verses = (chapter.scripture_verses or '') + sep + '\n'.join(additions)
+
+    # ── 职事信息有效性判断 ─────────────────────────────────────────────
+
     def _is_valid_ministry_text(self, text: str) -> bool:
         """
         判断文本是否为有效的职事信息内容
@@ -1977,7 +2318,8 @@ def parse_training_docs_improved(outline_path: str, listen_path: str,
                                  morning_revival_path2: Optional[str] = None,
                                  title: str = "", subtitle: str = "", 
                                  year: int = 2025, season: str = "",
-                                 output_dir: str = "output") -> TrainingData:
+                                 output_dir: str = "output",
+                                 bible_dict: BibleDict = None) -> TrainingData:
     """
     改进的文档解析流程
     
@@ -1991,8 +2333,9 @@ def parse_training_docs_improved(outline_path: str, listen_path: str,
         year: 年份
         season: 季节
         output_dir: 输出目录
+        bible_dict: 持久化经文字典，用于跨文档/训练累积经节
     """
-    parser = ImprovedParser(output_dir=output_dir)
+    parser = ImprovedParser(output_dir=output_dir, bible_dict=bible_dict)
     
     # 1. 先解析纲目文档，建立大纲结构（同时提取标题）
     print("  解析纲目结构（经文.docx）...")

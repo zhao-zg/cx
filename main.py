@@ -11,6 +11,7 @@ from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from src.parser_improved import parse_training_docs_improved
 from src.generator import HTMLGenerator
+from src.bible_dict import BibleDict
 
 
 def load_config(config_path='config.yaml'):
@@ -106,10 +107,13 @@ def scan_resource_folders(resource_dir='resource'):
     if not os.path.exists(resource_dir):
         return []
     
+    # 非训练批次目录（数据源目录），跳过不处理
+    _SKIP_DIRS = {'bible'}
+
     folders = []
     for item in os.listdir(resource_dir):
         item_path = os.path.join(resource_dir, item)
-        if os.path.isdir(item_path) and not item.startswith('.'):
+        if os.path.isdir(item_path) and not item.startswith('.') and item not in _SKIP_DIRS:
             folders.append(item_path)
     
     return sorted(folders)
@@ -161,13 +165,14 @@ def url_safe_name(name):
     return safe if safe else name
 
 
-def process_batch(batch_folder, config):
+def process_batch(batch_folder, config, bible_dict: BibleDict = None):
     """
     处理单个批次的文档生成
     
     Args:
         batch_folder: 批次文件夹路径
         config: 配置字典
+        bible_dict: 持久化经文字典（可选，用于跨训练累积经节）
     
     Returns:
         成功返回 0,失败返回 1
@@ -248,7 +253,8 @@ def process_batch(batch_folder, config):
             subtitle='',  # 不使用配置副标题，完全从文档自动提取
             year=batch_config['year'],
             season=batch_config['season'],
-            output_dir=output_dir
+            output_dir=output_dir,
+            bible_dict=bible_dict
         )
         print(f"✓ 解析完成: {len(training_data.chapters)} 篇章")
     except Exception as e:
@@ -347,14 +353,14 @@ def generate_main_index(config, batch_results):
                     else:
                         training_pages.append(f"./{training_path}/{filename}")
         
-        # 自动扫描 js/ 目录下的所有 JS 文件
+        # 只收集训练特定的 JS 文件（scriptures-data.js），共享 JS/CSS 在根目录
         js_dir = os.path.join(training_dir, 'js')
         if os.path.exists(js_dir):
             for filename in os.listdir(js_dir):
-                if filename.endswith('.js'):
+                if filename.endswith('.js') and filename == 'scriptures-data.js':
                     training_pages.append(f"./{training_path}/js/{filename}")
 
-        # 自动扫描 css/ 目录下的所有 CSS 文件
+        # 训练目录不再有独立 css/（已移至根目录共享），此处保留兼容扫描
         css_dir = os.path.join(training_dir, 'css')
         if os.path.exists(css_dir):
             for filename in os.listdir(css_dir):
@@ -364,12 +370,23 @@ def generate_main_index(config, batch_results):
     # 渲染模板
     env = Environment(loader=FileSystemLoader(template_dir))
     template = env.get_template('main_index.html')
-    
+
+    # 收集根目录共享资源（js/ css/），供"缓存数据"按钮使用
+    shared_resources = []
+    for sub in ('js', 'css'):
+        sub_dir = os.path.join(output_dir, sub)
+        if os.path.exists(sub_dir):
+            for fname in sorted(os.listdir(sub_dir)):
+                ext = os.path.splitext(fname)[1]
+                if ext in ('.js', '.css') and not fname.endswith('.original'):
+                    shared_resources.append(f'./{sub}/{fname}')
+
     html_content = template.render(
         trainings=trainings,
         total_chapters=total_chapters,
         generation_time=datetime.now().strftime('%Y年%m月%d日 %H:%M'),
-        training_pages=training_pages  # 传递自动扫描的资源列表
+        training_pages=training_pages,
+        shared_resources=shared_resources,
     )
     
     # 保存主页
@@ -401,10 +418,11 @@ def generate_main_index(config, batch_results):
         shutil.copy2(icon_src, icon_dst)
     
     # 复制 PNG 图标（PWA/网页图标）
+    # 仅保留实际被引用的尺寸：favicon(16/32) + iOS(120/152/167/180) + PWA(192/512)
     icon_filenames = [
-        'icon-16.png', 'icon-32.png', 'icon-48.png', 'icon-64.png', 'icon-72.png', 'icon-96.png',
-        'icon-120.png', 'icon-128.png', 'icon-144.png', 'icon-152.png', 'icon-167.png', 'icon-180.png',
-        'icon-192.png', 'icon-256.png', 'icon-384.png', 'icon-512.png'
+        'icon-16.png', 'icon-32.png',
+        'icon-120.png', 'icon-152.png', 'icon-167.png', 'icon-180.png',
+        'icon-192.png', 'icon-512.png'
     ]
     for icon_filename in icon_filenames:
         icon_src = os.path.join('src', 'static', 'icons', icon_filename)
@@ -433,27 +451,31 @@ def generate_main_index(config, batch_results):
     if os.path.exists(hot_update_src):
         shutil.copy2(hot_update_src, hot_update_dst)
         print(f"✓ hot-update.js 已复制")
-    
-    # 复制 app-update.js
-    app_update_src = os.path.join('src', 'static', 'js', 'app-update.js')
-    app_update_dst = os.path.join(js_dir, 'app-update.js')
-    if os.path.exists(app_update_src):
-        shutil.copy2(app_update_src, app_update_dst)
-        print(f"✓ app-update.js 已复制")
 
-    # 复制 nav-stack.js（供主页/训练页面使用）
-    nav_stack_src = os.path.join('src', 'static', 'js', 'nav-stack.js')
-    nav_stack_dst = os.path.join(js_dir, 'nav-stack.js')
-    if os.path.exists(nav_stack_src):
-        shutil.copy2(nav_stack_src, nav_stack_dst)
-        print(f"✓ nav-stack.js 已复制")
+    # 复制所有共享 JS 文件到根 js/ 目录（训练页面以 ../js/ 引用）
+    shared_js_files = [
+        'app-update.js', 'nav-stack.js', 'theme-toggle.js',
+        'bible-dict.js', 'speech.js', 'highlight.js', 'outline.js',
+        'scripture-popup.js', 'toc-redirect.js', 'font-control.js',
+        # 圣经全文数据（由 export_bible_html_js.py 生成，提交到 src/static/js/）
+        'bible-text.js', 'bible-notes.js', 'bible-xrefs.js',
+    ]
+    for js_file in shared_js_files:
+        src = os.path.join('src', 'static', 'js', js_file)
+        dst = os.path.join(js_dir, js_file)
+        if os.path.exists(src):
+            shutil.copy2(src, dst)
+    print(f"✓ 共享 JS 文件已复制到 js/")
 
-    # 复制 theme-toggle.js（主题切换功能）
-    theme_toggle_src = os.path.join('src', 'static', 'js', 'theme-toggle.js')
-    theme_toggle_dst = os.path.join(js_dir, 'theme-toggle.js')
-    if os.path.exists(theme_toggle_src):
-        shutil.copy2(theme_toggle_src, theme_toggle_dst)
-        print(f"✓ theme-toggle.js 已复制")
+    # 复制共享 CSS 文件到根 css/ 目录（训练页面以 ../css/ 引用）
+    css_dir = os.path.join(output_dir, 'css')
+    os.makedirs(css_dir, exist_ok=True)
+    css_src_dir = os.path.join('src', 'static', 'css')
+    if os.path.exists(css_src_dir):
+        for css_file in os.listdir(css_src_dir):
+            if css_file.endswith('.css'):
+                shutil.copy2(os.path.join(css_src_dir, css_file), os.path.join(css_dir, css_file))
+    print(f"✓ 共享 CSS 文件已复制到 css/")
     
     # manifest.json
     manifest_template = env.get_template('main_manifest.json')
@@ -486,6 +508,13 @@ def generate_main_index(config, batch_results):
         for filename in os.listdir(js_dir):
             if filename.endswith('.js') and not filename.endswith('.original'):
                 core_resources.append(f'./js/{filename}')
+
+    # 自动扫描 css 目录
+    css_dir = os.path.join(output_dir, 'css')
+    if os.path.exists(css_dir):
+        for filename in os.listdir(css_dir):
+            if filename.endswith('.css'):
+                core_resources.append(f'./css/{filename}')
     
     # 自动扫描 vendor 目录
     vendor_dir = os.path.join(output_dir, 'vendor')
@@ -637,6 +666,9 @@ def main():
         print(f"  - {os.path.basename(folder)}")
     print()
     
+    # 初始化经文字典（仅用于跨章节「从略」还原，不持久化到磁盘）
+    bible_dict = BibleDict()
+
     # 处理每个批次
     success_count = 0
     failed_count = 0
@@ -681,7 +713,7 @@ def main():
                 pass
             continue
             
-        result = process_batch(batch_folder, config)
+        result = process_batch(batch_folder, config, bible_dict)
         if result == 0:
             success_count += 1
             

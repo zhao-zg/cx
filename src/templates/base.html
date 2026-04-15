@@ -12,8 +12,8 @@
     {% if training.app_version %}<meta name="app-version" content="{{ training.app_version }}">{% endif %}
     <title>{% block title %}{{ training.title }}{% endblock %}</title>
     <!-- 预加载关键资源 -->
-    <link rel="preload" href="js/speech.js" as="script">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="preload" href="../js/speech.js" as="script">
+    <link rel="stylesheet" href="../css/style.css">
     {% block head_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
 
@@ -38,11 +38,14 @@
 
     <!-- 核心脚本 - 延迟加载非关键脚本 -->
     <script>window.CX=window.CX||{};window.CX_ROOT='../';</script>
-    <script src="js/theme-toggle.js"></script>
-    <script src="js/app-update.js" defer></script>
-    <script src="js/speech.js"></script>
-    <script src="js/highlight.js" defer></script>
-    <script src="js/nav-stack.js"></script>
+    <script src="js/scriptures-data.js"></script>
+    <script src="../js/bible-dict.js"></script>
+    <script src="../js/scripture-popup.js"></script>
+    <script src="../js/theme-toggle.js"></script>
+    <script src="../js/app-update.js" defer></script>
+    <script src="../js/speech.js"></script>
+    <script src="../js/highlight.js" defer></script>
+    <script src="../js/nav-stack.js"></script>
     {% block nav_init %}
     <script>
     if (window.CXNavStack) {

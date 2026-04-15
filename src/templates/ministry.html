@@ -25,7 +25,7 @@
                         <h3 class="ministry-subtitle">{{ paragraph.strip() }}</h3>
                     {% else %}
                         {# 长文本作为段落 #}
-                        <p class="content-text">{{ paragraph }}</p>
+                        <p class="content-text">{{ paragraph | scripture_ref_wrap(chapter.scripture) }}</p>
                     {% endif %}
                 {% endif %}
             {% endfor %}

@@ -7,17 +7,7 @@
             <span class="toggle-icon"></span>
         </button>
         {% endif %}
-        {{ section.level }}　{{ section.title | scripture_ref_wrap }}
-        {% if section.scripture and section.scripture.strip() and show_scripture %}
-        <button class="scripture-toggle-btn" onclick="toggleScripture('scripture-{{ section_id }}')">展开经文</button>
-        <div class="scripture-content" id="scripture-{{ section_id }}" style="display: none;" onclick="toggleScripture('scripture-{{ section_id }}')">
-            {% for verse_line in section.scripture.split('\n') %}
-            {% if verse_line.strip() %}
-            <div class="verse-line">{{ verse_line }}</div>
-            {% endif %}
-            {% endfor %}
-        </div>
-        {% endif %}
+        {{ section.level }}　{{ section.title | scripture_ref_wrap(section.ctx_scripture) }}
     </div>
     
     {% if section.children %}

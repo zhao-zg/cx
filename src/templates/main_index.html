@@ -295,6 +295,8 @@
     <script>
     // 自动扫描的训练资源列表（与 Service Worker 完全一致）
     window.__cxTrainingPages = {{ training_pages | tojson }};
+    // 共享资源列表（根目录 js/ css/），供"缓存数据"按钮补充缓存
+    window.__cxSharedResources = {{ shared_resources | tojson }};
     
     // 主题颜色常量 - 用于动态生成的 HTML
     var THEME = {
@@ -699,6 +701,18 @@
             return Promise.resolve();
         }
 
+        // 先缓存共享资源（根目录 js/ css/ 由 SW 安装时缓存，这里显式补充确保已缓存）
+        var sharedResources = window.__cxSharedResources || [];
+        var cacheShared = sharedResources.length > 0
+            ? caches.open('cx-main-shared').then(function(cache) {
+                return Promise.allSettled(sharedResources.map(function(url) {
+                    return fetch(url, { cache: 'no-cache' })
+                        .then(function(res) { if (res.ok) return cache.put(url, res); })
+                        .catch(function() {});
+                }));
+            })
+            : Promise.resolve();
+
         var totalTrainings = trainings.length;
         var currentIndex = 0;
         var totalResources = 0;
@@ -713,7 +727,8 @@
             statusEl.className = 'cache-status';
         }
 
-        return trainings.reduce(function(promise, training) {
+        return cacheShared.then(function() {
+            return trainings.reduce(function(promise, training) {
             return promise.then(function() {
                 currentIndex++;
                 var resources = getTrainingResources(training.path, training.images || []);
@@ -744,7 +759,8 @@
                     return Promise.all(tasks);
                 });
             });
-        }, Promise.resolve()).then(function() {
+        }, Promise.resolve());
+        }).then(function() {
             if (statusEl) {
                 statusEl.textContent = '✓ 全部缓存完成';
                 statusEl.className = 'cache-status success';

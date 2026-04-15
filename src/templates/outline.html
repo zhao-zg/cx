@@ -17,17 +17,7 @@
 
     {% if chapter.scripture %}
     <div class="scripture-section">
-        <div class="scripture">读经：{{ chapter.scripture }}</div>
-        {% if chapter.scripture_verses %}
-        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
-        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;" onclick="toggleScripture('chapter-scripture')">
-            {% for verse in chapter.scripture_verses.split('\n') %}
-                {% if verse.strip() %}
-                <div class="verse-line">{{ verse }}</div>
-                {% endif %}
-            {% endfor %}
-        </div>
-        {% endif %}
+        <div class="scripture">读经：{% if chapter.scripture_verses %}<span class="scripture-ref" data-refs="{{ chapter.scripture_verses | extract_refs }}">{{ chapter.scripture }}</span>{% else %}{{ chapter.scripture }}{% endif %}</div>
     </div>
     {% endif %}
     
@@ -44,7 +34,7 @@
 </div>
 
 
-<script src="js/outline.js"></script>
+<script src="../js/outline.js"></script>
 <script>
 // 朗读功能初始化
 function initSpeech() {

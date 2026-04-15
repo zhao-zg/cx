@@ -68,6 +68,13 @@ class Chapter:
             if saturday_revival.outline:
                 pass  # print(f"    First outline item: level={saturday_revival.outline[0].level}, children={len(saturday_revival.outline[0].children)}")
         
+        outline_sections = self._sections_to_dict(self.outline_sections)
+        detail_sections = self._sections_to_dict(self.detail_sections)
+        if detail_sections and outline_sections:
+            self._copy_scripture_to_detail_sections(outline_sections, detail_sections)
+        self._propagate_ctx_scripture(outline_sections, self.scripture)
+        self._propagate_ctx_scripture(detail_sections, self.scripture)
+
         return {
             'number': self.number,
             'title': self.title,
@@ -75,22 +82,29 @@ class Chapter:
             'hymn_image': self.hymn_image,
             'scripture': self.scripture,
             'scripture_verses': self.scripture_verses,
-            'outline_sections': self._sections_to_dict(self.outline_sections),
-            'detail_sections': self._sections_to_dict(self.detail_sections),
+            'outline_sections': outline_sections,
+            'detail_sections': detail_sections,
             'message_content': self.message_content,
             'ministry_excerpt': self.ministry_excerpt,
             'morning_revivals': [
-                {
-                    'day': mr.day,
-                    'outline': self._sections_to_dict_debug(mr.outline, f"MorningRevival {mr.day}"),
-                    'feeding_scriptures': self._extract_feeding_scriptures(mr.morning_feeding)[0],
-                    'morning_feeding': self._extract_feeding_scriptures(mr.morning_feeding)[1],
-                    'message_reading': mr.message_reading
-                }
+                self._build_morning_revival_dict(mr)
                 for mr in self.morning_revivals
             ]
         }
     
+    def _build_morning_revival_dict(self, mr):
+        """构建单天晨兴字典，并对 outline 做 ctx_scripture 传播。"""
+        outline = self._sections_to_dict_debug(mr.outline, f"MorningRevival {mr.day}")
+        self._propagate_ctx_scripture(outline, self.scripture)
+        fs, mf = self._extract_feeding_scriptures(mr.morning_feeding)
+        return {
+            'day': mr.day,
+            'outline': outline,
+            'feeding_scriptures': fs,
+            'morning_feeding': mf,
+            'message_reading': mr.message_reading
+        }
+
     def _extract_feeding_scriptures(self, paragraphs: List[str]) -> tuple:
         """
         从晨兴喂养段落中分离经文
@@ -189,6 +203,47 @@ class Chapter:
                     #     print(f"      Child {i}: level={child.level}, title={child.title[:30]}")
                 
         return result
+
+    @staticmethod
+    def _propagate_ctx_scripture(sections, parent_ctx=''):
+        """为每个 section 填入 ctx_scripture（继承最近一个非空 scripture）。
+        
+        算法：从左到右遍历同层，若本节有 scripture 则用之，否则继承上一节的 ctx。
+        再深度优先传递给子节点，以父节点的 ctx 为子节点的 parent_ctx。
+        """
+        last_ctx = parent_ctx
+        for sec in sections:
+            ctx = sec.get('scripture') or last_ctx
+            sec['ctx_scripture'] = ctx
+            if sec.get('children'):
+                Chapter._propagate_ctx_scripture(sec['children'], ctx)
+            last_ctx = ctx
+
+    @staticmethod
+    def _copy_scripture_to_detail_sections(outline_sects: list, detail_sects: list):
+        """将纲目节的 scripture 复制到对应的听抄节（scripture 为空时）。
+
+        以 (parent_level, level) 为键做层级匹配，支持多级嵌套。
+        """
+        def build_map(sects, parent_level=''):
+            result = {}
+            for s in sects:
+                key = (parent_level, s['level'])
+                if s['scripture']:
+                    result[key] = s['scripture']
+                result.update(build_map(s['children'], s['level']))
+            return result
+
+        outline_map = build_map(outline_sects)
+
+        def apply(sects, parent_level=''):
+            for s in sects:
+                key = (parent_level, s['level'])
+                if not s['scripture'] and key in outline_map:
+                    s['scripture'] = outline_map[key]
+                apply(s['children'], s['level'])
+
+        apply(detail_sects)
 
 
 @dataclass

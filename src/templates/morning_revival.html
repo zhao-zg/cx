@@ -49,7 +49,7 @@
                 {% endfor %}
                 {% endif %}
                 {% for para in revival.morning_feeding %}
-                <p class="content-text">{{ para }}</p>
+                <p class="content-text">{{ para | scripture_ref_wrap(chapter.scripture) }}</p>
                 {% endfor %}
             </div>
             {% endif %}
@@ -58,7 +58,7 @@
             <div class="reading-section">
                 <h4>信息选读</h4>
                 {% for para in revival.message_reading %}
-                <p class="content-text">{{ para }}</p>
+                <p class="content-text">{{ para | scripture_ref_wrap(chapter.scripture) }}</p>
                 {% endfor %}
             </div>
             {% endif %}
@@ -328,6 +328,6 @@ if (document.readyState === 'loading') {
 }
 </script>
 
-<script src="js/outline.js"></script>
+<script src="../js/outline.js"></script>
 
 {% endblock %}

@@ -13,7 +13,13 @@
     {% include "page_navigation.html" %}
 
     {% if chapter.scripture %}
-    <div class="scripture">读经：{{ chapter.scripture }}</div>
+    <div class="scripture-section">
+        <div class="scripture">读经：{{ chapter.scripture }}</div>
+        {% if chapter.scripture_verses %}
+        <button class="scripture-toggle-btn chapter-scripture-toggle" onclick="toggleScripture('chapter-scripture')">展开经文</button>
+        <div class="scripture-content chapter-scripture-content" id="chapter-scripture" style="display: none;" data-refs="{{ chapter.scripture_verses | extract_refs }}" onclick="toggleScripture('chapter-scripture')"></div>
+        {% endif %}
+    </div>
     {% endif %}
     
     <div class="message-content">
@@ -22,13 +28,13 @@
         {% set section_id = 'msg-' ~ section_index ~ '-' ~ section.level %}
         <div class="section">
             <div class="section-level{{ depth }}">
-                {{ section.level }}　{{ section.title }}
+                {{ section.level }}　{{ section.title | scripture_ref_wrap(section.ctx_scripture) }}
             </div>
             
             {% if section.content %}
             <div class="section-content">
                 {% for content_text in section.content %}
-                <p class="content-text">{{ content_text }}</p>
+                <p class="content-text">{{ content_text | scripture_ref_wrap(section.ctx_scripture) }}</p>
                 {% endfor %}
             </div>
             {% endif %}
@@ -48,7 +54,7 @@
         {% endfor %}
         {% elif chapter.message_content %}
         {% for para in chapter.message_content %}
-        <p class="content-text">{{ para }}</p>
+        <p class="content-text">{{ para | scripture_ref_wrap(chapter.scripture) }}</p>
         {% endfor %}
         {% else %}
         <p class="no-content">职事信息内容暂缺</p>
@@ -56,7 +62,7 @@
     </div>
 </div>
 
-
+<script src="../js/outline.js"></script>
 <script>
 // 等待 CXSpeech 加载完成后初始化
 function initSpeech() {

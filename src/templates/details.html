@@ -20,11 +20,11 @@
         {% macro render_section(section) %}
         <div class="section" id="section-{{ section.level }}">
             <div class="section-level{{ section.level|length if section.level|length <= 4 else 4 }}">
-                {{ section.level }}　{{ section.title }}
+                {{ section.level }}　{{ section.title | scripture_ref_wrap(section.ctx_scripture) }}
             </div>
             
             {% for para in section.content %}
-            <div class="content-text">{{ para }}</div>
+            <div class="content-text">{{ para | scripture_ref_wrap(section.ctx_scripture) }}</div>
             {% endfor %}
             
             {% if section.children %}
