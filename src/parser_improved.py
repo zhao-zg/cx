@@ -173,6 +173,15 @@ class ImprovedParser:
         r'^(' + _CN_CHAP_PAT + r')'
         r'(\d+)([上下]?)(?:~(\d+)([上下]?))?'
     )
+    # 整章引用：书卷 + 中文章（无节号）
+    _WHOLE_CHAP_RE = re.compile(
+        r'^(' + _BOOK_BASE_PAT + _BOOK_MOD_PAT + r'?)'
+        r'(' + _CN_CHAP_PAT + r')$'
+    )
+    # 相对整章引用：只有中文章（无节号，同书卷内）
+    _REL_WHOLE_CHAP_RE = re.compile(
+        r'^(' + _CN_CHAP_PAT + r')$'
+    )
     # 纯节续：纯阿拉伯节号（同章内续）
     _CONT_VERSE_RE = re.compile(
         r'^(\d+)([上下]?)节?([上下]?)(?:~(\d+)([上下]?)节?([上下]?))?$'
@@ -2107,6 +2116,15 @@ class ImprovedParser:
                                       mod2 if v2_s else mod1, refs)
                 continue
 
+            # 1b. 整章引用：书卷 + 中文章（无节号，如诗一三三）
+            m = cls._WHOLE_CHAP_RE.match(part)
+            if m:
+                current_book = m.group(1)
+                current_chapter = cls._cn_to_int(m.group(2))
+                if current_chapter:
+                    refs.append(f'{current_book}{current_chapter}:0')
+                continue
+
             # 2. 全称章节式：书卷 + 章(中文)章 + 节范围
             m = cls._FULL_CHAP_JING_RE.match(part)
             if m:
@@ -2161,6 +2179,16 @@ class ImprovedParser:
                     cls._emit_verse_range(current_book, current_chapter,
                                           v1, mod1, int(v2_s) if v2_s else v1,
                                           mod2 if v2_s else mod1, refs)
+                    continue
+
+            # 4b. 相对整章：只有中文章（无节号，同书卷内）
+            if current_book:
+                m = cls._REL_WHOLE_CHAP_RE.match(part)
+                if m:
+                    chap = cls._cn_to_int(m.group(1))
+                    if chap:
+                        current_chapter = chap
+                        refs.append(f'{current_book}{chap}:0')
                     continue
 
             # 6. 纯中文节续：v1节[至到v2节] 或 v1[至到v2]节（同书同章）

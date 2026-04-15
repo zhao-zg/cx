@@ -217,7 +217,20 @@
   /* 渲染经文列表（支持 {N} → fn-ref, [a] → xref-ref） */
   function renderVerseList(refs) {
     var dict = window.CX_SCRIPTURES_DATA || {};
-    var refArr = refs.split(',');
+    /* 展开整章引用（:0 = 整章标记） */
+    var refArr = refs.split(',').reduce(function (acc, ref) {
+      ref = ref.trim();
+      if (!ref) return acc;
+      if (ref.slice(-2) === ':0') {
+        var prefix = ref.slice(0, -1); /* e.g. "诗133:" */
+        var chKeys = Object.keys(dict)
+          .filter(function (k) { return k.indexOf(prefix) === 0 && k.slice(-2) !== ':0'; })
+          .sort(function (a, b) { return parseInt(a.split(':')[1], 10) - parseInt(b.split(':')[1], 10); });
+        return acc.concat(chKeys.length ? chKeys : [ref]);
+      }
+      acc.push(ref);
+      return acc;
+    }, []);
     if (!refArr.length) return '<div class="scripture-popup-empty">暂无经文</div>';
     return refArr.map(function (ref) {
       ref = ref.trim();
@@ -260,6 +273,17 @@
     );
   }
 
+  /* 确保弹框已打开（fn-ref/xref-ref 可能在弹框外点击）*/
+  function ensureOpen() {
+    var m = getModal();
+    if (!m.overlay.classList.contains('scripture-popup-overlay--open')) {
+      navStack = [];
+      m.overlay.classList.add('scripture-popup-overlay--open');
+      m.overlay.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
   /* ═══════════════════════════ 弹框开关 ═══════════════════════════ */
   function openModal(refs, labelText) {
     navStack = [];
@@ -296,15 +320,17 @@
         openModal(t.dataset.refs, t.textContent.replace(/^[—─\s]+/,'').trim());
         return;
       }
-      /* fn-ref（弹框内注脚号）*/
+      /* fn-ref（注脚号）*/
       if (t.classList && t.classList.contains('fn-ref') && t.dataset) {
         e.preventDefault(); e.stopPropagation();
+        ensureOpen();
         navPush({ type: 'footnote', verseKey: t.dataset.vkey, num: t.dataset.fn });
         return;
       }
-      /* xref-ref（弹框内串珠号）*/
+      /* xref-ref（串珠号）*/
       if (t.classList && t.classList.contains('xref-ref') && t.dataset) {
         e.preventDefault(); e.stopPropagation();
+        ensureOpen();
         navPush({ type: 'xrefs', verseKey: t.dataset.vkey, letter: t.dataset.xr });
         return;
       }
@@ -335,6 +361,28 @@
     document.addEventListener('DOMContentLoaded', annotateInlineRefs);
   } else {
     annotateInlineRefs();
+  }
+
+  /* ═══════════════════════════ 自动渲染 scripture-block ═══════════════════════════ */
+  /* .scripture-block[data-refs] 行内经文块（晨兴喂养等），带注脚和串珠上标 */
+  function renderScriptureBlocks() {
+    var blocks = document.querySelectorAll('.scripture-block[data-refs]');
+    if (!blocks.length) return;
+    ensureBibleText(function () {
+      blocks.forEach(function (block) {
+        if (block.hasAttribute('data-rendered')) return;
+        block.setAttribute('data-rendered', '1');
+        var refs = (block.dataset.refs || '').trim();
+        if (!refs) return;
+        block.innerHTML = renderVerseList(refs);
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderScriptureBlocks);
+  } else {
+    renderScriptureBlocks();
   }
 
   /* ── 暴露给外部（可选）── */

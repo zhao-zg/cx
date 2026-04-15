@@ -31,6 +31,7 @@ class HTMLGenerator:
         self.env.filters['outline_level_class'] = self._get_outline_level_class
         self.env.filters['scripture_ref_wrap'] = self._wrap_scripture_ref
         self.env.filters['extract_refs'] = self._extract_verse_refs
+        self.env.filters['feeding_to_refs'] = self._feeding_to_refs
         
         # 确保输出目录存在
         os.makedirs(output_dir, exist_ok=True)
@@ -92,6 +93,43 @@ class HTMLGenerator:
             # 静态资源复制失败不应阻断 HTML 生成
             pass
     
+    def _feeding_to_refs(self, text: str) -> str:
+        """从晨兴喂养段落开头的中文经文引用提取 data-refs 字符串。"""
+        if not text:
+            return ''
+        m = re.match(r'^(\S+)', text.strip())
+        if not m:
+            return ''
+        ref_part = m.group(1).rstrip('，、；。')
+        refs = ImprovedParser._expand_cn_scripture_refs(ref_part)
+        return ','.join(refs)
+
+    def _compute_feeding_refs_list(self, scriptures: list, chapter_scripture: str) -> list:
+        """为喂养经文列表计算 data-refs，上下文在条目间传播（同书同章）。"""
+        cur_book = ImprovedParser._extract_primary_book(chapter_scripture)
+        cur_chapter = ImprovedParser._extract_primary_chapter(chapter_scripture)
+        result = []
+        for text in scriptures:
+            m = re.match(r'^(\S+)', text.strip())
+            ref_part = m.group(1).rstrip('，、；。') if m else ''
+            refs = ImprovedParser._expand_cn_scripture_refs(ref_part, cur_book, cur_chapter)
+            if refs:
+                # 从最后一个 ref 更新上下文
+                last_ref = refs[-1]
+                bm = re.match(r'^(.+?)(\d+):(\d+)', last_ref)
+                if bm:
+                    cur_book = bm.group(1)
+                    cur_chapter = int(bm.group(2))
+            result.append(','.join(refs))
+        return result
+
+    def _enrich_chapter_feeding_refs(self, chapter_dict: dict):
+        """为 chapter_dict 中每个晨兴的 feeding_scriptures 预计算 feeding_refs 列表。"""
+        chapter_scripture = chapter_dict.get('scripture', '')
+        for revival in chapter_dict.get('morning_revivals', []):
+            fs = revival.get('feeding_scriptures', [])
+            revival['feeding_refs'] = self._compute_feeding_refs_list(fs, chapter_scripture)
+
     def _extract_verse_refs(self, scripture_text: str) -> str:
         """从经文全文中提取所有经文引用键，返回逗号分隔字符串。
 
@@ -504,7 +542,8 @@ class HTMLGenerator:
         num = chapter.number
         training_dict = training_data.to_dict()
         chapter_dict = chapter.to_dict()
-        
+        self._enrich_chapter_feeding_refs(chapter_dict)
+
         # 生成纲目页（_cv.htm）- 默认全部展开（经文不展开）
         self._generate_outline_page(num, chapter_dict, training_dict, collapsed=False, filename_suffix='cv', page_name='纲目')
         
