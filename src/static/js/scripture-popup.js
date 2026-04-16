@@ -414,4 +414,37 @@
 
   /* ── 暴露给外部（可选）── */
   window.CXScripturePopup = { open: openModal, close: closeModal };
+
+  /* ── 空闲预加载：页面加载后利用空闲时间提前解析三个大文件 ──
+   * 文件已在 PWA/APK 缓存中，无网络开销；
+   * 提前解析后用户首次点击经文时无需等待。
+   * 按优先级依次加载：bible-text → bible-notes → bible-xrefs
+   */
+  function idleLoad(fn) {
+    if (window.requestIdleCallback) {
+      requestIdleCallback(fn, { timeout: 4000 });
+    } else {
+      setTimeout(fn, 3000);
+    }
+  }
+
+  function schedulePreload() {
+    idleLoad(function () {
+      ensureBibleText(function () {
+        idleLoad(function () {
+          ensureBibleNotes(function () {
+            idleLoad(function () {
+              ensureBibleXrefs(function () {});
+            });
+          });
+        });
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', schedulePreload);
+  } else {
+    schedulePreload();
+  }
 })();
