@@ -454,7 +454,7 @@
             '<div class="cx-sponsor-box">',
             '  <div class="cx-sponsor-close" id="cxSponsorClose">×</div>',
             '  <div class="cx-sponsor-title">❤️ 赞助作者</div>',
-            '  <div class="cx-sponsor-desc">开发维护不易，谢谢赞助 🙏</div>',
+            '  <div class="cx-sponsor-desc">开发维护不易，谢谢赞助 🌟</div>',
             '  <div class="cx-sponsor-tabs">',
             '    <button class="cx-sponsor-tab active" data-type="wx">🟢 微信</button>',
             '    <button class="cx-sponsor-tab" data-type="zfb">🔵 支付宝</button>',
