@@ -60,6 +60,13 @@
         toggleBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M1 12h6m6 0h6"/><path d="M4.2 4.2l4.3 4.3m5.5 5.5l4.3 4.3M4.2 19.8l4.3-4.3m5.5-5.5l4.3-4.3"/></svg>';
         containerEl.appendChild(toggleBtn);
         
+        // 创建遮罩层
+        const overlay = document.createElement('div');
+        overlay.className = 'theme-panel-overlay';
+        overlay.id = 'themePanelOverlay';
+        overlay.onclick = function() { window.toggleThemePanel(); };
+        document.body.appendChild(overlay);
+
         // 创建设置面板
         const panel = document.createElement('div');
         panel.className = 'theme-panel';
@@ -536,12 +543,15 @@
     window.toggleThemePanel = function() {
         var panel = document.getElementById('themePanel');
         if (!panel) return;
+        var overlay = document.getElementById('themePanelOverlay');
         var willShow = !panel.classList.contains('show');
         panel.classList.toggle('show');
+        if (overlay) overlay.classList.toggle('show', willShow);
         if (willShow) {
             // 打开：push 关闭回调
             window.CX.backStack.push(function() {
                 panel.classList.remove('show');
+                if (overlay) overlay.classList.remove('show');
             });
         } else {
             // 手动关闭：消耗对应 history 记录
