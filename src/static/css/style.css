@@ -65,8 +65,8 @@
     --footnote-ref:#c07818;
     --footnote-ref-hover:#e08000;
     --viewer-overlay-bg:rgba(0,0,0,.92);
-    --viewer-control-bg:rgba(255,255,255,.15);
-    --viewer-control-bg-active:rgba(255,255,255,.3);
+    --viewer-control-bg:rgba(0,0,0,.45);
+    --viewer-control-bg-active:rgba(0,0,0,.65);
     --viewer-control-text:#fff;
     --viewer-hint:rgba(255,255,255,.5);
 }
@@ -693,8 +693,8 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{ou
 .fn-ref{font-size:.68em;vertical-align:super;line-height:0;color:var(--footnote-ref);font-weight:700;cursor:pointer;padding:0 1px;-webkit-tap-highlight-color:transparent;user-select:none}
 .fn-ref:hover,.fn-ref:active{color:var(--footnote-ref-hover)}
 .xref-ref{font-size:.65em;vertical-align:super;line-height:0;color:var(--brand);font-weight:700;cursor:pointer;padding:0 1px;-webkit-tap-highlight-color:transparent;user-select:none}
-/* ── 平板（≥768px）底部扩展框覆盖 ─────────────────────────── */
-@media(min-width:768px){
+/* ── 平板（≥600px）底部扩展框覆盖 ─────────────────────────── */
+@media(min-width:600px){
 /* overlay 平板上仅做 z-index 占位，不参与动画，背景透明且不拦截点击 */
 .scripture-popup-overlay{background:transparent;opacity:1;pointer-events:none;transition:none;align-items:flex-end;padding:0}
 .scripture-popup-overlay--open{opacity:1;pointer-events:none}

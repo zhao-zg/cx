@@ -170,13 +170,17 @@
           modal.overlay.classList.remove('scripture-popup-overlay--open');
           modal.overlay.setAttribute('aria-hidden', 'true');
         }
-        if (window.innerWidth < 768) document.body.style.overflow = '';
+        if (window.innerWidth < 600) document.body.style.overflow = '';
       }
     };
   }
 
   /* navPush: 每层都向 backStack 注册 1 条关闭回调 */
   function navPush(frame) {
+    /* 保存当前帧的滚动位置，供返回时恢复 */
+    if (navStack.length > 0 && modal) {
+      navStack[navStack.length - 1]._scrollTop = modal.body.scrollTop;
+    }
     navStack.push(frame);
     renderFrame(frame);
     window.CX.backStack.push(makeScriptureStep());
@@ -198,7 +202,6 @@
    */
   function renderFrame(frame) {
     var m = getModal();
-    m.body.scrollTop = 0;
     m.backBtn.style.display = navStack.length > 1 ? '' : 'none';
 
     if (frame.type === 'verses') {
@@ -206,6 +209,7 @@
       m.body.innerHTML = '<div class="scripture-popup-loading">加载中…</div>';
       ensureBibleText(function () {
         m.body.innerHTML = renderVerseList(frame.refs);
+        m.body.scrollTop = frame._scrollTop || 0;
       });
     } else if (frame.type === 'footnote') {
       m.title.textContent = frame.verseKey + ' 注' + frame.num;
@@ -214,6 +218,7 @@
         var noteMap = (window.CX_BIBLE_NOTES || {})[frame.verseKey] || {};
         var text = noteMap[frame.num] || '（未找到注解）';
         m.body.innerHTML = '<div class="scripture-popup-fn-body">' + renderNoteText(text) + '</div>';
+        m.body.scrollTop = frame._scrollTop || 0;
       });
     } else if (frame.type === 'xrefs') {
       m.title.textContent = frame.verseKey + ' 串' + frame.letter;
@@ -224,9 +229,11 @@
         if (refs) {
           ensureBibleText(function () {
             m.body.innerHTML = renderVerseList(refs);
+            m.body.scrollTop = frame._scrollTop || 0;
           });
         } else {
           m.body.innerHTML = '<div class="scripture-popup-empty">（未找到串珠）</div>';
+          m.body.scrollTop = 0;
         }
       });
     }
@@ -290,10 +297,12 @@
 
   /* 渲染注解文字（内嵌经文引用变为可点击） */
   function renderNoteText(text) {
-    return esc(text).replace(
-      /([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼犹启来][后前上下壹贰叁]?\d+:\d+[上下]?)/g,
-      '<span class="verse-ref" data-refs="$1">$1</span>'
-    );
+    return esc(text)
+      .replace(
+        /([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼犹启来][后前上下壹贰叁]?\d+:\d+[上下]?)/g,
+        '<span class="verse-ref" data-refs="$1">$1</span>'
+      )
+      .replace(/\n/g, '<br>');
   }
 
   /* 确保弹框已打开（fn-ref/xref-ref 可能在弹框外点击）*/
@@ -304,7 +313,7 @@
       navStack = [];
       m.overlay.classList.add('scripture-popup-overlay--open');
       m.overlay.setAttribute('aria-hidden', 'false');
-      if (window.innerWidth < 768) document.body.style.overflow = 'hidden';
+      if (window.innerWidth < 600) document.body.style.overflow = 'hidden';
     }
   }
 
@@ -314,7 +323,7 @@
     navStack = [];
     m.overlay.classList.add('scripture-popup-overlay--open');
     m.overlay.setAttribute('aria-hidden', 'false');
-    if (window.innerWidth < 768) document.body.style.overflow = 'hidden';
+    if (window.innerWidth < 600) document.body.style.overflow = 'hidden';
     navPush({ type: 'verses', refs: refs, label: labelText || refs.replace(/,/g,'、') });
     /* navPush 内部已调用 backStack.push，无需再次 push */
   }
@@ -326,7 +335,7 @@
     navStack = [];
     modal.overlay.classList.remove('scripture-popup-overlay--open');
     modal.overlay.setAttribute('aria-hidden', 'true');
-    if (window.innerWidth < 768) document.body.style.overflow = '';
+    if (window.innerWidth < 600) document.body.style.overflow = '';
     for (var i = 0; i < n; i++) window.CX.backStack.pop();
   }
 
@@ -339,7 +348,7 @@
 
   /* ── 平板：点击扩展框外区域关闭 ── */
   document.addEventListener('click', function (e) {
-    if (window.innerWidth < 768) return;
+    if (window.innerWidth < 600) return;
     if (!modal || !modal.overlay.classList.contains('scripture-popup-overlay--open')) return;
     /* 点击在弹框本体内 → 不关闭 */
     if (modal.overlay.contains(e.target)) return;
