@@ -3,6 +3,41 @@
  * 支持暖色/冷色模式切换和字体大小调整
  */
 
+// ── CX.backStack：统一对话框/弹框返回键调度器 ──────────────────────────────
+// 所有弹框/面板通过 push(closeFn) 注册，popstate 统一消费；
+// nav-stack.js 通过 setFallback 注册页面跳转，作为最终兜底。
+(function() {
+    'use strict';
+    window.CX = window.CX || {};
+    var _stack = [];
+    var _skip = 0;
+    window.addEventListener('popstate', function() {
+        if (_skip > 0) { _skip--; return; }
+        if (_stack.length > 0) {
+            var fn = _stack.pop();
+            if (fn) fn();
+        } else if (window.CX.backStack._fallback) {
+            window.CX.backStack._fallback();
+        }
+    });
+    window.CX.backStack = {
+        _fallback: null,
+        push: function(fn) {
+            _stack.push(fn);
+            try { history.pushState({ cxBack: true }, ''); } catch(e) {}
+        },
+        pop: function() {
+            if (_stack.length > 0) {
+                _stack.pop();
+                _skip++;
+                try { history.back(); } catch(e) {}
+            }
+        },
+        size: function() { return _stack.length; },
+        setFallback: function(fn) { this._fallback = fn; }
+    };
+})();
+
 // 初始化主题切换和字体控制功能
 (function() {
     'use strict';
@@ -119,7 +154,7 @@
                 // 若点击发生在弹出对话框内，不关闭面板
                 var dialogMask = document.getElementById('cxClearDialogMask');
                 if (dialogMask && dialogMask.contains(e.target)) return;
-                panel.classList.remove('show');
+                window.toggleThemePanel(); // 通过统一入口关闭，消耗 history
             }
         });
         
@@ -128,7 +163,7 @@
             if (e.key === 'Escape') {
                 const panel = document.getElementById('themePanel');
                 if (panel && panel.classList.contains('show')) {
-                    panel.classList.remove('show');
+                    window.toggleThemePanel(); // 通过统一入口关闭，消耗 history
                 }
             }
         });
@@ -322,6 +357,16 @@
         ].join('');
         document.body.appendChild(mask);
 
+        // 注册到 backStack：返回键触发关闭
+        window.CX.backStack.push(function() {
+            if (mask.parentNode) mask.parentNode.removeChild(mask);
+        });
+
+        function closeClearMask() {
+            if (mask.parentNode) mask.parentNode.removeChild(mask);
+            window.CX.backStack.pop(); // 消耗 pushState 记录
+        }
+
         // 用事件委托代替多个 getElementById，避免时序问题
         mask.addEventListener('click', function(e) {
             var t = e.target;
@@ -336,12 +381,12 @@
             }
             // 取消按钮
             if (t.getAttribute('data-action') === 'cancel' || t === mask) {
-                mask.parentNode && mask.parentNode.removeChild(mask);
+                closeClearMask();
                 return;
             }
             // 确定清除按钮
             if (t.getAttribute('data-action') === 'confirm') {
-                mask.parentNode && mask.parentNode.removeChild(mask);
+                closeClearMask();
                 var statusEl = document.getElementById('actionStatus');
                 if (statusEl) { statusEl.textContent = '🧹 正在清理中，请稍候...'; statusEl.className = 'cache-status'; }
                 if (onConfirm) { onConfirm(selected); return; }
@@ -413,11 +458,21 @@
         ].join('');
         document.body.appendChild(mask);
 
+        // 注册到 backStack：返回键触发关闭
+        window.CX.backStack.push(function() {
+            if (mask.parentNode) mask.parentNode.removeChild(mask);
+        });
+
+        function closeSponsor() {
+            if (mask.parentNode) mask.parentNode.removeChild(mask);
+            window.CX.backStack.pop(); // 消耗 pushState 记录
+        }
+
         // 关闭
         mask.addEventListener('click', function(e) {
             var t = e.target;
             if (t === mask || t.id === 'cxSponsorClose') {
-                closeSponsor(true);
+                closeSponsor();
                 return;
             }
             // 标签切换
@@ -428,21 +483,6 @@
                 loadImg(tab.dataset.type);
             }
         });
-
-        // 拦截返回键
-        var historyPushed = false;
-        try { history.pushState({ cxSponsor: true }, ''); historyPushed = true; } catch(e) {}
-        function onPop() {
-            window.removeEventListener('popstate', onPop);
-            if (mask.parentNode) mask.parentNode.removeChild(mask);
-        }
-        window.addEventListener('popstate', onPop);
-
-        function closeSponsor(doBack) {
-            window.removeEventListener('popstate', onPop);
-            if (mask.parentNode) mask.parentNode.removeChild(mask);
-            if (doBack && historyPushed) { try { history.back(); } catch(e) {} }
-        }
 
         // 加载图片（始终远程，主备降级）
         function loadImg(type) {
@@ -486,9 +526,18 @@
 
     // 切换主题面板显示/隐藏
     window.toggleThemePanel = function() {
-        const panel = document.getElementById('themePanel');
-        if (panel) {
-            panel.classList.toggle('show');
+        var panel = document.getElementById('themePanel');
+        if (!panel) return;
+        var willShow = !panel.classList.contains('show');
+        panel.classList.toggle('show');
+        if (willShow) {
+            // 打开：push 关闭回调
+            window.CX.backStack.push(function() {
+                panel.classList.remove('show');
+            });
+        } else {
+            // 手动关闭：消耗对应 history 记录
+            window.CX.backStack.pop();
         }
     };
     

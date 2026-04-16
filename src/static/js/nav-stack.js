@@ -28,26 +28,22 @@
 
         if (isCapacitor()) {
             window.Capacitor.Plugins.App.addListener('backButton', function() {
-                // 经文弹框或对话框打开时，交由弹框自己的 popstate 处理
-                var popup = document.getElementById('scripture-popup-overlay');
-                if (popup && popup.classList.contains('scripture-popup-overlay--open')) {
-                    history.back();
+                // backStack 有内容，说明某个弹框/面板注册了关闭回调
+                // 调 history.back() 会触发 WebView 的 popstate，进而消耗 backStack 栏顶
+                if (window.CX && window.CX.backStack && window.CX.backStack.size() > 0) {
+                    try { history.back(); } catch(e) {}
                     return;
                 }
-                if (document.getElementById('cxSponsorMask')) { history.back(); return; }
-                if (document.getElementById('cxClearDialogMask')) { history.back(); return; }
                 handleBackCommon(handleBack);
             });
         } else if (isPWA()) {
-            window.addEventListener('popstate', function() {
-                if (window.__cxExiting) return;
-                // 经文弹框或赞助对话框已拦截了此次 popstate，不再执行页面跳转
-                var popup = document.getElementById('scripture-popup-overlay');
-                if (popup && popup.classList.contains('scripture-popup-overlay--open')) return;
-                if (document.getElementById('cxSponsorMask')) return;
-                if (document.getElementById('cxClearDialogMask')) return;
-                handleBackCommon(handleBack);
-            });
+            // PWA 的 popstate 由 CX.backStack 统一监听；注册页面跳转为兜底
+            if (window.CX && window.CX.backStack) {
+                window.CX.backStack.setFallback(function() {
+                    if (window.__cxExiting) return;
+                    handleBackCommon(handleBack);
+                });
+            }
         }
     }
 

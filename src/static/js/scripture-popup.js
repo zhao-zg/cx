@@ -156,32 +156,26 @@
   /* ═══════════════════════════ 导航栈 ═══════════════════════════ */
   var navStack = [];
 
-  /* ── 返回键拦截：弹框打开时维持 1 条 history 记录 ── */
-  var _popupHistoryActive = false;
-
-  function _pushPopupHistory() {
-    if (!_popupHistoryActive) {
-      try { history.pushState({ scripturePopup: true }, ''); } catch (e) {}
-      _popupHistoryActive = true;
+  /* ── makeScriptureStep: 生成一个可重复注册的 backStack 回调 ── */
+  function makeScriptureStep() {
+    function step() {
+      if (navStack.length > 1) {
+        /* 还有上层 → 回退一帧，重新注册等待下次回退 */
+        navStack.pop();
+        renderFrame(navStack[navStack.length - 1]);
+        window.CX.backStack.push(step);
+      } else {
+        /* 最顶层 → 关闭弹框 */
+        navStack = [];
+        if (modal) {
+          modal.overlay.classList.remove('scripture-popup-overlay--open');
+          modal.overlay.setAttribute('aria-hidden', 'true');
+        }
+        document.body.style.overflow = '';
+      }
     }
+    return step;
   }
-
-  window.addEventListener('popstate', function () {
-    if (!modal || !modal.overlay.classList.contains('scripture-popup-overlay--open')) return;
-    _popupHistoryActive = false;
-    if (navStack.length > 1) {
-      /* 还有上层 → 回退一层并重新推入 history 状态 */
-      navStack.pop();
-      renderFrame(navStack[navStack.length - 1]);
-      _pushPopupHistory();
-    } else {
-      /* 已是最顶层 → 直接关闭（history 条目已由 popstate 消耗，无需再 back）*/
-      navStack = [];
-      modal.overlay.classList.remove('scripture-popup-overlay--open');
-      modal.overlay.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
-    }
-  });
 
   function navPush(frame) {
     navStack.push(frame);
@@ -304,18 +298,16 @@
   function ensureOpen() {
     var m = getModal();
     if (!m.overlay.classList.contains('scripture-popup-overlay--open')) {
-      _popupHistoryActive = false;
       navStack = [];
       m.overlay.classList.add('scripture-popup-overlay--open');
       m.overlay.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
-      _pushPopupHistory();
+      window.CX.backStack.push(makeScriptureStep());
     }
   }
 
   /* ═══════════════════════════ 弹框开关 ═══════════════════════════ */
   function openModal(refs, labelText) {
-    _popupHistoryActive = false;
     navStack = [];
     var frame = { type: 'verses', refs: refs, label: labelText || refs.replace(/,/g,'、') };
     navPush(frame);
@@ -323,18 +315,16 @@
     m.overlay.classList.add('scripture-popup-overlay--open');
     m.overlay.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
-    _pushPopupHistory();
+    window.CX.backStack.push(makeScriptureStep());
   }
 
   function closeModal() {
     if (!modal) return;
-    var wasActive = _popupHistoryActive;
     navStack = [];
-    _popupHistoryActive = false;
     modal.overlay.classList.remove('scripture-popup-overlay--open');
     modal.overlay.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
-    if (wasActive) try { history.back(); } catch (e) {}
+    window.CX.backStack.pop(); // 消耗 backStack 中的 history 记录
   }
 
   /* ── ESC 关闭 ── */
