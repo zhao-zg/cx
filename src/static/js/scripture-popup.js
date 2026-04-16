@@ -156,14 +156,13 @@
   /* ═══════════════════════════ 导航栈 ═══════════════════════════ */
   var navStack = [];
 
-  /* ── makeScriptureStep: 生成一个可重复注册的 backStack 回调 ── */
+  /* ── makeScriptureStep: 弹 1 层，每层 navPush 各自对应 1 条 backStack 记录 ── */
   function makeScriptureStep() {
-    function step() {
+    return function step() {
       if (navStack.length > 1) {
-        /* 还有上层 → 回退一帧，重新注册等待下次回退 */
+        /* 还有上层 → 回退一帧（本条 backStack 记录已消耗，不再 re-push）*/
         navStack.pop();
         renderFrame(navStack[navStack.length - 1]);
-        window.CX.backStack.push(step);
       } else {
         /* 最顶层 → 关闭弹框 */
         navStack = [];
@@ -173,19 +172,22 @@
         }
         document.body.style.overflow = '';
       }
-    }
-    return step;
+    };
   }
 
+  /* navPush: 每层都向 backStack 注册 1 条关闭回调 */
   function navPush(frame) {
     navStack.push(frame);
     renderFrame(frame);
+    window.CX.backStack.push(makeScriptureStep());
   }
 
+  /* navBack（← 按钮）: 弹 1 层 + 同步消耗对应的 backStack 记录 */
   function navBack() {
     if (navStack.length <= 1) { closeModal(); return; }
     navStack.pop();
     renderFrame(navStack[navStack.length - 1]);
+    window.CX.backStack.pop(); // 跳过 fn 回调，仅消耗 history
   }
 
   /* ═══════════════════════════ 渲染经文帧 ═══════════════════════════ */
@@ -295,6 +297,7 @@
   }
 
   /* 确保弹框已打开（fn-ref/xref-ref 可能在弹框外点击）*/
+  /* backStack push 由后续 navPush 完成，此处只负责打开 overlay */
   function ensureOpen() {
     var m = getModal();
     if (!m.overlay.classList.contains('scripture-popup-overlay--open')) {
@@ -302,29 +305,29 @@
       m.overlay.classList.add('scripture-popup-overlay--open');
       m.overlay.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
-      window.CX.backStack.push(makeScriptureStep());
     }
   }
 
   /* ═══════════════════════════ 弹框开关 ═══════════════════════════ */
   function openModal(refs, labelText) {
-    navStack = [];
-    var frame = { type: 'verses', refs: refs, label: labelText || refs.replace(/,/g,'、') };
-    navPush(frame);
     var m = getModal();
+    navStack = [];
     m.overlay.classList.add('scripture-popup-overlay--open');
     m.overlay.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
-    window.CX.backStack.push(makeScriptureStep());
+    navPush({ type: 'verses', refs: refs, label: labelText || refs.replace(/,/g,'、') });
+    /* navPush 内部已调用 backStack.push，无需再次 push */
   }
 
   function closeModal() {
     if (!modal) return;
+    /* 有几层就弹几次，清空对应的 history 记录 */
+    var n = navStack.length;
     navStack = [];
     modal.overlay.classList.remove('scripture-popup-overlay--open');
     modal.overlay.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
-    window.CX.backStack.pop(); // 消耗 backStack 中的 history 记录
+    for (var i = 0; i < n; i++) window.CX.backStack.pop();
   }
 
   /* ── ESC 关闭 ── */
