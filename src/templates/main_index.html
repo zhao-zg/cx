@@ -832,10 +832,13 @@
         // 安卓设备只要不是 Capacitor APP 内，都显示 APK 下载按钮（含平板/PWA）
         // androidApkBtn 由 theme-toggle.js 的 initSettingsActions 统一处理
 
-        // 只在 PWA 模式下显示缓存数据按钮
-        if (CX_ENV.isStandalone) {
-            if (cacheAllBtn) cacheAllBtn.style.display = 'inline-flex';
-        }
+        // 缓存数据按钮由 theme-toggle.js 统一显示；主页注册实现函数供其他页面委托
+        window.CX.cacheAll = function(statusEl) {
+            if (cacheAllBtn) cacheAllBtn.disabled = true;
+            cacheAllTrainings(statusEl || dataToolsStatus).finally(function() {
+                if (cacheAllBtn) cacheAllBtn.disabled = false;
+            });
+        };
 
         // 非 iOS：注册主页 PWA 安装钩子（含状态文字反馈），供 theme-toggle.js 调用
         if (!CX_ENV.isIOS) {
@@ -938,15 +941,6 @@
 
         // 注册主页清理函数（含保留笔记选项）供 theme-toggle.js 调用
         window.CX.clearData = promptClearData;
-
-        if (cacheAllBtn) {
-            cacheAllBtn.addEventListener('click', function() {
-                cacheAllBtn.disabled = true;
-                cacheAllTrainings(dataToolsStatus).finally(function() {
-                    cacheAllBtn.disabled = false;
-                });
-            });
-        }
 
         updateCacheAllButtonState();
         

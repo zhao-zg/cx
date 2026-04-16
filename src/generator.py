@@ -89,6 +89,18 @@ class HTMLGenerator:
                         dst_file = os.path.join(css_dst_dir, css_file)
                         shutil.copy2(src_file, dst_file)
 
+            # 复制 image/ 到根输出目录的 images/
+            img_src_dir = os.path.join(static_dir, 'image')
+            img_dst_dir = os.path.join(root_output, 'images')
+
+            if os.path.isdir(img_src_dir):
+                os.makedirs(img_dst_dir, exist_ok=True)
+                for img_file in os.listdir(img_src_dir):
+                    src_file = os.path.join(img_src_dir, img_file)
+                    dst_file = os.path.join(img_dst_dir, img_file)
+                    if os.path.isfile(src_file):
+                        shutil.copy2(src_file, dst_file)
+
         except Exception as e:
             # 静态资源复制失败不应阻断 HTML 生成
             pass

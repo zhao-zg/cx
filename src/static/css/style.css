@@ -447,6 +447,20 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{ou
 .action-btn.danger{color:#c53030;border-color:#fed7d7;background:#fff5f5}
 .action-btn.danger:active{background:#ffe8e8}
 .action-btn.cached{color:#276749;border-color:#c6f6d5}
+.action-btn.sponsor{color:#c05621;border-color:#fbd38d;background:#fffbf2}
+.action-btn.sponsor:active{background:#fef3c7}
+/* 赞助对话框 */
+.cx-sponsor-box{background:var(--surface);border-radius:16px;width:min(300px,calc(100vw - 40px));box-shadow:0 8px 32px rgba(0,0,0,.2);overflow:hidden;position:relative;padding:24px 20px 28px;text-align:center}
+.cx-sponsor-close{position:absolute;top:10px;right:14px;font-size:20px;cursor:pointer;color:var(--text-muted);line-height:1;padding:4px}
+.cx-sponsor-title{font-size:16px;font-weight:700;color:var(--heading);margin-bottom:8px}
+.cx-sponsor-desc{font-size:13px;color:var(--text-secondary);line-height:1.65;margin-bottom:12px}
+.cx-sponsor-tabs{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
+.cx-sponsor-tab{flex:1;max-width:110px;padding:7px 0;font-size:13px;font-weight:600;border-radius:20px;border:1.5px solid var(--border);background:var(--surface-alt);color:var(--text-secondary);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .15s}
+.cx-sponsor-tab.active[data-type=wx]{border-color:#07C160;background:#f0fff6;color:#07C160}
+.cx-sponsor-tab.active[data-type=zfb]{border-color:#1677FF;background:#f0f5ff;color:#1677FF}
+.cx-sponsor-img-wrap{display:flex;align-items:center;justify-content:center;min-height:60px}
+.cx-sponsor-loading{font-size:12px;color:var(--text-muted)}
+.cx-sponsor-qr{width:200px;height:200px;border-radius:8px;display:block;object-fit:contain}
 .cache-icon{font-size:15px;flex-shrink:0;line-height:1;width:20px;text-align:center}
 .cache-text{flex:1}
 .cache-status{margin-top:6px;font-size:12px;color:var(--text-secondary);text-align:center;min-height:14px;padding:0}

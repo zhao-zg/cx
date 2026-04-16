@@ -86,6 +86,9 @@
                     <button class="action-btn" id="checkUpdateBtn" style="display:none">
                         <span class="cache-icon">🔄</span><span class="cache-text">检查更新</span>
                     </button>
+                    <button class="action-btn sponsor" id="sponsorBtn" style="display:none">
+                        <span class="cache-icon">❤️</span><span class="cache-text">赞助作者</span>
+                    </button>
                 </div>
                 <div class="cache-status" id="actionStatus"></div>
             </div>
@@ -140,6 +143,30 @@
         var section = document.getElementById('settingsActionsSection');
         if (section) section.style.display = 'block';
         var statusEl = document.getElementById('actionStatus');
+
+        // ── 使用时长跟踪：记录首次启动时间 ─────────────────────────
+        (function() {
+            try {
+                if (!localStorage.getItem('cx_first_use')) {
+                    localStorage.setItem('cx_first_use', Date.now().toString());
+                }
+            } catch(e) {}
+        })();
+
+        // ── 赞助作者（使用超过 10 分钟后显示）────────────────────────
+        (function() {
+            try {
+                var firstUse = parseInt(localStorage.getItem('cx_first_use') || '0', 10);
+                var elapsed = firstUse ? (Date.now() - firstUse) : 0;
+                if (elapsed >= 10 * 60 * 1000) {
+                    var sponsorBtn = document.getElementById('sponsorBtn');
+                    if (sponsorBtn) {
+                        sponsorBtn.style.display = 'inline-flex';
+                        sponsorBtn.addEventListener('click', showSponsorDialog);
+                    }
+                }
+            } catch(e) {}
+        })();
 
         // 环境检测
         var ua = navigator.userAgent;
@@ -224,6 +251,36 @@
                     window._pwaInstallPrompt = null;
                     p.prompt();
                     p.userChoice.then(function() { installBtn.style.display = 'none'; });
+                });
+            }
+        }
+
+        // ── 缓存数据（PWA standalone 模式，所有页面）──────────────────
+        if (isStandalone && ('caches' in window)) {
+            var cacheBtn = document.getElementById('cacheAllBtn');
+            if (cacheBtn) {
+                // 初始化按钮状态：已缓存则显示 ✅
+                (function() {
+                    var flag = null;
+                    try { flag = localStorage.getItem('cx_all_cached'); } catch(e) {}
+                    if (flag) {
+                        caches.keys().then(function(keys) {
+                            if (keys.some(function(k) { return k.indexOf('cx-') === 0; })) {
+                                cacheBtn.querySelector('.cache-icon').textContent = '✅';
+                                cacheBtn.querySelector('.cache-text').textContent = '已缓存';
+                            }
+                        });
+                    }
+                })();
+                cacheBtn.style.display = 'inline-flex';
+                cacheBtn.addEventListener('click', function() {
+                    if (window.CX && window.CX.cacheAll) {
+                        window.CX.cacheAll(document.getElementById('actionStatus'));
+                    } else {
+                        // 非主页：跳转主页触发缓存
+                        var root = window.CX_ROOT || '../';
+                        window.location.href = root + 'index.html#cache';
+                    }
                 });
             }
         }
@@ -325,6 +382,107 @@
     window.CX.showClearDialog = showClearDialog;
 
     function defaultPromptClearData() { showClearDialog(); }
+
+    // 赞助界面
+    function showSponsorDialog() {
+        if (document.getElementById('cxSponsorMask')) return;
+
+        // 图片源：始终从 Cloudflare 服务器远程获取，主备降级
+        var CF_SERVERS = [
+            'https://cx.zhaozg.cloudns.org/',
+            'https://cx.zhaozg.dpdns.org/'
+        ];
+        var imgFiles = { wx: 'images/zanzhu-wx.png', zfb: 'images/zanzhu-zfb.jpg' };
+
+        var mask = document.createElement('div');
+        mask.id = 'cxSponsorMask';
+        mask.className = 'cx-dialog-mask';
+        mask.innerHTML = [
+            '<div class="cx-sponsor-box">',
+            '  <div class="cx-sponsor-close" id="cxSponsorClose">×</div>',
+            '  <div class="cx-sponsor-title">❤️ 赞助作者</div>',
+            '  <div class="cx-sponsor-desc">开发维护不易，谢谢赞助 🙏</div>',
+            '  <div class="cx-sponsor-tabs">',
+            '    <button class="cx-sponsor-tab active" data-type="wx">🟢 微信</button>',
+            '    <button class="cx-sponsor-tab" data-type="zfb">🔵 支付宝</button>',
+            '  </div>',
+            '  <div class="cx-sponsor-img-wrap" id="cxSponsorImgWrap">',
+            '    <div class="cx-sponsor-loading">加载中…</div>',
+            '  </div>',
+            '</div>'
+        ].join('');
+        document.body.appendChild(mask);
+
+        // 关闭
+        mask.addEventListener('click', function(e) {
+            var t = e.target;
+            if (t === mask || t.id === 'cxSponsorClose') {
+                closeSponsor(true);
+                return;
+            }
+            // 标签切换
+            var tab = t.closest ? t.closest('.cx-sponsor-tab') : (t.classList.contains('cx-sponsor-tab') ? t : null);
+            if (tab && tab.dataset.type) {
+                mask.querySelectorAll('.cx-sponsor-tab').forEach(function(b) { b.classList.remove('active'); });
+                tab.classList.add('active');
+                loadImg(tab.dataset.type);
+            }
+        });
+
+        // 拦截返回键
+        var historyPushed = false;
+        try { history.pushState({ cxSponsor: true }, ''); historyPushed = true; } catch(e) {}
+        function onPop() {
+            window.removeEventListener('popstate', onPop);
+            if (mask.parentNode) mask.parentNode.removeChild(mask);
+        }
+        window.addEventListener('popstate', onPop);
+
+        function closeSponsor(doBack) {
+            window.removeEventListener('popstate', onPop);
+            if (mask.parentNode) mask.parentNode.removeChild(mask);
+            if (doBack && historyPushed) { try { history.back(); } catch(e) {} }
+        }
+
+        // 加载图片（始终远程，主备降级）
+        function loadImg(type) {
+            var imgWrap = document.getElementById('cxSponsorImgWrap');
+            if (!imgWrap) return;
+            imgWrap.innerHTML = '<div class="cx-sponsor-loading">加载中…</div>';
+            var file = imgFiles[type];
+            var ts = Date.now();
+            var tried = 0;
+            function tryNext() {
+                if (tried >= CF_SERVERS.length) {
+                    if (imgWrap) imgWrap.innerHTML = '<div class="cx-sponsor-loading">加载失败</div>';
+                    return;
+                }
+                var url = CF_SERVERS[tried++] + file + '?t=' + ts;
+                setImg(imgWrap, url, type, tryNext);
+            }
+            tryNext();
+        }
+
+        function setImg(imgWrap, url, type, onError) {
+            var img = new Image();
+            img.onload = function() {
+                if (imgWrap && imgWrap.isConnected !== false) {
+                    imgWrap.innerHTML = '';
+                    imgWrap.appendChild(img);
+                }
+            };
+            img.onerror = function() {
+                if (onError) { onError(); return; }
+                if (imgWrap) imgWrap.innerHTML = '<div class="cx-sponsor-loading">加载失败</div>';
+            };
+            img.className = 'cx-sponsor-qr';
+            img.alt = type === 'wx' ? '微信赞助二维码' : '支付宝赞助二维码';
+            img.src = url;
+        }
+
+        // 初始加载微信
+        loadImg('wx');
+    }
 
     // 切换主题面板显示/隐藏
     window.toggleThemePanel = function() {

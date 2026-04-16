@@ -88,6 +88,9 @@ jobs:
         echo "=== 生成完整静态网站 ==="
         python main.py
         echo "✓ 静态网站生成完成"
+        # 删除赞助二维码（APK 走远程获取，不需要打包）
+        rm -rf output/images/zanzhu-wx.png output/images/zanzhu-zfb.jpg
+        echo "✓ 已移除赞助图片（APK 不打包）"
         du -sh output/
         find output/ -type f | wc -l
         echo "文件总数"
