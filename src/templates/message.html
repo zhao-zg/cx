@@ -130,7 +130,7 @@ function initSpeech() {
                 var timeElem = document.getElementById('speechTime');
                 if (timeElem) {
                     timeElem.textContent = '无内容';
-                    timeElem.style.color = '#999';
+                    timeElem.style.color = 'var(--text-muted)';
                     setTimeout(function() {
                         timeElem.textContent = '00:00 / 00:00';
                         timeElem.style.color = '';

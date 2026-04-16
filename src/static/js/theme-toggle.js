@@ -46,6 +46,39 @@
     const fontSizes = [14, 16, 18, 20, 22, 24, 26, 28];
     const defaultSizeIndex = 2; // 默认18px
     let currentSizeIndex = defaultSizeIndex;
+    const themeMetaColors = {
+        cool: '#f7f8fc',
+        warm: '#f3ede4',
+        dark: '#121214'
+    };
+
+    function getStoredTheme() {
+        try {
+            const theme = localStorage.getItem('readingTheme');
+            return theme === 'cool' || theme === 'warm' || theme === 'dark' ? theme : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function getPreferredTheme() {
+        const savedTheme = getStoredTheme();
+        if (savedTheme) {
+            return savedTheme;
+        }
+        try {
+            return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'cool';
+        } catch (e) {
+            return 'cool';
+        }
+    }
+
+    function syncThemeColor(theme) {
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (metaThemeColor) {
+            metaThemeColor.setAttribute('content', themeMetaColors[theme] || themeMetaColors.cool);
+        }
+    }
     
     // 页面加载时创建主题切换UI
     function initThemeToggle() {
@@ -146,9 +179,10 @@
         document.body.appendChild(panel);
         
         // 加载保存的主题
-        const savedTheme = localStorage.getItem('readingTheme') || 'cool';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        updateThemeUI(savedTheme);
+        const initialTheme = getPreferredTheme();
+        document.documentElement.setAttribute('data-theme', initialTheme);
+        updateThemeUI(initialTheme);
+        syncThemeColor(initialTheme);
         
         // 加载保存的字体大小
         const savedSize = localStorage.getItem('globalFontSize');
@@ -185,6 +219,22 @@
 
         // 初始化操作区按钮（所有页面通用）
         initSettingsActions();
+
+        if (window.matchMedia) {
+            var themeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            var handleThemeQueryChange = function(event) {
+                if (getStoredTheme()) return;
+                var nextTheme = event.matches ? 'dark' : 'cool';
+                document.documentElement.setAttribute('data-theme', nextTheme);
+                updateThemeUI(nextTheme);
+                syncThemeColor(nextTheme);
+            };
+            if (typeof themeQuery.addEventListener === 'function') {
+                themeQuery.addEventListener('change', handleThemeQueryChange);
+            } else if (typeof themeQuery.addListener === 'function') {
+                themeQuery.addListener(handleThemeQueryChange);
+            }
+        }
     }
 
     // 初始化设置面板操作区（唯一实现；页面通过 window.CX.xxx 注册钩子覆盖默认行为）
@@ -562,15 +612,11 @@
     // 设置主题
     window.setTheme = function(theme) {
         document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('readingTheme', theme);
+        try {
+            localStorage.setItem('readingTheme', theme);
+        } catch (e) {}
         updateThemeUI(theme);
-        
-        // 更新meta theme-color
-        const themeColor = theme === 'warm' ? '#f0f0ee' : '#f7f8fc';
-        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-        if (metaThemeColor) {
-            metaThemeColor.setAttribute('content', themeColor);
-        }
+        syncThemeColor(theme);
     };
     
     // 更新主题UI状态
