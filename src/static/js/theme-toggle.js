@@ -51,6 +51,7 @@
         warm: '#f3ede4',
         dark: '#121214'
     };
+    let pageScrollLockCount = 0;
 
     function getStoredTheme() {
         try {
@@ -77,6 +78,20 @@
         const metaThemeColor = document.querySelector('meta[name="theme-color"]');
         if (metaThemeColor) {
             metaThemeColor.setAttribute('content', themeMetaColors[theme] || themeMetaColors.cool);
+        }
+    }
+
+    function lockPageScroll() {
+        pageScrollLockCount += 1;
+        document.documentElement.classList.add('cx-scroll-locked');
+        document.body.classList.add('cx-scroll-locked');
+    }
+
+    function unlockPageScroll() {
+        pageScrollLockCount = Math.max(0, pageScrollLockCount - 1);
+        if (pageScrollLockCount === 0) {
+            document.documentElement.classList.remove('cx-scroll-locked');
+            document.body.classList.remove('cx-scroll-locked');
         }
     }
     
@@ -177,6 +192,26 @@
             </div>
         `;
         document.body.appendChild(panel);
+
+        var tsY = 0;
+        overlay.addEventListener('touchstart', function(e) {
+            if (e.touches && e.touches.length) {
+                tsY = e.touches[0].clientY;
+            }
+        }, { passive: true });
+        overlay.addEventListener('touchmove', function(e) {
+            if (!panel.classList.contains('show')) return;
+            if (panel.contains(e.target)) {
+                var scrollable = panel.scrollHeight > panel.clientHeight;
+                if (!scrollable) { e.preventDefault(); return; }
+                var down = e.touches[0].clientY < tsY;
+                var atTop = panel.scrollTop <= 0;
+                var atBot = panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 1;
+                if ((atTop && !down) || (atBot && down)) e.preventDefault();
+            } else {
+                e.preventDefault();
+            }
+        }, { passive: false });
         
         // 加载保存的主题
         const initialTheme = getPreferredTheme();
@@ -589,21 +624,28 @@
         loadImg('wx');
     }
 
+    function closeThemePanelInternal(panel, overlay) {
+        panel.classList.remove('show');
+        if (overlay) overlay.classList.remove('show');
+        unlockPageScroll();
+    }
+
     // 切换主题面板显示/隐藏
     window.toggleThemePanel = function() {
         var panel = document.getElementById('themePanel');
         if (!panel) return;
         var overlay = document.getElementById('themePanelOverlay');
         var willShow = !panel.classList.contains('show');
-        panel.classList.toggle('show');
-        if (overlay) overlay.classList.toggle('show', willShow);
         if (willShow) {
+            panel.classList.add('show');
+            if (overlay) overlay.classList.add('show');
+            lockPageScroll();
             // 打开：push 关闭回调
             window.CX.backStack.push(function() {
-                panel.classList.remove('show');
-                if (overlay) overlay.classList.remove('show');
+                closeThemePanelInternal(panel, overlay);
             });
         } else {
+            closeThemePanelInternal(panel, overlay);
             // 手动关闭：消耗对应 history 记录
             window.CX.backStack.pop();
         }
