@@ -693,6 +693,16 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{ou
 .fn-ref{font-size:.68em;vertical-align:super;line-height:0;color:var(--footnote-ref);font-weight:700;cursor:pointer;padding:0 1px;-webkit-tap-highlight-color:transparent;user-select:none}
 .fn-ref:hover,.fn-ref:active{color:var(--footnote-ref-hover)}
 .xref-ref{font-size:.65em;vertical-align:super;line-height:0;color:var(--brand);font-weight:700;cursor:pointer;padding:0 1px;-webkit-tap-highlight-color:transparent;user-select:none}
+/* ── 平板（≥768px）底部扩展框覆盖 ─────────────────────────── */
+@media(min-width:768px){
+/* overlay 平板上仅做 z-index 占位，不参与动画，背景透明且不拦截点击 */
+.scripture-popup-overlay{background:transparent;opacity:1;pointer-events:none;transition:none;align-items:flex-end;padding:0}
+.scripture-popup-overlay--open{opacity:1;pointer-events:none}
+/* popup 用 position:fixed 直接锚底，绕过父级 flex 布局 */
+.scripture-popup{position:fixed;bottom:0;left:0;right:0;width:100%;pointer-events:auto;border-radius:16px 16px 0 0;max-width:100%;max-height:45vh;transform:translateY(100%);box-shadow:0 -4px 24px rgba(0,0,0,.15)}
+.scripture-popup-overlay--open .scripture-popup{transform:translateY(0)}
+.scripture-popup::before{content:'';display:block;width:36px;height:4px;border-radius:2px;background:var(--border);margin:8px auto 0;flex-shrink:0}
+}
 .xref-ref:hover,.xref-ref:active{color:var(--brand-dark,#0060c0)}
 .verse-ref{color:var(--brand);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .verse-ref:hover{color:var(--brand-dark,#0060c0)}

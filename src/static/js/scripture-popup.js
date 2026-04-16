@@ -170,7 +170,7 @@
           modal.overlay.classList.remove('scripture-popup-overlay--open');
           modal.overlay.setAttribute('aria-hidden', 'true');
         }
-        document.body.style.overflow = '';
+        if (window.innerWidth < 768) document.body.style.overflow = '';
       }
     };
   }
@@ -304,7 +304,7 @@
       navStack = [];
       m.overlay.classList.add('scripture-popup-overlay--open');
       m.overlay.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
+      if (window.innerWidth < 768) document.body.style.overflow = 'hidden';
     }
   }
 
@@ -314,7 +314,7 @@
     navStack = [];
     m.overlay.classList.add('scripture-popup-overlay--open');
     m.overlay.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
+    if (window.innerWidth < 768) document.body.style.overflow = 'hidden';
     navPush({ type: 'verses', refs: refs, label: labelText || refs.replace(/,/g,'、') });
     /* navPush 内部已调用 backStack.push，无需再次 push */
   }
@@ -326,7 +326,7 @@
     navStack = [];
     modal.overlay.classList.remove('scripture-popup-overlay--open');
     modal.overlay.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
+    if (window.innerWidth < 768) document.body.style.overflow = '';
     for (var i = 0; i < n; i++) window.CX.backStack.pop();
   }
 
@@ -336,6 +336,35 @@
       closeModal();
     }
   });
+
+  /* ── 平板：点击扩展框外区域关闭 ── */
+  document.addEventListener('click', function (e) {
+    if (window.innerWidth < 768) return;
+    if (!modal || !modal.overlay.classList.contains('scripture-popup-overlay--open')) return;
+    /* 点击在弹框本体内 → 不关闭 */
+    if (modal.overlay.contains(e.target)) return;
+    /* 点击的是经文引用类元素 → 不关闭（由事件委托接管打开新帧） */
+    var t = e.target;
+    while (t && t !== document) {
+      if (t.classList && (
+        (t.classList.contains('scripture-ref') && t.dataset && t.dataset.refs) ||
+        t.classList.contains('fn-ref') ||
+        t.classList.contains('xref-ref')
+      )) return;
+      t = t.parentNode;
+    }
+    /* 平板不锁滚动，history.back() 会异步恢复滚动位置，提前保存并还原 */
+    var savedScrollY = window.scrollY;
+    closeModal();
+    /* history.back() 是异步的，用 popstate 之后恢复最可靠 */
+    window.addEventListener('popstate', function restoreScroll() {
+      window.removeEventListener('popstate', restoreScroll);
+      /* 再等一帧，确保浏览器滚动恢复已执行完毕 */
+      requestAnimationFrame(function () {
+        window.scrollTo(0, savedScrollY);
+      });
+    }, { once: true });
+  }, true); /* capture 保证在事件委托之前执行 */
 
   /* ═══════════════════════════ 事件委托 ═══════════════════════════ */
   document.addEventListener('click', function (e) {
