@@ -220,7 +220,16 @@ def parse_dd(dd_tag):
             zhu = ps[i].find("sup", id="zhu")
             num = zhu.get_text(strip=True) if zhu else ""
             if num and i+1 < len(ps) and ps[i+1].get("id") == "AA2":
-                text = ps[i+1].get_text(separator=" ", strip=True)
+                # 将 <br> 替换为 \n，保留段落分隔
+                aa2_html = str(ps[i+1])
+                aa2_html = _RE_BR.sub("\n", aa2_html)
+                aa2_soup = BeautifulSoup(aa2_html, "lxml")
+                text = aa2_soup.get_text(separator="", strip=False).strip()
+                # 规整多余空行：连续\n超过2个压缩为2个，并清理行首尾空格
+                text = re.sub(r'[ \t]+', ' ', text)
+                text = re.sub(r'\n{3,}', '\n\n', text)
+                text = re.sub(r'^ | $', '', text, flags=re.MULTILINE)
+                text = text.strip()
                 if text:
                     notes[num] = text
             i += 2

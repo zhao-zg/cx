@@ -268,7 +268,7 @@
           rate: rate,
           pitch: 1.0,
           volume: 1.0,
-          category: 'ambient'
+          category: 'playback'
         }).then(function() {
           if (chunkGen !== speakGeneration) return; // 旧回调，丢弃
           currentChunkIndex++;
@@ -425,7 +425,7 @@
             rate: rate,
             pitch: 1.0,
             volume: 1.0,
-            category: 'ambient'
+            category: 'playback'
           }).then(function() {
             if (currentGen !== speakGeneration) return; // 旧回调，丢弃
             isSeekingInternal = false;
@@ -690,32 +690,7 @@
       resetState(false);
     });
     
-    // 页面隐藏时暂停朗读（可选）
-    document.addEventListener('visibilitychange', function() {
-      if (document.hidden && utterance && !isPaused) {
-        if (useCapacitorTTS) {
-          // Capacitor TTS：停止播放，回来后需重新开始
-          try {
-            var TextToSpeech = window.Capacitor.Plugins.TextToSpeech;
-            TextToSpeech.stop();
-          } catch (e) { /* ignore */ }
-          isPaused = true;
-          updateButtonState(false);
-          pauseStartedAt = Date.now();
-          stopProgressUpdate();
-        } else {
-          try {
-            window.speechSynthesis.pause();
-            isPaused = true;
-            updateButtonState(false);
-            pauseStartedAt = Date.now();
-            stopProgressUpdate();
-          } catch (e) {
-            // ignore
-          }
-        }
-      }
-    });
+    // 页面隐藏时不中断朗读，支持后台/锁屏继续播放
     }
 
     startInit();
