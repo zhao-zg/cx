@@ -21,49 +21,76 @@
 /* 冷色模式（默认） */
 :root,
 [data-theme="cool"]{
-    --surface:#fff;
-    --surface-alt:#f5f6fb;
-    --page-bg:#f7f8fc;
+    --surface:#ffffff;
+    --surface-alt:#f8f9fc;
+    --page-bg:#f9fafb;
     --header-bg:var(--brand);
     --nav-hover:#f0f4ff;
     --scripture-bg:#f6f7fa;
     --muted:#f5f6fb;
     --border:#e6e8f0;
-    --text:#2f343a;
-    --text-soft:#635f5a;
-    --text-muted:#8b8783;
-    --heading:#2a2926;
-    --heading-strong:#1f1d1a;
-    --heading-soft:#3d3935;
-    --heading-muted:#544f4a;
+    --text:#1f2937;
+    --text-soft:#4b5563;
+    --text-muted:#6b7280;
+    --heading:#111827;
+    --heading-strong:#030712;
+    --heading-soft:#374151;
+    --heading-muted:#4b5563;
     --btn-secondary-bg:#fafaf9;
     --btn-secondary-text:var(--brand);
     --btn-secondary-border:rgba(113,136,227,.22);
-    --btn-secondary-hover-bg:#f2f2f0;
-    --btn-secondary-active-bg:rgba(113,136,227,.12);
+    --btn-secondary-hover-bg:#f1f5f9;
+    --btn-secondary-active-bg:rgba(102, 126, 234, 0.1);
 }
 /* 暖色模式 */
 [data-theme="warm"]{
-    --surface:#fafaf9;
-    --surface-alt:#f5f5f3;
-    --page-bg:#f0f0ee;
+    --surface:#fffdfb;
+    --surface-alt:#f8f5f0;
+    --page-bg:#f5f2ed;
     --header-bg:var(--brand);
     --nav-hover:#f2f2f0;
     --scripture-bg:#f6f6f4;
     --muted:#f5f5f3;
-    --border:#e5e5e3;
-    --text:#3a3532;
-    --text-soft:#596170;
-    --text-muted:#7b8697;
-    --heading:#1b2436;
-    --heading-strong:#141c2b;
-    --heading-soft:#2a3954;
-    --heading-muted:#3a4a67;
+    --border:#e7e5e4;
+    --text:#292524;
+    --text-soft:#57534e;
+    --text-muted:#78716c;
+    --heading:#1c1917;
+    --heading-strong:#0c0a09;
+    --heading-soft:#44403c;
+    --heading-muted:#57534e;
     --btn-secondary-bg:#fff;
     --btn-secondary-text:var(--brand);
     --btn-secondary-border:rgba(113,136,227,.22);
-    --btn-secondary-hover-bg:#f5f7ff;
-    --btn-secondary-active-bg:rgba(113,136,234,.12);
+    --btn-secondary-hover-bg:#f1f5f9;
+    --btn-secondary-active-bg:rgba(102, 126, 234, 0.1);
+}
+
+/* 夜间模式 */
+[data-theme="dark"]{
+    --surface: #1a1a1d;
+    --surface-alt: #242429;
+    --page-bg: #121214;
+    --header-bg: #25252b;
+    --nav-hover: #2d2d35;
+    --scripture-bg: #242429;
+    --muted: #29292f;
+    --border: #33333a;
+
+    --text: #e0e0e0;
+    --text-soft: #b0b0b8;
+    --text-muted: #888892;
+
+    --heading: #f0f0f0;
+    --heading-strong: #ffffff;
+    --heading-soft: #d0d0d8;
+    --heading-muted: #a8a8b4;
+
+    --btn-secondary-bg: #2a2a31;
+    --btn-secondary-text: var(--brand);
+    --btn-secondary-border: rgba(113,136,227,.2);
+    --btn-secondary-hover-bg: #33333d;
+    --btn-secondary-active-bg: rgba(102,126,234,0.15);
 }
 
 /* ── 二、主题切换按钮 & 设置面板 ────────────────────────────── */

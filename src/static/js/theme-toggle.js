@@ -87,6 +87,14 @@
                             <div class="theme-label">冷色</div>
                         </div>
                     </div>
+                    <div class="theme-option" data-theme="dark" onclick="setTheme('dark')">
+                        <div class="theme-preview dark"></div>
+                        <div class="theme-option-content">
+                            <div class="theme-radio"></div>
+                            <div class="theme-label">夜间</div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
             
