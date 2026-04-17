@@ -35,7 +35,7 @@
 
       var root = (win.CX_ROOT !== undefined ? win.CX_ROOT : './');
       var self = this;
-      this._loadPromise = fetch(root + 'search-index.json')
+      this._loadPromise = fetch(root + 'data/search-index.json')
         .then(function (r) {
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return r.json();

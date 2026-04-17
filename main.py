@@ -353,11 +353,11 @@ def generate_main_index(config, batch_results):
                     else:
                         training_pages.append(f"./{training_path}/{filename}")
         
-        # 只收集训练特定的 JS 文件（scriptures-data.js），共享 JS/CSS 在根目录
+        # 只收集训练特定的 JSON 文件（scriptures-data.json），共享 JS/CSS 在根目录
         js_dir = os.path.join(training_dir, 'js')
         if os.path.exists(js_dir):
             for filename in os.listdir(js_dir):
-                if filename.endswith('.js') and filename == 'scriptures-data.js':
+                if filename.endswith('.json') and filename == 'scriptures-data.json':
                     training_pages.append(f"./{training_path}/js/{filename}")
 
         # 训练目录不再有独立 css/（已移至根目录共享），此处保留兼容扫描
@@ -447,8 +447,6 @@ def generate_main_index(config, batch_results):
         'bible-dict.js', 'speech.js', 'highlight.js', 'outline.js',
         'scripture-popup.js', 'toc-redirect.js', 'font-control.js',
         'search.js',
-        # 圣经全文数据（由 export_bible_html_js.py 生成，提交到 src/static/js/）
-        'bible-text.js', 'bible-notes.js', 'bible-xrefs.js',
     ]
     for js_file in shared_js_files:
         src = os.path.join('src', 'static', 'js', js_file)
@@ -492,12 +490,19 @@ def generate_main_index(config, batch_results):
             if filename.endswith(('.svg', '.png')):
                 core_resources.append(f'./icons/{filename}')
     
-    # 自动扫描 js 目录
+    # 自动扫描 js 目录（仅 .js 文件）
     js_dir = os.path.join(output_dir, 'js')
     if os.path.exists(js_dir):
         for filename in os.listdir(js_dir):
             if filename.endswith('.js') and not filename.endswith('.original'):
                 core_resources.append(f'./js/{filename}')
+
+    # 自动扫描 data 目录（圣经数据 JSON 文件）
+    data_dir_path = os.path.join(output_dir, 'data')
+    if os.path.exists(data_dir_path):
+        for filename in os.listdir(data_dir_path):
+            if filename.endswith('.json'):
+                core_resources.append(f'./data/{filename}')
 
     # 自动扫描 css 目录
     css_dir = os.path.join(output_dir, 'css')
@@ -661,6 +666,17 @@ def main():
     
     # 初始化经文字典（仅用于跨章节「从略」还原，不持久化到磁盘）
     bible_dict = BibleDict()
+
+    # 提前将圣经数据 JSON 复制到 output/data/，确保 process_batch 能读到用于过滤
+    _output_dir_early = config.get('output_dir', 'output')
+    _data_dir_early = os.path.join(_output_dir_early, 'data')
+    os.makedirs(_data_dir_early, exist_ok=True)
+    for _df in ['bible-text.json', 'bible-notes.json', 'bible-xrefs.json']:
+        _src = os.path.join('src', 'static', 'data', _df)
+        _dst = os.path.join(_data_dir_early, _df)
+        if os.path.exists(_src):
+            shutil.copy2(_src, _dst)
+    print(f"✓ 圣经数据 JSON 已预置到 {_data_dir_early}/")
 
     # 处理每个批次
     success_count = 0

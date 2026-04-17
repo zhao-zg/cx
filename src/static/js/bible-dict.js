@@ -1,7 +1,7 @@
 /**
  * 经文字典 — 动态查询并渲染经节内容
  *
- * 数据来源：window.CX_SCRIPTURES_DATA（build 时由 generator 内嵌到 js/scriptures-data.js）
+ * 数据来源：window.CX_SCRIPTURES_DATA（由 scripture-popup.js 异步加载 bible-text.json / scriptures-data.json）
  *
  * 用法：
  *   CXBibleDict.renderContainer(element)  // element 有 data-refs 属性
@@ -11,7 +11,7 @@
   'use strict';
 
   /**
-   * 获取经文字典（同步，scriptures-data.js 已在本脚本前加载）。
+   * 获取经文字典（在 ensureBibleText 回调中调用，数据已就绪）。
    * @returns {Object}
    */
   function getDict() {

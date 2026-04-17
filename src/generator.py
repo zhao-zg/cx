@@ -2,6 +2,7 @@
 """
 HTML生成器
 """
+import json
 import os
 import re
 import shutil
@@ -43,7 +44,7 @@ class HTMLGenerator:
         """复制 src/static 下的静态资源到输出目录。
 
         所有训练页面共用根目录下的 js/ 和 css/，以 ../js/ 和 ../css/ 相对路径引用。
-        训练特定文件（scriptures-data.js）由 _generate_scriptures_data_js 单独生成到训练目录。
+        训练特定文件（scriptures-data.json）由 _generate_scriptures_data_json 单独生成到训练目录。
         """
         try:
             static_dir = os.path.join(os.path.dirname(self.template_dir), 'static')
@@ -377,53 +378,39 @@ class HTMLGenerator:
 
     @classmethod
     def _load_bible_text_keys(cls, output_root: str) -> set:
-        """读取 output/js/bible-text.js 中所有经文 key，用于过滤补充数据。
+        """读取 output/data/bible-text.json 中所有经文 key，用于过滤补充数据。
         结果缓存在类变量中，同一进程内多个训练只解析一次。
         """
         if cls._bible_text_keys_cache is not None:
             return cls._bible_text_keys_cache
-        path = os.path.join(output_root, 'js', 'bible-text.js')
+        path = os.path.join(output_root, 'data', 'bible-text.json')
         if not os.path.isfile(path):
             cls._bible_text_keys_cache = set()
             return cls._bible_text_keys_cache
-        key_re = re.compile(r'"([^"\\]+)"\s*:')
-        keys = set()
         with open(path, encoding='utf-8') as f:
-            for line in f:
-                for m in key_re.finditer(line):
-                    keys.add(m.group(1))
-        cls._bible_text_keys_cache = keys
-        return keys
+            data = json.load(f)
+        cls._bible_text_keys_cache = set(data.keys())
+        return cls._bible_text_keys_cache
 
     @classmethod
     def _load_bible_text_data(cls, output_root: str) -> dict:
-        """读取 bible-text.js 的完整键值对（带 {N}/[a] 标记），用于半节标记补全。"""
+        """读取 bible-text.json 的完整键值对（带 {N}/[a] 标记），用于半节标记补全。"""
         if cls._bible_text_cache is not None:
             return cls._bible_text_cache
-        import json as _json
-        path = os.path.join(output_root, 'js', 'bible-text.js')
+        path = os.path.join(output_root, 'data', 'bible-text.json')
         if not os.path.isfile(path):
             cls._bible_text_cache = {}
             return cls._bible_text_cache
-        data = {}
-        obj_re = re.compile(r'Object\.assign\(window\.\w+,(\{.+\})\);\s*$')
         with open(path, encoding='utf-8') as f:
-            for line in f:
-                m = obj_re.search(line)
-                if m:
-                    try:
-                        data.update(_json.loads(m.group(1)))
-                    except Exception:
-                        pass
-        cls._bible_text_cache = data
-        return data
+            cls._bible_text_cache = json.load(f)
+        return cls._bible_text_cache
 
     @staticmethod
     def _enrich_half_verse(half_text: str, full_marked: str, half_type: str):
         """从整节带标记文本中截取半节对应的带标记片段。
 
         half_text:   来自 Word 的半节纯文本（含 …… 截断标记）
-        full_marked: bible-text.js 中整节文本（含 {N}/[a] 标记）
+        full_marked: bible-text.json 中整节文本（含 {N}/[a] 标记）
         half_type:   '上' 或 '下'
         返回带标记的半节文本，无法匹配时返回 None。
         """
@@ -462,8 +449,8 @@ class HTMLGenerator:
             marked_start = plain_to_marked[pos - 1] + 1 if pos > 0 else 0
             return full_marked[marked_start:]
 
-    def _generate_scriptures_data_js(self, training_data: TrainingData):
-        """生成 js/scriptures-data.js，仅包含全本圣经 bible-text.js 中没有的经文条目。"""
+    def _generate_scriptures_data_json(self, training_data: TrainingData):
+        """生成 js/scriptures-data.json，仅包含全本圣经 bible-text.json 中没有的经文条目。"""
         scriptures = self._collect_training_scriptures(training_data)
         if not scriptures:
             return
@@ -474,9 +461,9 @@ class HTMLGenerator:
         bible_data = self._load_bible_text_data(output_root)
         if bible_keys:
             total = len(scriptures)
-            # 过滤整节已在 bible-text.js 的条目
+            # 过滤整节已在 bible-text.json 的条目
             scriptures = {k: v for k, v in scriptures.items() if k not in bible_keys}
-            # 对半节（上/下）用整节带标记文本补全 {N}/[a]，仍保留在 scriptures-data.js
+            # 对半节（上/下）用整节带标记文本补全 {N}/[a]，仍保留在 scriptures-data.json
             if bible_data:
                 for k in list(scriptures.keys()):
                     if k and k[-1] in '上下':
@@ -487,38 +474,20 @@ class HTMLGenerator:
                                 scriptures[k] = enriched
             filtered = total - len(scriptures)
             if filtered:
-                print(f'  ℹ scriptures-data.js: 已过滤 {filtered} 条（全本圣经中已有），'
+                print(f'  ℹ scriptures-data.json: 已过滤 {filtered} 条（全本圣经中已有），'
                       f'保留 {len(scriptures)} 条补充经文')
 
         js_dir = os.path.join(self.output_dir, 'js')
         os.makedirs(js_dir, exist_ok=True)
-        js_path = os.path.join(js_dir, 'scriptures-data.js')
+        json_path = os.path.join(js_dir, 'scriptures-data.json')
+
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(scriptures, f, ensure_ascii=False, separators=(',', ':'))
 
         if not scriptures:
-            # 写空对象，避免 404，且不影响 bible-text.js 加载后的 CX_SCRIPTURES_DATA
-            with open(js_path, 'w', encoding='utf-8') as f:
-                f.write('/* scriptures-data.js: 无额外补充经文（全本圣经已覆盖） */\n')
-            print(f'  ✓ scriptures-data.js 已生成（无补充经文）')
-            return
-
-        lines = ['window.CX_SCRIPTURES_DATA = window.CX_SCRIPTURES_DATA || {};']
-        lines.append('Object.assign(window.CX_SCRIPTURES_DATA, {')
-        items = sorted(scriptures.items())
-        for i, (ref, text) in enumerate(items):
-            ref_j = ref.replace('\\', '\\\\').replace('"', '\\"')
-            text_j = (text.replace('\\', '\\\\')
-                         .replace('"', '\\"')
-                         .replace('\t', '\\t')
-                         .replace('\n', '\\n')
-                         .replace('\r', ''))
-            comma = '' if i == len(items) - 1 else ','
-            lines.append(f'  "{ref_j}": "{text_j}"{comma}')
-        lines.append('});')
-
-        with open(js_path, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(lines) + '\n')
-
-        print(f'  ✓ scriptures-data.js 已生成: {len(scriptures)} 条补充经文')
+            print(f'  ✓ scriptures-data.json 已生成（无补充经文）')
+        else:
+            print(f'  ✓ scriptures-data.json 已生成: {len(scriptures)} 条补充经文')
 
     def generate_all(self, training_data: TrainingData):
         """
@@ -542,7 +511,7 @@ class HTMLGenerator:
             self.generate_chapter_pages(chapter, training_data)
         
         # 生成内嵌经文数据 JS（解决 file:// 协议下 fetch 被 CORS 阻断的问题）
-        self._generate_scriptures_data_js(training_data)
+        self._generate_scriptures_data_json(training_data)
         
         print(f"✓ 已生成 {len(training_data.chapters)} 篇章的所有页面")
     
@@ -768,7 +737,8 @@ def generate_search_index(output_root: str, trainings: list) -> None:
         'entries': entries,
     }
 
-    out_path = os.path.join(output_root, 'search-index.json')
+    out_path = os.path.join(output_root, 'data', 'search-index.json')
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, 'w', encoding='utf-8') as fh:
         json.dump(index_data, fh, ensure_ascii=False, separators=(',', ':'))
 

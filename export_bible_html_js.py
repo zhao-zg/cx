@@ -2,23 +2,20 @@
 export_bible_html_js.py
 =======================
 从 resource/bible/ 下 1189 个 HTML 文件（圣经恢复本带注解串珠）
-生成三个懒加载 JS 数据文件：
-  output/js/bible-text.js   -- CX_SCRIPTURES_DATA  (~4 MB)
-  output/js/bible-notes.js  -- CX_BIBLE_NOTES       (~9 MB)
-  output/js/bible-xrefs.js  -- CX_BIBLE_XREFS       (~1 MB)
+生成三个懒加载 JSON 数据文件：
+  output/data/bible-text.json   -- 全本圣经经文  (~4 MB)
+  output/data/bible-notes.json  -- 注解数据      (~9 MB)
+  output/data/bible-xrefs.json  -- 串珠数据      (~1 MB)
 
-数据格式：
-  bible-text.js:
-    window.CX_SCRIPTURES_DATA={"创1:1":"{1}[a]起初{2}神{3}[b]创造...","创1:2上":...};
-    window.CX_BIBLE_TEXT_READY=1;
+数据格式（均为纯 JSON）：
+  bible-text.json:
+    {"创1:1":"{1}[a]起初{2}神{3}[b]创造...","创1:2上":...}
 
-  bible-notes.js:
-    window.CX_BIBLE_NOTES={"创1:1":{"1":"注解文字..."},...};
-    window.CX_BIBLE_NOTES_READY=1;
+  bible-notes.json:
+    {"创1:1":{"1":"注解文字..."},...}
 
-  bible-xrefs.js:
-    window.CX_BIBLE_XREFS={"创1:1":{"a":"约1:1,约1:2","b":"亚12:1,诗33:6"},...};
-    window.CX_BIBLE_XREFS_READY=1;
+  bible-xrefs.json:
+    {"创1:1":{"a":"约1:1,约1:2","b":"亚12:1,诗33:6"},...}
 
 用法：
   python export_bible_html_js.py             # 完整导出
@@ -35,10 +32,10 @@ except ImportError:
     sys.exit(1)
 
 BIBLE_DIR  = os.path.join(os.path.dirname(__file__), "resource", "bible")
-OUT_DIR    = os.path.join(os.path.dirname(__file__), "src", "static", "js")
-OUT_TEXT   = os.path.join(OUT_DIR, "bible-text.js")
-OUT_NOTES  = os.path.join(OUT_DIR, "bible-notes.js")
-OUT_XREFS  = os.path.join(OUT_DIR, "bible-xrefs.js")
+OUT_DIR    = os.path.join(os.path.dirname(__file__), "src", "static", "data")
+OUT_TEXT   = os.path.join(OUT_DIR, "bible-text.json")
+OUT_NOTES  = os.path.join(OUT_DIR, "bible-notes.json")
+OUT_XREFS  = os.path.join(OUT_DIR, "bible-xrefs.json")
 
 # ── 书卷全名 → 简写 ───────────────────────────────────────────────
 BOOK_MAP = {
@@ -293,28 +290,10 @@ def parse_file(fp):
     return texts, notes_all, xrefs_all
 
 
-def write_js(path, var_name, ready_name, data):
+def write_json(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    items = sorted(data.items())
-    CHUNK = 100
-    # CX_SCRIPTURES_DATA 需要保留已有的补充数据（scriptures-data.js 先于本文件加载）
-    init_expr = (f"window.{var_name}=window.{var_name}||{{}};"
-                 if var_name == "CX_SCRIPTURES_DATA"
-                 else f"window.{var_name}={{}};")
-    lines = [
-        f"/* {os.path.basename(path)} \u2014\u2014 \u81ea\u52a8\u751f\u6210\uff0c\u8bf7\u52ff\u624b\u52a8\u4fee\u6539 */",
-        init_expr
-    ]
-    for start in range(0, len(items), CHUNK):
-        chunk = items[start:start+CHUNK]
-        pairs = ",".join(
-            json.dumps(k, ensure_ascii=False) + ":" + json.dumps(v, ensure_ascii=False)
-            for k, v in chunk
-        )
-        lines.append(f"Object.assign(window.{var_name},{{{pairs}}});")
-    lines.append(f"window.{ready_name}=1;")
     with open(path, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines) + "\n")
+        json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
     kb = os.path.getsize(path) / 1024
     print(f"  {os.path.basename(path)}: {len(data)} \u689d, {kb:.0f} KB ({kb/1024:.1f} MB)")
 
@@ -361,10 +340,10 @@ def main():
         print(f"\n跳过 {len(skipped)} 个: {skipped[:8]}")
 
     print(f"\n共解析 {len(all_texts)} 节经文 / {len(all_notes)} 节含注解 / {len(all_xrefs)} 节含串珠")
-    print("写入 JS 文件...")
-    write_js(OUT_TEXT,  "CX_SCRIPTURES_DATA", "CX_BIBLE_TEXT_READY",  all_texts)
-    write_js(OUT_NOTES, "CX_BIBLE_NOTES",     "CX_BIBLE_NOTES_READY", all_notes)
-    write_js(OUT_XREFS, "CX_BIBLE_XREFS",     "CX_BIBLE_XREFS_READY", all_xrefs)
+    print("写入 JSON 文件...")
+    write_json(OUT_TEXT,  all_texts)
+    write_json(OUT_NOTES, all_notes)
+    write_json(OUT_XREFS, all_xrefs)
     print("完成！")
 
 

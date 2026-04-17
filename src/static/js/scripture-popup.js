@@ -7,12 +7,12 @@
  *  3. 弹框内 {N} 注脚号 → 展开注解（fn-ref）
  *  4. 弹框内 [a] 串珠号 → 展开对应串珠经文列表（xref-ref）
  *  5. 导航栈（返回按钮）
- *  6. 三文件懒加载：bible-text.js / bible-notes.js / bible-xrefs.js
+ *  6. 三文件懒加载：bible-text.json / bible-notes.json / bible-xrefs.json
  *
- * 全局变量（懒加载赋值）：
- *   CX_SCRIPTURES_DATA   （bible-text.js 或 scriptures-data.js）
- *   CX_BIBLE_NOTES       （bible-notes.js）
- *   CX_BIBLE_XREFS       （bible-xrefs.js）
+ * 全局变量（fetch 后手动赋值）：
+ *   CX_SCRIPTURES_DATA   （bible-text.json）
+ *   CX_BIBLE_NOTES       （bible-notes.json）
+ *   CX_BIBLE_XREFS       （bible-xrefs.json）
  */
 (function () {
   'use strict';
@@ -30,13 +30,12 @@
     return (window.CX && window.CX_ROOT) ? window.CX_ROOT : '../';
   }
 
-  /* ── 懒加载脚本 ── */
-  function loadScript(src, onDone) {
-    var el = document.createElement('script');
-    el.src = src;
-    el.onload = onDone;
-    el.onerror = onDone; /* 加载失败也继续 */
-    document.head.appendChild(el);
+  /* ── 懒加载 JSON ── */
+  function loadJSON(url, onDone) {
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(onDone)
+      .catch(function () { onDone(null); }); /* 加载失败也继续 */
   }
 
   var _loadingText  = false, _cbText  = [];
@@ -44,15 +43,25 @@
   var _loadingXrefs = false, _cbXrefs = [];
 
   function ensureBibleText(cb) {
-    /* 只有 CX_BIBLE_TEXT_READY（bible-text.js 已加载）才算就绪；
-       scriptures-data.js 仅是补充，不代表全本圣经已加载。 */
     if (window.CX_BIBLE_TEXT_READY) { cb(); return; }
     _cbText.push(cb);
     if (_loadingText) return;
     _loadingText = true;
-    loadScript(getRootPath() + 'js/bible-text.js', function () {
+    /* 并行加载全本圣经 + 训练补充经文，两者都完成后才标记 READY */
+    var pending = 2;
+    function onBoth() {
+      if (--pending > 0) return;
+      window.CX_BIBLE_TEXT_READY = 1;
       var cbs = _cbText.slice(); _cbText = [];
       cbs.forEach(function (f) { f(); });
+    }
+    loadJSON(getRootPath() + 'data/bible-text.json', function (data) {
+      if (data) window.CX_SCRIPTURES_DATA = Object.assign(window.CX_SCRIPTURES_DATA || {}, data);
+      onBoth();
+    });
+    loadJSON('js/scriptures-data.json', function (data) {
+      if (data) window.CX_SCRIPTURES_DATA = Object.assign(window.CX_SCRIPTURES_DATA || {}, data);
+      onBoth();
     });
   }
 
@@ -61,7 +70,11 @@
     _cbNotes.push(cb);
     if (_loadingNotes) return;
     _loadingNotes = true;
-    loadScript(getRootPath() + 'js/bible-notes.js', function () {
+    loadJSON(getRootPath() + 'data/bible-notes.json', function (data) {
+      if (data) {
+        window.CX_BIBLE_NOTES = data;
+        window.CX_BIBLE_NOTES_READY = 1;
+      }
       var cbs = _cbNotes.slice(); _cbNotes = [];
       cbs.forEach(function (f) { f(); });
     });
@@ -72,7 +85,11 @@
     _cbXrefs.push(cb);
     if (_loadingXrefs) return;
     _loadingXrefs = true;
-    loadScript(getRootPath() + 'js/bible-xrefs.js', function () {
+    loadJSON(getRootPath() + 'data/bible-xrefs.json', function (data) {
+      if (data) {
+        window.CX_BIBLE_XREFS = data;
+        window.CX_BIBLE_XREFS_READY = 1;
+      }
       var cbs = _cbXrefs.slice(); _cbXrefs = [];
       cbs.forEach(function (f) { f(); });
     });
