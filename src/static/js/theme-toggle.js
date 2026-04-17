@@ -187,6 +187,9 @@
                     <button class="action-btn sponsor" id="sponsorBtn" style="display:none">
                         <span class="cache-icon">❤️</span><span class="cache-text">赞助作者</span>
                     </button>
+                    <button class="action-btn feedback" id="feedbackBtn">
+                        <span class="cache-icon">💬</span><span class="cache-text">反馈</span>
+                    </button>
                 </div>
                 <div class="cache-status" id="actionStatus"></div>
             </div>
@@ -301,6 +304,14 @@
                     }
                 }
             } catch(e) {}
+        })();
+
+        // ── 反馈问题（所有页面）──────────────────────────────────────
+        (function() {
+            var feedbackBtn = document.getElementById('feedbackBtn');
+            if (feedbackBtn) {
+                feedbackBtn.addEventListener('click', showFeedbackDialog);
+            }
         })();
 
         // 环境检测
@@ -624,8 +635,160 @@
         loadImg('wx');
     }
 
-    function closeThemePanelInternal(panel, overlay) {
-        panel.classList.remove('show');
+    // 反馈问题对话框
+    function showFeedbackDialog() {
+        if (document.getElementById('cxFeedbackMask')) return;
+
+        var PUSH_URLS = [
+            'https://moepush.zhaozg.cloudns.org/api/push/O0aR8LBgLYWnnwC1',
+            'https://moepush.zhaozg.dpdns.org/api/push/O0aR8LBgLYWnnwC1'
+        ];
+        var MAX_LEN = 500;
+
+        var mask = document.createElement('div');
+        mask.id = 'cxFeedbackMask';
+        mask.className = 'cx-dialog-mask';
+        mask.innerHTML = [
+            '<div class="cx-feedback-box">',
+            '  <div class="cx-feedback-header">',
+            '    <div class="cx-feedback-title">💬 反馈问题</div>',
+            '    <button class="cx-feedback-close" id="cxFeedbackClose">×</button>',
+            '  </div>',
+            '  <div class="cx-feedback-body">',
+            '    <textarea class="cx-feedback-textarea" id="cxFeedbackText" maxlength="' + MAX_LEN + '" placeholder="请描述您遇到的问题或建议…"></textarea>',
+            '    <div class="cx-feedback-count" id="cxFeedbackCount">0/' + MAX_LEN + '</div>',
+            '    <div class="cx-feedback-status" id="cxFeedbackStatus"></div>',
+            '  </div>',
+            '  <div class="cx-feedback-actions">',
+            '    <button class="cx-feedback-cancel" id="cxFeedbackCancelBtn">取消</button>',
+            '    <button class="cx-feedback-submit" id="cxFeedbackSubmitBtn">发送</button>',
+            '  </div>',
+            '</div>'
+        ].join('');
+        document.body.appendChild(mask);
+
+        window.CX.backStack.push(function() {
+            if (mask.parentNode) mask.parentNode.removeChild(mask);
+        });
+
+        function closeMask() {
+            if (mask.parentNode) mask.parentNode.removeChild(mask);
+            window.CX.backStack.pop();
+        }
+
+        setTimeout(function() {
+            var ta = document.getElementById('cxFeedbackText');
+            if (ta) ta.focus();
+        }, 100);
+
+        mask.addEventListener('click', function(e) {
+            if (e.target === mask) closeMask();
+        });
+
+        var closeBtn = document.getElementById('cxFeedbackClose');
+        if (closeBtn) closeBtn.addEventListener('click', closeMask);
+
+        var cancelBtn = document.getElementById('cxFeedbackCancelBtn');
+        if (cancelBtn) cancelBtn.addEventListener('click', closeMask);
+
+        var textarea = document.getElementById('cxFeedbackText');
+        var countEl = document.getElementById('cxFeedbackCount');
+        if (textarea && countEl) {
+            textarea.addEventListener('input', function() {
+                countEl.textContent = textarea.value.length + '/' + MAX_LEN;
+            });
+        }
+
+        var submitBtn = document.getElementById('cxFeedbackSubmitBtn');
+        var statusEl = document.getElementById('cxFeedbackStatus');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', function() {
+                var text = textarea ? textarea.value.trim() : '';
+                if (!text) {
+                    if (statusEl) { statusEl.textContent = '请输入反馈内容'; statusEl.className = 'cx-feedback-status error'; }
+                    return;
+                }
+                submitBtn.disabled = true;
+                submitBtn.textContent = '发送中…';
+                if (statusEl) { statusEl.textContent = ''; statusEl.className = 'cx-feedback-status'; }
+
+                // 收集设备信息
+                var ua = navigator.userAgent || '';
+                var lang = navigator.language || '';
+                var platform = navigator.platform || '';
+                var screenInfo = (screen.width || 0) + 'x' + (screen.height || 0);
+                var tz = '';
+                try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e) {}
+                var appVer = '';
+                try {
+                    var vEl = document.querySelector('meta[name="app-version"]');
+                    if (vEl) appVer = vEl.getAttribute('content') || '';
+                } catch(e) {}
+
+                function doSend(ip) {
+                    var deviceLines = [
+                        'IP: ' + ip,
+                        '平台: ' + platform,
+                        '屏幕: ' + screenInfo,
+                        '语言: ' + lang,
+                        tz ? '时区: ' + tz : '',
+                        appVer ? '版本: ' + appVer : '',
+                        'UA: ' + ua.substring(0, 200)
+                    ].filter(Boolean).join('\n');
+
+                    var content = text + '\n\n---\n' + deviceLines;
+
+                    function tryPush(idx) {
+                        if (idx >= PUSH_URLS.length) {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = '发送';
+                            if (statusEl) { statusEl.textContent = '发送失败，请稍后重试'; statusEl.className = 'cx-feedback-status error'; }
+                            return;
+                        }
+                        fetch(PUSH_URLS[idx], {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ title: '用户反馈', content: content })
+                        })
+                        .then(function(r) {
+                            if (!r.ok) throw new Error('HTTP ' + r.status);
+                            return r.json();
+                        })
+                        .then(function() {
+                            if (statusEl) { statusEl.textContent = '✓ 发送成功，感谢您的反馈！'; statusEl.className = 'cx-feedback-status success'; }
+                            setTimeout(closeMask, 1800);
+                        })
+                        .catch(function() { tryPush(idx + 1); });
+                    }
+                    tryPush(0);
+                }
+
+                // 获取真实 IP（多级降级）
+                var IP_APIS = [
+                    // 国内服务，返回 "当前 IP：x.x.x.x 来自于：..."
+                    { url: 'https://myip.ipip.net', parse: function(t) { var m = t.match(/(\d{1,3}(?:\.\d{1,3}){3})/); return m ? m[1] : ''; } },
+                    // 国际，纯文本 IP
+                    { url: 'https://ipinfo.io/ip', parse: function(t) { return t.trim(); } },
+                    // 备用
+                    { url: 'https://ipapi.co/ip', parse: function(t) { return t.trim(); } }
+                ];
+                function fetchIp(idx) {
+                    if (idx >= IP_APIS.length) { doSend('未知'); return; }
+                    var api = IP_APIS[idx];
+                    fetch(api.url, { cache: 'no-cache' })
+                        .then(function(r) { return r.text(); })
+                        .then(function(t) {
+                            var ip = api.parse(t);
+                            if (ip) { doSend(ip); } else { fetchIp(idx + 1); }
+                        })
+                        .catch(function() { fetchIp(idx + 1); });
+                }
+                fetchIp(0);
+            });
+        }
+    }
+
+    function closeThemePanelInternal(panel, overlay) {        panel.classList.remove('show');
         if (overlay) overlay.classList.remove('show');
         unlockPageScroll();
     }
