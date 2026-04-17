@@ -42,7 +42,12 @@
     <script src="../js/bible-dict.js"></script>
     <script src="../js/scripture-popup.js"></script>
     <script src="../js/theme-toggle.js"></script>
-    <script src="../js/app-update.js" defer></script>
+    <script>
+    (function(){
+        var isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||(window.location.hostname==='localhost'&&window.location.protocol==='http:');
+        if(isCap){var s=document.createElement('script');s.src='../js/app-update.js';document.head.appendChild(s);}
+    })();
+    </script>
     <script src="../js/speech.js" defer></script>
     <script src="../js/highlight.js" defer></script>
     <script src="../js/nav-stack.js"></script>

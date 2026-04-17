@@ -694,9 +694,12 @@
         var textarea = document.getElementById('cxFeedbackText');
         var countEl = document.getElementById('cxFeedbackCount');
         if (textarea && countEl) {
-            textarea.addEventListener('input', function() {
+            function updateCount() {
                 countEl.textContent = textarea.value.length + '/' + MAX_LEN;
-            });
+            }
+            textarea.addEventListener('input', updateCount);
+            textarea.addEventListener('compositionend', updateCount);
+            textarea.addEventListener('keyup', updateCount);
         }
 
         var submitBtn = document.getElementById('cxFeedbackSubmitBtn');
@@ -714,11 +717,8 @@
 
                 // 收集设备信息
                 var ua = navigator.userAgent || '';
-                var lang = navigator.language || '';
                 var platform = navigator.platform || '';
                 var screenInfo = (screen.width || 0) + 'x' + (screen.height || 0);
-                var tz = '';
-                try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e) {}
                 var appVer = '';
                 try {
                     var vEl = document.querySelector('meta[name="app-version"]');
@@ -730,8 +730,6 @@
                         'IP: ' + ip,
                         '平台: ' + platform,
                         '屏幕: ' + screenInfo,
-                        '语言: ' + lang,
-                        tz ? '时区: ' + tz : '',
                         appVer ? '版本: ' + appVer : '',
                         'UA: ' + ua.substring(0, 200)
                     ].filter(Boolean).join('\n');
