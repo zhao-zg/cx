@@ -188,7 +188,7 @@
                         <span class="cache-icon">❤️</span><span class="cache-text">赞助作者</span>
                     </button>
                     <button class="action-btn feedback" id="feedbackBtn">
-                        <span class="cache-icon">💬</span><span class="cache-text">反馈</span>
+                        <span class="cache-icon">💬</span><span class="cache-text">问题反馈</span>
                     </button>
                 </div>
                 <div class="cache-status" id="actionStatus"></div>
@@ -745,12 +745,16 @@
                             if (statusEl) { statusEl.textContent = '发送失败，请稍后重试'; statusEl.className = 'cx-feedback-status error'; }
                             return;
                         }
+                        var ctrl = new AbortController();
+                        var timer = setTimeout(function() { ctrl.abort(); }, 10000);
                         fetch(PUSH_URLS[idx], {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ title: '用户反馈', content: content })
+                            body: JSON.stringify({ title: '用户反馈', content: content }),
+                            signal: ctrl.signal
                         })
                         .then(function(r) {
+                            clearTimeout(timer);
                             if (!r.ok) throw new Error('HTTP ' + r.status);
                             return r.json();
                         })
@@ -758,37 +762,37 @@
                             if (statusEl) { statusEl.textContent = '✓ 发送成功，感谢您的反馈！'; statusEl.className = 'cx-feedback-status success'; }
                             setTimeout(closeMask, 1800);
                         })
-                        .catch(function() { tryPush(idx + 1); });
+                        .catch(function() { clearTimeout(timer); tryPush(idx + 1); });
                     }
                     tryPush(0);
                 }
 
-                // 获取真实 IP（多级降级）
+                // 获取真实 IP（多级降级，每次最多等 5s）
                 var IP_APIS = [
-                    // 国内服务，返回 "当前 IP：x.x.x.x 来自于：..."
                     { url: 'https://myip.ipip.net', parse: function(t) { var m = t.match(/(\d{1,3}(?:\.\d{1,3}){3})/); return m ? m[1] : ''; } },
-                    // 国际，纯文本 IP
-                    { url: 'https://ipinfo.io/ip', parse: function(t) { return t.trim(); } },
-                    // 备用
-                    { url: 'https://ipapi.co/ip', parse: function(t) { return t.trim(); } }
+                    { url: 'https://ipinfo.io/ip',  parse: function(t) { return t.trim(); } },
+                    { url: 'https://ipapi.co/ip',   parse: function(t) { return t.trim(); } }
                 ];
                 function fetchIp(idx) {
                     if (idx >= IP_APIS.length) { doSend('未知'); return; }
                     var api = IP_APIS[idx];
-                    fetch(api.url, { cache: 'no-cache' })
-                        .then(function(r) { return r.text(); })
+                    var ctrl = new AbortController();
+                    var timer = setTimeout(function() { ctrl.abort(); }, 5000);
+                    fetch(api.url, { cache: 'no-cache', signal: ctrl.signal })
+                        .then(function(r) { clearTimeout(timer); return r.text(); })
                         .then(function(t) {
                             var ip = api.parse(t);
                             if (ip) { doSend(ip); } else { fetchIp(idx + 1); }
                         })
-                        .catch(function() { fetchIp(idx + 1); });
+                        .catch(function() { clearTimeout(timer); fetchIp(idx + 1); });
                 }
                 fetchIp(0);
             });
         }
     }
 
-    function closeThemePanelInternal(panel, overlay) {        panel.classList.remove('show');
+    function closeThemePanelInternal(panel, overlay) {
+        panel.classList.remove('show');
         if (overlay) overlay.classList.remove('show');
         unlockPageScroll();
     }
