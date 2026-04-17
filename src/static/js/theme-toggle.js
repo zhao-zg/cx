@@ -238,9 +238,11 @@
             const panel = document.getElementById('themePanel');
             const btn = document.querySelector('.theme-toggle-btn');
             if (panel && panel.classList.contains('show') && !panel.contains(e.target) && !btn.contains(e.target)) {
-                // 若点击发生在弹出对话框内，不关闭面板
-                var dialogMask = document.getElementById('cxClearDialogMask');
-                if (dialogMask && dialogMask.contains(e.target)) return;
+                // 若点击发生在任意弹出对话框内，不关闭面板
+                var masks = document.querySelectorAll('.cx-dialog-mask');
+                for (var i = 0; i < masks.length; i++) {
+                    if (masks[i].contains(e.target)) return;
+                }
                 window.toggleThemePanel(); // 通过统一入口关闭，消耗 history
             }
         });
@@ -543,8 +545,7 @@
     function showSponsorDialog() {
         if (document.getElementById('cxSponsorMask')) return;
 
-        // 图片源：始终从 Cloudflare 服务器远程获取，主备降级
-        var CF_SERVERS = [
+        var SPONSOR_SERVERS = [
             'https://cx.zhaozg.cloudns.org/',
             'https://cx.zhaozg.dpdns.org/'
         ];
@@ -562,9 +563,7 @@
             '    <button class="cx-sponsor-tab active" data-type="wx">🟢 微信</button>',
             '    <button class="cx-sponsor-tab" data-type="zfb">🔵 支付宝</button>',
             '  </div>',
-            '  <div class="cx-sponsor-img-wrap" id="cxSponsorImgWrap">',
-            '    <div class="cx-sponsor-loading">加载中…</div>',
-            '  </div>',
+            '  <div class="cx-sponsor-img-wrap" id="cxSponsorImgWrap"></div>',
             '</div>'
         ].join('');
         document.body.appendChild(mask);
@@ -579,14 +578,10 @@
             window.CX.backStack.pop(); // 消耗 pushState 记录
         }
 
-        // 关闭
+        // 关闭 & 标签切换
         mask.addEventListener('click', function(e) {
             var t = e.target;
-            if (t === mask || t.id === 'cxSponsorClose') {
-                closeSponsor();
-                return;
-            }
-            // 标签切换
+            if (t === mask || t.id === 'cxSponsorClose') { closeSponsor(); return; }
             var tab = t.closest ? t.closest('.cx-sponsor-tab') : (t.classList.contains('cx-sponsor-tab') ? t : null);
             if (tab && tab.dataset.type) {
                 mask.querySelectorAll('.cx-sponsor-tab').forEach(function(b) { b.classList.remove('active'); });
@@ -595,40 +590,24 @@
             }
         });
 
-        // 加载图片（始终远程，主备降级）
+        // 使用统一图片加载工具
         function loadImg(type) {
             var imgWrap = document.getElementById('cxSponsorImgWrap');
             if (!imgWrap) return;
-            imgWrap.innerHTML = '<div class="cx-sponsor-loading">加载中…</div>';
-            var file = imgFiles[type];
-            var ts = Date.now();
-            var tried = 0;
-            function tryNext() {
-                if (tried >= CF_SERVERS.length) {
-                    if (imgWrap) imgWrap.innerHTML = '<div class="cx-sponsor-loading">加载失败</div>';
-                    return;
+            CX.loadRemoteImage(imgWrap, SPONSOR_SERVERS, imgFiles[type],
+                type === 'wx' ? '微信赞助二维码' : '支付宝赞助二维码',
+                {
+                    className: 'cx-sponsor-qr',
+                    loadingText: '加载中…',
+                    errorText: '加载失败',
+                    onLoad: function(img) {
+                        img.style.cursor = 'zoom-in';
+                        img.addEventListener('click', function() {
+                            if (window.openImageViewer) window.openImageViewer(img.src);
+                        });
+                    }
                 }
-                var url = CF_SERVERS[tried++] + file + '?t=' + ts;
-                setImg(imgWrap, url, type, tryNext);
-            }
-            tryNext();
-        }
-
-        function setImg(imgWrap, url, type, onError) {
-            var img = new Image();
-            img.onload = function() {
-                if (imgWrap && imgWrap.isConnected !== false) {
-                    imgWrap.innerHTML = '';
-                    imgWrap.appendChild(img);
-                }
-            };
-            img.onerror = function() {
-                if (onError) { onError(); return; }
-                if (imgWrap) imgWrap.innerHTML = '<div class="cx-sponsor-loading">加载失败</div>';
-            };
-            img.className = 'cx-sponsor-qr';
-            img.alt = type === 'wx' ? '微信赞助二维码' : '支付宝赞助二维码';
-            img.src = url;
+            );
         }
 
         // 初始加载微信

@@ -59,6 +59,7 @@ class HTMLGenerator:
                 'scripture-popup.js',
                 'toc-redirect.js',
                 'nav-stack.js',
+                'image-utils.js',
                 'theme-toggle.js',
                 'app-update.js',
                 'font-control.js',
