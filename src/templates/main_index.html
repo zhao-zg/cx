@@ -99,7 +99,7 @@
         <div class="cx-maint-title">服务维护中</div>
         <div class="cx-maint-sub">系统正在进行维护升级，<br>请稍后再试或联系管理员。</div>
     </div>
-    <script>(function(){var el=document.getElementById('cxMaintTrigger');if(!el)return;var cnt=0,t=0;el.addEventListener('click',function(){clearTimeout(t);cnt++;if(cnt>=5){try{sessionStorage.setItem('cx_access','ok');}catch(e){}location.reload();}else{t=setTimeout(function(){cnt=0;},2000);}});})();</script>
+    <script>(function(){var el=document.getElementById('cxMaintTrigger');if(!el)return;var cnt=0,t=0;el.addEventListener('click',function(){clearTimeout(t);cnt++;if(cnt>=5){try{sessionStorage.setItem('cx_access','ok');}catch(e){}location.reload();}else{t=setTimeout(function(){cnt=0;},999);}});})();</script>
     <div class="container">
         <div class="header">
             <h1 id="mainLogo" class="logo-trigger">🏠 特会信息合集</h1>
