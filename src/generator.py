@@ -63,6 +63,7 @@ class HTMLGenerator:
                 'theme-toggle.js',
                 'app-update.js',
                 'font-control.js',
+                'search.js',
             ]
 
             # 复制到根输出目录的 js/（训练目录的上级）
@@ -216,11 +217,17 @@ class HTMLGenerator:
         current_chapter = default_chapter
 
         # ── 找破折号分割位置 ─────────────────────────────────────────
+        # 括号内的破折号（如 （"光"—赛六十3，"祂"—诗七二4）中的 —）是引用标记，
+        # 不是段尾分隔符，跳过括号深度 > 0 的位置。
         split_pos = None
         for m in reversed(list(re.finditer(r'[—─]', text))):
-            after = text[m.start() + 1:].strip()
+            pos = m.start()
+            depth = sum(1 if c in '（(〔' else (-1 if c in '）)〕' else 0) for c in text[:pos])
+            if depth > 0:
+                continue
+            after = text[pos + 1:].strip()
             if re.search(r'\d', after) and self._SCRIPTURE_REF_START_RE.match(after):
-                split_pos = m.start()
+                split_pos = pos
                 break
 
         main_text = text[:split_pos] if split_pos is not None else text
@@ -620,7 +627,9 @@ class HTMLGenerator:
             f.write(html)
     
     def _generate_ministry_page(self, num: int, chapter: dict, training: dict):
-        """生成职事信息摘录页（_zs.htm）"""
+        """生成职事信息摘录页（_zs.htm），无内容时跳过"""
+        if not (chapter.get('ministry_excerpt') or '').strip():
+            return
         template = self.env.get_template('ministry.html')
         html = template.render(chapter=chapter, training=training, page_type='zs')
         
@@ -678,3 +687,89 @@ class HTMLGenerator:
         output_path = os.path.join(self.output_dir, filename)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
+
+
+# ---------------------------------------------------------------------------
+# 搜索索引生成（模块级函数，需在所有 HTML 生成完毕后调用）
+# ---------------------------------------------------------------------------
+
+def generate_search_index(output_root: str, trainings: list) -> None:
+    """从已生成的 HTML 文件提取全文搜索索引，写出 output/search-index.json。
+
+    参数:
+        output_root: output 根目录（即 trainings.json 所在目录）
+        trainings:   训练列表，每项需包含 path / title / chapter_count
+    """
+    from bs4 import BeautifulSoup
+    import json
+    from datetime import datetime as _dt
+
+    # (type_key, css_selector, label)
+    TYPE_CONFIG = [
+        ('h',  '.content-text', '听抄'),
+        ('cx', '.content-text', '晨兴'),
+        ('cv', '.outline-item', '纲目'),
+        ('zs', '.content-text', '职事摘录'),
+    ]
+
+    entries = []
+    total_files = 0
+
+    for training in trainings:
+        path           = training.get('path', '')
+        title          = training.get('title', '')
+        chapter_count  = training.get('chapter_count', 0)
+        training_dir   = os.path.join(output_root, path)
+
+        for num in range(1, chapter_count + 1):
+            for type_key, css_sel, type_label in TYPE_CONFIG:
+                filename = f"{num}_{type_key}.htm"
+                filepath = os.path.join(training_dir, filename)
+                if not os.path.isfile(filepath):
+                    continue
+
+                total_files += 1
+                with open(filepath, 'r', encoding='utf-8') as fh:
+                    soup = BeautifulSoup(fh, 'lxml')
+
+                # 章节标题
+                chapter_title = ''
+                h2 = soup.find('h2', class_='chapter-title')
+                if h2:
+                    chapter_title = h2.get_text(separator='', strip=True)
+                if not chapter_title:
+                    t = soup.find('title')
+                    if t:
+                        chapter_title = t.get_text(strip=True)
+
+                sel_cls = css_sel.lstrip('.')  # 'content-text' 或 'outline-item'
+                for pi, elem in enumerate(soup.select(css_sel)):
+                    # 跳过 no-content 占位符
+                    if 'no-content' in (elem.get('class') or []):
+                        continue
+                    text = elem.get_text(separator='', strip=True)
+                    if len(text) < 10:
+                        continue
+                    entries.append({
+                        'url':           f"{path}/{filename}",
+                        'training':      title,
+                        'chapter':       num,
+                        'type':          type_key,
+                        'type_label':    type_label,
+                        'chapter_title': chapter_title,
+                        'pi':            pi,
+                        'selector':      sel_cls,
+                        'text':          text[:200],
+                    })
+
+    index_data = {
+        'version': _dt.now().strftime('%Y%m%d%H%M%S'),
+        'count':   len(entries),
+        'entries': entries,
+    }
+
+    out_path = os.path.join(output_root, 'search-index.json')
+    with open(out_path, 'w', encoding='utf-8') as fh:
+        json.dump(index_data, fh, ensure_ascii=False, separators=(',', ':'))
+
+    print(f"✓ search-index.json 已生成: {len(entries)} 条索引（处理 {total_files} 个文件）")

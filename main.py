@@ -10,7 +10,7 @@ import shutil
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from src.parser_improved import parse_training_docs_improved
-from src.generator import HTMLGenerator
+from src.generator import HTMLGenerator, generate_search_index
 from src.bible_dict import BibleDict
 
 
@@ -446,6 +446,7 @@ def generate_main_index(config, batch_results):
         'app-update.js', 'nav-stack.js', 'theme-toggle.js',
         'bible-dict.js', 'speech.js', 'highlight.js', 'outline.js',
         'scripture-popup.js', 'toc-redirect.js', 'font-control.js',
+        'search.js',
         # 圣经全文数据（由 export_bible_html_js.py 生成，提交到 src/static/js/）
         'bible-text.js', 'bible-notes.js', 'bible-xrefs.js',
     ]
@@ -537,7 +538,10 @@ def generate_main_index(config, batch_results):
     with open(sw_path, 'w', encoding='utf-8') as f:
         f.write(sw_content)
     print(f"✓ Service Worker 已生成: {sw_path}")
-    
+
+    # 生成搜索索引（从已生成的 HTML 提取全文） 
+    generate_search_index(output_dir, trainings)
+
     # 复制 _headers 文件（用于 Cloudflare Pages 的 MIME 类型配置）
     headers_src = os.path.join(template_dir, '_headers')
     if os.path.exists(headers_src):
