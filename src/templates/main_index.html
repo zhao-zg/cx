@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#f7f8fc">
     <!-- 防止主题跳色：在渲染前设置主题 -->
     <script>(function(){var d=document.documentElement,m=document.querySelector('meta[name="theme-color"]'),s=null,t='cool';try{s=localStorage.getItem('readingTheme')}catch(e){}if(s==='cool'||s==='warm'||s==='dark'){t=s}else{try{t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'cool'}catch(e){t='cool'}}d.setAttribute('data-theme',t);if(m){m.setAttribute('content',t==='warm'?'#f3ede4':(t==='dark'?'#121214':'#f7f8fc'));}})();</script>
-    <!-- 伪装检测：非PWA/非APP浏览器显示维护页 -->
-    <script>(function(){var ok=false;try{if(sessionStorage.getItem('cx_access')==='ok')ok=true;}catch(e){}if(!ok&&window.location.search.indexOf('zzg')!==-1){try{sessionStorage.setItem('cx_access','ok');}catch(e){}ok=true;}if(!ok){var isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||(window.location.hostname==='localhost'&&window.location.protocol==='http:');var isPwa=window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);if(!isCap&&!isPwa)document.documentElement.classList.add('cx-disguise');}})();</script>
+    <!-- 伪装检测：非PWA/非APP浏览器提示（暂用弹框，后续恢复伪装页） -->
+    <script>(function(){var ok=false;try{if(sessionStorage.getItem('cx_access')==='ok')ok=true;}catch(e){}if(!ok&&window.location.search.indexOf('zzg')!==-1){try{sessionStorage.setItem('cx_access','ok');}catch(e){}ok=true;}if(!ok){var isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||(window.location.hostname==='localhost'&&window.location.protocol==='http:');var isPwa=window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);/* 暂时改为弹框提示，恢复伪装页时将下一行改为: document.documentElement.classList.add('cx-disguise'); */if(!isCap&&!isPwa)window.__cxBrowserTip=true;}})();</script>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -83,6 +83,15 @@
         .cache-status.success{color:var(--success-text)}
         .cache-status.error{color:var(--danger-text)}
         .cache-status.warning{color:var(--warning-text)}
+        /* === 浏览器提示弹框：非PWA/非APP浏览器 === */
+        #cxBrowserTip{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+        #cxBrowserTip.show{display:flex}
+        .cx-tip-box{background:var(--surface,#fff);border-radius:16px;width:min(300px,calc(100vw - 40px));box-shadow:0 8px 32px rgba(0,0,0,.2);overflow:hidden;text-align:center}
+        .cx-tip-icon{font-size:52px;padding:28px 16px 6px}
+        .cx-tip-title{font-size:17px;font-weight:600;color:var(--heading,#111);padding:0 20px 8px}
+        .cx-tip-sub{font-size:14px;color:var(--text-muted,#888);padding:0 20px 24px;line-height:1.75}
+        .cx-tip-close{width:100%;padding:14px;background:none;border:none;border-top:1px solid var(--border,#eee);font-size:16px;font-weight:600;color:var(--brand,#007aff);cursor:pointer;-webkit-tap-highlight-color:transparent}
+        .cx-tip-close:active{background:var(--surface-alt,#f5f5f5)}
         /* === 伪装页：非PWA浏览器显示维护中 === */
         html.cx-disguise .container,html.cx-disguise .footer{display:none!important}
         #cxMaintenance{display:none;position:fixed;inset:0;z-index:9999;background:var(--surface,#fff);flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;box-sizing:border-box}
@@ -93,13 +102,54 @@
     </style>
 </head>
 <body>
+    <!-- 浏览器提示弹框（非 PWA/APP 浏览器中显示） -->
+    <div id="cxBrowserTip">
+        <div class="cx-tip-box">
+            <div class="cx-tip-icon" id="cxTipIcon">📱</div>
+            <div class="cx-tip-title" id="cxTipTitle"></div>
+            <div class="cx-tip-sub" id="cxTipSub"></div>
+            <button class="cx-tip-close" id="cxTipClose">知道了</button>
+        </div>
+    </div>
     <!-- 伪装维护页（非 PWA/APP 浏览器中显示，PWA 安装后自动隐藏） -->
     <div id="cxMaintenance">
         <div class="cx-maint-icon" id="cxMaintTrigger">🔧</div>
         <div class="cx-maint-title">服务维护中</div>
         <div class="cx-maint-sub">系统正在进行维护升级，<br>请稍后再试或联系管理员。</div>
     </div>
-    <script>(function(){var el=document.getElementById('cxMaintTrigger');if(!el)return;var cnt=0,t=0;el.addEventListener('click',function(){clearTimeout(t);cnt++;if(cnt>=5){try{sessionStorage.setItem('cx_access','ok');}catch(e){}location.reload();}else{t=setTimeout(function(){cnt=0;},999);}});})();</script>
+    <script>(function(){var el=document.getElementById('cxMaintTrigger');if(!el)return;var cnt=0,t=0;el.addEventListener('click',function(){clearTimeout(t);cnt++;if(cnt>=20){try{sessionStorage.setItem('cx_access','ok');}catch(e){}location.reload();}else{t=setTimeout(function(){cnt=0;},999);}});})();</script>
+    <!-- 非PWA/非APP浏览器提示弹框逻辑 -->
+    <script>(function(){
+        if(!window.__cxBrowserTip)return;
+        // 同一会话只弹一次
+        try{if(sessionStorage.getItem('cx_tip_dismissed')==='1')return;}catch(e){}
+        var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+        function showTip(){
+            var tip=document.getElementById('cxBrowserTip');
+            var icon=document.getElementById('cxTipIcon');
+            var title=document.getElementById('cxTipTitle');
+            var sub=document.getElementById('cxTipSub');
+            var btn=document.getElementById('cxTipClose');
+            if(!tip)return;
+            if(isIOS){
+                icon.textContent='📲';
+                title.textContent='添加到主屏幕';
+                sub.textContent='请发送到桌面缓存使用，在线版即将不支持';
+            }else{
+                icon.textContent='📦';
+                title.textContent='请下载 APK 离线使用';
+                sub.textContent='请下载APK离线使用，在线版即将不支持';
+            }
+            tip.classList.add('show');
+            btn.addEventListener('click',function(){
+                tip.classList.remove('show');
+                try{sessionStorage.setItem('cx_tip_dismissed','1');}catch(e){}
+            });
+            // 点击遮罩层关闭
+            tip.addEventListener('click',function(e){if(e.target===tip){tip.classList.remove('show');try{sessionStorage.setItem('cx_tip_dismissed','1');}catch(e2){}}});
+        }
+        if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){setTimeout(showTip,600);});}else{setTimeout(showTip,600);}
+    })();</script>
     <div class="container">
         <div class="header">
             <h1 id="mainLogo" class="logo-trigger">🏠 特会信息合集</h1>
