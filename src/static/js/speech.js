@@ -181,6 +181,7 @@
 
     function resetState(keepText) {
       stopProgressUpdate();
+      stopWsKeepalive();
       utterance = null;
       isPaused = false;
       startTime = 0;
@@ -208,6 +209,7 @@
           // ignore
         }
       } else {
+        stopWsKeepalive();
         try {
           window.speechSynthesis.cancel();
         } catch (e) {
@@ -216,6 +218,32 @@
       }
       // 停止分段播放
       isPlayingChunks = false;
+    }
+
+    // ── Web Speech API 后台保活 ───────────────────────────────────────────
+    // Chrome/Android WebView 页面隐藏约 15 秒后会自动暂停 speechSynthesis。
+    // 每 10 秒执行一次 pause()/resume() 可重置该计时器，保持后台持续播放。
+    var _wsKeepalive = null;
+
+    function startWsKeepalive() {
+      if (!useWebSpeech) return;
+      stopWsKeepalive();
+      _wsKeepalive = setInterval(function () {
+        if (isPaused) return;
+        try {
+          if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+            window.speechSynthesis.pause();
+            window.speechSynthesis.resume();
+          }
+        } catch (e) { /* ignore */ }
+      }, 10000);
+    }
+
+    function stopWsKeepalive() {
+      if (_wsKeepalive) {
+        clearInterval(_wsKeepalive);
+        _wsKeepalive = null;
+      }
     }
     
     // 将长文本分段（用于 Web Speech API）
@@ -276,7 +304,18 @@
           playNextChunk();
         }).catch(function(error) {
           if (chunkGen !== speakGeneration) return; // 旧回调（如被 stop/rate切换打断），丢弃
-          // 尝试播放下一段
+          // 系统切换 TTS 引擎后首次 speak() 可能失败，重试一次
+          if (_ttsRetryCount < 1) {
+            _ttsRetryCount++;
+            try { TextToSpeech.stop(); } catch (e) {}
+            setTimeout(function () {
+              if (chunkGen !== speakGeneration) return;
+              playNextChunk(); // 重试当前段（currentChunkIndex 未变）
+            }, 600);
+            return;
+          }
+          // 重试后仍失败，跳过本段继续
+          _ttsRetryCount = 0;
           currentChunkIndex++;
           if (currentChunkIndex < textChunks.length) {
             setTimeout(playNextChunk, 100);
@@ -301,6 +340,7 @@
         utterance.onstart = function() {
           updateButtonState(true);
           if (!progressInterval) startProgressUpdate();
+          startWsKeepalive(); // 启动后台保活
         };
         
         utterance.onend = function() {
@@ -343,7 +383,10 @@
 
     // 代次计数器：每次 startSpeakingFromPercent 时自增，旧的异步回调通过对比代次来丢弃自身
     var speakGeneration = 0;
-    
+
+    // TTS 引擎重试计数：系统切换 TTS 引擎后首次 speak() 可能失败，允许重试一次
+    var _ttsRetryCount = 0;
+
     // Web Speech API 分段播放相关变量
     var textChunks = [];
     var currentChunkIndex = 0;
@@ -357,6 +400,7 @@
 
       // 自增代次，使所有旧的异步回调失效
       var currentGen = ++speakGeneration;
+      _ttsRetryCount = 0; // 重置 TTS 引擎重试计数
 
       // Use totalDuration for time mapping; slice text proportionally for approximate seek.
       var targetSeconds = totalDuration ? (p / 100) * totalDuration : 0;
@@ -391,9 +435,9 @@
         // 使用 Capacitor TTS
         var TextToSpeech = window.Capacitor.Plugins.TextToSpeech;
         
-        // 如果文本很长，使用分段播放
-        if (segmentText.length > 1000) {
-          textChunks = splitTextIntoChunks(segmentText, 500);
+        // Capacitor TTS 使用大段（3000字）减少后台 JS 回调次数
+        if (segmentText.length > 3500) {
+          textChunks = splitTextIntoChunks(segmentText, 3000);
           currentChunkIndex = 0;
           isPlayingChunks = true;
           
@@ -433,7 +477,17 @@
           }).catch(function(error) {
             if (currentGen !== speakGeneration) return; // 旧回调（被 stop/rate切换打断），丢弃
             isSeekingInternal = false;
-            
+            // 系统切换 TTS 引擎后首次 speak() 可能失败，重试一次
+            if (_ttsRetryCount < 1) {
+              _ttsRetryCount++;
+              try { TextToSpeech.stop(); } catch (e) {}
+              setTimeout(function () {
+                if (currentGen !== speakGeneration) return;
+                startSpeakingFromPercent(p); // 使用外层 p（闭包）重试
+              }, 600);
+              return;
+            }
+            _ttsRetryCount = 0;
             // 重置状态
             stopProgressUpdate();
             utterance = null;
@@ -499,6 +553,7 @@
               
               updateButtonState(true);
               startProgressUpdate();
+              startWsKeepalive(); // 启动后台保活
             };
 
             utterance.onend = function () {
@@ -689,8 +744,17 @@
       safeCancel();
       resetState(false);
     });
-    
-    // 页面隐藏时不中断朗读，支持后台/锁屏继续播放
+
+    // visibilitychange：切回前台时恢复 Web Speech（系统可能在后台已暂停 speechSynthesis）
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState !== 'visible') return;
+      if (!useWebSpeech || isPaused) return;
+      try {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+      } catch (e) { /* ignore */ }
+    });
     }
 
     startInit();
