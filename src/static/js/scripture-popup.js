@@ -441,6 +441,10 @@
         if (!refs) return;
         block.innerHTML = renderVerseList(refs);
       });
+      // 经文块渲染完成后，通知 highlight.js 重新计算字符偏移并恢复划线
+      if (window.CXHighlight && window.CXHighlight.redoHighlights) {
+        window.CXHighlight.redoHighlights();
+      }
     });
   }
 

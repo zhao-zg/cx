@@ -36,8 +36,33 @@
             this._selectedColor = this.config.defaultColor;
             this.createMenus();
             this.loadHighlights();
-            this.restoreHighlights();
+            this._scheduleRestore();
             this.setupEventListeners();
+        },
+
+        // ─── 第一次恢复：DOMContentLoaded 后立即执行 ──────────────────
+        // highlight.js 是 defer 脚本，运行时 DOMContentLoaded 尚未触发；
+        // 注册到 DOMContentLoaded 可保证 scripture-popup.js 的 annotateInlineRefs
+        // （同步注册，先执行）已改写完 .content-text，偏移计算正确。
+        // 经文块（.scripture-block）此时可能还空着，但经文块之前的高亮可立即显示；
+        // 经文块之后的高亮偏移会在 redoHighlights() 里被修正。
+        _scheduleRestore: function () {
+            var self = this;
+            function doRestore() { self.restoreHighlights(); }
+            if (document.readyState === 'complete') {
+                doRestore();
+            } else {
+                document.addEventListener('DOMContentLoaded', doRestore);
+            }
+        },
+
+        // ─── 第二次恢复：供外部在异步内容渲染后调用 ──────────────────
+        // scripture-popup.js 的 renderScriptureBlocks 填充完经文块后调用，
+        // 重算所有偏移，修正经文块之后区域的高亮坐标。
+        // 无经文块的页面不会触发此方法，无额外开销。
+        redoHighlights: function () {
+            this.clearAllMarks();
+            this.restoreHighlights();
         },
 
         // ─── 本地存储 ─────────────────────────────────────────────

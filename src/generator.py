@@ -181,11 +181,20 @@ class HTMLGenerator:
             return day_str.split('•')[1].strip()
         return day_str
     
-    # 破折号后紧跟书卷缩写字符或中文章号，才视为经文引用分隔符
+    # 破折号后紧跟「书卷缩写 + 章/节数字」或「章/节数字」，才视为经文引用分隔符
+    # 要求书卷字（单字）之后必须紧跟章节数字，避免「耶稣基督」中的「耶」被误识为耶利米书
+    _BOOK_CHARS = r'创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼犹启来'
     _SCRIPTURE_REF_START_RE = re.compile(
         r'^(?:参[看阅]?\s*)?'
-        r'[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼犹启来'
-        r'一二三四五六七八九十百\d]'
+        r'(?:'
+        # 书卷名（单字）+ 可选修饰（前/后/上/下等）+ 必须紧跟章/节数字
+        r'[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼犹启来]'
+        r'[后前上下壹贰叁]?'
+        r'[一二三四五六七八九十百\d]'
+        r'|'
+        # 无书卷名，直接以章/节数字开头（相对章节引用）
+        r'[一二三四五六七八九十百\d]'
+        r')'
     )
 
     # 括号内容匹配（全角半角均支持）
@@ -224,15 +233,28 @@ class HTMLGenerator:
             refs = ImprovedParser._expand_cn_scripture_refs(content, current_book, current_chapter)
             parts.append(str(escape(main_text[last_end:m.start()])))
             if refs:
-                # 更新 current_book 和 current_chapter 为本次引用最后一个有书名的节
+                # 更新 current_book / current_chapter，但跨书引用不污染默认书卷上下文：
+                # 若括号内含显式书卷名且与默认书卷不同（旁引），不更新 current_book；
+                # 同时将 current_chapter 清零，避免后续纯节号误接到旁引的章节。
+                new_bk = ''
                 for ref in reversed(refs):
                     bk = ImprovedParser._extract_primary_book(ref)
                     if bk:
-                        current_book = bk
+                        new_bk = bk
                         break
-                chap_m = re.search(r'(\d+):', refs[-1])
-                if chap_m:
-                    current_chapter = int(chap_m.group(1))
+                if new_bk and new_bk != default_book:
+                    # 旁引（跨书）：只用于本次括号，不传播给后续相对引用
+                    current_chapter = 0
+                elif new_bk:
+                    current_book = new_bk
+                    chap_m = re.search(r'(\d+):', refs[-1])
+                    if chap_m:
+                        current_chapter = int(chap_m.group(1))
+                else:
+                    # 无显式书名（纯节续），只更新章号
+                    chap_m = re.search(r'(\d+):', refs[-1])
+                    if chap_m:
+                        current_chapter = int(chap_m.group(1))
                 data_refs = ','.join(refs)
                 span_text = str(escape(m.group(0)))
                 parts.append(f'<span class="scripture-ref" data-refs="{data_refs}">{span_text}</span>')
