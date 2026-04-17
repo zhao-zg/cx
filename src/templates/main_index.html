@@ -7,6 +7,8 @@
     <meta name="theme-color" content="#f7f8fc">
     <!-- 防止主题跳色：在渲染前设置主题 -->
     <script>(function(){var d=document.documentElement,m=document.querySelector('meta[name="theme-color"]'),s=null,t='cool';try{s=localStorage.getItem('readingTheme')}catch(e){}if(s==='cool'||s==='warm'||s==='dark'){t=s}else{try{t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'cool'}catch(e){t='cool'}}d.setAttribute('data-theme',t);if(m){m.setAttribute('content',t==='warm'?'#f3ede4':(t==='dark'?'#121214':'#f7f8fc'));}})();</script>
+    <!-- 伪装检测：非PWA/非APP浏览器显示维护页 -->
+    <script>(function(){var ok=false;try{if(sessionStorage.getItem('cx_access')==='ok')ok=true;}catch(e){}if(!ok&&window.location.search.indexOf('zzg')!==-1){try{sessionStorage.setItem('cx_access','ok');}catch(e){}ok=true;}if(!ok){var isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||(window.location.hostname==='localhost'&&window.location.protocol==='http:');var isPwa=window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);if(!isCap&&!isPwa)document.documentElement.classList.add('cx-disguise');}})();</script>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -81,9 +83,23 @@
         .cache-status.success{color:var(--success-text)}
         .cache-status.error{color:var(--danger-text)}
         .cache-status.warning{color:var(--warning-text)}
+        /* === 伪装页：非PWA浏览器显示维护中 === */
+        html.cx-disguise .container,html.cx-disguise .footer{display:none!important}
+        #cxMaintenance{display:none;position:fixed;inset:0;z-index:9999;background:var(--surface,#fff);flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;box-sizing:border-box}
+        html.cx-disguise #cxMaintenance{display:flex}
+        .cx-maint-icon{font-size:64px;margin-bottom:24px;cursor:default;-webkit-tap-highlight-color:transparent;user-select:none}
+        .cx-maint-title{font-size:20px;font-weight:600;color:var(--text,#333);margin-bottom:12px}
+        .cx-maint-sub{font-size:14px;color:var(--text-muted,#999);text-align:center;line-height:1.7;max-width:280px}
     </style>
 </head>
 <body>
+    <!-- 伪装维护页（非 PWA/APP 浏览器中显示，PWA 安装后自动隐藏） -->
+    <div id="cxMaintenance">
+        <div class="cx-maint-icon" id="cxMaintTrigger">🔧</div>
+        <div class="cx-maint-title">服务维护中</div>
+        <div class="cx-maint-sub">系统正在进行维护升级，<br>请稍后再试或联系管理员。</div>
+    </div>
+    <script>(function(){var el=document.getElementById('cxMaintTrigger');if(!el)return;var cnt=0,t=0;el.addEventListener('click',function(){clearTimeout(t);cnt++;if(cnt>=5){try{sessionStorage.setItem('cx_access','ok');}catch(e){}location.reload();}else{t=setTimeout(function(){cnt=0;},2000);}});})();</script>
     <div class="container">
         <div class="header">
             <h1 id="mainLogo" class="logo-trigger">🏠 特会信息合集</h1>

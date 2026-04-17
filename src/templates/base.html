@@ -9,6 +9,8 @@
     <meta name="theme-color" content="#f7f8fc">
     <!-- 防止主题跳色：在渲染前设置主题 -->
     <script>(function(){var d=document.documentElement,m=document.querySelector('meta[name="theme-color"]'),s=null,t='cool';try{s=localStorage.getItem('readingTheme')}catch(e){}if(s==='cool'||s==='warm'||s==='dark'){t=s}else{try{t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'cool'}catch(e){t='cool'}}d.setAttribute('data-theme',t);if(m){m.setAttribute('content',t==='warm'?'#f3ede4':(t==='dark'?'#121214':'#f7f8fc'));}})();</script>
+    <!-- 子页访问保护：非 PWA/APP 浏览器重定向回首页 -->
+    <script>(function(){var ok=false;try{if(sessionStorage.getItem('cx_access')==='ok')ok=true;}catch(e){}if(!ok){var isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||(window.location.hostname==='localhost'&&window.location.protocol==='http:');var isPwa=window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);if(!isCap&&!isPwa){location.replace('../');}}})();</script>
     {% if training.app_version %}<meta name="app-version" content="{{ training.app_version }}">{% endif %}
     <title>{% block title %}{{ training.title }}{% endblock %}</title>
     <!-- 预加载关键资源 -->
