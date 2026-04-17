@@ -484,7 +484,7 @@
         '<div class="cx-search-overlay"></div>' +
         '<div class="cx-search-panel">' +
           '<div class="cx-search-header">' +
-            '<input id="cx-search-input" type="search" placeholder="搜索特会信息…" autocomplete="off" autocorrect="off" spellcheck="false">' +
+            '<input id="cx-search-input" type="text" enterkeyhint="search" placeholder="搜索特会信息…" autocomplete="off" autocorrect="off" spellcheck="false">' +
             '<button class="cx-search-close" aria-label="关闭">✕</button>' +
           '</div>' +
           '<div id="cx-search-count"></div>' +
@@ -507,11 +507,21 @@
         self.close();
       });
 
-      this._input.addEventListener('input', function () {
+      function _triggerSearch() {
         clearTimeout(self._debounceTimer);
         self._debounceTimer = setTimeout(function () {
           self._doSearch(self._input.value);
         }, 300);
+      }
+
+      // input: 标准事件；keyup: Android WebView fallback（captureInput 时 input 可能不触发）
+      this._input.addEventListener('input', _triggerSearch);
+      this._input.addEventListener('keyup', _triggerSearch);
+
+      // compositionend: 中文/日文 IME 确认输入后立即搜索，无需等 debounce
+      this._input.addEventListener('compositionend', function () {
+        clearTimeout(self._debounceTimer);
+        self._doSearch(self._input.value);
       });
 
       document.addEventListener('keydown', function (e) {
