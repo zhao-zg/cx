@@ -134,8 +134,6 @@
     <script>
     // 自动扫描的训练资源列表（与 Service Worker 完全一致）
     window.__cxTrainingPages = {{ training_pages | tojson }};
-    // 共享资源列表（根目录 js/ css/），供"缓存数据"按钮补充缓存
-    window.__cxSharedResources = {{ shared_resources | tojson }};
     
     // 统一的环境检测 - 避免重复代码
     window.CX = window.CX || {};
@@ -531,17 +529,8 @@
             return Promise.resolve();
         }
 
-        // 先缓存共享资源（根目录 js/ css/ 由 SW 安装时缓存，这里显式补充确保已缓存）
-        var sharedResources = window.__cxSharedResources || [];
-        var cacheShared = sharedResources.length > 0
-            ? caches.open('cx-main-shared').then(function(cache) {
-                return Promise.allSettled(sharedResources.map(function(url) {
-                    return fetch(url, { cache: 'no-cache' })
-                        .then(function(res) { if (res.ok) return cache.put(url, res); })
-                        .catch(function() {});
-                }));
-            })
-            : Promise.resolve();
+        // 共享资源（js/ css/）由 SW 安装时已预缓存到 cx-main-{version}，无需重复缓存
+        var cacheShared = Promise.resolve();
 
         var totalTrainings = trainings.length;
         var currentIndex = 0;

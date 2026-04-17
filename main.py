@@ -371,22 +371,11 @@ def generate_main_index(config, batch_results):
     env = Environment(loader=FileSystemLoader(template_dir))
     template = env.get_template('main_index.html')
 
-    # 收集根目录共享资源（js/ css/），供"缓存数据"按钮使用
-    shared_resources = []
-    for sub in ('js', 'css'):
-        sub_dir = os.path.join(output_dir, sub)
-        if os.path.exists(sub_dir):
-            for fname in sorted(os.listdir(sub_dir)):
-                ext = os.path.splitext(fname)[1]
-                if ext in ('.js', '.css') and not fname.endswith('.original'):
-                    shared_resources.append(f'./{sub}/{fname}')
-
     html_content = template.render(
         trainings=trainings,
         total_chapters=total_chapters,
         generation_time=datetime.now().strftime('%Y年%m月%d日 %H:%M'),
         training_pages=training_pages,
-        shared_resources=shared_resources,
     )
     
     # 保存主页
