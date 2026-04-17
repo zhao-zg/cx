@@ -287,6 +287,24 @@ function initSpeech() {
 
             const feedingSection = activePage.querySelector('.feeding-section');
             if (feedingSection) {
+                // 读取喂养经文：scripture-block（动态渲染的经文块）
+                feedingSection.querySelectorAll('.scripture-block').forEach(block => {
+                    block.querySelectorAll('.scripture-popup-verse').forEach(verse => {
+                        const refEl = verse.querySelector('.scripture-popup-ref');
+                        const textEl = verse.querySelector('.scripture-popup-text');
+                        if (refEl && textEl) {
+                            var textClone = textEl.cloneNode(true);
+                            textClone.querySelectorAll('sup').forEach(function(s) { s.remove(); });
+                            const t = (refEl.textContent.trim() + '　' + textClone.textContent.trim()).trim();
+                            if (t) text += t + '。';
+                        }
+                    });
+                });
+                // 读取喂养经文：feeding-scripture（未能解析引用的原始文本）
+                feedingSection.querySelectorAll('.feeding-scripture').forEach(s => {
+                    const t = s.textContent.trim();
+                    if (t) text += t + '。';
+                });
                 const paragraphs = feedingSection.querySelectorAll('.content-text');
                 paragraphs.forEach(p => {
                     const t = getCleanText(p);
