@@ -189,25 +189,31 @@
 
 /* 夜间模式 */
 [data-theme="dark"]{
+    --brand:#7b93d4;
+    --brand-dark:#6b83c4;
+    --brand-rgb:123,147,212;
+    --bg:linear-gradient(135deg,#2a3a5c,#1e2d4a);
+    --btn-primary-bg:var(--bg);
+    --btn-primary-border:var(--brand);
     --surface: #181b21;
     --surface-alt: #20252d;
     --page-bg: #101319;
-    --header-bg: #1f2633;
+    --header-bg: #1a2236;
     --nav-hover: #2b3240;
     --scripture-bg: #1d222b;
     --muted: #252b35;
     --border: #333b48;
 
-    --text: #e5e8ef;
-    --text-soft: #c2c9d6;
-    --text-muted: #99a2b3;
+    --text: #dde1ea;
+    --text-soft: #b8bfcc;
+    --text-muted: #8a94a6;
     --text-primary: var(--text);
     --text-secondary: var(--text-soft);
 
-    --heading: #f3f6fb;
-    --heading-strong: #ffffff;
-    --heading-soft: #d8deea;
-    --heading-muted: #aeb6c6;
+    --heading: #edf0f7;
+    --heading-strong: #edf0f7;
+    --heading-soft: #d0d6e4;
+    --heading-muted: #a8b0c2;
 
     --btn-secondary-bg: #202634;
     --btn-secondary-text: var(--brand);
