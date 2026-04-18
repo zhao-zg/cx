@@ -708,6 +708,9 @@
             }
         });
     }
+
+    // 赞助对话框
+    function showSponsorDialog() {
         if (document.getElementById('cxSponsorMask')) return;
 
         var SPONSOR_SERVERS = [
