@@ -90,13 +90,20 @@
     controlsDiv.style.display = 'flex';
 
     var initAttempts    = 0;
-    var maxInitAttempts = 20;
+    var maxInitAttempts = 40;
 
     function startInit() {
       var engine = detectEngine();
+      // On native Android: wait specifically for NativeTTS.
+      // Don't fall back to WebSpeech immediately -- Android WebView's WebSpeech
+      // can switch between installed TTS engines between chunks, causing two voices.
+      if (engine.isNative && !engine.useNativeTTS && initAttempts < maxInitAttempts) {
+        initAttempts++;
+        setTimeout(startInit, 150);
+        return;
+      }
       if (!engine.supported) {
-        var retry = initAttempts < maxInitAttempts && (initAttempts < 5 || engine.isNative);
-        if (retry) { initAttempts++; setTimeout(startInit, 150); return; }
+        if (initAttempts < maxInitAttempts) { initAttempts++; setTimeout(startInit, 150); return; }
         showUnsupported(engine.isNative ? '朗读插件未就绪' : '朗读暂不可用');
         return;
       }
@@ -128,6 +135,25 @@
       var textChunks   = [];
       var currentChunk = 0;
       var isChunking   = false;
+
+      // -- WebSpeech voice pinning (prevents voice switching between chunks on Android) --
+      var _pinnedVoice = null;
+      function pinWebSpeechVoice() {
+        if (_pinnedVoice || !useWebSpeech) return;
+        var voices = [];
+        try { voices = window.speechSynthesis.getVoices() || []; } catch (e) { return; }
+        var sel = voices.filter(function (v) { return v.lang === lang; });
+        if (!sel.length) sel = voices.filter(function (v) { return v.lang && v.lang.toLowerCase().indexOf('zh') === 0; });
+        if (sel.length) _pinnedVoice = sel[0];
+      }
+      function applyPinnedVoice(utt) {
+        pinWebSpeechVoice();
+        if (_pinnedVoice) utt.voice = _pinnedVoice;
+      }
+      if (useWebSpeech) {
+        try { window.speechSynthesis.onvoiceschanged = function () { _pinnedVoice = null; pinWebSpeechVoice(); }; } catch (e) {}
+        pinWebSpeechVoice();
+      }
 
       // -- WS keepalive -------------------------------------------------------
       var _wsKeepalive = null;
@@ -252,6 +278,7 @@
         var rate = Number(rateSelect.value) || 0.5;
         var utt  = new SpeechSynthesisUtterance(textChunks[currentChunk]);
         utt.lang = lang; utt.rate = rate;
+        applyPinnedVoice(utt);
 
         utt.onstart = function () {
           updateButtonState(true);
@@ -311,6 +338,7 @@
             setTimeout(function () {
               if (gen !== speakGeneration) return;
               var utt = new SpeechSynthesisUtterance(segText); utt.lang = lang; utt.rate = rate;
+              applyPinnedVoice(utt);
               utt.onstart = function () {
                 isSeekingInternal = false; elapsedOffset = targetSecs; startTime = Date.now();
                 pauseStartedAt = 0; isPaused = false; updateButtonState(true); startProgressUpdate(); startWsKeepalive();

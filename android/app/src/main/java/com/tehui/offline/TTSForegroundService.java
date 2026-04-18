@@ -95,6 +95,7 @@ public class TTSForegroundService extends Service {
                 ttsReady = true;
                 // If a speak request arrived before init completed, start now
                 if (!chunks.isEmpty() && !isStopped && !isPaused) {
+                    setTtsParams(); // first-time init: set language + rate before first chunk
                     playChunk();
                 }
             } else {
@@ -114,7 +115,7 @@ public class TTSForegroundService extends Service {
 
                 chunkIndex++;
                 if (chunkIndex < chunks.size()) {
-                    playChunk();
+                    playChunkOnly(); // params already set; don't re-call setTtsParams()
                 } else {
                     notifyFinished();
                 }
@@ -128,7 +129,7 @@ public class TTSForegroundService extends Service {
                 // Skip failed chunk, continue
                 chunkIndex++;
                 if (chunkIndex < chunks.size()) {
-                    playChunk();
+                    playChunkOnly();
                 } else {
                     notifyFinished();
                 }
@@ -203,10 +204,11 @@ public class TTSForegroundService extends Service {
         }
 
         if (ttsReady) {
-            setTtsParams();
+            setTtsParams();   // set language + rate once for the whole session
             playChunk();
         }
         // else: TTS.OnInitListener will call playChunk when ready
+        //       setTtsParams() is called there after ttsReady=true
     }
 
     private void handleStop() {
@@ -230,7 +232,7 @@ public class TTSForegroundService extends Service {
         isPaused = false;
         speakGen++;
         updateNotification(true);
-        playChunk();
+        playChunkOnly(); // params already set during handleSpeak; no re-call needed
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -251,13 +253,32 @@ public class TTSForegroundService extends Service {
         tts.setSpeechRate(playRate);
     }
 
+    /** Speak current chunk without re-setting TTS params (language/rate already configured). */
+    private void playChunkOnly() {
+        if (!ttsReady || isStopped || isPaused) return;
+        if (chunkIndex >= chunks.size()) {
+            notifyFinished();
+            return;
+        }
+        String text = chunks.get(chunkIndex);
+        String uid  = "g" + speakGen + "_c" + chunkIndex;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, uid);
+        } else {
+            //noinspection deprecation
+            HashMap<String, String> p = new HashMap<>();
+            p.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, uid);
+            //noinspection deprecation
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, p);
+        }
+    }
+
     private void playChunk() {
         if (!ttsReady || isStopped || isPaused) return;
         if (chunkIndex >= chunks.size()) {
             notifyFinished();
             return;
         }
-        setTtsParams();
         String text = chunks.get(chunkIndex);
         String uid  = "g" + speakGen + "_c" + chunkIndex; // embeds generation for stale-check
 
