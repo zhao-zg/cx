@@ -626,7 +626,7 @@
     function verifyCacheIntegrity(trainings) {
         if (!('caches' in window)) return Promise.resolve({ ok: false, coverage: 0 });
         return caches.keys().then(function(keys) {
-            var hasCoreCache = keys.some(function(k) { return k.indexOf('cx-main-') === 0; });
+            var hasCoreCache = keys.some(function(k) { return k === 'cx-main' || k.indexOf('cx-main-') === 0; });
             if (!hasCoreCache) return { ok: false, coverage: 0 };
             if (!trainings || !trainings.length) return { ok: true, coverage: 1 };
             var hits = trainings.filter(function(t) {
@@ -637,15 +637,14 @@
         }).catch(function() { return { ok: false, coverage: 0 }; });
     }
 
-    // 强制安装/更新/修复全屏遮罩（不可关闭，必须完成才能使用）
+    // 强制安装/更新全屏遮罩（不可关闭，必须完成才能使用）
     function showMandatoryInstallDialog(mode, targetVersion) {
         if (document.getElementById('cxInstallMask')) return;
-        var icons     = { install: '📦', update: '🔄', repair: '🔧' };
-        var titles    = { install: '首次安装缓存', update: '发现新版本 v' + targetVersion, repair: '缓存需要修复' };
+        var icons     = { install: '📦', update: '🔄' };
+        var titles    = { install: '首次安装缓存', update: '缓存更新中' };
         var subtitles = {
             install: '首次使用需缓存全部资源，请保持网络连接...',
-            update:  '将重新缓存最新资源，用户数据不受影响...',
-            repair:  '检测到缓存不完整，正在重新下载缺失资源...'
+            update:  '正在重新缓存最新资源，用户数据不受影响...'
         };
         var mask = document.createElement('div');
         mask.id = 'cxInstallMask';
@@ -737,16 +736,12 @@
                     return verifyCacheIntegrity(trainings);
                 }).then(function(result) {
                     if (!result.ok) {
-                        var mode = storedVersion ? 'repair' : 'install';
+                        var mode = storedVersion ? 'update' : 'install';
                         console.log('[PWA] 缓存不完整（' + Math.round((result.coverage || 0) * 100) + '%），触发' + mode);
                         showMandatoryInstallDialog(mode, targetVersion);
-                    } else {
-                        // 缓存完整：静默同步版本号
-                        if (targetVersion && storedVersion !== targetVersion) {
-                            try { localStorage.setItem('cx_pwa_version', targetVersion); } catch(e) {}
-                            if (window.CX && window.CX.errorLog) window.CX.errorLog.clear();
-                        }
                     }
+                    // 缓存完整：不修改版本号，用户继续使用现有缓存
+                    // 版本号仅在安装对话框完成后（doInstall）写入
                 }).catch(function() {});
             })
             .catch(function(err) {
@@ -785,7 +780,7 @@
             return Promise.resolve();
         }
 
-        // 共享资源（js/ css/）由 SW 安装时已预缓存到 cx-main-{version}，无需重复缓存
+        // 共享资源（js/ css/）在浏览时由 SW fetchAndCache 顺路写入 cx-main 缓存
         var cacheShared = Promise.resolve();
 
         var totalTrainings = trainings.length;

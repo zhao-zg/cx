@@ -1,23 +1,12 @@
 /**
  * Service Worker for 特会信息合集
- * 修复版：解决 Response body already used 错误
+ * 纯路由版：不管理版本，缓存生命周期由安装对话框负责
  */
 
-const CACHE_VERSION = '{{ cache_version }}';
-const CACHE_NAME = 'cx-main-' + CACHE_VERSION;
+const CACHE_NAME = 'cx-main';
 
 const CONFIG = {
   TIMEOUT: 5000,
-  CORE_RESOURCES: [
-    {%- for resource in core_resources %}
-    '{{ resource }}'{% if not loop.last %},{% endif %}
-    {%- endfor %}
-  ],
-  TRAINING_PAGES: [
-    {%- for page in training_pages %}
-    '{{ page }}'{% if not loop.last %},{% endif %}
-    {%- endfor %}
-  ],
   CACHEABLE_TYPES: ['basic', 'cors']
 };
 
@@ -26,26 +15,12 @@ const CONFIG = {
 // --------------------------------------------------------------------------
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return Promise.allSettled(
-        CONFIG.CORE_RESOURCES.map(url => 
-          fetch(new Request(url, { cache: 'reload' }))
-            .then(res => res.ok ? cache.put(url, res) : null)
-        )
-      );
-    })
-  );
+  // 无需预缓存；缓存由安装对话框管理
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.filter(key => key.startsWith('cx-main-') && key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-    )).then(() => self.clients.claim())
-  );
+  event.waitUntil(self.clients.claim());
 });
 
 // --------------------------------------------------------------------------
@@ -177,20 +152,14 @@ self.addEventListener('message', event => {
     const port = event.ports && event.ports[0];
     if (!port) return;
     event.waitUntil(
-      Promise.all([
-        caches.open(CACHE_NAME).then(c => c.keys()).catch(() => []),
-        caches.keys().catch(() => [])
-      ]).then(([coreKeys, allKeys]) => {
-        const trainingCacheCount = allKeys.filter(k => k.startsWith('cx-') && !k.startsWith('cx-main-')).length;
+      caches.keys().catch(() => []).then(allKeys => {
+        const trainingCacheCount = allKeys.filter(k => k.startsWith('cx-') && k !== 'cx-main').length;
         port.postMessage({
-          cacheVersion:   CACHE_VERSION,
-          cachedCoreCount: coreKeys.length,
-          totalCore:      CONFIG.CORE_RESOURCES.length,
           trainingCacheCount: trainingCacheCount,
-          ok: coreKeys.length > 0
+          ok: allKeys.includes('cx-main')
         });
       }).catch(err => {
-        port.postMessage({ cacheVersion: CACHE_VERSION, cachedCoreCount: 0, totalCore: 0, ok: false });
+        port.postMessage({ ok: false });
       })
     );
   }

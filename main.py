@@ -472,73 +472,9 @@ def generate_main_index(config, batch_results):
     with open(manifest_path, 'w', encoding='utf-8') as f:
         f.write(manifest_content)
     
-    # sw.js - 使用时间戳作为版本号
-    cache_version = datetime.now().strftime('%Y%m%d%H%M%S')
-    
-    # 自动收集核心资源（静态文件）
-    core_resources = [
-        './',
-        './manifest.json',
-        './trainings.json',
-        './version.json'
-    ]
-    
-    # 自动扫描 icons 目录
-    icons_dir = os.path.join(output_dir, 'icons')
-    if os.path.exists(icons_dir):
-        for filename in os.listdir(icons_dir):
-            if filename.endswith(('.svg', '.png')):
-                core_resources.append(f'./icons/{filename}')
-    
-    # 自动扫描 js 目录（仅 .js 文件）
-    js_dir = os.path.join(output_dir, 'js')
-    if os.path.exists(js_dir):
-        for filename in os.listdir(js_dir):
-            if filename.endswith('.js') and not filename.endswith('.original'):
-                core_resources.append(f'./js/{filename}')
-
-    # 自动扫描 data 目录（圣经数据 JSON 文件）
-    data_dir_path = os.path.join(output_dir, 'data')
-    if os.path.exists(data_dir_path):
-        for filename in os.listdir(data_dir_path):
-            if filename.endswith('.json'):
-                core_resources.append(f'./data/{filename}')
-
-    # 自动扫描 css 目录
-    css_dir = os.path.join(output_dir, 'css')
-    if os.path.exists(css_dir):
-        for filename in os.listdir(css_dir):
-            if filename.endswith('.css'):
-                core_resources.append(f'./css/{filename}')
-    
-    # 自动扫描 vendor 目录
-    vendor_dir = os.path.join(output_dir, 'vendor')
-    if os.path.exists(vendor_dir):
-        for filename in os.listdir(vendor_dir):
-            if filename.endswith('.js'):
-                core_resources.append(f'./vendor/{filename}')
-    
-    # 收集图片（training_pages 已在主页生成时扫描）
-    image_paths = []
-    for training in trainings:
-        training_dir = os.path.join(output_dir, training['path'])
-        training_path = training['path']
-        
-        # 收集图片
-        images_dir = os.path.join(training_dir, 'images')
-        if os.path.exists(images_dir):
-            for filename in os.listdir(images_dir):
-                if filename.endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                    image_paths.append(f"{training_path}/images/{filename}")
-    
+    # sw.js - 纯路由版，不需要版本号和资源列表
     sw_template = env.get_template('main_sw.js')
-    sw_content = sw_template.render(
-        trainings=trainings, 
-        cache_version=cache_version,
-        core_resources=core_resources,
-        training_pages=training_pages,
-        image_paths=image_paths
-    )
+    sw_content = sw_template.render()
     sw_path = os.path.join(output_dir, 'sw.js')
     with open(sw_path, 'w', encoding='utf-8') as f:
         f.write(sw_content)
