@@ -591,18 +591,30 @@
         });
     }
 
-    // 验证缓存完整性：core cache + 各训练 cache 均存在则视为完整
+    // 验证缓存完整性：所有核心文件均存在于 cx-main，且各训练 cache 桶存在
     function verifyCacheIntegrity(trainings) {
         if (!('caches' in window)) return Promise.resolve({ ok: false, coverage: 0 });
+        var coreUrls = window.__cxCoreUrls || [];
         return caches.keys().then(function(keys) {
             var hasCoreCache = keys.some(function(k) { return k === 'cx-main' || k.indexOf('cx-main-') === 0; });
             if (!hasCoreCache) return { ok: false, coverage: 0 };
-            if (!trainings || !trainings.length) return { ok: true, coverage: 1 };
-            var hits = trainings.filter(function(t) {
-                return keys.some(function(k) { return k === 'cx-' + t.path; });
+            // 验证每个核心文件是否真实存在于 cx-main（目录 './' 跳过，不是实际文件）
+            var checkUrls = coreUrls.filter(function(u) { return u !== './'; });
+            return caches.open('cx-main').then(function(cache) {
+                return Promise.all(checkUrls.map(function(u) {
+                    return cache.match(u).then(function(r) { return !!r; });
+                }));
+            }).then(function(results) {
+                var hits = results.filter(Boolean).length;
+                var coreCoverage = checkUrls.length > 0 ? hits / checkUrls.length : 1;
+                if (coreCoverage < 1) return { ok: false, coverage: coreCoverage };
+                if (!trainings || !trainings.length) return { ok: true, coverage: 1 };
+                var trainingHits = trainings.filter(function(t) {
+                    return keys.some(function(k) { return k === 'cx-' + t.path; });
+                });
+                var trainingCoverage = trainingHits.length / trainings.length;
+                return { ok: trainingCoverage >= 1, coverage: trainingCoverage };
             });
-            var coverage = hits.length / trainings.length;
-            return { ok: coverage >= 1, coverage: coverage };
         }).catch(function() { return { ok: false, coverage: 0 }; });
     }
 
