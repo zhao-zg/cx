@@ -8,7 +8,8 @@
     <!-- 防止主题跳色：在渲染前设置主题 -->
     <script>(function(){var d=document.documentElement,m=document.querySelector('meta[name="theme-color"]'),s=null,t='cool';try{s=localStorage.getItem('readingTheme')}catch(e){}if(s==='cool'||s==='warm'||s==='dark'){t=s}else{try{t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'cool'}catch(e){t='cool'}}d.setAttribute('data-theme',t);if(m){m.setAttribute('content',t==='warm'?'#f3ede4':(t==='dark'?'#121214':'#f7f8fc'));}})();</script>
     <!-- 伪装检测：非PWA/非APP浏览器提示（暂用弹框，后续恢复伪装页） -->
-    <script>(function(){var ok=false;try{if(sessionStorage.getItem('cx_access')==='ok')ok=true;}catch(e){}if(!ok&&window.location.search.indexOf('zzg')!==-1){try{sessionStorage.setItem('cx_access','ok');}catch(e){}ok=true;}if(!ok){var isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||(window.location.hostname==='localhost'&&window.location.protocol==='http:');var isPwa=window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);if(!isCap&&!isPwa)document.documentElement.classList.add('cx-disguise'); }})();</script>
+    <!-- isCap: Capacitor 6+ Android 默认 https://localhost，去掉 http 协议限制 -->
+    <script>(function(){var ok=false;try{if(sessionStorage.getItem('cx_access')==='ok')ok=true;}catch(e){}if(!ok&&window.location.search.indexOf('zzg')!==-1){try{sessionStorage.setItem('cx_access','ok');}catch(e){}ok=true;}if(!ok){var isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||window.location.hostname==='localhost';var isPwa=window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);if(!isCap&&!isPwa)document.documentElement.classList.add('cx-disguise'); }})();</script>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -170,10 +171,10 @@
     <!-- APK 更新功能模块（仅在 Capacitor APP 环境下加载） -->
     <script>
     (function() {
-        // 检测是否在 Capacitor 环境中
+        // 检测是否在 Capacitor 环境中（Capacitor 6+ Android 默认 https://localhost）
         var isCapacitor = window.Capacitor !== undefined;
         var isCapacitorScheme = window.location.protocol === 'capacitor:' || 
-                                (window.location.hostname === 'localhost' && window.location.protocol === 'http:');
+                                window.location.hostname === 'localhost';
         
         // 只在 Capacitor APP 环境下加载 app-update.js
         if (isCapacitor || isCapacitorScheme) {
@@ -201,7 +202,7 @@
             isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
             isCapacitor: window.Capacitor !== undefined,
             isCapacitorScheme: window.location.protocol === 'capacitor:' || 
-                              (window.location.hostname === 'localhost' && window.location.protocol === 'http:'),
+                              window.location.hostname === 'localhost',
             isStandalone: window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches,
             get isInApp() {
                 return this.isStandalone;
