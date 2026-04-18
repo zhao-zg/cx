@@ -505,7 +505,7 @@
               elapsedOffset = 0;
               updateButtonState(false);
               progressBar.value = '0';
-              speechTime.textContent = '语音服务异常，请重启APP';
+              speechTime.textContent = '语音服务异常，请重启APP或设备';
               speechTime.style.color = '#ff0000';
               setTimeout(function() {
                 speechTime.textContent = '00:00 / 00:00';
