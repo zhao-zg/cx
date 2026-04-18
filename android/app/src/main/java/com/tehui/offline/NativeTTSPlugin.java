@@ -112,7 +112,7 @@ public class NativeTTSPlugin extends Plugin {
             try {
                 c.resolve(new JSObject().put("status", status));
                 c.setKeepAlive(false);
-                releaseCall(c);
+                getBridge().releaseCall(c);
             } catch (Exception ignored) {}
         }
     }
@@ -125,7 +125,7 @@ public class NativeTTSPlugin extends Plugin {
             try {
                 c.resolve(new JSObject().put("status", status));
                 c.setKeepAlive(false);
-                releaseCall(c);
+                getBridge().releaseCall(c);
             } catch (Exception ignored) {}
         }
     }
@@ -138,7 +138,7 @@ public class NativeTTSPlugin extends Plugin {
             try {
                 c.reject(message);
                 c.setKeepAlive(false);
-                releaseCall(c);
+                getBridge().releaseCall(c);
             } catch (Exception ignored) {}
         }
     }
