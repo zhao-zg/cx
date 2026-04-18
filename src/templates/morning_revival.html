@@ -169,6 +169,12 @@
     let isHorizontal = null; // null=未判断  true=水平  false=垂直
 
     pagesContainer.addEventListener('touchstart', (e) => {
+        // 若当前有文字选中（用户在拖动选区手柄），不拦截避免干扰选文
+        const sel = window.getSelection();
+        if (sel && sel.toString().length > 0) {
+            isDragging = false;
+            return;
+        }
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
         touchStartTime = Date.now();
