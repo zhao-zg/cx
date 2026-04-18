@@ -51,6 +51,15 @@ if not "!NEW_VERSION!"=="!CURRENT_VERSION!" (
     echo.
 )
 
+REM 检查 tag 是否已存在，若存在则先删除
+git rev-parse v!NEW_VERSION! >nul 2>&1
+if not errorlevel 1 (
+    echo Tag v!NEW_VERSION! 已存在，正在删除并重新发布...
+    git tag -d v!NEW_VERSION!
+    git push origin :refs/tags/v!NEW_VERSION! >nul 2>&1
+    echo ✓ 已删除旧 Tag v!NEW_VERSION!
+)
+
 REM 创建 tag
 git tag -a v!NEW_VERSION! -m "Release v!NEW_VERSION!"
 if errorlevel 1 (
