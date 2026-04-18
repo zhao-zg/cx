@@ -304,14 +304,15 @@
           playNextChunk();
         }).catch(function(error) {
           if (chunkGen !== speakGeneration) return; // 旧回调（如被 stop/rate切换打断），丢弃
-          // 系统切换 TTS 引擎后首次 speak() 可能失败，重试一次
-          if (_ttsRetryCount < 1) {
+          // APK 安装后 Android TTS 服务冷启动较慢，最多重试 3 次，每次递增等待时间
+          if (_ttsRetryCount < 3) {
             _ttsRetryCount++;
             try { TextToSpeech.stop(); } catch (e) {}
+            var retryDelay = _ttsRetryCount * 800; // 800ms / 1600ms / 2400ms
             setTimeout(function () {
               if (chunkGen !== speakGeneration) return;
               playNextChunk(); // 重试当前段（currentChunkIndex 未变）
-            }, 600);
+            }, retryDelay);
             return;
           }
           // 重试后仍失败，跳过本段继续

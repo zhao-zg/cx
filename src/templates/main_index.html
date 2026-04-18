@@ -99,6 +99,20 @@
         .cx-maint-icon{font-size:64px;margin-bottom:24px;cursor:default;-webkit-tap-highlight-color:transparent;user-select:none}
         .cx-maint-title{font-size:20px;font-weight:600;color:var(--text,#333);margin-bottom:12px}
         .cx-maint-sub{font-size:14px;color:var(--text-muted,#999);text-align:center;line-height:1.7;max-width:280px}
+        /* === PWA 强制安装/更新/修复遮罩 === */
+        .cx-install-mask{display:flex;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+        .cx-install-box{background:var(--surface,#fff);border-radius:16px;width:min(320px,calc(100vw - 40px));box-shadow:0 8px 40px rgba(0,0,0,.35);overflow:hidden;text-align:center;padding:28px 24px 22px}
+        .cx-install-icon{font-size:44px;margin-bottom:10px}
+        .cx-install-title{font-size:17px;font-weight:700;color:var(--heading,#111);margin-bottom:6px}
+        .cx-install-sub{font-size:12px;color:var(--text-muted,#888);margin-bottom:18px;line-height:1.65}
+        .cx-install-progress{height:4px;background:var(--border,#e0e0e0);border-radius:2px;margin-bottom:14px;overflow:hidden}
+        .cx-install-progress-bar{height:100%;background:var(--brand,#007aff);border-radius:2px;width:0%;transition:width .3s ease}
+        .cx-install-status{font-size:12px;color:var(--text-muted,#666);min-height:16px;margin-bottom:14px;line-height:1.5}
+        .cx-install-retry{display:none;padding:9px 22px;background:var(--brand,#007aff);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+        /* === PWA 离线提示横幅 === */
+        #cxOfflineBanner{display:none;position:fixed;top:0;left:0;right:0;z-index:8000;background:#e65100;color:#fff;padding:11px 16px;font-size:13px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.2);line-height:1.5}
+        #cxOfflineBanner.show{display:block}
+        #cxOfflineBanner .cx-banner-dismiss{background:rgba(255,255,255,.25);border:none;color:#fff;padding:3px 10px;border-radius:4px;margin-left:8px;font-size:12px;cursor:pointer;vertical-align:middle;-webkit-tap-highlight-color:transparent}
     </style>
 </head>
 <body>
@@ -150,6 +164,11 @@
         }
         if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){setTimeout(showTip,600);});}else{setTimeout(showTip,600);}
     })();</script>
+    <!-- PWA 离线提示横幅（standalone 模式下无网且从未缓存时显示） -->
+    <div id="cxOfflineBanner">
+        📶 需要网络连接才能首次安装缓存
+        <button class="cx-banner-dismiss">知道了</button>
+    </div>
     <div class="container">
         <div class="header">
             <h1 id="mainLogo" class="logo-trigger">🏠 特会信息合集</h1>
@@ -528,6 +547,7 @@
         }).then(function() {
             var installTime = Date.now() - installStartTime;
             console.log('[主页] Service Worker 已就绪，耗时:', installTime, 'ms');
+            checkPwaStartupCache();
         }).catch(function(err) {
             console.error('[主页] Service Worker 注册失败:', err);
         });
@@ -536,6 +556,11 @@
         var refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', function() {
             if (refreshing) return;
+            // Capacitor APK 内资源已内置，SW 更新不需要触发 reload；
+            // 强制 reload 会打断 Capacitor TTS 插件与 Android TTS 服务的连接，导致朗读失败
+            var isCapacitorApp = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
+                                    window.Capacitor.isNativePlatform());
+            if (isCapacitorApp) return;
             refreshing = true;
             console.log('[主页] Service Worker 已更新，刷新页面');
             window.location.reload();
@@ -576,10 +601,173 @@
         
         return resources;
     }
-    
+
+    // ── PWA 缓存完整性检查 & 强制安装 ────────────────────────────────────
+
+    // 等待训练列表就绪（最多等 timeout ms）
+    function waitForTrainings(timeout) {
+        return new Promise(function(resolve, reject) {
+            if (window.__cxTrainings && window.__cxTrainings.length > 0) {
+                resolve(window.__cxTrainings); return;
+            }
+            var elapsed = 0;
+            var iv = setInterval(function() {
+                if (window.__cxTrainings && window.__cxTrainings.length > 0) {
+                    clearInterval(iv); resolve(window.__cxTrainings);
+                } else {
+                    elapsed += 100;
+                    if (elapsed >= timeout) { clearInterval(iv); reject(new Error('训练列表加载超时')); }
+                }
+            }, 100);
+        });
+    }
+
+    // 验证缓存完整性：core cache + 各训练 cache 均存在则视为完整
+    function verifyCacheIntegrity(trainings) {
+        if (!('caches' in window)) return Promise.resolve({ ok: false, coverage: 0 });
+        return caches.keys().then(function(keys) {
+            var hasCoreCache = keys.some(function(k) { return k.indexOf('cx-main-') === 0; });
+            if (!hasCoreCache) return { ok: false, coverage: 0 };
+            if (!trainings || !trainings.length) return { ok: true, coverage: 1 };
+            var hits = trainings.filter(function(t) {
+                return keys.some(function(k) { return k === 'cx-' + t.path; });
+            });
+            var coverage = hits.length / trainings.length;
+            return { ok: coverage >= 1, coverage: coverage };
+        }).catch(function() { return { ok: false, coverage: 0 }; });
+    }
+
+    // 强制安装/更新/修复全屏遮罩（不可关闭，必须完成才能使用）
+    function showMandatoryInstallDialog(mode, targetVersion) {
+        if (document.getElementById('cxInstallMask')) return;
+        var icons     = { install: '📦', update: '🔄', repair: '🔧' };
+        var titles    = { install: '首次安装缓存', update: '发现新版本 v' + targetVersion, repair: '缓存需要修复' };
+        var subtitles = {
+            install: '首次使用需缓存全部资源，请保持网络连接...',
+            update:  '将重新缓存最新资源，用户数据不受影响...',
+            repair:  '检测到缓存不完整，正在重新下载缺失资源...'
+        };
+        var mask = document.createElement('div');
+        mask.id = 'cxInstallMask';
+        mask.className = 'cx-install-mask';
+        mask.innerHTML = [
+            '<div class="cx-install-box">',
+            '  <div class="cx-install-icon">' + icons[mode] + '</div>',
+            '  <div class="cx-install-title">' + titles[mode] + '</div>',
+            '  <div class="cx-install-sub">' + subtitles[mode] + '</div>',
+            '  <div class="cx-install-progress"><div class="cx-install-progress-bar" id="cxInstallProgressBar"></div></div>',
+            '  <div class="cx-install-status" id="cxInstallStatus">正在准备...</div>',
+            '  <button class="cx-install-retry" id="cxInstallRetry">重试</button>',
+            '</div>'
+        ].join('');
+        mask.addEventListener('click', function(e) { e.stopPropagation(); });
+        document.body.appendChild(mask);
+
+        var statusEl    = document.getElementById('cxInstallStatus');
+        var progressBar = document.getElementById('cxInstallProgressBar');
+        var retryBtn    = document.getElementById('cxInstallRetry');
+
+        function doInstall() {
+            if (retryBtn) retryBtn.style.display = 'none';
+            if (progressBar) progressBar.style.width = '0%';
+            if (statusEl) statusEl.textContent = '正在清理旧缓存...';
+            // 先清除所有旧缓存，确保重新下载最新资源
+            var clearStep = ('caches' in window)
+                ? caches.keys().then(function(keys) {
+                    return Promise.all(
+                        keys.filter(function(k) { return k.indexOf('cx-') === 0; })
+                            .map(function(k) { return caches.delete(k); })
+                    );
+                }).catch(function() {})
+                : Promise.resolve();
+            clearStep.then(function() {
+            if (statusEl) statusEl.textContent = '正在等待训练列表...';
+            waitForTrainings(15000).then(function(trainings) {
+                if (statusEl) statusEl.textContent = '开始缓存资源...';
+                return cacheAllTrainings(statusEl, function(percent) {
+                    if (progressBar) progressBar.style.width = Math.min(percent, 100) + '%';
+                }).then(function() {
+                    if (progressBar) progressBar.style.width = '100%';
+                    if (statusEl) statusEl.textContent = '✓ 下载完成，正在验证...';
+                    return verifyCacheIntegrity(trainings);
+                }).then(function(result) {
+                    if (result.ok) {
+                        try { localStorage.setItem('cx_pwa_version', targetVersion); } catch(e) {}
+                        // 安装/修复完成，清除旧版本错误日志
+                        if (window.CX && window.CX.errorLog) window.CX.errorLog.clear();
+                        if (statusEl) statusEl.textContent = '✅ 缓存完整，即将进入...';
+                        setTimeout(function() {
+                            var m = document.getElementById('cxInstallMask');
+                            if (m && m.parentNode) m.parentNode.removeChild(m);
+                        }, 800);
+                    } else {
+                        if (statusEl) statusEl.textContent = '⚠ 部分资源未完整（' + Math.round((result.coverage || 0) * 100) + '%），请重试';
+                        if (retryBtn) retryBtn.style.display = 'block';
+                    }
+                });
+            }).catch(function(err) {
+                if (statusEl) statusEl.textContent = '⚠ 出错：' + (err && err.message || '未知') + '，请重试';
+                if (retryBtn) retryBtn.style.display = 'block';
+            });
+            }); // clearStep end
+        }
+        if (retryBtn) retryBtn.addEventListener('click', doInstall);
+        doInstall();
+    }
+
+    // PWA 启动时检查缓存版本与完整性
+    function checkPwaStartupCache() {
+        var isStandalone = window.navigator.standalone === true ||
+                           window.matchMedia('(display-mode: standalone)').matches;
+        var isCapacitor  = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
+                              window.Capacitor.isNativePlatform());
+        if (!isStandalone || isCapacitor || !('caches' in window)) return;
+        var storedVersion = null;
+        try { storedVersion = localStorage.getItem('cx_pwa_version'); } catch(e) {}
+        fetch('./version.json?t=' + Date.now(), { cache: 'no-cache' })
+            .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(function(v) {
+                var remoteVersion = v.version || v.apk_version;
+                if (remoteVersion && storedVersion !== remoteVersion) {
+                    console.log('[PWA] 版本更新: 本地=' + storedVersion + ' 远程=' + remoteVersion);
+                }
+                // 不管版本是否匹配，只检查缓存是否完整
+                var targetVersion = remoteVersion || storedVersion;
+                waitForTrainings(5000).then(function(trainings) {
+                    return verifyCacheIntegrity(trainings);
+                }).then(function(result) {
+                    if (!result.ok) {
+                        var mode = storedVersion ? 'repair' : 'install';
+                        console.log('[PWA] 缓存不完整（' + Math.round((result.coverage || 0) * 100) + '%），触发' + mode);
+                        showMandatoryInstallDialog(mode, targetVersion);
+                    } else {
+                        // 缓存完整：静默同步版本号
+                        if (targetVersion && storedVersion !== targetVersion) {
+                            try { localStorage.setItem('cx_pwa_version', targetVersion); } catch(e) {}
+                            if (window.CX && window.CX.errorLog) window.CX.errorLog.clear();
+                        }
+                    }
+                }).catch(function() {});
+            })
+            .catch(function(err) {
+                console.log('[PWA] version.json 获取失败:', err.message);
+                // 离线且从未缓存：显示非阻塞提示横幅，不阻塞 UI
+                if (!storedVersion) {
+                    var banner = document.getElementById('cxOfflineBanner');
+                    if (banner) {
+                        banner.classList.add('show');
+                        var dismissBtn = banner.querySelector('.cx-banner-dismiss');
+                        if (dismissBtn) dismissBtn.addEventListener('click', function() {
+                            banner.classList.remove('show');
+                        });
+                    }
+                }
+                // 已有版本记录但离线：静默使用现有缓存
+            });
+    }
 
     // 缓存所有训练资源
-    function cacheAllTrainings(statusEl) {
+    function cacheAllTrainings(statusEl, onProgress) {
         if (!('caches' in window)) {
             if (statusEl) {
                 statusEl.textContent = '当前环境不支持缓存';
@@ -632,15 +820,18 @@
                             .then(function(response) {
                                 if (response.ok && response.status >= 200 && response.status < 300) {
                                     cachedResources++;
-                                    if (statusEl) {
-                                        var percent = totalResources > 0 ? Math.round((cachedResources / totalResources) * 100) : 0;
-                                        statusEl.textContent = '缓存进度：' + percent + '%';
-                                    }
+                                    var percent = totalResources > 0 ? Math.round((cachedResources / totalResources) * 100) : 0;
+                                    if (statusEl) statusEl.textContent = '缓存进度：' + percent + '%';
+                                    if (onProgress) onProgress(percent);
                                     return cache.put(response.url, response.clone());
                                 }
                             })
                             .catch(function() {
                                 cachedResources++;
+                                if (onProgress) {
+                                    var p = totalResources > 0 ? Math.round((cachedResources / totalResources) * 100) : 0;
+                                    onProgress(p);
+                                }
                             });
                     });
                     return Promise.all(tasks);
@@ -847,6 +1038,8 @@
             // 仅清除笔记
             if (clearNotesOnly) {
                 try { localStorage.removeItem('cx_highlights'); } catch(e) {}
+                try { localStorage.removeItem('cx_highlights_bak'); } catch(e) {}
+                try { localStorage.removeItem('cx_highlights_bak_ts'); } catch(e) {}
                 if (actionStatus) { actionStatus.textContent = '✓ 划线笔记已清除，即将刷新...'; actionStatus.className = 'cache-status success'; }
                 window.location.reload(true);
                 return;

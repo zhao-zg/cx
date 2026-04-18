@@ -163,10 +163,46 @@ function getOfflineHTML() {
 
 self.addEventListener('message', event => {
   if (!event.data) return;
+
   if (event.data.type === 'SKIP_WAITING') self.skipWaiting();
+
   if (event.data.type === 'CLEAR_ALL_CACHES') {
     event.waitUntil(
       caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+    );
+  }
+
+  // 查询当前缓存状态（通过 MessageChannel port 回复）
+  if (event.data.type === 'CACHE_INFO') {
+    const port = event.ports && event.ports[0];
+    if (!port) return;
+    event.waitUntil(
+      Promise.all([
+        caches.open(CACHE_NAME).then(c => c.keys()).catch(() => []),
+        caches.keys().catch(() => [])
+      ]).then(([coreKeys, allKeys]) => {
+        const trainingCacheCount = allKeys.filter(k => k.startsWith('cx-') && !k.startsWith('cx-main-')).length;
+        port.postMessage({
+          cacheVersion:   CACHE_VERSION,
+          cachedCoreCount: coreKeys.length,
+          totalCore:      CONFIG.CORE_RESOURCES.length,
+          trainingCacheCount: trainingCacheCount,
+          ok: coreKeys.length > 0
+        });
+      }).catch(err => {
+        port.postMessage({ cacheVersion: CACHE_VERSION, cachedCoreCount: 0, totalCore: 0, ok: false });
+      })
+    );
+  }
+
+  // 仅清除 cx-* 离线缓存，保留用户 localStorage 数据
+  if (event.data.type === 'CLEAR_CACHE') {
+    const port = event.ports && event.ports[0];
+    event.waitUntil(
+      caches.keys()
+        .then(keys => Promise.all(keys.filter(k => k.startsWith('cx-')).map(k => caches.delete(k))))
+        .then(() => { if (port) port.postMessage({ ok: true }); })
+        .catch(err => { if (port) port.postMessage({ ok: false, error: err.message }); })
     );
   }
 });

@@ -3,6 +3,99 @@
  * 支持暖色/冷色模式切换和字体大小调整
  */
 
+// ── 笔记备份/恢复守卫：防止升级或意外 reload 导致 cx_highlights 丢失 ─────────
+(function() {
+    'use strict';
+    var NOTES_KEY   = 'cx_highlights';
+    var BACKUP_KEY  = 'cx_highlights_bak';
+    var BACKUP_TS_KEY = 'cx_highlights_bak_ts';
+
+    // 启动时：若主键为空但备份存在（30天内），静默恢复
+    try {
+        var current = localStorage.getItem(NOTES_KEY);
+        var backup  = localStorage.getItem(BACKUP_KEY);
+        var backupTs = parseInt(localStorage.getItem(BACKUP_TS_KEY) || '0', 10);
+        var day30 = 30 * 24 * 60 * 60 * 1000;
+        if ((!current || current === '{}' || current === '[]') &&
+            backup && backup.length > 2 &&
+            backupTs && (Date.now() - backupTs) < day30) {
+            localStorage.setItem(NOTES_KEY, backup);
+            console.log('[笔记守卫] 从备份恢复笔记，备份时间:', new Date(backupTs).toLocaleString());
+        }
+    } catch(e) {}
+
+    // 当 app 切入后台时刷新备份（visibilitychange 比 beforeunload 在移动端更可靠）
+    function saveNotesBackup() {
+        try {
+            var notes = localStorage.getItem(NOTES_KEY);
+            if (notes && notes.length > 2 && notes !== '{}' && notes !== '[]') {
+                localStorage.setItem(BACKUP_KEY, notes);
+                localStorage.setItem(BACKUP_TS_KEY, Date.now().toString());
+            }
+        } catch(e) {}
+    }
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) saveNotesBackup();
+    });
+    window.addEventListener('beforeunload', saveNotesBackup);
+
+    // 暴露给外部调用（如 clearAllCachesAndMemory 清除 cx_ 键时同步清备份）
+    window.CX = window.CX || {};
+    window.CX.notesGuard = { save: saveNotesBackup };
+})();
+
+
+// ── 错误日志收集器 ──────────────────────────────────────────────────────────
+(function() {
+    'use strict';
+    var LOG_KEY  = 'cx_error_log';
+    var MAX_ENTRIES = 40;
+
+    function appendLog(entry) {
+        try {
+            var arr = [];
+            try { arr = JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch(e) {}
+            if (!Array.isArray(arr)) arr = [];
+            arr.push(entry);
+            if (arr.length > MAX_ENTRIES) arr = arr.slice(arr.length - MAX_ENTRIES);
+            localStorage.setItem(LOG_KEY, JSON.stringify(arr));
+        } catch(e) {}
+    }
+
+    // 捕获同步错误
+    var _origOnerror = window.onerror;
+    window.onerror = function(msg, src, line, col, err) {
+        // 过滤已知无关噪音
+        var m = String(msg || '');
+        if (m.indexOf('Script error') === 0) return false;
+        appendLog({
+            t: Date.now(),
+            m: m.substring(0, 250),
+            s: (src || '').replace(/^.*\//, '') + ':' + line
+        });
+        if (_origOnerror) return _origOnerror.apply(this, arguments);
+        return false;
+    };
+
+    // 捕获 Promise 未处理异常
+    window.addEventListener('unhandledrejection', function(e) {
+        var msg = '';
+        try {
+            msg = e.reason ? (e.reason.message || String(e.reason)) : 'unhandledrejection';
+        } catch(ex) { msg = 'unhandledrejection'; }
+        appendLog({ t: Date.now(), m: msg.substring(0, 250) });
+    });
+
+    // 暴露工具方法
+    window.CX = window.CX || {};
+    window.CX.errorLog = {
+        get:   function() { try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch(e) { return []; } },
+        clear: function() { try { localStorage.removeItem(LOG_KEY); } catch(e) {} }
+    };
+})();
+
+
 // ── CX.backStack：统一对话框/弹框返回键调度器 ──────────────────────────────
 // 所有弹框/面板通过 push(closeFn) 注册，popstate 统一消费；
 // nav-stack.js 通过 setFallback 注册页面跳转，作为最终兜底。
@@ -335,15 +428,38 @@
             });
         }
 
-        // ── 检查更新（Capacitor APK）──────────────────────
+        // ── 检查更新（Capacitor APK / PWA standalone）──────────────────
+        var updateBtn = document.getElementById('checkUpdateBtn');
         if (isCapacitor) {
-            var updateBtn = document.getElementById('checkUpdateBtn');
             if (updateBtn) {
                 updateBtn.style.display = 'inline-flex';
                 updateBtn.addEventListener('click', function() {
                     if (window.AppUpdate && window.AppUpdate.showCloudflareUpdateDialog) {
                         window.AppUpdate.showCloudflareUpdateDialog();
                     }
+                });
+            }
+        } else if (isStandalone && ('caches' in window)) {
+            if (updateBtn) {
+                updateBtn.style.display = 'inline-flex';
+                updateBtn.addEventListener('click', function() {
+                    var root = window.CX_ROOT || './';
+                    if (statusEl) { statusEl.textContent = '正在检查更新...'; statusEl.className = 'cache-status'; }
+                    fetch(root + 'version.json?t=' + Date.now(), { cache: 'no-cache' })
+                        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                        .then(function(v) {
+                            var remoteVersion = v.version || v.apk_version || '';
+                            var storedVersion = '';
+                            try { storedVersion = localStorage.getItem('cx_pwa_version') || ''; } catch(e) {}
+                            if (storedVersion && storedVersion === remoteVersion) {
+                                if (statusEl) { statusEl.textContent = '✓ 已是最新版本 v' + remoteVersion; statusEl.className = 'cache-status success'; }
+                            } else {
+                                showPwaUpdateConfirmDialog(remoteVersion, statusEl);
+                            }
+                        })
+                        .catch(function(e) {
+                            if (statusEl) { statusEl.textContent = '检查失败：' + e.message; statusEl.className = 'cache-status error'; }
+                        });
                 });
             }
         }
@@ -506,6 +622,8 @@
                 // 内置实现（非主页）
                 if (selected === 'notes') {
                     try { localStorage.removeItem('cx_highlights'); } catch(e) {}
+                    try { localStorage.removeItem('cx_highlights_bak'); } catch(e) {}
+                    try { localStorage.removeItem('cx_highlights_bak_ts'); } catch(e) {}
                     if (statusEl) { statusEl.textContent = '✓ 划线笔记已清除，即将刷新...'; statusEl.className = 'cache-status success'; }
                     window.location.reload(true);
                     return;
@@ -541,8 +659,55 @@
 
     function defaultPromptClearData() { showClearDialog(); }
 
-    // 赞助界面
-    function showSponsorDialog() {
+    // PWA 更新确认对话框（仅清除缓存，保留用户数据）
+    function showPwaUpdateConfirmDialog(newVersion, statusEl) {
+        if (document.getElementById('cxPwaUpdateMask')) return;
+        var mask = document.createElement('div');
+        mask.id = 'cxPwaUpdateMask';
+        mask.className = 'cx-dialog-mask';
+        mask.innerHTML = [
+            '<div class="cx-dialog">',
+            '  <div class="cx-dialog-title">发现新版本</div>',
+            '  <div class="cx-dialog-desc">v' + newVersion + ' 已就绪，将清除旧缓存并重新下载。<br><span style="color:var(--success-text,#2e7d32);font-size:12px">✓ 笔记、主题等用户数据不受影响</span></div>',
+            '  <div class="cx-dialog-actions">',
+            '    <button class="cx-dialog-cancel" data-action="cancel">暂不更新</button>',
+            '    <button class="cx-dialog-confirm" data-action="confirm" style="color:var(--brand,#007aff)">立即更新</button>',
+            '  </div>',
+            '</div>'
+        ].join('');
+        document.body.appendChild(mask);
+        window.CX.backStack.push(function() { if (mask.parentNode) mask.parentNode.removeChild(mask); });
+        function close() {
+            if (mask.parentNode) mask.parentNode.removeChild(mask);
+            window.CX.backStack.pop();
+        }
+        mask.addEventListener('click', function(e) {
+            var t = e.target;
+            var action = t.getAttribute('data-action') ||
+                        (t.closest ? ((t.closest('[data-action]') || {}).getAttribute('data-action')) : null);
+            if (e.target === mask) { close(); return; }
+            if (action === 'cancel') { close(); return; }
+            if (action === 'confirm') {
+                close();
+                if (statusEl) { statusEl.textContent = '正在清除旧缓存...'; statusEl.className = 'cache-status'; }
+                // 仅清除 cx-* 缓存，不清除用户 localStorage 数据
+                var steps = [];
+                if ('caches' in window) {
+                    steps.push(caches.keys().then(function(keys) {
+                        return Promise.all(
+                            keys.filter(function(k) { return k.indexOf('cx-') === 0; })
+                                .map(function(k) { return caches.delete(k); })
+                        );
+                    }).catch(function() {}));
+                }
+                try { localStorage.removeItem('cx_pwa_version'); } catch(e) {}
+                try { localStorage.removeItem('cx_all_cached'); } catch(e) {}
+                // 更新版本时清除旧版本的错误日志
+                if (window.CX && window.CX.errorLog) window.CX.errorLog.clear();
+                Promise.all(steps).then(function() { window.location.reload(true); });
+            }
+        });
+    }
         if (document.getElementById('cxSponsorMask')) return;
 
         var SPONSOR_SERVERS = [
@@ -713,7 +878,22 @@
                         'UA: ' + ua.substring(0, 200)
                     ].filter(Boolean).join('\n');
 
-                    var content = text + '\n\n---\n' + deviceLines;
+                    // 附加错误日志
+                    var errorLog = (window.CX && window.CX.errorLog) ? window.CX.errorLog.get() : [];
+                    var logLines = '';
+                    if (errorLog.length > 0) {
+                        var fmt = errorLog.slice(-12).map(function(e) {
+                            var d = new Date(e.t);
+                            var ts = (d.getMonth()+1) + '/' + d.getDate() + ' '
+                                   + String(d.getHours()).padStart(2,'0') + ':'
+                                   + String(d.getMinutes()).padStart(2,'0') + ':'
+                                   + String(d.getSeconds()).padStart(2,'0');
+                            return '[' + ts + '] ' + (e.s ? e.s + ' ' : '') + e.m;
+                        }).join('\n');
+                        logLines = '\n\n--- 错误日志 ---\n' + fmt;
+                    }
+
+                    var content = text + '\n\n---\n' + deviceLines + logLines;
 
                     function tryPush(idx) {
                         if (idx >= PUSH_URLS.length) {
@@ -736,6 +916,8 @@
                             return r.json();
                         })
                         .then(function() {
+                            // 发送成功，清除错误日志
+                            if (window.CX && window.CX.errorLog) window.CX.errorLog.clear();
                             if (statusEl) { statusEl.textContent = '✓ 发送成功，感谢您的反馈！'; statusEl.className = 'cx-feedback-status success'; }
                             setTimeout(closeMask, 1800);
                         })
