@@ -1057,8 +1057,8 @@
                             }
                             keysToRemove.push(key);
                         }
-                        // 清理字体和语速设置
-                        if (key === 'fontSize' || key === 'speechRate') {
+                        // 清理字体、主题和语速设置
+                        if (key === 'fontSize' || key === 'globalFontSize' || key === 'readingTheme' || key === 'speechRate') {
                             keysToRemove.push(key);
                         }
                     }
