@@ -304,13 +304,16 @@
           playNextChunk();
         }).catch(function(error) {
           if (chunkGen !== speakGeneration) return; // 旧回调（如被 stop/rate切换打断），丢弃
-          // APK 安装后 Android TTS 服务冷启动较慢，最多重试 3 次，每次递增等待时间
-          if (_ttsRetryCount < 3) {
+          // APK 更新后 Android TTS 服务重新绑定较慢，最多重试 5 次，每次递增等待时间
+          if (_ttsRetryCount < 5) {
             _ttsRetryCount++;
             try { TextToSpeech.stop(); } catch (e) {}
-            var retryDelay = _ttsRetryCount * 800; // 800ms / 1600ms / 2400ms
+            var retryDelay = Math.min(_ttsRetryCount * 2000, 8000); // 2s/4s/6s/8s/8s
+            speechTime.textContent = '语音服务启动中…';
+            speechTime.style.color = '#888';
             setTimeout(function () {
               if (chunkGen !== speakGeneration) return;
+              speechTime.style.color = '';
               playNextChunk(); // 重试当前段（currentChunkIndex 未变）
             }, retryDelay);
             return;
@@ -453,65 +456,63 @@
           playNextChunk();
           
         } else {
-          // 短文本直接播放
+          // 短文本直接播放（使用局部 attempt 计数器避免 _ttsRetryCount 被外部重置导致的无限重试）
           isSeekingInternal = false;
-          elapsedOffset = targetSeconds;
-          startTime = Date.now();
-          pauseStartedAt = 0;
-          isPaused = false;
-          utterance = { capacitor: true }; // 标记为 Capacitor TTS
-          
-          updateButtonState(true);
-          startProgressUpdate();
-          
-          TextToSpeech.speak({
-            text: segmentText,
-            lang: lang,
-            rate: rate,
-            pitch: 1.0,
-            volume: 1.0,
-            category: 'playback'
-          }).then(function() {
-            if (currentGen !== speakGeneration) return; // 旧回调，丢弃
-            isSeekingInternal = false;
-            resetState(false);
-          }).catch(function(error) {
-            if (currentGen !== speakGeneration) return; // 旧回调（被 stop/rate切换打断），丢弃
-            isSeekingInternal = false;
-            // 系统切换 TTS 引擎后首次 speak() 可能失败，重试一次
-            if (_ttsRetryCount < 1) {
-              _ttsRetryCount++;
-              try { TextToSpeech.stop(); } catch (e) {}
-              setTimeout(function () {
-                if (currentGen !== speakGeneration) return;
-                startSpeakingFromPercent(p); // 使用外层 p（闭包）重试
-              }, 600);
-              return;
-            }
-            _ttsRetryCount = 0;
-            // 重置状态
-            stopProgressUpdate();
-            utterance = null;
-            isPaused = false;
-            startTime = 0;
+
+          (function doShortSpeak(attempt) {
+            elapsedOffset = targetSeconds;
+            startTime = Date.now();
             pauseStartedAt = 0;
-            elapsedOffset = 0;
-            updateButtonState(false);
-            progressBar.value = '0';
-            
-            // 显示错误信息
-            var shortMsg = '播放失败';
-            if (segmentText.length > 4000) {
-              shortMsg = '文本太长';
-            }
-            speechTime.textContent = shortMsg;
-            speechTime.style.color = '#ff0000';
-            
-            setTimeout(function() {
-              speechTime.textContent = '00:00 / 00:00';
-              speechTime.style.color = '';
-            }, 5000);
-          });
+            isPaused = false;
+            utterance = { capacitor: true };
+            updateButtonState(true);
+            startProgressUpdate();
+
+            TextToSpeech.speak({
+              text: segmentText,
+              lang: lang,
+              rate: rate,
+              pitch: 1.0,
+              volume: 1.0,
+              category: 'playback'
+            }).then(function() {
+              if (currentGen !== speakGeneration) return;
+              resetState(false);
+            }).catch(function(error) {
+              if (currentGen !== speakGeneration) return;
+              // APK 更新后 TTS 服务重新绑定较慢，最多重试 5 次
+              if (attempt < 5) {
+                try { TextToSpeech.stop(); } catch (e) {}
+                var retryDelay = Math.min((attempt + 1) * 2000, 8000);
+                stopProgressUpdate();
+                utterance = null;
+                updateButtonState(false);
+                speechTime.textContent = '语音服务启动中…';
+                speechTime.style.color = '#888';
+                setTimeout(function() {
+                  if (currentGen !== speakGeneration) return;
+                  speechTime.style.color = '';
+                  doShortSpeak(attempt + 1);
+                }, retryDelay);
+                return;
+              }
+              // 最终失败
+              stopProgressUpdate();
+              utterance = null;
+              isPaused = false;
+              startTime = 0;
+              pauseStartedAt = 0;
+              elapsedOffset = 0;
+              updateButtonState(false);
+              progressBar.value = '0';
+              speechTime.textContent = '语音服务异常，请重启APP';
+              speechTime.style.color = '#ff0000';
+              setTimeout(function() {
+                speechTime.textContent = '00:00 / 00:00';
+                speechTime.style.color = '';
+              }, 8000);
+            });
+          })(0);
         }
         
       } else {
