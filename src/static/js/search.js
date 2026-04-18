@@ -34,17 +34,25 @@
       if (this._loadPromise) return this._loadPromise;
 
       var root = (win.CX_ROOT !== undefined ? win.CX_ROOT : './');
+      var url = root + 'data/search-index.json';
       var self = this;
-      this._loadPromise = fetch(root + 'data/search-index.json')
+      console.log('[CXSearch] 开始加载索引:', url);
+      this._loadPromise = fetch(url)
         .then(function (r) {
-          if (!r.ok) throw new Error('HTTP ' + r.status);
+          console.log('[CXSearch] fetch 响应:', r.status, r.statusText, 'url:', r.url);
+          if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + r.statusText + ' (' + r.url + ')');
           return r.json();
         })
         .then(function (data) {
+          console.log('[CXSearch] 索引加载成功，条目数:', data && data.entries ? data.entries.length : '?');
           self._index = data;
           return data;
         })
         .catch(function (e) {
+          console.error('[CXSearch] 索引加载失败:', e && e.message || e,
+            '\n  URL:', url,
+            '\n  CX_ROOT:', win.CX_ROOT,
+            '\n  location:', win.location.href);
           self._loadPromise = null; // 允许重试
           throw e;
         });
@@ -318,8 +326,9 @@
       // 懒加载索引
       this.loadIndex().then(function () {
         if (self._input.value.trim()) self._doSearch(self._input.value);
-      }).catch(function () {
-        self._countEl.textContent = '搜索索引加载失败，请检查网络';
+      }).catch(function (e) {
+        var msg = (e && e.message) ? e.message : String(e);
+        self._countEl.textContent = '搜索索引加载失败：' + msg;
       });
     },
 
@@ -346,9 +355,10 @@
         this._countEl.textContent = '正在加载索引…';
         this.loadIndex().then(function () {
           self._doSearch(query);
-        }).catch(function () {
-          self._countEl.textContent = '索引加载失败，请检查网络';
-        });
+        }).catch(function (e) {
+        var msg = (e && e.message) ? e.message : String(e);
+        self._countEl.textContent = '索引加载失败：' + msg;
+      });
         return;
       }
 
