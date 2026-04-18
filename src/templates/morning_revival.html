@@ -54,7 +54,8 @@
                 {% endfor %}
                 {% endif %}
                 {% for para in revival.morning_feeding %}
-                <p class="content-text">{{ para | scripture_ref_wrap(chapter.scripture) }}</p>
+                {% set mf_ctx = revival.morning_feeding_contexts[loop.index0] if revival.morning_feeding_contexts is defined and loop.index0 < revival.morning_feeding_contexts|length else chapter.scripture %}
+                <p class="content-text">{{ para | scripture_ref_wrap(mf_ctx) }}</p>
                 {% endfor %}
             </div>
             {% endif %}
@@ -63,7 +64,8 @@
             <div class="reading-section">
                 <h4>信息选读</h4>
                 {% for para in revival.message_reading %}
-                <p class="content-text">{{ para | scripture_ref_wrap(chapter.scripture) }}</p>
+                {% set mr_ctx = revival.message_reading_contexts[loop.index0] if revival.message_reading_contexts is defined and loop.index0 < revival.message_reading_contexts|length else chapter.scripture %}
+                <p class="content-text">{{ para | scripture_ref_wrap(mr_ctx) }}</p>
                 {% endfor %}
             </div>
             {% endif %}

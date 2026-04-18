@@ -214,6 +214,16 @@ class ImprovedParser:
         '约翰一书': '约壹', '约翰二书': '约贰', '约翰三书': '约叁',
         '约翰壹书': '约壹', '约翰贰书': '约贰', '约翰叁书': '约叁',
         '犹大书': '犹', '启示录': '启',
+        # 常用简称别名（2字缩写，避免单字截断）
+        '行传': '徒', '马太': '太', '马可': '可', '路加': '路',
+        '约翰': '约', '使徒': '徒',
+        # 常用3字简称（书名不带"书/记/传"字）
+        '但以理': '但', '以西结': '结', '以赛亚': '赛', '耶利米': '耶',
+        '何西阿': '何', '约珥': '珥', '阿摩司': '摩', '俄巴底亚': '俄',
+        '约拿': '拿', '弥迦': '弥', '那鸿': '鸿', '哈巴谷': '哈',
+        '西番雅': '番', '哈该': '该', '撒迦利亚': '亚', '玛拉基': '玛',
+        '腓立比': '腓', '以弗所': '弗', '歌罗西': '西', '加拉太': '加',
+        '罗马': '罗',
     }
     # 预排序（从长到短），避免前缀误替换，仅计算一次
     _FULL_BOOK_MAP_SORTED = sorted(_FULL_BOOK_MAP.items(), key=lambda x: -len(x[0]))
@@ -225,18 +235,18 @@ class ImprovedParser:
         r'^(' + _BOOK_BASE_PAT + _BOOK_MOD_PAT + r'?)'
         r'(\d+):(\d+)([上下]?)(?:~(\d+)([上下]?))?'
     )
-    # 全称章节式：书卷 + 中文章章 + v1节?[至到v2节] 或 v1[至到v2]节
+    # 全称章节式：书卷 + 中文章章 + v1节?[至到v2节] 或 v1[至到v2]节（节部分可选，无节则整章）
     _FULL_CHAP_JING_RE = re.compile(
         r'^(' + _BOOK_BASE_PAT + _BOOK_MOD_PAT + r'?)'
         r'([一二三四五六七八九十百]+)章'
-        r'(?:([一二三四五六七八九十百]+)节(?:[至到]([一二三四五六七八九十百]+)节)?'
-        r'|([一二三四五六七八九十百]+)[至到]([一二三四五六七八九十百]+)节)'
+        r'(?:(?:([一二三四五六七八九十百]+)节(?:[至到]([一二三四五六七八九十百]+)节)?'
+        r'|([一二三四五六七八九十百]+)[至到]([一二三四五六七八九十百]+)节))?'
     )
-    # 相对章节式：中文章章 + 同上
+    # 相对章节式：中文章章 + 同上（节部分可选）
     _REL_CHAP_JING_RE = re.compile(
         r'^([一二三四五六七八九十百]+)章'
-        r'(?:([一二三四五六七八九十百]+)节(?:[至到]([一二三四五六七八九十百]+)节)?'
-        r'|([一二三四五六七八九十百]+)[至到]([一二三四五六七八九十百]+)节)'
+        r'(?:(?:([一二三四五六七八九十百]+)节(?:[至到]([一二三四五六七八九十百]+)节)?'
+        r'|([一二三四五六七八九十百]+)[至到]([一二三四五六七八九十百]+)节))?'
     )
     # 纯中文节续：v1节[至到v2节] 或 v1[至到v2]节
     _CONT_JING_RE = re.compile(
@@ -2125,20 +2135,23 @@ class ImprovedParser:
                     refs.append(f'{current_book}{current_chapter}:0')
                 continue
 
-            # 2. 全称章节式：书卷 + 章(中文)章 + 节范围
+            # 2. 全称章节式：书卷 + 章(中文)章 + 节范围（节部分可选，无节则整章）
             m = cls._FULL_CHAP_JING_RE.match(part)
             if m:
                 current_book = m.group(1)
                 current_chapter = cls._cn_to_int(m.group(2))
-                # 格式A: group(3)=v1节, group(4)=v2节(可选); 格式B: group(5)=v1, group(6)=v2节
-                if m.group(3):
-                    v1 = cls._cn_to_int(m.group(3))
-                    v2 = cls._cn_to_int(m.group(4)) if m.group(4) else v1
-                else:
-                    v1 = cls._cn_to_int(m.group(5))
-                    v2 = cls._cn_to_int(m.group(6))
-                if current_chapter and v1:
-                    cls._emit_verse_range(current_book, current_chapter, v1, '', v2, '', refs)
+                if m.group(3) is not None or m.group(5) is not None:
+                    # 格式A: group(3)=v1节, group(4)=v2节(可选); 格式B: group(5)=v1, group(6)=v2节
+                    if m.group(3):
+                        v1 = cls._cn_to_int(m.group(3))
+                        v2 = cls._cn_to_int(m.group(4)) if m.group(4) else v1
+                    else:
+                        v1 = cls._cn_to_int(m.group(5))
+                        v2 = cls._cn_to_int(m.group(6))
+                    if current_chapter and v1:
+                        cls._emit_verse_range(current_book, current_chapter, v1, '', v2, '', refs)
+                elif current_chapter:
+                    refs.append(f'{current_book}{current_chapter}:0')
                 continue
 
             # 3. 相对章：只有中文章 + 阿拉伯节（一19~21上）
@@ -2146,7 +2159,7 @@ class ImprovedParser:
                 m = cls._REL_CHAP_RE.match(part)
                 if m:
                     current_chapter = cls._cn_to_int(m.group(1))
-                    if not current_chapter:
+                    if not current_chapter or current_chapter > 150:
                         continue
                     v1 = int(m.group(2)); mod1 = m.group(3) or ''
                     v2_s = m.group(4);    mod2 = m.group(5) or ''
@@ -2155,19 +2168,24 @@ class ImprovedParser:
                                           mod2 if v2_s else mod1, refs)
                     continue
 
-            # 4. 相对章节式：中文章章 + 节范围（同书卷）
+            # 4. 相对章节式：中文章章 + 节范围（同书卷，节部分可选）
             if current_book:
                 m = cls._REL_CHAP_JING_RE.match(part)
                 if m:
                     current_chapter = cls._cn_to_int(m.group(1))
-                    if m.group(2):
-                        v1 = cls._cn_to_int(m.group(2))
-                        v2 = cls._cn_to_int(m.group(3)) if m.group(3) else v1
+                    if not current_chapter or current_chapter > 150:
+                        continue
+                    if m.group(2) is not None or m.group(4) is not None:
+                        if m.group(2):
+                            v1 = cls._cn_to_int(m.group(2))
+                            v2 = cls._cn_to_int(m.group(3)) if m.group(3) else v1
+                        else:
+                            v1 = cls._cn_to_int(m.group(4))
+                            v2 = cls._cn_to_int(m.group(5))
+                        if v1:
+                            cls._emit_verse_range(current_book, current_chapter, v1, '', v2, '', refs)
                     else:
-                        v1 = cls._cn_to_int(m.group(4))
-                        v2 = cls._cn_to_int(m.group(5))
-                    if current_chapter and v1:
-                        cls._emit_verse_range(current_book, current_chapter, v1, '', v2, '', refs)
+                        refs.append(f'{current_book}{current_chapter}:0')
                     continue
 
             # 5. 纯节续：阿拉伯数字[上下][~数字[上下]]（同书同章）
@@ -2186,7 +2204,7 @@ class ImprovedParser:
                 m = cls._REL_WHOLE_CHAP_RE.match(part)
                 if m:
                     chap = cls._cn_to_int(m.group(1))
-                    if chap:
+                    if chap and chap <= 150:  # 圣经最多150章（诗篇），>150为页码等误识
                         current_chapter = chap
                         refs.append(f'{current_book}{chap}:0')
                     continue

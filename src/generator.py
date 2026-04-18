@@ -203,6 +203,144 @@ class HTMLGenerator:
     # 括号内容匹配（全角半角均支持）
     _PAREN_RE = re.compile(r'[（(〔]([^）)〕\n]{1,40})[）)〕]')
 
+    # 裸露（无括号）经文引用内联匹配正则（懒加载）
+    _INLINE_BARE_REF_RE = None
+
+    @classmethod
+    def _build_inline_bare_ref_re(cls):
+        """构建并缓存裸露内联经文引用正则：匹配「书名X章Y节」格式。"""
+        if cls._INLINE_BARE_REF_RE is not None:
+            return cls._INLINE_BARE_REF_RE
+        # 完整书名（按长度降序排列，避免前缀误匹配）
+        full_names_pat = '|'.join(
+            re.escape(k) for k in sorted(ImprovedParser._FULL_BOOK_MAP.keys(), key=len, reverse=True)
+        )
+        # 简称：单字书卷 + 可选修饰
+        abbrev_pat = (r'[\u521b\u51fa\u5229\u6c11\u7533\u4e66\u58eb\u5f97\u6492\u738b\u4ee3\u62c9\u5c3c\u65af\u4f2f'
+                      r'\u8bd7\u7b74\u4f20\u6b4c\u8d5b\u8036\u54c0\u7ed3\u4f46\u4f55\u73e5\u6469\u4fe3\u62ff\u5f25'
+                      r'\u9e3f\u54c8\u756a\u8be5\u4e9a\u739b\u592a\u53ef\u8def\u7ea6\u5f92\u7f57\u6797\u52a0\u5f0f'
+                      r'\u817c\u897f\u5e16\u63d0\u95e8\u591a\u5f7c\u72b9\u542f\u6765][\u540e\u524d\u4e0a\u4e0b\u58f9\u8d30\u53c1]?')
+        book_pat = f'(?:{full_names_pat}|{abbrev_pat})'
+        cn_num = r'[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e]+'
+        cls._INLINE_BARE_REF_RE = re.compile(
+            f'({book_pat})'                                     # group 1: book name
+            f'({cn_num})\u7ae0'                                 # group 2: chapter + 章
+            f'(?:({cn_num})\u8282(?:[\u81f3\u5230]({cn_num})\u8282)?)?'  # groups 3,4: optional verse range
+        )
+        return cls._INLINE_BARE_REF_RE
+
+    def _wrap_inline_bare_refs(self, text: str) -> str:
+        """在段落文字中检测裸露（无括号）经文引用（书名X章Y节格式）并包裹 span。"""
+        if not text:
+            return str(escape(text))
+        pattern = self._build_inline_bare_ref_re()
+        result = []
+        last = 0
+        for m in pattern.finditer(text):
+            result.append(str(escape(text[last:m.start()])))
+            book_raw = m.group(1)
+            chap_cn = m.group(2)
+            verse_cn = m.group(3)
+            end_verse_cn = m.group(4)
+            # 将书名归一化为简称
+            book = ImprovedParser._normalize_book_names(book_raw)
+            chap = ImprovedParser._cn_to_int(chap_cn) or 0
+            if not chap or chap > 150:
+                result.append(str(escape(m.group(0))))
+                last = m.end()
+                continue
+            refs_list = []
+            if verse_cn:
+                v1 = ImprovedParser._cn_to_int(verse_cn) or 0
+                v2 = ImprovedParser._cn_to_int(end_verse_cn) if end_verse_cn else v1
+                if v1:
+                    ImprovedParser._emit_verse_range(book, chap, v1, '', v2 or v1, '', refs_list)
+            if not refs_list:
+                refs_list = [f'{book}{chap}:0']
+            data_refs = ','.join(refs_list)
+            display = str(escape(m.group(0)))
+            result.append(f'<span class="scripture-ref" data-refs="{data_refs}">{display}</span>')
+            last = m.end()
+        result.append(str(escape(text[last:])))
+        return ''.join(result)
+
+    def _extract_bare_ref_context(self, text: str, cur_book: str, cur_chapter: int):
+        """扫描文字片段中的裸露书名X章引用，返回更新后的 (book, chapter)。"""
+        pattern = self._build_inline_bare_ref_re()
+        for m in pattern.finditer(text):
+            book = ImprovedParser._normalize_book_names(m.group(1))
+            chap = ImprovedParser._cn_to_int(m.group(2)) or 0
+            if chap and chap <= 150:
+                cur_book = book
+                cur_chapter = chap
+        return cur_book, cur_chapter
+
+    def _compute_para_final_state(self, text: str, init_book: str, init_chapter: int):
+        """模拟段落扫描，返回处理完整段落后的最终 (book, chapter) 状态，供下段作初始上下文。"""
+        # 找破折号分割位置（与 _wrap_scripture_ref 逻辑一致）
+        split_pos = None
+        for m in reversed(list(re.finditer(r'[—─]', text))):
+            pos = m.start()
+            depth = sum(1 if c in '（(〔' else (-1 if c in '）)〕' else 0) for c in text[:pos])
+            if depth > 0:
+                continue
+            after = text[pos + 1:].strip()
+            if re.search(r'\d', after) and self._SCRIPTURE_REF_START_RE.match(after):
+                split_pos = pos
+                break
+        main_text = text[:split_pos] if split_pos is not None else text
+        cur_book, cur_chapter = init_book, init_chapter
+        last_end = 0
+        for m in self._PAREN_RE.finditer(main_text):
+            inter_seg = main_text[last_end:m.start()]
+            cur_book, cur_chapter = self._extract_bare_ref_context(inter_seg, cur_book, cur_chapter)
+            content = m.group(1)
+            refs = ImprovedParser._expand_cn_scripture_refs(content, cur_book, cur_chapter)
+            if refs:
+                new_bk = ''
+                for ref in reversed(refs):
+                    bk = ImprovedParser._extract_primary_book(ref)
+                    if bk:
+                        new_bk = bk
+                        break
+                if new_bk:
+                    cur_book = new_bk
+                chap_m = re.search(r'(\d+):', refs[-1])
+                if chap_m:
+                    cur_chapter = int(chap_m.group(1))
+            last_end = m.end()
+        cur_book, cur_chapter = self._extract_bare_ref_context(
+            main_text[last_end:], cur_book, cur_chapter)
+        # 处理破折号引用
+        if split_pos is not None:
+            ref_body = text[split_pos:].lstrip('—─').strip()
+            refs = ImprovedParser._expand_cn_scripture_refs(ref_body, cur_book, cur_chapter)
+            if refs:
+                bk = ImprovedParser._extract_primary_book(refs[-1])
+                if bk:
+                    cur_book = bk
+                chap_m = re.search(r'(\d+):', refs[-1])
+                if chap_m:
+                    cur_chapter = int(chap_m.group(1))
+        return cur_book, cur_chapter
+
+    def _enrich_section_contexts(self, chapter_dict: dict):
+        """为每个晨兴的 morning_feeding / message_reading 预计算逐段起始上下文，
+        使段落间经文引用能正确接续（跨段落上下文传播）。"""
+        chapter_scripture = chapter_dict.get('scripture', '')
+        default_book = ImprovedParser._extract_primary_book(chapter_scripture) if chapter_scripture else ''
+        default_chapter = ImprovedParser._extract_primary_chapter(chapter_scripture) if chapter_scripture else 0
+        for revival in chapter_dict.get('morning_revivals', []):
+            for key in ('morning_feeding', 'message_reading'):
+                paras = revival.get(key, [])
+                contexts = []
+                cur_book, cur_chapter = default_book, default_chapter
+                for para in paras:
+                    ctx = f'{cur_book}{cur_chapter}:0' if cur_book and cur_chapter else chapter_scripture
+                    contexts.append(ctx)
+                    cur_book, cur_chapter = self._compute_para_final_state(para, cur_book, cur_chapter)
+                revival[f'{key}_contexts'] = contexts
+
     def _wrap_scripture_ref(self, text: str, context_scripture: str = ''):
         """将纲目标题中的经文引用包裹在 <span class="scripture-ref"> 中。
 
@@ -238,39 +376,37 @@ class HTMLGenerator:
         parts = []
         last_end = 0
         for m in self._PAREN_RE.finditer(main_text):
+            inter_seg = main_text[last_end:m.start()]
+            # 先处理括号前的文字：输出 HTML 并用其中的裸露引用更新上下文
+            parts.append(self._wrap_inline_bare_refs(inter_seg))
+            current_book, current_chapter = self._extract_bare_ref_context(
+                inter_seg, current_book, current_chapter)
+            # 再用已更新的上下文解析括号内容
             content = m.group(1)
             refs = ImprovedParser._expand_cn_scripture_refs(content, current_book, current_chapter)
-            parts.append(str(escape(main_text[last_end:m.start()])))
             if refs:
-                # 更新 current_book / current_chapter，但跨书引用不污染默认书卷上下文：
-                # 若括号内含显式书卷名且与默认书卷不同（旁引），不更新 current_book；
-                # 同时将 current_chapter 清零，避免后续纯节号误接到旁引的章节。
+                # 每次识别成功后，始终用最后一个 ref 更新上下文，供后续相对引用使用。
                 new_bk = ''
                 for ref in reversed(refs):
                     bk = ImprovedParser._extract_primary_book(ref)
                     if bk:
                         new_bk = bk
                         break
-                if new_bk and new_bk != default_book:
-                    # 旁引（跨书）：只用于本次括号，不传播给后续相对引用
-                    current_chapter = 0
-                elif new_bk:
+                if new_bk:
                     current_book = new_bk
-                    chap_m = re.search(r'(\d+):', refs[-1])
-                    if chap_m:
-                        current_chapter = int(chap_m.group(1))
-                else:
-                    # 无显式书名（纯节续），只更新章号
-                    chap_m = re.search(r'(\d+):', refs[-1])
-                    if chap_m:
-                        current_chapter = int(chap_m.group(1))
+                chap_m = re.search(r'(\d+):', refs[-1])
+                if chap_m:
+                    current_chapter = int(chap_m.group(1))
                 data_refs = ','.join(refs)
                 span_text = str(escape(m.group(0)))
                 parts.append(f'<span class="scripture-ref" data-refs="{data_refs}">{span_text}</span>')
             else:
                 parts.append(str(escape(m.group(0))))
             last_end = m.end()
-        parts.append(str(escape(main_text[last_end:])))
+        trailing = main_text[last_end:]
+        parts.append(self._wrap_inline_bare_refs(trailing))
+        current_book, current_chapter = self._extract_bare_ref_context(
+            trailing, current_book, current_chapter)
 
         # ── 处理破折号引用 ────────────────────────────────────────────
         if dash_ref_text:
@@ -554,6 +690,7 @@ class HTMLGenerator:
         training_dict = training_data.to_dict()
         chapter_dict = chapter.to_dict()
         self._enrich_chapter_feeding_refs(chapter_dict)
+        self._enrich_section_contexts(chapter_dict)
 
         # 生成纲目页（_cv.htm）- 默认全部展开（经文不展开）
         self._generate_outline_page(num, chapter_dict, training_dict, collapsed=False, filename_suffix='cv', page_name='纲目')

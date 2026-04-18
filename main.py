@@ -353,11 +353,11 @@ def generate_main_index(config, batch_results):
                     else:
                         training_pages.append(f"./{training_path}/{filename}")
         
-        # 只收集训练特定的 JSON 文件（scriptures-data.json），共享 JS/CSS 在根目录
+        # 收集训练 js/ 目录下所有 JSON 文件
         js_dir = os.path.join(training_dir, 'js')
         if os.path.exists(js_dir):
-            for filename in os.listdir(js_dir):
-                if filename.endswith('.json') and filename == 'scriptures-data.json':
+            for filename in sorted(os.listdir(js_dir)):
+                if filename.endswith('.json'):
                     training_pages.append(f"./{training_path}/js/{filename}")
 
         # 训练目录不再有独立 css/（已移至根目录共享），此处保留兼容扫描
@@ -367,6 +367,21 @@ def generate_main_index(config, batch_results):
                 if filename.endswith('.css'):
                     training_pages.append(f"./{training_path}/css/{filename}")
     
+    # 自动扫描核心静态资源（用于安装对话框缓存）
+    core_urls = ['./', './manifest.json', './trainings.json', './version.json']
+    for subdir, ext_filter in [
+        ('js',     lambda f: f.endswith('.js') and not f.endswith('.original')),
+        ('css',    lambda f: f.endswith('.css')),
+        ('data',   lambda f: f.endswith('.json')),
+        ('icons',  lambda f: f.endswith(('.svg', '.png'))),
+        ('vendor', lambda f: f.endswith('.js')),
+    ]:
+        d = os.path.join(output_dir, subdir)
+        if os.path.exists(d):
+            for filename in sorted(os.listdir(d)):
+                if ext_filter(filename):
+                    core_urls.append(f'./{subdir}/{filename}')
+
     # 渲染模板
     env = Environment(loader=FileSystemLoader(template_dir))
     template = env.get_template('main_index.html')
@@ -376,6 +391,7 @@ def generate_main_index(config, batch_results):
         total_chapters=total_chapters,
         generation_time=datetime.now().strftime('%Y年%m月%d日 %H:%M'),
         training_pages=training_pages,
+        core_urls=core_urls,
     )
     
     # 保存主页

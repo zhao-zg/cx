@@ -8,7 +8,7 @@
     <!-- 防止主题跳色：在渲染前设置主题 -->
     <script>(function(){var d=document.documentElement,m=document.querySelector('meta[name="theme-color"]'),s=null,t='cool';try{s=localStorage.getItem('readingTheme')}catch(e){}if(s==='cool'||s==='warm'||s==='dark'){t=s}else{try{t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'cool'}catch(e){t='cool'}}d.setAttribute('data-theme',t);if(m){m.setAttribute('content',t==='warm'?'#f3ede4':(t==='dark'?'#121214':'#f7f8fc'));}})();</script>
     <!-- 伪装检测：非PWA/非APP浏览器提示（暂用弹框，后续恢复伪装页） -->
-    <script>(function(){var ok=false;try{if(sessionStorage.getItem('cx_access')==='ok')ok=true;}catch(e){}if(!ok&&window.location.search.indexOf('zzg')!==-1){try{sessionStorage.setItem('cx_access','ok');}catch(e){}ok=true;}if(!ok){var isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||(window.location.hostname==='localhost'&&window.location.protocol==='http:');var isPwa=window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);/* 暂时改为弹框提示，恢复伪装页时将下一行改为: document.documentElement.classList.add('cx-disguise'); */if(!isCap&&!isPwa)window.__cxBrowserTip=true;}})();</script>
+    <script>(function(){var ok=false;try{if(sessionStorage.getItem('cx_access')==='ok')ok=true;}catch(e){}if(!ok&&window.location.search.indexOf('zzg')!==-1){try{sessionStorage.setItem('cx_access','ok');}catch(e){}ok=true;}if(!ok){var isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||(window.location.hostname==='localhost'&&window.location.protocol==='http:');var isPwa=window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);/* 暂时改为弹框提示，恢复伪装页时将下一行改为: */document.documentElement.classList.add('cx-disguise'); /* if(!isCap&&!isPwa)window.__cxBrowserTip=true; */}})();</script>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -219,8 +219,10 @@
     <script src="js/nav-stack.js"></script>
     
     <script>
-    // 自动扫描的训练资源列表（与 Service Worker 完全一致）
+    // 自动扫描的训练资源列表
     window.__cxTrainingPages = {{ training_pages | tojson }};
+    // 自动扫描的核心资源列表（js/ css/ data/ icons/ vendor/ 等）
+    window.__cxCoreUrls = {{ core_urls | tojson }};
     
     // 统一的环境检测 - 避免重复代码
     window.CX = window.CX || {};
@@ -780,24 +782,46 @@
             return Promise.resolve();
         }
 
-        // 共享资源（js/ css/）在浏览时由 SW fetchAndCache 顺路写入 cx-main 缓存
-        var cacheShared = Promise.resolve();
-
+        // 统计总资源数（核心 + 各训练）
+        var coreUrls = window.__cxCoreUrls || [];
         var totalTrainings = trainings.length;
         var currentIndex = 0;
-        var totalResources = 0;
+        var totalResources = coreUrls.length;
         var cachedResources = 0;
 
         trainings.forEach(function(training) {
             totalResources += getTrainingResources(training.path, training.images || []).length;
         });
 
-        if (statusEl) {
-            statusEl.textContent = '开始缓存全部训练...';
-            statusEl.className = 'cache-status';
+        function reportProgress() {
+            var percent = totalResources > 0 ? Math.round((cachedResources / totalResources) * 100) : 0;
+            if (onProgress) onProgress(percent);
+            return percent;
         }
 
+        // 第一阶段：缓存核心共享资源到 cx-main（由 Python 扫描生成 __cxCoreUrls）
+        if (statusEl) {
+            statusEl.textContent = '缓存核心资源（0/' + coreUrls.length + '）...';
+            statusEl.className = 'cache-status';
+        }
+        var cacheShared = caches.open('cx-main').then(function(cache) {
+            return Promise.allSettled(coreUrls.map(function(url) {
+                return fetch(url, { cache: 'no-cache' })
+                    .then(function(r) {
+                        cachedResources++;
+                        if (statusEl) statusEl.textContent = '核心资源：' + cachedResources + '/' + coreUrls.length + '（' + reportProgress() + '%）';
+                        if (r.ok) return cache.put(url, r);
+                    })
+                    .catch(function() { cachedResources++; reportProgress(); });
+            }));
+        }).catch(function() {});
+
+        // 第二阶段：逐训练缓存
         return cacheShared.then(function() {
+            if (statusEl) {
+                statusEl.textContent = '开始缓存训练内容...';
+                statusEl.className = 'cache-status';
+            }
             return trainings.reduce(function(promise, training) {
             return promise.then(function() {
                 currentIndex++;
@@ -815,18 +839,14 @@
                             .then(function(response) {
                                 if (response.ok && response.status >= 200 && response.status < 300) {
                                     cachedResources++;
-                                    var percent = totalResources > 0 ? Math.round((cachedResources / totalResources) * 100) : 0;
-                                    if (statusEl) statusEl.textContent = '缓存进度：' + percent + '%';
-                                    if (onProgress) onProgress(percent);
+                                    var percent = reportProgress();
+                                    if (statusEl) statusEl.textContent = '缓存进度：' + percent + '%（' + training.title + ')';
                                     return cache.put(response.url, response.clone());
                                 }
                             })
                             .catch(function() {
                                 cachedResources++;
-                                if (onProgress) {
-                                    var p = totalResources > 0 ? Math.round((cachedResources / totalResources) * 100) : 0;
-                                    onProgress(p);
-                                }
+                                reportProgress();
                             });
                     });
                     return Promise.all(tasks);

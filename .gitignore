@@ -16,8 +16,10 @@ yarn-error.log*
 package-lock.json
 yarn.lock
 
-# Capacitor
+# Capacitor — ignore generated Android/iOS project, but keep all custom plugin sources
 android/
+!android/app/src/main/java/com/tehui/offline/
+!android/app/src/main/java/com/tehui/offline/**
 ios/
 .capacitor/
 

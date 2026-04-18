@@ -159,6 +159,8 @@ jobs:
         git checkout android/app/src/main/java/com/tehui/offline/MainActivity.java
         git checkout android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
         git checkout android/app/src/main/java/com/tehui/offline/ImageSaverPlugin.java
+        git checkout android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java
+        git checkout android/app/src/main/java/com/tehui/offline/TTSForegroundService.java
         
         echo ""
         echo "=== 验证插件文件 ==="
@@ -185,8 +187,22 @@ jobs:
           exit 1
         fi
         
+        if [ -f "android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java" ]; then
+          echo "✓ NativeTTSPlugin.java 已恢复"
+        else
+          echo "✗ NativeTTSPlugin.java 恢复失败"
+          exit 1
+        fi
+        
+        if [ -f "android/app/src/main/java/com/tehui/offline/TTSForegroundService.java" ]; then
+          echo "✓ TTSForegroundService.java 已恢复"
+        else
+          echo "✗ TTSForegroundService.java 恢复失败"
+          exit 1
+        fi
+        
         echo ""
-        echo "✓ 自定义 APK 安装插件文件已恢复"
+        echo "✓ 所有自定义插件文件已恢复"
     - name: 配置 Android 图标（使用预生成的 PNG）
       run: |
         echo "=== 配置 Android 图标 ==="
@@ -331,21 +347,21 @@ jobs:
         # 删除 Capacitor 生成的默认 MainActivity
         rm -f android/app/src/main/java/com/tehui/offline/MainActivity.java
         
-        # 从 Git 恢复自定义插件文件
+        # 从 Git 恢复所有自定义插件文件（包含 NativeTTS Foreground Service）
         mkdir -p android/app/src/main/java/com/tehui/offline
         git checkout HEAD -- android/app/src/main/java/com/tehui/offline/MainActivity.java
         git checkout HEAD -- android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
+        git checkout HEAD -- android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java
+        git checkout HEAD -- android/app/src/main/java/com/tehui/offline/TTSForegroundService.java
         
         # 验证插件文件
-        if [ ! -f "android/app/src/main/java/com/tehui/offline/MainActivity.java" ]; then
-          echo "✗ MainActivity.java 恢复失败"
-          exit 1
-        fi
-        if [ ! -f "android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java" ]; then
-          echo "✗ ApkInstallerPlugin.java 恢复失败"
-          exit 1
-        fi
-        echo "✓ 自定义插件文件已恢复"
+        for f in MainActivity.java ApkInstallerPlugin.java NativeTTSPlugin.java TTSForegroundService.java; do
+          if [ ! -f "android/app/src/main/java/com/tehui/offline/$f" ]; then
+            echo "✗ $f 恢复失败"
+            exit 1
+          fi
+        done
+        echo "✓ 所有自定义插件文件已恢复"
         
         manifest_file="android/app/src/main/AndroidManifest.xml"
         
@@ -399,11 +415,68 @@ jobs:
         
         # 验证是否成功
         if grep -q "com.tehui.offline.MainActivity" "$manifest_file"; then
-          echo "✓ AndroidManifest.xml 配置完成"
+          echo "✓ AndroidManifest.xml MainActivity 配置完成"
         else
           echo "✗ 验证失败"
           exit 1
         fi
+        
+        # 添加 NativeTTS Foreground Service 所需权限和 service 声明
+        cat > patch_manifest_tts.py << 'TTS_EOF'
+        import re
+        
+        manifest_file = 'android/app/src/main/AndroidManifest.xml'
+        with open(manifest_file, 'r') as f:
+            content = f.read()
+        
+        # 添加 FOREGROUND_SERVICE 权限
+        if 'FOREGROUND_SERVICE"' not in content:
+            content = re.sub(
+                r'(<manifest[^>]*>)',
+                r'\1\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
+                content
+            )
+            print('✓ 添加 FOREGROUND_SERVICE 权限')
+        
+        # 添加 FOREGROUND_SERVICE_MEDIA_PLAYBACK（Android 14+）
+        if 'FOREGROUND_SERVICE_MEDIA_PLAYBACK' not in content:
+            content = re.sub(
+                r'(<manifest[^>]*>)',
+                r'\1\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />',
+                content
+            )
+            print('✓ 添加 FOREGROUND_SERVICE_MEDIA_PLAYBACK 权限')
+        
+        # 添加 WAKE_LOCK 权限
+        if 'WAKE_LOCK' not in content:
+            content = re.sub(
+                r'(<manifest[^>]*>)',
+                r'\1\n    <uses-permission android:name="android.permission.WAKE_LOCK" />',
+                content
+            )
+            print('✓ 添加 WAKE_LOCK 权限')
+        
+        # 添加 TTSForegroundService 声明（在 </application> 前）
+        if 'TTSForegroundService' not in content:
+            service_xml = (
+                '        <service\n'
+                '            android:name="com.tehui.offline.TTSForegroundService"\n'
+                '            android:foregroundServiceType="mediaPlayback"\n'
+                '            android:exported="false" />\n'
+            )
+            content = content.replace('</application>', service_xml + '    </application>')
+            print('✓ 添加 TTSForegroundService 声明')
+        
+        with open(manifest_file, 'w') as f:
+            f.write(content)
+        print('✓ NativeTTS Manifest 补丁完成')
+        TTS_EOF
+        
+        python3 patch_manifest_tts.py
+        
+        # 验证
+        grep -E "FOREGROUND_SERVICE|WAKE_LOCK|TTSForegroundService" "$manifest_file" | head -6 || echo "警告: TTS 权限检查"
+        echo "✓ NativeTTS AndroidManifest 配置完成"
 
 
     - name: 配置网络安全策略
