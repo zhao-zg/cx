@@ -57,12 +57,6 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   const normalizedUrl = normalizeUrl(request.url);
 
-  // search-index.json 使用 stale-while-revalidate 策略
-  if (request.url.includes('search-index.json')) {
-    event.respondWith(staleWhileRevalidate(request));
-    return;
-  }
-
   event.respondWith((async () => {
     // 1. 缓存优先 (尝试原始 URL 和规范化 URL)
     const cached = await caches.match(request) || await caches.match(normalizedUrl);
@@ -72,24 +66,6 @@ self.addEventListener('fetch', event => {
     return fetchAndCache(request, normalizedUrl);
   })());
 });
-
-/**
- * search-index.json: stale-while-revalidate
- * 有缓存就立即返回，同时后台异步更新缓存
- */
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-
-  const fetchPromise = fetch(request).then(response => {
-    if (response && response.status === 200 && CONFIG.CACHEABLE_TYPES.includes(response.type)) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  }).catch(() => null);
-
-  return cached || fetchPromise;
-}
 
 /**
  * 核心修复：请求并缓存
