@@ -51,11 +51,35 @@ function normalizeUrl(urlStr) {
 // 3. 请求拦截
 // --------------------------------------------------------------------------
 
+// 始终走网络、不缓存的文件（版本检测、目录更新用）
+const NETWORK_ONLY = ['version.json', 'trainings.json', 'manifest.json'];
+
+function isNetworkOnly(url) {
+  try {
+    const path = new URL(url).pathname;
+    return NETWORK_ONLY.some(f => path.endsWith('/' + f) || path === '/' + f || path.endsWith(f));
+  } catch (e) { return false; }
+}
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   const request = event.request;
   const normalizedUrl = normalizeUrl(request.url);
+
+  // 版本/目录文件：网络优先，离线时才降级缓存
+  if (isNetworkOnly(request.url)) {
+    event.respondWith((async () => {
+      try {
+        return await fetch(request, { cache: 'no-store' });
+      } catch (e) {
+        const cached = await caches.match(request) || await caches.match(normalizedUrl);
+        if (cached) return cached;
+        throw e;
+      }
+    })());
+    return;
+  }
 
   event.respondWith((async () => {
     // 1. 缓存优先 (尝试原始 URL 和规范化 URL)
