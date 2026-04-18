@@ -404,11 +404,13 @@
     (function() {
         try {
             // 检查是否在 PWA 或 Capacitor APP 中运行
-            var isApp = CX_ENV.isInApp || CX_ENV.isCapacitor;
+            // isCapacitorApp = isCapacitor || isCapacitorScheme（URL scheme 检测，不依赖 bridge 是否注入）
+            var isApp = CX_ENV.isInApp || CX_ENV.isCapacitorApp;
             
             console.log('[页面记忆] 环境检测:', {
                 isPWA: CX_ENV.isStandalone,
                 isCapacitor: CX_ENV.isCapacitor,
+                isCapacitorScheme: CX_ENV.isCapacitorScheme,
                 isApp: isApp
             });
             

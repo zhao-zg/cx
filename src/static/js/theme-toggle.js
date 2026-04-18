@@ -900,6 +900,8 @@
                 try {
                     var vEl = document.querySelector('meta[name="app-version"]');
                     if (vEl) appVer = vEl.getAttribute('content') || '';
+                    // 主页无 meta 标签，从 localStorage 补充读取运行时 APK 版本
+                    if (!appVer) appVer = localStorage.getItem('cx_apk_version') || '';
                 } catch(e) {}
 
                 function doSend(ip) {
