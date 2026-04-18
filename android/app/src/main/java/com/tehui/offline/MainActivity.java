@@ -14,6 +14,7 @@ public class MainActivity extends BridgeActivity {
         // 重要：必须在 super.onCreate() 之前注册插件！
         registerPlugin(ApkInstallerPlugin.class);
         registerPlugin(ImageSaverPlugin.class);
+        registerPlugin(NativeTTSPlugin.class);
         super.onCreate(savedInstanceState);
         
         // 设置状态栏颜色

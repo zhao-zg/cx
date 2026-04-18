@@ -1,0 +1,145 @@
+package com.tehui.offline;
+
+import android.content.Intent;
+import android.os.Build;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+/**
+ * NativeTTSPlugin — Capacitor plugin bridge for TTSForegroundService.
+ *
+ * JS API:
+ *   NativeTTS.speak({ text, lang?, rate? })  → Promise (resolves when speech ends)
+ *   NativeTTS.stop()                         → Promise<void>
+ *   NativeTTS.pause()                        → Promise<void>
+ *   NativeTTS.resume()                       → Promise<void>
+ */
+@CapacitorPlugin(name = "NativeTTS")
+public class NativeTTSPlugin extends Plugin {
+
+    // Keep alive the pending speak() call until service finishes
+    private PluginCall activeCall = null;
+
+    // ── speak ─────────────────────────────────────────────────────────────
+
+    @PluginMethod(returnType = PluginMethod.RETURN_PROMISE)
+    public void speak(PluginCall call) {
+        String text = call.getString("text", "");
+        String lang = call.getString("lang", "zh-CN");
+        float  rate = call.getFloat("rate", 1.0f);
+
+        if (text == null || text.trim().isEmpty()) {
+            call.reject("文本为空");
+            return;
+        }
+
+        // Cancel any in-flight speak() and clear the service's old callback
+        cancelActiveCall("cancelled");
+
+        // Keep Capacitor from releasing this call before TTS finishes
+        call.setKeepAlive(true);
+        activeCall = call;
+        saveCall(call);
+
+        // Register service → plugin callback
+        TTSForegroundService.listener = new TTSForegroundService.Listener() {
+            @Override
+            public void onFinished() {
+                resolveActiveCall("finished");
+            }
+
+            @Override
+            public void onError(String message) {
+                rejectActiveCall(message);
+            }
+        };
+
+        // Start the Foreground Service
+        Intent intent = new Intent(getContext(), TTSForegroundService.class);
+        intent.setAction(TTSForegroundService.ACTION_SPEAK);
+        intent.putExtra("text",  text);
+        intent.putExtra("lang",  lang);
+        intent.putExtra("rate",  rate);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            getContext().startForegroundService(intent);
+        } else {
+            getContext().startService(intent);
+        }
+    }
+
+    // ── stop ──────────────────────────────────────────────────────────────
+
+    @PluginMethod
+    public void stop(PluginCall call) {
+        cancelActiveCall("stopped");
+        TTSForegroundService.listener = null;
+        sendServiceAction(TTSForegroundService.ACTION_STOP);
+        call.resolve();
+    }
+
+    // ── pause ─────────────────────────────────────────────────────────────
+
+    @PluginMethod
+    public void pause(PluginCall call) {
+        sendServiceAction(TTSForegroundService.ACTION_PAUSE);
+        call.resolve();
+    }
+
+    // ── resume ────────────────────────────────────────────────────────────
+
+    @PluginMethod
+    public void resume(PluginCall call) {
+        sendServiceAction(TTSForegroundService.ACTION_RESUME);
+        call.resolve();
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+
+    private void sendServiceAction(String action) {
+        Intent intent = new Intent(getContext(), TTSForegroundService.class);
+        intent.setAction(action);
+        getContext().startService(intent);
+    }
+
+    private void cancelActiveCall(String status) {
+        PluginCall c = activeCall;
+        activeCall = null;
+        if (c != null) {
+            try {
+                c.resolve(new JSObject().put("status", status));
+                c.setKeepAlive(false);
+                releaseCall(c);
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private void resolveActiveCall(String status) {
+        TTSForegroundService.listener = null;
+        PluginCall c = activeCall;
+        activeCall = null;
+        if (c != null) {
+            try {
+                c.resolve(new JSObject().put("status", status));
+                c.setKeepAlive(false);
+                releaseCall(c);
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private void rejectActiveCall(String message) {
+        TTSForegroundService.listener = null;
+        PluginCall c = activeCall;
+        activeCall = null;
+        if (c != null) {
+            try {
+                c.reject(message);
+                c.setKeepAlive(false);
+                releaseCall(c);
+            } catch (Exception ignored) {}
+        }
+    }
+}
