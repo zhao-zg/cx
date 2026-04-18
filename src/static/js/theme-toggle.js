@@ -190,6 +190,32 @@
     
     // 页面加载时创建主题切换UI
     function initThemeToggle() {
+        // 内页启动缓存检测：非主页 + PWA standalone + 缓存缺失 → 跳回主页触发安装
+        (function() {
+            var root = window.CX_ROOT || './';
+            if (root === './') return; // 主页自己处理
+            var isStandalone = window.navigator.standalone === true ||
+                               window.matchMedia('(display-mode: standalone)').matches;
+            var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
+                                 window.Capacitor.isNativePlatform());
+            if (!isStandalone || isCapacitor || !('caches' in window)) return;
+            var storedVersion = null;
+            try { storedVersion = localStorage.getItem('cx_pwa_version'); } catch(e) {}
+            // 未记录版本（从未安装缓存）：直接跳回主页
+            if (!storedVersion) {
+                window.location.replace(root + 'index.html');
+                return;
+            }
+            // 有版本记录但缓存可能已被清除：检查 cx-main 是否存在
+            caches.keys().then(function(keys) {
+                var hasCoreCache = keys.some(function(k) {
+                    return k === 'cx-main' || k.indexOf('cx-main-') === 0;
+                });
+                if (!hasCoreCache) {
+                    window.location.replace(root + 'index.html');
+                }
+            }).catch(function() {});
+        })();
         // 查找container元素（优先使用.container，如果没有则使用body）
         const containerEl = document.querySelector('.container') || document.body;
         
@@ -704,7 +730,11 @@
                 try { localStorage.removeItem('cx_all_cached'); } catch(e) {}
                 // 更新版本时清除旧版本的错误日志
                 if (window.CX && window.CX.errorLog) window.CX.errorLog.clear();
-                Promise.all(steps).then(function() { window.location.reload(true); });
+                // 跳回主页，checkPwaStartupCache 会检测到缓存已清空并触发安装对话框
+                Promise.all(steps).then(function() {
+                    var root = window.CX_ROOT || './';
+                    window.location.replace(root + 'index.html');
+                });
             }
         });
     }
