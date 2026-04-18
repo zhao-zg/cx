@@ -76,7 +76,17 @@ def load_page_blocks(session: requests.Session, page_id: str) -> Dict[str, Any]:
     }
     response = session.post(NOTION_CHUNK_URL, json=payload, timeout=30)
     response.raise_for_status()
-    return response.json().get('recordMap', {}).get('block', {})
+    raw_blocks = response.json().get('recordMap', {}).get('block', {})
+    # API wraps block data as {spaceId: ..., value: {value: {actual_data}}}
+    # Normalize to the expected {value: {actual_data}} flat structure
+    result: Dict[str, Any] = {}
+    for bid, b in raw_blocks.items():
+        inner = b.get('value', {})
+        if isinstance(inner, dict) and 'value' in inner:
+            result[bid] = {'value': inner['value']}
+        else:
+            result[bid] = b
+    return result
 
 
 def get_children(blocks: Dict[str, Any], block_id: str) -> Iterable[str]:
@@ -393,22 +403,36 @@ def download_notion_documents(base_url: str, only_images: bool = False) -> List[
     if not page_id:
         print("无法解析页面 ID")
         return []
+    print(f"页面 ID: {page_id}")
     session = create_session()
-    blocks = load_page_blocks(session, page_id)
     year_links = find_year_links(session, page_id)
+    if not year_links:
+        print("未找到任何年份页面，请检查 Notion 页面结构或认证 Token")
+        return []
+    print(f"找到 {len(year_links)} 个年份页面: {[y['title'] for y in year_links]}")
     all_trainings = []
     for year in year_links:
         trainings = find_training_links_in_year(session, year)
+        print(f"  {year['title']}: 找到 {len(trainings)} 个训练")
+        for t in trainings:
+            print(f"    - {t['title']}")
         all_trainings.extend(trainings)
-    
+    if not all_trainings:
+        print(f"未找到符合范围的训练（>= {MIN_TRAINING_YEAR}-{MIN_TRAINING_MONTH:02d}）")
+        return []
+    print(f"\n共 {len(all_trainings)} 个训练待处理")
     all_docs: List[Dict[str, Any]] = []
     for training in all_trainings:
         folder_name = re.sub(r'[<>:\\"/|?*]', '_', training['title'])
+        print(f"\n处理训练: {training['title']}")
         
         # 下载标语诗歌图片
         motto_page = find_motto_pages(session, training)
         if motto_page:
+            print(f"  找到标语页面: {motto_page['title']}")
             download_motto_image(session, motto_page, folder_name)
+        else:
+            print(f"  未找到标语页面")
         
         # 如果只下载图片，跳过Word文档
         if only_images:
@@ -417,7 +441,9 @@ def download_notion_documents(base_url: str, only_images: bool = False) -> List[
         
         resource_pages = find_resource_pages(session, training)
         if not resource_pages:
+            print(f"  未找到资源页面")
             continue
+        print(f"  找到 {len(resource_pages)} 个资源页面")
         
         for resource in resource_pages:
             aggregated: Dict[str, List[Dict[str, Any]]] = {'经文': [], '听抄': [], '晨兴': []}
