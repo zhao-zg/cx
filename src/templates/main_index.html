@@ -1053,8 +1053,9 @@
                     var keysToRemove = [];
                     for (var i = 0; i < localStorage.length; i++) {
                         var key = localStorage.key(i);
-                        // 清理所有 cx_ 开头的键
+                        // 清理所有 cx_ 开头的键（保留首次使用时间，用于赞助按钮显示判断）
                         if (key && key.startsWith('cx_')) {
+                            if (key === 'cx_first_use') continue;  // 不清除赞助显示时间设定
                             if (keepNotes && key === 'cx_highlights') {
                                 continue;
                             }

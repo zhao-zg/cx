@@ -669,12 +669,14 @@
                     var theme = localStorage.getItem('readingTheme');
                     var fontSize = localStorage.getItem('globalFontSize');
                     var highlights = localStorage.getItem('cx_highlights');
+                    var firstUse = localStorage.getItem('cx_first_use');  // 保留赞助显示时间
                     for (var i = localStorage.length - 1; i >= 0; i--) {
                         var k = localStorage.key(i); if (k) localStorage.removeItem(k);
                     }
                     if (theme)      localStorage.setItem('readingTheme', theme);
                     if (fontSize)   localStorage.setItem('globalFontSize', fontSize);
                     if (highlights) localStorage.setItem('cx_highlights', highlights);
+                    if (firstUse)   localStorage.setItem('cx_first_use', firstUse);
                 } catch(ex) {}
                 Promise.all(steps).then(function() { window.location.reload(true); });
             }
