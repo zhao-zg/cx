@@ -337,6 +337,9 @@ def generate_main_index(config, batch_results):
     
     trainings.sort(key=get_sort_key, reverse=True)
     
+    # 先生成搜索索引（从已生成的 HTML 提取全文），确保 core_urls 扫描时文件已存在
+    generate_search_index(output_dir, trainings)
+    
     # 自动扫描所有训练的资源（用于主页和 SW）
     training_pages = []
     for training in trainings:
@@ -495,9 +498,6 @@ def generate_main_index(config, batch_results):
     with open(sw_path, 'w', encoding='utf-8') as f:
         f.write(sw_content)
     print(f"✓ Service Worker 已生成: {sw_path}")
-
-    # 生成搜索索引（从已生成的 HTML 提取全文） 
-    generate_search_index(output_dir, trainings)
 
     # 复制 _headers 文件（用于 Cloudflare Pages 的 MIME 类型配置）
     headers_src = os.path.join(template_dir, '_headers')
