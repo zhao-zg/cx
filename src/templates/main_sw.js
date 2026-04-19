@@ -52,7 +52,7 @@ function normalizeUrl(urlStr) {
 // --------------------------------------------------------------------------
 
 // 始终走网络、不缓存的文件（版本检测、目录更新用）
-const NETWORK_ONLY = ['version.json', 'trainings.json', 'manifest.json'];
+const NETWORK_ONLY = ['version.json'];
 
 function isNetworkOnly(url) {
   try {
