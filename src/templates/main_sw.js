@@ -81,52 +81,46 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  event.respondWith((async () => {
+  // 安装/更新时 cacheAllTrainings 使用 cache:'no-cache' 发起请求，
+  // 由页面侧显式调用 cache.put 管理，SW 不再介入，避免双重写缓存竞争。
+  if (request.cache === 'no-cache') return;
+
+  const responsePromise = (async () => {
     // 1. 缓存优先 (尝试原始 URL 和规范化 URL)
     const cached = await caches.match(request) || await caches.match(normalizedUrl);
     if (cached) return cached;
 
-    // 2. 缓存未命中
-    return fetchAndCache(request, normalizedUrl);
-  })());
-});
-
-/**
- * 核心修复：请求并缓存
- */
-async function fetchAndCache(request, normalizedUrl) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT);
-
-  try {
+    // 2. 缓存未命中 → 从网络取并写缓存
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT);
     const response = await fetch(request, { signal: controller.signal });
     clearTimeout(timeoutId);
 
-    // 检查响应是否有效且值得缓存
     if (response && response.status === 200 && CONFIG.CACHEABLE_TYPES.includes(response.type)) {
+      const responseClone = response.clone();
       const cache = await caches.open(CACHE_NAME);
-      
-      /* 关键修复：
-         1. 存储原始请求：使用 response.clone()
-         2. 如果有规范化路径：再 clone 一次
-         3. 最后的 response 返回给浏览器使用
-      */
-      cache.put(request, response.clone());
-      
-      if (request.url !== normalizedUrl) {
-        cache.put(normalizedUrl, response.clone());
-      }
+      // 用 event.waitUntil 延长 SW 生命周期，确保大文件写完再休眠
+      const writePromise = cache.put(request, responseClone)
+        .then(() => {
+          if (request.url !== normalizedUrl) {
+            return cache.put(normalizedUrl, response.clone());
+          }
+        })
+        .catch(() => {/* 写缓存失败不影响正常响应 */});
+      event.waitUntil(writePromise);
     }
-    return response; 
-  } catch (err) {
+    return response;
+  })();
+
+  event.respondWith(responsePromise.catch(err => {
     if (request.mode === 'navigate') {
       return new Response(getOfflineHTML(), {
         headers: { 'Content-Type': 'text/html; charset=utf-8' }
       });
     }
     throw err;
-  }
-}
+  }));
+});
 
 // --------------------------------------------------------------------------
 // 4. 工具

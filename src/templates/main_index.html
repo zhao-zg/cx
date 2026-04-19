@@ -794,7 +794,8 @@
                     .then(function(r) {
                         cachedResources++;
                         if (statusEl) statusEl.textContent = '核心资源：' + cachedResources + '/' + coreUrls.length + '（' + reportProgress() + '%）';
-                        if (r.ok) return cache.put(url, r);
+                        // 用 r.clone() 存缓存：避免与 SW 侧共享同一 body stream 造成写入空体
+                        if (r.ok) return cache.put(url, r.clone());
                     })
                     .catch(function() { cachedResources++; reportProgress(); });
             }));

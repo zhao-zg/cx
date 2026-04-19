@@ -3,6 +3,7 @@
   "short_name": "特会信息",
   "description": "特会信息合集 - 所有训练总览",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#f6f7fb",
