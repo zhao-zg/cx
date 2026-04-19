@@ -19,7 +19,6 @@
     {% endif %}
     
     <div class="message-content">
-        {% if chapter.detail_sections %}
         {% macro render_section(section, depth=1, section_index=0) %}
         {% set section_id = 'msg-' ~ section_index ~ '-' ~ section.level %}
         <div class="section">
@@ -45,14 +44,16 @@
         </div>
         {% endmacro %}
         
-        {% for section in chapter.detail_sections %}
-        {{ render_section(section, 1, loop.index) }}
-        {% endfor %}
-        {% elif chapter.message_content %}
+        {% if chapter.message_content %}
         {% for para in chapter.message_content %}
         <p class="content-text">{{ para | scripture_ref_wrap(chapter.scripture) }}</p>
         {% endfor %}
-        {% else %}
+        {% endif %}
+        {% if chapter.detail_sections %}
+        {% for section in chapter.detail_sections %}
+        {{ render_section(section, 1, loop.index) }}
+        {% endfor %}
+        {% elif not chapter.message_content %}
         <p class="no-content">职事信息内容暂缺</p>
         {% endif %}
     </div>

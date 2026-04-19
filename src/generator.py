@@ -223,9 +223,12 @@ class HTMLGenerator:
         book_pat = f'(?:{full_names_pat}|{abbrev_pat})'
         cn_num = r'[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e]+'
         cls._INLINE_BARE_REF_RE = re.compile(
-            f'({book_pat})'                                     # group 1: book name
-            f'({cn_num})\u7ae0'                                 # group 2: chapter + 章
-            f'(?:({cn_num})\u8282(?:[\u81f3\u5230]({cn_num})\u8282)?)?'  # groups 3,4: optional verse range
+            f'({book_pat})'                                               # group 1: book name
+            f'({cn_num})\u7ae0'                                           # group 2: chapter + 章
+            f'(?:'                                                         # optional verse range
+            f'(?:({cn_num})\u8282(?:[\u81f3\u5230]({cn_num})\u8282)?)'   # format A groups 3,4: Y节[至Z节]
+            f'|({cn_num})[\u81f3\u5230]({cn_num})\u8282'                 # format B groups 5,6: Y至Z节
+            f')?'
         )
         return cls._INLINE_BARE_REF_RE
 
@@ -240,8 +243,8 @@ class HTMLGenerator:
             result.append(str(escape(text[last:m.start()])))
             book_raw = m.group(1)
             chap_cn = m.group(2)
-            verse_cn = m.group(3)
-            end_verse_cn = m.group(4)
+            verse_cn = m.group(3) or m.group(5)      # format A: Y节 / format B: Y (before 至)
+            end_verse_cn = m.group(4) or m.group(6)  # format A: Z节 / format B: Z节
             # 将书名归一化为简称
             book = ImprovedParser._normalize_book_names(book_raw)
             chap = ImprovedParser._cn_to_int(chap_cn) or 0
