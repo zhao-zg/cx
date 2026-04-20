@@ -6,5 +6,12 @@
     "allowMixedContent": true,
     "captureInput": true,
     "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "DARK",
+      "backgroundColor": "#f0f3f9"
+    }
   }
 }
