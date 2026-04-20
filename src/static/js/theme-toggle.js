@@ -139,10 +139,11 @@
     const fontSizes = [14, 16, 18, 20, 22, 24, 26, 28];
     const defaultSizeIndex = 2; // 默认18px
     let currentSizeIndex = defaultSizeIndex;
+    // 状态栏 / meta[name=theme-color] 统一用页面底色 → 沉浸式阅读
     const themeMetaColors = {
-        cool: '#f7f8fc',
+        cool: '#f0f3f9',
         warm: '#f3ede4',
-        dark: '#121214'
+        dark: '#101319'
     };
     let pageScrollLockCount = 0;
 
@@ -168,10 +169,20 @@
     }
 
     function syncThemeColor(theme) {
+        var color = themeMetaColors[theme] || themeMetaColors.cool;
         const metaThemeColor = document.querySelector('meta[name="theme-color"]');
         if (metaThemeColor) {
-            metaThemeColor.setAttribute('content', themeMetaColors[theme] || themeMetaColors.cool);
+            metaThemeColor.setAttribute('content', color);
         }
+        // Capacitor 原生状态栏：与页面底色一致，沉浸式阅读
+        try {
+            var sb = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar;
+            if (sb) {
+                sb.setBackgroundColor({ color: color });
+                // 夜间底色深 → 浅色(白)图标；其余底色浅 → 深色图标
+                sb.setStyle({ style: theme === 'dark' ? 'LIGHT' : 'DARK' });
+            }
+        } catch (e) {}
     }
 
     function lockPageScroll() {
