@@ -297,6 +297,13 @@ function initSpeech() {
 
             const feedingSection = activePage.querySelector('.feeding-section');
             if (feedingSection) {
+                // 读取喂养经文：scripture-block-static（静态文本型经文）
+                feedingSection.querySelectorAll('.scripture-block-static').forEach(block => {
+                    var blockClone = block.cloneNode(true);
+                    blockClone.querySelectorAll('sup').forEach(function(s) { s.remove(); });
+                    const t = blockClone.textContent.trim();
+                    if (t) text += t + '。';
+                });
                 // 读取喂养经文：scripture-block（动态渲染的经文块）
                 feedingSection.querySelectorAll('.scripture-block').forEach(block => {
                     block.querySelectorAll('.scripture-popup-verse').forEach(verse => {

@@ -22,6 +22,92 @@
       .trim();
   }
 
+  // -- Bible reference expansion --------------------------------------------
+
+  var _BN = {
+    '创': '创世记', '出': '出埃及记', '利': '利未记', '民': '民数记',
+    '申': '申命记', '书': '约书亚记', '士': '士师记', '得': '路得记',
+    '撒上': '撒母耳记上', '撒下': '撒母耳记下',
+    '王上': '列王纪上', '王下': '列王纪下',
+    '代上': '历代志上', '代下': '历代志下',
+    '拉': '以斯拉记', '尼': '尼希米记', '斯': '以斯帖记',
+    '伯': '约伯记', '诗': '诗篇', '箴': '箴言', '传': '传道书',
+    '歌': '雅歌', '赛': '以赛亚书', '耶': '耶利米书',
+    '哀': '耶利米哀歌', '结': '以西结书', '但': '但以理书',
+    '何': '何西阿书', '珥': '约珥书', '摩': '阿摩司书',
+    '俄': '俄巴底亚书', '拿': '约拿书', '弥': '弥迦书',
+    '鸿': '那鸿书', '哈': '哈巴谷书', '番': '西番雅书',
+    '该': '哈该书', '亚': '撒迦利亚书', '玛': '玛拉基书',
+    '太': '马太福音', '可': '马可福音', '路': '路加福音',
+    '约': '约翰福音', '徒': '使徒行传', '罗': '罗马书',
+    '林前': '哥林多前书', '林后': '哥林多后书',
+    '加': '加拉太书', '弗': '以弗所书', '腓': '腓立比书',
+    '西': '歌罗西书',
+    '帖前': '帖撒罗尼迦前书', '帖后': '帖撒罗尼迦后书',
+    '提前': '提摩太前书', '提后': '提摩太后书',
+    '门': '腓利门书', '来': '希伯来书', '雅': '雅各书',
+    '彼前': '彼得前书', '彼后': '彼得后书',
+    '约壹': '约翰壹书', '约贰': '约翰贰书', '约叁': '约翰叁书',
+    '犹': '犹大书', '启': '启示录', '多': '提多书'
+  };
+
+  // 诗篇用「篇」而非「章」
+  var _PIAN = { '诗': 1 };
+
+  function _numToCN(n) {
+    n = parseInt(n, 10);
+    if (isNaN(n) || n <= 0) return String(n);
+    var d = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    if (n < 10) return d[n];
+    if (n < 20) return '十' + (n > 10 ? d[n - 10] : '');
+    if (n < 100) return d[Math.floor(n / 10)] + '十' + (n % 10 ? d[n % 10] : '');
+    var h = Math.floor(n / 100), r = n % 100;
+    if (r === 0) return d[h] + '百';
+    if (r < 10) return d[h] + '百零' + d[r];
+    return d[h] + '百' + _numToCN(r);
+  }
+
+  // 解析单条 data-ref 如 太7:22 或 林前3:13 或 约15:5下
+  function _parseRef(ref) {
+    ref = (ref || '').trim();
+    var m = ref.match(/^([^\d:]{1,3})(\d+):(\d+)([上下]?)$/);
+    if (!m) return null;
+    return { book: m[1], chapter: parseInt(m[2], 10), verse: parseInt(m[3], 10), suffix: m[4] };
+  }
+
+  function _expandRef(p) {
+    var full = _BN[p.book] || p.book;
+    var chWord = _PIAN[p.book] ? '篇' : '章';
+    return full + _numToCN(p.chapter) + chWord + _numToCN(p.verse) + '节' + (p.suffix || '');
+  }
+
+  // 将逗号分隔的 data-refs 字符串展开为朗读文本
+  // 同书同章连续节 → 用「至」压缩；其余逐条列出
+  function expandDataRefs(refs) {
+    if (!refs) return '';
+    var parts = (refs + '').split(',').map(function (r) { return r.trim(); }).filter(Boolean);
+    if (!parts.length) return '';
+    var result = [], i = 0;
+    while (i < parts.length) {
+      var p = _parseRef(parts[i]);
+      if (!p) { result.push(parts[i]); i++; continue; }
+      var j = i + 1;
+      while (j < parts.length) {
+        var q = _parseRef(parts[j]);
+        if (!q || q.book !== p.book || q.chapter !== p.chapter) break;
+        j++;
+      }
+      if (j === i + 1) {
+        result.push(_expandRef(p));
+      } else {
+        var last = _parseRef(parts[j - 1]);
+        result.push(_expandRef(p) + '至' + _numToCN(last.verse) + '节' + (last.suffix || ''));
+      }
+      i = j;
+    }
+    return result.join('，');
+  }
+
   function formatTime(seconds) {
     var s = Math.max(0, Math.floor(seconds || 0));
     return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
@@ -39,6 +125,62 @@
   function init(options) {
     var getText = options && typeof options.getText === 'function' ? options.getText : null;
     if (!getText) return;
+
+    // 包装 getText：朗读前将非括号的 .scripture-ref[data-refs] span 整体替换为
+    // 展开后的纯文本节点，使 getCleanText（会移除 .scripture-ref）也能读到完整书名；
+    // 读完后把文本节点换回原始 span，不影响页面显示。
+    var _origGetText = getText;
+    getText = function () {
+      var spans = Array.prototype.slice.call(document.querySelectorAll('.scripture-ref[data-refs]'));
+      var tnMap = []; // 与 spans 一一对应；null 表示未替换
+      spans.forEach(function (span) {
+        // 纲目破折号经文（.outline-section 内且以破折号开头，如 —太五3：）→ 不展开，
+        // 留给 getCleanText 的 .scripture-ref 过滤移除，不朗读
+        // 括号形式（如 （太七21））→ 原样保留，safeText 会过滤掉，不读
+        var txt = (span.textContent || '').trim();
+        if (!span.parentNode ||
+            (/^[—\-]/.test(txt) && typeof span.closest === 'function' && span.closest('.outline-section')) ||
+            /^[（(]/.test(txt)) {
+          tnMap.push(null); return;
+        }
+        var expanded = expandDataRefs(span.getAttribute('data-refs'));
+        if (!expanded) { tnMap.push(null); return; }
+        // 用纯文本节点替换 span，这样 getCleanText 的 .scripture-ref 移除逻辑
+        // 找不到该节点，展开文本得以保留
+        var tn = document.createTextNode(expanded);
+        span.parentNode.replaceChild(tn, span);
+        tnMap.push(tn);
+      });
+      // .scripture-block-static[data-refs]：将简称引用前缀替换为全书名，使朗读读出完整称谓
+      // 格式为 "太五3\t经文正文…"，以第一个 \t 分割；替换为 "马太福音五章三节\t经文正文…"
+      var staticBlocks = Array.prototype.slice.call(document.querySelectorAll('.scripture-block-static[data-refs]'));
+      var sbMap = [];
+      staticBlocks.forEach(function (block) {
+        var refs = block.getAttribute('data-refs');
+        var expanded = expandDataRefs(refs);
+        if (!expanded) { sbMap.push(null); return; }
+        var origHTML = block.innerHTML;
+        var origText = block.textContent;
+        var tabIdx = origText.indexOf('\t');
+        var body = tabIdx !== -1 ? origText.slice(tabIdx + 1) : origText;
+        block.textContent = expanded + '\t' + body;
+        sbMap.push({ block: block, origHTML: origHTML });
+      });
+
+      var text = _origGetText();
+
+      // 还原 scripture-block-static
+      staticBlocks.forEach(function (block, idx) {
+        var saved = sbMap[idx];
+        if (saved) { block.innerHTML = saved.origHTML; }
+      });
+      // 还原：将文本节点换回原始 span
+      spans.forEach(function (span, idx) {
+        var tn = tnMap[idx];
+        if (tn && tn.parentNode) { tn.parentNode.replaceChild(span, tn); }
+      });
+      return text;
+    };
 
     var lang = (options && options.lang) || 'zh-CN';
 
