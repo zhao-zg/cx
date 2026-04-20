@@ -174,12 +174,11 @@
         if (metaThemeColor) {
             metaThemeColor.setAttribute('content', color);
         }
-        // Capacitor 原生状态栏：与页面底色一致，沉浸式阅读
+        // 同步 Capacitor 原生状态栏颜色（DOMContentLoaded 后调用，bridge 已就绪）
         try {
             var sb = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar;
             if (sb) {
                 sb.setBackgroundColor({ color: color });
-                // 夜间底色深 → 浅色(白)图标；其余底色浅 → 深色图标
                 sb.setStyle({ style: theme === 'dark' ? 'LIGHT' : 'DARK' });
             }
         } catch (e) {}
