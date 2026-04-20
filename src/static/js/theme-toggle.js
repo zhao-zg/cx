@@ -179,7 +179,10 @@
             var sb = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar;
             if (sb) {
                 sb.setBackgroundColor({ color: color });
-                sb.setStyle({ style: theme === 'dark' ? 'LIGHT' : 'DARK' });
+                // Capacitor StatusBar setStyle 语义：
+                //   'DARK'  → setAppearanceLightStatusBars(false) → 白色图标，用于深色背景
+                //   'LIGHT' → setAppearanceLightStatusBars(true)  → 黑色图标，用于浅色背景
+                sb.setStyle({ style: theme === 'dark' ? 'DARK' : 'LIGHT' });
             }
         } catch (e) {}
     }
