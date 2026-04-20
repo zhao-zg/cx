@@ -228,11 +228,14 @@ class HTMLGenerator:
         cn_num = r'[一二三四五六七八九十百]+'
         cls._INLINE_BARE_REF_RE = re.compile(
             f'({book_pat})'                                               # group 1: book name
-            f'({cn_num})[章篇]'                                   # group 2: chapter + 章/篇(诗篇)
+            f'(?:'
+            f'({cn_num})[至到]({cn_num})[章篇]'                          # groups 2,3: chapter range X至Y章
+            f'|({cn_num})[章篇]'                                          # group 4: single chapter
             f'(?:'                                                         # optional verse range
-            f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'   # format A groups 3,4: Y节[至Z节]
-            f'|({cn_num})[至到]({cn_num})节'                 # format B groups 5,6: Y至Z节
+            f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'                    # format A groups 5,6: Y节[至Z节]
+            f'|({cn_num})[至到]({cn_num})节'                              # format B groups 7,8: Y至Z节
             f')?'
+            f')'
         )
         return cls._INLINE_BARE_REF_RE
 
@@ -262,10 +265,12 @@ class HTMLGenerator:
         # 节范围改为可选；无节号时要求后接非「文章/意义」类汉字，避免误识
         # 允许整章（纯 X章）后面是：标点、数字、英文、空白、句末或另一汉字节号
         cls._INLINE_REL_CHAP_RE = re.compile(
-            f'({cn_num})[章篇]'                                            # group 1: chapter + 章/篇(诗篇)
+            f'({cn_num})[至到]({cn_num})[章篇]'                           # groups 1,2: chapter range X至Y章
+            f'|'
+            f'({cn_num})[章篇]'                                            # group 3: single chapter
             f'(?:'                                                          # optional verse range
-            f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'                     # format A groups 2,3: Y节[至Z节]
-            f'|({cn_num})[至到]({cn_num})节'                               # format B groups 4,5: Y至Z节
+            f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'                     # format A groups 4,5: Y节[至Z节]
+            f'|({cn_num})[至到]({cn_num})节'                               # format B groups 6,7: Y至Z节
             f')?'                                                           # verse range is optional
             # 无节时后面不能紧跟文意性汉字（的/中/里/讲/说/是/来/等/个）
             r'(?![的中里讲说是来等个])'
@@ -311,23 +316,33 @@ class HTMLGenerator:
             result.append(str(escape(seg[last:m.start()])))
 
             if kind == 'chap':
-                chap_cn    = m.group(1)
-                verse_cn   = m.group(2) or m.group(4)
-                end_verse_cn = m.group(3) or m.group(5)
-                chap = ImprovedParser._cn_to_int(chap_cn) or 0
-                if not chap or chap > 150:
-                    result.append(str(escape(m.group(0))))
-                    last = m.end()
-                    continue
-                cur_chapter = chap   # 更新章号，供后续纯节引用使用
-                refs_list = []
-                if verse_cn:
-                    v1 = ImprovedParser._cn_to_int(verse_cn) or 0
-                    v2 = ImprovedParser._cn_to_int(end_verse_cn) if end_verse_cn else v1
-                    if v1:
-                        ImprovedParser._emit_verse_range(cur_book, chap, v1, '', v2 or v1, '', refs_list)
-                if not refs_list:
-                    refs_list = [f'{cur_book}{chap}:0']
+                if m.group(1):  # chapter range X至Y章
+                    start_chap = ImprovedParser._cn_to_int(m.group(1)) or 0
+                    end_chap = ImprovedParser._cn_to_int(m.group(2)) or 0
+                    if not start_chap or not end_chap or end_chap > 150:
+                        result.append(str(escape(m.group(0))))
+                        last = m.end()
+                        continue
+                    cur_chapter = start_chap
+                    refs_list = [f'{cur_book}{c}:0' for c in range(start_chap, end_chap + 1)]
+                else:
+                    chap_cn    = m.group(3)
+                    verse_cn   = m.group(4) or m.group(6)
+                    end_verse_cn = m.group(5) or m.group(7)
+                    chap = ImprovedParser._cn_to_int(chap_cn) or 0
+                    if not chap or chap > 150:
+                        result.append(str(escape(m.group(0))))
+                        last = m.end()
+                        continue
+                    cur_chapter = chap   # 更新章号，供后续纯节引用使用
+                    refs_list = []
+                    if verse_cn:
+                        v1 = ImprovedParser._cn_to_int(verse_cn) or 0
+                        v2 = ImprovedParser._cn_to_int(end_verse_cn) if end_verse_cn else v1
+                        if v1:
+                            ImprovedParser._emit_verse_range(cur_book, chap, v1, '', v2 or v1, '', refs_list)
+                    if not refs_list:
+                        refs_list = [f'{cur_book}{chap}:0']
             else:  # verse
                 if not cur_chapter:
                     result.append(str(escape(m.group(0))))
@@ -372,27 +387,37 @@ class HTMLGenerator:
             result.append(self._wrap_rel_chapter_refs(inter_seg, cur_book, cur_chapter))
             cur_book, cur_chapter = self._extract_bare_ref_context(inter_seg, cur_book, cur_chapter)
             book_raw = m.group(1)
-            chap_cn = m.group(2)
-            verse_cn = m.group(3) or m.group(5)      # format A: Y节 / format B: Y (before 至)
-            end_verse_cn = m.group(4) or m.group(6)  # format A: Z节 / format B: Z节
-            # 将书名归一化为简称
             book = ImprovedParser._normalize_book_names(book_raw)
-            chap = ImprovedParser._cn_to_int(chap_cn) or 0
-            if not chap or chap > 150:
-                result.append(str(escape(m.group(0))))
-                last = m.end()
-                continue
-            # 更新上下文供后续相对引用使用
-            cur_book = book
-            cur_chapter = chap
-            refs_list = []
-            if verse_cn:
-                v1 = ImprovedParser._cn_to_int(verse_cn) or 0
-                v2 = ImprovedParser._cn_to_int(end_verse_cn) if end_verse_cn else v1
-                if v1:
-                    ImprovedParser._emit_verse_range(book, chap, v1, '', v2 or v1, '', refs_list)
-            if not refs_list:
-                refs_list = [f'{book}{chap}:0']
+            if m.group(2):  # chapter range 书名X至Y章
+                start_chap = ImprovedParser._cn_to_int(m.group(2)) or 0
+                end_chap = ImprovedParser._cn_to_int(m.group(3)) or 0
+                if not start_chap or not end_chap or end_chap > 150:
+                    result.append(str(escape(m.group(0))))
+                    last = m.end()
+                    continue
+                cur_book = book
+                cur_chapter = start_chap
+                refs_list = [f'{book}{c}:0' for c in range(start_chap, end_chap + 1)]
+            else:
+                chap_cn = m.group(4)
+                verse_cn = m.group(5) or m.group(7)      # format A: Y节 / format B: Y (before 至)
+                end_verse_cn = m.group(6) or m.group(8)  # format A: Z节 / format B: Z节
+                chap = ImprovedParser._cn_to_int(chap_cn) or 0
+                if not chap or chap > 150:
+                    result.append(str(escape(m.group(0))))
+                    last = m.end()
+                    continue
+                # 更新上下文供后续相对引用使用
+                cur_book = book
+                cur_chapter = chap
+                refs_list = []
+                if verse_cn:
+                    v1 = ImprovedParser._cn_to_int(verse_cn) or 0
+                    v2 = ImprovedParser._cn_to_int(end_verse_cn) if end_verse_cn else v1
+                    if v1:
+                        ImprovedParser._emit_verse_range(book, chap, v1, '', v2 or v1, '', refs_list)
+                if not refs_list:
+                    refs_list = [f'{book}{chap}:0']
             data_refs = ','.join(refs_list)
             display = str(escape(m.group(0)))
             result.append(f'<span class="scripture-ref" data-refs="{data_refs}">{display}</span>')
@@ -419,7 +444,7 @@ class HTMLGenerator:
         events = []
         for m in bare_pat.finditer(text):
             book = ImprovedParser._normalize_book_names(m.group(1))
-            chap = ImprovedParser._cn_to_int(m.group(2)) or 0
+            chap = ImprovedParser._cn_to_int(m.group(4) or m.group(2)) or 0
             if chap and chap <= 150:
                 events.append((m.start(), 'ref', book, chap))
                 ref_starts.add(m.start())
@@ -437,7 +462,7 @@ class HTMLGenerator:
             for m in rel_pat.finditer(text):
                 if m.start() in ref_starts:
                     continue
-                chap = ImprovedParser._cn_to_int(m.group(1)) or 0
+                chap = ImprovedParser._cn_to_int(m.group(3) or m.group(1)) or 0
                 if chap and chap <= 150:
                     events.append((m.start(), 'rel_chap', cur_book, chap))
 
