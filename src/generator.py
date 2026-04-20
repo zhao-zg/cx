@@ -255,63 +255,121 @@ class HTMLGenerator:
 
     @classmethod
     def _build_inline_rel_chap_re(cls):
-        """构建相对章节引用正则（无书名，如「十二章十节」「十二章十至十八节」）。"""
+        """构建相对章节引用正则（无书名，如「十二章十节」「十二章十至十八节」「五章」）。"""
         if cls._INLINE_REL_CHAP_RE is not None:
             return cls._INLINE_REL_CHAP_RE
-        cn_num = r'[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e]+'
+        cn_num = r'[一二三四五六七八九十百]+'
+        # 节范围改为可选；无节号时要求后接非「文章/意义」类汉字，避免误识
+        # 允许整章（纯 X章）后面是：标点、数字、英文、空白、句末或另一汉字节号
         cls._INLINE_REL_CHAP_RE = re.compile(
-            f'({cn_num})\u7ae0'                                            # group 1: chapter + 章
-            f'(?:'                                                          # verse range (required)
-            f'(?:({cn_num})\u8282(?:[\u81f3\u5230]({cn_num})\u8282)?)'    # format A groups 2,3: Y节[至Z节]
-            f'|({cn_num})[\u81f3\u5230]({cn_num})\u8282'                  # format B groups 4,5: Y至Z节
-            f')'
+            f'({cn_num})章'                                                # group 1: chapter + 章
+            f'(?:'                                                          # optional verse range
+            f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'                     # format A groups 2,3: Y节[至Z节]
+            f'|({cn_num})[至到]({cn_num})节'                               # format B groups 4,5: Y至Z节
+            f')?'                                                           # verse range is optional
+            # 无节时后面不能紧跟文意性汉字（的/中/里/讲/说/是/来/等/个）
+            r'(?![的中里讲说是来等个])'
         )
         return cls._INLINE_REL_CHAP_RE
 
-    def _wrap_rel_chapter_refs(self, seg: str, cur_book: str) -> str:
-        """在文字片段中识别相对章节引用（需 cur_book 作上下文）并包裹 span。"""
+    # 裸文纯中文节引用（不在括号内，无书名无章号，如「三十七节」「三十五至三十七节」）
+    _INLINE_REL_VERSE_RE = None
+
+    @classmethod
+    def _build_inline_rel_verse_re(cls):
+        """构建裸文纯中文节正则（如「三十七节」「三十五至三十七节」）。"""
+        if cls._INLINE_REL_VERSE_RE is not None:
+            return cls._INLINE_REL_VERSE_RE
+        cn = r'[一二三四五六七八九十百]+'
+        cls._INLINE_REL_VERSE_RE = re.compile(
+            f'({cn})[至到]({cn})节'   # format A: X至Y节
+            f'|({cn})节'               # format B: X节（单节）
+        )
+        return cls._INLINE_REL_VERSE_RE
+
+    def _wrap_rel_chapter_refs(self, seg: str, cur_book: str, cur_chapter: int = 0) -> str:
+        """在文字片段中识别相对章节引用及纯中文节引用（需 cur_book 作上下文）并包裹 span。"""
         if not cur_book or not seg:
             return str(escape(seg))
-        pattern = self._build_inline_rel_chap_re()
+
+        cn_pat   = self._build_inline_rel_chap_re()   # X章 / X章Y节
+        vers_pat = self._build_inline_rel_verse_re()   # X节 / X至Y节（纯节，无章号）
+
+        # 合并两类匹配，按出现位置排序，避免重叠
+        matches = []
+        for m in cn_pat.finditer(seg):
+            matches.append(('chap', m))
+        for m in vers_pat.finditer(seg):
+            matches.append(('verse', m))
+        matches.sort(key=lambda x: x[1].start())
+
         result = []
         last = 0
-        for m in pattern.finditer(seg):
-            result.append(str(escape(seg[last:m.start()])))
-            chap_cn = m.group(1)
-            verse_cn = m.group(2) or m.group(4)
-            end_verse_cn = m.group(3) or m.group(5)
-            chap = ImprovedParser._cn_to_int(chap_cn) or 0
-            if not chap or chap > 150:
-                result.append(str(escape(m.group(0))))
-                last = m.end()
+        for kind, m in matches:
+            if m.start() < last:   # 重叠，跳过
                 continue
-            refs_list = []
-            if verse_cn:
-                v1 = ImprovedParser._cn_to_int(verse_cn) or 0
-                v2 = ImprovedParser._cn_to_int(end_verse_cn) if end_verse_cn else v1
-                if v1:
-                    ImprovedParser._emit_verse_range(cur_book, chap, v1, '', v2 or v1, '', refs_list)
-            if not refs_list:
-                refs_list = [f'{cur_book}{chap}:0']
+            result.append(str(escape(seg[last:m.start()])))
+
+            if kind == 'chap':
+                chap_cn    = m.group(1)
+                verse_cn   = m.group(2) or m.group(4)
+                end_verse_cn = m.group(3) or m.group(5)
+                chap = ImprovedParser._cn_to_int(chap_cn) or 0
+                if not chap or chap > 150:
+                    result.append(str(escape(m.group(0))))
+                    last = m.end()
+                    continue
+                cur_chapter = chap   # 更新章号，供后续纯节引用使用
+                refs_list = []
+                if verse_cn:
+                    v1 = ImprovedParser._cn_to_int(verse_cn) or 0
+                    v2 = ImprovedParser._cn_to_int(end_verse_cn) if end_verse_cn else v1
+                    if v1:
+                        ImprovedParser._emit_verse_range(cur_book, chap, v1, '', v2 or v1, '', refs_list)
+                if not refs_list:
+                    refs_list = [f'{cur_book}{chap}:0']
+            else:  # verse
+                if not cur_chapter:
+                    result.append(str(escape(m.group(0))))
+                    last = m.end()
+                    continue
+                # format A: group(1)/group(2)  format B: group(3)
+                if m.group(1):
+                    v1 = ImprovedParser._cn_to_int(m.group(1)) or 0
+                    v2 = ImprovedParser._cn_to_int(m.group(2)) or v1
+                else:
+                    v1 = ImprovedParser._cn_to_int(m.group(3)) or 0
+                    v2 = v1
+                if not v1 or v1 > 200:
+                    result.append(str(escape(m.group(0))))
+                    last = m.end()
+                    continue
+                refs_list = []
+                ImprovedParser._emit_verse_range(cur_book, cur_chapter, v1, '', v2, '', refs_list)
+
             data_refs = ','.join(refs_list)
             result.append(f'<span class="scripture-ref" data-refs="{data_refs}">{str(escape(m.group(0)))}</span>')
             last = m.end()
+
         result.append(str(escape(seg[last:])))
         return ''.join(result)
 
-    def _wrap_inline_bare_refs(self, text: str) -> str:
-        """在段落文字中检测裸露（无括号）经文引用（书名X章Y节格式）并包裹 span。"""
+    def _wrap_inline_bare_refs(self, text: str, init_book: str = '', init_chapter: int = 0) -> str:
+        """在段落文字中检测裸露（无括号）经文引用（书名X章Y节格式）并包裹 span。
+
+        init_book / init_chapter: 调用方已累积的书卷上下文，用于解析无书名的相对章节引用（如「四章」）。
+        """
         if not text:
             return str(escape(text))
         pattern = self._build_inline_bare_ref_re()
         result = []
         last = 0
-        cur_book = ''
-        cur_chapter = 0
+        cur_book = init_book
+        cur_chapter = init_chapter
         for m in pattern.finditer(text):
             inter_seg = text[last:m.start()]
             # 片段中可能有相对章节引用（同书卷），用已知 cur_book 识别
-            result.append(self._wrap_rel_chapter_refs(inter_seg, cur_book))
+            result.append(self._wrap_rel_chapter_refs(inter_seg, cur_book, cur_chapter))
             cur_book, cur_chapter = self._extract_bare_ref_context(inter_seg, cur_book, cur_chapter)
             book_raw = m.group(1)
             chap_cn = m.group(2)
@@ -340,16 +398,18 @@ class HTMLGenerator:
             result.append(f'<span class="scripture-ref" data-refs="{data_refs}">{display}</span>')
             last = m.end()
         # 尾部片段同样扫描相对引用
-        result.append(self._wrap_rel_chapter_refs(text[last:], cur_book))
+        result.append(self._wrap_rel_chapter_refs(text[last:], cur_book, cur_chapter))
         return ''.join(result)
 
     def _extract_bare_ref_context(self, text: str, cur_book: str, cur_chapter: int):
         """扫描文字片段中的书名引用，返回更新后的 (book, chapter)。
 
-        按文中出现顺序处理两种情况：
+        按文中出现顺序处理三种情况：
         - 书名+章节（如「创世记四十九章」）→ 更新书卷和章号
         - 单独完整书名（如「启示录」）→ 仅更新书卷，章号重置为 0，
           使后续无书名的括号引用（如「十三1~2」）能正确对应新书卷
+        - 相对章节（如「四章」）→ 仅更新章号（书卷不变），使紧随的括号引用（如「（35）」）
+          能正确解析为该章节号
         """
         bare_pat = self._build_inline_bare_ref_re()
         standalone_pat = self._build_standalone_book_re()
@@ -371,10 +431,26 @@ class HTMLGenerator:
                 if book:
                     events.append((m.start(), 'standalone', book, 0))
 
-        # 按文中位置顺序应用：ref → 更新书卷和章号；standalone → 仅更新书卷（章号置 0）
+        # 相对章节（无书名，如「四章」「五章」）：需要已知 cur_book 才有意义
+        if cur_book:
+            rel_pat = self._build_inline_rel_chap_re()
+            for m in rel_pat.finditer(text):
+                if m.start() in ref_starts:
+                    continue
+                chap = ImprovedParser._cn_to_int(m.group(1)) or 0
+                if chap and chap <= 150:
+                    events.append((m.start(), 'rel_chap', cur_book, chap))
+
+        # 按文中位置顺序应用
         for _, kind, book, chap in sorted(events, key=lambda x: x[0]):
-            cur_book = book
-            cur_chapter = chap  # 'ref' 时为具体章号；'standalone' 时为 0
+            if kind == 'rel_chap':
+                cur_chapter = chap          # 只更新章号，书卷不变
+            elif kind == 'standalone':
+                cur_book = book
+                cur_chapter = 0
+            else:
+                cur_book = book
+                cur_chapter = chap
 
         return cur_book, cur_chapter
 
@@ -481,7 +557,7 @@ class HTMLGenerator:
         for m in self._PAREN_RE.finditer(main_text):
             inter_seg = main_text[last_end:m.start()]
             # 先处理括号前的文字：输出 HTML 并用其中的裸露引用更新上下文
-            parts.append(self._wrap_inline_bare_refs(inter_seg))
+            parts.append(self._wrap_inline_bare_refs(inter_seg, current_book, current_chapter))
             current_book, current_chapter = self._extract_bare_ref_context(
                 inter_seg, current_book, current_chapter)
             # 再用已更新的上下文解析括号内容
@@ -507,7 +583,7 @@ class HTMLGenerator:
                 parts.append(str(escape(m.group(0))))
             last_end = m.end()
         trailing = main_text[last_end:]
-        parts.append(self._wrap_inline_bare_refs(trailing))
+        parts.append(self._wrap_inline_bare_refs(trailing, current_book, current_chapter))
         current_book, current_chapter = self._extract_bare_ref_context(
             trailing, current_book, current_chapter)
 
