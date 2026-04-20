@@ -230,10 +230,11 @@ class HTMLGenerator:
             f'({book_pat})'                                               # group 1: book name
             f'(?:'
             f'({cn_num})[至到]({cn_num})[章篇]'                          # groups 2,3: chapter range X至Y章
-            f'|({cn_num})[章篇]'                                          # group 4: single chapter
+            f'|({cn_num}(?:、[一二三四五六七八九十百]+)+)[章篇]'          # group 4: chapter list X、Y章
+            f'|({cn_num})[章篇]'                                          # group 5: single chapter (was 4)
             f'(?:'                                                         # optional verse range
-            f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'                    # format A groups 5,6: Y节[至Z节]
-            f'|({cn_num})[至到]({cn_num})节'                              # format B groups 7,8: Y至Z节
+            f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'                    # format A groups 6,7 (was 5,6)
+            f'|({cn_num})[至到]({cn_num})节'                              # format B groups 8,9 (was 7,8)
             f')?'
             f')'
         )
@@ -403,8 +404,10 @@ class HTMLGenerator:
             # 「篇」作为章节标记仅用于诗篇；其他书卷「X篇」不作经文识别
             if m.group(2):  # range: book+X至Y章/篇
                 _bare_uses_pian = m.group(0).endswith('篇')
+            elif m.group(4):  # list: book+X、Y章/篇
+                _bare_uses_pian = m.group(0).endswith('篇')
             else:           # single: book+X章/篇...
-                _bare_pian_pos = len(m.group(1)) + len(m.group(4))
+                _bare_pian_pos = len(m.group(1)) + len(m.group(5))
                 _bare_uses_pian = (len(m.group(0)) > _bare_pian_pos and
                                    m.group(0)[_bare_pian_pos] == '篇')
             if _bare_uses_pian and book != '诗':
@@ -421,10 +424,25 @@ class HTMLGenerator:
                 cur_book = book
                 cur_chapter = start_chap
                 refs_list = [f'{book}{c}:0' for c in range(start_chap, end_chap + 1)]
+            elif m.group(4):  # chapter list 书名X、Y章
+                chap_parts = [c.strip() for c in m.group(4).split('、')]
+                refs_list = []
+                valid_chaps = []
+                for cn in chap_parts:
+                    c = ImprovedParser._cn_to_int(cn) or 0
+                    if c and c <= 150:
+                        refs_list.append(f'{book}{c}:0')
+                        valid_chaps.append(c)
+                if not refs_list:
+                    result.append(str(escape(m.group(0))))
+                    last = m.end()
+                    continue
+                cur_book = book
+                cur_chapter = valid_chaps[-1]
             else:
-                chap_cn = m.group(4)
-                verse_cn = m.group(5) or m.group(7)      # format A: Y节 / format B: Y (before 至)
-                end_verse_cn = m.group(6) or m.group(8)  # format A: Z节 / format B: Z节
+                chap_cn = m.group(5)
+                verse_cn = m.group(6) or m.group(8)      # format A: Y节 / format B: Y (before 至)
+                end_verse_cn = m.group(7) or m.group(9)  # format A: Z节 / format B: Z节
                 chap = ImprovedParser._cn_to_int(chap_cn) or 0
                 if not chap or chap > 150:
                     result.append(str(escape(m.group(0))))
@@ -467,7 +485,11 @@ class HTMLGenerator:
         events = []
         for m in bare_pat.finditer(text):
             book = ImprovedParser._normalize_book_names(m.group(1))
-            chap = ImprovedParser._cn_to_int(m.group(4) or m.group(2)) or 0
+            if m.group(4):  # chapter list X、Y章: use first chapter as context
+                first_cn = m.group(4).split('、')[0]
+                chap = ImprovedParser._cn_to_int(first_cn) or 0
+            else:
+                chap = ImprovedParser._cn_to_int(m.group(5) or m.group(2)) or 0
             if chap and chap <= 150:
                 events.append((m.start(), 'ref', book, chap))
                 ref_starts.add(m.start())

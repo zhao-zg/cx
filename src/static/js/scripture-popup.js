@@ -56,7 +56,10 @@
       cbs.forEach(function (f) { f(); });
     }
     loadJSON(getRootPath() + 'data/bible-text.json', function (data) {
-      if (data) window.CX_SCRIPTURES_DATA = Object.assign(window.CX_SCRIPTURES_DATA || {}, data);
+      if (data) {
+        window.CX_BIBLE_TEXT_DATA = data;  /* 保留全本圣经独立引用，供整章展开使用 */
+        window.CX_SCRIPTURES_DATA = Object.assign(window.CX_SCRIPTURES_DATA || {}, data);
+      }
       onBoth();
     });
     loadJSON('js/scriptures-data.json', function (data) {
@@ -264,13 +267,15 @@
   /* 渲染经文列表（支持 {N} → fn-ref, [a] → xref-ref） */
   function renderVerseList(refs) {
     var dict = window.CX_SCRIPTURES_DATA || {};
+    /* 整章展开只从全本圣经 bible-text.json 里取节列表 */
+    var bibleDict = window.CX_BIBLE_TEXT_DATA || dict;
     /* 展开整章引用（:0 = 整章标记） */
     var refArr = refs.split(',').reduce(function (acc, ref) {
       ref = ref.trim();
       if (!ref) return acc;
       if (ref.slice(-2) === ':0') {
         var prefix = ref.slice(0, -1); /* e.g. "诗133:" */
-        var chKeys = Object.keys(dict)
+        var chKeys = Object.keys(bibleDict)
           .filter(function (k) { return k.indexOf(prefix) === 0 && k.slice(-2) !== ':0'; })
           .sort(function (a, b) { return parseInt(a.split(':')[1], 10) - parseInt(b.split(':')[1], 10); });
         return acc.concat(chKeys.length ? chKeys : [ref]);
