@@ -927,6 +927,9 @@ def generate_search_index(output_root: str, trainings: list) -> None:
     for training in trainings:
         path           = training.get('path', '')
         title          = training.get('title', '')
+        year           = training.get('year', '')
+        season         = training.get('season', '')
+        season_label   = f"{year}-{season}" if year and season else path
         chapter_count  = training.get('chapter_count', 0)
         training_dir   = os.path.join(output_root, path)
 
@@ -962,6 +965,7 @@ def generate_search_index(output_root: str, trainings: list) -> None:
                     entries.append({
                         'url':           f"{path}/{filename}",
                         'training':      title,
+                        'season_label':  season_label,
                         'chapter':       num,
                         'type':          type_key,
                         'type_label':    type_label,

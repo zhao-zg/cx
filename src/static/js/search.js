@@ -79,7 +79,7 @@
       var ctx = this._currentContext();   // { trainingPath, chapter } | null
 
       // 按训练分组收集所有匹配（上限 500，避免超大索引卡顿）
-      var groupMap = {};   // training -> { all: [], trainingPath: '' }
+      var groupMap = {};   // season_label -> { all: [], trainingPath: '' }
       var groupOrder = []; // 保持训练出现顺序
       var totalAll = 0;
 
@@ -92,13 +92,14 @@
         }
         if (!ok) continue;
         totalAll++;
-        if (!groupMap[e.training]) {
+        var gKey = e.season_label || e.training;
+        if (!groupMap[gKey]) {
           // 从 entry.url（如 "2025-04/1_h.htm"）提取 trainingPath
           var tp = (e.url || '').split('/')[0] || '';
-          groupMap[e.training] = { all: [], trainingPath: tp };
-          groupOrder.push(e.training);
+          groupMap[gKey] = { all: [], trainingPath: tp };
+          groupOrder.push(gKey);
         }
-        groupMap[e.training].all.push(e);
+        groupMap[gKey].all.push(e);
         if (totalAll >= 500) break;
       }
 
