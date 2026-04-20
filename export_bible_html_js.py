@@ -163,7 +163,7 @@ def parse_aa00(dd_tag):
         return '', None
     raw = aa00.decode_contents()
     # 去掉开头的节号（可能带上/下）和空白
-    raw = re.sub(r'^\s*\d+\s*(?:<sup[^>]*id="sx"[^>]*>([上下])</sup>)?\s*[\u3000\s]*', '', raw, flags=re.I)
+    raw = re.sub(r'^\s*\d+\s*(?:<sup[^>]*id="sx"[^>]*>([上下])</sup>)?\s*[　\s]*', '', raw, flags=re.I)
     body = _parse_marked_html(raw)
     # 提取上/下
     aa00_raw = aa00.decode_contents()
@@ -295,7 +295,7 @@ def write_json(path, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
     kb = os.path.getsize(path) / 1024
-    print(f"  {os.path.basename(path)}: {len(data)} \u689d, {kb:.0f} KB ({kb/1024:.1f} MB)")
+    print(f"  {os.path.basename(path)}: {len(data)} 條, {kb:.0f} KB ({kb/1024:.1f} MB)")
 
 
 def main():

@@ -1054,9 +1054,9 @@ class ImprovedParser:
                 continue
             
             # 在纲目部分检测天标记(周一、周二等)
-            # 注意: 使用[\s\u3000]*匹配普通空格和全角空格
+            # 注意: 使用[\s　]*匹配普通空格和全角空格
             if in_outline_section:
-                day_in_outline_match = re.match(r'周[\s\u3000]*([一二三四五六])', text)
+                day_in_outline_match = re.match(r'周[\s　]*([一二三四五六])', text)
                 if day_in_outline_match:
                     # 保存前一天的纲目
                     if current_day_outline and current_day_num > 0:
@@ -1311,7 +1311,7 @@ class ImprovedParser:
                         
                         # 保存上一周最后一组纲目（非常重要！在清空day_outlines之前保存）
                         if current_day_key and pending_outline:
-                            clean_key = current_day_key.replace('\u3000', '').replace(' ', '')
+                            clean_key = current_day_key.replace('　', '').replace(' ', '')
                             days = re.findall(r'周[一二三四五六]', clean_key)
                             for day in days:
                                 day_outlines[day] = pending_outline.copy()
@@ -1384,7 +1384,7 @@ class ImprovedParser:
                 if current_day_key and pending_outline:
                     # 如果是"周二、周三"这种,需要分别存储
                     # 先去除全角空格,统一格式
-                    clean_key = current_day_key.replace('\u3000', '').replace(' ', '')
+                    clean_key = current_day_key.replace('　', '').replace(' ', '')
                     days = re.findall(r'周[一二三四五六]', clean_key)
                     for day in days:
                         day_outlines[day] = pending_outline.copy()
@@ -1433,7 +1433,7 @@ class ImprovedParser:
                 
                 # 【重要修复】保存上一组纲目（如果还在收集中，例如周六纲目）
                 if current_day_key and pending_outline:
-                    clean_key = current_day_key.replace('\u3000', '').replace(' ', '')
+                    clean_key = current_day_key.replace('　', '').replace(' ', '')
                     days = re.findall(r'周[一二三四五六]', clean_key)
                     for day in days:
                         day_outlines[day] = pending_outline.copy()
@@ -1525,7 +1525,7 @@ class ImprovedParser:
         
         # 保存最后一组纲目(如果还在收集中)
         if current_day_key and pending_outline:
-            clean_key = current_day_key.replace('\u3000', '').replace(' ', '')
+            clean_key = current_day_key.replace('　', '').replace(' ', '')
             days = re.findall(r'周[一二三四五六七]', clean_key)
             for day in days:
                 day_outlines[day] = pending_outline.copy()
@@ -1553,7 +1553,7 @@ class ImprovedParser:
         
         # 保存最后一周的纲目
         if current_day_key and pending_outline:
-            clean_key = current_day_key.replace('\u3000', '').replace(' ', '')
+            clean_key = current_day_key.replace('　', '').replace(' ', '')
             days = re.findall(r'周[一二三四五六七]', clean_key)
             for day in days:
                 day_outlines[day] = pending_outline.copy()
@@ -1970,7 +1970,7 @@ class ImprovedParser:
             return True
         # 当前行以小写字母或中文开头，且前一行较长
         if len(prev_text_clean) > 3 and (
-            re.match(r'^[a-z\u4e00-\u9fff]', current_text_clean) and 
+            re.match(r'^[a-z一-鿿]', current_text_clean) and 
             not re.match(r'^[壹贰叁肆伍陆一二三四五六七八九十]', current_text_clean)
         ):
             return True
@@ -2320,7 +2320,7 @@ class ImprovedParser:
             return False
         
         # 长度过短且没有中文字符，可能是无效内容
-        if len(cleaned) < 3 and not re.search(r'[\u4e00-\u9fff]', cleaned):
+        if len(cleaned) < 3 and not re.search(r'[一-鿿]', cleaned):
             return False
         
         return True
@@ -2337,7 +2337,7 @@ def _build_scripture_map(sections, scripture_map, prefix=""):
     """
     for section in sections:
         # 使用 level + title 作为键（去除空格以提高匹配率）
-        key = (section.level + section.title).replace(' ', '').replace('\u3000', '')
+        key = (section.level + section.title).replace(' ', '').replace('　', '')
         if section.scripture:
             scripture_map[key] = section.scripture
         
@@ -2356,7 +2356,7 @@ def _fill_scripture(sections, scripture_map):
     """
     for section in sections:
         # 使用 level + title 作为键查找经文
-        key = (section.level + section.title).replace(' ', '').replace('\u3000', '')
+        key = (section.level + section.title).replace(' ', '').replace('　', '')
         if key in scripture_map and not section.scripture:
             section.scripture = scripture_map[key]
         

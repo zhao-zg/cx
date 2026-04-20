@@ -220,18 +220,18 @@ class HTMLGenerator:
             re.escape(k) for k in sorted(ImprovedParser._FULL_BOOK_MAP.keys(), key=len, reverse=True)
         )
         # 简称：单字书卷 + 可选修饰
-        abbrev_pat = (r'[\u521b\u51fa\u5229\u6c11\u7533\u4e66\u58eb\u5f97\u6492\u738b\u4ee3\u62c9\u5c3c\u65af\u4f2f'
-                      r'\u8bd7\u7b74\u4f20\u6b4c\u8d5b\u8036\u54c0\u7ed3\u4f46\u4f55\u73e5\u6469\u4fe3\u62ff\u5f25'
-                      r'\u9e3f\u54c8\u756a\u8be5\u4e9a\u739b\u592a\u53ef\u8def\u7ea6\u5f92\u7f57\u6797\u52a0\u5f0f'
-                      r'\u817c\u897f\u5e16\u63d0\u95e8\u591a\u5f7c\u72b9\u542f\u6765][\u540e\u524d\u4e0a\u4e0b\u58f9\u8d30\u53c1]?')
+        abbrev_pat = (r'[创出利民申书士得撒王代拉尼斯伯'
+                      r'诗筴传歌赛耶哀结但何珥摩俣拿弥'
+                      r'鸿哈番该亚玛太可路约徒罗林加式'
+                      r'腼西帖提门多彼犹启来][后前上下壹贰叁]?')
         book_pat = f'(?:{full_names_pat}|(?<![\\u4e00-\\u9fff]){abbrev_pat})'
-        cn_num = r'[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e]+'
+        cn_num = r'[一二三四五六七八九十百]+'
         cls._INLINE_BARE_REF_RE = re.compile(
             f'({book_pat})'                                               # group 1: book name
-            f'({cn_num})[\u7ae0\u7bc7]'                                   # group 2: chapter + 章/篇(诗篇)
+            f'({cn_num})[章篇]'                                   # group 2: chapter + 章/篇(诗篇)
             f'(?:'                                                         # optional verse range
-            f'(?:({cn_num})\u8282(?:[\u81f3\u5230]({cn_num})\u8282)?)'   # format A groups 3,4: Y节[至Z节]
-            f'|({cn_num})[\u81f3\u5230]({cn_num})\u8282'                 # format B groups 5,6: Y至Z节
+            f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'   # format A groups 3,4: Y节[至Z节]
+            f'|({cn_num})[至到]({cn_num})节'                 # format B groups 5,6: Y至Z节
             f')?'
         )
         return cls._INLINE_BARE_REF_RE
@@ -249,7 +249,7 @@ class HTMLGenerator:
         long_names = list(ImprovedParser._CANONICAL_BOOK_MAP.keys())
         pat = '|'.join(re.escape(k) for k in sorted(long_names, key=len, reverse=True))
         # 负向前瞻：紧随书名之后不能是中文数字，防止与「书名+章节」模式重叠
-        cn_num_char = r'[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e]'
+        cn_num_char = r'[一二三四五六七八九十百]'
         cls._STANDALONE_BOOK_RE = re.compile(f'({pat})(?!{cn_num_char})')
         return cls._STANDALONE_BOOK_RE
 
@@ -653,10 +653,10 @@ class HTMLGenerator:
     )
 
     def _collect_training_scriptures(self, training_data: TrainingData) -> dict:
-        """\u904d\u5386\u8bad\u7ec3\u6570\u636e\u4e2d\u6240\u6709 scripture \u5b57\u6bb5\uff0c\u63d0\u53d6\u7ecf\u6587\u884c\u5e76\u5efa\u6210\u5b57\u5178\u3002
+        """遍历训练数据中所有 scripture 字段，提取经文行并建成字典。
 
         Returns:
-            dict 格\u5f0f\uff1a { "\u592a5:3": "\u592a5:3\u3000\u7075\u91cc\u8d2b\u7a77\u7684\u4eba\u6709\u798f\u4e86...", ... }
+            dict 格式： { "太5:3": "太5:3　灵里贫穷的人有福了...", ... }
         """
         verse_re = self._VERSE_LINE_RE
         scriptures = {}
@@ -744,9 +744,9 @@ class HTMLGenerator:
 
         # 剥离 …… 截断标记，得到需要在整节中匹配的纯文字
         if half_type == '上':
-            content = re.sub(r'[\u2026\.]+\s*$', '', half_text).strip()
+            content = re.sub(r'[…\.]+\s*$', '', half_text).strip()
         else:
-            content = re.sub(r'^\s*[\u2026\.]+', '', half_text).strip()
+            content = re.sub(r'^\s*[…\.]+', '', half_text).strip()
         if not content:
             return None
 
