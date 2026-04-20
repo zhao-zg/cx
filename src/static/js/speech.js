@@ -160,9 +160,12 @@
         var expanded = expandDataRefs(refs);
         if (!expanded) { sbMap.push(null); return; }
         var origHTML = block.innerHTML;
-        var origText = block.textContent;
-        var tabIdx = origText.indexOf('\t');
-        var body = tabIdx !== -1 ? origText.slice(tabIdx + 1) : origText;
+        // 克隆并移除 sup（注解编号1/2、串珠字母a/b），避免朗读时读出这些符号
+        var clone = block.cloneNode(true);
+        clone.querySelectorAll('sup').forEach(function(s) { s.remove(); });
+        var cleanText = clone.textContent;
+        var tabIdx = cleanText.indexOf('\t');
+        var body = tabIdx !== -1 ? cleanText.slice(tabIdx + 1) : cleanText;
         block.textContent = expanded + '\t' + body;
         sbMap.push({ block: block, origHTML: origHTML });
       });
@@ -298,19 +301,29 @@
       }
 
       // -- WS keepalive -------------------------------------------------------
+      // 不用 pause()+resume()：该方式在部分 Chrome/WebView 上会对当前 utterance
+      // 触发 onerror(interrupted)，导致播放意外停止。
+      // 改为：每 3s 检查一次，若应播放但已静音 >2s 则从当前位置重启。
       var _wsKeepalive = null;
+      var _wsSpeakingAt = 0;  // 最后确认有声音的时间戳，用于检测意外静音
       function startWsKeepalive() {
         if (!useWebSpeech) return;
         stopWsKeepalive();
+        _wsSpeakingAt = Date.now();
         _wsKeepalive = setInterval(function () {
           if (isPaused) return;
           try {
-            if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-              window.speechSynthesis.pause();
-              window.speechSynthesis.resume();
+            if (window.speechSynthesis.speaking) {
+              // 浏览器报告仍在播放，更新时间戳
+              _wsSpeakingAt = Date.now();
+            } else if ((isChunking || startTime > 0) && !isPaused &&
+                       (Date.now() - _wsSpeakingAt) > 2000 && totalDuration > 0) {
+              // 应该在播放但已静音超过 2s → 从当前位置重启
+              var est = clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 99);
+              startSpeakingFromPercent(est);
             }
           } catch (e) {}
-        }, 10000);
+        }, 3000);
       }
       function stopWsKeepalive() {
         if (_wsKeepalive) { clearInterval(_wsKeepalive); _wsKeepalive = null; }
@@ -423,6 +436,7 @@
         applyPinnedVoice(utt);
 
         utt.onstart = function () {
+          _wsSpeakingAt = Date.now();
           updateButtonState(true);
           if (!progressInterval) startProgressUpdate();
           startWsKeepalive();
@@ -435,7 +449,12 @@
           if (gen !== speakGeneration) return;
           var err = event && event.error;
           if ((err === 'interrupted' || err === 'cancelled') && isSeekingInternal) return;
-          if (err === 'interrupted' || err === 'cancelled') { resetState(true); return; }
+          if (err === 'interrupted' || err === 'cancelled') {
+            // Chrome/WebView 中断了当前 utterance（keepalive 副作用或 15s Bug）
+            // 不停止播放，重试同一 chunk
+            setTimeout(wsPlayNextChunk, 150);
+            return;
+          }
           currentChunk++;
           if (currentChunk < textChunks.length) { setTimeout(wsPlayNextChunk, 100); }
           else {
@@ -483,6 +502,7 @@
               applyPinnedVoice(utt);
               utt.onstart = function () {
                 isSeekingInternal = false; elapsedOffset = targetSecs; startTime = Date.now();
+                _wsSpeakingAt = Date.now();
                 pauseStartedAt = 0; isPaused = false; updateButtonState(true); startProgressUpdate(); startWsKeepalive();
               };
               utt.onend = function () { if (gen === speakGeneration) resetState(false); };
@@ -491,6 +511,14 @@
                 var err = event && event.error;
                 if ((err === 'interrupted' || err === 'cancelled') && isSeekingInternal) return;
                 isSeekingInternal = false;
+                if (err === 'interrupted' || err === 'cancelled') {
+                  // Chrome 中断 — 从当前进度重启
+                  if (totalDuration > 0) {
+                    var est = clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 99);
+                    startSpeakingFromPercent(est);
+                  }
+                  return;
+                }
                 var msg = err === 'network' ? '需要网络' : err === 'synthesis-unavailable' ? '语音不可用' :
                           err === 'synthesis-failed' ? '播放失败' : '错误';
                 resetState(false); speechTime.textContent = msg; speechTime.style.color = '#e53e3e';
