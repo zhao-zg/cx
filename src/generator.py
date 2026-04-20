@@ -228,7 +228,7 @@ class HTMLGenerator:
         cn_num = r'[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e]+'
         cls._INLINE_BARE_REF_RE = re.compile(
             f'({book_pat})'                                               # group 1: book name
-            f'({cn_num})\u7ae0'                                           # group 2: chapter + 章
+            f'({cn_num})[\u7ae0\u7bc7]'                                   # group 2: chapter + 章/篇(诗篇)
             f'(?:'                                                         # optional verse range
             f'(?:({cn_num})\u8282(?:[\u81f3\u5230]({cn_num})\u8282)?)'   # format A groups 3,4: Y节[至Z节]
             f'|({cn_num})[\u81f3\u5230]({cn_num})\u8282'                 # format B groups 5,6: Y至Z节
@@ -262,7 +262,7 @@ class HTMLGenerator:
         # 节范围改为可选；无节号时要求后接非「文章/意义」类汉字，避免误识
         # 允许整章（纯 X章）后面是：标点、数字、英文、空白、句末或另一汉字节号
         cls._INLINE_REL_CHAP_RE = re.compile(
-            f'({cn_num})章'                                                # group 1: chapter + 章
+            f'({cn_num})[章篇]'                                            # group 1: chapter + 章/篇(诗篇)
             f'(?:'                                                          # optional verse range
             f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'                     # format A groups 2,3: Y节[至Z节]
             f'|({cn_num})[至到]({cn_num})节'                               # format B groups 4,5: Y至Z节

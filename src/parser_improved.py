@@ -245,13 +245,13 @@ class ImprovedParser:
     # 全称章节式：书卷 + 中文章章 + v1节?[至到v2节] 或 v1[至到v2]节（节部分可选，无节则整章）
     _FULL_CHAP_JING_RE = re.compile(
         r'^(' + _BOOK_BASE_PAT + _BOOK_MOD_PAT + r'?)'
-        r'([一二三四五六七八九十百]+)章'
+        r'([一二三四五六七八九十百]+)[章篇]'
         r'(?:(?:([一二三四五六七八九十百]+)节(?:[至到]([一二三四五六七八九十百]+)节)?'
         r'|([一二三四五六七八九十百]+)[至到]([一二三四五六七八九十百]+)节))?'
     )
-    # 相对章节式：中文章章 + 同上（节部分可选）
+    # 相对章节式：中文章章/篇 + 同上（节部分可选；诗篇用「篇」字）
     _REL_CHAP_JING_RE = re.compile(
-        r'^([一二三四五六七八九十百]+)章'
+        r'^([一二三四五六七八九十百]+)[章篇]'
         r'(?:(?:([一二三四五六七八九十百]+)节(?:[至到]([一二三四五六七八九十百]+)节)?'
         r'|([一二三四五六七八九十百]+)[至到]([一二三四五六七八九十百]+)节))?'
     )
@@ -788,7 +788,11 @@ class ImprovedParser:
                     
             elif style_type == 'content':
                 # 添加正文内容到对应的层级
-                if self.current_level3:
+                # 跳过"读经："行：章节读经已由 parse_message_doc / chapter.scripture 存储，
+                # 模板会独立渲染，无需再放入 message_content，否则会在页面上重复显示。
+                if text.startswith('读经：') or text.startswith('读经:'):
+                    pass
+                elif self.current_level3:
                     self.current_level3.add_content(text)
                 elif self.current_level2:
                     self.current_level2.add_content(text)
@@ -2199,15 +2203,17 @@ class ImprovedParser:
                                           mod2 if v2_s else mod1, refs)
                     continue
 
-            # 4b. 相对整章：只有中文章（无节号，同书卷内）
-            if current_book:
-                m = cls._REL_WHOLE_CHAP_RE.match(part)
-                if m:
-                    chap = cls._cn_to_int(m.group(1))
-                    if chap and chap <= 150:  # 圣经最多150章（诗篇），>150为页码等误识
-                        current_chapter = chap
-                        refs.append(f'{current_book}{chap}:0')
-                    continue
+            # 4b. 相对整章：须以「章」字结尾（如「九一章」）。
+            # 带「章」字的形式已由上方 step 4（_REL_CHAP_JING_RE）处理；
+            # 裸中文数字（无「章」字、无阿拉伯节号）不足以判定为章节引用，跳过以防误识。
+            #if current_book:
+            #    m = cls._REL_WHOLE_CHAP_RE.match(part)
+            #    if m:
+            #        chap = cls._cn_to_int(m.group(1))
+            #        if chap and chap <= 150:  # 圣经最多150章（诗篇），>150为页码等误识
+            #            current_chapter = chap
+            #            refs.append(f'{current_book}{chap}:0')
+            #        continue
 
             # 6. 纯中文节续：v1节[至到v2节] 或 v1[至到v2]节（同书同章）
             if current_book and current_chapter:

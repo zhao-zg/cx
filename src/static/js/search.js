@@ -236,7 +236,14 @@
           if (!isNaN(dayIndex) && dayLinks[dayIndex]) {
             dayLinks[dayIndex].click();
           }
-          setTimeout(doScroll, 350);  // 等待 .3s 滑动动画
+          // 等 .3s 切页动画完成，再将匹配段落滚到距视口顶部 80px 处；
+          // 使用绝对文档坐标（scrollY + rect.top）保证不受上一个 scrollTo 动画影响。
+          setTimeout(function () {
+            var rect = el.getBoundingClientRect();
+            var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+            var targetY = Math.max(0, scrollY + rect.top - 80);
+            window.scrollTo({ top: targetY, behavior: 'smooth' });
+          }, 350);
         } else {
           doScroll();
         }
@@ -250,6 +257,10 @@
           return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }).join('|');
         var re = new RegExp('(' + reStr + ')', 'gi');
+
+        // ── 元素级高亮：无论文字是否匹配，始终标注目标元素 ──────────
+        // 应对搜索词跨文本节点边界（如进入 scripture-ref span）导致 wrapText 无法匹配的情况。
+        el.classList.add('cx-search-target');
 
         // 仅对文本节点操作，避免破坏子元素（scripture-ref 等）
         var marks = [];
@@ -277,8 +288,9 @@
           }
         })(el);
 
-        // 2 秒后淡出移除
+        // 5 秒后淡出移除（晨兴页需要时间滚动到匹配位置，延长高亮时间）
         setTimeout(function () {
+          el.classList.remove('cx-search-target');
           marks.forEach(function (mark) {
             mark.style.transition = 'background-color 0.5s';
             mark.style.backgroundColor = 'transparent';
@@ -290,7 +302,7 @@
               }
             });
           }, 600);
-        }, 2000);
+        }, 5000);
       }
 
       if (document.readyState === 'complete' || document.readyState === 'interactive') {
