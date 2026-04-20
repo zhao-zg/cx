@@ -281,9 +281,12 @@
       var speakGeneration = 0;
 
       // Web Speech chunk state
-      var textChunks   = [];
-      var currentChunk = 0;
-      var isChunking   = false;
+      var textChunks      = [];
+      var currentChunk    = 0;
+      var isChunking      = false;
+      var chunkStartChars = [];  // 每块在 segText 中的起始字符偏移（累积）
+      var _segStartPct    = 0;   // 本次 startSpeakingFromPercent 的起始百分比
+      var _segLen         = 0;   // 本次 segText.length（safeText 后）
 
       // -- WebSpeech voice pinning (prevents voice switching between chunks on Android) --
       var _pinnedVoice = null;
@@ -315,22 +318,74 @@
         stopWsKeepalive();
         _wsSpeakingAt = Date.now();
         _wsKeepalive = setInterval(function () {
-          if (isPaused) return;
+          if (isPaused || document.hidden) return;
           try {
             if (window.speechSynthesis.speaking) {
               // 浏览器报告仍在播放，更新时间戳
               _wsSpeakingAt = Date.now();
             } else if ((isChunking || startTime > 0) && !isPaused &&
-                       (Date.now() - _wsSpeakingAt) > 2000 && totalDuration > 0) {
-              // 应该在播放但已静音超过 2s → 从当前位置重启
+                       (Date.now() - _wsSpeakingAt) > 1500 && totalDuration > 0) {
+              // 应该在播放但已静音超过 1.5s → 从当前位置重启
               var est = clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 99);
               startSpeakingFromPercent(est);
             }
           } catch (e) {}
-        }, 3000);
+        }, 1000);
       }
       function stopWsKeepalive() {
         if (_wsKeepalive) { clearInterval(_wsKeepalive); _wsKeepalive = null; }
+      }
+
+      // -- Silent AudioContext (Web Speech only) --------------------------------
+      // 在 Play 时创建一个全静音的循环 AudioContext，让浏览器视当前页面为「正在播放音频」，
+      // 从而减少后台 JS 定时器被节流的概率，改善后台朗读持续性。
+      var _silentCtx = null;
+      function ensureSilentAudio() {
+        if (!useWebSpeech || _silentCtx) return;
+        try {
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          _silentCtx = new AC();
+          if (_silentCtx.state === 'suspended') _silentCtx.resume();
+          // 全零缓冲（真正静音），循环播放以保持 AudioContext 活跃
+          var buf = _silentCtx.createBuffer(1, _silentCtx.sampleRate, _silentCtx.sampleRate);
+          var src = _silentCtx.createBufferSource();
+          src.buffer = buf; src.loop = true;
+          src.connect(_silentCtx.destination);
+          src.start();
+        } catch (e) { _silentCtx = null; }
+      }
+      function stopSilentAudio() {
+        try { if (_silentCtx) { _silentCtx.close(); } } catch (e) {}
+        _silentCtx = null;
+      }
+
+      // -- MediaSession API (Web Speech only) -----------------------------------
+      // 向操作系统注册为「媒体会话」，使锁屏/通知栏显示播放控件，并帮助浏览器
+      // 将本页面识别为音频内容（有助于部分 Android 机型的后台续播）。
+      function setupMediaSession() {
+        if (!useWebSpeech || !('mediaSession' in navigator)) return;
+        try {
+          navigator.mediaSession.setActionHandler('play', function () {
+            if (isPaused) { playPauseBtn.click(); }
+            else if (!isPlaying && !isChunking) { playPauseBtn.click(); }
+          });
+          navigator.mediaSession.setActionHandler('pause', function () {
+            if ((isPlaying || isChunking) && !isPaused) { playPauseBtn.click(); }
+          });
+          navigator.mediaSession.setActionHandler('stop', function () {
+            if (window.CXSpeech && window.CXSpeech.cancel) window.CXSpeech.cancel();
+          });
+        } catch (e) {}
+      }
+      function updateMediaSession(playing) {
+        if (!useWebSpeech || !('mediaSession' in navigator)) return;
+        try {
+          if (playing && !navigator.mediaSession.metadata) {
+            navigator.mediaSession.metadata = new MediaMetadata({ title: document.title || '朗读' });
+          }
+          navigator.mediaSession.playbackState = playing ? 'playing' : (isPaused ? 'paused' : 'none');
+        } catch (e) {}
       }
 
       // -- Progress helpers ---------------------------------------------------
@@ -362,14 +417,17 @@
           pauseIcon.style.display = playing ? 'inline' : 'none';
         }
         playPauseBtn.setAttribute('aria-label', playing ? '暂停' : '播放');
+        updateMediaSession(playing);
       }
 
       function resetState(keepText) {
         stopProgressUpdate();
         stopWsKeepalive();
+        stopSilentAudio();
         isPaused = false; isPlaying = false;
         startTime = 0; pauseStartedAt = 0; elapsedOffset = 0; totalDuration = 0;
         textChunks = []; currentChunk = 0; isChunking = false;
+        chunkStartChars = []; _segStartPct = 0; _segLen = 0;
         if (!keepText) fullText = '';
         updateButtonState(false);
         progressBar.value = '0';
@@ -440,7 +498,15 @@
         applyPinnedVoice(utt);
 
         utt.onstart = function () {
+          if (gen !== speakGeneration) return; /* 过期 utterance 不更新状态 */
           _wsSpeakingAt = Date.now();
+          // 用实际字符位置重新校准进度，消除时间估算误差
+          if (_segLen > 0 && chunkStartChars.length > currentChunk && totalDuration > 0) {
+            var segFrac = chunkStartChars[currentChunk] / _segLen;
+            var newPct  = _segStartPct + (100 - _segStartPct) * segFrac;
+            elapsedOffset = (newPct / 100) * totalDuration;
+            startTime = Date.now();
+          }
           updateButtonState(true);
           if (!progressInterval) startProgressUpdate();
           startWsKeepalive();
@@ -454,8 +520,8 @@
           var err = event && event.error;
           if ((err === 'interrupted' || err === 'cancelled') && isSeekingInternal) return;
           if (err === 'interrupted' || err === 'cancelled') {
-            // Chrome/WebView 中断了当前 utterance（keepalive 副作用或 15s Bug）
-            // 不停止播放，重试同一 chunk
+            // Chrome/WebView 中断——只在本代有效时重试同一 chunk
+            if (gen !== speakGeneration) return;
             setTimeout(wsPlayNextChunk, 150);
             return;
           }
@@ -481,11 +547,13 @@
         var segText     = safeText(fullText.slice(charIndex));
         if (!segText) return;
 
+        ensureSilentAudio();
         ++speakGeneration;
         progressBar.value = String(p);
         speechTime.textContent = formatTime(targetSecs) + ' / ' + formatTime(totalDuration);
 
         if (useNativeTTS) {
+          nativeStopService();   /* 确保旧播放完全停止，再以新语速重新开始 */
           nativeSpeak(segText, targetSecs);
         } else {
           isSeekingInternal = true;
@@ -497,7 +565,16 @@
           elapsedOffset = targetSecs; startTime = Date.now(); pauseStartedAt = 0; isPaused = false;
 
           if (segText.length > 200) {
-            textChunks = splitIntoChunks(segText, 200); currentChunk = 0; isChunking = true;
+            textChunks = splitIntoChunks(segText, 200);
+            // 预计算每块在 segText 中的起始字符偏移，供 onstart 重新校准进度
+            _segStartPct = p; _segLen = segText.length;
+            chunkStartChars = [];
+            var _cum = 0;
+            for (var _ki = 0; _ki < textChunks.length; _ki++) {
+              chunkStartChars.push(_cum);
+              _cum += textChunks[_ki].length;
+            }
+            currentChunk = 0; isChunking = true;
             setTimeout(function () { if (gen !== speakGeneration) return; isSeekingInternal = false; wsPlayNextChunk(); }, 50);
           } else {
             setTimeout(function () {
@@ -623,14 +700,25 @@
       // Web Speech: resume if browser paused speechSynthesis in the background.
       if (useWebSpeech) {
         document.addEventListener('visibilitychange', function () {
-          if (document.visibilityState !== 'visible') return;
+          if (document.visibilityState === 'hidden') {
+            // 页面隐藏：冻结时钟，避免将后台挂起时间错误计入已播放进度
+            if ((isChunking || startTime > 0) && !isPaused) {
+              elapsedOffset = currentElapsedSeconds();
+              startTime = 0;
+            }
+            return;
+          }
+          // 页面重新可见
           if (isPaused) return;
           try {
             if (window.speechSynthesis.paused) {
+              startTime = Date.now();
               window.speechSynthesis.resume();
-            } else if (!window.speechSynthesis.speaking && (isChunking || startTime > 0)) {
-              // Browser silently stopped -- restart from estimated position
+              startProgressUpdate();
+            } else if (!window.speechSynthesis.speaking && (isChunking || elapsedOffset > 0)) {
+              // 浏览器已停止朗读 — 从保存位置重启
               if (totalDuration > 0) {
+                startTime = Date.now();
                 var est = clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 99);
                 startSpeakingFromPercent(est);
               }
@@ -640,6 +728,7 @@
       }
 
       resetState(true);
+      if (useWebSpeech) setupMediaSession();
     }
 
     startInit();
