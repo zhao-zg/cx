@@ -473,6 +473,109 @@
     renderScriptureBlocks();
   }
 
+  /* ═══════════════════════════ 静态经文块（锚文本对齐注入注解/串珠）═══════════════ */
+  /* .scripture-block-static[data-refs]：保留文档原文，从 bible-text.json 找到
+   * {N}/[a] 在 JSON 经文中的位置：
+   *   - 标记前有文字 → 取末尾 8 字作 lookback，在文档原文中搜索，插在其后
+   *   - 标记前无文字 → 取标记后 8 字作 lookahead，在文档原文中搜索，插在其前
+   * 找不到对应文字 → 跳过（文档经文不全）。 */
+  function renderScriptureStaticBlocks() {
+    var blocks = document.querySelectorAll('.scripture-block-static[data-refs]');
+    if (!blocks.length) return;
+    ensureBibleText(function () {
+      blocks.forEach(function (block) {
+        if (block.hasAttribute('data-rendered')) return;
+        block.setAttribute('data-rendered', '1');
+        var refs = (block.dataset.refs || '').trim();
+        if (!refs) return;
+        var dict = window.CX_SCRIPTURES_DATA || {};
+        var docText = block.textContent;
+        var refArr = refs.split(',').map(function (r) { return r.trim(); }).filter(Boolean);
+
+        /* 从所有 ref 的 JSON 文本里，按出现顺序收集注入点 */
+        var injections = [];
+        refArr.forEach(function (ref) {
+          var bk = baseKey(ref);
+          var raw = dict[ref] || (bk !== ref ? dict[bk] : '');
+          if (!raw) return;
+          var MRE = /\{(\d+)\}|\[([a-z]+)\]/g, lastEnd = 0, mm;
+          while ((mm = MRE.exec(raw)) !== null) {
+          /* 剥除 {N}/[a] 标记后再提取锚定文字，避免相邻标记干扰 */
+          var STRIP_MARKS = /\{\d+\}|\[[a-z]+\]/g;
+          var prefix = raw.slice(lastEnd, mm.index).replace(STRIP_MARKS, '');
+          var lookback  = prefix.replace(/[\s\u3000\u00a0]/g, '').slice(-8);
+          var suffix    = raw.slice(mm.index + mm[0].length).replace(STRIP_MARKS, '');
+            var lookahead = suffix.replace(/[\s\u3000\u00a0]/g, '').slice(0, 8);
+            var mhtml = mm[1]
+              ? '<sup class="fn-ref" data-vkey="' + esc(bk) + '" data-fn="' + mm[1] + '">' + mm[1] + '</sup>'
+              : '<sup class="xref-ref" data-vkey="' + esc(bk) + '" data-xr="' + mm[2] + '">' + mm[2] + '</sup>';
+            injections.push({ lookback: lookback, lookahead: lookahead, html: mhtml });
+            lastEnd = mm.index + mm[0].length;
+          }
+        });
+
+        if (!injections.length) { block.innerHTML = esc(docText); return; }
+
+        /* 依次在 docText 中定位每个注入点 */
+        var parts = [];
+        var searchFrom = 0;
+
+        injections.forEach(function (inj) {
+          var insertPos = -1;
+
+          if (inj.lookback) {
+            /* 优先用 lookback：在 lookback 文字之后插入 */
+            var idx = docText.indexOf(inj.lookback, searchFrom);
+            if (idx !== -1) {
+              insertPos = idx + inj.lookback.length;
+            } else if (inj.lookback.length > 3) {
+              idx = docText.indexOf(inj.lookback.slice(-4), searchFrom);
+              if (idx !== -1) insertPos = idx + inj.lookback.slice(-4).length;
+            }
+          }
+
+          if (insertPos === -1 && inj.lookahead) {
+            /* lookback 找不到（或为空）→ 用 lookahead：在 lookahead 文字之前插入 */
+            /* 依次尝试 8‑字符、4‑字符、2‑字符，处理文档省略号截断的情形 */
+            var laFull = inj.lookahead;
+            var laTrys = [laFull, laFull.slice(0, 4), laFull.slice(0, 2)];
+            for (var _li = 0; _li < laTrys.length; _li++) {
+              if (!laTrys[_li]) continue;
+              var idx2 = docText.indexOf(laTrys[_li], searchFrom);
+              if (idx2 !== -1) { insertPos = idx2; break; }
+            }
+          }
+
+          if (insertPos !== -1) {
+            parts.push({ pos: insertPos, html: inj.html });
+            searchFrom = insertPos;
+          }
+          /* 两者都找不到 → 文档经文不全，跳过 */
+        });
+
+        /* 按位置升序排列，拼接最终 HTML */
+        parts.sort(function (a, b) { return a.pos - b.pos; });
+        var out = '', lastPos = 0;
+        parts.forEach(function (part) {
+          out += esc(docText.slice(lastPos, part.pos)) + part.html;
+          lastPos = part.pos;
+        });
+        out += esc(docText.slice(lastPos));
+        block.innerHTML = out;
+      });
+      if (window.CXHighlight && window.CXHighlight.redoHighlights) {
+        window.CXHighlight.redoHighlights();
+      }
+      document.dispatchEvent(new CustomEvent('cx:scriptureBlocksRendered'));
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderScriptureStaticBlocks);
+  } else {
+    renderScriptureStaticBlocks();
+  }
+
   /* ── 暴露给外部（可选）── */
   window.CXScripturePopup = { open: openModal, close: closeModal };
 

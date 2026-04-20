@@ -304,7 +304,7 @@
                         <span class="cache-icon">🔄</span><span class="cache-text">检查更新</span>
                     </button>
                     <button class="action-btn sponsor" id="sponsorBtn" style="display:none">
-                        <span class="cache-icon">❤️</span><span class="cache-text">赞助作者</span>
+                        <span class="cache-icon">❤️</span><span class="cache-text">顾念微工</span>
                     </button>
                     <button class="action-btn feedback" id="feedbackBtn">
                         <span class="cache-icon">💬</span><span class="cache-text">问题反馈</span>
@@ -412,12 +412,12 @@
             } catch(e) {}
         })();
 
-        // ── 赞助作者（使用超过 10 分钟后显示）────────────────────────
+        // ── 顾念微工（使用超过 5 分钟后显示）────────────────────────
         (function() {
             try {
                 var firstUse = parseInt(localStorage.getItem('cx_first_use') || '0', 10);
                 var elapsed = firstUse ? (Date.now() - firstUse) : 0;
-                if (elapsed >= 10 * 60 * 1000) {
+                if (elapsed >= 5 * 60 * 1000) {
                     var sponsorBtn = document.getElementById('sponsorBtn');
                     if (sponsorBtn) {
                         sponsorBtn.style.display = 'inline-flex';
@@ -757,8 +757,8 @@
         mask.innerHTML = [
             '<div class="cx-sponsor-box">',
             '  <div class="cx-sponsor-close" id="cxSponsorClose">×</div>',
-            '  <div class="cx-sponsor-title">❤️ 赞助作者</div>',
-            '  <div class="cx-sponsor-desc">开发维护不易，谢谢赞助 🌟</div>',
+            '  <div class="cx-sponsor-title">❤️ 顾念微工</div>',
+            '  <div class="cx-sponsor-desc">蒙福有余，可助这盏灯不灭 🌟</div>',
             '  <div class="cx-sponsor-tabs">',
             '    <button class="cx-sponsor-tab active" data-type="wx">🟢 微信</button>',
             '    <button class="cx-sponsor-tab" data-type="zfb">🔵 支付宝</button>',

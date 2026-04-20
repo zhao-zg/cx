@@ -47,7 +47,7 @@
                 {% for scripture in revival.feeding_scriptures %}
                 {% set frefs = revival.feeding_refs[loop.index0] if revival.feeding_refs is defined else (scripture | feeding_to_refs) %}
                 {% if frefs %}
-                <div class="scripture-block" data-refs="{{ frefs }}"></div>
+                <div class="scripture-block-static" data-refs="{{ frefs }}">{{ scripture }}</div>
                 {% else %}
                 <div class="feeding-scripture">{{ scripture }}</div>
                 {% endif %}
