@@ -11,10 +11,14 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // 最早安装崩溃日志收集器（在 super.onCreate 前），覆盖尽可能多的异常
+        Thread.setDefaultUncaughtExceptionHandler(new CrashReporter(this));
+
         // 重要：必须在 super.onCreate() 之前注册插件！
         registerPlugin(ApkInstallerPlugin.class);
         registerPlugin(ImageSaverPlugin.class);
         registerPlugin(NativeTTSPlugin.class);
+        registerPlugin(CrashLogPlugin.class);
         super.onCreate(savedInstanceState);
         
         // 设置状态栏颜色

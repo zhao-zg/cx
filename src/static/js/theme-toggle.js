@@ -96,6 +96,37 @@
 })();
 
 
+// ── Native 崩溃日志收集（APK 专用）──────────────────────────────────────────
+// 应用启动时向 CrashLogPlugin 请求上次崩溃的堆栈，存入 localStorage；
+// 反馈时自动附带；读取后原生侧文件即删除（一次性）。
+(function() {
+    'use strict';
+    var CRASH_KEY = 'cx_native_crash';
+    function fetchNativeCrash() {
+        try {
+            var p = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CrashLog;
+            if (!p || typeof p.getLastCrash !== 'function') return;
+            p.getLastCrash().then(function(res) {
+                if (res && res.log) {
+                    try { localStorage.setItem(CRASH_KEY, res.log); } catch(e) {}
+                }
+            }).catch(function() {});
+        } catch(e) {}
+    }
+    // bridge 就绪后再调（DOMContentLoaded 后 Capacitor 已初始化）
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fetchNativeCrash);
+    } else {
+        setTimeout(fetchNativeCrash, 0);
+    }
+    window.CX = window.CX || {};
+    window.CX.nativeCrashLog = {
+        get:   function() { try { return localStorage.getItem(CRASH_KEY) || ''; } catch(e) { return ''; } },
+        clear: function() { try { localStorage.removeItem(CRASH_KEY); } catch(e) {} }
+    };
+})();
+
+
 // ── CX.backStack：统一对话框/弹框返回键调度器 ──────────────────────────────
 // 所有弹框/面板通过 push(closeFn) 注册，popstate 统一消费；
 // nav-stack.js 通过 setFallback 注册页面跳转，作为最终兜底。
@@ -928,7 +959,7 @@
                         'UA: ' + ua.substring(0, 200)
                     ].filter(Boolean).join('\n');
 
-                    // 附加错误日志
+                    // 附加 JS 错误日志
                     var errorLog = (window.CX && window.CX.errorLog) ? window.CX.errorLog.get() : [];
                     var logLines = '';
                     if (errorLog.length > 0) {
@@ -941,6 +972,12 @@
                             return '[' + ts + '] ' + (e.s ? e.s + ' ' : '') + e.m;
                         }).join('\n');
                         logLines = '\n\n--- 错误日志 ---\n' + fmt;
+                    }
+
+                    // 附加原生崩溃日志（APK 闪退后下次启动时写入）
+                    var crashLog = (window.CX && window.CX.nativeCrashLog) ? window.CX.nativeCrashLog.get() : '';
+                    if (crashLog) {
+                        logLines += '\n\n--- 崩溃日志 ---\n' + crashLog.substring(0, 1200);
                     }
 
                     var content = text + '\n\n---\n' + deviceLines + logLines;
@@ -966,8 +1003,9 @@
                             return r.json();
                         })
                         .then(function() {
-                            // 发送成功，清除错误日志
+                            // 发送成功，清除错误日志和崩溃日志
                             if (window.CX && window.CX.errorLog) window.CX.errorLog.clear();
+                            if (window.CX && window.CX.nativeCrashLog) window.CX.nativeCrashLog.clear();
                             if (statusEl) { statusEl.textContent = '✓ 发送成功，感谢您的反馈！'; statusEl.className = 'cx-feedback-status success'; }
                             setTimeout(closeMask, 1800);
                         })

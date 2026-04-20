@@ -56,8 +56,8 @@ public class TTSForegroundService extends Service {
     private static final int    CHUNK_SIZE = 500; // chars per chunk
 
     // ── TTS ───────────────────────────────────────────────────────────────
-    private TextToSpeech tts;
-    private boolean      ttsReady  = false;
+    private volatile TextToSpeech tts;  // volatile: 后台线程(UtteranceProgressListener)需要可见性
+    private volatile boolean      ttsReady  = false;
 
     // ── Playback State ────────────────────────────────────────────────────
     private final List<String>  chunks     = new ArrayList<>();
@@ -155,12 +155,17 @@ public class TTSForegroundService extends Service {
 
     @Override
     public void onDestroy() {
+        // 先设标志位（volatile），让后台 UtteranceProgressListener 回调看到后立即返回，
+        // 防止它在 tts.shutdown() 之后还调用 tts.speak() 引发 NPE / crash
+        isStopped = true;
+        ttsReady  = false;
         releaseWakeLock();
         abandonAudioFocus();
-        if (tts != null) {
-            tts.stop();
-            tts.shutdown();
-            tts = null;
+        TextToSpeech t = tts;
+        tts = null; // volatile: 后台线程再次访问时看到 null
+        if (t != null) {
+            t.stop();
+            t.shutdown();
         }
         super.onDestroy();
     }
@@ -202,6 +207,10 @@ public class TTSForegroundService extends Service {
         } else {
             startForeground(NOTIF_ID, notif);
         }
+
+        // 立即停止旧播放（QUEUE_FLUSH 也能停，但 tts.stop() 更及时，避免后台线程
+        // 的 onDone 在新 speakGen 生效前多播一个 chunk）
+        if (tts != null) tts.stop();
 
         if (ttsReady) {
             setTtsParams();   // set language + rate once for the whole session
@@ -256,6 +265,8 @@ public class TTSForegroundService extends Service {
     /** Speak current chunk without re-setting TTS params (language/rate already configured). */
     private void playChunkOnly() {
         if (!ttsReady || isStopped || isPaused) return;
+        TextToSpeech t = tts;
+        if (t == null) return; // onDestroy 已经把 tts 清空
         if (chunkIndex >= chunks.size()) {
             notifyFinished();
             return;
@@ -263,18 +274,20 @@ public class TTSForegroundService extends Service {
         String text = chunks.get(chunkIndex);
         String uid  = "g" + speakGen + "_c" + chunkIndex;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, uid);
+            t.speak(text, TextToSpeech.QUEUE_FLUSH, null, uid);
         } else {
             //noinspection deprecation
             HashMap<String, String> p = new HashMap<>();
             p.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, uid);
             //noinspection deprecation
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, p);
+            t.speak(text, TextToSpeech.QUEUE_FLUSH, p);
         }
     }
 
     private void playChunk() {
         if (!ttsReady || isStopped || isPaused) return;
+        TextToSpeech t = tts;
+        if (t == null) return;
         if (chunkIndex >= chunks.size()) {
             notifyFinished();
             return;
@@ -283,13 +296,13 @@ public class TTSForegroundService extends Service {
         String uid  = "g" + speakGen + "_c" + chunkIndex; // embeds generation for stale-check
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, uid);
+            t.speak(text, TextToSpeech.QUEUE_FLUSH, null, uid);
         } else {
             //noinspection deprecation
             HashMap<String, String> p = new HashMap<>();
             p.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, uid);
             //noinspection deprecation
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, p);
+            t.speak(text, TextToSpeech.QUEUE_FLUSH, p);
         }
     }
 

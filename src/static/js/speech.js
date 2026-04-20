@@ -553,7 +553,9 @@
         speechTime.textContent = formatTime(targetSecs) + ' / ' + formatTime(totalDuration);
 
         if (useNativeTTS) {
-          nativeStopService();   /* 确保旧播放完全停止，再以新语速重新开始 */
+          // 不发 ACTION_STOP：stopSelf() 是无条件停止，会在 handleSpeak 运行后把
+          // 刚启动的 Service 再次销毁（无声音 bug）。
+          // handleSpeak 内部已调用 tts.stop() + speakGen++ + QUEUE_FLUSH，可自行重置。
           nativeSpeak(segText, targetSecs);
         } else {
           isSeekingInternal = true;
