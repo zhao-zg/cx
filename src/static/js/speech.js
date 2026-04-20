@@ -78,6 +78,8 @@
   function _expandRef(p) {
     var full = _BN[p.book] || p.book;
     var chWord = _PIAN[p.book] ? '篇' : '章';
+    // verse 为 0 表示整章引用，不读节数
+    if (p.verse === 0) return full + _numToCN(p.chapter) + chWord;
     return full + _numToCN(p.chapter) + chWord + _numToCN(p.verse) + '节' + (p.suffix || '');
   }
 
@@ -91,6 +93,8 @@
     while (i < parts.length) {
       var p = _parseRef(parts[i]);
       if (!p) { result.push(parts[i]); i++; continue; }
+      // 整章引用（verse=0）不参与范围合并，直接单条输出
+      if (p.verse === 0) { result.push(_expandRef(p)); i++; continue; }
       var j = i + 1;
       while (j < parts.length) {
         var q = _parseRef(parts[j]);

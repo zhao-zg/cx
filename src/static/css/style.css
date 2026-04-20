@@ -412,6 +412,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
 .section-level3,.outline-item.level-3{font-size:1.04em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
 .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+.section-level5,.outline-item.level-5{font-size:.97em;font-weight:450;margin:7px 0 5px;color:var(--heading-muted);line-height:1.6;margin-left:46px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
 .outline-item .outline-level,.outline-item .outline-text{display:inline}
 .outline-children{margin-left:0}
 .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
@@ -421,6 +422,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
     .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
     .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
     .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
+    .section-level5,.outline-item.level-5{margin:8px 0 6px;font-size:1.01em;margin-left:58px;padding-left:1.5em;text-indent:-1.5em}
 }
 .outline-item{position:relative}
 .toggle-btn{background:none;border:none;color:var(--brand);cursor:pointer;padding:4px;min-height:36px;min-width:36px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;position:absolute;left:-29px}
@@ -472,6 +474,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
     .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
     .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
     .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
+    .section-level5,.outline-item.level-5{margin-left:32px;padding-left:1em;text-indent:-1em}
     .nav{gap:6px}
     .page-navigation{gap:0}
     .bottom-control-bar{gap:6px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}

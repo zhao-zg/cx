@@ -686,6 +686,10 @@ class HTMLGenerator:
         # 小写字母 a b c d e -> level-4 (细纲)
         if len(level_str) == 1 and level_str.islower() and level_str.isalpha():
             return "level-4"
+
+        # 括号数字 ㈠㈡㈢ -> level-5 (更细纲)
+        if level_str in '㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩' or (len(level_str) == 1 and '\u3220' <= level_str <= '\u3229'):
+            return "level-5"
         
         # 其他情况默认为 level-3
         return "level-3"

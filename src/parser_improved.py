@@ -275,6 +275,7 @@ class ImprovedParser:
         self.current_level1 = None
         self.current_level2 = None
         self.current_level3 = None
+        self.current_level4 = None
         self.verse_cache = {}  # 缓存已出现的经文范围内容
     
     def _chinese_to_number(self, chinese_str: str) -> Optional[int]:
@@ -638,6 +639,7 @@ class ImprovedParser:
                     self.current_chapter.add_outline_section(self.current_level1)
                     self.current_level2 = None
                     self.current_level3 = None
+                    self.current_level4 = None
                     current_node = self.current_level1  # 设置当前节点
                     
                 elif re.match(r'^[一二三四五六七八九十]+\s', text) and self.current_level1:
@@ -646,6 +648,7 @@ class ImprovedParser:
                     self.current_level2 = Content(level=level, title=title)
                     self.current_level1.add_child(self.current_level2)
                     self.current_level3 = None
+                    self.current_level4 = None
                     current_node = self.current_level2  # 设置当前节点
                     
                 elif re.match(r'^\d+\s', text) and self.current_level2:
@@ -653,6 +656,7 @@ class ImprovedParser:
                     title = self._clean_title(text)
                     self.current_level3 = Content(level=level, title=title)
                     self.current_level2.add_child(self.current_level3)
+                    self.current_level4 = None
                     current_node = self.current_level3  # 设置当前节点
                     
                 elif re.match(r'^[a-z]\s', text) and self.current_level3:
@@ -660,7 +664,15 @@ class ImprovedParser:
                     title = self._clean_title(text)
                     level4 = Content(level=level, title=title)
                     self.current_level3.add_child(level4)
+                    self.current_level4 = level4
                     current_node = level4  # 设置当前节点
+
+                elif re.match(r'^[\u3220-\u3229\uff08㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩]', text) and self.current_level4:
+                    level = self._extract_level_marker(text)
+                    title = self._clean_title(text)
+                    level5 = Content(level=level, title=title)
+                    self.current_level4.add_child(level5)
+                    current_node = level5  # 设置当前节点
             
             # 处理经文内容（verses样式或经文格式）
             if self.current_chapter:
@@ -766,6 +778,7 @@ class ImprovedParser:
                 self.current_level1 = None
                 self.current_level2 = None
                 self.current_level3 = None
+                self.current_level4 = None
                 
             elif style_type == 'section_level1' and self.current_chapter:
                 # 创建新的大点节点(带内容的)
@@ -775,6 +788,7 @@ class ImprovedParser:
                 self.current_chapter.add_detail_section(self.current_level1)
                 self.current_level2 = None
                 self.current_level3 = None
+                self.current_level4 = None
                     
             elif style_type == 'section_level2' and self.current_level1:
                 level = self._extract_level_marker(text)
@@ -782,6 +796,7 @@ class ImprovedParser:
                 self.current_level2 = Content(level=level, title=title)
                 self.current_level1.add_child(self.current_level2)
                 self.current_level3 = None
+                self.current_level4 = None
                     
             elif style_type == 'section_level3' and self.current_level2:
                 level = self._extract_level_marker(text)
@@ -843,6 +858,7 @@ class ImprovedParser:
             r'^([一二三四五六七八九十]+)\s',
             r'^(\d+)\s',
             r'^([a-z])\s',
+            r'^([\u3220-\u3229㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩])',  # level-5: ㈠㈡㈢
         ]
         
         for pattern in patterns:
@@ -1570,6 +1586,13 @@ class ImprovedParser:
                 # 新建纲目映射
                 all_weeks_outlines[current_week] = day_outlines.copy()
         
+
+        # DEBUG: Print all_weeks_outlines
+        import sys
+        print(f"[DEBUG] all_weeks_outlines keys: {list(all_weeks_outlines.keys())}", file=sys.stderr)
+        for wk, day_dict in all_weeks_outlines.items():
+            print(f"  Week {wk}: days={list(day_dict.keys())}", file=sys.stderr)
+
         # 【重要修复】为所有章节分配纲目，不仅仅是最后一章
         for chapter_idx, chapter in enumerate(chapters, 1):
             
@@ -1719,10 +1742,29 @@ class ImprovedParser:
                 current_level4 = Content(level=level, title=title)
                 current_level3.add_child(current_level4)
                 continue
-            
+
+            # ㈠㈡㈢等括号数字 (level5)
+            level5_match = re.match(r'^([\u3220-\u3229])\s*(.*)', text)
+            if level5_match and current_level4:
+                level = level5_match.group(1)
+                title = level5_match.group(2)
+                level5 = Content(level=level, title=title)
+                current_level4.add_child(level5)
+                continue
+
             # 如果是段落文本，添加到最近的节点
             if current_level4:
-                current_level4.add_content(text)
+                # 当 level-4 标题以"："结尾（表明有子条目），且本行无级别标记时，
+                # 自动生成 ㈠㈡㈢... 作为 level-5 子项（适配晨兴.doc 格式）
+                title_end = current_level4.title.rstrip()[-1:] if current_level4.title.rstrip() else ''
+                if title_end in ('：', ':'):
+                    auto_idx = len(current_level4.children)
+                    level5_markers = [chr(0x3220 + i) for i in range(10)]  # ㈠㈡㈢...㈩
+                    marker = level5_markers[auto_idx] if auto_idx < len(level5_markers) else f'({auto_idx + 1})'
+                    level5_auto = Content(level=marker, title=text)
+                    current_level4.add_child(level5_auto)
+                else:
+                    current_level4.add_content(text)
             elif current_level3:
                 current_level3.add_content(text)
             elif current_level2:
@@ -1987,11 +2029,12 @@ class ImprovedParser:
     
     def _clean_title(self, text: str) -> str:
         """清理标题，去掉层级标记后的内容"""
-        # 去掉开头的层级标记（壹、一、1、a等）
+        # 去掉开头的层级标记（壹、一、1、a、㈠等）
         text = re.sub(r'^[壹贰叁肆伍陆柒捌玖拾]+\s+', '', text)
         text = re.sub(r'^[一二三四五六七八九十]+\s+', '', text)
         text = re.sub(r'^\d+\s+', '', text)
         text = re.sub(r'^[a-z]\s+', '', text)
+        text = re.sub(r'^[\u3220-\u3229㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩]\s*', '', text)  # level-5 括号数字
         return text.strip()
     
     # ── 中文章节引用辅助方法 ──────────────────────────────────────────
