@@ -17,8 +17,24 @@ package-lock.json
 yarn.lock
 
 # Capacitor — ignore generated Android/iOS project, but keep all custom plugin sources
-android/
-!android/app/src/main/java/com/tehui/offline/
+# IMPORTANT: use 'android/*' (NOT 'android/') so git still descends into android/.
+# Trailing-slash 'android/' makes git skip the directory entirely, defeating all '!' rules.
+# Cascading wildcard pattern: each level ignores its contents, then un-ignores the one
+# subdirectory we care about, so new .java files can be 'git add'ed without -f.
+android/*
+!android/app
+android/app/*
+!android/app/src
+android/app/src/*
+!android/app/src/main
+android/app/src/main/*
+!android/app/src/main/java
+android/app/src/main/java/*
+!android/app/src/main/java/com
+android/app/src/main/java/com/*
+!android/app/src/main/java/com/tehui
+android/app/src/main/java/com/tehui/*
+!android/app/src/main/java/com/tehui/offline
 !android/app/src/main/java/com/tehui/offline/**
 ios/
 .capacitor/
