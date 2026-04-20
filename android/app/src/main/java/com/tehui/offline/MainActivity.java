@@ -21,7 +21,7 @@ public class MainActivity extends BridgeActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Window window = getWindow();
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(0xFFF6F7FB); // #f6f7fb
+            window.setStatusBarColor(0xFFF0F3F9); // #f0f3f9 冷色主题底色（与 themeMetaColors.cool 保持一致）
             
             // 设置状态栏图标为深色（适用于浅色背景）
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
