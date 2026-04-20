@@ -452,8 +452,9 @@
                     // 如果保存的不是主页，跳转恢复
                     if (!lastPageIsMain) {
                         console.log('[页面记忆] 恢复上次访问的页面:', lastPage);
-                        // 标记当前会话已跳转
+                        // 标记当前会话已跳转，并允许目标页恢复滚动位置
                         sessionStorage.setItem('cx_has_restored', 'true');
+                        sessionStorage.setItem('cx_restore_scroll', 'true');
                         window.location.replace(lastPage);
                         return;
                     } else {

@@ -316,6 +316,18 @@ class HTMLGenerator:
             result.append(str(escape(seg[last:m.start()])))
 
             if kind == 'chap':
+                # 「篇」作为章节标记仅用于诗篇；其他书卷遇到「X篇」不作经文识别
+                if m.group(1):  # chapter range X至Y章/篇
+                    _uses_pian = m.group(0).endswith('篇')
+                else:           # single chapter X章/篇
+                    _chap_cn_len = len(m.group(3))
+                    _uses_pian = (len(m.group(0)) > _chap_cn_len and
+                                  m.group(0)[_chap_cn_len] == '篇')
+                if _uses_pian and cur_book != '诗':
+                    result.append(str(escape(m.group(0))))
+                    last = m.end()
+                    continue
+
                 if m.group(1):  # chapter range X至Y章
                     start_chap = ImprovedParser._cn_to_int(m.group(1)) or 0
                     end_chap = ImprovedParser._cn_to_int(m.group(2)) or 0
@@ -388,6 +400,17 @@ class HTMLGenerator:
             cur_book, cur_chapter = self._extract_bare_ref_context(inter_seg, cur_book, cur_chapter)
             book_raw = m.group(1)
             book = ImprovedParser._normalize_book_names(book_raw)
+            # 「篇」作为章节标记仅用于诗篇；其他书卷「X篇」不作经文识别
+            if m.group(2):  # range: book+X至Y章/篇
+                _bare_uses_pian = m.group(0).endswith('篇')
+            else:           # single: book+X章/篇...
+                _bare_pian_pos = len(m.group(1)) + len(m.group(4))
+                _bare_uses_pian = (len(m.group(0)) > _bare_pian_pos and
+                                   m.group(0)[_bare_pian_pos] == '篇')
+            if _bare_uses_pian and book != '诗':
+                result.append(str(escape(m.group(0))))
+                last = m.end()
+                continue
             if m.group(2):  # chapter range 书名X至Y章
                 start_chap = ImprovedParser._cn_to_int(m.group(2)) or 0
                 end_chap = ImprovedParser._cn_to_int(m.group(3)) or 0

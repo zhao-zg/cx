@@ -753,6 +753,9 @@ class ImprovedParser:
                     style_type = 'content'
             
             if style_type == 'chapter_title':
+                # 只有确实含「第X篇」的标题才视作章节；"目　录"等不含篇号的标题跳过
+                if not re.search(r'第[一二三四五六七八九十百]+篇', text):
+                    continue
                 chapter_num = self._extract_chapter_number(text)
                 current_chapter_num = chapter_num
                 # 找到对应的章节
@@ -2142,6 +2145,11 @@ class ImprovedParser:
             # 2. 全称章节式：书卷 + 章(中文)章 + 节范围（节部分可选，无节则整章）
             m = cls._FULL_CHAP_JING_RE.match(part)
             if m:
+                # 「篇」作为章节标记仅用于诗篇
+                _full_chap_marker = part[len(m.group(1)) + len(m.group(2))] if len(part) > len(m.group(1)) + len(m.group(2)) else ''
+                if _full_chap_marker == '篇' and m.group(1) != '诗':
+                    m = None
+            if m:
                 current_book = m.group(1)
                 current_chapter = cls._cn_to_int(m.group(2))
                 if m.group(3) is not None or m.group(5) is not None:
@@ -2175,6 +2183,11 @@ class ImprovedParser:
             # 4. 相对章节式：中文章章 + 节范围（同书卷，节部分可选）
             if current_book:
                 m = cls._REL_CHAP_JING_RE.match(part)
+                if m:
+                    # 「篇」作为章节标记仅用于诗篇
+                    _rel_chap_marker = part[len(m.group(1))] if len(part) > len(m.group(1)) else ''
+                    if _rel_chap_marker == '篇' and current_book != '诗':
+                        m = None
                 if m:
                     current_chapter = cls._cn_to_int(m.group(1))
                     if not current_chapter or current_chapter > 150:

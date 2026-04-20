@@ -66,30 +66,87 @@
     <!-- 页面记忆功能 -->
     <script>
     (function() {
-        // 保存当前页面到 localStorage
-        function saveCurrentPage() {
+        var LAST_PAGE_KEY   = 'cx_last_page';
+        var LAST_TIME_KEY   = 'cx_last_page_time';
+        var LAST_SCROLL_KEY = 'cx_last_scroll';
+        var RESTORE_FLAG    = 'cx_restore_scroll';
+
+        // 晨兴页（N_cx.htm）的日期导航会自动定位，不需要恢复滚动
+        var isMorningRevival = /\d+_cx\.htm/.test(window.location.pathname);
+
+        // ── 恢复滚动位置（仅在 APP 冷启动恢复时触发）───────────────────────────
+        (function tryRestoreScroll() {
+            var shouldRestore = false;
+            try { shouldRestore = sessionStorage.getItem(RESTORE_FLAG) === 'true'; } catch(e) {}
+            if (!shouldRestore) return;
+
+            // 晨兴页不恢复滚动
+            if (isMorningRevival) {
+                try { sessionStorage.removeItem(RESTORE_FLAG); } catch(e) {}
+                return;
+            }
+
+            var savedScroll = null;
+            try { savedScroll = localStorage.getItem(LAST_SCROLL_KEY); } catch(e) {}
+            var scrollY = savedScroll !== null ? parseInt(savedScroll, 10) : 0;
+            try { sessionStorage.removeItem(RESTORE_FLAG); } catch(e) {}
+            if (!scrollY || scrollY <= 0) return;
+
+            // 等页面渲染稳定后滚动（双重保险）
+            var restored = false;
+            function doRestore() {
+                if (restored) return;
+                restored = true;
+                window.scrollTo(0, scrollY);
+                console.log('[页面记忆] ✓ 恢复滚动位置:', scrollY);
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() { setTimeout(doRestore, 80); });
+            } else {
+                setTimeout(doRestore, 80);
+            }
+            window.addEventListener('load', function() { setTimeout(doRestore, 200); });
+        })();
+
+        // ── 保存当前 URL + 时间（不含滚动，滚动由单独逻辑保存）────────────────
+        function savePage() {
             try {
-                var href = window.location.href;
-                localStorage.setItem('cx_last_page', href);
-                localStorage.setItem('cx_last_page_time', Date.now());
-                console.log('[页面记忆] ✓ 保存页面:', href);
-            } catch (e) {
-                console.error('[页面记忆] 保存失败:', e);
-            }
+                localStorage.setItem(LAST_PAGE_KEY, window.location.href);
+                localStorage.setItem(LAST_TIME_KEY, Date.now().toString());
+            } catch(e) {}
         }
-        
-        // 页面加载时保存
-        saveCurrentPage();
-        
-        // 页面卸载前保存（用户离开时）
-        window.addEventListener('beforeunload', saveCurrentPage);
-        
-        // 页面隐藏时也保存（移动端切换应用）
+
+        // ── 保存滚动位置 ─────────────────────────────────────────────────────────
+        function saveScroll() {
+            try {
+                var y = window.scrollY || window.pageYOffset || 0;
+                localStorage.setItem(LAST_SCROLL_KEY, y.toString());
+            } catch(e) {}
+        }
+
+        // 节流：500ms 内只触发一次
+        var _scrollTimer = null;
+        function onScroll() {
+            if (_scrollTimer) return;
+            _scrollTimer = setTimeout(function() {
+                _scrollTimer = null;
+                saveScroll();
+            }, 500);
+        }
+
+        // 页面加载时立即记录 URL（此时 scrollY=0，不覆盖上次保存的滚动值）
+        savePage();
+
+        // 离开时同时保存 URL 和滚动
+        window.addEventListener('beforeunload', function() { savePage(); saveScroll(); });
+
+        // 切入后台时保存（移动端关闭 APP）
         document.addEventListener('visibilitychange', function() {
-            if (document.hidden) {
-                saveCurrentPage();
-            }
+            if (document.hidden) { savePage(); saveScroll(); }
         });
+
+        // 监听滚动（节流 500ms）
+        window.addEventListener('scroll', onScroll, { passive: true });
     })();
     </script>
     
