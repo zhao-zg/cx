@@ -263,6 +263,8 @@
 
     window.addEventListener('resize', updateContainerHeight);
     window.addEventListener('load', updateContainerHeight);
+    // scripture-block 异步渲染完成后重新计算高度，避免内容被 overflow:hidden 截断
+    document.addEventListener('cx:scriptureBlocksRendered', updateContainerHeight);
 
     window.addEventListener('hashchange', () => initFromHash(false));
     initFromHash(true);

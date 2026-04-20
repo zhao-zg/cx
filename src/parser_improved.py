@@ -187,8 +187,8 @@ class ImprovedParser:
         r'^(\d+)([上下]?)节?([上下]?)(?:~(\d+)([上下]?)节?([上下]?))?$'
     )
 
-    # ── 完整书名 → 缩写映射（先替换长名再匹配简称，避免前缀冲突）─────
-    _FULL_BOOK_MAP = {
+    # ── 66 卷正式完整书名 → 缩写映射 ─────────────────────────────────────
+    _CANONICAL_BOOK_MAP = {
         '创世记': '创', '出埃及记': '出', '利未记': '利', '民数记': '民',
         '申命记': '申', '约书亚记': '书', '士师记': '士', '路得记': '得',
         '撒母耳记上': '撒上', '撒母耳记下': '撒下',
@@ -214,10 +214,14 @@ class ImprovedParser:
         '约翰一书': '约壹', '约翰二书': '约贰', '约翰三书': '约叁',
         '约翰壹书': '约壹', '约翰贰书': '约贰', '约翰叁书': '约叁',
         '犹大书': '犹', '启示录': '启',
-        # 常用简称别名（2字缩写，避免单字截断）
+    }
+
+    # ── 常用简称/别名 → 缩写映射（不含正式全名）───────────────────────────
+    _ALIAS_BOOK_MAP = {
+        # 2字习惯别名（避免单字截断误匹配）
         '行传': '徒', '马太': '太', '马可': '可', '路加': '路',
-        '约翰': '约', '使徒': '徒',
-        # 常用3字简称（书名不带"书/记/传"字）
+        '约翰': '约', '使徒': '徒', '哀歌': '哀',
+        # 省略「书/记/传」字的3字简称
         '但以理': '但', '以西结': '结', '以赛亚': '赛', '耶利米': '耶',
         '何西阿': '何', '约珥': '珥', '阿摩司': '摩', '俄巴底亚': '俄',
         '约拿': '拿', '弥迦': '弥', '那鸿': '鸿', '哈巴谷': '哈',
@@ -225,6 +229,9 @@ class ImprovedParser:
         '腓立比': '腓', '以弗所': '弗', '歌罗西': '西', '加拉太': '加',
         '罗马': '罗',
     }
+
+    # ── 合并映射（正式全名优先；供现有代码统一使用）──────────────────────
+    _FULL_BOOK_MAP = {**_CANONICAL_BOOK_MAP, **_ALIAS_BOOK_MAP}
     # 预排序（从长到短），避免前缀误替换，仅计算一次
     _FULL_BOOK_MAP_SORTED = sorted(_FULL_BOOK_MAP.items(), key=lambda x: -len(x[0]))
 
@@ -415,24 +422,17 @@ class ImprovedParser:
             # 格式2: "总　题"\n"内容第一行"\n"内容第二行"
             if re.match(r'^总[　\s]*题[：:]?$', text) or text.startswith("总题：") or text.startswith("总题:"):
                 inline_content = re.sub(r'^总[　\s]*题[：:]?', '', text).strip()
-                if inline_content:
-                    # 同行有内容，检查是否需要续接下一行
-                    if inline_content.endswith('—') and i + 1 < len(doc.paragraphs):
-                        next_line = doc.paragraphs[i + 1].text.strip()
-                        if next_line and not re.match(r'目\s*录|^第[一二三四五六七八九十]+篇|^标[　\s]*语', next_line):
-                            inline_content = inline_content + next_line
-                    self.training_subtitle = inline_content
-                elif i + 1 < len(doc.paragraphs):
-                    # 下一行是内容
-                    line1 = doc.paragraphs[i + 1].text.strip()
-                    if line1 and not re.match(r'目\s*录|^第[一二三四五六七八九十]+篇|^标[　\s]*语', line1):
-                        subtitle_text = line1
-                        # 检查是否还有续行（第一行以"—"结尾）
-                        if line1.endswith('—') and i + 2 < len(doc.paragraphs):
-                            line2 = doc.paragraphs[i + 2].text.strip()
-                            if line2 and not re.match(r'目\s*录|^第[一二三四五六七八九十]+篇|^标[　\s]*语', line2):
-                                subtitle_text = line1 + line2
-                        self.training_subtitle = subtitle_text
+                parts = [inline_content] if inline_content else []
+                # 继续收集后续行，直到空行/目录/章节标记（最多再收集4行）
+                _stop_re = re.compile(r'目\s*录|^第[一二三四五六七八九十]+篇|^标[　\s]*语|^\d+$')
+                for _j in range(i + 1, min(i + 6, len(doc.paragraphs))):
+                    _next = doc.paragraphs[_j].text.strip()
+                    if not _next:
+                        break  # 空行表示副标题结束
+                    if _stop_re.match(_next):
+                        break
+                    parts.append(_next)
+                self.training_subtitle = ''.join(parts)
                 if self.training_subtitle:
                     print(f"  ✓ 识别副标题: {self.training_subtitle}")
                     subtitle_found = True

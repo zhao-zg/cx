@@ -462,6 +462,8 @@
       if (window.CXHighlight && window.CXHighlight.redoHighlights) {
         window.CXHighlight.redoHighlights();
       }
+      // 经文块撑开内容后，通知翻页布局重新计算容器高度（避免 overflow:hidden 截断最后段落）
+      document.dispatchEvent(new CustomEvent('cx:scriptureBlocksRendered'));
     });
   }
 

@@ -207,6 +207,8 @@ class HTMLGenerator:
     _INLINE_BARE_REF_RE = None
     # 相对章节引用正则（无书名前缀，如「十二章十节」，需上下文书卷，懒加载）
     _INLINE_REL_CHAP_RE = None
+    # 单独出现的完整书名（≥3字）匹配正则（懒加载）
+    _STANDALONE_BOOK_RE = None
 
     @classmethod
     def _build_inline_bare_ref_re(cls):
@@ -222,7 +224,7 @@ class HTMLGenerator:
                       r'\u8bd7\u7b74\u4f20\u6b4c\u8d5b\u8036\u54c0\u7ed3\u4f46\u4f55\u73e5\u6469\u4fe3\u62ff\u5f25'
                       r'\u9e3f\u54c8\u756a\u8be5\u4e9a\u739b\u592a\u53ef\u8def\u7ea6\u5f92\u7f57\u6797\u52a0\u5f0f'
                       r'\u817c\u897f\u5e16\u63d0\u95e8\u591a\u5f7c\u72b9\u542f\u6765][\u540e\u524d\u4e0a\u4e0b\u58f9\u8d30\u53c1]?')
-        book_pat = f'(?:{full_names_pat}|{abbrev_pat})'
+        book_pat = f'(?:{full_names_pat}|(?<![\\u4e00-\\u9fff]){abbrev_pat})'
         cn_num = r'[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e]+'
         cls._INLINE_BARE_REF_RE = re.compile(
             f'({book_pat})'                                               # group 1: book name
@@ -233,6 +235,23 @@ class HTMLGenerator:
             f')?'
         )
         return cls._INLINE_BARE_REF_RE
+
+    @classmethod
+    def _build_standalone_book_re(cls):
+        """构建并缓存单独出现的完整书名匹配正则（3字及以上，不紧跟章节数字）。
+
+        用途：当文中出现「启示录这卷书……」等不带章节的书名时，将上下文书卷
+        切换为该书，使紧随其后括号中的相对章节引用（如「十三1~2」）能正确映射。
+        """
+        if cls._STANDALONE_BOOK_RE is not None:
+            return cls._STANDALONE_BOOK_RE
+        # 使用正式完整书名列表（精确，无需用长度过滤）
+        long_names = list(ImprovedParser._CANONICAL_BOOK_MAP.keys())
+        pat = '|'.join(re.escape(k) for k in sorted(long_names, key=len, reverse=True))
+        # 负向前瞻：紧随书名之后不能是中文数字，防止与「书名+章节」模式重叠
+        cn_num_char = r'[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e]'
+        cls._STANDALONE_BOOK_RE = re.compile(f'({pat})(?!{cn_num_char})')
+        return cls._STANDALONE_BOOK_RE
 
     @classmethod
     def _build_inline_rel_chap_re(cls):
@@ -325,14 +344,38 @@ class HTMLGenerator:
         return ''.join(result)
 
     def _extract_bare_ref_context(self, text: str, cur_book: str, cur_chapter: int):
-        """扫描文字片段中的裸露书名X章引用，返回更新后的 (book, chapter)。"""
-        pattern = self._build_inline_bare_ref_re()
-        for m in pattern.finditer(text):
+        """扫描文字片段中的书名引用，返回更新后的 (book, chapter)。
+
+        按文中出现顺序处理两种情况：
+        - 书名+章节（如「创世记四十九章」）→ 更新书卷和章号
+        - 单独完整书名（如「启示录」）→ 仅更新书卷，章号重置为 0，
+          使后续无书名的括号引用（如「十三1~2」）能正确对应新书卷
+        """
+        bare_pat = self._build_inline_bare_ref_re()
+        standalone_pat = self._build_standalone_book_re()
+
+        # 先收集「书名+章节」匹配
+        ref_starts = set()
+        events = []
+        for m in bare_pat.finditer(text):
             book = ImprovedParser._normalize_book_names(m.group(1))
             chap = ImprovedParser._cn_to_int(m.group(2)) or 0
             if chap and chap <= 150:
-                cur_book = book
-                cur_chapter = chap
+                events.append((m.start(), 'ref', book, chap))
+                ref_starts.add(m.start())
+
+        # 单独书名：起始位置不与书名+章节重叠才纳入
+        for m in standalone_pat.finditer(text):
+            if m.start() not in ref_starts:
+                book = ImprovedParser._normalize_book_names(m.group(1))
+                if book:
+                    events.append((m.start(), 'standalone', book, 0))
+
+        # 按文中位置顺序应用：ref → 更新书卷和章号；standalone → 仅更新书卷（章号置 0）
+        for _, kind, book, chap in sorted(events, key=lambda x: x[0]):
+            cur_book = book
+            cur_chapter = chap  # 'ref' 时为具体章号；'standalone' 时为 0
+
         return cur_book, cur_chapter
 
     def _compute_para_final_state(self, text: str, init_book: str, init_chapter: int):

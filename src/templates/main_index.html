@@ -279,11 +279,11 @@
                 html += '<a href="' + training.path + '/index.html" class="training-link">';
                 html += '<div class="training-info">';
                 html += '<div class="training-header">';
-                html += '<div class="year-season">' + training.year + '年' + training.season.split(' ')[0] + '</div>';
+                html += '<div class="year-season">' + training.year + '-' + training.season.split(' ')[0] + '</div>';
                 html += '<div class="info">共 ' + training.chapter_count + ' 篇</div>';
                 html += '</div>';
                 html += '<div class="training-title-row">';
-                html += '<div class="title">' + training.title + '</div>';
+                html += '<div class="title">' + training.season.split(' ')[1]  + '</div>';
                 html += '<span class="arrow">→</span>';
                 html += '</div>';
                 html += '</div>';

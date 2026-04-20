@@ -4,6 +4,7 @@ Word文档静态网站生成器 - 主程序
 """
 import os
 import sys
+import re
 import json
 import yaml
 import shutil
@@ -207,7 +208,7 @@ def process_batch(batch_folder, config, bible_dict: BibleDict = None):
             season = parts[-1] if len(parts) > 1 else default_training.get('season', '秋季')
             batch_config['year'] = year
             batch_config['season'] = season
-            print(f"✓ 自动识别: {year}年{season}训练")
+            print(f"✓ 自动识别: {year}年{season}")
         except ValueError:
             print(f"⚠ 无法从文件夹名识别年份季节，使用默认配置")
             batch_config['year'] = default_training.get('year', 2025)
@@ -666,7 +667,7 @@ def main():
                         'name': batch_name,
                         'year': year,
                         'season': season,
-                        'title': f'{year}年{season}训练',
+                        'title': f'{year}年{season}',
                         'chapter_count': 9,  # 默认值
                         'path': batch_name
                     })
@@ -709,7 +710,6 @@ def main():
                         with open(index_path, 'r', encoding='utf-8') as f:
                             content = f.read()
                             # 简单提取 <title> 标签内容
-                            import re
                             match = re.search(r'<title>(.*?)</title>', content)
                             if match:
                                 title = match.group(1).strip()

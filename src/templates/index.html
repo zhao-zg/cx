@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}{{ training.title }}{% endblock %}
+{% block title %}{{ training.subtitle or training.title }}{% endblock %}
+
+{% block header %}
+<div class="header">
+    <h1>{{ training.subtitle if training.subtitle else training.title }}</h1>
+    <div class="subtitle">{{ training.year }}-{{ training.season }}</div>
+</div>
+{% endblock %}
 
 {% block head_css %}{% endblock %}
 
