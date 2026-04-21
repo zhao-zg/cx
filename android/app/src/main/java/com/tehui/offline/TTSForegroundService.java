@@ -214,11 +214,14 @@ public class TTSForegroundService extends Service {
         // 会触发引擎内部竞态，导致 speak() 静默无响应（无声 bug）。
         // stale onDone/onError 回调已由 speakGen 守卫拦截，无需额外 stop()。
         if (ttsReady) {
-            setTtsParams();   // set language + rate once for the whole session
+            // 已初始化：setLanguage 只需在 onInit 时调用一次；仅更新倍率。
+            // 重复调用 setLanguage 在 QUEUE_FLUSH 过渡期（三星/讯飞引擎）会触发
+            // 引擎内部重置，导致 speak() 静默无响应（无声 bug）。
+            TextToSpeech t = tts;
+            if (t != null) t.setSpeechRate(playRate);
             playChunk();
         }
-        // else: TTS.OnInitListener will call playChunk when ready
-        //       setTtsParams() is called there after ttsReady=true
+        // else: TTS.OnInitListener will call setTtsParams()+playChunk when ready
     }
 
     private void handleStop() {

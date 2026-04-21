@@ -547,17 +547,16 @@
         var segText     = safeText(fullText.slice(charIndex));
         if (!segText) return;
 
-        ensureSilentAudio();
         ++speakGeneration;
         progressBar.value = String(p);
         speechTime.textContent = formatTime(targetSecs) + ' / ' + formatTime(totalDuration);
 
         if (useNativeTTS) {
-          // 不发 ACTION_STOP：stopSelf() 是无条件停止，会在 handleSpeak 运行后把
-          // 刚启动的 Service 再次销毁（无声音 bug）。
-          // handleSpeak 内部已调用 tts.stop() + speakGen++ + QUEUE_FLUSH，可自行重置。
+          // 不发 ACTION_STOP：stopSelf() 会在 handleSpeak 启动后立即销毁 Service（无声 bug）。
+          // handleSpeak 使用 speakGen++ + QUEUE_FLUSH 自行重置，无需额外 stop()。
           nativeSpeak(segText, targetSecs);
         } else {
+          ensureSilentAudio();
           isSeekingInternal = true;
           try { window.speechSynthesis.cancel(); } catch (e) {}
           isChunking = false; stopProgressUpdate(); stopWsKeepalive();

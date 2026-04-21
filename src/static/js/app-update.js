@@ -213,7 +213,36 @@
             this.isCapacitor = window.Capacitor && window.Capacitor.isNativePlatform();
             if (!this.isCapacitor) return;
             console.log('[更新] 初始化更新模块');
+            this.cleanupOldApks();
             this.loadConfig();
+        },
+
+        // 清理上次更新遗留的 APK 文件（安装完成后重启时执行）
+        cleanupOldApks: async function() {
+            var Filesystem = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem;
+            if (!Filesystem) return;
+            var dirs = [
+                { dir: 'EXTERNAL', path: 'Download' },
+                { dir: 'CACHE',    path: 'downloads' },
+                { dir: 'DATA',     path: 'downloads' }
+            ];
+            for (var i = 0; i < dirs.length; i++) {
+                try {
+                    var result = await Filesystem.readdir({ path: dirs[i].path, directory: dirs[i].dir });
+                    var files = result && result.files;
+                    if (!files) continue;
+                    for (var j = 0; j < files.length; j++) {
+                        var entry = files[j];
+                        var name = typeof entry === 'string' ? entry : (entry && entry.name);
+                        if (name && name.endsWith('.apk')) {
+                            try {
+                                await Filesystem.deleteFile({ path: dirs[i].path + '/' + name, directory: dirs[i].dir });
+                                console.log('[更新] 已清理旧 APK:', name);
+                            } catch (e) { /* 删除失败忽略 */ }
+                        }
+                    }
+                } catch (e) { /* 目录不存在忽略 */ }
+            }
         },
 
         loadConfig: function() {
