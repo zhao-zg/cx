@@ -18,7 +18,6 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
-import androidx.core.app.NotificationCompat;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 
@@ -388,6 +387,7 @@ public class TTSForegroundService extends Service {
             .build());
     }
 
+    @SuppressWarnings("deprecation")
     private Notification buildNotification(boolean playing) {
         int piFlags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 ? PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
@@ -411,16 +411,38 @@ public class TTSForegroundService extends Service {
         Intent toggleI = new Intent(this, TTSForegroundService.class).setAction(toggleAction);
         PendingIntent togglePi = PendingIntent.getService(this, 2, toggleI, piFlags);
 
-        return new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("特会 · 朗读")
-                .setContentText(playing ? "正在朗读..." : "已暂停")
-                .setSmallIcon(android.R.drawable.ic_media_play)
-                .setContentIntent(openPi)
-                .setOngoing(true)
-                .setSilent(true)
-                .addAction(toggleIcon, toggleLabel, togglePi)
-                .addAction(android.R.drawable.ic_delete, "停止", stopPi)
-                .build();
+        // 使用框架原生 Notification.Builder，配合 Notification.MediaStyle。
+        // 国产 ROM（MIUI/EMUI/ColorOS）会检查通知是否带 MediaStyle + 有效 MediaSession token，
+        // 有则将 App 归类为媒体播放器，显著降低后台杀死概率。
+        // Notification.Builder + Notification.MediaStyle 均为框架内置 API（API 21+），无需额外依赖。
+        Notification.Builder builder;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder = new Notification.Builder(this, CHANNEL_ID);
+        } else {
+            // API < 26：旧构造函数（deprecated in O, still works for API 22-25）
+            builder = new Notification.Builder(this);
+            builder.setSound(null); // 关闭声音
+        }
+
+        builder.setContentTitle("特会 · 朗读")
+               .setContentText(playing ? "正在朗读..." : "已暂停")
+               .setSmallIcon(android.R.drawable.ic_media_play)
+               .setContentIntent(openPi)
+               .setOngoing(true)
+               // 添加按钮：index 0=暂停/继续, index 1=停止
+               .addAction(toggleIcon, toggleLabel, togglePi)
+               .addAction(android.R.drawable.ic_delete, "停止", stopPi);
+
+        // MediaStyle: 让通知带上媒体播放器标识。
+        // setMediaSession(token) 是国产 ROM 识别媒体手机应用的关键依据。
+        Notification.MediaStyle style = new Notification.MediaStyle()
+                .setShowActionsInCompactView(0, 1); // 紧凑视图显示按钮 0(暂停/继续) 和 1(停止)
+        if (mediaSession != null) {
+            style.setMediaSession(mediaSession.getSessionToken());
+        }
+        builder.setStyle(style);
+
+        return builder.build();
     }
 
     private void updateNotification(boolean playing) {
