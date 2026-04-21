@@ -107,6 +107,19 @@ public class NativeTTSPlugin extends Plugin {
         call.resolve();
     }
 
+    // ── setRate ───────────────────────────────────────────────────────────
+    // 仅更新 TTS 引擎倍率，不中断/重启播放。避免 stop()+speak() 竞态。
+
+    @PluginMethod
+    public void setRate(PluginCall call) {
+        float rate = call.getFloat("rate", 1.0f);
+        Intent intent = new Intent(getContext(), TTSForegroundService.class);
+        intent.setAction(TTSForegroundService.ACTION_SET_RATE);
+        intent.putExtra("rate", rate);
+        getContext().startService(intent);
+        call.resolve();
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────
 
     private void sendServiceAction(String action) {

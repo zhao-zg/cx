@@ -717,12 +717,28 @@
       rateSelect.addEventListener('change', function () {
         localStorage.setItem('speechRate', rateSelect.value);
         if (!fullText) return;
+        var newRate    = Number(rateSelect.value) || 0.5;
         var current    = currentElapsedSeconds();
         var oldTotal   = totalDuration;
-        totalDuration  = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
+        totalDuration  = estimateTotalSeconds(fullText, newRate);
         var newPercent = oldTotal > 0 ? clamp((current / oldTotal) * 100, 0, 100) : 0;
         progressBar.value = String(newPercent);
-        startSpeakingFromPercent(newPercent);
+        // 修正 elapsedOffset 使进度时间显示与新倍率对应
+        elapsedOffset = (newPercent / 100) * totalDuration;
+        startTime = isPlaying ? Date.now() : 0;
+
+        if (useNativeTTS) {
+          // NativeTTS：只更新引擎倍率，不中断/重启播放。
+          // stop()+speak() 序列在三星/讯飞引擎上会触发内部竞态 → 静默无声。
+          // 由 SERVICE 侧的 ACTION_SET_RATE 仅调用 setSpeechRate()，
+          // 即使引擎内部中断当前 chunk，onError 会用新倍率自动续播。
+          var NativeTTS = getNativeTTS();
+          if (NativeTTS && typeof NativeTTS.setRate === 'function') {
+            try { NativeTTS.setRate({ rate: newRate }); } catch (e) {}
+          }
+        } else {
+          startSpeakingFromPercent(newPercent);
+        }
       });
 
       // -- Page unload --------------------------------------------------------

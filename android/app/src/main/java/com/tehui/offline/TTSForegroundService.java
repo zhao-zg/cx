@@ -40,10 +40,11 @@ import java.util.Locale;
 public class TTSForegroundService extends Service {
 
     // ── Intent Actions ────────────────────────────────────────────────────
-    public static final String ACTION_SPEAK  = "com.tehui.tts.SPEAK";
-    public static final String ACTION_STOP   = "com.tehui.tts.STOP";
-    public static final String ACTION_PAUSE  = "com.tehui.tts.PAUSE";
-    public static final String ACTION_RESUME = "com.tehui.tts.RESUME";
+    public static final String ACTION_SPEAK    = "com.tehui.tts.SPEAK";
+    public static final String ACTION_STOP     = "com.tehui.tts.STOP";
+    public static final String ACTION_PAUSE    = "com.tehui.tts.PAUSE";
+    public static final String ACTION_RESUME   = "com.tehui.tts.RESUME";
+    public static final String ACTION_SET_RATE = "com.tehui.tts.SET_RATE"; // 仅更新倍率，不重启播放
 
     // ── Callback interface (set by NativeTTSPlugin) ───────────────────────
     public interface Listener {
@@ -156,10 +157,11 @@ public class TTSForegroundService extends Service {
         if (intent == null || intent.getAction() == null) return START_NOT_STICKY;
 
         switch (intent.getAction()) {
-            case ACTION_SPEAK:  handleSpeak(intent); break;
-            case ACTION_STOP:   handleStop();         break;
-            case ACTION_PAUSE:  handlePause();        break;
-            case ACTION_RESUME: handleResume();       break;
+            case ACTION_SPEAK:    handleSpeak(intent);   break;
+            case ACTION_STOP:     handleStop();           break;
+            case ACTION_PAUSE:    handlePause();          break;
+            case ACTION_RESUME:   handleResume();         break;
+            case ACTION_SET_RATE: handleSetRate(intent);  break;
         }
         return START_STICKY;
     }
@@ -223,29 +225,24 @@ public class TTSForegroundService extends Service {
             startForeground(NOTIF_ID, notif);
         }
 
-        // ── 启动新一轮朗读 ──────────────────────────────────────────────────
-        // 三段式：stop() → setSpeechRate() → [80ms] → speak()
-        //
-        // 原因：部分引擎（三星/讯飞/小米）的 setSpeechRate() 内部会触发隐式 stop()，
-        // 若紧接着调用 speak(QUEUE_FLUSH) 会命中引擎状态机的竞态窗口，
-        // 导致 speak 请求被静默丢弃（有进度无声音）。
-        // 解法：显式 stop() 确保引擎干净停止 → 设置倍率 → 等 80ms 让引擎
-        // 完成内部状态迁移 → 再发起 speak()，彻底避免竞态。
+        // 直接用 QUEUE_FLUSH 跳转到新片段。
+        // 不调用 stop() 和 setSpeechRate()：在三星/讯飞引擎上它们会触发内部竞态导致
+        // speak() 静默无响应。倍率变化通过独立的 ACTION_SET_RATE 处理。
         if (ttsReady) {
-            final TextToSpeech t = tts;
-            if (t != null) {
-                t.stop();                  // 1. 明确停止，引擎进入干净 STOPPED 状态
-                t.setSpeechRate(playRate); // 2. 在 STOPPED 状态下设倍率，无竞态
-                final int myGen = speakGen;
-                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                    @Override public void run() {
-                        // speakGen 已改变说明中途又发起了新的 speak，直接忽略
-                        if (speakGen == myGen && !isStopped && !isPaused) playChunkOnly();
-                    }
-                }, 80); // 3. 80ms 让引擎完成内部清理后再 speak()
-            }
+            playChunkOnly();
         }
         // else: TTS.OnInitListener will call setTtsParams()+playChunkOnly when ready
+    }
+
+    private void handleSetRate(Intent intent) {
+        float newRate = intent.getFloatExtra("rate", playRate);
+        playRate = newRate;
+        TextToSpeech t = tts;
+        if (t != null && ttsReady) {
+            // 直接调用 setSpeechRate()；即使引擎内部中断当前 utterance，
+            // onError 处理器会自动用新倍率播放下一块。
+            t.setSpeechRate(playRate);
+        }
     }
 
     private void handleStop() {
