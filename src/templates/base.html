@@ -13,6 +13,7 @@
     <!-- isCap: Capacitor 6+ Android 默认 https://localhost，也兼容 http://localhost 及旧版 capacitor: 协议 -->
     <script>(function(){var ok=false;try{if(sessionStorage.getItem('cx_access')==='ok')ok=true;}catch(e){}if(!ok){var isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||window.location.hostname==='localhost';var isPwa=window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);if(!isCap&&!isPwa){location.replace('../');}}})();</script>
     {% if training.app_version %}<meta name="app-version" content="{{ training.app_version }}">{% endif %}
+    <meta name="training-title" content="{{ training.title }}">
     <title>{% block title %}{{ training.title }}{% endblock %}</title>
     <!-- 预加载关键资源 -->
     <link rel="preload" href="../js/speech.js" as="script">

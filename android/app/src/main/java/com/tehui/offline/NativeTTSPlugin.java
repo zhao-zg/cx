@@ -31,6 +31,7 @@ public class NativeTTSPlugin extends Plugin {
         String lang       = call.getString("lang", "zh-CN");
         float  rate       = call.getFloat("rate", 1.0f);
         String title      = call.getString("title", "");
+        String artist     = call.getString("artist", "");
         float  startSecs  = call.getFloat("startSecs", 0f);
         float  totalSecs  = call.getFloat("totalSecs", 0f);
 
@@ -68,6 +69,16 @@ public class NativeTTSPlugin extends Plugin {
                     notifyListeners("ttsProgress", data);
                 } catch (Exception ignored) {}
             }
+
+            @Override
+            public void onPosition(long posMs, long totalMs) {
+                try {
+                    JSObject data = new JSObject();
+                    data.put("posMs",   posMs);
+                    data.put("totalMs", totalMs);
+                    notifyListeners("ttsPosition", data);
+                } catch (Exception ignored) {}
+            }
         };
 
         // Start the Foreground Service
@@ -77,6 +88,7 @@ public class NativeTTSPlugin extends Plugin {
         intent.putExtra("lang",       lang);
         intent.putExtra("rate",       rate);
         intent.putExtra("title",      title);
+        intent.putExtra("artist",     artist);
         intent.putExtra("startSecs",  startSecs);
         intent.putExtra("totalSecs",  totalSecs);
 

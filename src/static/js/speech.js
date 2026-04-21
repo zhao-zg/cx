@@ -190,8 +190,13 @@
     };
 
     var lang  = (options && options.lang)  || 'zh-CN';
-    // 锁屏/通知栏标题：优先用调用方传入的 title，其次直接用 document.title（模板已包含训练名 + 篇章 + 类型）
-    var title = (options && options.title) || document.title || '特会 · 朗读';
+    // 锁屏/通知栏：title = 篇章标题（大字），artist = 训练名（副标题小字）
+    // document.title 只含 "第X篇 - 类型"，训练名从 base.html 里的 meta[name=training-title] 读取
+    var _pageTitleRaw = document.title || '';
+    var _trainingMeta = document.querySelector('meta[name="training-title"]');
+    var title  = (options && options.title)  || _pageTitleRaw  || '特会 · 朗读';
+    var artist = (options && options.artist) ||
+                 (_trainingMeta ? _trainingMeta.getAttribute('content') : '') || '';
 
     var controlsDiv   = byId('bottomControlBar') || byId('speechControls');
     var playPauseBtn  = byId('playPauseBtn');
@@ -284,6 +289,8 @@
 
       // NativeTTS 分块进度监听句柄（用于删除旧监听器）
       var _nativeProgressHandle = null;
+      // NativeTTS 位置监听句柄（每 500ms Java 推送一次实际位置）
+      var _nativePositionHandle = null;
 
       // Web Speech chunk state
       var textChunks      = [];
@@ -450,40 +457,38 @@
         var gen  = speakGeneration;
         var rate = Number(rateSelect.value) || 0.5;
 
-        // 订阅分块完成事件，用实际已读字符比例重新校准进度条（消除时间估算漂移）
+        // 清理旧监听器
         if (_nativeProgressHandle) {
           try { _nativeProgressHandle.remove(); } catch (e) {}
           _nativeProgressHandle = null;
         }
+        if (_nativePositionHandle) {
+          try { _nativePositionHandle.remove(); } catch (e) {}
+          _nativePositionHandle = null;
+        }
+
+        // 订阅 Java 实时位置事件（每 500ms 推送）。
+        // posMs/totalMs 是全文绝对坐标，直接用于驱动 APP 内进度条，
+        // 与 MediaSession 使用同一数据源，完全同步。
         if (typeof NativeTTS.addListener === 'function') {
           try {
-            // 捕获本次 speak 的起始时间（秒），用于将切片内比例还原为全文绝对位置。
-            // ttsProgress 的 data.done/data.total 是 **切片** 内的比例，不是全文比例。
-            // 例：从 70% seek 后调 nativeSpeak(slice, 140s)，第一块完成 33%:
-            //   错误做法: elapsedOffset = 33% * totalDuration = 66s  (把起始偏移丢了)
-            //   正确做法: startFrac=0.7, sliceFrac=0.33 → 0.7 + 0.33*0.3 = 0.8 → 160s
-            var _speakStartSecs = targetSeconds || 0;
-            var h = NativeTTS.addListener('ttsProgress', function (data) {
-              if (gen !== speakGeneration || !totalDuration || !data) return;
-              if (data.done > 0 && data.total > 0) {
-                var startFrac = _speakStartSecs / totalDuration;
-                var sliceFrac = data.done / data.total;
-                elapsedOffset = (startFrac + sliceFrac * (1 - startFrac)) * totalDuration;
-                startTime = Date.now();
-              }
+            var hPos = NativeTTS.addListener('ttsPosition', function (data) {
+              if (gen !== speakGeneration || !data || data.posMs == null) return;
+              elapsedOffset = data.posMs / 1000;
+              if (data.totalMs > 0) totalDuration = data.totalMs / 1000;
+              startTime = Date.now();
             });
-            // addListener 在 Capacitor 3+ 返回 Promise，兼容同步返回句柄的形式
-            if (h && typeof h.then === 'function') {
-              h.then(function (handle) {
+            if (hPos && typeof hPos.then === 'function') {
+              hPos.then(function (handle) {
                 if (gen !== speakGeneration) { try { handle.remove(); } catch (e) {} }
-                else { _nativeProgressHandle = handle; }
+                else { _nativePositionHandle = handle; }
               }).catch(function () {});
             } else {
-              _nativeProgressHandle = h;
+              _nativePositionHandle = hPos;
             }
           } catch (e) {}
         }
-        NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title,
+        NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
                           startSecs: targetSeconds || 0, totalSecs: totalDuration || 0 })
           .then(function (result) {
             if (gen !== speakGeneration) return;
@@ -510,6 +515,10 @@
         if (_nativeProgressHandle) {
           try { _nativeProgressHandle.remove(); } catch (e) {}
           _nativeProgressHandle = null;
+        }
+        if (_nativePositionHandle) {
+          try { _nativePositionHandle.remove(); } catch (e) {}
+          _nativePositionHandle = null;
         }
         var NativeTTS = getNativeTTS();
         if (NativeTTS) try { NativeTTS.stop(); } catch (e) {}

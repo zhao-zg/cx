@@ -56,6 +56,8 @@ public class TTSForegroundService extends Service {
         void onError(String message);
         /** Called after each chunk completes; charsDone / totalChars gives accurate progress. */
         void onProgress(int charsDone, int totalChars);
+        /** Called every ~500 ms while playing; posMs/totalMs are absolute positions in full text. */
+        default void onPosition(long posMs, long totalMs) {}
     }
     public static volatile Listener listener = null;
 
@@ -82,7 +84,11 @@ public class TTSForegroundService extends Service {
     private long                sliceStartPositionMs = 0; // seek 点偏移，从 JS 传入的 startSecs * 1000
     private long                fullTotalDurationMs  = 0; // 全文稿总时长，从 JS 的 totalSecs * 1000
     private Voice               pinnedVoice          = null; // 锁定声音，避免 chunk 间换声
-    private String              playTitle            = "";  // 锁屏/通知栏显示的标题
+    private String              playTitle            = "";  // 锁屏/通知栏标题（篇章）
+    private String              playArtist           = "";  // 锁屏/通知栏副标题（训练名）
+
+    // 定期向 JS 推送播放位置，保持 APP 内进度条与 MediaSession 同步
+    private Runnable            positionRunnable     = null;
 
     // ── System Resources ──────────────────────────────────────────────────
     private AudioManager                          audioManager;
@@ -218,6 +224,7 @@ public class TTSForegroundService extends Service {
         isStopped = true;
         ttsReady  = false;
         if (mainHandler != null) mainHandler.removeCallbacksAndMessages(null);
+        positionRunnable = null; // removeCallbacksAndMessages 已移除所有 pending callbacks
         releaseWakeLock();
         abandonAudioFocus();
         if (mediaSession != null) {
@@ -239,11 +246,13 @@ public class TTSForegroundService extends Service {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void handleSpeak(Intent intent) {
-        String text  = intent.getStringExtra("text");
-        String lang  = intent.getStringExtra("lang");
-        String title = intent.getStringExtra("title");
-        if (lang   != null && !lang.isEmpty())  playLang  = lang;
-        if (title  != null && !title.isEmpty()) playTitle = title;
+        String text   = intent.getStringExtra("text");
+        String lang   = intent.getStringExtra("lang");
+        String title  = intent.getStringExtra("title");
+        String artist = intent.getStringExtra("artist");
+        if (lang   != null && !lang.isEmpty())   playLang   = lang;
+        if (title  != null && !title.isEmpty())  playTitle  = title;
+        if (artist != null && !artist.isEmpty()) playArtist = artist;
         playRate             = intent.getFloatExtra("rate", 1.0f);
         sliceStartPositionMs = (long)(intent.getFloatExtra("startSecs", 0f) * 1000L);
         fullTotalDurationMs  = (long)(intent.getFloatExtra("totalSecs", 0f) * 1000L);
@@ -327,6 +336,7 @@ public class TTSForegroundService extends Service {
         isStopped = true;
         isPaused  = false;
         speakGen++;
+        stopPositionBroadcast();
         if (tts != null) tts.stop();
         finishPlayback();
     }
@@ -335,6 +345,7 @@ public class TTSForegroundService extends Service {
         if (isPaused || isStopped) return;
         isPaused = true;
         speakGen++;       // invalidate in-flight onDone callbacks
+        stopPositionBroadcast();
         if (tts != null) tts.stop();
         // 冻结进度位置：让锁屏进度条在暂停时显示正确位置
         chunkStartPositionMs = getCurrentPositionMs();
@@ -430,6 +441,7 @@ public class TTSForegroundService extends Service {
         chunkStartPositionMs = calculateChunkStartPositionMs();
         chunkStartTimeMs     = System.currentTimeMillis();
         updatePlaybackState(true); // 刷新锁屏进度
+        startPositionBroadcast(); // 开始定期向 JS 推送位置
     }
 
     /** 调用 tts.speak()，封装了 API 21 前后的两种方式。返回 TextToSpeech.SUCCESS 或 ERROR。 */
@@ -441,6 +453,31 @@ public class TTSForegroundService extends Service {
         HashMap<String, String> p = new HashMap<>();
         p.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, uid);
         return t.speak(text, TextToSpeech.QUEUE_FLUSH, p);
+    }
+
+    /** 开始每 500ms 向 JS 推送一次实际播放位置。重入安全。 */
+    private void startPositionBroadcast() {
+        if (positionRunnable != null) return; // 已在运行
+        positionRunnable = new Runnable() {
+            @Override public void run() {
+                if (isStopped || isPaused || positionRunnable == null) return;
+                Listener cb = listener;
+                if (cb != null) {
+                    long posMs   = getCurrentPositionMs();
+                    long totalMs = fullTotalDurationMs > 0 ? fullTotalDurationMs : getTotalDurationMs();
+                    cb.onPosition(posMs, totalMs);
+                }
+                mainHandler.postDelayed(this, 500);
+            }
+        };
+        mainHandler.postDelayed(positionRunnable, 500);
+    }
+
+    private void stopPositionBroadcast() {
+        if (positionRunnable != null) {
+            mainHandler.removeCallbacks(positionRunnable);
+            positionRunnable = null;
+        }
     }
 
     /** Extract generation from utteranceId "g<gen>_c<chunk>" */
@@ -485,11 +522,15 @@ public class TTSForegroundService extends Service {
         if (mediaSession == null) return;
         // 优先使用 JS 传来的全文稿总时长；回退用切片估算
         long durationMs = fullTotalDurationMs > 0 ? fullTotalDurationMs : getTotalDurationMs();
-        String displayTitle = (playTitle != null && !playTitle.isEmpty()) ? playTitle : "特会 · 朗读";
-        mediaSession.setMetadata(new MediaMetadata.Builder()
+        String displayTitle  = (playTitle  != null && !playTitle.isEmpty())  ? playTitle  : "特会 · 朗读";
+        String displayArtist = (playArtist != null && !playArtist.isEmpty()) ? playArtist : "";
+        MediaMetadata.Builder meta = new MediaMetadata.Builder()
             .putString(MediaMetadata.METADATA_KEY_TITLE, displayTitle)
-            .putLong(MediaMetadata.METADATA_KEY_DURATION, durationMs > 0 ? durationMs : -1)
-            .build());
+            .putLong(MediaMetadata.METADATA_KEY_DURATION, durationMs > 0 ? durationMs : -1);
+        if (!displayArtist.isEmpty()) {
+            meta.putString(MediaMetadata.METADATA_KEY_ARTIST, displayArtist);
+        }
+        mediaSession.setMetadata(meta.build());
     }
 
     private long getCurrentPositionMs() {
@@ -691,6 +732,7 @@ public class TTSForegroundService extends Service {
 
     @SuppressWarnings("deprecation")
     private void finishPlayback() {
+        stopPositionBroadcast();
         releaseWakeLock();
         abandonAudioFocus();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
