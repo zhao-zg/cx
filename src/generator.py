@@ -219,12 +219,21 @@ class HTMLGenerator:
         full_names_pat = '|'.join(
             re.escape(k) for k in sorted(ImprovedParser._FULL_BOOK_MAP.keys(), key=len, reverse=True)
         )
-        # 简称：单字书卷 + 可选修饰
-        abbrev_pat = (r'[创出利民申书士得撒王代拉尼斯伯'
-                      r'诗筴传歌赛耶哀结但何珥摩俣拿弥'
-                      r'鸿哈番该亚玛太可路约徒罗林加式'
-                      r'腼西帖提门多彼犹启来][后前上下壹贰叁]?')
-        book_pat = f'(?:{full_names_pat}|(?<![\\u4e00-\\u9fff]){abbrev_pat})'
+        # 简称分两档：
+        #   _two_only_first — 这些字无单字书卷意义，必须带后缀才是书卷名
+        #     撒上/撒下  王上/王下  代上/代下  林前/林后  帖前/帖后  提前/提后  彼前/彼后
+        #     无需负向后顾（两字本身足够具体）
+        #   _one_ok_first   — 可单字独用的简称（如约/太/路/启）
+        #     前驱非汉字防止从词语中间截取；约可接壹贰叁（约壹/约贰/约叁）
+        _suffix_cls = r'[后前上下壹贰叁]'
+        _two_only_first = r'[撒王代林帖提彼]'
+        two_char_abbrev = _two_only_first + _suffix_cls
+        _one_ok_first = (r'[创出利民申书士得拉尼斯伯'
+                         r'诗筴传歌赛耶哀结但何珥摩俣拿弥'
+                         r'鸿哈番该亚玛太可路约徒罗加式'
+                         r'腼西门多犹启来]')
+        one_char_abbrev = r'(?<![\u4e00-\u9fff])' + _one_ok_first + r'(?:' + _suffix_cls + r')?'
+        book_pat = f'(?:{full_names_pat}|{two_char_abbrev}|{one_char_abbrev})'
         cn_num = r'[一二三四五六七八九十百]+'
         cls._INLINE_BARE_REF_RE = re.compile(
             f'({book_pat})'                                               # group 1: book name
