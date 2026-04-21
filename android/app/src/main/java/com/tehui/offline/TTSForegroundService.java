@@ -208,10 +208,11 @@ public class TTSForegroundService extends Service {
             startForeground(NOTIF_ID, notif);
         }
 
-        // 立即停止旧播放（QUEUE_FLUSH 也能停，但 tts.stop() 更及时，避免后台线程
-        // 的 onDone 在新 speakGen 生效前多播一个 chunk）
-        if (tts != null) tts.stop();
-
+        // 注意：不在这里显式调用 tts.stop()。
+        // playChunk() 使用 QUEUE_FLUSH —— 该模式本身就会停止当前语音并清空队列。
+        // 显式 stop() + 立即 speak() 在部分 TTS 引擎（三星/小米/讯飞等）上
+        // 会触发引擎内部竞态，导致 speak() 静默无响应（无声 bug）。
+        // stale onDone/onError 回调已由 speakGen 守卫拦截，无需额外 stop()。
         if (ttsReady) {
             setTtsParams();   // set language + rate once for the whole session
             playChunk();
