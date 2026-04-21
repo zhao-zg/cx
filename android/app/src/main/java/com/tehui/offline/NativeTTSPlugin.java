@@ -55,6 +55,16 @@ public class NativeTTSPlugin extends Plugin {
             public void onError(String message) {
                 rejectActiveCall(message);
             }
+
+            @Override
+            public void onProgress(int charsDone, int totalChars) {
+                try {
+                    JSObject data = new JSObject();
+                    data.put("done", charsDone);
+                    data.put("total", totalChars);
+                    notifyListeners("ttsProgress", data);
+                } catch (Exception ignored) {}
+            }
         };
 
         // Start the Foreground Service

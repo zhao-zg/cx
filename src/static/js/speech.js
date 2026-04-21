@@ -280,6 +280,9 @@
       var isSeeking     = false;
       var speakGeneration = 0;
 
+      // NativeTTS 分块进度监听句柄（用于删除旧监听器）
+      var _nativeProgressHandle = null;
+
       // Web Speech chunk state
       var textChunks      = [];
       var currentChunk    = 0;
@@ -445,6 +448,31 @@
         var gen  = speakGeneration;
         var rate = Number(rateSelect.value) || 0.5;
 
+        // 订阅分块完成事件，用实际已读字符比例重新校准进度条（消除时间估算漂移）
+        if (_nativeProgressHandle) {
+          try { _nativeProgressHandle.remove(); } catch (e) {}
+          _nativeProgressHandle = null;
+        }
+        if (typeof NativeTTS.addListener === 'function') {
+          try {
+            var h = NativeTTS.addListener('ttsProgress', function (data) {
+              if (gen !== speakGeneration || !totalDuration || !data) return;
+              if (data.done > 0 && data.total > 0) {
+                elapsedOffset = (data.done / data.total) * totalDuration;
+                startTime = Date.now();
+              }
+            });
+            // addListener 在 Capacitor 3+ 返回 Promise，兼容同步返回句柄的形式
+            if (h && typeof h.then === 'function') {
+              h.then(function (handle) {
+                if (gen !== speakGeneration) { try { handle.remove(); } catch (e) {} }
+                else { _nativeProgressHandle = handle; }
+              }).catch(function () {});
+            } else {
+              _nativeProgressHandle = h;
+            }
+          } catch (e) {}
+        }
         NativeTTS.speak({ text: segmentText, lang: lang, rate: rate })
           .then(function (result) {
             if (gen !== speakGeneration) return;
@@ -468,6 +496,10 @@
       }
 
       function nativeStopService() {
+        if (_nativeProgressHandle) {
+          try { _nativeProgressHandle.remove(); } catch (e) {}
+          _nativeProgressHandle = null;
+        }
         var NativeTTS = getNativeTTS();
         if (NativeTTS) try { NativeTTS.stop(); } catch (e) {}
       }

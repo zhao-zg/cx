@@ -47,6 +47,8 @@ public class TTSForegroundService extends Service {
     public interface Listener {
         void onFinished();
         void onError(String message);
+        /** Called after each chunk completes; charsDone / totalChars gives accurate progress. */
+        void onProgress(int charsDone, int totalChars);
     }
     public static volatile Listener listener = null;
 
@@ -67,6 +69,7 @@ public class TTSForegroundService extends Service {
     private volatile int        speakGen   = 0;   // generation counter for stale-callback guard
     private float               playRate   = 1.0f;
     private String              playLang   = "zh-CN";
+    private int                 totalTextLength = 0; // set in handleSpeak; used for progress
 
     // ── System Resources ──────────────────────────────────────────────────
     private AudioManager                          audioManager;
@@ -114,6 +117,15 @@ public class TTSForegroundService extends Service {
                 if (gen != speakGen || isStopped || isPaused) return;
 
                 chunkIndex++;
+
+                // 上报字符进度，让 JS 侧用实际完成比例重新校准进度条（消除时间估算漂移）
+                if (totalTextLength > 0) {
+                    int charsDone = 0;
+                    for (int i = 0; i < chunkIndex; i++) charsDone += chunks.get(i).length();
+                    Listener cb = listener;
+                    if (cb != null) cb.onProgress(charsDone, totalTextLength);
+                }
+
                 if (chunkIndex < chunks.size()) {
                     playChunkOnly(); // params already set; don't re-call setTtsParams()
                 } else {
@@ -192,6 +204,7 @@ public class TTSForegroundService extends Service {
         speakGen++;
         chunks.clear();
         chunks.addAll(splitText(text, CHUNK_SIZE));
+        totalTextLength = text.length();
 
         if (!requestAudioFocus()) {
             notifyError("无法获取音频焦点");
