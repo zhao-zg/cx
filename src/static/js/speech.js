@@ -728,10 +728,9 @@
         startTime = isPlaying ? Date.now() : 0;
 
         if (useNativeTTS) {
-          // NativeTTS：只更新引擎倍率，不中断/重启播放。
-          // stop()+speak() 序列在三星/讯飞引擎上会触发内部竞态 → 静默无声。
-          // 由 SERVICE 侧的 ACTION_SET_RATE 仅调用 setSpeechRate()，
-          // 即使引擎内部中断当前 chunk，onError 会用新倍率自动续播。
+          // NativeTTS：通知 Service 切换倍率。
+          // Service 侧 handleSetRate 会先 stop() 引擎，等 150ms 引擎空闲后
+          // 用新倍率重播当前 chunk 头部（会重复约 500 字，但这是避免静音的必要代价）。
           var NativeTTS = getNativeTTS();
           if (NativeTTS && typeof NativeTTS.setRate === 'function') {
             try { NativeTTS.setRate({ rate: newRate }); } catch (e) {}

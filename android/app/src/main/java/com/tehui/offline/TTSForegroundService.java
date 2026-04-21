@@ -18,6 +18,8 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
+import android.speech.tts.Voice;
+import android.media.MediaMetadata;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 
@@ -25,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * TTSForegroundService — Android Foreground Service for background-safe TTS.
@@ -74,6 +77,9 @@ public class TTSForegroundService extends Service {
     private float               playRate   = 1.0f;
     private String              playLang   = "zh-CN";
     private int                 totalTextLength = 0; // set in handleSpeak; used for progress
+    private long                chunkStartPositionMs = 0; // 当前 chunk 开始时的媒体位置（ms）
+    private long                chunkStartTimeMs     = 0; // 当前 chunk 开始时的系统时钟（ms）
+    private Voice               pinnedVoice          = null; // 锁定声音，避免 chunk 间换声
 
     // ── System Resources ──────────────────────────────────────────────────
     private AudioManager                          audioManager;
@@ -109,10 +115,18 @@ public class TTSForegroundService extends Service {
             MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
         mediaSession.setActive(true);
 
-        // Initialize Android native TextToSpeech engine
+        // Callback: 处理锁屏/通知栏媒体控件的点击事件（播放/暂停/停止/拖动进度条）
+        mediaSession.setCallback(new MediaSession.Callback() {
+            @Override public void onPlay()            { mainHandler.post(() -> handleResume()); }
+            @Override public void onPause()           { mainHandler.post(() -> handlePause()); }
+            @Override public void onStop()            { mainHandler.post(() -> handleStop()); }
+            @Override public void onSeekTo(long posMs){ mainHandler.post(() -> handleSeekTo(posMs)); }
+        });
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
                 ttsReady = true;
+                // 初始化完成后立即枚举 voices，避免首次 speak 时再走 setLanguage() 随机选声音
+                pinnedVoice = pickBestVoice(playLang);
                 // If a speak request arrived before init completed, start now
                 if (!chunks.isEmpty() && !isStopped && !isPaused) {
                     setTtsParams(); // first-time init: set language + rate before first chunk
@@ -236,10 +250,14 @@ public class TTSForegroundService extends Service {
         isStopped  = false;
         isPaused   = false;
         chunkIndex = 0;
+        chunkStartPositionMs = 0;
+        chunkStartTimeMs     = 0;
+        pinnedVoice          = pickBestVoice(playLang); // 枚举一次，后续 chunk 直接 setVoice()
         speakGen++;
         chunks.clear();
         chunks.addAll(splitText(text, CHUNK_SIZE));
         totalTextLength = text.length();
+        updateMediaMetadata(); // 让锁屏/通知栏知道标题和总时长
 
         if (!requestAudioFocus()) {
             notifyError("无法获取音频焦点");
@@ -258,9 +276,9 @@ public class TTSForegroundService extends Service {
         }
 
         if (ttsReady) {
-            // 先显式 stop()，等引擎完全空闲（80ms）再 speak()。
-            // 在三星/讯飞等引擎上，若引擎处于过渡态时直接调 speak(QUEUE_FLUSH)
-            // 可能被静默丢弃；确保引擎空闲后调用 setTtsParams() 应用最新倍率。
+            // 先显式 stop()，等引擎音频缓冲完全排空（200ms）再 speak()。
+            // tts.stop() 只停止引擎继续合成，但硬件缓冲区中已有的音频仍会播放约 100~200ms；
+            // 若延迟太短，旧音频与新音频重叠会产生「两个声音」效果。
             TextToSpeech t = tts;
             if (t != null) t.stop();
             final int gen = speakGen;
@@ -268,7 +286,7 @@ public class TTSForegroundService extends Service {
                 if (speakGen != gen || isStopped) return;
                 setTtsParams();  // 应用最新 playRate 和语言（引擎已空闲，不会触发 onError）
                 playChunkOnly();
-            }, 80);
+            }, 200);
         }
         // else: TTS.OnInitListener will call setTtsParams()+playChunkOnly when ready
     }
@@ -311,6 +329,9 @@ public class TTSForegroundService extends Service {
         isPaused = true;
         speakGen++;       // invalidate in-flight onDone callbacks
         if (tts != null) tts.stop();
+        // 冻结进度位置：让锁屏进度条在暂停时显示正确位置
+        chunkStartPositionMs = getCurrentPositionMs();
+        chunkStartTimeMs     = 0;
         updateNotification(false);
     }
 
@@ -327,17 +348,42 @@ public class TTSForegroundService extends Service {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void setTtsParams() {
-        Locale locale;
-        try {
-            locale = Locale.forLanguageTag(playLang);
-        } catch (Exception e) {
-            locale = Locale.CHINA;
-        }
-        int r = tts.setLanguage(locale);
-        if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
-            tts.setLanguage(Locale.CHINA);
+        if (pinnedVoice != null) {
+            // 使用预先枚举好的 voice，完全跳过 setLanguage()。
+            tts.setVoice(pinnedVoice);
+        } else {
+            // 兜底：pickBestVoice() 枚举失败（引擎未就绪或无离线包）时退回 setLanguage()
+            Locale locale;
+            try {
+                locale = Locale.forLanguageTag(playLang);
+            } catch (Exception e) {
+                locale = Locale.CHINA;
+            }
+            int r = tts.setLanguage(locale);
+            if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
+                tts.setLanguage(Locale.CHINA);
+            }
         }
         tts.setSpeechRate(playRate);
+    }
+
+    /** 枚举 TTS voice 列表，返回匹配语言的最高质量离线 voice；失败返回 null。 */
+    private Voice pickBestVoice(String lang) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) return null;
+        Locale target;
+        try { target = Locale.forLanguageTag(lang); } catch (Exception e) { target = Locale.CHINA; }
+        String targetLang = target.getLanguage();
+        Voice best = null;
+        try {
+            Set<Voice> voices = tts.getVoices();
+            if (voices == null) return null;
+            for (Voice v : voices) {
+                if (v.isNetworkConnectionRequired()) continue;
+                if (!targetLang.equals(v.getLocale().getLanguage())) continue;
+                if (best == null || v.getQuality() > best.getQuality()) best = v;
+            }
+        } catch (Exception ignored) {}
+        return best;
     }
 
     /** Speak current chunk (rate already set by handleSpeak; called from delayed callback or onDone). */
@@ -360,6 +406,10 @@ public class TTSForegroundService extends Service {
             //noinspection deprecation
             t.speak(text, TextToSpeech.QUEUE_FLUSH, p);
         }
+        // 记录本块开始时的位置和时钟，供锁屏进度条使用
+        chunkStartPositionMs = calculateChunkStartPositionMs();
+        chunkStartTimeMs     = System.currentTimeMillis();
+        updatePlaybackState(true); // 刷新锁屏进度
     }
 
     /** Extract generation from utteranceId "g<gen>_c<chunk>" */
@@ -389,13 +439,69 @@ public class TTSForegroundService extends Service {
     private void updatePlaybackState(boolean playing) {
         if (mediaSession == null) return;
         int state = playing ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED;
+        long posMs = getCurrentPositionMs();
         mediaSession.setPlaybackState(new PlaybackState.Builder()
-            .setState(state, PlaybackState.PLAYBACK_POSITION_UNKNOWN, playing ? 1.0f : 0f)
+            .setState(state, posMs, playing ? playRate : 0f)
             .setActions(PlaybackState.ACTION_PLAY_PAUSE |
                         PlaybackState.ACTION_PAUSE |
                         PlaybackState.ACTION_PLAY |
-                        PlaybackState.ACTION_STOP)
+                        PlaybackState.ACTION_STOP |
+                        PlaybackState.ACTION_SEEK_TO)
             .build());
+    }
+
+    private void updateMediaMetadata() {
+        if (mediaSession == null) return;
+        long durationMs = getTotalDurationMs();
+        mediaSession.setMetadata(new MediaMetadata.Builder()
+            .putString(MediaMetadata.METADATA_KEY_TITLE, "特会 · 朗读")
+            .putLong(MediaMetadata.METADATA_KEY_DURATION, durationMs > 0 ? durationMs : -1)
+            .build());
+    }
+
+    private long getCurrentPositionMs() {
+        if (chunkStartTimeMs == 0) return chunkStartPositionMs;
+        return chunkStartPositionMs + (System.currentTimeMillis() - chunkStartTimeMs);
+    }
+
+    private long getTotalDurationMs() {
+        if (totalTextLength <= 0) return 0;
+        return (long)(totalTextLength / (250.0f * Math.max(0.1f, playRate)) * 60 * 1000L);
+    }
+
+    private long calculateChunkStartPositionMs() {
+        int cumChars = 0;
+        for (int i = 0; i < chunkIndex && i < chunks.size(); i++) {
+            cumChars += chunks.get(i).length();
+        }
+        long totalMs = getTotalDurationMs();
+        if (totalTextLength <= 0 || totalMs <= 0) return 0;
+        return (long)((float) cumChars / totalTextLength * totalMs);
+    }
+
+    private void handleSeekTo(long posMs) {
+        long totalMs = getTotalDurationMs();
+        if (totalMs <= 0 || chunks.isEmpty()) return;
+        float fraction = (float) Math.max(0.0, Math.min(1.0, (double) posMs / totalMs));
+        int targetChar = (int)(fraction * totalTextLength);
+        int cumLen = 0;
+        int targetChunk = chunks.size() - 1;
+        for (int i = 0; i < chunks.size(); i++) {
+            if (cumLen + chunks.get(i).length() > targetChar) { targetChunk = i; break; }
+            cumLen += chunks.get(i).length();
+        }
+        chunkIndex = targetChunk;
+        isStopped = false;
+        isPaused  = false;
+        speakGen++;
+        final int gen = speakGen;
+        TextToSpeech t = tts;
+        if (t != null) t.stop();
+        mainHandler.postDelayed(() -> {
+            if (speakGen != gen || isStopped) return;
+            setTtsParams();
+            playChunkOnly();
+        }, 200);
     }
 
     @SuppressWarnings("deprecation")
