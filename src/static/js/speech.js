@@ -455,10 +455,18 @@
         }
         if (typeof NativeTTS.addListener === 'function') {
           try {
+            // 捕获本次 speak 的起始时间（秒），用于将切片内比例还原为全文绝对位置。
+            // ttsProgress 的 data.done/data.total 是 **切片** 内的比例，不是全文比例。
+            // 例：从 70% seek 后调 nativeSpeak(slice, 140s)，第一块完成 33%:
+            //   错误做法: elapsedOffset = 33% * totalDuration = 66s  (把起始偏移丢了)
+            //   正确做法: startFrac=0.7, sliceFrac=0.33 → 0.7 + 0.33*0.3 = 0.8 → 160s
+            var _speakStartSecs = targetSeconds || 0;
             var h = NativeTTS.addListener('ttsProgress', function (data) {
               if (gen !== speakGeneration || !totalDuration || !data) return;
               if (data.done > 0 && data.total > 0) {
-                elapsedOffset = (data.done / data.total) * totalDuration;
+                var startFrac = _speakStartSecs / totalDuration;
+                var sliceFrac = data.done / data.total;
+                elapsedOffset = (startFrac + sliceFrac * (1 - startFrac)) * totalDuration;
                 startTime = Date.now();
               }
             });
