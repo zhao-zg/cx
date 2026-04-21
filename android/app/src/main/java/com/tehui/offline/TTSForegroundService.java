@@ -143,11 +143,18 @@ public class TTSForegroundService extends Service {
                     if (cb != null) cb.onProgress(charsDone, totalTextLength);
                 }
 
-                if (chunkIndex < chunks.size()) {
-                    playChunkOnly(); // params already set; don't re-call setTtsParams()
-                } else {
-                    notifyFinished();
-                }
+                // 通过主线程派发下一块播放。
+                // onDone 运行在 TTS binder 线程，直接调 speak() 在灰屏时会被引擎挂起等屏幕亮起；
+                // 改用主线程就能避开这个节流。
+                final int capturedGen = gen;
+                mainHandler.post(() -> {
+                    if (speakGen != capturedGen || isStopped || isPaused) return;
+                    if (chunkIndex < chunks.size()) {
+                        playChunkOnly();
+                    } else {
+                        notifyFinished();
+                    }
+                });
             }
 
             @Override
@@ -157,11 +164,15 @@ public class TTSForegroundService extends Service {
                 if (gen != speakGen || isStopped) return;
                 // Skip failed chunk, continue
                 chunkIndex++;
-                if (chunkIndex < chunks.size()) {
-                    playChunkOnly();
-                } else {
-                    notifyFinished();
-                }
+                final int capturedGen = gen;
+                mainHandler.post(() -> {
+                    if (speakGen != capturedGen || isStopped) return;
+                    if (chunkIndex < chunks.size()) {
+                        playChunkOnly();
+                    } else {
+                        notifyFinished();
+                    }
+                });
             }
         });
     }
