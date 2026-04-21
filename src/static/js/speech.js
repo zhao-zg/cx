@@ -604,9 +604,14 @@
         speechTime.textContent = formatTime(targetSecs) + ' / ' + formatTime(totalDuration);
 
         if (useNativeTTS) {
-          // 不发 ACTION_STOP：stopSelf() 会在 handleSpeak 启动后立即销毁 Service（无声 bug）。
-          // handleSpeak 使用 speakGen++ + QUEUE_FLUSH 自行重置，无需额外 stop()。
-          nativeSpeak(segText, targetSecs);
+          if (isPlaying || isPaused) {
+            // 服务已在运行：直接走 MediaSession onSeekTo 路径，无需重新 speak
+            var posMs = Math.round(targetSecs * 1000);
+            NativeTTS.seekTo({ posMs: posMs });
+          } else {
+            // 服务尚未启动：首次播放，走完整 speak 路径
+            nativeSpeak(segText, targetSecs);
+          }
         } else {
           ensureSilentAudio();
           isSeekingInternal = true;

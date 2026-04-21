@@ -49,6 +49,7 @@ public class TTSForegroundService extends Service {
     public static final String ACTION_PAUSE    = "com.tehui.tts.PAUSE";
     public static final String ACTION_RESUME   = "com.tehui.tts.RESUME";
     public static final String ACTION_SET_RATE = "com.tehui.tts.SET_RATE"; // 仅更新倍率，不重启播放
+    public static final String ACTION_SEEK_TO  = "com.tehui.tts.SEEK_TO";  // 拖动进度条 seek
 
     // ── Callback interface (set by NativeTTSPlugin) ───────────────────────
     public interface Listener {
@@ -97,6 +98,10 @@ public class TTSForegroundService extends Service {
     private PowerManager.WakeLock                 wakeLock;
     private MediaSession                            mediaSession;
     private Handler                               mainHandler;
+    // 专用播放派发线程：息屏后主线程被 Doze 节流，chunk 间切换会被挂起；
+    // 独立的 THREAD_PRIORITY_AUDIO 线程不受影响，配合 WakeLock 可持续播放。
+    private HandlerThread                         ttsHandlerThread;
+    private Handler                               ttsHandler;
 
     // ═══════════════════════════════════════════════════════════════════════
     // Lifecycle
@@ -106,6 +111,9 @@ public class TTSForegroundService extends Service {
     public void onCreate() {
         super.onCreate();
         mainHandler = new Handler(Looper.getMainLooper());
+        ttsHandlerThread = new HandlerThread("CXTTSWorker", android.os.Process.THREAD_PRIORITY_AUDIO);
+        ttsHandlerThread.start();
+        ttsHandler = new Handler(ttsHandlerThread.getLooper());
         createNotificationChannel();
 
         // WakeLock: prevents Android from throttling CPU / deferring callbacks
@@ -166,11 +174,12 @@ public class TTSForegroundService extends Service {
                     if (cb != null) cb.onProgress(charsDone, totalTextLength);
                 }
 
-                // 通过主线程派发下一块播放。
-                // onDone 运行在 TTS binder 线程，直接调 speak() 在灰屏时会被引擎挂起等屏幕亮起；
-                // 改用主线程就能避开这个节流。
+                // 通过专用播放线程（ttsHandler）派发下一块。
+                // onDone 在 TTS binder 线程；不能直接调 speak()（灰屏时引擎挂起）；
+                // 主线程（mainHandler）息屏后被 Doze 节流，会导致 chunk 间停顿至亮屏；
+                // ttsHandler（THREAD_PRIORITY_AUDIO + WakeLock）不受 Doze 影响。
                 final int capturedGen = gen;
-                mainHandler.post(() -> {
+                ttsHandler.post(() -> {
                     if (speakGen != capturedGen || isStopped || isPaused) return;
                     if (chunkIndex < chunks.size()) {
                         playChunkOnly();
@@ -188,7 +197,7 @@ public class TTSForegroundService extends Service {
                 // Skip failed chunk, continue
                 chunkIndex++;
                 final int capturedGen = gen;
-                mainHandler.post(() -> {
+                ttsHandler.post(() -> {
                     if (speakGen != capturedGen || isStopped) return;
                     if (chunkIndex < chunks.size()) {
                         playChunkOnly();
@@ -210,6 +219,7 @@ public class TTSForegroundService extends Service {
             case ACTION_PAUSE:    handlePause();          break;
             case ACTION_RESUME:   handleResume();         break;
             case ACTION_SET_RATE: handleSetRate(intent);  break;
+            case ACTION_SEEK_TO:  handleSeekTo(intent.getLongExtra("posMs", 0)); break;
         }
         return START_STICKY;
     }
@@ -224,7 +234,9 @@ public class TTSForegroundService extends Service {
         isStopped = true;
         ttsReady  = false;
         if (mainHandler != null) mainHandler.removeCallbacksAndMessages(null);
+        if (ttsHandler  != null) ttsHandler.removeCallbacksAndMessages(null);
         positionRunnable = null; // removeCallbacksAndMessages 已移除所有 pending callbacks
+        if (ttsHandlerThread != null) { ttsHandlerThread.quitSafely(); ttsHandlerThread = null; }
         releaseWakeLock();
         abandonAudioFocus();
         if (mediaSession != null) {
@@ -298,7 +310,7 @@ public class TTSForegroundService extends Service {
             TextToSpeech t = tts;
             if (t != null) t.stop();
             final int gen = speakGen;
-            mainHandler.postDelayed(() -> {
+            ttsHandler.postDelayed(() -> {
                 if (speakGen != gen || isStopped) return;
                 setTtsParams();  // 应用最新 playRate 和语言（引擎已空闲，不会触发 onError）
                 playChunkOnly();
@@ -325,7 +337,7 @@ public class TTSForegroundService extends Service {
         speakGen++;
         final int gen = speakGen;
         tts.stop();
-        mainHandler.postDelayed(() -> {
+        ttsHandler.postDelayed(() -> {
             if (speakGen != gen || isStopped || isPaused) return;
             setTtsParams();  // 引擎已空闲，setSpeechRate() 不会触发 onError
             playChunkOnly(); // 从当前 chunkIndex 重播，立即听到新倍率
@@ -358,7 +370,7 @@ public class TTSForegroundService extends Service {
         isPaused = false;
         speakGen++;
         updateNotification(true);
-        playChunkOnly(); // params already set during handleSpeak; no re-call needed
+        ttsHandler.post(this::playChunkOnly); // 用 ttsHandler，避免息屏时主线程节流
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -429,7 +441,7 @@ public class TTSForegroundService extends Service {
         if (ret == TextToSpeech.ERROR) {
             // 引擎彻底拒绝，跳过该 chunk 继续播放
             final int gen = speakGen;
-            mainHandler.post(() -> {
+            ttsHandler.post(() -> {
                 if (speakGen != gen || isStopped) return;
                 chunkIndex++;
                 if (chunkIndex < chunks.size()) playChunkOnly();
@@ -575,7 +587,7 @@ public class TTSForegroundService extends Service {
         final int gen = speakGen;
         TextToSpeech t = tts;
         if (t != null) t.stop();
-        mainHandler.postDelayed(() -> {
+        ttsHandler.postDelayed(() -> {
             if (speakGen != gen || isStopped) return;
             setTtsParams();
             playChunkOnly();

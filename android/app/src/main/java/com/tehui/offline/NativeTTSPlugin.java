@@ -125,6 +125,18 @@ public class NativeTTSPlugin extends Plugin {
         call.resolve();
     }
 
+    // ── seekTo ────────────────────────────────────────────────────────────
+
+    @PluginMethod
+    public void seekTo(PluginCall call) {
+        long posMs = call.getLong("posMs", 0L);
+        Intent intent = new Intent(getContext(), TTSForegroundService.class);
+        intent.setAction(TTSForegroundService.ACTION_SEEK_TO);
+        intent.putExtra("posMs", posMs);
+        getContext().startService(intent);
+        call.resolve();
+    }
+
     // ── setRate ───────────────────────────────────────────────────────────
     // 仅更新 TTS 引擎倍率，不中断/重启播放。避免 stop()+speak() 竞态。
 
