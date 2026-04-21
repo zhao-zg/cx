@@ -1,7 +1,11 @@
 package com.tehui.offline;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
+import android.os.PowerManager;
+import android.provider.Settings;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -149,7 +153,48 @@ public class NativeTTSPlugin extends Plugin {
         getContext().startService(intent);
         call.resolve();
     }
+    // ── 电池优化 ────────────────────────────────────────────────────────────────────────
+    // 是否已免除电池优化（已加入北采白名单）
 
+    @PluginMethod
+    public void isBatteryOptimizationIgnored(PluginCall call) {
+        boolean ignored = true; // Android M 以下默认不受限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+            if (pm != null) {
+                ignored = pm.isIgnoringBatteryOptimizations(getContext().getPackageName());
+            }
+        }
+        JSObject result = new JSObject();
+        result.put("ignored", ignored);
+        call.resolve(result);
+    }
+
+    /**
+     * 弹出系统电池优化排除对话框。
+     * 当前已在白名单中则什么都不做。
+     * 需要 AndroidManifest.xml 中声明 REQUEST_IGNORE_BATTERY_OPTIMIZATIONS 权限。
+     */
+    @PluginMethod
+    public void requestIgnoreBatteryOptimization(PluginCall call) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(getContext().getPackageName())) {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(Uri.parse("package:" + getContext().getPackageName()));
+                    getActivity().startActivity(intent);
+                } catch (Exception e) {
+                    // 部分 ROM 不支持该 Intent，回退到通用电池设置页
+                    try {
+                        getActivity().startActivity(
+                            new Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS));
+                    } catch (Exception ignored2) {}
+                }
+            }
+        }
+        call.resolve();
+    }
     // ── Helpers ───────────────────────────────────────────────────────────
 
     private void sendServiceAction(String action) {

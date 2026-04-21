@@ -291,6 +291,8 @@
       var _nativeProgressHandle = null;
       // NativeTTS 位置监听句柄（每 500ms Java 推送一次实际位置）
       var _nativePositionHandle = null;
+      // 电池优化：本次 session 是否已经检查过（按需弹一次系统对话框）
+      var _batteryOptChecked = false;
 
       // Web Speech chunk state
       var textChunks      = [];
@@ -699,6 +701,16 @@
 
         // First press: load text and start
         if (!isPlaying && !isChunking && !isPaused) {
+          // 首次播放时检查电池优化（仅 NativeTTS / Android APK）
+          if (useNativeTTS && !_batteryOptChecked) {
+            _batteryOptChecked = true;
+            var _nativeTTSBat = getNativeTTS();
+            if (_nativeTTSBat && typeof _nativeTTSBat.isBatteryOptimizationIgnored === 'function') {
+              _nativeTTSBat.isBatteryOptimizationIgnored().then(function (r) {
+                if (!r.ignored) _nativeTTSBat.requestIgnoreBatteryOptimization();
+              }).catch(function () {});
+            }
+          }
           fullText = safeText(getText());
           if (!fullText) return;
           totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);

@@ -428,6 +428,15 @@ jobs:
             )
             print('✓ 添加 WAKE_LOCK 权限')
         
+        # 添加 REQUEST_IGNORE_BATTERY_OPTIMIZATIONS（引导用户免除电池优化）
+        if 'REQUEST_IGNORE_BATTERY_OPTIMIZATIONS' not in content:
+            content = re.sub(
+                r'(<manifest[^>]*>)',
+                r'\1\n    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />',
+                content
+            )
+            print('✓ 添加 REQUEST_IGNORE_BATTERY_OPTIMIZATIONS 权限')
+        
         # 添加 TTSForegroundService 声明（在 </application> 前）
         if 'TTSForegroundService' not in content:
             service_xml = (
