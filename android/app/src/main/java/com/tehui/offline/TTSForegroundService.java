@@ -617,7 +617,7 @@ public class TTSForegroundService extends Service {
         if (mediaSession == null) return;
         // 优先使用 JS 传来的全文稿总时长；回退用切片估算
         long durationMs = fullTotalDurationMs > 0 ? fullTotalDurationMs : getTotalDurationMs();
-        String displayTitle  = (playTitle  != null && !playTitle.isEmpty())  ? playTitle  : "特会 · 朗读";
+        String displayTitle  = (playTitle  != null && !playTitle.isEmpty())  ? playTitle  : "晨兴 · 朗读";
         String displayArtist = (playArtist != null && !playArtist.isEmpty()) ? playArtist : "";
         MediaMetadata.Builder meta = new MediaMetadata.Builder()
             .putString(MediaMetadata.METADATA_KEY_TITLE, displayTitle)
@@ -722,7 +722,7 @@ public class TTSForegroundService extends Service {
             builder.setSound(null); // 关闭声音
         }
 
-        String notifTitle = (playTitle != null && !playTitle.isEmpty()) ? playTitle : "特会 · 朗读";
+        String notifTitle = (playTitle != null && !playTitle.isEmpty()) ? playTitle : "晨兴 · 朗读";
         builder.setContentTitle(notifTitle)
                .setContentText(playing ? "正在朗读..." : "已暂停")
                .setSmallIcon(android.R.drawable.ic_media_play)

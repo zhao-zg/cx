@@ -194,7 +194,7 @@
     // document.title 只含 "第X篇 - 类型"，训练名从 base.html 里的 meta[name=training-title] 读取
     var _pageTitleRaw = document.title || '';
     var _trainingMeta = document.querySelector('meta[name="training-title"]');
-    var title  = (options && options.title)  || _pageTitleRaw  || '特会 · 朗读';
+    var title  = (options && options.title)  || _pageTitleRaw  || '晨兴 · 朗读';
     var artist = (options && options.artist) ||
                  (_trainingMeta ? _trainingMeta.getAttribute('content') : '') || '';
 

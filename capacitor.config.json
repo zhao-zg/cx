@@ -1,6 +1,6 @@
 {
   "appId": "com.tehui.offline",
-  "appName": "特会",
+  "appName": "晨兴",
   "webDir": "output",
   "android": {
     "allowMixedContent": true,
