@@ -18,7 +18,10 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import androidx.core.app.NotificationCompat;
+import androidx.media.app.NotificationCompat.MediaStyle;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -79,6 +82,7 @@ public class TTSForegroundService extends Service {
     private AudioFocusRequest                     audioFocusRequest; // API 26+
     private AudioManager.OnAudioFocusChangeListener audioFocusListener;
     private PowerManager.WakeLock                 wakeLock;
+    private MediaSessionCompat                    mediaSession;
 
     // ═══════════════════════════════════════════════════════════════════════
     // Lifecycle
@@ -94,6 +98,15 @@ public class TTSForegroundService extends Service {
         if (pm != null) {
             wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "CX:TTSWakeLock");
         }
+
+        // MediaSession: 向系统声明这是媒体播放器。
+        // 国产 ROM（MIUI/EMUI/ColorOS）看到 MediaSession 处于 active 状态，
+        // 就不会将其当作普通后台服务杀掉。
+        mediaSession = new MediaSessionCompat(this, "CXTTSSession");
+        mediaSession.setFlags(
+            MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
+            MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+        mediaSession.setActive(true);
 
         // Initialize Android native TextToSpeech engine
         tts = new TextToSpeech(this, status -> {
@@ -177,6 +190,11 @@ public class TTSForegroundService extends Service {
         ttsReady  = false;
         releaseWakeLock();
         abandonAudioFocus();
+        if (mediaSession != null) {
+            mediaSession.setActive(false);
+            mediaSession.release();
+            mediaSession = null;
+        }
         TextToSpeech t = tts;
         tts = null; // volatile: 后台线程再次访问时看到 null
         if (t != null) {
@@ -218,6 +236,7 @@ public class TTSForegroundService extends Service {
         acquireWakeLock();
 
         // Start foreground with notification
+        updatePlaybackState(true);
         Notification notif = buildNotification(true);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
@@ -333,6 +352,18 @@ public class TTSForegroundService extends Service {
         }
     }
 
+    private void updatePlaybackState(boolean playing) {
+        if (mediaSession == null) return;
+        int state = playing ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED;
+        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder()
+            .setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, playing ? 1.0f : 0f)
+            .setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE |
+                        PlaybackStateCompat.ACTION_PAUSE |
+                        PlaybackStateCompat.ACTION_PLAY |
+                        PlaybackStateCompat.ACTION_STOP)
+            .build());
+    }
+
     private Notification buildNotification(boolean playing) {
         int piFlags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 ? PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
@@ -365,10 +396,15 @@ public class TTSForegroundService extends Service {
                 .setSilent(true)
                 .addAction(toggleIcon, toggleLabel, togglePi)
                 .addAction(android.R.drawable.ic_delete, "停止", stopPi)
+                // MediaStyle: 让国产 ROM 将此通知识别为媒体播放器，避免后台被杀
+                .setStyle(new MediaStyle()
+                    .setMediaSession(mediaSession != null ? mediaSession.getSessionToken() : null)
+                    .setShowActionsInCompactView(0, 1)) // 紧凑视图显示按钮 0(暂停/继续)和 1(停止)
                 .build();
     }
 
     private void updateNotification(boolean playing) {
+        updatePlaybackState(playing);
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) nm.notify(NOTIF_ID, buildNotification(playing));
     }
