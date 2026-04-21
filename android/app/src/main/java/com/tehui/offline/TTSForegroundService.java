@@ -19,9 +19,8 @@ import android.os.PowerManager;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import androidx.core.app.NotificationCompat;
-import androidx.media.app.NotificationCompat.MediaStyle;
-import androidx.media.session.MediaSessionCompat;
-import androidx.media.session.PlaybackStateCompat;
+import android.media.session.MediaSession;
+import android.media.session.PlaybackState;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -82,7 +81,8 @@ public class TTSForegroundService extends Service {
     private AudioFocusRequest                     audioFocusRequest; // API 26+
     private AudioManager.OnAudioFocusChangeListener audioFocusListener;
     private PowerManager.WakeLock                 wakeLock;
-    private MediaSessionCompat                    mediaSession;
+    private MediaSession                            mediaSession;
+    private Handler                               mainHandler;
 
     // ═══════════════════════════════════════════════════════════════════════
     // Lifecycle
@@ -91,6 +91,7 @@ public class TTSForegroundService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        mainHandler = new Handler(Looper.getMainLooper());
         createNotificationChannel();
 
         // WakeLock: prevents Android from throttling CPU / deferring callbacks
@@ -102,10 +103,11 @@ public class TTSForegroundService extends Service {
         // MediaSession: 向系统声明这是媒体播放器。
         // 国产 ROM（MIUI/EMUI/ColorOS）看到 MediaSession 处于 active 状态，
         // 就不会将其当作普通后台服务杀掉。
-        mediaSession = new MediaSessionCompat(this, "CXTTSSession");
+        // 使用框架内置 API（API 21+），无需额外依赖。
+        mediaSession = new MediaSession(this, "CXTTSSession");
         mediaSession.setFlags(
-            MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
-            MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+            MediaSession.FLAG_HANDLES_MEDIA_BUTTONS |
+            MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
         mediaSession.setActive(true);
 
         // Initialize Android native TextToSpeech engine
@@ -188,6 +190,7 @@ public class TTSForegroundService extends Service {
         // 防止它在 tts.shutdown() 之后还调用 tts.speak() 引发 NPE / crash
         isStopped = true;
         ttsReady  = false;
+        if (mainHandler != null) mainHandler.removeCallbacksAndMessages(null);
         releaseWakeLock();
         abandonAudioFocus();
         if (mediaSession != null) {
@@ -244,11 +247,18 @@ public class TTSForegroundService extends Service {
             startForeground(NOTIF_ID, notif);
         }
 
-        // 直接用 QUEUE_FLUSH 跳转到新片段。
-        // 不调用 stop() 和 setSpeechRate()：在三星/讯飞引擎上它们会触发内部竞态导致
-        // speak() 静默无响应。倍率变化通过独立的 ACTION_SET_RATE 处理。
         if (ttsReady) {
-            playChunkOnly();
+            // 先显式 stop()，等引擎完全空闲（80ms）再 speak()。
+            // 在三星/讯飞等引擎上，若引擎处于过渡态时直接调 speak(QUEUE_FLUSH)
+            // 可能被静默丢弃；确保引擎空闲后调用 setTtsParams() 应用最新倍率。
+            TextToSpeech t = tts;
+            if (t != null) t.stop();
+            final int gen = speakGen;
+            mainHandler.postDelayed(() -> {
+                if (speakGen != gen || isStopped) return;
+                setTtsParams();  // 应用最新 playRate 和语言（引擎已空闲，不会触发 onError）
+                playChunkOnly();
+            }, 80);
         }
         // else: TTS.OnInitListener will call setTtsParams()+playChunkOnly when ready
     }
@@ -256,12 +266,26 @@ public class TTSForegroundService extends Service {
     private void handleSetRate(Intent intent) {
         float newRate = intent.getFloatExtra("rate", playRate);
         playRate = newRate;
-        TextToSpeech t = tts;
-        if (t != null && ttsReady) {
-            // 直接调用 setSpeechRate()；即使引擎内部中断当前 utterance，
-            // onError 处理器会自动用新倍率播放下一块。
-            t.setSpeechRate(playRate);
+        if (!ttsReady || tts == null) return;
+
+        if (isPaused) {
+            // 已暂停时引擎空闲，直接设倍率即可；恢复播放时自动使用新倍率
+            tts.setSpeechRate(playRate);
+            return;
         }
+        if (isStopped) return;
+
+        // 正在播放：先 stop()，等引擎完全空闲（150ms）再用新倍率重播当前 chunk。
+        // 若在引擎活跃时直接调 setSpeechRate()，三星/讯飞会触发隐式 stop → onError
+        // → chunkIndex 被意外递增，导致跳块或静音。
+        speakGen++;
+        final int gen = speakGen;
+        tts.stop();
+        mainHandler.postDelayed(() -> {
+            if (speakGen != gen || isStopped || isPaused) return;
+            setTtsParams();  // 引擎已空闲，setSpeechRate() 不会触发 onError
+            playChunkOnly(); // 从当前 chunkIndex 重播，立即听到新倍率
+        }, 150);
     }
 
     private void handleStop() {
@@ -354,13 +378,13 @@ public class TTSForegroundService extends Service {
 
     private void updatePlaybackState(boolean playing) {
         if (mediaSession == null) return;
-        int state = playing ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED;
-        mediaSession.setPlaybackState(new PlaybackStateCompat.Builder()
-            .setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, playing ? 1.0f : 0f)
-            .setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE |
-                        PlaybackStateCompat.ACTION_PAUSE |
-                        PlaybackStateCompat.ACTION_PLAY |
-                        PlaybackStateCompat.ACTION_STOP)
+        int state = playing ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED;
+        mediaSession.setPlaybackState(new PlaybackState.Builder()
+            .setState(state, PlaybackState.PLAYBACK_POSITION_UNKNOWN, playing ? 1.0f : 0f)
+            .setActions(PlaybackState.ACTION_PLAY_PAUSE |
+                        PlaybackState.ACTION_PAUSE |
+                        PlaybackState.ACTION_PLAY |
+                        PlaybackState.ACTION_STOP)
             .build());
     }
 
@@ -396,10 +420,6 @@ public class TTSForegroundService extends Service {
                 .setSilent(true)
                 .addAction(toggleIcon, toggleLabel, togglePi)
                 .addAction(android.R.drawable.ic_delete, "停止", stopPi)
-                // MediaStyle: 让国产 ROM 将此通知识别为媒体播放器，避免后台被杀
-                .setStyle(new MediaStyle()
-                    .setMediaSession(mediaSession != null ? mediaSession.getSessionToken() : null)
-                    .setShowActionsInCompactView(0, 1)) // 紧凑视图显示按钮 0(暂停/继续)和 1(停止)
                 .build();
     }
 
