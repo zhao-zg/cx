@@ -155,51 +155,22 @@ jobs:
       run: |
         echo "=== 恢复自定义 APK 安装插件文件 ==="
         
-        # 从 Git 恢复自定义插件文件
-        git checkout android/app/src/main/java/com/tehui/offline/MainActivity.java
-        git checkout android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
-        git checkout android/app/src/main/java/com/tehui/offline/ImageSaverPlugin.java
-        git checkout android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java
-        git checkout android/app/src/main/java/com/tehui/offline/TTSForegroundService.java
+        # 从 Git 恢复整个自定义插件目录（通配符方式，新增文件无需修改 workflow）
+        git checkout -- android/app/src/main/java/com/tehui/offline/
         
         echo ""
         echo "=== 验证插件文件 ==="
-        if [ -f "android/app/src/main/java/com/tehui/offline/MainActivity.java" ]; then
-          echo "✓ MainActivity.java 已恢复"
-          head -5 android/app/src/main/java/com/tehui/offline/MainActivity.java
-        else
-          echo "✗ MainActivity.java 恢复失败"
-          exit 1
-        fi
-        
-        if [ -f "android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java" ]; then
-          echo "✓ ApkInstallerPlugin.java 已恢复"
-          head -5 android/app/src/main/java/com/tehui/offline/ApkInstallerPlugin.java
-        else
-          echo "✗ ApkInstallerPlugin.java 恢复失败"
-          exit 1
-        fi
-        
-        if [ -f "android/app/src/main/java/com/tehui/offline/ImageSaverPlugin.java" ]; then
-          echo "✓ ImageSaverPlugin.java 已恢复"
-        else
-          echo "✗ ImageSaverPlugin.java 恢复失败"
-          exit 1
-        fi
-        
-        if [ -f "android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java" ]; then
-          echo "✓ NativeTTSPlugin.java 已恢复"
-        else
-          echo "✗ NativeTTSPlugin.java 恢复失败"
-          exit 1
-        fi
-        
-        if [ -f "android/app/src/main/java/com/tehui/offline/TTSForegroundService.java" ]; then
-          echo "✓ TTSForegroundService.java 已恢复"
-        else
-          echo "✗ TTSForegroundService.java 恢复失败"
-          exit 1
-        fi
+        PLUGIN_DIR="android/app/src/main/java/com/tehui/offline"
+        for f in MainActivity.java ApkInstallerPlugin.java ImageSaverPlugin.java \
+                  NativeTTSPlugin.java TTSForegroundService.java \
+                  CrashReporter.java CrashLogPlugin.java; do
+          if [ -f "$PLUGIN_DIR/$f" ]; then
+            echo "✓ $f 已恢复"
+          else
+            echo "✗ $f 恢复失败"
+            exit 1
+          fi
+        done
         
         echo ""
         echo "✓ 所有自定义插件文件已恢复"
