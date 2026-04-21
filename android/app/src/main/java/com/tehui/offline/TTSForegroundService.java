@@ -12,7 +12,9 @@ import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
@@ -221,18 +223,27 @@ public class TTSForegroundService extends Service {
             startForeground(NOTIF_ID, notif);
         }
 
-        // 注意：不在这里显式调用 tts.stop()。
-        // playChunkOnly() 使用 QUEUE_FLUSH —— 该模式本身就会停止当前语音并清空队列。
-        // 显式 stop() + 立即 speak() 在部分 TTS 引擎（三星/小米/讯飞等）上
-        // 会触发引擎内部竞态，导致 speak() 静默无响应（无声 bug）。
-        // stale onDone/onError 回调已由 speakGen 守卫拦截，无需额外 stop()。
+        // ── 启动新一轮朗读 ──────────────────────────────────────────────────
+        // 三段式：stop() → setSpeechRate() → [80ms] → speak()
+        //
+        // 原因：部分引擎（三星/讯飞/小米）的 setSpeechRate() 内部会触发隐式 stop()，
+        // 若紧接着调用 speak(QUEUE_FLUSH) 会命中引擎状态机的竞态窗口，
+        // 导致 speak 请求被静默丢弃（有进度无声音）。
+        // 解法：显式 stop() 确保引擎干净停止 → 设置倍率 → 等 80ms 让引擎
+        // 完成内部状态迁移 → 再发起 speak()，彻底避免竞态。
         if (ttsReady) {
-            // 已初始化：setLanguage 只需在 onInit 时调用一次；仅更新倍率。
-            // 重复调用 setLanguage 在 QUEUE_FLUSH 过渡期（三星/讯飞引擎）会触发
-            // 引擎内部重置，导致 speak() 静默无响应（无声 bug）。
-            TextToSpeech t = tts;
-            if (t != null) t.setSpeechRate(playRate);
-            playChunkOnly();
+            final TextToSpeech t = tts;
+            if (t != null) {
+                t.stop();                  // 1. 明确停止，引擎进入干净 STOPPED 状态
+                t.setSpeechRate(playRate); // 2. 在 STOPPED 状态下设倍率，无竞态
+                final int myGen = speakGen;
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    @Override public void run() {
+                        // speakGen 已改变说明中途又发起了新的 speak，直接忽略
+                        if (speakGen == myGen && !isStopped && !isPaused) playChunkOnly();
+                    }
+                }, 80); // 3. 80ms 让引擎完成内部清理后再 speak()
+            }
         }
         // else: TTS.OnInitListener will call setTtsParams()+playChunkOnly when ready
     }
@@ -279,7 +290,7 @@ public class TTSForegroundService extends Service {
         tts.setSpeechRate(playRate);
     }
 
-    /** Speak current chunk (params already configured via setTtsParams / setSpeechRate). */
+    /** Speak current chunk (rate already set by handleSpeak; called from delayed callback or onDone). */
     private void playChunkOnly() {
         if (!ttsReady || isStopped || isPaused) return;
         TextToSpeech t = tts;
