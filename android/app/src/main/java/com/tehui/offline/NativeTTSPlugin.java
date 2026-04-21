@@ -27,10 +27,12 @@ public class NativeTTSPlugin extends Plugin {
 
     @PluginMethod(returnType = PluginMethod.RETURN_PROMISE)
     public void speak(PluginCall call) {
-        String text  = call.getString("text", "");
-        String lang  = call.getString("lang", "zh-CN");
-        float  rate  = call.getFloat("rate", 1.0f);
-        String title = call.getString("title", "");
+        String text       = call.getString("text", "");
+        String lang       = call.getString("lang", "zh-CN");
+        float  rate       = call.getFloat("rate", 1.0f);
+        String title      = call.getString("title", "");
+        float  startSecs  = call.getFloat("startSecs", 0f);
+        float  totalSecs  = call.getFloat("totalSecs", 0f);
 
         if (text == null || text.trim().isEmpty()) {
             call.reject("文本为空");
@@ -71,10 +73,12 @@ public class NativeTTSPlugin extends Plugin {
         // Start the Foreground Service
         Intent intent = new Intent(getContext(), TTSForegroundService.class);
         intent.setAction(TTSForegroundService.ACTION_SPEAK);
-        intent.putExtra("text",  text);
-        intent.putExtra("lang",  lang);
-        intent.putExtra("rate",  rate);
-        intent.putExtra("title", title);
+        intent.putExtra("text",       text);
+        intent.putExtra("lang",       lang);
+        intent.putExtra("rate",       rate);
+        intent.putExtra("title",      title);
+        intent.putExtra("startSecs",  startSecs);
+        intent.putExtra("totalSecs",  totalSecs);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getContext().startForegroundService(intent);

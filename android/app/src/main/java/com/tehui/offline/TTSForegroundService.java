@@ -79,6 +79,8 @@ public class TTSForegroundService extends Service {
     private int                 totalTextLength = 0; // set in handleSpeak; used for progress
     private long                chunkStartPositionMs = 0; // 当前 chunk 开始时的媒体位置（ms）
     private long                chunkStartTimeMs     = 0; // 当前 chunk 开始时的系统时钟（ms）
+    private long                sliceStartPositionMs = 0; // seek 点偏移，从 JS 传入的 startSecs * 1000
+    private long                fullTotalDurationMs  = 0; // 全文稿总时长，从 JS 的 totalSecs * 1000
     private Voice               pinnedVoice          = null; // 锁定声音，避免 chunk 间换声
     private String              playTitle            = "";  // 锁屏/通知栏显示的标题
 
@@ -242,7 +244,9 @@ public class TTSForegroundService extends Service {
         String title = intent.getStringExtra("title");
         if (lang   != null && !lang.isEmpty())  playLang  = lang;
         if (title  != null && !title.isEmpty()) playTitle = title;
-        playRate = intent.getFloatExtra("rate", 1.0f);
+        playRate             = intent.getFloatExtra("rate", 1.0f);
+        sliceStartPositionMs = (long)(intent.getFloatExtra("startSecs", 0f) * 1000L);
+        fullTotalDurationMs  = (long)(intent.getFloatExtra("totalSecs", 0f) * 1000L);
 
         if (text == null || text.trim().isEmpty()) {
             notifyError("文本为空");
@@ -400,19 +404,43 @@ public class TTSForegroundService extends Service {
         }
         String text = chunks.get(chunkIndex);
         String uid  = "g" + speakGen + "_c" + chunkIndex;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            t.speak(text, TextToSpeech.QUEUE_FLUSH, null, uid);
-        } else {
-            //noinspection deprecation
-            HashMap<String, String> p = new HashMap<>();
-            p.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, uid);
-            //noinspection deprecation
-            t.speak(text, TextToSpeech.QUEUE_FLUSH, p);
+        int ret = doSpeak(t, text, uid);
+        if (ret == TextToSpeech.ERROR && pinnedVoice != null) {
+            // setVoice() 被引擎拒绝（常见于 Samsung/讯飞 stop() 后）。
+            // 清除 pinnedVoice，退回 setLanguage() 再试一次。
+            pinnedVoice = null;
+            setTtsParams(); // 内部走 setLanguage() 分支
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                try { pinnedVoice = tts.getVoice(); } catch (Exception ignored) {}
+            }
+            ret = doSpeak(t, text, uid);
+        }
+        if (ret == TextToSpeech.ERROR) {
+            // 引擎彻底拒绝，跳过该 chunk 继续播放
+            final int gen = speakGen;
+            mainHandler.post(() -> {
+                if (speakGen != gen || isStopped) return;
+                chunkIndex++;
+                if (chunkIndex < chunks.size()) playChunkOnly();
+                else notifyFinished();
+            });
+            return;
         }
         // 记录本块开始时的位置和时钟，供锁屏进度条使用
         chunkStartPositionMs = calculateChunkStartPositionMs();
         chunkStartTimeMs     = System.currentTimeMillis();
         updatePlaybackState(true); // 刷新锁屏进度
+    }
+
+    /** 调用 tts.speak()，封装了 API 21 前后的两种方式。返回 TextToSpeech.SUCCESS 或 ERROR。 */
+    @SuppressWarnings("deprecation")
+    private int doSpeak(TextToSpeech t, String text, String uid) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            return t.speak(text, TextToSpeech.QUEUE_FLUSH, null, uid);
+        }
+        HashMap<String, String> p = new HashMap<>();
+        p.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, uid);
+        return t.speak(text, TextToSpeech.QUEUE_FLUSH, p);
     }
 
     /** Extract generation from utteranceId "g<gen>_c<chunk>" */
@@ -455,7 +483,8 @@ public class TTSForegroundService extends Service {
 
     private void updateMediaMetadata() {
         if (mediaSession == null) return;
-        long durationMs = getTotalDurationMs();
+        // 优先使用 JS 传来的全文稿总时长；回退用切片估算
+        long durationMs = fullTotalDurationMs > 0 ? fullTotalDurationMs : getTotalDurationMs();
         String displayTitle = (playTitle != null && !playTitle.isEmpty()) ? playTitle : "特会 · 朗读";
         mediaSession.setMetadata(new MediaMetadata.Builder()
             .putString(MediaMetadata.METADATA_KEY_TITLE, displayTitle)
@@ -478,15 +507,19 @@ public class TTSForegroundService extends Service {
         for (int i = 0; i < chunkIndex && i < chunks.size(); i++) {
             cumChars += chunks.get(i).length();
         }
-        long totalMs = getTotalDurationMs();
-        if (totalTextLength <= 0 || totalMs <= 0) return 0;
-        return (long)((float) cumChars / totalTextLength * totalMs);
+        long sliceMs = getTotalDurationMs(); // 切片自身时长
+        if (totalTextLength <= 0 || sliceMs <= 0) return sliceStartPositionMs;
+        return sliceStartPositionMs + (long)((float) cumChars / totalTextLength * sliceMs);
     }
 
     private void handleSeekTo(long posMs) {
-        long totalMs = getTotalDurationMs();
-        if (totalMs <= 0 || chunks.isEmpty()) return;
-        float fraction = (float) Math.max(0.0, Math.min(1.0, (double) posMs / totalMs));
+        // posMs 是全文坐标（按 MediaMetadata 里的 fullTotalDurationMs）。
+        // 先转换到切片内的相对位置，再映射到 chunkIndex。
+        long sliceMs = getTotalDurationMs();
+        if (sliceMs <= 0 || chunks.isEmpty()) return;
+        long slicePos = posMs - sliceStartPositionMs;        // 全文坐标 → 切片坐标
+        slicePos = Math.max(0, Math.min(sliceMs, slicePos)); // 钳位到切片范围
+        float fraction = (float) slicePos / sliceMs;
         int targetChar = (int)(fraction * totalTextLength);
         int cumLen = 0;
         int targetChunk = chunks.size() - 1;

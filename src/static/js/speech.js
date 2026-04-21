@@ -190,9 +190,8 @@
     };
 
     var lang  = (options && options.lang)  || 'zh-CN';
-    // 锁屏/通知栏标题：优先用调用方传入的 title，其次取页面 <title>，去掉末尾网站名部分
-    var _rawTitle = (options && options.title) || document.title || '';
-    var title = _rawTitle.replace(/\s*[\|\-–—].*$/, '').trim() || '特会 · 朗读';
+    // 锁屏/通知栏标题：优先用调用方传入的 title，其次直接用 document.title（模板已包含训练名 + 篇章 + 类型）
+    var title = (options && options.title) || document.title || '特会 · 朗读';
 
     var controlsDiv   = byId('bottomControlBar') || byId('speechControls');
     var playPauseBtn  = byId('playPauseBtn');
@@ -484,7 +483,8 @@
             }
           } catch (e) {}
         }
-        NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title })
+        NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title,
+                          startSecs: targetSeconds || 0, totalSecs: totalDuration || 0 })
           .then(function (result) {
             if (gen !== speakGeneration) return;
             var status = result && result.status;
