@@ -96,7 +96,7 @@ public class TTSForegroundService extends Service {
                 // If a speak request arrived before init completed, start now
                 if (!chunks.isEmpty() && !isStopped && !isPaused) {
                     setTtsParams(); // first-time init: set language + rate before first chunk
-                    playChunk();
+                    playChunkOnly();
                 }
             } else {
                 notifyError("TTS 初始化失败");
@@ -209,7 +209,7 @@ public class TTSForegroundService extends Service {
         }
 
         // 注意：不在这里显式调用 tts.stop()。
-        // playChunk() 使用 QUEUE_FLUSH —— 该模式本身就会停止当前语音并清空队列。
+        // playChunkOnly() 使用 QUEUE_FLUSH —— 该模式本身就会停止当前语音并清空队列。
         // 显式 stop() + 立即 speak() 在部分 TTS 引擎（三星/小米/讯飞等）上
         // 会触发引擎内部竞态，导致 speak() 静默无响应（无声 bug）。
         // stale onDone/onError 回调已由 speakGen 守卫拦截，无需额外 stop()。
@@ -219,9 +219,9 @@ public class TTSForegroundService extends Service {
             // 引擎内部重置，导致 speak() 静默无响应（无声 bug）。
             TextToSpeech t = tts;
             if (t != null) t.setSpeechRate(playRate);
-            playChunk();
+            playChunkOnly();
         }
-        // else: TTS.OnInitListener will call setTtsParams()+playChunk when ready
+        // else: TTS.OnInitListener will call setTtsParams()+playChunkOnly when ready
     }
 
     private void handleStop() {
@@ -266,7 +266,7 @@ public class TTSForegroundService extends Service {
         tts.setSpeechRate(playRate);
     }
 
-    /** Speak current chunk without re-setting TTS params (language/rate already configured). */
+    /** Speak current chunk (params already configured via setTtsParams / setSpeechRate). */
     private void playChunkOnly() {
         if (!ttsReady || isStopped || isPaused) return;
         TextToSpeech t = tts;
@@ -277,28 +277,6 @@ public class TTSForegroundService extends Service {
         }
         String text = chunks.get(chunkIndex);
         String uid  = "g" + speakGen + "_c" + chunkIndex;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            t.speak(text, TextToSpeech.QUEUE_FLUSH, null, uid);
-        } else {
-            //noinspection deprecation
-            HashMap<String, String> p = new HashMap<>();
-            p.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, uid);
-            //noinspection deprecation
-            t.speak(text, TextToSpeech.QUEUE_FLUSH, p);
-        }
-    }
-
-    private void playChunk() {
-        if (!ttsReady || isStopped || isPaused) return;
-        TextToSpeech t = tts;
-        if (t == null) return;
-        if (chunkIndex >= chunks.size()) {
-            notifyFinished();
-            return;
-        }
-        String text = chunks.get(chunkIndex);
-        String uid  = "g" + speakGen + "_c" + chunkIndex; // embeds generation for stale-check
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             t.speak(text, TextToSpeech.QUEUE_FLUSH, null, uid);
         } else {
@@ -383,12 +361,15 @@ public class TTSForegroundService extends Service {
         if (audioManager == null) return true;
 
         audioFocusListener = change -> {
-            if (change == AudioManager.AUDIOFOCUS_LOSS ||
-                change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+            if (change == AudioManager.AUDIOFOCUS_LOSS) {
+                // 永久失焦（接电话、另一媒体 App 接管）→ 暂停
                 handlePause();
             } else if (change == AudioManager.AUDIOFOCUS_GAIN) {
+                // 焦点归还 → 若之前因永久失焦而暂停则恢复
                 if (isPaused) handleResume();
             }
+            // AUDIOFOCUS_LOSS_TRANSIENT / AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+            // 临时失焦（通知音、切换 App 时系统 UI 音等），继续播放不暂停
         };
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
