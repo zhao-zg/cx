@@ -80,6 +80,7 @@ public class TTSForegroundService extends Service {
     private long                chunkStartPositionMs = 0; // 当前 chunk 开始时的媒体位置（ms）
     private long                chunkStartTimeMs     = 0; // 当前 chunk 开始时的系统时钟（ms）
     private Voice               pinnedVoice          = null; // 锁定声音，避免 chunk 间换声
+    private String              playTitle            = "";  // 锁屏/通知栏显示的标题
 
     // ── System Resources ──────────────────────────────────────────────────
     private AudioManager                          audioManager;
@@ -236,9 +237,11 @@ public class TTSForegroundService extends Service {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void handleSpeak(Intent intent) {
-        String text = intent.getStringExtra("text");
-        String lang = intent.getStringExtra("lang");
-        if (lang != null && !lang.isEmpty()) playLang = lang;
+        String text  = intent.getStringExtra("text");
+        String lang  = intent.getStringExtra("lang");
+        String title = intent.getStringExtra("title");
+        if (lang   != null && !lang.isEmpty())  playLang  = lang;
+        if (title  != null && !title.isEmpty()) playTitle = title;
         playRate = intent.getFloatExtra("rate", 1.0f);
 
         if (text == null || text.trim().isEmpty()) {
@@ -453,8 +456,9 @@ public class TTSForegroundService extends Service {
     private void updateMediaMetadata() {
         if (mediaSession == null) return;
         long durationMs = getTotalDurationMs();
+        String displayTitle = (playTitle != null && !playTitle.isEmpty()) ? playTitle : "特会 · 朗读";
         mediaSession.setMetadata(new MediaMetadata.Builder()
-            .putString(MediaMetadata.METADATA_KEY_TITLE, "特会 · 朗读")
+            .putString(MediaMetadata.METADATA_KEY_TITLE, displayTitle)
             .putLong(MediaMetadata.METADATA_KEY_DURATION, durationMs > 0 ? durationMs : -1)
             .build());
     }
@@ -541,7 +545,8 @@ public class TTSForegroundService extends Service {
             builder.setSound(null); // 关闭声音
         }
 
-        builder.setContentTitle("特会 · 朗读")
+        String notifTitle = (playTitle != null && !playTitle.isEmpty()) ? playTitle : "特会 · 朗读";
+        builder.setContentTitle(notifTitle)
                .setContentText(playing ? "正在朗读..." : "已暂停")
                .setSmallIcon(android.R.drawable.ic_media_play)
                .setContentIntent(openPi)

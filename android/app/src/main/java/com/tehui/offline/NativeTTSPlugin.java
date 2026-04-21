@@ -27,9 +27,10 @@ public class NativeTTSPlugin extends Plugin {
 
     @PluginMethod(returnType = PluginMethod.RETURN_PROMISE)
     public void speak(PluginCall call) {
-        String text = call.getString("text", "");
-        String lang = call.getString("lang", "zh-CN");
-        float  rate = call.getFloat("rate", 1.0f);
+        String text  = call.getString("text", "");
+        String lang  = call.getString("lang", "zh-CN");
+        float  rate  = call.getFloat("rate", 1.0f);
+        String title = call.getString("title", "");
 
         if (text == null || text.trim().isEmpty()) {
             call.reject("文本为空");
@@ -73,6 +74,7 @@ public class NativeTTSPlugin extends Plugin {
         intent.putExtra("text",  text);
         intent.putExtra("lang",  lang);
         intent.putExtra("rate",  rate);
+        intent.putExtra("title", title);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getContext().startForegroundService(intent);
