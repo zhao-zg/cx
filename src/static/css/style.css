@@ -448,6 +448,9 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
 .control-btn:active{transform:scale(.95)}
 .play-pause-btn{font-size:16px}
+.loop-btn{position:relative;overflow:visible;font-size:14px;transition:border-color .15s,color .15s}
+.loop-btn:not(.active)::after{content:'';position:absolute;left:50%;top:50%;width:130%;height:1.5px;background:currentColor;transform:translate(-50%,-50%) rotate(-35deg);border-radius:1px;pointer-events:none;opacity:.8}
+.loop-btn.active{color:var(--accent,#4a90e2);border-color:var(--accent,#4a90e2)}
 .progress-section{flex:1 1 auto;min-width:0;display:flex;gap:8px;align-items:center}
 .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
 .progress-bar{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:var(--control-track-bg);border-radius:3px;outline:none;cursor:pointer;touch-action:none;margin-top:12px}

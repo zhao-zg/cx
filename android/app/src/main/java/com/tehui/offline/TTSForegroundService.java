@@ -8,6 +8,8 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
@@ -94,6 +96,7 @@ public class TTSForegroundService extends Service {
     private Voice               pinnedVoice          = null; // 锁定声音，避免 chunk 间换声
     private String              playTitle            = "";  // 锁屏/通知栏标题（篇章）
     private String              playArtist           = "";  // 锁屏/通知栏副标题（训练名）
+    private Bitmap              appIconBitmap        = null; // APP 图标，缓存避免重复解码
 
     // 定期向 JS 推送播放位置，保持 APP 内进度条与 MediaSession 同步
     private Runnable            positionRunnable     = null;
@@ -125,6 +128,11 @@ public class TTSForegroundService extends Service {
         ttsHandlerThread.start();
         ttsHandler = new Handler(ttsHandlerThread.getLooper());
         createNotificationChannel();
+
+        // 解码 APP 图标，供通知栏大图和锁屏封面使用
+        try {
+            appIconBitmap = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
+        } catch (Exception ignored) {}
 
         // WakeLock: prevents Android from throttling CPU / deferring callbacks
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
@@ -648,6 +656,9 @@ public class TTSForegroundService extends Service {
         if (!displayArtist.isEmpty()) {
             meta.putString(MediaMetadata.METADATA_KEY_ARTIST, displayArtist);
         }
+        if (appIconBitmap != null) {
+            meta.putBitmap(MediaMetadata.METADATA_KEY_ART, appIconBitmap);
+        }
         mediaSession.setMetadata(meta.build());
     }
 
@@ -748,9 +759,13 @@ public class TTSForegroundService extends Service {
         String notifTitle = (playTitle != null && !playTitle.isEmpty()) ? playTitle : "晨读 · 朗读";
         builder.setContentTitle(notifTitle)
                .setContentText(playing ? "正在朗读..." : "已暂停")
-               .setSmallIcon(android.R.drawable.ic_media_play)
+               .setSmallIcon(R.mipmap.ic_launcher)
                .setContentIntent(openPi)
-               .setOngoing(true)
+               .setOngoing(true);
+        if (appIconBitmap != null) {
+            builder.setLargeIcon(appIconBitmap);
+        }
+        builder
                // 添加按钮：index 0=暂停/继续, index 1=停止
                .addAction(toggleIcon, toggleLabel, togglePi)
                .addAction(android.R.drawable.ic_delete, "停止", stopPi);

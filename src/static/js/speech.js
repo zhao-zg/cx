@@ -200,6 +200,7 @@
 
     var controlsDiv   = byId('bottomControlBar') || byId('speechControls');
     var playPauseBtn  = byId('playPauseBtn');
+    var loopBtn       = byId('loopBtn');
     var rateSelect    = byId('rateSelect');
     var speechTime    = byId('speechTime');
     var progressBar   = byId('progressBar');
@@ -286,6 +287,25 @@
       var progressInterval = null;
       var isSeeking     = false;
       var speakGeneration = 0;
+      var isLooping     = localStorage.getItem('speechLoop') === '1';
+
+      function updateLoopButton() {
+        if (!loopBtn) return;
+        if (isLooping) loopBtn.classList.add('active');
+        else loopBtn.classList.remove('active');
+        loopBtn.title = isLooping ? '循环播放（已开启）' : '循环播放';
+      }
+
+      function onPlaybackNaturalEnd() {
+        if (isLooping && fullText) {
+          // 循环：重置进度和时间熹，少1帧延迟后从头播放
+          elapsedOffset = 0; startTime = 0; progressBar.value = '0';
+          speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
+          setTimeout(function () { startSpeakingFromPercent(0); }, 300);
+        } else {
+          resetState(false);
+        }
+      }
 
       // NativeTTS 分块进度监听句柄（用于删除旧监听器）
       var _nativeProgressHandle = null;
@@ -496,7 +516,7 @@
             if (gen !== speakGeneration) return;
             var status = result && result.status;
             if (status === 'cancelled' || status === 'stopped') return;
-            resetState(false);
+            onPlaybackNaturalEnd();
           })
           .catch(function () {
             if (gen !== speakGeneration) return;
@@ -544,7 +564,7 @@
       var isSeekingInternal = false;
 
       function wsPlayNextChunk() {
-        if (!isChunking || currentChunk >= textChunks.length) { isChunking = false; resetState(false); return; }
+        if (!isChunking || currentChunk >= textChunks.length) { isChunking = false; onPlaybackNaturalEnd(); return; }
         var gen  = speakGeneration;
         var rate = Number(rateSelect.value) || 0.5;
         var utt  = new SpeechSynthesisUtterance(textChunks[currentChunk]);
@@ -649,7 +669,7 @@
                 _wsSpeakingAt = Date.now();
                 pauseStartedAt = 0; isPaused = false; updateButtonState(true); startProgressUpdate(); startWsKeepalive();
               };
-              utt.onend = function () { if (gen === speakGeneration) resetState(false); };
+              utt.onend = function () { if (gen === speakGeneration) onPlaybackNaturalEnd(); };
               utt.onerror = function (event) {
                 if (gen !== speakGeneration) return;
                 var err = event && event.error;
@@ -787,6 +807,16 @@
 
       // -- Page unload --------------------------------------------------------
       window.addEventListener('beforeunload', function () { safeCancel(); resetState(false); });
+
+      // -- Loop button --------------------------------------------------------
+      if (loopBtn) {
+        updateLoopButton();
+        loopBtn.addEventListener('click', function () {
+          isLooping = !isLooping;
+          localStorage.setItem('speechLoop', isLooping ? '1' : '0');
+          updateLoopButton();
+        });
+      }
 
       // -- visibilitychange ---------------------------------------------------
       // NativeTTS: Foreground Service runs independently -- no JS recovery needed.
