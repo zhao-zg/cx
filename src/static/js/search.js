@@ -527,9 +527,8 @@
         }, 300);
       }
 
-      // input: 标准事件；keyup: Android WebView fallback（captureInput 时 input 可能不触发）
+      // input: 标准输入事件
       this._input.addEventListener('input', _triggerSearch);
-      this._input.addEventListener('keyup', _triggerSearch);
 
       // compositionend: 中文/日文 IME 确认输入后立即搜索，无需等 debounce
       this._input.addEventListener('compositionend', function () {
