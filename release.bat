@@ -59,43 +59,7 @@ goto :after_changelog
 
 :do_changelog_input
 echo.
-echo 请输入版本 v!NEW_VERSION! 的更新内容（每条回车确认，空行结束该类别）：
-
-echo.
-echo   【新增功能】
-set CL_ARGS_NEW=
-:_loop_new
-set _CL_ITEM=
-set /p _CL_ITEM="    > "
-if "!_CL_ITEM!"=="" goto :_end_new
-set CL_ARGS_NEW=!CL_ARGS_NEW! --new "!_CL_ITEM!"
-goto :_loop_new
-:_end_new
-
-echo   【优化内容】
-set CL_ARGS_OPT=
-:_loop_opt
-set _CL_ITEM=
-set /p _CL_ITEM="    > "
-if "!_CL_ITEM!"=="" goto :_end_opt
-set CL_ARGS_OPT=!CL_ARGS_OPT! --opt "!_CL_ITEM!"
-goto :_loop_opt
-:_end_opt
-
-echo   【修复Bug】
-set CL_ARGS_FIX=
-:_loop_fix
-set _CL_ITEM=
-set /p _CL_ITEM="    > "
-if "!_CL_ITEM!"=="" goto :_end_fix
-set CL_ARGS_FIX=!CL_ARGS_FIX! --fix "!_CL_ITEM!"
-goto :_loop_fix
-:_end_fix
-
-REM 组装 python 调用参数
-set CL_ARGS=--version !NEW_VERSION!!CL_ARGS_NEW!!CL_ARGS_OPT!!CL_ARGS_FIX!
-
-python update_changelog.py !CL_ARGS!
+python update_changelog.py --version !NEW_VERSION!
 if errorlevel 1 echo ⚠ changelog 写入失败，但继续发布流程
 echo.
 
