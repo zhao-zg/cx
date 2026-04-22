@@ -1,7 +1,7 @@
 ﻿{
-  "name": "晨兴信息合集",
-  "short_name": "晨兴",
-  "description": "晨兴信息合集 - 所有训练总览",
+  "name": "晨读信息合集",
+  "short_name": "晨读",
+  "description": "晨读信息合集 - 所有训练总览",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

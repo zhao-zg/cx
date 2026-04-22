@@ -1,6 +1,6 @@
 ﻿{
   "appId": "com.tehui.offline",
-  "appName": "晨兴",
+  "appName": "晨读",
   "webDir": "output",
   "android": {
     "allowMixedContent": true,

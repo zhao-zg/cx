@@ -538,8 +538,8 @@ jobs:
         echo "=== 验证应用配置 ==="
         # 确保应用名称正确
         if grep -q "android:label=" "$manifest_file"; then
-          sed -i 's/android:label="[^"]*"/android:label="晨兴"/' "$manifest_file"
-          echo "✓ 应用名称已设置为 晨兴"
+          sed -i 's/android:label="[^"]*"/android:label="晨读"/' "$manifest_file"
+          echo "✓ 应用名称已设置为 晨读"
         fi
         
         # 显示 AndroidManifest.xml 的关键部分
@@ -855,7 +855,7 @@ jobs:
         files: |
           TeHui-*.apk
         body: |
-          ## 📱 晨兴信息 ${{ github.ref_name }}
+          ## 📱 晨读信息 ${{ github.ref_name }}
           
           ### 📦 下载说明
           

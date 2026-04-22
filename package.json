@@ -1,7 +1,7 @@
 ﻿{
   "name": "conference-info",
   "version": "1.0.0",
-  "description": "晨兴信息合集 - 安卓应用",
+  "description": "晨读信息合集 - 安卓应用",
   "scripts": {
     "build": "python main.py",
     "encrypt:app-update": "python encrypt_app_update.py",
