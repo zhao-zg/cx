@@ -69,6 +69,14 @@
                 {% endfor %}
             </div>
             {% endif %}
+
+            {% if revival.ref_reading %}
+            {% set valid_refs = [] %}
+            {% for line in revival.ref_reading %}{% if '参读' in line %}{% set _ = valid_refs.append(line) %}{% endif %}{% endfor %}
+            {% if valid_refs %}
+            <p class="content-text">{% for line in valid_refs %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}</p>
+            {% endif %}
+            {% endif %}
         </div>
         {% endfor %}
     </div>

@@ -33,6 +33,7 @@ class MorningRevival:
     feeding_scriptures: List[str] = field(default_factory=list)  # 晨兴喂养的经文部分
     morning_feeding: List[str] = field(default_factory=list)  # 晨兴喂养
     message_reading: List[str] = field(default_factory=list)  # 信息选读
+    ref_reading: List[str] = field(default_factory=list)  # 参读
 
 
 @dataclass
@@ -102,7 +103,8 @@ class Chapter:
             'outline': outline,
             'feeding_scriptures': fs,
             'morning_feeding': mf,
-            'message_reading': mr.message_reading
+            'message_reading': mr.message_reading,
+            'ref_reading': mr.ref_reading
         }
 
     def _extract_feeding_scriptures(self, paragraphs: List[str]) -> tuple:

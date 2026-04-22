@@ -1026,6 +1026,8 @@ class ImprovedParser:
                                     current_revival.morning_feeding = content_buffer.copy()
                                 elif current_section == 'reading':
                                     current_revival.message_reading = content_buffer.copy()
+                                elif current_section == 'ref_reading':
+                                    current_revival.ref_reading = content_buffer.copy()
                             chapters[current_week - 1].morning_revivals.append(current_revival)
                             debug_log.append(f"Line {line_num}: Saved last day revival at week switch")
                             current_revival = None
@@ -1126,6 +1128,8 @@ class ImprovedParser:
                             current_revival.morning_feeding = content_buffer.copy()
                         elif current_section == 'reading':
                             current_revival.message_reading = content_buffer.copy()
+                        elif current_section == 'ref_reading':
+                            current_revival.ref_reading = content_buffer.copy()
                     # 添加到对应章节
                     if current_week <= len(chapters):
                         chapters[current_week - 1].morning_revivals.append(current_revival)
@@ -1152,6 +1156,21 @@ class ImprovedParser:
                 content_buffer = []
                 continue
             
+            # 检测参读
+            if text == '参读' or text.startswith('参读：') or text.startswith('参读:'):
+                # 保存前面的信息选读内容
+                if current_revival and content_buffer:
+                    if current_section == 'feeding':
+                        current_revival.morning_feeding = content_buffer.copy()
+                    elif current_section == 'reading':
+                        current_revival.message_reading = content_buffer.copy()
+                current_section = 'ref_reading'
+                content_buffer = []
+                # 如果参读文字本身携带内容（如"参读：但以理书生命读经，第七篇。"）
+                if text not in ('参读', '参读：', '参读:'):
+                    content_buffer.append(text)
+                continue
+            
             # 收集内容
             if current_section == 'proclamation':
                 # 跳过申言部分的内容
@@ -1164,7 +1183,7 @@ class ImprovedParser:
                 current_day_outline.append(text)
                 if len(current_day_outline) <= 3:  # 只记录前3行避免日志过多
                     debug_log.append(f"Line {line_num}: Collected outline for day {current_day_num}: {text[:50]}")
-            elif current_revival and current_section in ['feeding', 'reading']:
+            elif current_revival and current_section in ['feeding', 'reading', 'ref_reading']:
                 # 处理跨页连接：如果当前内容和前一行内容需要连接
                 if content_buffer and self._should_merge_with_previous(content_buffer[-1], text):
                     # 将当前文本连接到前一行，不插入换行
@@ -1179,6 +1198,8 @@ class ImprovedParser:
                     current_revival.morning_feeding = content_buffer.copy()
                 elif current_section == 'reading':
                     current_revival.message_reading = content_buffer.copy()
+                elif current_section == 'ref_reading':
+                    current_revival.ref_reading = content_buffer.copy()
             if current_week > 0 and current_week <= len(chapters):
                 chapters[current_week - 1].morning_revivals.append(current_revival)
         
@@ -1351,6 +1372,8 @@ class ImprovedParser:
                                     current_revival.morning_feeding = content_buffer
                                 elif current_section == 'reading':
                                     current_revival.message_reading = content_buffer
+                                elif current_section == 'ref_reading':
+                                    current_revival.ref_reading = content_buffer
                             chap_idx = week_to_chapter_map[current_week]
                             if chap_idx < len(chapters):
                                 chapters[chap_idx].morning_revivals.append(current_revival)
@@ -1440,12 +1463,14 @@ class ImprovedParser:
                         mapped_week = original_week
                 # 保存上一天的数据
                 if current_revival and current_week in week_to_chapter_map:
-                    # 保存上一天的喂养/选读
+                    # 保存上一天的喂养/选读/参读
                     if content_buffer:
                         if current_section == 'feeding':
                             current_revival.morning_feeding = content_buffer
                         elif current_section == 'reading':
                             current_revival.message_reading = content_buffer
+                        elif current_section == 'ref_reading':
+                            current_revival.ref_reading = content_buffer
                     chap_idx = week_to_chapter_map[current_week]
                     if chap_idx < len(chapters):
                         chapters[chap_idx].morning_revivals.append(current_revival)
@@ -1478,6 +1503,18 @@ class ImprovedParser:
                 # 这是跨页的天标记重复，跳过不处理
                 continue
             
+            # 检测申言部分（"第X周 • 申言"，支持多位数周数）- 跳过不处理
+            if re.match(r'第.+周\s*[•·]\s*申言', text):
+                # 申言开始前，保存已收集的参读内容
+                if current_section == 'ref_reading' and current_revival and content_buffer:
+                    current_revival.ref_reading = content_buffer
+                    content_buffer = []
+                current_section = 'proclamation'
+                continue
+            # 申言稿填写行 - 归属申言部分，跳过
+            if style == '申言稿':
+                continue
+            
             # 检测喂养样式标记（切换到喂养内容收集）
             if style == '喂养选读' and '晨兴喂养' in text:
                 in_outline_section = False
@@ -1494,13 +1531,18 @@ class ImprovedParser:
                 continue
             
             if style == '参读光亮':
-                if current_revival and content_buffer:
-                    if current_section == 'feeding':
-                        current_revival.morning_feeding = content_buffer
-                    elif current_section == 'reading':
-                        current_revival.message_reading = content_buffer
-                current_section = None
-                content_buffer = []
+                if current_section != 'ref_reading':
+                    # 从其他节进入参读：先保存当前缓冲
+                    if current_revival and content_buffer:
+                        if current_section == 'feeding':
+                            current_revival.morning_feeding = content_buffer
+                        elif current_section == 'reading':
+                            current_revival.message_reading = content_buffer
+                    current_section = 'ref_reading'
+                    content_buffer = []
+                # 参读光亮段落本身可能包含内容（如"参读：但以理书生命读经，第七篇。"）
+                if text and text not in ('参读', '参读：'):
+                    content_buffer.append(text)
                 continue
             
             # 收集内容
@@ -1527,10 +1569,10 @@ class ImprovedParser:
                 elif pending_outline and text and not re.match(r'^第.+周', text):
                     # 同周内的续接行（段落被普通回车拆断），拼接回去
                     pending_outline[-1] = pending_outline[-1] + text
-            elif current_section in ['feeding', 'reading']:
-                # 收集喂养/选读内容，但要过滤掉周标记文本（如"第二十五周 • 周一"）
-                # 这些文本是分页时的标记，不是实际内容
-                if not re.match(r'^第.+周\s*[•·]\s*周[一二三四五六七]$', text):
+            elif current_section in ['feeding', 'reading', 'ref_reading']:
+                # 收集喂养/选读/参读内容，但要过滤掉周标记文本
+                # 如"第二十五周 • 周一"（天标记）和"第二十五周 • 诗歌"（节标记）
+                if not re.match(r'^第.+周\s*[•·]', text):
                     # 处理跨页连接：如果当前内容和前一行内容需要连接
                     if content_buffer and self._should_merge_with_previous(content_buffer[-1], text):
                         # 将当前文本连接到前一行，不插入换行
@@ -1551,12 +1593,14 @@ class ImprovedParser:
         
         # 保存最后一天的内容
         if current_revival and current_week in week_to_chapter_map:
-            # 保存最后一天的喂养/选读
+            # 保存最后一天的喂养/选读/参读
             if content_buffer:
                 if current_section == 'feeding':
                     current_revival.morning_feeding = content_buffer
                 elif current_section == 'reading':
                     current_revival.message_reading = content_buffer
+                elif current_section == 'ref_reading':
+                    current_revival.ref_reading = content_buffer
             chap_idx = week_to_chapter_map[current_week]
             if chap_idx < len(chapters):
                 chapters[chap_idx].morning_revivals.append(current_revival)
