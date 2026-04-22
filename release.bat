@@ -31,15 +31,6 @@ if "!NEW_VERSION!"=="" (
 
 echo.
 
-REM 确认是否继续
-set /p CONFIRM="确认发布 v!NEW_VERSION! 吗？(y/n): "
-if /i not "!CONFIRM!"=="y" (
-    echo 已取消
-    exit /b 0
-)
-
-echo.
-
 REM ============================================================
 REM  版本更新内容（Changelog）
 REM ============================================================
@@ -64,6 +55,15 @@ if errorlevel 1 echo ⚠ changelog 写入失败，但继续发布流程
 echo.
 
 :after_changelog
+
+REM 将配置修改和 changelog 公示完毕
+
+REM 最后确认：推送 tag 是不可撤销操作
+set /p CONFIRM="确认发布 v!NEW_VERSION! 吗？(y/n): "
+if /i not "!CONFIRM!"=="y" (
+    echo 已取消
+    exit /b 0
+)
 
 echo.
 echo === 创建并推送 tag ===
