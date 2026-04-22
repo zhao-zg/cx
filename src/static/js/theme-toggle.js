@@ -1021,16 +1021,35 @@
                     if (!appVer) appVer = localStorage.getItem('cx_apk_version') || '';
                 } catch(e) {}
 
+                // 运行环境：APK / PWA / 浏览器
+                var runEnv = '浏览器';
+                try {
+                    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+                        runEnv = 'APK';
+                    } else if (window.navigator.standalone === true ||
+                               (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)) {
+                        runEnv = 'PWA';
+                    }
+                } catch(e) {}
+
                 // 拆解 UA 字段
                 function parseUA(uaStr) {
                     var lines = [];
-                    // OS
+                    // OS + 机型
                     var os = '';
                     var m;
                     if ((m = uaStr.match(/Android\s+([\d.]+)/i))) {
                         os = 'Android ' + m[1];
-                        var dev = uaStr.match(/\(Linux;[^)]*;\s*([^;)]+)\s*(?:Build|[;)])/i);
-                        if (dev) os += ' / ' + dev[1].trim();
+                        // 精确匹配 "; 设备型号 Build/" 或 "; 设备型号)"，不用贪婪 [^)]*
+                        var dev = uaStr.match(/;\s*([^;()]+?)\s+Build\//i) ||
+                                  uaStr.match(/;\s*([^;()]+?)\s*\)/i);
+                        if (dev) {
+                            var model = dev[1].trim();
+                            // 排除 "Android X.X" 本身
+                            if (!/^Android\s/i.test(model) && !/^Linux$/i.test(model)) {
+                                os += ' / ' + model;
+                            }
+                        }
                     } else if ((m = uaStr.match(/iPhone OS ([\d_]+)/i))) {
                         os = 'iOS ' + m[1].replace(/_/g, '.');
                     } else if ((m = uaStr.match(/iPad.*OS ([\d_]+)/i))) {
@@ -1069,6 +1088,7 @@
                     var ipStr = region ? ip + ' (' + region + ')' : ip;
                     var deviceLines = [
                         'IP: ' + ipStr,
+                        '环境: ' + runEnv,
                         '平台: ' + platform,
                         '屏幕: ' + screenInfo,
                         appVer ? '版本: ' + appVer : '',
