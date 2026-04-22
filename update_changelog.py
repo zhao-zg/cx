@@ -5,7 +5,7 @@
 由 release.bat 调用
 
 用法：
-  python update_changelog.py --version 1.3.3 --new "功能A|功能B" --opt "优化1" --fix "修复1|修复2"
+  python update_changelog.py --version 1.3.3 --new "功能A" --new "功能B" --opt "优化1" --fix "修复1"
 """
 import argparse
 import json
@@ -14,13 +14,6 @@ from datetime import date
 
 
 CHANGELOG_FILE = 'changelog.json'
-
-
-def parse_items(value):
-    """将竖线 | 分隔的字符串解析为列表，过滤空项"""
-    if not value or not value.strip():
-        return []
-    return [item.strip() for item in value.split('|') if item.strip()]
 
 
 def load_changelog():
@@ -38,16 +31,16 @@ def save_changelog(data):
 def main():
     parser = argparse.ArgumentParser(description='更新 changelog.json')
     parser.add_argument('--version', required=True, help='版本号，如 1.3.3')
-    parser.add_argument('--new', dest='new_features', default='', help='新增功能，逗号分隔')
-    parser.add_argument('--opt', dest='optimizations', default='', help='优化内容，逗号分隔')
-    parser.add_argument('--fix', dest='bug_fixes', default='', help='修复Bug，逗号分隔')
+    parser.add_argument('--new', dest='new_features', action='append', default=[], metavar='ITEM', help='新增功能（可多次使用）')
+    parser.add_argument('--opt', dest='optimizations', action='append', default=[], metavar='ITEM', help='优化内容（可多次使用）')
+    parser.add_argument('--fix', dest='bug_fixes', action='append', default=[], metavar='ITEM', help='修复Bug（可多次使用）')
     parser.add_argument('--date', default='', help='发布日期，默认为今天（格式 YYYY-MM-DD）')
     args = parser.parse_args()
 
     version = args.version.lstrip('v')
-    new_items = parse_items(args.new_features)
-    opt_items = parse_items(args.optimizations)
-    fix_items = parse_items(args.bug_fixes)
+    new_items = [s.strip() for s in args.new_features if s.strip()]
+    opt_items = [s.strip() for s in args.optimizations if s.strip()]
+    fix_items = [s.strip() for s in args.bug_fixes if s.strip()]
     release_date = args.date.strip() if args.date.strip() else str(date.today())
 
     if not new_items and not opt_items and not fix_items:
@@ -68,11 +61,11 @@ def main():
     save_changelog(changelog)
     print(f'✓ changelog.json 已更新：版本 {version}（{release_date}）')
     if new_items:
-        print(f'  新增: {", ".join(new_items)}')
+        print(f'  新增: {" / ".join(new_items)}')
     if opt_items:
-        print(f'  优化: {", ".join(opt_items)}')
+        print(f'  优化: {" / ".join(opt_items)}')
     if fix_items:
-        print(f'  修复: {", ".join(fix_items)}')
+        print(f'  修复: {" / ".join(fix_items)}')
 
 
 if __name__ == '__main__':

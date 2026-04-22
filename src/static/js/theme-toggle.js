@@ -968,12 +968,13 @@
         var textarea = document.getElementById('cxFeedbackText');
         var countEl = document.getElementById('cxFeedbackCount');
         if (textarea && countEl) {
+            var _composing = false;
             function updateCount() {
                 countEl.textContent = textarea.value.length + '/' + MAX_LEN;
             }
-            textarea.addEventListener('input', updateCount);
-            textarea.addEventListener('compositionend', updateCount);
-            textarea.addEventListener('keyup', updateCount);
+            textarea.addEventListener('compositionstart', function() { _composing = true; });
+            textarea.addEventListener('compositionend', function() { _composing = false; updateCount(); });
+            textarea.addEventListener('input', function() { if (!_composing) updateCount(); });
         }
 
         var submitBtn = document.getElementById('cxFeedbackSubmitBtn');
