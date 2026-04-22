@@ -50,59 +50,88 @@ git rev-parse v!NEW_VERSION! >nul 2>&1
 if not errorlevel 1 set IS_REPUBLISH=1
 
 set WRITE_CHANGELOG=1
-if "!IS_REPUBLISH!"=="1" (
-    echo 检测到 v!NEW_VERSION! 已发布过（重发模式）
-    set /p UPDATE_CL="是否更新此版本的更新内容？(y/n，直接回车跳过): "
-    if /i not "!UPDATE_CL!"=="y" set WRITE_CHANGELOG=0
-)
+if "!IS_REPUBLISH!"=="0" goto :do_changelog_input
+echo 检测到 v!NEW_VERSION! 已发布过（重发模式）
+set /p UPDATE_CL="是否更新此版本的更新内容？(y/n，直接回车跳过): "
+if /i "!UPDATE_CL!"=="y" goto :do_changelog_input
+set WRITE_CHANGELOG=0
+goto :after_changelog
 
-if "!WRITE_CHANGELOG!"=="1" (
-    echo.
-    echo 请输入版本 v!NEW_VERSION! 的更新内容（逗号分隔多条，直接回车跳过该项）：
-    set /p CL_NEW="  新增功能: "
-    set /p CL_OPT="  优化内容: "
-    set /p CL_FIX="  修复Bug:  "
-    
-    REM 组装 python 调用参数
-    set CL_ARGS=--version !NEW_VERSION!
-    if not "!CL_NEW!"=="" set CL_ARGS=!CL_ARGS! --new "!CL_NEW!"
-    if not "!CL_OPT!"=="" set CL_ARGS=!CL_ARGS! --opt "!CL_OPT!"
-    if not "!CL_FIX!"=="" set CL_ARGS=!CL_ARGS! --fix "!CL_FIX!"
-    
-    python update_changelog.py !CL_ARGS!
-    if errorlevel 1 (
-        echo ⚠ changelog 写入失败，但继续发布流程
-    )
-    echo.
-)
+:do_changelog_input
+echo.
+echo 请输入版本 v!NEW_VERSION! 的更新内容（每条回车确认，空行结束该类别）：
+
+echo.
+echo   【新增功能】
+set CL_NEW=
+:_loop_new
+set _CL_ITEM=
+set /p _CL_ITEM="    > "
+if "!_CL_ITEM!"=="" goto :_end_new
+if "!CL_NEW!"=="" (set CL_NEW=!_CL_ITEM!) else (set CL_NEW=!CL_NEW!|!_CL_ITEM!)
+goto :_loop_new
+:_end_new
+
+echo   【优化内容】
+set CL_OPT=
+:_loop_opt
+set _CL_ITEM=
+set /p _CL_ITEM="    > "
+if "!_CL_ITEM!"=="" goto :_end_opt
+if "!CL_OPT!"=="" (set CL_OPT=!_CL_ITEM!) else (set CL_OPT=!CL_OPT!|!_CL_ITEM!)
+goto :_loop_opt
+:_end_opt
+
+echo   【修复Bug】
+set CL_FIX=
+:_loop_fix
+set _CL_ITEM=
+set /p _CL_ITEM="    > "
+if "!_CL_ITEM!"=="" goto :_end_fix
+if "!CL_FIX!"=="" (set CL_FIX=!_CL_ITEM!) else (set CL_FIX=!CL_FIX!|!_CL_ITEM!)
+goto :_loop_fix
+:_end_fix
+
+REM 组装 python 调用参数
+set CL_ARGS=--version !NEW_VERSION!
+if not "!CL_NEW!"=="" set CL_ARGS=!CL_ARGS! --new "!CL_NEW!"
+if not "!CL_OPT!"=="" set CL_ARGS=!CL_ARGS! --opt "!CL_OPT!"
+if not "!CL_FIX!"=="" set CL_ARGS=!CL_ARGS! --fix "!CL_FIX!"
+
+python update_changelog.py !CL_ARGS!
+if errorlevel 1 echo ⚠ changelog 写入失败，但继续发布流程
+echo.
+
+:after_changelog
 
 echo.
 echo === 创建并推送 tag ===
 
 REM 如果版本号有变化，先提交 app_config.json 和 changelog.json
-if not "!NEW_VERSION!"=="!CURRENT_VERSION!" (
-    echo 提交版本更新...
-    git add app_config.json
-    if exist changelog.json git add changelog.json
-    git commit -m "更新版本号到 v!NEW_VERSION!"
+if not "!NEW_VERSION!"=="!CURRENT_VERSION!" goto :commit_version_change
+REM 版本号未变但 changelog 可能有更新，单独提交
+if not "!WRITE_CHANGELOG!"=="1" goto :after_commit
+if not exist changelog.json goto :after_commit
+git diff --quiet changelog.json >nul 2>&1
+if errorlevel 1 (
+    git add changelog.json
+    git commit -m "更新 v!NEW_VERSION! 更新内容"
     git push
-    echo ✓ 版本更新已提交
+    echo ✓ changelog 已提交
     echo.
-) else (
-    REM 版本号未变但 changelog 可能有更新，单独提交
-    if "!WRITE_CHANGELOG!"=="1" (
-        if exist changelog.json (
-            git diff --quiet changelog.json >nul 2>&1
-            if errorlevel 1 (
-                git add changelog.json
-                git commit -m "更新 v!NEW_VERSION! 更新内容"
-                git push
-                echo ✓ changelog 已提交
-                echo.
-            )
-        )
-    )
 )
+goto :after_commit
+
+:commit_version_change
+echo 提交版本更新...
+git add app_config.json
+if exist changelog.json git add changelog.json
+git commit -m "更新版本号到 v!NEW_VERSION!"
+git push
+echo ✓ 版本更新已提交
+echo.
+
+:after_commit
 
 REM 检查 tag 是否已存在，若存在则先删除
 git rev-parse v!NEW_VERSION! >nul 2>&1

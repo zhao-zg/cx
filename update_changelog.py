@@ -5,7 +5,7 @@
 由 release.bat 调用
 
 用法：
-  python update_changelog.py --version 1.3.3 --new "功能A,功能B" --opt "优化1" --fix "修复1,修复2"
+  python update_changelog.py --version 1.3.3 --new "功能A|功能B" --opt "优化1" --fix "修复1|修复2"
 """
 import argparse
 import json
@@ -17,10 +17,10 @@ CHANGELOG_FILE = 'changelog.json'
 
 
 def parse_items(value):
-    """将逗号分隔的字符串解析为列表，过滤空项"""
+    """将竖线 | 分隔的字符串解析为列表，过滤空项"""
     if not value or not value.strip():
         return []
-    return [item.strip() for item in value.split(',') if item.strip()]
+    return [item.strip() for item in value.split('|') if item.strip()]
 
 
 def load_changelog():
