@@ -200,12 +200,9 @@
         config: {
             versionUrl: null,
             currentVersion: null,
-            mirrors: [
-                'https://gh-proxy.com/',
-                'https://ghproxy.net/',
-                'https://proxy.11891189.xyz/',
-                'https://proxy.07170501.xyz/'
-            ]
+            get mirrors() {
+                return (window.CX_SERVERS && window.CX_SERVERS.githubMirrors) || [];
+            }
         },
         isCapacitor: false,
 
@@ -885,11 +882,7 @@
     
     // Cloudflare 更新检查
     AppUpdate.showCloudflareUpdateDialog = function() {
-        // 多个备用服务器地址
-        var CLOUDFLARE_SERVERS = [
-            'https://cx.zhaozg.cloudns.org/',
-            'https://cx.zhaozg.dpdns.org/'
-        ];
+        var CLOUDFLARE_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
         
         console.log('[更新检查] 显示 Cloudflare 更新对话框');
         
@@ -980,7 +973,8 @@
     
     // GitHub 更新检查
     AppUpdate.showGitHubUpdateDialog = function() {
-        var GITHUB_API_URL = 'https://api.github.com/repos/zhao-zg/cx/releases/latest';
+        var GITHUB_API_URL = (window.CX_SERVERS && window.CX_SERVERS.githubApi) || '';
+        if (!GITHUB_API_URL) { console.error('[\u66f4\u65b0\u68c0\u67e5] githubApi \u672a\u914d\u7f6e'); return; }
         
         console.log('[更新检查] 显示 GitHub 更新对话框');
         
@@ -1028,7 +1022,7 @@
                     }
 
                     // 从 Cloudflare 服务器获取 changelog（GitHub API 不提供）
-                    var CL_SERVERS = ['https://cx.zhaozg.cloudns.org/', 'https://cx.zhaozg.dpdns.org/'];
+                    var CL_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
                     var clFetches = CL_SERVERS.map(function(u) {
                         return fetchChangelog(u).then(function(d) { if (!d) throw new Error('null'); return d; });
                     });

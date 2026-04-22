@@ -46,6 +46,16 @@ jobs:
           python-version: '3.9'
           cache: 'pip'
       
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 安装混淆工具
+        run: |
+          npm install -g javascript-obfuscator
+          echo "✓ javascript-obfuscator 已安装"
+
       - name: 安装 LibreOffice
         run: |
           echo "📦 安装 LibreOffice..."
@@ -66,14 +76,8 @@ jobs:
           echo "📋 生成版本信息..."
           python generate_version.py
           
-          echo "�️ 删除 app-update.js（仅 APK 需要）..."
-          if [ -f output/js/app-update.js ]; then
-            rm -f output/js/app-update.js
-            echo "✓ 已删除 app-update.js（网页版不需要）"
-          fi
-          
-          echo "�📋 检查生成的文件..."
-          ls -la output/
+          echo "📋 检查生成的文件..."
+          ls -la output/js/
           
           echo "📄 检查 version.json 是否存在..."
           if [ -f output/version.json ]; then

@@ -8,11 +8,47 @@ import re
 import json
 import yaml
 import shutil
+import base64
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from src.parser_improved import parse_training_docs_improved
 from src.generator import HTMLGenerator, generate_search_index
 from src.bible_dict import BibleDict
+
+
+def generate_remote_config_js(remote_servers, output_dir):
+    """从配置生成 remote-config.js（URL 以 base64 存储，运行时 atob() 解码）"""
+    def b64(s):
+        return base64.b64encode(s.encode()).decode()
+
+    def arr(urls):
+        return '[' + ','.join(f"_d('{b64(u)}')" for u in (urls or [])) + ']'
+
+    cf       = remote_servers.get('cloudflare', [])
+    gh_api   = remote_servers.get('github_api', '')
+    mirrors  = remote_servers.get('github_mirrors', [])
+    push     = remote_servers.get('push', [])
+    ip_apis  = remote_servers.get('ip_apis', [])
+
+    js = (
+        "(function(){"
+        "function _d(s){return atob(s);}"
+        "window.CX_SERVERS={"
+        f"cloudflare:{arr(cf)},"
+        f"githubApi:_d('{b64(gh_api)}'),"
+        f"githubMirrors:{arr(mirrors)},"
+        f"push:{arr(push)},"
+        f"ipApis:{arr(ip_apis)}"
+        "};})();"
+    )
+
+    js_dir = os.path.join(output_dir, 'js')
+    os.makedirs(js_dir, exist_ok=True)
+    out_path = os.path.join(js_dir, 'remote-config.js')
+    with open(out_path, 'w', encoding='utf-8') as f:
+        f.write(js)
+    print(f"\u2713 remote-config.js \u5df2\u751f\u6210: {out_path}")
+    return out_path
 
 
 def load_config(config_path='config.yaml'):
@@ -474,7 +510,16 @@ def generate_main_index(config, batch_results):
         if os.path.exists(src):
             shutil.copy2(src, dst)
     print(f"✓ 共享 JS 文件已复制到 js/")
-
+    # 生成 remote-config.js（URL 从 config.yaml 读取，以 base64 编码输出）
+    remote_servers = config.get('remote_servers', {})
+    if remote_servers:
+        generate_remote_config_js(remote_servers, output_dir)
+    # 混淆 JS 文件（可选，需要 npx javascript-obfuscator）
+    try:
+        from encrypt_app_update import obfuscate_all
+        obfuscate_all(output_dir)
+    except Exception:
+        pass  # 未安装 obfuscator 时跳过，不影响功能
     # 复制共享 CSS 文件到根 css/ 目录（训练页面以 ../css/ 引用）
     css_dir = os.path.join(output_dir, 'css')
     os.makedirs(css_dir, exist_ok=True)

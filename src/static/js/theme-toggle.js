@@ -793,10 +793,7 @@
     function showSponsorDialog() {
         if (document.getElementById('cxSponsorMask')) return;
 
-        var SPONSOR_SERVERS = [
-            'https://cx.zhaozg.cloudns.org/',
-            'https://cx.zhaozg.dpdns.org/'
-        ];
+        var SPONSOR_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
         var imgFiles = { wx: 'images/zanzhu-wx.png', zfb: 'images/zanzhu-zfb.jpg' };
 
         var mask = document.createElement('div');
@@ -866,10 +863,7 @@
     function showFeedbackDialog() {
         if (document.getElementById('cxFeedbackMask')) return;
 
-        var PUSH_URLS = [
-            'https://moepush.zhaozg.cloudns.org/api/push/O0aR8LBgLYWnnwC1',
-            'https://moepush.zhaozg.dpdns.org/api/push/O0aR8LBgLYWnnwC1'
-        ];
+        var PUSH_URLS = (window.CX_SERVERS && window.CX_SERVERS.push) || [];
         var MAX_LEN = 500;
 
         var mask = document.createElement('div');
@@ -1094,9 +1088,10 @@
                 // 获取真实 IP 及归属地（多级降级，每次最多等 5s）
                 // ipip.net 直接返回 "IP: 1.2.3.4 来自于：中国 广东 广州"，一次拿到 IP+地区
                 // ipinfo.io / ipapi.co 只返回纯 IP，额外请求 ipapi.co/json 补充地区
+                var _ip = window.CX_SERVERS && window.CX_SERVERS.ipApis;
                 var IP_APIS = [
                     {
-                        url: 'https://myip.ipip.net',
+                        url: (_ip && _ip[0]) || '',
                         parse: function(t) {
                             var m = t.match(/(\d{1,3}(?:\.\d{1,3}){3})/);
                             if (!m) return null;
@@ -1107,7 +1102,7 @@
                         }
                     },
                     {
-                        url: 'https://ipinfo.io/json',
+                        url: (_ip && _ip[1]) || '',
                         parse: function(t) {
                             try {
                                 var d = JSON.parse(t);

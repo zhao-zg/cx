@@ -95,26 +95,20 @@ jobs:
         find output/ -type f | wc -l
         echo "文件总数"
     
-    - name: 🔐 混淆 app-update.js (保护下载地址)
+    - name: 🔐 验证混淆结果（由 main.py 完成）
       run: |
-        echo "=== 混淆敏感文件 ==="
-        python encrypt_app_update.py
-        echo "✓ app-update.js 已混淆"
-        
-        # 验证混淆结果（检查混淆器特征）
-        if grep -q "_0x" output/js/app-update.js; then
-          echo "✅ 混淆成功验证"
-          ls -lh output/js/app-update.js
-        else
-          echo "❌ 混淆可能失败"
-          exit 1
-        fi
-        
-        # 删除备份文件（安全措施：避免泄露未混淆源码）
-        if [ -f "app-update.js.backup" ]; then
-          rm -f app-update.js.backup
-          echo "🗑️  已删除备份文件（防止泄露）"
-        fi
+        echo "=== 验证混淆结果 ==="
+        for f in remote-config.js app-update.js theme-toggle.js; do
+          if grep -q "_0x" output/js/$f; then
+            echo "✅ $f 混淆验证通过"
+            ls -lh output/js/$f
+          else
+            echo "❌ $f 混淆可能失败"
+            exit 1
+          fi
+        done
+        # 删除备份文件（如有）
+        rm -f app-update.js.backup
         
     - name: 生成版本信息文件
       run: |
