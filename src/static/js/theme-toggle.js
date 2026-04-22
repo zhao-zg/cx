@@ -1018,18 +1018,61 @@
                 try {
                     var vEl = document.querySelector('meta[name="app-version"]');
                     if (vEl) appVer = vEl.getAttribute('content') || '';
-                    // 主页无 meta 标签，从 localStorage 补充读取运行时 APK 版本
                     if (!appVer) appVer = localStorage.getItem('cx_apk_version') || '';
                 } catch(e) {}
 
-                function doSend(ip) {
+                // 拆解 UA 字段
+                function parseUA(uaStr) {
+                    var lines = [];
+                    // OS
+                    var os = '';
+                    var m;
+                    if ((m = uaStr.match(/Android\s+([\d.]+)/i))) {
+                        os = 'Android ' + m[1];
+                        var dev = uaStr.match(/\(Linux;[^)]*;\s*([^;)]+)\s*(?:Build|[;)])/i);
+                        if (dev) os += ' / ' + dev[1].trim();
+                    } else if ((m = uaStr.match(/iPhone OS ([\d_]+)/i))) {
+                        os = 'iOS ' + m[1].replace(/_/g, '.');
+                    } else if ((m = uaStr.match(/iPad.*OS ([\d_]+)/i))) {
+                        os = 'iPadOS ' + m[1].replace(/_/g, '.');
+                    } else if ((m = uaStr.match(/Windows NT ([\d.]+)/i))) {
+                        var winMap = {'10.0':'10/11','6.3':'8.1','6.2':'8','6.1':'7'};
+                        os = 'Windows ' + (winMap[m[1]] || m[1]);
+                    } else if ((m = uaStr.match(/Mac OS X ([\d_]+)/i))) {
+                        os = 'macOS ' + m[1].replace(/_/g, '.');
+                    } else if (/Linux/i.test(uaStr)) {
+                        os = 'Linux';
+                    }
+                    if (os) lines.push('系统: ' + os);
+                    // 浏览器 / WebView
+                    var browser = '';
+                    if (/wv\)/.test(uaStr) || /; wv/.test(uaStr)) {
+                        var wvVer = uaStr.match(/Chrome\/([\d.]+)/i);
+                        browser = 'WebView (Chrome/' + (wvVer ? wvVer[1] : '?') + ')';
+                    } else if ((m = uaStr.match(/Edg\/([\d.]+)/i))) {
+                        browser = 'Edge ' + m[1];
+                    } else if ((m = uaStr.match(/OPR\/([\d.]+)/i))) {
+                        browser = 'Opera ' + m[1];
+                    } else if ((m = uaStr.match(/Chrome\/([\d.]+)/i))) {
+                        browser = 'Chrome ' + m[1];
+                    } else if ((m = uaStr.match(/Firefox\/([\d.]+)/i))) {
+                        browser = 'Firefox ' + m[1];
+                    } else if ((m = uaStr.match(/Version\/([\d.]+).*Safari/i))) {
+                        browser = 'Safari ' + m[1];
+                    }
+                    if (browser) lines.push('浏览器: ' + browser);
+                    return lines;
+                }
+                var uaLines = parseUA(ua);
+
+                function doSend(ip, region) {
+                    var ipStr = region ? ip + ' (' + region + ')' : ip;
                     var deviceLines = [
-                        'IP: ' + ip,
+                        'IP: ' + ipStr,
                         '平台: ' + platform,
                         '屏幕: ' + screenInfo,
                         appVer ? '版本: ' + appVer : '',
-                        'UA: ' + ua.substring(0, 200)
-                    ].filter(Boolean).join('\n');
+                    ].concat(uaLines).filter(Boolean).join('\n');
 
                     // 附加 JS 错误日志
                     var errorLog = (window.CX && window.CX.errorLog) ? window.CX.errorLog.get() : [];
@@ -1086,22 +1129,43 @@
                     tryPush(0);
                 }
 
-                // 获取真实 IP（多级降级，每次最多等 5s）
+                // 获取真实 IP 及归属地（多级降级，每次最多等 5s）
+                // ipip.net 直接返回 "IP: 1.2.3.4 来自于：中国 广东 广州"，一次拿到 IP+地区
+                // ipinfo.io / ipapi.co 只返回纯 IP，额外请求 ipapi.co/json 补充地区
                 var IP_APIS = [
-                    { url: 'https://myip.ipip.net', parse: function(t) { var m = t.match(/(\d{1,3}(?:\.\d{1,3}){3})/); return m ? m[1] : ''; } },
-                    { url: 'https://ipinfo.io/ip',  parse: function(t) { return t.trim(); } },
-                    { url: 'https://ipapi.co/ip',   parse: function(t) { return t.trim(); } }
+                    {
+                        url: 'https://myip.ipip.net',
+                        parse: function(t) {
+                            var m = t.match(/(\d{1,3}(?:\.\d{1,3}){3})/);
+                            if (!m) return null;
+                            var ip = m[1];
+                            var rm = t.match(/来自于[：:]\s*(.+)/);
+                            var region = rm ? rm[1].trim().replace(/\s+/g, ' ') : '';
+                            return { ip: ip, region: region };
+                        }
+                    },
+                    {
+                        url: 'https://ipinfo.io/json',
+                        parse: function(t) {
+                            try {
+                                var d = JSON.parse(t);
+                                var ip = d.ip || '';
+                                var parts = [d.country, d.region, d.city].filter(Boolean);
+                                return ip ? { ip: ip, region: parts.join(' ') } : null;
+                            } catch(e) { return null; }
+                        }
+                    }
                 ];
                 function fetchIp(idx) {
-                    if (idx >= IP_APIS.length) { doSend('未知'); return; }
+                    if (idx >= IP_APIS.length) { doSend('未知', ''); return; }
                     var api = IP_APIS[idx];
                     var ctrl = new AbortController();
                     var timer = setTimeout(function() { ctrl.abort(); }, 5000);
                     fetch(api.url, { cache: 'no-cache', signal: ctrl.signal })
                         .then(function(r) { clearTimeout(timer); return r.text(); })
                         .then(function(t) {
-                            var ip = api.parse(t);
-                            if (ip) { doSend(ip); } else { fetchIp(idx + 1); }
+                            var res = api.parse(t);
+                            if (res && res.ip) { doSend(res.ip, res.region || ''); } else { fetchIp(idx + 1); }
                         })
                         .catch(function() { clearTimeout(timer); fetchIp(idx + 1); });
                 }
