@@ -73,9 +73,6 @@ jobs:
           echo "🔨 生成静态文件..."
           python main.py
           
-          echo "📋 生成版本信息..."
-          python generate_version.py
-          
           echo "📋 检查生成的文件..."
           ls -la output/js/
           
