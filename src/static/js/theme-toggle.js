@@ -917,15 +917,21 @@
         if (textarea && countEl) {
             var _composing = false;
             function updateCount() {
-                // Android WebView: sibling DOM mutations can cause a relayout that resets
-                // cursor position in the active textarea. Save & restore selectionStart/End.
+                // Android WebView: updating a sibling element triggers async relayout that
+                // resets cursor to end. Save cursor pos, update DOM, then restore after
+                // repaint via requestAnimationFrame to catch the async reset.
                 var ss = -1, se = -1;
                 if (document.activeElement === textarea) {
                     try { ss = textarea.selectionStart; se = textarea.selectionEnd; } catch(_) {}
                 }
                 countEl.textContent = textarea.value.length + '/' + MAX_LEN;
                 if (ss >= 0) {
-                    try { textarea.setSelectionRange(ss, se); } catch(_) {}
+                    var _ss = ss, _se = se;
+                    requestAnimationFrame(function() {
+                        if (document.activeElement === textarea) {
+                            try { textarea.setSelectionRange(_ss, _se); } catch(_) {}
+                        }
+                    });
                 }
             }
             textarea.addEventListener('compositionstart', function() { _composing = true; });

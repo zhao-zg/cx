@@ -631,8 +631,13 @@
           if (isPlaying || isPaused) {
             // 服务已在运行：直接走 MediaSession onSeekTo 路径，无需重新 speak
             var posMs = Math.round(targetSecs * 1000);
+            elapsedOffset = targetSecs;   // ★ 立即更新 JS 端位置，避免 seek 后进度条跳回
+            startTime = Date.now();
+            isPlaying = true; isPaused = false;
             var _nativeTTSSeek = getNativeTTS();
-            if (_nativeTTSSeek) _nativeTTSSeek.seekTo({ posMs: posMs });
+            if (_nativeTTSSeek) try { _nativeTTSSeek.seekTo({ posMs: posMs }); } catch (e) {}
+            updateButtonState(true);
+            startProgressUpdate();        // ★ 重启进度刷新，seek 后 UI 不冻结
           } else {
             // 服务尚未启动：首次播放，走完整 speak 路径
             nativeSpeak(segText, targetSecs);
@@ -706,19 +711,31 @@
       window.CXSpeech.cancel = function () { ++speakGeneration; safeCancel(); resetState(false); };
 
       // -- Seekbar events -----------------------------------------------------
-      progressBar.addEventListener('mousedown',  function () { isSeeking = true; stopProgressUpdate(); });
-      progressBar.addEventListener('touchstart', function () { isSeeking = true; stopProgressUpdate(); });
+      // Android WebView bug: <input type="range"> 的 'change' 事件在触摸释放时不可靠，
+      // 改用 touchend/mouseup 直接触发 seek，不依赖 change 事件。
+      var _seekPending = false;
+      function commitSeek() {
+        if (!_seekPending) return;
+        _seekPending = false; isSeeking = false;
+        if (fullText) startSpeakingFromPercent(clamp(Number(progressBar.value) || 0, 0, 100));
+        else startProgressUpdate();
+      }
+      progressBar.addEventListener('touchstart', function () {
+        isSeeking = true; _seekPending = true; stopProgressUpdate();
+      }, { passive: true });
+      progressBar.addEventListener('mousedown', function () {
+        isSeeking = true; _seekPending = true; stopProgressUpdate();
+      });
       progressBar.addEventListener('input', function () {
         if (!totalDuration) { progressBar.value = '0'; speechTime.textContent = '00:00 / 00:00'; return; }
         var p = clamp(Number(progressBar.value) || 0, 0, 100);
         speechTime.textContent = formatTime((p / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
       });
-      progressBar.addEventListener('change', function () {
-        isSeeking = false;
-        if (fullText) startSpeakingFromPercent(clamp(Number(progressBar.value) || 0, 0, 100));
-      });
-      document.addEventListener('mouseup',  function () { isSeeking = false; });
-      document.addEventListener('touchend', function () { isSeeking = false; });
+      progressBar.addEventListener('touchend', function () { commitSeek(); });
+      progressBar.addEventListener('mouseup',  function () { commitSeek(); });
+      // 兜底：手指/鼠标在进度条外松开时也能触发 seek
+      document.addEventListener('touchend', function () { if (_seekPending) commitSeek(); });
+      document.addEventListener('mouseup',  function () { if (_seekPending) commitSeek(); });
 
       // -- Play / Pause button ------------------------------------------------
       playPauseBtn.addEventListener('click', function () {
