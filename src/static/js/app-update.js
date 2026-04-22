@@ -703,85 +703,141 @@
         return html;
     }
 
-    // 填充对话框 changelog 面板
-    // comparison > 0 时：显示 (currentVer, latestVer] 区间所有版本
-    // 否则：只显示 latestVer 自身 changelog
-    // 历史版本（< currentVer）填入折叠区
+    // 填充对话框 changelog 面板（三面板版本）
+    // comparison > 0：更新内容面板显示 (currentVer, latestVer] 区间；否则显示 latestVer 自身
+    // 历史（< currentVer）填入历史版本面板
     function fillChangelogPanel(dialogId, changelog, currentVer, latestVer, comparison) {
-        var changelogEl = document.getElementById(dialogId + '-changelog');
-        var historyEl = document.getElementById(dialogId + '-history');
-        var historyBtnEl = document.getElementById(dialogId + '-history-btn');
-        if (!changelogEl) return;
+        var clContent   = document.getElementById(dialogId + '-cl-content');
+        var histContent = document.getElementById(dialogId + '-hist-content');
+        var clBtn       = document.getElementById(dialogId + '-cl-btn');
+        var histBtn     = document.getElementById(dialogId + '-hist-btn');
 
         var currentClean = currentVer.replace('v', '');
-        var latestClean = latestVer.replace('v', '');
+        var latestClean  = latestVer.replace('v', '');
 
-        // 主展示区：新版本区间或当前版本自身
-        var displayVersions;
-        var titleText;
-        if (comparison > 0) {
-            displayVersions = getVersionsBetween(changelog, currentClean, latestClean);
-            titleText = displayVersions.length > 1 ? '本次更新包含以下版本：' : '更新内容：';
-        } else {
-            displayVersions = changelog[latestClean] ? [latestClean] : [];
-            titleText = '当前版本更新内容：';
-        }
+        // 更新内容面板
+        var displayVersions = comparison > 0
+            ? getVersionsBetween(changelog, currentClean, latestClean)
+            : (changelog[latestClean] ? [latestClean] : []);
 
-        if (displayVersions.length > 0) {
-            var html = '<div style="margin-bottom:8px;font-size:13px;color:#555;">' + titleText + '</div>';
+        if (clContent && displayVersions.length > 0) {
+            var html = '';
+            if (comparison > 0 && displayVersions.length > 1) {
+                html += '<div style="margin-bottom:10px;font-size:12px;color:#666;">本次更新包含以下版本：</div>';
+            }
             displayVersions.forEach(function(v) {
                 if (changelog[v]) html += renderSingleVersionHtml(v, changelog[v]);
             });
-            changelogEl.innerHTML = '<h4 style="color:#16a34a;margin-bottom:8px;font-size:14px;font-weight:600;">📋 更新内容</h4>' + html;
-            changelogEl.style.display = 'block';
+            clContent.innerHTML = html;
+            if (clBtn) clBtn.style.display = 'block';
         }
 
-        // 历史版本（< currentVer）填入折叠区
-        if (historyEl && historyBtnEl) {
-            var historyVersions = Object.keys(changelog).filter(function(v) {
-                return AppUpdate.compareVersion(v, currentClean) < 0;
-            }).sort(function(a, b) {
-                var c = AppUpdate.compareVersion(b, a);
-                return c > 0 ? -1 : (c < 0 ? 1 : 0);
+        // 历史版本面板（< currentVer）
+        var historyVersions = Object.keys(changelog).filter(function(v) {
+            return AppUpdate.compareVersion(v, currentClean) < 0;
+        }).sort(function(a, b) {
+            var c = AppUpdate.compareVersion(b, a);
+            return c > 0 ? -1 : (c < 0 ? 1 : 0);
+        });
+        if (histContent && historyVersions.length > 0) {
+            var hHtml = '';
+            historyVersions.forEach(function(v) {
+                if (changelog[v]) hHtml += renderSingleVersionHtml(v, changelog[v]);
             });
-            if (historyVersions.length > 0) {
-                var hHtml = '';
-                historyVersions.forEach(function(v) {
-                    if (changelog[v]) hHtml += renderSingleVersionHtml(v, changelog[v]);
-                });
-                historyEl.innerHTML = hHtml;
-                historyBtnEl.style.display = 'block';
-            }
+            histContent.innerHTML = hHtml;
+            if (histBtn) histBtn.style.display = 'block';
         }
     }
 
-    // 创建通用更新对话框
+    // 创建通用更新对话框（三面板：主面板 / 更新内容 / 历史版本）
     function createUpdateDialog(dialogId, title, statusId, btnId) {
         var THEME = getTheme();
-        var histId = dialogId + '-history';
-        var histBtnId = dialogId + '-history-btn';
-        var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="' + dialogId + '">';
-        html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto;">';
-        html += '<h3 style="color: ' + THEME.brand + '; margin-bottom: 15px; font-size: 20px; text-align: center;">' + title + '</h3>';
 
-        html += '<div style="margin-bottom: 16px; padding: 15px; background: #f8f9ff; border-radius: 8px; border: 1px solid #e0e4ff;">';
-        html += '<h4 style="color: ' + THEME.brand + '; margin-bottom: 10px; font-size: 16px;">📱 应用版本</h4>';
-        html += '<div id="' + statusId + '" style="color: #666; font-size: 14px;">正在检查...</div>';
-        html += '<button id="' + btnId + '" style="display: none; width: 100%; padding: 10px; margin-top: 10px; background: ' + THEME.bg + '; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">立即更新应用</button>';
+        var html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;" id="' + dialogId + '">';
+        html += '<div style="background:white;border-radius:12px;max-width:400px;width:100%;max-height:88vh;overflow:hidden;">';
+
+        // ── 主面板 ──
+        html += '<div id="' + dialogId + '-panel-main" style="display:block;">';
+        html += '<div style="padding:20px 20px 16px;overflow-y:auto;max-height:88vh;">';
+        html += '<h3 style="color:' + THEME.brand + ';margin-bottom:14px;font-size:18px;text-align:center;">' + title + '</h3>';
+        html += '<div style="padding:14px;background:#f8f9ff;border-radius:8px;border:1px solid #e0e4ff;margin-bottom:12px;">';
+        html += '<div id="' + statusId + '" style="color:#666;font-size:14px;line-height:1.7;">正在检查...</div>';
+        html += '<button id="' + btnId + '" style="display:none;width:100%;padding:10px;margin-top:10px;background:' + THEME.bg + ';color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">立即更新应用</button>';
         html += '</div>';
+        html += '<button id="' + dialogId + '-cl-btn" style="display:none;width:100%;padding:9px 14px;margin-bottom:8px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-align:left;">📋 查看更新内容 ›</button>';
+        html += '<button id="' + dialogId + '-hist-btn" style="display:none;width:100%;padding:9px 14px;margin-bottom:12px;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-align:left;">📖 历史版本 ›</button>';
+        html += '<button id="' + dialogId + '-close" style="width:100%;padding:11px;background:#e2e8f0;color:#4a5568;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">关闭</button>';
+        html += '</div></div>'; // end panel-main
 
-        // 新版本 changelog 区域（fetch 后填入）
-        html += '<div id="' + dialogId + '-changelog" style="display:none;margin-bottom:14px;padding:14px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;max-height:220px;overflow-y:auto;"></div>';
+        // ── 更新内容面板 ──
+        html += '<div id="' + dialogId + '-panel-cl" style="display:none;">';
+        html += '<div style="padding:12px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;">';
+        html += '<button id="' + dialogId + '-cl-back" style="background:none;border:none;color:' + THEME.brand + ';font-size:14px;font-weight:600;cursor:pointer;padding:4px 10px 4px 0;">← 返回</button>';
+        html += '<span style="font-size:15px;font-weight:600;color:#222;">📋 更新内容</span>';
+        html += '</div>';
+        html += '<div id="' + dialogId + '-cl-content" style="padding:14px 16px;overflow-y:auto;max-height:calc(88vh - 50px);font-size:13px;"></div>';
+        html += '</div>'; // end panel-cl
 
-        // 历史版本折叠区
-        html += '<button id="' + histBtnId + '" style="display:none;width:100%;padding:8px 12px;margin-bottom:10px;background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;cursor:pointer;text-align:left;" ';
-        html += 'onclick="(function(){var h=document.getElementById(\'' + histId + '\');var b=document.getElementById(\'' + histBtnId + '\');if(h.style.display===\'none\'){h.style.display=\'block\';b.textContent=\'▲ 收起历史版本\';}else{h.style.display=\'none\';b.textContent=\'▼ 查看历史版本\';}})();">▼ 查看历史版本</button>';
-        html += '<div id="' + histId + '" style="display:none;margin-bottom:12px;padding:12px;background:#fafafa;border-radius:8px;border:1px solid #e2e8f0;max-height:200px;overflow-y:auto;"></div>';
+        // ── 历史版本面板 ──
+        html += '<div id="' + dialogId + '-panel-hist" style="display:none;">';
+        html += '<div style="padding:12px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;">';
+        html += '<button id="' + dialogId + '-hist-back" style="background:none;border:none;color:' + THEME.brand + ';font-size:14px;font-weight:600;cursor:pointer;padding:4px 10px 4px 0;">← 返回</button>';
+        html += '<span style="font-size:15px;font-weight:600;color:#222;">📖 历史版本</span>';
+        html += '</div>';
+        html += '<div id="' + dialogId + '-hist-content" style="padding:14px 16px;overflow-y:auto;max-height:calc(88vh - 50px);font-size:13px;"></div>';
+        html += '</div>'; // end panel-hist
 
-        html += '<button style="width: 100%; padding: 12px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="document.getElementById(\'' + dialogId + '\').remove();">关闭</button>';
-        html += '</div></div>';
-
+        html += '</div></div>'; // end box + overlay
         document.body.insertAdjacentHTML('beforeend', html);
+
+        // ── 面板切换 + 系统返回键支持 ──
+        var _panel = 'main';
+
+        function _show(name) {
+            ['main', 'cl', 'hist'].forEach(function(p) {
+                var el = document.getElementById(dialogId + '-panel-' + p);
+                if (el) el.style.display = (p === name) ? 'block' : 'none';
+            });
+            _panel = name;
+        }
+
+        function _navTo(name) {
+            history.pushState({ _dlg: dialogId, _p: name }, '');
+            _show(name);
+        }
+
+        function _close() {
+            window.removeEventListener('popstate', _onPop);
+            var dlg = document.getElementById(dialogId);
+            if (dlg) dlg.remove();
+        }
+
+        function _onPop(e) {
+            var s = (e && e.state) || {};
+            if (s._dlg === dialogId) {
+                _show(s._p || 'main');
+            } else {
+                // 退出了对话框的历史栈 → 关闭
+                _close();
+            }
+        }
+
+        // 对话框打开时推入一条历史记录，使系统返回键能关闭对话框
+        history.pushState({ _dlg: dialogId, _p: 'main' }, '');
+        window.addEventListener('popstate', _onPop);
+
+        // 绑定按钮事件
+        var el;
+        el = document.getElementById(dialogId + '-cl-btn');
+        if (el) el.onclick = function() { _navTo('cl'); };
+        el = document.getElementById(dialogId + '-hist-btn');
+        if (el) el.onclick = function() { _navTo('hist'); };
+        el = document.getElementById(dialogId + '-cl-back');
+        if (el) el.onclick = function() { history.back(); };
+        el = document.getElementById(dialogId + '-hist-back');
+        if (el) el.onclick = function() { history.back(); };
+        el = document.getElementById(dialogId + '-close');
+        if (el) el.onclick = _close;
     }
     
     // 处理版本比较结果并更新 UI

@@ -79,7 +79,8 @@ public class TTSForegroundService extends Service {
     // ── Playback State ────────────────────────────────────────────────────
     private final List<String>  chunks     = new ArrayList<>();
     private volatile int        chunkIndex = 0;
-    private volatile boolean    isPaused   = false;
+    private volatile boolean    isPaused     = false;
+    private volatile boolean    pausedByUser = false; // true=用户手动暂停，false=系统失焦自动暂停
     private volatile boolean    isStopped  = false;
     private volatile int        speakGen   = 0;   // generation counter for stale-callback guard
     private float               playRate   = 1.0f;
@@ -292,9 +293,10 @@ public class TTSForegroundService extends Service {
         }
 
         // Reset state
-        isStopped  = false;
-        isPaused   = false;
-        chunkIndex = 0;
+        isStopped    = false;
+        isPaused     = false;
+        pausedByUser = false;
+        chunkIndex   = 0;
         chunkStartPositionMs = 0;
         chunkStartTimeMs     = 0;
         pinnedVoice          = pickBestVoice(playLang); // 枚举一次，后续 chunk 直接 setVoice()
@@ -365,8 +367,9 @@ public class TTSForegroundService extends Service {
     }
 
     private void handleStop() {
-        isStopped = true;
-        isPaused  = false;
+        isStopped    = true;
+        isPaused     = false;
+        pausedByUser = false;
         speakGen++;
         stopPositionBroadcast();
         cancelSpeakStart();
@@ -376,6 +379,7 @@ public class TTSForegroundService extends Service {
 
     private void handlePause() {
         if (isPaused || isStopped) return;
+        pausedByUser = true; // 用户主动暂停（按钮/锁屏控件），焦点归还后不自动恢复
         isPaused = true;
         speakGen++;       // invalidate in-flight onDone callbacks
         stopPositionBroadcast();
@@ -389,10 +393,29 @@ public class TTSForegroundService extends Service {
 
     private void handleResume() {
         if (!isPaused || isStopped) return;
-        isPaused = false;
+        isPaused     = false;
+        pausedByUser = false;
         speakGen++;
         updateNotification(true);
         ttsHandler.post(this::playChunkOnly); // 用 ttsHandler，避免息屏时主线程节流
+    }
+
+    /**
+     * 系统失焦导致的自动暂停（如接电话、其他媒体 App 接管音频焦点）。
+     * 不设置 pausedByUser，焦点归还后（AUDIOFOCUS_GAIN）可自动恢复；
+     * 区别于 handlePause()（用户手动操作，焦点归还后不应自动恢复）。
+     */
+    private void handleFocusLossPause() {
+        if (isPaused || isStopped) return; // 已暂停（用户手动或其他原因），不覆盖状态
+        pausedByUser = false; // 系统自动暂停
+        isPaused = true;
+        speakGen++;
+        stopPositionBroadcast();
+        cancelSpeakStart();
+        if (tts != null) tts.stop();
+        chunkStartPositionMs = getCurrentPositionMs();
+        chunkStartTimeMs     = 0;
+        updateNotification(false);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -760,11 +783,12 @@ public class TTSForegroundService extends Service {
 
         audioFocusListener = change -> {
             if (change == AudioManager.AUDIOFOCUS_LOSS) {
-                // 永久失焦（接电话、另一媒体 App 接管）→ 暂停
-                handlePause();
+                // 永久失焦（接电话、另一媒体 App 接管）→ 系统自动暂停
+                // 不调 handlePause()（会把 pausedByUser 设为 true），改用专用方法
+                handleFocusLossPause();
             } else if (change == AudioManager.AUDIOFOCUS_GAIN) {
-                // 焦点归还 → 若之前因永久失焦而暂停则恢复
-                if (isPaused) handleResume();
+                // 焦点归还 → 仅当是系统失焦导致的暂停才自动恢复；用户手动暂停不恢复
+                if (isPaused && !pausedByUser) handleResume();
             }
             // AUDIOFOCUS_LOSS_TRANSIENT / AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
             // 临时失焦（通知音、切换 App 时系统 UI 音等），继续播放不暂停
