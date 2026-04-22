@@ -575,7 +575,9 @@
           if ((err === 'interrupted' || err === 'cancelled') && isSeekingInternal) return;
           if (err === 'interrupted' || err === 'cancelled') {
             // Chrome/WebView 中断——只在本代有效时重试同一 chunk
+            // 若用户已手动暂停，则不恢复（音频焦点被其他 APP 抢占后释放时不应恢复）
             if (gen !== speakGeneration) return;
+            if (isPaused) return;
             setTimeout(wsPlayNextChunk, 150);
             return;
           }
@@ -653,7 +655,8 @@
                 if ((err === 'interrupted' || err === 'cancelled') && isSeekingInternal) return;
                 isSeekingInternal = false;
                 if (err === 'interrupted' || err === 'cancelled') {
-                  // Chrome 中断 — 从当前进度重启
+                  // Chrome 中断 — 若用户已手动暂停则不恢复，否则从当前进度重启
+                  if (isPaused) return;
                   if (totalDuration > 0) {
                     var est = clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 99);
                     startSpeakingFromPercent(est);
