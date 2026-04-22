@@ -1,6 +1,8 @@
 package com.tehui.offline;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -31,11 +33,20 @@ public class CrashReporter implements Thread.UncaughtExceptionHandler {
     @Override
     public void uncaughtException(Thread thread, Throwable ex) {
         try {
+            // 获取版本号
+            String versionName = "未知";
+            try {
+                PackageInfo pi = context.getPackageManager()
+                        .getPackageInfo(context.getPackageName(), 0);
+                versionName = pi.versionName;
+            } catch (PackageManager.NameNotFoundException ignored) {}
+
             // 格式化堆栈信息
             StringWriter sw = new StringWriter();
             PrintWriter  pw = new PrintWriter(sw);
             String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                             .format(new Date());
+            pw.println("Version: " + versionName);
             pw.println(ts + "  Thread: " + thread.getName());
             ex.printStackTrace(pw);
             pw.flush();

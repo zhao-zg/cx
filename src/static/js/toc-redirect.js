@@ -1,4 +1,4 @@
-// 根据星期几决定跳转目标
+﻿// 根据星期几决定跳转目标
 (function () {
   document.addEventListener('DOMContentLoaded', function () {
     var dayOfWeek = new Date().getDay(); // 0=周日, 1=周一, ..., 6=周六

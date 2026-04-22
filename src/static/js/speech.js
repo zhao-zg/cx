@@ -707,7 +707,11 @@
             var _nativeTTSBat = getNativeTTS();
             if (_nativeTTSBat && typeof _nativeTTSBat.isBatteryOptimizationIgnored === 'function') {
               _nativeTTSBat.isBatteryOptimizationIgnored().then(function (r) {
-                if (!r.ignored) _nativeTTSBat.requestIgnoreBatteryOptimization();
+                if (!r.ignored) {
+                  if (window.confirm('为了支持朗读后台播放，需要关闭电池省电策略，是否前往关闭？')) {
+                    _nativeTTSBat.requestIgnoreBatteryOptimization();
+                  }
+                }
               }).catch(function () {});
             }
           }

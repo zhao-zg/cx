@@ -650,22 +650,137 @@
         );
     };
     
+    // ——————————————————————————————————
+    // Changelog 辅助函数
+    // ——————————————————————————————————
+
+    // 从服务器 fetch changelog.json，失败时返回 null
+    function fetchChangelog(serverUrl) {
+        return fetch(serverUrl + 'changelog.json?t=' + Date.now(), { cache: 'no-cache' })
+            .then(function(resp) { return resp.ok ? resp.json() : null; })
+            .catch(function() { return null; });
+    }
+
+    // 筛选 fromVer < v <= toVer 的版本列表，版本号倒序
+    function getVersionsBetween(changelog, fromVer, toVer) {
+        if (!changelog) return [];
+        var from = fromVer.replace('v', '');
+        var to = toVer.replace('v', '');
+        return Object.keys(changelog).filter(function(v) {
+            return AppUpdate.compareVersion(v, from) > 0 && AppUpdate.compareVersion(v, to) <= 0;
+        }).sort(function(a, b) {
+            var c = AppUpdate.compareVersion(b, a);
+            return c > 0 ? -1 : (c < 0 ? 1 : 0);
+        });
+    }
+
+    // 渲染单版本 changelog HTML
+    function renderSingleVersionHtml(version, entry) {
+        var THEME = getTheme();
+        var html = '<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #eee;">';
+        html += '<div style="font-weight:600;color:' + THEME.brand + ';margin-bottom:5px;">v' + version;
+        if (entry.date) html += ' <span style="font-weight:400;color:#999;font-size:12px;">' + entry.date + '</span>';
+        html += '</div>';
+        if (entry['new'] && entry['new'].length) {
+            html += '<div style="margin-bottom:3px;"><span style="color:#16a34a;font-size:12px;font-weight:600;">✨ 新增</span>';
+            html += '<ul style="margin:2px 0 0 14px;padding:0;font-size:13px;color:#333;">';
+            entry['new'].forEach(function(item) { html += '<li>' + item + '</li>'; });
+            html += '</ul></div>';
+        }
+        if (entry['opt'] && entry['opt'].length) {
+            html += '<div style="margin-bottom:3px;"><span style="color:#2563eb;font-size:12px;font-weight:600;">⚡ 优化</span>';
+            html += '<ul style="margin:2px 0 0 14px;padding:0;font-size:13px;color:#333;">';
+            entry['opt'].forEach(function(item) { html += '<li>' + item + '</li>'; });
+            html += '</ul></div>';
+        }
+        if (entry['fix'] && entry['fix'].length) {
+            html += '<div style="margin-bottom:3px;"><span style="color:#dc2626;font-size:12px;font-weight:600;">🔧 修复</span>';
+            html += '<ul style="margin:2px 0 0 14px;padding:0;font-size:13px;color:#333;">';
+            entry['fix'].forEach(function(item) { html += '<li>' + item + '</li>'; });
+            html += '</ul></div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    // 填充对话框 changelog 面板
+    // comparison > 0 时：显示 (currentVer, latestVer] 区间所有版本
+    // 否则：只显示 latestVer 自身 changelog
+    // 历史版本（< currentVer）填入折叠区
+    function fillChangelogPanel(dialogId, changelog, currentVer, latestVer, comparison) {
+        var changelogEl = document.getElementById(dialogId + '-changelog');
+        var historyEl = document.getElementById(dialogId + '-history');
+        var historyBtnEl = document.getElementById(dialogId + '-history-btn');
+        if (!changelogEl) return;
+
+        var currentClean = currentVer.replace('v', '');
+        var latestClean = latestVer.replace('v', '');
+
+        // 主展示区：新版本区间或当前版本自身
+        var displayVersions;
+        var titleText;
+        if (comparison > 0) {
+            displayVersions = getVersionsBetween(changelog, currentClean, latestClean);
+            titleText = displayVersions.length > 1 ? '本次更新包含以下版本：' : '更新内容：';
+        } else {
+            displayVersions = changelog[latestClean] ? [latestClean] : [];
+            titleText = '当前版本更新内容：';
+        }
+
+        if (displayVersions.length > 0) {
+            var html = '<div style="margin-bottom:8px;font-size:13px;color:#555;">' + titleText + '</div>';
+            displayVersions.forEach(function(v) {
+                if (changelog[v]) html += renderSingleVersionHtml(v, changelog[v]);
+            });
+            changelogEl.innerHTML = '<h4 style="color:#16a34a;margin-bottom:8px;font-size:14px;font-weight:600;">📋 更新内容</h4>' + html;
+            changelogEl.style.display = 'block';
+        }
+
+        // 历史版本（< currentVer）填入折叠区
+        if (historyEl && historyBtnEl) {
+            var historyVersions = Object.keys(changelog).filter(function(v) {
+                return AppUpdate.compareVersion(v, currentClean) < 0;
+            }).sort(function(a, b) {
+                var c = AppUpdate.compareVersion(b, a);
+                return c > 0 ? -1 : (c < 0 ? 1 : 0);
+            });
+            if (historyVersions.length > 0) {
+                var hHtml = '';
+                historyVersions.forEach(function(v) {
+                    if (changelog[v]) hHtml += renderSingleVersionHtml(v, changelog[v]);
+                });
+                historyEl.innerHTML = hHtml;
+                historyBtnEl.style.display = 'block';
+            }
+        }
+    }
+
     // 创建通用更新对话框
     function createUpdateDialog(dialogId, title, statusId, btnId) {
         var THEME = getTheme();
+        var histId = dialogId + '-history';
+        var histBtnId = dialogId + '-history-btn';
         var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="' + dialogId + '">';
         html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto;">';
         html += '<h3 style="color: ' + THEME.brand + '; margin-bottom: 15px; font-size: 20px; text-align: center;">' + title + '</h3>';
-        
-        html += '<div style="margin-bottom: 20px; padding: 15px; background: #f8f9ff; border-radius: 8px; border: 1px solid #e0e4ff;">';
+
+        html += '<div style="margin-bottom: 16px; padding: 15px; background: #f8f9ff; border-radius: 8px; border: 1px solid #e0e4ff;">';
         html += '<h4 style="color: ' + THEME.brand + '; margin-bottom: 10px; font-size: 16px;">📱 应用版本</h4>';
         html += '<div id="' + statusId + '" style="color: #666; font-size: 14px;">正在检查...</div>';
         html += '<button id="' + btnId + '" style="display: none; width: 100%; padding: 10px; margin-top: 10px; background: ' + THEME.bg + '; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">立即更新应用</button>';
         html += '</div>';
-        
+
+        // 新版本 changelog 区域（fetch 后填入）
+        html += '<div id="' + dialogId + '-changelog" style="display:none;margin-bottom:14px;padding:14px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;max-height:220px;overflow-y:auto;"></div>';
+
+        // 历史版本折叠区
+        html += '<button id="' + histBtnId + '" style="display:none;width:100%;padding:8px 12px;margin-bottom:10px;background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;cursor:pointer;text-align:left;" ';
+        html += 'onclick="(function(){var h=document.getElementById(\'' + histId + '\');var b=document.getElementById(\'' + histBtnId + '\');if(h.style.display===\'none\'){h.style.display=\'block\';b.textContent=\'▲ 收起历史版本\';}else{h.style.display=\'none\';b.textContent=\'▼ 查看历史版本\';}})();">▼ 查看历史版本</button>';
+        html += '<div id="' + histId + '" style="display:none;margin-bottom:12px;padding:12px;background:#fafafa;border-radius:8px;border:1px solid #e2e8f0;max-height:200px;overflow-y:auto;"></div>';
+
         html += '<button style="width: 100%; padding: 12px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="document.getElementById(\'' + dialogId + '\').remove();">关闭</button>';
         html += '</div></div>';
-        
+
         document.body.insertAdjacentHTML('beforeend', html);
     }
     
@@ -770,8 +885,13 @@
                 var downloadUrl = serverUrl + apkFile;
                 var comparison = AppUpdate.compareVersion(latestVersionClean, currentVersionClean);
                 var sizeText = apkSize ? ' (' + (apkSize / 1024 / 1024).toFixed(1) + ' MB)' : '';
-                
+
                 handleVersionComparison(statusEl, btnEl, comparison, currentVersion, latestVersion, sizeText, downloadUrl);
+
+                // 并行获取 changelog，不阻塞主流程
+                fetchChangelog(serverUrl).then(function(changelog) {
+                    if (changelog) fillChangelogPanel('cloudflareUpdateDialog', changelog, currentVersion, latestVersion, comparison);
+                });
             }).catch(function(error) {
                 statusEl.innerHTML = '❌ 所有服务器均无法访问';
                 console.error('[更新检查] 所有服务器均失败:', error.message);
@@ -821,8 +941,24 @@
                     var latestVersion = release.tag_name;
                     var comparison = AppUpdate.compareVersion(latestVersion.replace('v', ''), currentVersion.replace('v', ''));
                     var sizeText = ' (' + (apk.size / 1024 / 1024).toFixed(1) + ' MB)';
-                    
+
                     handleVersionComparison(statusEl, btnEl, comparison, currentVersion, latestVersion, sizeText, apk.browser_download_url);
+
+                    // 从 Cloudflare 服务器获取 changelog（GitHub API 不提供）
+                    var CL_SERVERS = ['https://cx.zhaozg.cloudns.org/', 'https://cx.zhaozg.dpdns.org/'];
+                    var clFetches = CL_SERVERS.map(function(u) {
+                        return fetchChangelog(u).then(function(d) { if (!d) throw new Error('null'); return d; });
+                    });
+                    var clRace = typeof Promise.any === 'function'
+                        ? Promise.any(clFetches)
+                        : new Promise(function(resolve) {
+                            var done = false;
+                            clFetches.forEach(function(p) { p.then(function(d) { if (!done) { done = true; resolve(d); } }).catch(function() {}); });
+                            setTimeout(function() { if (!done) { done = true; resolve(null); } }, 5000);
+                        });
+                    clRace.then(function(changelog) {
+                        if (changelog) fillChangelogPanel('githubUpdateDialog', changelog, currentVersion, latestVersion, comparison);
+                    }).catch(function() {});
                 });
         }).catch(function(error) {
             console.error('[更新检查] 失败:', error);

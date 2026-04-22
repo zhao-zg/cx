@@ -81,6 +81,15 @@ function initSpeech() {
             const scriptureElem = document.querySelector('.scripture');
             if (scriptureElem) text += scriptureElem.textContent.trim() + '。';
 
+            // 先读取不在 section 内的初始段落（message_content 直接子段落）
+            const messageContent = document.querySelector('.message-content');
+            if (messageContent) {
+                messageContent.querySelectorAll(':scope > p.content-text').forEach(p => {
+                    const t = p.textContent.trim();
+                    if (t) text += t + '。';
+                });
+            }
+
             // 方案1: 获取所有 section 标题和内容
             const sections = document.querySelectorAll('.section');
             

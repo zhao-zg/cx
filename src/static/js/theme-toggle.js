@@ -49,14 +49,41 @@
 // ── 错误日志收集器 ──────────────────────────────────────────────────────────
 (function() {
     'use strict';
-    var LOG_KEY  = 'cx_error_log';
+    var LOG_KEY     = 'cx_error_log';
+    var LOG_VER_KEY = 'cx_error_log_ver'; // 记录日志对应的版本号
     var MAX_ENTRIES = 40;
+
+    // 获取当前版本：PWA 用 cx_pwa_version，APK 用 cx_apk_version，取最新有值的
+    function getCurrentVersion() {
+        try {
+            return localStorage.getItem('cx_apk_version') ||
+                   localStorage.getItem('cx_pwa_version') || '';
+        } catch(e) { return ''; }
+    }
+
+    // 版本升级时清理旧日志（防止把老版本的错误误报为当前版本）
+    function clearStaleErrorLog() {
+        try {
+            var savedVer = localStorage.getItem(LOG_VER_KEY);
+            if (!savedVer) return;
+            var curVer = getCurrentVersion();
+            if (curVer && curVer !== savedVer) {
+                localStorage.removeItem(LOG_KEY);
+                localStorage.removeItem(LOG_VER_KEY);
+            }
+        } catch(e) {}
+    }
+    clearStaleErrorLog();
 
     function appendLog(entry) {
         try {
             var arr = [];
             try { arr = JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch(e) {}
             if (!Array.isArray(arr)) arr = [];
+            // 写入当前版本（首条时记录，此后保持不变以标识日志所属版本）
+            if (arr.length === 0) {
+                try { localStorage.setItem(LOG_VER_KEY, getCurrentVersion()); } catch(e) {}
+            }
             arr.push(entry);
             if (arr.length > MAX_ENTRIES) arr = arr.slice(arr.length - MAX_ENTRIES);
             localStorage.setItem(LOG_KEY, JSON.stringify(arr));
@@ -91,7 +118,7 @@
     window.CX = window.CX || {};
     window.CX.errorLog = {
         get:   function() { try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch(e) { return []; } },
-        clear: function() { try { localStorage.removeItem(LOG_KEY); } catch(e) {} }
+        clear: function() { try { localStorage.removeItem(LOG_KEY); localStorage.removeItem(LOG_VER_KEY); } catch(e) {} }
     };
 })();
 
@@ -99,30 +126,54 @@
 // ── Native 崩溃日志收集（APK 专用）──────────────────────────────────────────
 // 应用启动时向 CrashLogPlugin 请求上次崩溃的堆栈，存入 localStorage；
 // 反馈时自动附带；读取后原生侧文件即删除（一次性）。
+// 版本升级后自动清理旧版本残留的崩溃日志，避免误报。
 (function() {
     'use strict';
-    var CRASH_KEY = 'cx_native_crash';
+    var CRASH_KEY         = 'cx_native_crash';
+    var CRASH_VERSION_KEY = 'cx_native_crash_ver'; // 记录日志对应的 APK 版本
     function fetchNativeCrash() {
         try {
             var p = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CrashLog;
             if (!p || typeof p.getLastCrash !== 'function') return;
             p.getLastCrash().then(function(res) {
                 if (res && res.log) {
-                    try { localStorage.setItem(CRASH_KEY, res.log); } catch(e) {}
+                    // 从日志第一行提取 "Version: x.x.x"
+                    var verLine = res.log.split('\n')[0] || '';
+                    var verMatch = verLine.match(/^Version:\s*(.+)/);
+                    var logVer = verMatch ? verMatch[1].trim() : '';
+                    try {
+                        localStorage.setItem(CRASH_KEY, res.log);
+                        if (logVer) localStorage.setItem(CRASH_VERSION_KEY, logVer);
+                    } catch(e) {}
                 }
             }).catch(function() {});
         } catch(e) {}
     }
+    // 版本升级时清理旧日志
+    function clearStaleVersionLog() {
+        try {
+            var storedCrashVer = localStorage.getItem(CRASH_VERSION_KEY);
+            if (!storedCrashVer) return; // 无版本记录，不清理
+            var currentVer = localStorage.getItem('cx_apk_version') || '';
+            if (currentVer && currentVer !== storedCrashVer) {
+                localStorage.removeItem(CRASH_KEY);
+                localStorage.removeItem(CRASH_VERSION_KEY);
+            }
+        } catch(e) {}
+    }
     // bridge 就绪后再调（DOMContentLoaded 后 Capacitor 已初始化）
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', fetchNativeCrash);
+        document.addEventListener('DOMContentLoaded', function() {
+            clearStaleVersionLog();
+            fetchNativeCrash();
+        });
     } else {
-        setTimeout(fetchNativeCrash, 0);
+        setTimeout(function() { clearStaleVersionLog(); fetchNativeCrash(); }, 0);
     }
     window.CX = window.CX || {};
     window.CX.nativeCrashLog = {
         get:   function() { try { return localStorage.getItem(CRASH_KEY) || ''; } catch(e) { return ''; } },
-        clear: function() { try { localStorage.removeItem(CRASH_KEY); } catch(e) {} }
+        clear: function() { try { localStorage.removeItem(CRASH_KEY); localStorage.removeItem(CRASH_VERSION_KEY); } catch(e) {} }
     };
 })();
 

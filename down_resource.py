@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """简化版 Notion 训练资源下载器，可选通过 Playwright 获取 token_v2。"""
 

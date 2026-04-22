@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Word文档静态网站生成器 - 主程序
 """
@@ -506,6 +506,12 @@ def generate_main_index(config, batch_results):
         headers_dst = os.path.join(output_dir, '_headers')
         shutil.copy2(headers_src, headers_dst)
         print(f"✓ _headers 文件已复制")
+
+    # 复制 changelog.json（根目录 -> output/）
+    changelog_src = 'changelog.json'
+    if os.path.exists(changelog_src):
+        shutil.copy2(changelog_src, os.path.join(output_dir, 'changelog.json'))
+        print(f"✓ changelog.json 已复制")
     
     # 创建 .nojekyll 文件（确保 GitHub Pages 不忽略 _ 开头的文件）
     nojekyll_path = os.path.join(output_dir, '.nojekyll')

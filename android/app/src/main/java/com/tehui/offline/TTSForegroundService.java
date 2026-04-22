@@ -1,4 +1,4 @@
-package com.tehui.offline;
+﻿package com.tehui.offline;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
