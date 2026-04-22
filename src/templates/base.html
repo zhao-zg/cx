@@ -49,7 +49,8 @@
     <script>
     (function(){
         var isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||window.location.hostname==='localhost';
-        if(isCap){var s=document.createElement('script');s.src='../js/app-update.js';document.head.appendChild(s);}
+        var isPwa=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches||!!navigator.standalone;
+        if(isCap||isPwa){var s=document.createElement('script');s.src='../js/app-update.js';document.head.appendChild(s);}
     })();
     </script>
     <script src="../js/speech.js" defer></script>

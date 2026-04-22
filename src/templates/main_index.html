@@ -177,8 +177,9 @@
         var isCapacitorScheme = window.location.protocol === 'capacitor:' || 
                                 window.location.hostname === 'localhost';
         
-        // 只在 Capacitor APP 环境下加载 app-update.js
-        if (isCapacitor || isCapacitorScheme) {
+        // 在 Capacitor APP 或 PWA standalone 环境下加载 app-update.js
+        var isPwaStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches || !!navigator.standalone;
+        if (isCapacitor || isCapacitorScheme || isPwaStandalone) {
             var script = document.createElement('script');
             script.src = 'js/app-update.js';
             document.head.appendChild(script);

@@ -846,6 +846,7 @@
         if (el) el.onclick = function() { history.back(); };
         el = document.getElementById(dialogId + '-close');
         if (el) el.onclick = _close;
+        return _close;
     }
     
     // 处理版本比较结果并更新 UI
@@ -1048,6 +1049,95 @@
         });
     };
     
+    // PWA 更新检查对话框（清缓存 + 刷新）
+    AppUpdate.showPwaUpdateDialog = function(options) {
+        var root = (options && options.root) || './';
+        var extStatusEl = (options && options.statusEl) || null;
+
+        console.log('[更新检查] 显示 PWA 更新对话框');
+
+        var closeDialog = createUpdateDialog('pwaUpdateDialog', '🔄 检查更新', 'pwaCheckStatus', 'pwaUpdateBtn');
+
+        var statusEl = document.getElementById('pwaCheckStatus');
+        var btnEl    = document.getElementById('pwaUpdateBtn');
+        if (!statusEl || !btnEl) return;
+
+        var currentVersion = '';
+        try { currentVersion = localStorage.getItem('cx_pwa_version') || ''; } catch(e) {}
+
+        statusEl.innerHTML = (currentVersion ? '当前版本: v' + currentVersion + '<br>' : '') + '正在检查远程版本...';
+
+        fetch(root + 'version.json?t=' + Date.now(), { cache: 'no-cache' })
+            .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(function(v) {
+                var remoteVersion = v.version || v.apk_version || '';
+                var comparison = currentVersion
+                    ? AppUpdate.compareVersion(remoteVersion, currentVersion)
+                    : 1; // 无本地版本 = 视为有更新
+
+                if (comparison <= 0 && currentVersion) {
+                    // 已是最新
+                    statusEl.innerHTML = '✅ 已是最新版本<br>版本: v' + remoteVersion;
+                    if (extStatusEl) { extStatusEl.textContent = '✓ 已是最新版本 v' + remoteVersion; extStatusEl.className = 'cache-status success'; }
+                    btnEl.style.display = 'block';
+                    btnEl.textContent = '强制重新加载';
+                    btnEl.onclick = function() {
+                        closeDialog();
+                        var steps = [];
+                        if ('caches' in window) {
+                            steps.push(caches.keys().then(function(keys) {
+                                return Promise.all(keys.filter(function(k) { return k.indexOf('cx-') === 0; }).map(function(k) { return caches.delete(k); }));
+                            }));
+                        }
+                        try { localStorage.removeItem('cx_pwa_version'); } catch(ex) {}
+                        try { localStorage.removeItem('cx_all_cached'); } catch(ex) {}
+                        Promise.all(steps).then(function() { window.location.replace(root + 'index.html'); });
+                    };
+                } else {
+                    // 有新版本
+                    var currentClean = (currentVersion || '').replace('v', '');
+                    var remoteClean  = remoteVersion.replace('v', '');
+                    statusEl.innerHTML = '✅ 发现新版本<br>' +
+                        (currentClean ? '当前: v' + currentClean + '<br>' : '') +
+                        '最新: v' + remoteClean;
+                    if (extStatusEl) { extStatusEl.textContent = '发现新版本 v' + remoteVersion; extStatusEl.className = 'cache-status'; }
+
+                    // 预显示 changelog 加载占位
+                    var clInline = document.getElementById('pwaUpdateDialog-cl-inline');
+                    if (clInline) {
+                        clInline.style.display = 'block';
+                        clInline.innerHTML = '<div style="color:#999;font-size:13px;text-align:center;padding:4px 0;">📋 正在加载更新内容...</div>';
+                    }
+
+                    btnEl.style.display = 'block';
+                    btnEl.textContent = '立即更新';
+                    btnEl.onclick = function() {
+                        closeDialog();
+                        if (extStatusEl) { extStatusEl.textContent = '正在清除旧缓存...'; extStatusEl.className = 'cache-status'; }
+                        var steps = [];
+                        if ('caches' in window) {
+                            steps.push(caches.keys().then(function(keys) {
+                                return Promise.all(keys.filter(function(k) { return k.indexOf('cx-') === 0; }).map(function(k) { return caches.delete(k); }));
+                            }).catch(function() {}));
+                        }
+                        try { localStorage.removeItem('cx_pwa_version'); } catch(ex) {}
+                        try { localStorage.removeItem('cx_all_cached'); } catch(ex) {}
+                        if (window.CX && window.CX.errorLog) window.CX.errorLog.clear();
+                        Promise.all(steps).then(function() { window.location.replace(root + 'index.html'); });
+                    };
+                }
+
+                // 异步填充 changelog，不阻塞主流程
+                fetchChangelog(root).then(function(changelog) {
+                    if (changelog) fillChangelogPanel('pwaUpdateDialog', changelog, currentVersion || '0', remoteVersion, comparison);
+                });
+            })
+            .catch(function(e) {
+                statusEl.innerHTML = '❌ 检查失败: ' + e.message;
+                if (extStatusEl) { extStatusEl.textContent = '检查失败：' + e.message; extStatusEl.className = 'cache-status error'; }
+            });
+    };
+
     // 初始化
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() { AppUpdate.init(); });
