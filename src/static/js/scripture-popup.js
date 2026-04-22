@@ -149,20 +149,7 @@
     });
 
     /* 防滚动穿透 */
-    var tsY = 0;
-    overlay.addEventListener('touchstart', function (e) { tsY = e.touches[0].clientY; }, { passive: true });
-    overlay.addEventListener('touchmove', function (e) {
-      if (body.contains(e.target)) {
-        var scrollable = body.scrollHeight > body.clientHeight;
-        if (!scrollable) { e.preventDefault(); return; }
-        var down  = e.touches[0].clientY < tsY;
-        var atTop = body.scrollTop <= 0;
-        var atBot = body.scrollTop + body.clientHeight >= body.scrollHeight - 1;
-        if ((atTop && !down) || (atBot && down)) e.preventDefault();
-      } else {
-        e.preventDefault();
-      }
-    }, { passive: false });
+    window.CX.lockOverlayScroll(overlay);
 
     return { overlay: overlay, title: title, body: body, backBtn: backBtn };
   }

@@ -211,6 +211,43 @@
         size: function() { return _stack.length; },
         setFallback: function(fn) { this._fallback = fn; }
     };
+
+    // ── CX.lockOverlayScroll：弹框遮罩层防滚动穿透（通用工具）──
+    // 绑定 touchstart/touchmove 到 overlay，自动识别内部可滚动子元素并处理边界。
+    // 返回 cleanup 函数，在弹框关闭时调用解绑（可选，DOM 移除后 GC 自动回收）。
+    window.CX.lockOverlayScroll = function(overlay) {
+        var _tsY = 0;
+        function _onTouchStart(e) {
+            if (e.touches && e.touches.length) _tsY = e.touches[0].clientY;
+        }
+        function _onTouchMove(e) {
+            // 向上查找 overlay 内最近的可滚动祖先
+            var el = e.target;
+            var scrollable = null;
+            while (el && el !== overlay) {
+                var oy = window.getComputedStyle(el).overflowY;
+                if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) {
+                    scrollable = el;
+                    break;
+                }
+                el = el.parentElement;
+            }
+            if (scrollable) {
+                var down  = e.touches[0].clientY < _tsY;
+                var atTop = scrollable.scrollTop <= 0;
+                var atBot = scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight - 1;
+                if ((atTop && !down) || (atBot && down)) e.preventDefault();
+            } else {
+                e.preventDefault();
+            }
+        }
+        overlay.addEventListener('touchstart', _onTouchStart, { passive: true });
+        overlay.addEventListener('touchmove',  _onTouchMove,  { passive: false });
+        return function() {
+            overlay.removeEventListener('touchstart', _onTouchStart);
+            overlay.removeEventListener('touchmove',  _onTouchMove);
+        };
+    };
 })();
 
 // 初始化主题切换和字体控制功能
@@ -410,26 +447,9 @@
         `;
         document.body.appendChild(panel);
 
-        var tsY = 0;
-        overlay.addEventListener('touchstart', function(e) {
-            if (e.touches && e.touches.length) {
-                tsY = e.touches[0].clientY;
-            }
-        }, { passive: true });
-        overlay.addEventListener('touchmove', function(e) {
-            if (!panel.classList.contains('show')) return;
-            if (panel.contains(e.target)) {
-                var scrollable = panel.scrollHeight > panel.clientHeight;
-                if (!scrollable) { e.preventDefault(); return; }
-                var down = e.touches[0].clientY < tsY;
-                var atTop = panel.scrollTop <= 0;
-                var atBot = panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 1;
-                if ((atTop && !down) || (atBot && down)) e.preventDefault();
-            } else {
-                e.preventDefault();
-            }
-        }, { passive: false });
-        
+        // 防滚动穿透：遮罩层外触摸不穿透，面板内触摸正常滚动
+        window.CX.lockOverlayScroll(overlay);
+
         // 加载保存的主题
         const initialTheme = getPreferredTheme();
         document.documentElement.setAttribute('data-theme', initialTheme);
