@@ -734,19 +734,37 @@
             clInline.style.display = 'block';
         }
 
-        // 历史版本面板（<= currentVer）
+        // 历史版本面板（<= currentVer），倒序，每次显示 5 条
         var historyVersions = Object.keys(changelog).filter(function(v) {
             return AppUpdate.compareVersion(v, currentClean) <= 0;
         }).sort(function(a, b) {
-            var c = AppUpdate.compareVersion(b, a);
-            return c > 0 ? -1 : (c < 0 ? 1 : 0);
+            return AppUpdate.compareVersion(b, a); // 倒序：最新在前
         });
         if (histContent && historyVersions.length > 0) {
-            var hHtml = '';
-            historyVersions.forEach(function(v) {
-                if (changelog[v]) hHtml += renderSingleVersionHtml(v, changelog[v]);
-            });
-            histContent.innerHTML = hHtml;
+            var _PAGE = 5;
+            var _histShown = 0;
+            function _renderHistPage() {
+                var end = Math.min(_histShown + _PAGE, historyVersions.length);
+                var frag = '';
+                for (var i = _histShown; i < end; i++) {
+                    if (changelog[historyVersions[i]]) frag += renderSingleVersionHtml(historyVersions[i], changelog[historyVersions[i]]);
+                }
+                _histShown = end;
+                var oldMore = histContent.querySelector('.hist-more-btn');
+                if (oldMore) histContent.removeChild(oldMore);
+                var tmp = document.createElement('div');
+                tmp.innerHTML = frag;
+                while (tmp.firstChild) histContent.appendChild(tmp.firstChild);
+                if (_histShown < historyVersions.length) {
+                    var moreBtn = document.createElement('button');
+                    moreBtn.className = 'hist-more-btn';
+                    moreBtn.style.cssText = 'width:100%;padding:9px;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;cursor:pointer;margin-top:4px;';
+                    moreBtn.textContent = '更多（还有 ' + (historyVersions.length - _histShown) + ' 个版本）';
+                    moreBtn.onclick = _renderHistPage;
+                    histContent.appendChild(moreBtn);
+                }
+            }
+            _renderHistPage();
             if (histBtn) histBtn.style.display = 'block';
         }
     }

@@ -611,7 +611,8 @@
           if (isPlaying || isPaused) {
             // 服务已在运行：直接走 MediaSession onSeekTo 路径，无需重新 speak
             var posMs = Math.round(targetSecs * 1000);
-            NativeTTS.seekTo({ posMs: posMs });
+            var _nativeTTSSeek = getNativeTTS();
+            if (_nativeTTSSeek) _nativeTTSSeek.seekTo({ posMs: posMs });
           } else {
             // 服务尚未启动：首次播放，走完整 speak 路径
             nativeSpeak(segText, targetSecs);

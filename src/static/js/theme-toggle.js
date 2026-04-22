@@ -595,7 +595,13 @@
                             if (storedVersion && storedVersion === remoteVersion) {
                                 if (statusEl) { statusEl.textContent = '✓ 已是最新版本 v' + remoteVersion; statusEl.className = 'cache-status success'; }
                             } else {
-                                showPwaUpdateConfirmDialog(remoteVersion, statusEl);
+                                // 有新版本：同时 fetch changelog，changelog 失败不影响弹框
+                                fetch(root + 'changelog.json?t=' + Date.now(), { cache: 'no-cache' })
+                                    .then(function(r) { return r.ok ? r.json() : null; })
+                                    .catch(function() { return null; })
+                                    .then(function(changelog) {
+                                        showPwaUpdateConfirmDialog(remoteVersion, storedVersion, statusEl, changelog);
+                                    });
                             }
                         })
                         .catch(function(e) {
@@ -802,20 +808,92 @@
 
     function defaultPromptClearData() { showClearDialog(); }
 
-    // PWA 更新确认对话框（仅清除缓存，保留用户数据）
-    function showPwaUpdateConfirmDialog(newVersion, statusEl) {
+    // PWA 更新确认对话框（内联 changelog + 历史版本，仅清除缓存，保留用户数据）
+    function showPwaUpdateConfirmDialog(newVersion, storedVersion, statusEl, changelog) {
         if (document.getElementById('cxPwaUpdateMask')) return;
+
+        // 版本比较工具（供内部复用）
+        function cmpVer(a, b) {
+            var ap = (a || '').replace('v', '').split('.').map(Number);
+            var bp = (b || '').replace('v', '').split('.').map(Number);
+            for (var i = 0; i < Math.max(ap.length, bp.length); i++) {
+                var d = (ap[i] || 0) - (bp[i] || 0);
+                if (d !== 0) return d;
+            }
+            return 0;
+        }
+
+        // 渲染单版本 HTML
+        function renderPwaVer(v, e) {
+            var h = '<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #eee;">';
+            h += '<div style="font-weight:600;color:#007aff;margin-bottom:4px;">v' + v;
+            if (e.date) h += ' <span style="font-weight:400;color:#999;font-size:11px;">' + e.date + '</span>';
+            h += '</div>';
+            if (e['new'] && e['new'].length) {
+                h += '<span style="color:#16a34a;font-size:12px;font-weight:600;">✨ 新增</span>';
+                h += '<ul style="margin:2px 0 6px 14px;padding:0;font-size:13px;color:#333;">';
+                e['new'].forEach(function(it) { h += '<li>' + it + '</li>'; });
+                h += '</ul>';
+            }
+            if (e['opt'] && e['opt'].length) {
+                h += '<span style="color:#2563eb;font-size:12px;font-weight:600;">⚡ 优化</span>';
+                h += '<ul style="margin:2px 0 6px 14px;padding:0;font-size:13px;color:#333;">';
+                e['opt'].forEach(function(it) { h += '<li>' + it + '</li>'; });
+                h += '</ul>';
+            }
+            if (e['fix'] && e['fix'].length) {
+                h += '<span style="color:#dc2626;font-size:12px;font-weight:600;">🔧 修复</span>';
+                h += '<ul style="margin:2px 0 6px 14px;padding:0;font-size:13px;color:#333;">';
+                e['fix'].forEach(function(it) { h += '<li>' + it + '</li>'; });
+                h += '</ul>';
+            }
+            h += '</div>';
+            return h;
+        }
+
+        // 渲染 (storedVersion, newVersion] 区间的 changelog HTML
+        function renderPwaChangelog(cl, fromVer, toVer) {
+            if (!cl) return '';
+            var from = (fromVer || '').replace('v', '');
+            var to   = (toVer   || '').replace('v', '');
+            var versions = Object.keys(cl).filter(function(v) {
+                return (!from || cmpVer(v, from) > 0) && (!to || cmpVer(v, to) <= 0);
+            }).sort(function(a, b) { return cmpVer(b, a); });
+            if (!versions.length) return '';
+            var html = '<div style="margin-top:10px;background:#f6fff8;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;max-height:220px;overflow-y:auto;font-size:13px;text-align:left;">';
+            if (versions.length > 1) html += '<div style="margin-bottom:6px;font-size:12px;color:#666;">本次更新包含以下版本：</div>';
+            versions.forEach(function(v) { var e = cl[v]; if (e) html += renderPwaVer(v, e); });
+            html += '</div>';
+            return html;
+        }
+
+        var clHtml = renderPwaChangelog(changelog, storedVersion, newVersion);
+
+        // 历史版本数据：<= storedVersion，倒序
+        var PAGE = 5;
+        var histVersions = [];
+        if (changelog) {
+            var curClean = (storedVersion || '').replace('v', '');
+            histVersions = Object.keys(changelog).filter(function(v) {
+                return !curClean || cmpVer(v, curClean) <= 0;
+            }).sort(function(a, b) { return cmpVer(b, a); });
+        }
+        var histShown = 0;
+        var hasHistory = histVersions.length > 0;
+
         var mask = document.createElement('div');
         mask.id = 'cxPwaUpdateMask';
         mask.className = 'cx-dialog-mask';
         mask.innerHTML = [
             '<div class="cx-dialog">',
             '  <div class="cx-dialog-title">发现新版本</div>',
-            '  <div class="cx-dialog-desc">v' + newVersion + ' 已就绪，将清除旧缓存并重新下载。<br><span style="color:var(--success-text,#2e7d32);font-size:12px">✓ 笔记、主题等用户数据不受影响</span></div>',
+            '  <div class="cx-dialog-desc">v' + newVersion + ' 已就绪，将清除旧缓存并重新下载。<br><span style="color:var(--success-text,#2e7d32);font-size:12px">✓ 笔记、主题等用户数据不受影响</span>' + clHtml + '</div>',
             '  <div class="cx-dialog-actions">',
             '    <button class="cx-dialog-cancel" data-action="cancel">暂不更新</button>',
             '    <button class="cx-dialog-confirm" data-action="confirm" style="color:var(--brand,#007aff)">立即更新</button>',
             '  </div>',
+            hasHistory ? '  <button id="cxPwaHistBtn" style="width:100%;padding:9px 14px;margin-top:8px;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-align:left;">📖 历史版本 ›</button>' : '',
+            hasHistory ? '  <div id="cxPwaHistArea" style="display:none;max-height:260px;overflow-y:auto;margin-top:6px;font-size:13px;"></div>' : '',
             '</div>'
         ].join('');
         document.body.appendChild(mask);
@@ -824,6 +902,46 @@
             if (mask.parentNode) mask.parentNode.removeChild(mask);
             window.CX.backStack.pop();
         }
+
+        // 历史版本分页逻辑
+        if (hasHistory) {
+            function renderHistMore() {
+                var area = document.getElementById('cxPwaHistArea');
+                if (!area) return;
+                var end = Math.min(histShown + PAGE, histVersions.length);
+                var frag = '';
+                for (var i = histShown; i < end; i++) {
+                    if (changelog[histVersions[i]]) frag += renderPwaVer(histVersions[i], changelog[histVersions[i]]);
+                }
+                histShown = end;
+                var oldMore = area.querySelector('.pwa-hist-more');
+                if (oldMore) area.removeChild(oldMore);
+                var tmp = document.createElement('div');
+                tmp.innerHTML = frag;
+                while (tmp.firstChild) area.appendChild(tmp.firstChild);
+                if (histShown < histVersions.length) {
+                    var moreBtn = document.createElement('button');
+                    moreBtn.className = 'pwa-hist-more';
+                    moreBtn.style.cssText = 'width:100%;padding:9px;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;cursor:pointer;margin-top:4px;';
+                    moreBtn.textContent = '更多（还有 ' + (histVersions.length - histShown) + ' 个版本）';
+                    moreBtn.addEventListener('click', function(ev) { ev.stopPropagation(); renderHistMore(); });
+                    area.appendChild(moreBtn);
+                }
+            }
+            var histBtn = document.getElementById('cxPwaHistBtn');
+            if (histBtn) {
+                histBtn.addEventListener('click', function(ev) {
+                    ev.stopPropagation();
+                    var area = document.getElementById('cxPwaHistArea');
+                    if (!area) return;
+                    var isHidden = area.style.display === 'none';
+                    area.style.display = isHidden ? 'block' : 'none';
+                    histBtn.textContent = isHidden ? '📖 历史版本 ∧' : '📖 历史版本 ›';
+                    if (isHidden && histShown === 0) renderHistMore();
+                });
+            }
+        }
+
         mask.addEventListener('click', function(e) {
             var t = e.target;
             var action = t.getAttribute('data-action') ||
@@ -990,7 +1108,16 @@
         if (textarea && countEl) {
             var _composing = false;
             function updateCount() {
+                // Android WebView: sibling DOM mutations can cause a relayout that resets
+                // cursor position in the active textarea. Save & restore selectionStart/End.
+                var ss = -1, se = -1;
+                if (document.activeElement === textarea) {
+                    try { ss = textarea.selectionStart; se = textarea.selectionEnd; } catch(_) {}
+                }
                 countEl.textContent = textarea.value.length + '/' + MAX_LEN;
+                if (ss >= 0) {
+                    try { textarea.setSelectionRange(ss, se); } catch(_) {}
+                }
             }
             textarea.addEventListener('compositionstart', function() { _composing = true; });
             textarea.addEventListener('compositionend', function() { _composing = false; updateCount(); });
@@ -1018,7 +1145,7 @@
                 try {
                     var vEl = document.querySelector('meta[name="app-version"]');
                     if (vEl) appVer = vEl.getAttribute('content') || '';
-                    if (!appVer) appVer = localStorage.getItem('cx_apk_version') || '';
+                    if (!appVer) appVer = localStorage.getItem('cx_apk_version') || localStorage.getItem('cx_pwa_version') || '';
                 } catch(e) {}
 
                 // 运行环境：APK / PWA / 浏览器
