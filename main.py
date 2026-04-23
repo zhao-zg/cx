@@ -9,6 +9,7 @@ import json
 import yaml
 import shutil
 import base64
+import subprocess
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from src.parser_improved import parse_training_docs_improved
@@ -145,7 +146,7 @@ def scan_resource_folders(resource_dir='resource'):
         return []
     
     # 非训练批次目录（数据源目录），跳过不处理
-    _SKIP_DIRS = {'bible'}
+    _SKIP_DIRS = {'bible', 'bible-db', 'bible2'}
 
     folders = []
     for item in os.listdir(resource_dir):
@@ -671,19 +672,32 @@ def main():
     # 初始化经文字典（仅用于跨章节「从略」还原，不持久化到磁盘）
     bible_dict = BibleDict()
 
-    # 提前将圣经数据 JSON 复制到 output/data/，确保 process_batch 能读到用于过滤
+    # 通过 SQL/CG.db 生成圣经数据 JSON 到 output/data/，确保 process_batch 能读到用于过滤
     _output_dir_early = config.get('output_dir', 'output')
     _data_dir_early = os.path.join(_output_dir_early, 'data')
     os.makedirs(_data_dir_early, exist_ok=True)
+
+    _exporter = os.path.join(os.path.dirname(__file__), 'export_bible_sql_json.py')
+    if not os.path.exists(_exporter):
+        print(f"✗ 未找到圣经 SQL 导出脚本: {_exporter}")
+        return 1
+
+    print("\n正在从 CG.db 生成圣经数据 JSON ...")
+    _cmd = [sys.executable, _exporter, '--out-dir', _data_dir_early, '--normalize-xrefs']
+    _ret = subprocess.run(_cmd)
+    if _ret.returncode != 0:
+        print("✗ 圣经数据 JSON 生成失败")
+        return 1
+
+    # 压缩 JSON（去缩进）减少打包体积
     for _df in ['bible-text.json', 'bible-notes.json', 'bible-xrefs.json']:
-        _src = os.path.join('src', 'static', 'data', _df)
         _dst = os.path.join(_data_dir_early, _df)
-        if os.path.exists(_src):
-            with open(_src, 'r', encoding='utf-8') as _rf:
+        if os.path.exists(_dst):
+            with open(_dst, 'r', encoding='utf-8') as _rf:
                 _jdata = json.load(_rf)
             with open(_dst, 'w', encoding='utf-8') as _wf:
                 json.dump(_jdata, _wf, ensure_ascii=False, separators=(',', ':'))
-    print(f"✓ 圣经数据 JSON 已压缩预置到 {_data_dir_early}/")
+    print(f"✓ 圣经数据 JSON 已生成并压缩到 {_data_dir_early}/")
 
     # 处理每个批次
     success_count = 0
