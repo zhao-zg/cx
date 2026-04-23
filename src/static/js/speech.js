@@ -574,8 +574,6 @@
         utt.onstart = function () {
           if (gen !== speakGeneration) return; /* 过期 utterance 不更新状态 */
           _wsSpeakingAt = Date.now();
-          isPlaying = true;
-          isPaused = false;
           // 用实际字符位置重新校准进度，消除时间估算误差
           if (_segLen > 0 && chunkStartChars.length > currentChunk && totalDuration > 0) {
             var segFrac = chunkStartChars[currentChunk] / _segLen;
@@ -652,7 +650,7 @@
 
           var rate = Number(rateSelect.value) || 0.5;
           var gen  = speakGeneration;
-          elapsedOffset = targetSecs; startTime = Date.now(); pauseStartedAt = 0; isPaused = false; isPlaying = true;
+          elapsedOffset = targetSecs; startTime = Date.now(); pauseStartedAt = 0; isPaused = false;
 
           if (segText.length > 200) {
             textChunks = splitIntoChunks(segText, 200);
@@ -674,8 +672,7 @@
               utt.onstart = function () {
                 isSeekingInternal = false; elapsedOffset = targetSecs; startTime = Date.now();
                 _wsSpeakingAt = Date.now();
-                pauseStartedAt = 0; isPaused = false; isPlaying = true;
-                updateButtonState(true); startProgressUpdate(); startWsKeepalive();
+                pauseStartedAt = 0; isPaused = false; updateButtonState(true); startProgressUpdate(); startWsKeepalive();
               };
               utt.onend = function () { if (gen === speakGeneration) onPlaybackNaturalEnd(); };
               utt.onerror = function (event) {
@@ -745,15 +742,6 @@
 
         // First press: load text and start
         if (!isPlaying && !isChunking && !isPaused) {
-          // 状态位偶发漂移（常见于 Android WebView / Native 回调竞态）时，
-          // 若已有有效进度则按当前位置恢复，避免被误判成首次播放从头开始。
-          if (fullText && totalDuration > 0) {
-            var _resumePct = clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100);
-            if (_resumePct > 0.1) {
-              startSpeakingFromPercent(_resumePct);
-              return;
-            }
-          }
           // 首次播放时检查电池优化（仅 NativeTTS / Android APK）
           if (useNativeTTS && !_batteryOptChecked) {
             _batteryOptChecked = true;
@@ -788,16 +776,7 @@
           } else {
             try { window.speechSynthesis.resume(); } catch (e) {}
             isPaused = false;
-            isPlaying = true;
             if (pauseStartedAt) { startTime += (Date.now() - pauseStartedAt); pauseStartedAt = 0; }
-            // 某些 WebView 中 resume() 可能失效：从当前进度兜底恢复，避免回到开头
-            setTimeout(function () {
-              if (isPaused || !fullText || !totalDuration) return;
-              var ws = window.speechSynthesis;
-              if (!ws || ws.speaking || ws.pending) return;
-              var est = clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 99);
-              startSpeakingFromPercent(est);
-            }, 220);
             updateButtonState(true); startProgressUpdate();
           }
           return;
@@ -811,7 +790,7 @@
           updateButtonState(false); stopProgressUpdate();
         } else {
           try { window.speechSynthesis.pause(); } catch (e) {}
-          isPaused = true; isPlaying = false; pauseStartedAt = Date.now();
+          isPaused = true; pauseStartedAt = Date.now();
           updateButtonState(false); stopProgressUpdate(); stopWsKeepalive();
         }
       });
