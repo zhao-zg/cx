@@ -38,7 +38,7 @@ android/app/src/main/java/com/tehui/*
 !android/app/src/main/java/com/tehui/offline/**
 ios/
 .capacitor/
-
+resource/bible2/
 # Output
 output/
 

@@ -679,8 +679,11 @@ def main():
         _src = os.path.join('src', 'static', 'data', _df)
         _dst = os.path.join(_data_dir_early, _df)
         if os.path.exists(_src):
-            shutil.copy2(_src, _dst)
-    print(f"✓ 圣经数据 JSON 已预置到 {_data_dir_early}/")
+            with open(_src, 'r', encoding='utf-8') as _rf:
+                _jdata = json.load(_rf)
+            with open(_dst, 'w', encoding='utf-8') as _wf:
+                json.dump(_jdata, _wf, ensure_ascii=False, separators=(',', ':'))
+    print(f"✓ 圣经数据 JSON 已压缩预置到 {_data_dir_early}/")
 
     # 处理每个批次
     success_count = 0

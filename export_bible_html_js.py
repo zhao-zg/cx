@@ -257,20 +257,20 @@ def parse_file(fp):
     for dl in soup.find_all("dl"):
         dts = dl.find_all("dt", recursive=False)
         dds = dl.find_all("dd", recursive=False)
-        for dt, dd in zip(dts, dds):
+        for dt, dd in zip(dts, dds + [None] * (len(dts) - len(dds))):
             vnum, half, vtext = parse_dt(dt)
-            if not vnum:
+            if not vnum or vnum == "0":
                 continue
             # Format B：DT 无标记，从 DD 的 AA00 段落补充
             if vtext is None:
-                aa00_half, aa00_text = parse_aa00(dd)
+                aa00_half, aa00_text = (parse_aa00(dd) if dd else ('', None))
                 vtext = aa00_text
                 if aa00_half:
                     half = aa00_half
             key = f"{abbrev}{ch}:{vnum}{half}"
             if vtext and key not in texts:
                 texts[key] = vtext
-            notes, xrefs = parse_dd(dd)
+            notes, xrefs = (parse_dd(dd) if dd else ({}, {}))
             if notes:
                 notes_all[key] = notes
             if xrefs:
@@ -281,7 +281,7 @@ def parse_file(fp):
     if faq:
         for div in faq.find_all("div", id="ddt"):
             vnum, half, vtext = parse_ddt(div)
-            if not vnum:
+            if not vnum or vnum == "0":
                 continue
             key = f"{abbrev}{ch}:{vnum}{half}"
             if vtext and key not in texts:   # 勿覆盖已从 DL 解析的节
@@ -293,7 +293,7 @@ def parse_file(fp):
 def write_json(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
+        json.dump(data, f, ensure_ascii=False, indent=2)
     kb = os.path.getsize(path) / 1024
     print(f"  {os.path.basename(path)}: {len(data)} 條, {kb:.0f} KB ({kb/1024:.1f} MB)")
 
