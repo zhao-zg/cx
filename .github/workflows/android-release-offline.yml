@@ -2,8 +2,6 @@
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -47,30 +45,13 @@ jobs:
       
     - name: 提取并配置版本号
       run: |
-        if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-          VERSION=${GITHUB_REF#refs/tags/v}
-          BUILD_KIND="release"
-        else
-          VERSION=$(python3 - << 'PYTHON_EOF'
-        import json
-        try:
-            with open('app_config.json', 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            print(str(data.get('version', '0.1.0')))
-        except Exception:
-            print('0.1.0')
-        PYTHON_EOF
-          )
-          BUILD_KIND="dev"
-        fi
-
+        VERSION=${GITHUB_REF#refs/tags/v}
         if [ -z "$VERSION" ]; then
           VERSION="0.1.0"
         fi
         
         echo "VERSION=$VERSION" >> $GITHUB_ENV
-        echo "BUILD_KIND=$BUILD_KIND" >> $GITHUB_ENV
-        echo "=== 构建类型: $BUILD_KIND | 版本号: $VERSION ==="
+        echo "=== 版本号: $VERSION ==="
         
         # 更新 app_config.json
         echo "更新 app_config.json..."
@@ -745,18 +726,16 @@ jobs:
         
     - name: 验证和重命名 APK
       run: |
-        VERSION=${{ env.VERSION }}
-        BUILD_KIND=${{ env.BUILD_KIND }}
+        VERSION=${GITHUB_REF#refs/tags/v}
+        if [ -z "$VERSION" ]; then
+          VERSION=$(date +%Y%m%d-%H%M%S)
+        fi
         
         echo "=== 处理 APK ==="
         cd android/app/build/outputs/apk/release/
         for apk in *.apk; do
           if [ -f "$apk" ]; then
-            if [ "$BUILD_KIND" = "release" ]; then
-              APK_NAME="TeHui-v${VERSION}.apk"
-            else
-              APK_NAME="TeHui-dev-v${VERSION}-build${GITHUB_RUN_NUMBER}.apk"
-            fi
+            APK_NAME="TeHui-v${VERSION}.apk"
             cp "$apk" "../../../../../../$APK_NAME"
             echo "✓ APK: $APK_NAME"
             echo "  大小: $(du -h "$apk" | cut -f1)"
