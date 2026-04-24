@@ -469,8 +469,8 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
     .hl-ann-act-btn{min-height:40px;font-size:14px}
     .hl-note-expand-btn{min-height:40px;font-size:13px}
     .hl-color-dot{width:34px;height:34px}
-    body{padding:6px 6px 0}
-    .container{padding:10px}
+    body{padding:0}
+    .container{padding:10px;border-radius:0;border-left:none;border-right:none}
     .header{padding:14px 10px}
     .content-text{padding-left:2px}
     .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
