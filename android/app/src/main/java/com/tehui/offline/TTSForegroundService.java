@@ -530,17 +530,15 @@ public class TTSForegroundService extends Service {
     /** 开始每 500ms 向 JS 推送一次实际播放位置。重入安全。 */
     private void startPositionBroadcast() {
         if (positionRunnable != null) return; // 已在运行
-        positionRunnable = new Runnable() {
-            @Override public void run() {
-                if (isStopped || isPaused || positionRunnable == null) return;
-                Listener cb = listener;
-                if (cb != null) {
-                    long posMs   = getCurrentPositionMs();
-                    long totalMs = fullTotalDurationMs > 0 ? fullTotalDurationMs : getTotalDurationMs();
-                    cb.onPosition(posMs, totalMs);
-                }
-                mainHandler.postDelayed(this, 500);
+        positionRunnable = () -> {
+            if (isStopped || isPaused || positionRunnable == null) return;
+            Listener cb = listener;
+            if (cb != null) {
+                long posMs   = getCurrentPositionMs();
+                long totalMs = fullTotalDurationMs > 0 ? fullTotalDurationMs : getTotalDurationMs();
+                cb.onPosition(posMs, totalMs);
             }
+            mainHandler.postDelayed(positionRunnable, 500);
         };
         mainHandler.postDelayed(positionRunnable, 500);
     }

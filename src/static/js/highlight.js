@@ -642,7 +642,7 @@
             menu.style.display   = 'flex';
             menu.style.opacity   = '0';
             requestAnimationFrame(function () {
-                var GAP = 20; // 菜单与选区的最小间距
+                var GAP = 32; // 菜单与选区的最小间距
                 var viewTop;
                 var belowAvail = window.innerHeight - rect.bottom - GAP;
                 var aboveAvail = rect.top - GAP;

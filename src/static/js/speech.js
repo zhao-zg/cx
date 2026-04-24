@@ -307,8 +307,6 @@
         }
       }
 
-      // NativeTTS 分块进度监听句柄（用于删除旧监听器）
-      var _nativeProgressHandle = null;
       // NativeTTS 位置监听句柄（每 500ms Java 推送一次实际位置）
       var _nativePositionHandle = null;
       // 电池优化：本次 session 是否已经检查过（按需弹一次系统对话框）
@@ -479,11 +477,7 @@
         var gen  = speakGeneration;
         var rate = Number(rateSelect.value) || 0.5;
 
-        // 清理旧监听器
-        if (_nativeProgressHandle) {
-          try { _nativeProgressHandle.remove(); } catch (e) {}
-          _nativeProgressHandle = null;
-        }
+        // 清理旧位置监听器
         if (_nativePositionHandle) {
           try { _nativePositionHandle.remove(); } catch (e) {}
           _nativePositionHandle = null;
@@ -500,14 +494,10 @@
               if (data.totalMs > 0) totalDuration = data.totalMs / 1000;
               startTime = Date.now();
             });
-            if (hPos && typeof hPos.then === 'function') {
-              hPos.then(function (handle) {
-                if (gen !== speakGeneration) { try { handle.remove(); } catch (e) {} }
-                else { _nativePositionHandle = handle; }
-              }).catch(function () {});
-            } else {
-              _nativePositionHandle = hPos;
-            }
+            hPos.then(function (handle) {
+              if (gen !== speakGeneration) { try { handle.remove(); } catch (e) {} }
+              else { _nativePositionHandle = handle; }
+            }).catch(function () {});
           } catch (e) {}
         }
         NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
@@ -534,10 +524,6 @@
       }
 
       function nativeStopService() {
-        if (_nativeProgressHandle) {
-          try { _nativeProgressHandle.remove(); } catch (e) {}
-          _nativeProgressHandle = null;
-        }
         if (_nativePositionHandle) {
           try { _nativePositionHandle.remove(); } catch (e) {}
           _nativePositionHandle = null;
@@ -634,8 +620,8 @@
             elapsedOffset = targetSecs;   // ★ 立即更新 JS 端位置，避免 seek 后进度条跳回
             startTime = Date.now();
             isPlaying = true; isPaused = false;
-            var _nativeTTSSeek = getNativeTTS();
-            if (_nativeTTSSeek) try { _nativeTTSSeek.seekTo({ posMs: posMs }); } catch (e) {}
+            var NativeTTS = getNativeTTS();
+            if (NativeTTS) try { NativeTTS.seekTo({ posMs: posMs }); } catch (e) {}
             updateButtonState(true);
             startProgressUpdate();        // ★ 重启进度刷新，seek 后 UI 不冻结
           } else {
@@ -745,12 +731,12 @@
           // 首次播放时检查电池优化（仅 NativeTTS / Android APK）
           if (useNativeTTS && !_batteryOptChecked) {
             _batteryOptChecked = true;
-            var _nativeTTSBat = getNativeTTS();
-            if (_nativeTTSBat && typeof _nativeTTSBat.isBatteryOptimizationIgnored === 'function') {
-              _nativeTTSBat.isBatteryOptimizationIgnored().then(function (r) {
+            var NativeTTS = getNativeTTS();
+            if (NativeTTS && typeof NativeTTS.isBatteryOptimizationIgnored === 'function') {
+              NativeTTS.isBatteryOptimizationIgnored().then(function (r) {
                 if (!r.ignored) {
                   if (window.confirm('为了支持朗读后台播放，需要关闭电池省电策略，是否前往关闭？')) {
-                    _nativeTTSBat.requestIgnoreBatteryOptimization();
+                    NativeTTS.requestIgnoreBatteryOptimization();
                   }
                 }
               }).catch(function () {});
@@ -770,15 +756,13 @@
           if (useNativeTTS) {
             var NativeTTS = getNativeTTS();
             if (NativeTTS) try { NativeTTS.resume(); } catch (e) {}
-            isPaused = false; isPlaying = true;
-            if (pauseStartedAt) { startTime += (Date.now() - pauseStartedAt); pauseStartedAt = 0; }
-            updateButtonState(true); startProgressUpdate();
+            isPlaying = true;
           } else {
             try { window.speechSynthesis.resume(); } catch (e) {}
-            isPaused = false;
-            if (pauseStartedAt) { startTime += (Date.now() - pauseStartedAt); pauseStartedAt = 0; }
-            updateButtonState(true); startProgressUpdate();
           }
+          isPaused = false;
+          if (pauseStartedAt) { startTime += (Date.now() - pauseStartedAt); pauseStartedAt = 0; }
+          updateButtonState(true); startProgressUpdate();
           return;
         }
 
@@ -786,13 +770,13 @@
         if (useNativeTTS) {
           var NativeTTS = getNativeTTS();
           if (NativeTTS) try { NativeTTS.pause(); } catch (e) {}
-          isPaused = true; isPlaying = false; pauseStartedAt = Date.now();
-          updateButtonState(false); stopProgressUpdate();
+          isPlaying = false;
         } else {
           try { window.speechSynthesis.pause(); } catch (e) {}
-          isPaused = true; pauseStartedAt = Date.now();
-          updateButtonState(false); stopProgressUpdate(); stopWsKeepalive();
+          stopWsKeepalive();
         }
+        isPaused = true; pauseStartedAt = Date.now();
+        updateButtonState(false); stopProgressUpdate();
       });
 
       // -- Rate change --------------------------------------------------------
