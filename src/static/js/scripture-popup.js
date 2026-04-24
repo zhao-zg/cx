@@ -19,9 +19,12 @@
 
   /* ── 书卷/数字匹配（支持阿拉伯与中文数字） ── */
   var REF_BOOK_RE = '[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚雅玛太可路约徒罗林加弗腓西帖提门多彼犹启来][后前上下壹贰叁参]?';
+  /* 只有一章的书卷（犹、俄、门、约贰/约叁），引用时可省略章号 */
+  var SINGLE_CHAPTER_BOOKS = { '犹':1, '俄':1, '门':1, '约贰':1, '约叁':1, '约二':1, '约三':1 };
   var REF_NUM_RE = '[0-9一二三四五六七八九十百零〇○]+';
-  /* 支持：太4:19 / 太四19 / 太四19-22 / 太4:19-22 / 路九23 */
-  var INLINE_REF_RE = new RegExp('(' + REF_BOOK_RE + '(?:' + REF_NUM_RE + ':' + REF_NUM_RE + '(?:-' + REF_NUM_RE + ')?[上下]?|[一二三四五六七八九十百零〇○]+' + REF_NUM_RE + '(?:-' + REF_NUM_RE + ')?[上下]?))', 'g');
+  var RANGE_SEP = '[\\-~～—]';  /* 范围分隔符：- ~ ～ — */
+  /* 支持：太4:19 / 太四19 / 太四19-22 / 太4:19~22 / 罗五17～21 / 路九23 */
+  var INLINE_REF_RE = new RegExp('(' + REF_BOOK_RE + '(?:' + REF_NUM_RE + ':' + REF_NUM_RE + '(?:' + RANGE_SEP + REF_NUM_RE + ')?[上下]?|[一二三四五六七八九十百零〇○]+' + REF_NUM_RE + '(?:' + RANGE_SEP + REF_NUM_RE + ')?[上下]?))', 'g');
 
   /* ── HTML 转义 ── */
   function esc(str) {
@@ -98,7 +101,7 @@
       .replace(/^[见見]/g, '')
       .replace(/\s+/g, '')
       .replace(/：/g, ':')
-      .replace(/[－—～]/g, '-')
+      .replace(/[－—～~]/g, '-')
       .replace(/[。；，、]$/g, '');
 
     var bt = parseBookAndTail(ref);
@@ -147,6 +150,19 @@
       var suffix3 = m3[3] || '';
       if (!ch3 || !v3) return ref;
       return book + ch3 + ':' + v3 + suffix3;
+    }
+
+    /* 单章书卷：犹20 → 犹1:20，门8 → 门1:8 */
+    if (SINGLE_CHAPTER_BOOKS[book]) {
+      var m4 = tail.match(/^(\d+(?:-\d+)?)([上下]?)$/);
+      if (m4) {
+        var vr4 = m4[1], suffix4 = m4[2] || '';
+        if (vr4.indexOf('-') >= 0) {
+          var ab4 = vr4.split('-', 2);
+          return book + '1:' + ab4[0] + '-' + ab4[1] + suffix4;
+        }
+        return book + '1:' + vr4 + suffix4;
+      }
     }
 
     return ref;
@@ -217,24 +233,14 @@
     _cbText.push(cb);
     if (_loadingText) return;
     _loadingText = true;
-    /* 并行加载全本圣经 + 训练补充经文，两者都完成后才标记 READY */
-    var pending = 2;
-    function onBoth() {
-      if (--pending > 0) return;
-      window.CX_BIBLE_TEXT_READY = 1;
-      var cbs = _cbText.slice(); _cbText = [];
-      cbs.forEach(function (f) { f(); });
-    }
     loadJSON(getRootPath() + 'data/bible-text.json', function (data) {
       if (data) {
         window.CX_BIBLE_TEXT_DATA = data;  /* 保留全本圣经独立引用，供整章展开使用 */
         window.CX_SCRIPTURES_DATA = Object.assign(window.CX_SCRIPTURES_DATA || {}, data);
       }
-      onBoth();
-    });
-    loadJSON('js/scriptures-data.json', function (data) {
-      if (data) window.CX_SCRIPTURES_DATA = Object.assign(window.CX_SCRIPTURES_DATA || {}, data);
-      onBoth();
+      window.CX_BIBLE_TEXT_READY = 1;
+      var cbs = _cbText.slice(); _cbText = [];
+      cbs.forEach(function (f) { f(); });
     });
   }
 
@@ -394,7 +400,7 @@
       ensureBibleNotes(function () {
         var noteMap = (window.CX_BIBLE_NOTES || {})[frame.verseKey] || {};
         var text = noteMap[frame.num] || '（未找到注解）';
-        m.body.innerHTML = '<div class="scripture-popup-fn-body">' + renderNoteText(text) + '</div>';
+        m.body.innerHTML = '<div class="scripture-popup-fn-body">' + renderNoteText(text, frame.verseKey) + '</div>';
         m.body.scrollTop = frame._scrollTop || 0;
       });
     } else if (frame.type === 'xrefs') {
@@ -443,6 +449,20 @@
           + '<span class="scripture-popup-text">' + renderVerseText(raw, bk) + '</span>'
           + '</div>';
       }
+      /* 无精确匹配时，尝试上/下半节合并显示（如 弗3:17 → 弗3:17上 + 弗3:17下） */
+      if (!/[上下]$/.test(nr)) {
+        var upRaw = dict[nr + '上'], downRaw = dict[nr + '下'];
+        if (upRaw || downRaw) {
+          var combined = '';
+          if (upRaw) combined += '<div class="scripture-popup-verse" data-vkey="' + esc(bk) + '">'
+            + '<span class="scripture-popup-ref">' + esc(ref + '上') + '</span>'
+            + '<span class="scripture-popup-text">' + renderVerseText(upRaw, bk) + '</span></div>';
+          if (downRaw) combined += '<div class="scripture-popup-verse" data-vkey="' + esc(bk) + '">'
+            + '<span class="scripture-popup-ref">' + esc(ref + '下') + '</span>'
+            + '<span class="scripture-popup-text">' + renderVerseText(downRaw, bk) + '</span></div>';
+          return combined;
+        }
+      }
       return '<div class="scripture-popup-verse scripture-popup-verse--missing">'
         + '<span class="scripture-popup-ref">' + esc(ref) + '</span>'
         + '<span class="scripture-popup-text">（未收录）</span>'
@@ -464,8 +484,12 @@
     return text;
   }
 
-  /* 渲染注解文字（内嵌经文引用变为可点击） */
-  function renderNoteText(text) {
+  /* 渲染注解文字（内嵌经文引用变为可点击，verseKey 提供书卷上下文） */
+  function renderNoteText(text, verseKey) {
+    if (window.CXRef && window.CXRef.wrapRefs) {
+      return window.CXRef.wrapRefs(text, verseKey || '')
+        .replace(/\n/g, '<br>');
+    }
     return esc(text)
       .replace(
         INLINE_REF_RE,
@@ -548,10 +572,16 @@
   document.addEventListener('click', function (e) {
     var t = e.target;
     while (t && t !== document) {
-      /* .scripture-ref[data-refs] → 打开弹框 */
+      /* .scripture-ref[data-refs] → 打开弹框，或若已在弹框内则 navPush 导航 */
       if (t.classList && t.classList.contains('scripture-ref') && t.dataset && t.dataset.refs) {
         e.preventDefault(); e.stopPropagation();
-        openModal(t.dataset.refs, t.textContent.replace(/^[—─\s]+/,'').trim());
+        var overlay = document.getElementById('scripture-popup-overlay');
+        var insidePopup = overlay && overlay.contains(t);
+        if (insidePopup) {
+          navPush({ type: 'verses', refs: t.dataset.refs, label: t.textContent.trim() });
+        } else {
+          openModal(t.dataset.refs, t.textContent.replace(/^[—─\s]+/,'').trim());
+        }
         return;
       }
       /* fn-ref（注脚号）*/
@@ -731,7 +761,14 @@
   }
 
   /* ── 暴露给外部（可选）── */
-  window.CXScripturePopup = { open: openModal, close: closeModal };
+  /* init()：由 renderer.js 的 setContent 在每次 SPA 切换后调用，
+   * 重新对动态插入的经文块执行注解/串珠注入和行内引用标注。 */
+  function init() {
+    annotateInlineRefs();
+    renderScriptureBlocks();
+    renderScriptureStaticBlocks();
+  }
+  window.CXScripturePopup = { open: openModal, close: closeModal, init: init };
 
   /* ── 空闲预加载：页面加载后利用空闲时间提前解析三个大文件 ──
    * 文件已在 PWA/APK 缓存中，无网络开销；

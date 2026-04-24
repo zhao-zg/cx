@@ -1,0 +1,1013 @@
+/*!
+ * renderer.js — SPA JSON→HTML 渲染器
+ *
+ * 从 training.json 渲染各视图，DOM/class/id 与旧静态模板完全一致，
+ * 确保 speech.js / outline.js / scripture-popup.js / highlight.js 等选择器全部兼容。
+ *
+ * 暴露：window.CXRenderer
+ *   .renderHome()
+ *   .renderBatchIndex(batchPath)
+ *   .renderChapterView(batchPath, chapterNum, viewType)
+ *   .renderMotto(batchPath)
+ *   .renderMottoSong(batchPath)
+ */
+(function (win) {
+  'use strict';
+
+  // ── 工具 ────────────────────────────────────────────────────────────────
+
+  function escAttr(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function escText(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function wrapRefs(text, ctx) {
+    return win.CXRef ? win.CXRef.wrapRefs(text, ctx||'') : escText(text);
+  }
+
+  // 把读经横幅文本（如 "徒六4，犹20，可十一20~24"）整体包成可点击的 scripture-ref。
+  // 优先使用 CXRef.expandCnRefs 展开 → data-refs；若无则回退 fallbackRefs（已为逗号分隔的引用键）。
+  function buildScriptureBanner(displayText, fallbackRefs) {
+    if (!displayText) return '';
+    var refs = '';
+    if (win.CXRef && win.CXRef.expandCnRefs) {
+      try { refs = (win.CXRef.expandCnRefs(displayText, '', 0) || []).join(','); } catch(e) {}
+    }
+    if (!refs && fallbackRefs) refs = fallbackRefs;
+    if (refs) {
+      return '<span class="scripture-ref" data-refs="' + escAttr(refs) + '">' + escText(displayText) + '</span>';
+    }
+    return escText(displayText);
+  }
+
+  // 缓存已加载的 training.json
+  var _cache = {};
+
+  function loadTraining(batchPath) {
+    if (_cache[batchPath]) return Promise.resolve(_cache[batchPath]);
+    var root = win.CX_ROOT || './';
+    return fetch(root + batchPath + '/training.json')
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(data) {
+        _cache[batchPath] = data;
+        return data;
+      });
+  }
+
+  // 从经文文本中提取所有引用（与 Python 的 _extract_verse_refs 等价）
+  var _BOOK_RE = /([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼约犹启来])(?:[一二三四五六七八九十后前上下壹贰叁]\d+|\d+):\d+[上下]?/g;
+  function extractRefs(text) {
+    if (!text) return '';
+    var m, out = [], seen = {};
+    _BOOK_RE.lastIndex = 0;
+    while ((m = _BOOK_RE.exec(text)) !== null) {
+      var ref = m[0];
+      if (!seen[ref]) { seen[ref] = 1; out.push(ref); }
+    }
+    return out.join(',');
+  }
+
+  // outline_level_class — 与 Python 完全一致
+  var _LEVEL_1_CHARS = '壹贰叁肆伍陆柒捌玖拾';
+  var _LEVEL_2_CHARS = '一二三四五六七八九十百';
+  var _ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+  function outlineLevelClass(s) {
+    if (!s) return 'level-1';
+    s = String(s).trim();
+    if (!s) return 'level-1';
+    var i, ok;
+    ok = true; for (i=0;i<s.length;i++){ if (_LEVEL_1_CHARS.indexOf(s.charAt(i))<0){ok=false;break;} }
+    if (ok) return 'level-1';
+    if (_ROMAN.indexOf(s.toUpperCase()) >= 0) return 'level-1';
+    if (s.length === 1 && /^[A-Z]$/.test(s)) return 'level-1';
+    ok = true; for (i=0;i<s.length;i++){ if (_LEVEL_2_CHARS.indexOf(s.charAt(i))<0){ok=false;break;} }
+    if (ok) return 'level-2';
+    if (/^\d+$/.test(s)) return 'level-3';
+    if (s.length === 1 && /^[a-z]$/.test(s)) return 'level-4';
+    if ('㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩'.indexOf(s) >= 0) return 'level-5';
+    return 'level-3';
+  }
+
+  // 提取星期：「第一周 • 周一」-> 「周一」
+  function extractDay(s) {
+    s = String(s||'');
+    if (s.indexOf('•') >= 0) return s.split('•')[1].trim();
+    return s;
+  }
+
+  // 当前星期对应索引（周一=0 ... 周日=6）
+  function currentWeekdayIdx() {
+    var d = new Date().getDay();
+    return d === 0 ? 6 : d - 1;
+  }
+
+  // ── 容器与视图切换 ────────────────────────────────────────────────────
+
+  function getApp() { return document.getElementById('app') || document.body; }
+
+  function showApp() {
+    if (win._cxShowApp) { win._cxShowApp(); return; }
+    var h=document.getElementById('homeView'),a=document.getElementById('app');
+    if (h) h.style.display='none';
+    if (a) a.style.display='';
+  }
+  function showHome() {
+    if (win._cxShowHome) { win._cxShowHome(); return; }
+    var h=document.getElementById('homeView'),a=document.getElementById('app');
+    if (h) h.style.display='';
+    if (a) a.style.display='none';
+    document.title = '特会信息合集';
+  }
+
+  function setMeta(training) {
+    var m1 = document.querySelector('meta[name="training-title"]');
+    if (m1 && training) m1.setAttribute('content', training.title || '');
+    var m2 = document.querySelector('meta[name="app-version"]');
+    if (m2 && training && training.app_version) m2.setAttribute('content', training.app_version);
+  }
+
+  // ── 通用片段：page_navigation + bottom-control-bar ────────────────────
+
+  function buildBottomControlBar() {
+    return '' +
+      '<div class="bottom-control-bar" id="bottomControlBar" style="display:none;">' +
+        '<button class="control-btn play-pause-btn" id="playPauseBtn" title="播放/暂停" aria-label="播放">' +
+          '<span class="play-icon">▶</span>' +
+          '<span class="pause-icon" style="display:none;">⏸</span>' +
+        '</button>' +
+        '<button class="control-btn loop-btn" id="loopBtn" title="循环播放" aria-label="循环播放">🔁</button>' +
+        '<div class="progress-section">' +
+          '<div class="progress-column">' +
+            '<input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">' +
+            '<span class="speech-time" id="speechTime">00:00 / 00:00</span>' +
+          '</div>' +
+          '<select id="rateSelect" class="control-select" title="语速">' +
+            '<option value="0.5">0.5x</option>' +
+            '<option value="0.75">0.75x</option>' +
+            '<option value="1" selected>1x</option>' +
+            '<option value="1.25">1.25x</option>' +
+            '<option value="1.5">1.5x</option>' +
+            '<option value="2">2x</option>' +
+          '</select>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function buildPageNavigation(batchPath, chapter, activeView) {
+    var num = chapter.number;
+    function link(view, label) {
+      var act = (view === activeView || (view === 'h' && activeView === 'ts')) ? ' active' : '';
+      return '<a href="javascript:void(0)" class="nav-link' + act + '" title="' + label + '" onclick="CXRouter.navigate(\'' +
+        escAttr(batchPath) + '/' + num + '/' + view + '\')">' + label + '</a>';
+    }
+    var html = '<div class="page-navigation">';
+    html += '<a href="javascript:void(0)" class="nav-link" title="返回目录" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')">返回</a>';
+    html += link('cv', '纲目');
+    html += link('h', '听抄');
+    if (chapter.morning_revivals && chapter.morning_revivals.length > 0) {
+      html += link('cx', '晨兴');
+    }
+    if (chapter.hymn_number && String(chapter.hymn_number).trim()) {
+      html += link('sg', '诗歌');
+    }
+    if (chapter.ministry_excerpt && String(chapter.ministry_excerpt).trim()) {
+      html += link('zs', '职事');
+    }
+    html += '<button type="button" id="cx-search-btn" class="nav-link" title="搜索">🔍</button>';
+    html += '</div>';
+    html += buildBottomControlBar();
+    return html;
+  }
+
+  function buildChapterHeader(chapter) {
+    return '<div class="header header--chapter">' +
+      '<h2 class="chapter-title">第' + chapter.number + '篇 ' + escText(chapter.title) + '</h2>' +
+      '</div>';
+  }
+
+  function buildFooter(training) {
+    if (!training) return '';
+    return '<div class="footer"><p>' + escText(training.year + '-' + training.season) + '</p></div>';
+  }
+
+  // ── 纲目递归（cv 视图 + 晨兴 outline）─────────────────────────────────
+
+  /* ctx-box：用可变对象在递归渲染中传播上下文，避免父节点识别出的书卷/章无法传给子节点 */
+  function toCtxBox(ctx) {
+    if (ctx && typeof ctx === 'object' && 'val' in ctx) return ctx; // 已是 box
+    return { val: (typeof ctx === 'string' ? ctx : '') };
+  }
+  function scanCtxBox(text, box) {
+    if (!win.CXRef || !win.CXRef.scanCtx) return;
+    var next = win.CXRef.scanCtx(text, box.val);
+    if (next) box.val = next;
+  }
+
+  function renderOutlineSection(sec, depth, parentId, defaultCollapsed, idPrefix, ctx) {
+    parentId = parentId || '';
+    idPrefix = idPrefix || '';
+    var box = toCtxBox(ctx);
+    var sectionId = idPrefix + (parentId ? (parentId + '-' + sec.level) : sec.level);
+    var hasChildren = sec.children && sec.children.length > 0;
+    var lvCls = outlineLevelClass(sec.level);
+    var titleKey = sec.level + '\u3000' + sec.title;
+    var titleHtml = wrapRefs(titleKey, box.val);
+    scanCtxBox(titleKey, box);
+
+    var html = '<div class="section" id="section-' + escAttr(sectionId) + '" data-level="' + depth + '">';
+    html += '<div class="outline-item ' + lvCls + '">';
+    if (hasChildren) {
+      html += '<button class="toggle-btn' + (defaultCollapsed ? '' : ' expanded') +
+              '" onclick="toggleSection(\'subsection-' + escAttr(sectionId) + '\')">' +
+              '<span class="toggle-icon"></span></button>';
+    }
+    html += titleHtml;
+    html += '</div>';
+
+    if (hasChildren) {
+      var disp = defaultCollapsed ? 'none' : 'block';
+      html += '<div class="subsections" id="subsection-' + escAttr(sectionId) +
+              '" data-parent-level="' + depth + '" style="display: ' + disp + ';">';
+      for (var i = 0; i < sec.children.length; i++) {
+        html += renderOutlineSection(sec.children[i], depth + 1, sectionId, defaultCollapsed, '', box);
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // ── 听抄递归（h 视图）— 与 message.html macro 一致 ─────────────────
+
+  function renderMessageSection(sec, depth, ctx) {
+    ctx = ctx || '';
+    var html = '<div class="section">';
+    html += '<div class="section-level' + depth + '">' + wrapRefs(sec.level + '\u3000' + sec.title, ctx) + '</div>';
+    if (sec.content && sec.content.length) {
+      html += '<div class="section-content">';
+      for (var i = 0; i < sec.content.length; i++) {
+        html += '<p class="content-text">' + wrapRefs(sec.content[i], ctx) + '</p>';
+      }
+      html += '</div>';
+    }
+    if (sec.children && sec.children.length) {
+      html += '<div class="subsections">';
+      for (var ci = 0; ci < sec.children.length; ci++) {
+        html += renderMessageSection(sec.children[ci], depth + 1, ctx);
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // ── 详情递归（ts 视图）— 与 details.html macro 一致 ──────────────
+
+  function renderDetailSection(sec, ctx) {
+    var box = toCtxBox(ctx);
+    var levelLen = (sec.level || '').length;
+    var levelN = levelLen <= 4 ? levelLen : 4;
+    if (levelN === 0) levelN = 1;
+    var titleKey = sec.level + '\u3000' + sec.title;
+    var html = '<div class="section" id="section-' + escAttr(sec.level || '') + '">';
+    html += '<div class="section-level' + levelN + '">' + wrapRefs(titleKey, box.val) + '</div>';
+    scanCtxBox(titleKey, box);
+    if (sec.content && sec.content.length) {
+      for (var i = 0; i < sec.content.length; i++) {
+        html += '<div class="content-text">' + wrapRefs(sec.content[i], box.val) + '</div>';
+        scanCtxBox(sec.content[i], box);
+      }
+    }
+    if (sec.children && sec.children.length) {
+      for (var ci = 0; ci < sec.children.length; ci++) {
+        html += renderDetailSection(sec.children[ci], box);
+      }
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // ── 视图: cv（纲目）────────────────────────────────────────────────────
+
+  function renderCv(batchPath, chapter, training) {
+    var nav = buildPageNavigation(batchPath, chapter, 'cv');
+    var header = buildChapterHeader(chapter);
+
+    var scriptureBlock = '';
+    if (chapter.scripture) {
+      var inner = buildScriptureBanner(chapter.scripture, chapter.scripture_verses);
+      scriptureBlock = '<div class="scripture-section"><div class="scripture">读经：' + inner + '</div></div>';
+    }
+
+    var controls = '<div class="outline-level-controls">' +
+      '<button class="level-btn" onclick="expandToLevel(1)" title="只显示大纲（一级）">大纲</button>' +
+      '<button class="level-btn" onclick="expandToLevel(2)" title="显示大纲和中纲（一二级）">大中纲</button>' +
+      '<button class="level-btn active" onclick="expandToLevel(4)" title="显示全部内容">全部</button>' +
+      '</div>';
+
+    var sections = '';
+    var secs = chapter.outline_sections || [];
+    var ctxBox = {val: chapter.scripture || ''};
+    for (var i = 0; i < secs.length; i++) {
+      sections += renderOutlineSection(secs[i], 1, '', false, '', ctxBox);
+    }
+
+    var html = '<div class="container">' +
+      header +
+      '<div class="content"><div class="outline-page">' +
+      nav + scriptureBlock + controls +
+      '<div class="outline-content">' + sections + '</div>' +
+      '</div></div>' +
+      buildFooter(training) +
+      '</div>';
+
+    setContent(html, 'cv', batchPath, chapter, training);
+  }
+
+  // ── 视图: h（听抄）────────────────────────────────────────────────────
+
+  function renderH(batchPath, chapter, training) {
+    var nav = buildPageNavigation(batchPath, chapter, 'h');
+    var header = buildChapterHeader(chapter);
+
+    var scriptureBlock = '';
+    if (chapter.scripture) {
+      var inner = buildScriptureBanner(chapter.scripture, chapter.scripture_verses);
+      scriptureBlock = '<div class="scripture-section"><div class="scripture">读经：' + inner + '</div></div>';
+    }
+
+    var content = '';
+    var msgs = chapter.message_content || [];
+    var msgCtxBox = {val: chapter.scripture || ''};
+    for (var mi = 0; mi < msgs.length; mi++) {
+      content += '<p class="content-text">' + wrapRefs(msgs[mi], msgCtxBox.val) + '</p>';
+      scanCtxBox(msgs[mi], msgCtxBox);
+    }
+    var detailSecs = chapter.detail_sections || [];
+    for (var di = 0; di < detailSecs.length; di++) {
+      content += renderMessageSection(detailSecs[di], 1, msgCtxBox);
+    }
+    if (!content && !msgs.length) {
+      content = '<p class="no-content">职事信息内容暂缺</p>';
+    }
+
+    var html = '<div class="container">' +
+      header +
+      '<div class="content"><div class="message-page">' +
+      nav + scriptureBlock +
+      '<div class="message-content">' + content + '</div>' +
+      '</div></div>' +
+      buildFooter(training) +
+      '</div>';
+
+    setContent(html, 'h', batchPath, chapter, training);
+  }
+
+  // ── 视图: ts（详情）────────────────────────────────────────────────────
+
+  function renderTs(batchPath, chapter, training) {
+    var nav = buildPageNavigation(batchPath, chapter, 'ts');
+    var header = buildChapterHeader(chapter);
+    var scriptureBlock = chapter.scripture
+      ? '<div class="scripture">读经：' + buildScriptureBanner(chapter.scripture, chapter.scripture_verses) + '</div>'
+      : '';
+
+    var content = '';
+    var secs = chapter.detail_sections || [];
+    var tsCtxBox = {val: chapter.scripture || ''};
+    for (var i = 0; i < secs.length; i++) {
+      content += renderDetailSection(secs[i], tsCtxBox);
+    }
+
+    var html = '<div class="container">' +
+      header +
+      '<div class="content"><div class="details-page">' +
+      nav + scriptureBlock +
+      '<div class="details-content">' + content + '</div>' +
+      '</div></div>' +
+      buildFooter(training) +
+      '</div>';
+
+    setContent(html, 'ts', batchPath, chapter, training);
+  }
+
+  // ── 视图: sg（诗歌）────────────────────────────────────────────────────
+
+  function renderSg(batchPath, chapter, training) {
+    var nav = buildPageNavigation(batchPath, chapter, 'sg');
+    var header = buildChapterHeader(chapter);
+    var root = win.CX_ROOT || './';
+
+    var inner = '';
+    if (chapter.hymn_number) {
+      inner = '<div class="hymn-info">' +
+        '<h3>诗歌</h3>' +
+        '<p class="hymn-number-display">' + escText(chapter.hymn_number) + '</p>';
+      if (chapter.hymn_image) {
+        var imgUrl = root + escAttr(batchPath) + '/' + escAttr(chapter.hymn_image);
+        inner += '<div class="hymn-image">' +
+          '<img src="' + imgUrl + '" alt="诗歌内容" class="hymn-img-clickable" onclick="window.openImageViewer&&openImageViewer(this.src)">' +
+          '<p class="click-hint">👆 点击图片放大查看</p>' +
+          '</div>';
+      }
+      inner += '</div>';
+    } else {
+      inner = '<p class="no-content">暂无诗歌信息</p>';
+    }
+    inner += '<div class="hymn-note"><p>💡 本诗歌在原始文档中以图片格式存储，完整内容请查阅相应的诗歌本</p></div>';
+
+    var html = '<div class="container">' +
+      header +
+      '<div class="content"><div class="hymn-page">' + nav + inner + '</div></div>' +
+      buildFooter(training) +
+      '</div>';
+
+    setContent(html, 'sg', batchPath, chapter, training);
+  }
+
+  // ── 视图: zs（职事信息摘录）─ 按 \n\n 分段 ─────────────────────────
+
+  function renderZs(batchPath, chapter, training) {
+    var nav = buildPageNavigation(batchPath, chapter, 'zs');
+    var header = buildChapterHeader(chapter);
+    var scriptureBlock = chapter.scripture
+      ? '<div class="scripture">读经：' + buildScriptureBanner(chapter.scripture, chapter.scripture_verses) + '</div>'
+      : '';
+
+    var content = '';
+    var excerpt = chapter.ministry_excerpt || '';
+    if (excerpt) {
+      var paragraphs = excerpt.split(/\n\s*\n/);
+      for (var i = 0; i < paragraphs.length; i++) {
+        var p = paragraphs[i].trim();
+        if (!p) continue;
+        if (p.length < 30 && p.indexOf('\n') < 0) {
+          content += '<h3 class="ministry-subtitle">' + escText(p) + '</h3>';
+        } else {
+          content += '<p class="content-text">' + wrapRefs(p, chapter.scripture) + '</p>';
+        }
+      }
+    } else {
+      content = '<p class="no-content">暂无职事信息摘录</p>';
+    }
+
+    var html = '<div class="container">' +
+      header +
+      '<div class="content"><div class="ministry-page">' +
+      nav + scriptureBlock +
+      '<div class="ministry-content">' + content + '</div>' +
+      '</div></div>' +
+      buildFooter(training) +
+      '</div>';
+
+    setContent(html, 'zs', batchPath, chapter, training);
+  }
+
+  // ── 视图: cx（晨兴）────────────────────────────────────────────────────
+
+  function renderCx(batchPath, chapter, training) {
+    var nav = buildPageNavigation(batchPath, chapter, 'cx');
+    var header = buildChapterHeader(chapter);
+    var revivals = chapter.morning_revivals || [];
+
+    if (!revivals.length) {
+      var noContent = '<div class="container">' + header +
+        '<div class="content"><div class="morning-revival-page">' + nav +
+        '<p class="no-content">暂无晨兴内容</p></div></div>' +
+        buildFooter(training) + '</div>';
+      setContent(noContent, 'cx', batchPath, chapter, training);
+      return;
+    }
+
+    var dayTabs = '';
+    for (var di = 0; di < revivals.length; di++) {
+      dayTabs += '<button class="day-link" data-day="' + di + '">' + escText(extractDay(revivals[di].day)) + '</button>';
+    }
+
+    var pages = '';
+    for (var ri = 0; ri < revivals.length; ri++) {
+      var rev = revivals[ri];
+      var dayPrefix = 'day' + (ri + 1) + '-';
+      var mfCtxs = rev.morning_feeding_contexts || [];
+      var mrCtxs = rev.message_reading_contexts || [];
+      var feedingRefs = rev.feeding_refs || [];
+
+      var outlineHtml = '';
+      if (rev.outline && rev.outline.length) {
+        outlineHtml = '<div class="outline-section">';
+        var cxOutlineBox = toCtxBox(chapter.scripture || '');
+        for (var oi = 0; oi < rev.outline.length; oi++) {
+          outlineHtml += renderOutlineSection(rev.outline[oi], 1, '', false, dayPrefix, cxOutlineBox);
+        }
+        outlineHtml += '</div>';
+      }
+
+      var feedingHtml = '';
+      var hasFeeding = (rev.feeding_scriptures && rev.feeding_scriptures.length) || (rev.morning_feeding && rev.morning_feeding.length);
+      var hasReading = rev.message_reading && rev.message_reading.length;
+      if (hasFeeding) {
+        feedingHtml = '<div class="feeding-section"><h4>晨兴喂养</h4>';
+        var fs = rev.feeding_scriptures || [];
+        for (var fi = 0; fi < fs.length; fi++) {
+          var frefs = feedingRefs[fi] || '';
+          if (frefs) {
+            feedingHtml += '<div class="scripture-block-static" data-refs="' + escAttr(frefs) + '">' + escText(fs[fi]) + '</div>';
+          } else {
+            feedingHtml += '<div class="feeding-scripture">' + escText(fs[fi]) + '</div>';
+          }
+        }
+        var mf = rev.morning_feeding || [];
+        for (var mfi = 0; mfi < mf.length; mfi++) {
+          var mfCtx = mfCtxs[mfi] || chapter.scripture || '';
+          feedingHtml += '<p class="content-text">' + wrapRefs(mf[mfi], mfCtx) + '</p>';
+        }
+        feedingHtml += '</div>';
+      }
+
+      var readingHtml = '';
+      if (hasReading) {
+        readingHtml = '<div class="reading-section"><h4>信息选读</h4>';
+        var mr = rev.message_reading;
+        for (var mri = 0; mri < mr.length; mri++) {
+          var mrCtx = mrCtxs[mri] || chapter.scripture || '';
+          readingHtml += '<p class="content-text">' + wrapRefs(mr[mri], mrCtx) + '</p>';
+        }
+        readingHtml += '</div>';
+      }
+
+      var refReadHtml = '';
+      if (rev.ref_reading && rev.ref_reading.length) {
+        var validRefs = rev.ref_reading.filter(function(l){ return l.indexOf('参读') >= 0; });
+        if (validRefs.length) {
+          refReadHtml = '<p class="content-text">' + validRefs.map(escText).join('<br>') + '</p>';
+        }
+      }
+
+      var sep = (hasFeeding || hasReading) ? '<div class="content-separator"></div>' : '';
+
+      pages += '<div class="day-page" data-day="' + (ri + 1) + '" data-page="' + ri + '">' +
+        outlineHtml + sep + feedingHtml + readingHtml + refReadHtml +
+        '</div>';
+    }
+
+    var html = '<div class="container">' +
+      header +
+      '<div class="content">' +
+      '<div class="morning-revival-page">' +
+      nav +
+      '<div class="day-navigation">' + dayTabs + '</div>' +
+      '<div class="pages-container" data-total-pages="' + revivals.length + '">' +
+      '<div class="pages-track">' + pages + '</div>' +
+      '</div>' +
+      '<div class="page-controls">' +
+      '<button class="prev-btn" id="prevBtn"><span>←</span><span class="btn-text">上一天</span></button>' +
+      '<span class="page-indicator" id="pageIndicator">1 / ' + revivals.length + '</span>' +
+      '<button class="next-btn" id="nextBtn"><span class="btn-text">下一天</span><span>→</span></button>' +
+      '</div>' +
+      '</div>' +
+      '</div>' +
+      buildFooter(training) +
+      '</div>';
+
+    setContent(html, 'cx', batchPath, chapter, training);
+
+    var initialPage = currentWeekdayIdx();
+    if (initialPage >= revivals.length) initialPage = 0;
+    setTimeout(function(){ initDayPager(initialPage); }, 0);
+  }
+
+  // ── 天翻页（晨兴）─ 与 morning_revival.html 内嵌脚本一致 ──────────
+
+  function initDayPager(initialPage) {
+    var container = document.querySelector('.pages-container');
+    if (!container) return;
+    var totalPages = parseInt(container.dataset.totalPages, 10) || 0;
+    if (!totalPages) return;
+
+    var track = container.querySelector('.pages-track');
+    var pages = container.querySelectorAll('.day-page');
+    var dayLinks = document.querySelectorAll('.day-link');
+    var prevBtn = document.getElementById('prevBtn');
+    var nextBtn = document.getElementById('nextBtn');
+    var indicator = document.getElementById('pageIndicator');
+    var currentPage = 0;
+
+    function setTrack(pct, animate) {
+      track.style.transition = animate ? 'transform .3s cubic-bezier(.25,.46,.45,.94)' : 'none';
+      track.style.transform = 'translateX(' + pct + '%)';
+    }
+
+    function updateHeight() {
+      var active = pages[currentPage];
+      if (active) container.style.height = active.offsetHeight + 'px';
+    }
+
+    function showPage(idx, scroll) {
+      if (idx < 0 || idx >= totalPages) return;
+      if (win.CXSpeech && win.CXSpeech.cancel) try { win.CXSpeech.cancel(); } catch(e) {}
+      currentPage = idx;
+      setTrack(-currentPage * 100, true);
+      pages.forEach(function(p, i){ p.classList.toggle('is-active', i === currentPage); });
+      dayLinks.forEach(function(l, i){ l.classList.toggle('active', i === currentPage); });
+      if (prevBtn) prevBtn.disabled = currentPage === 0;
+      if (nextBtn) nextBtn.disabled = currentPage === totalPages - 1;
+      if (indicator) indicator.textContent = (currentPage+1) + ' / ' + totalPages;
+      setTimeout(updateHeight, 50);
+      if (scroll === true) win.scrollTo({top:0,behavior:'smooth'});
+    }
+
+    if (prevBtn) prevBtn.addEventListener('click', function(){ if (currentPage > 0) showPage(currentPage - 1, true); });
+    if (nextBtn) nextBtn.addEventListener('click', function(){ if (currentPage < totalPages - 1) showPage(currentPage + 1, true); });
+    dayLinks.forEach(function(l, i){ l.addEventListener('click', function(){ showPage(i, true); }); });
+
+    var touchStartX = 0, touchStartY = 0, isDragging = false, isHorizontal = null;
+    container.addEventListener('touchstart', function(e){
+      var sel = win.getSelection();
+      if (sel && sel.toString().length > 0) { isDragging = false; return; }
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      isDragging = true; isHorizontal = null;
+      track.style.transition = 'none';
+    }, {passive:true});
+
+    container.addEventListener('touchmove', function(e){
+      if (!isDragging) return;
+      var dx = e.touches[0].clientX - touchStartX;
+      var dy = e.touches[0].clientY - touchStartY;
+      if (isHorizontal === null) {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+        isHorizontal = Math.abs(dx) > Math.abs(dy);
+      }
+      if (!isHorizontal) return;
+      var pct = -currentPage * 100 + dx / container.offsetWidth * 100;
+      if (currentPage === 0 && dx > 0) pct = dx / container.offsetWidth * 30;
+      if (currentPage === totalPages - 1 && dx < 0) pct = -currentPage * 100 + dx / container.offsetWidth * 30;
+      setTrack(pct, false);
+    }, {passive:true});
+
+    container.addEventListener('touchend', function(e){
+      if (!isDragging) return;
+      var dx = e.changedTouches[0].clientX - touchStartX;
+      isDragging = false;
+      if (isHorizontal !== true) return;
+      if (dx < -50 && currentPage < totalPages - 1) showPage(currentPage + 1, false);
+      else if (dx > 50 && currentPage > 0) showPage(currentPage - 1, false);
+      else setTrack(-currentPage * 100, true);
+    });
+
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'ArrowLeft' && prevBtn) prevBtn.click();
+      else if (e.key === 'ArrowRight' && nextBtn) nextBtn.click();
+    });
+
+    showPage(initialPage || 0, false);
+    win.addEventListener('resize', updateHeight);
+  }
+
+  // ── 设置内容并初始化全部功能 ─────────────────────────────────────────
+
+  function setContent(html, viewType, batchPath, chapter, training) {
+    showApp();
+    var app = getApp();
+    app.innerHTML = html;
+
+    try { sessionStorage.setItem('cx_access', 'ok'); } catch(e) {}
+    setMeta(training);
+    document.title = '第' + (chapter ? chapter.number : '') + '篇 - ' + ({
+      cv:'纲目', cx:'晨兴', h:'听抄', ts:'详情', sg:'诗歌', zs:'职事信息'
+    }[viewType] || '');
+
+    if (win.CXScripturePopup && win.CXScripturePopup.init) try { win.CXScripturePopup.init(); } catch(e){}
+    if (win.CXFontControl && win.CXFontControl.apply) try { win.CXFontControl.apply(); } catch(e){}
+    if (win.CXHighlight && win.CXHighlight.init) try { win.CXHighlight.init(); } catch(e){}
+    else if (win.CXHighlight && win.CXHighlight.refresh) try { win.CXHighlight.refresh(); } catch(e){}
+
+    initSearchBtn();
+    relocateThemeBtn();
+    initSpeechForView(viewType, chapter);
+
+    try { localStorage.setItem('cx_last_page', win.location.href); } catch(e){}
+
+    if (win.CXSearch && win.CXSearch.handleSearchTargetSPA) {
+      setTimeout(function(){ try { win.CXSearch.handleSearchTargetSPA(); } catch(e){} }, 100);
+    }
+  }
+
+  // ── TTS 初始化 ──────────────────────────────────────────────────────────
+
+  function initSpeechForView(viewType, chapter) {
+    function tryInit() {
+      if (!win.CXSpeech || !win.CXSpeech.init) return false;
+      var bar = document.getElementById('bottomControlBar');
+      var btn = document.getElementById('playPauseBtn');
+      if (!bar || !btn) return true;
+      win.CXSpeech.init({ getText: buildGetText(viewType, chapter) });
+      return true;
+    }
+    if (!tryInit()) {
+      var attempts = 0;
+      var t = setInterval(function(){ if (tryInit() || ++attempts > 50) clearInterval(t); }, 100);
+    }
+  }
+
+  function buildGetText(viewType, chapter) {
+    return function() {
+      function getCleanText(node) {
+        var clone = node.cloneNode(true);
+        var ignored = clone.querySelectorAll('button, .scripture-content, .verse-line, .scripture-ref');
+        ignored.forEach(function(el){ el.remove(); });
+        return clone.textContent.trim();
+      }
+
+      var text = '';
+      var titleEl = document.querySelector('.chapter-title');
+      if (titleEl) text += titleEl.textContent.trim() + '。';
+      var scrEl = document.querySelector('.scripture');
+      if (scrEl) text += scrEl.textContent.trim() + '。';
+
+      if (viewType === 'cv') {
+        document.querySelectorAll('.outline-item').forEach(function(el){
+          var t = getCleanText(el); if (t) text += t + '。';
+        });
+      } else if (viewType === 'cx') {
+        var active = document.querySelector('.day-page.is-active') || document.querySelector('.day-page');
+        if (active) active.querySelectorAll('.outline-item, .content-text').forEach(function(el){
+          var t = getCleanText(el); if (t) text += t + '。';
+        });
+      } else if (viewType === 'h') {
+        var msg = document.querySelector('.message-content');
+        if (msg) {
+          msg.querySelectorAll(':scope > p.content-text').forEach(function(p){
+            var t = getCleanText(p); if (t) text += t + '。';
+          });
+        }
+        document.querySelectorAll('.section').forEach(function(sec){
+          var lvl = sec.querySelector('[class^="section-level"]');
+          if (lvl) { var t = getCleanText(lvl); if (t) text += t + '。'; }
+          var content = sec.querySelector('.section-content');
+          if (content) {
+            content.querySelectorAll('.content-text').forEach(function(p){
+              var t = getCleanText(p); if (t) text += t + '。';
+            });
+          }
+        });
+      } else if (viewType === 'ts' || viewType === 'zs') {
+        document.querySelectorAll('.content-text').forEach(function(p){
+          var t = getCleanText(p); if (t) text += t + '。';
+        });
+      }
+
+      text = text
+        .replace(/\s+/g, ' ')
+        .replace(/[\r\n\t]/g, '')
+        .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '')
+        .trim();
+      return text;
+    };
+  }
+
+  // ── 搜索按钮 ──────────────────────────────────────────────────────────
+
+  function initSearchBtn() {
+    // 当前可见容器内的搜索按钮（每次重渲染后都要绑定）
+    var btns = document.querySelectorAll('#cx-search-btn');
+    btns.forEach(function(btn){
+      if (btn._cxSearchBound) return;
+      btn._cxSearchBound = true;
+      btn.addEventListener('click', function(e){
+        if (e && e.preventDefault) e.preventDefault();
+        if (win.CXSearch && win.CXSearch.open) win.CXSearch.open();
+      });
+    });
+  }
+
+  // ── 设置（主题切换）按钮重定位 ───────────────────────────────────────
+  // theme-toggle.js 在 DOMContentLoaded 时把 .theme-toggle-btn 追加到首屏的 .container；
+  // SPA 切换视图后，新的 .container 不含按钮 → 把现有按钮移动过来。
+  // 若按钮尚未创建（初始加载即到子页），轮询重试。
+  function relocateThemeBtn(retry) {
+    var btn = document.querySelector('.theme-toggle-btn');
+    if (!btn) {
+      if (retry === undefined) retry = 30;
+      if (retry > 0) setTimeout(function(){ relocateThemeBtn(retry - 1); }, 100);
+      return;
+    }
+    var app = document.getElementById('app');
+    var home = document.getElementById('homeView');
+    var visible = (app && app.style.display !== 'none') ? app : home;
+    if (!visible) return;
+    var container = visible.querySelector('.container');
+    if (container && btn.parentElement !== container) {
+      container.appendChild(btn);
+    }
+  }
+
+  // ── 批次目录页 ──────────────────────────────────────────────────────────
+
+  function renderBatchIndex(batchPath) {
+    showApp();
+    getApp().innerHTML = '<div class="home-status"><div class="home-status-icon">⏳</div>加载中...</div>';
+
+    loadTraining(batchPath)
+      .then(function(training) {
+        try { sessionStorage.setItem('cx_access','ok'); } catch(e){}
+        setMeta(training);
+
+        var subtitleLine = training.subtitle
+          ? '<div class="subtitle">总题：' + escText(training.subtitle) + '</div>'
+          : '';
+
+        var navLinks = '<a href="javascript:void(0)" class="nav-link" title="返回主页" onclick="CXRouter.navigate(\'\')">返回主页</a>' +
+          '<a href="javascript:void(0)" class="nav-link active" title="目录">目录</a>';
+        if (training.mottos && training.mottos.length) {
+          navLinks += '<a href="javascript:void(0)" class="nav-link" title="标语" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '/motto\')">标语</a>';
+        }
+        if (training.motto_song_image) {
+          navLinks += '<a href="javascript:void(0)" class="nav-link" title="标语诗歌" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '/motto_song\')">标语诗歌</a>';
+        }
+        navLinks += '<button type="button" id="cx-search-btn" class="nav-link" title="搜索">🔍</button>';
+
+        var tocItems = (training.chapters || []).map(function(ch) {
+          return '<a href="javascript:void(0)" class="toc-item" onclick="CXRouter.navigate(\'' +
+            escAttr(batchPath) + '/' + ch.number + '/cx\')" data-chapter="' + ch.number + '">' +
+            '<span class="toc-num">第' + ch.number + '篇</span>' +
+            '<span class="toc-title">' + escText(ch.title) + '</span>' +
+            '</a>';
+        }).join('');
+
+        var html = '<div class="container">' +
+          '<div class="header">' +
+          '<h1>' + escText(training.title) + '</h1>' +
+          subtitleLine +
+          '</div>' +
+          '<div class="content"><div class="index-page">' +
+          '<div class="page-navigation">' + navLinks + '</div>' +
+          '<div class="toc-list">' + tocItems + '</div>' +
+          '</div></div>' +
+          buildFooter(training) +
+          '</div>';
+
+        getApp().innerHTML = html;
+        document.title = training.title || '目录';
+        initSearchBtn();
+        relocateThemeBtn();
+        try { localStorage.setItem('cx_last_page', win.location.href); } catch(e){}
+      })
+      .catch(function(err) {
+        getApp().innerHTML = '<div class="home-status error"><div class="home-status-icon">❌</div><p>加载失败：' + escText(String(err)) + '</p><button class="home-retry-btn" onclick="location.reload()">重试</button></div>';
+      });
+  }
+
+  // ── 标语页 ────────────────────────────────────────────────────────────
+
+  function renderMotto(batchPath) {
+    showApp();
+    loadTraining(batchPath).then(function(training) {
+      var nav = '<div class="page-navigation">' +
+        '<a href="javascript:void(0)" class="nav-link" title="返回主页" onclick="CXRouter.navigate(\'\')">返回主页</a>' +
+        '<a href="javascript:void(0)" class="nav-link" title="目录" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')">目录</a>' +
+        '<a href="javascript:void(0)" class="nav-link active" title="标语">标语</a>' +
+        (training.motto_song_image ? '<a href="javascript:void(0)" class="nav-link" title="标语诗歌" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '/motto_song\')">标语诗歌</a>' : '') +
+        '</div>';
+
+      var paragraphs = '';
+      var mottos = training.mottos || [];
+      var lines = [];
+      function flushPara() {
+        if (!lines.length) return;
+        paragraphs += '<div class="motto-paragraph">';
+        for (var k = 0; k < lines.length; k++) {
+          paragraphs += '<span class="motto-line">' + escText(lines[k]) + '</span>';
+        }
+        paragraphs += '</div>';
+        lines = [];
+      }
+      for (var i = 0; i < mottos.length; i++) {
+        var m = mottos[i];
+        if (m === '###PARAGRAPH_SEPARATOR###') { flushPara(); }
+        else { lines.push(m); }
+      }
+      flushPara();
+
+      var html = '<div class="container"><div class="header"><h1>' + escText(training.title) + '</h1></div>' +
+        '<div class="content"><div class="motto-page">' + nav +
+        '<div class="motto-container">' + (paragraphs || '<div class="no-motto">本次训练暂无标语</div>') + '</div>' +
+        '</div></div>' +
+        buildFooter(training) +
+        '</div>';
+      getApp().innerHTML = html;
+      try { sessionStorage.setItem('cx_access','ok'); } catch(e){}
+      document.title = '标语 - ' + (training.title || '');
+      setMeta(training);
+      relocateThemeBtn();
+    }).catch(function(){ getApp().innerHTML = '<p>加载失败</p>'; });
+  }
+
+  // ── 标语诗歌页 ────────────────────────────────────────────────────────
+
+  function renderMottoSong(batchPath) {
+    showApp();
+    var root = win.CX_ROOT || './';
+    loadTraining(batchPath).then(function(training) {
+      var nav = '<div class="page-navigation">' +
+        '<a href="javascript:void(0)" class="nav-link" title="返回主页" onclick="CXRouter.navigate(\'\')">返回主页</a>' +
+        '<a href="javascript:void(0)" class="nav-link" title="目录" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')">目录</a>' +
+        (training.mottos && training.mottos.length ? '<a href="javascript:void(0)" class="nav-link" title="标语" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '/motto\')">标语</a>' : '') +
+        '<a href="javascript:void(0)" class="nav-link active" title="标语诗歌">标语诗歌</a>' +
+        '</div>';
+
+      var imgUrl = root + escAttr(batchPath) + '/' + escAttr(training.motto_song_image || '');
+      var html = '<div class="container"><div class="header"><h1>' + escText(training.title) + '</h1></div>' +
+        '<div class="content"><div class="song-page">' + nav +
+        '<div class="song-container"><div class="song-image-wrapper">' +
+        '<img src="' + imgUrl + '" alt="标语诗歌" class="song-image" onclick="window.openImageViewer&&openImageViewer(this.src)">' +
+        '<p class="click-hint">👆 点击图片放大查看</p>' +
+        '</div></div></div></div>' +
+        buildFooter(training) +
+        '</div>';
+      getApp().innerHTML = html;
+      try { sessionStorage.setItem('cx_access','ok'); } catch(e){}
+      document.title = '标语诗歌 - ' + (training.title || '');
+      setMeta(training);
+      relocateThemeBtn();
+    }).catch(function(){ getApp().innerHTML = '<p>加载失败</p>'; });
+  }
+
+  // ── 首页 ────────────────────────────────────────────────────────────────
+
+  function renderHome() {
+    showHome();
+    try { sessionStorage.setItem('cx_access', 'ok'); } catch(e) {}
+    try { localStorage.setItem('cx_last_page', win.location.href); } catch(e) {}
+    relocateThemeBtn();
+  }
+
+  // ── 章节视图分发 ────────────────────────────────────────────────────────
+
+  function renderChapterView(batchPath, chNum, viewType) {
+    showApp();
+    getApp().innerHTML = '<div class="home-status"><div class="home-status-icon">⏳</div>加载中...</div>';
+    loadTraining(batchPath)
+      .then(function(training) {
+        var chapter = null;
+        var chapters = training.chapters || [];
+        for (var i = 0; i < chapters.length; i++) {
+          if (chapters[i].number === chNum) { chapter = chapters[i]; break; }
+        }
+        if (!chapter) {
+          getApp().innerHTML = '<p class="no-content">未找到第' + chNum + '篇</p>';
+          return;
+        }
+        if (viewType === 'cv') renderCv(batchPath, chapter, training);
+        else if (viewType === 'cx') renderCx(batchPath, chapter, training);
+        else if (viewType === 'h')  renderH(batchPath, chapter, training);
+        else if (viewType === 'ts') renderTs(batchPath, chapter, training);
+        else if (viewType === 'sg') renderSg(batchPath, chapter, training);
+        else if (viewType === 'zs') renderZs(batchPath, chapter, training);
+        else renderCx(batchPath, chapter, training);
+      })
+      .catch(function(err) {
+        getApp().innerHTML = '<div class="home-status error"><p>加载失败：' + escText(String(err)) + '</p>' +
+          '<button class="home-retry-btn" onclick="CXRouter.navigate(\'' + escAttr(batchPath+'/'+chNum+'/'+viewType) + '\')">重试</button></div>';
+      });
+  }
+
+  win.CXRenderer = {
+    renderHome: renderHome,
+    renderBatchIndex: renderBatchIndex,
+    renderChapterView: renderChapterView,
+    renderMotto: renderMotto,
+    renderMottoSong: renderMottoSong,
+    extractRefs: extractRefs,
+    outlineLevelClass: outlineLevelClass
+  };
+
+  // ── search.js 兼容补丁 ────────────────────────────────────────────────
+  function patchSearch() {
+    var s = win.CXSearch;
+    if (!s || s._spaPatch) return;
+    s._spaPatch = true;
+    if (s.navigateTo) {
+      s.navigateTo = function(entry, query) {
+        try { sessionStorage.setItem('cx_search_target', JSON.stringify({url:entry.url,pi:entry.pi,selector:entry.selector,query:query})); } catch(e){}
+        if (win.CXRouter) win.CXRouter.navigate(entry.url);
+      };
+    }
+    if (s._currentContext) {
+      s._currentContext = function() {
+        var path = win.CXRouter ? win.CXRouter.currentPath() : '';
+        var parts = path.split('/').filter(Boolean);
+        if (parts.length >= 3) return { trainingPath: parts[0], chapter: parseInt(parts[1],10) };
+        if (parts.length === 1) return { trainingPath: parts[0], chapter: null };
+        return null;
+      };
+    }
+  }
+  if (win.CXSearch) patchSearch();
+  else {
+    var siv = setInterval(function(){ if (win.CXSearch) { patchSearch(); clearInterval(siv); } }, 100);
+    setTimeout(function(){ clearInterval(siv); }, 5000);
+  }
+
+}(window));

@@ -71,10 +71,11 @@ class Chapter:
         
         outline_sections = self._sections_to_dict(self.outline_sections)
         detail_sections = self._sections_to_dict(self.detail_sections)
-        if detail_sections and outline_sections:
-            self._copy_scripture_to_detail_sections(outline_sections, detail_sections)
-        self._propagate_ctx_scripture(outline_sections, self.scripture)
-        self._propagate_ctx_scripture(detail_sections, self.scripture)
+
+        mr_dicts = [
+            self._build_morning_revival_dict(mr)
+            for mr in self.morning_revivals
+        ]
 
         return {
             'number': self.number,
@@ -82,21 +83,17 @@ class Chapter:
             'hymn_number': self.hymn_number,
             'hymn_image': self.hymn_image,
             'scripture': self.scripture,
-            'scripture_verses': self.scripture_verses,
+            'scripture_verses': self._extract_ref_keys(self.scripture_verses),
             'outline_sections': outline_sections,
             'detail_sections': detail_sections,
             'message_content': self.message_content,
             'ministry_excerpt': self.ministry_excerpt,
-            'morning_revivals': [
-                self._build_morning_revival_dict(mr)
-                for mr in self.morning_revivals
-            ]
+            'morning_revivals': mr_dicts,
         }
     
     def _build_morning_revival_dict(self, mr):
-        """构建单天晨兴字典，并对 outline 做 ctx_scripture 传播。"""
+        """构建单天晨兴字典。"""
         outline = self._sections_to_dict_debug(mr.outline, f"MorningRevival {mr.day}")
-        self._propagate_ctx_scripture(outline, self.scripture)
         fs, mf = self._extract_feeding_scriptures(mr.morning_feeding)
         return {
             'day': mr.day,
@@ -173,11 +170,9 @@ class Chapter:
         """递归转换内容节点为字典 - 调试版本"""
         result = []
         for i, content in enumerate(contents):
-            # print(f"  Item {i}: level={content.level}, title={content.title[:50]}..., children={len(content.children)}")
             content_dict = {
                 'level': content.level,
                 'title': content.title,
-                'scripture': content.scripture,
                 'content': content.content,
                 'children': self._sections_to_dict_debug(content.children, f"{context} child {i}") if content.children else []
             }
@@ -191,61 +186,30 @@ class Chapter:
             content_dict = {
                 'level': content.level,
                 'title': content.title,
-                'scripture': content.scripture,
                 'content': content.content,
                 'children': self._sections_to_dict(content.children)
             }
             result.append(content_dict)
-            
-            # Debug: 检查周六相关的内容
-            if content.level == '贰' or len(contents) == 1:
-                if content.children:
-                    pass  # print(f"    Has {len(content.children)} children:")
-                    # for i, child in enumerate(content.children):
-                    #     print(f"      Child {i}: level={child.level}, title={child.title[:30]}")
-                
         return result
 
     @staticmethod
-    def _propagate_ctx_scripture(sections, parent_ctx=''):
-        """为每个 section 填入 ctx_scripture（继承最近一个非空 scripture）。
-        
-        算法：从左到右遍历同层，若本节有 scripture 则用之，否则继承上一节的 ctx。
-        再深度优先传递给子节点，以父节点的 ctx 为子节点的 parent_ctx。
+    def _extract_ref_keys(scripture_text):
+        """从 '腓4:5\\t经文正文\\n腓4:6\\t经文正文' 格式中提取引用键列表。
+        返回逗号分隔的引用键字符串，如 '腓4:5,腓4:6'。
         """
-        last_ctx = parent_ctx
-        for sec in sections:
-            ctx = sec.get('scripture') or last_ctx
-            sec['ctx_scripture'] = ctx
-            if sec.get('children'):
-                Chapter._propagate_ctx_scripture(sec['children'], ctx)
-            last_ctx = ctx
-
-    @staticmethod
-    def _copy_scripture_to_detail_sections(outline_sects: list, detail_sects: list):
-        """将纲目节的 scripture 复制到对应的听抄节（scripture 为空时）。
-
-        以 (parent_level, level) 为键做层级匹配，支持多级嵌套。
-        """
-        def build_map(sects, parent_level=''):
-            result = {}
-            for s in sects:
-                key = (parent_level, s['level'])
-                if s['scripture']:
-                    result[key] = s['scripture']
-                result.update(build_map(s['children'], s['level']))
-            return result
-
-        outline_map = build_map(outline_sects)
-
-        def apply(sects, parent_level=''):
-            for s in sects:
-                key = (parent_level, s['level'])
-                if not s['scripture'] and key in outline_map:
-                    s['scripture'] = outline_map[key]
-                apply(s['children'], s['level'])
-
-        apply(detail_sects)
+        if not scripture_text:
+            return ''
+        keys = []
+        for line in scripture_text.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+            tab_pos = line.find('\t')
+            if tab_pos > 0:
+                keys.append(line[:tab_pos].strip())
+            else:
+                keys.append(line)
+        return ','.join(keys) if keys else scripture_text
 
 
 @dataclass

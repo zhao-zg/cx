@@ -11,9 +11,8 @@ import shutil
 import base64
 import subprocess
 from datetime import datetime
-from jinja2 import Environment, FileSystemLoader
 from src.parser_improved import parse_training_docs_improved
-from src.generator import HTMLGenerator, generate_search_index
+from src.generator import export_training_json, generate_search_index_from_json
 from src.bible_dict import BibleDict
 
 
@@ -205,43 +204,28 @@ def url_safe_name(name):
 
 def process_batch(batch_folder, config, bible_dict: BibleDict = None):
     """
-    处理单个批次的文档生成
-    
-    Args:
-        batch_folder: 批次文件夹路径
-        config: 配置字典
-        bible_dict: 持久化经文字典（可选，用于跨训练累积经节）
-    
+    处理单个批次的文档，生成 training.json。
+
     Returns:
-        成功返回 0,失败返回 1
+        成功时返回批次信息 dict，失败返回 None。
     """
     batch_name = os.path.basename(batch_folder)
-    # 生成 URL 安全的输出目录名
     safe_batch_name = url_safe_name(batch_name)
-    
+
     print("\n" + "="*60)
     print(f" 处理批次: {batch_name}")
     if safe_batch_name != batch_name:
         print(f" 输出目录: {safe_batch_name}")
     print("="*60)
     print()
-    
-    # 获取批次特定配置
+
     batch_config = config.copy()
     default_training = config.get('default_training', {})
-    
-    # 自动从文件夹名识别季节和年份
-    # 支持多种格式:
-    #   "2025-秋季" -> year=2025, season="秋季"
-    #   "2025-06-感恩节" -> year=2025, season="感恩节"
-    #   "2025-04-夏季" -> year=2025, season="夏季"
+
     if '-' in batch_name:
         parts = batch_name.split('-')
         try:
             year = int(parts[0])
-            # 取最后一段作为训练类型(季节/特殊训练名称)
-            # 例如: "2025-06-感恩节" -> parts[-1] = "感恩节"
-            #      "2025-秋季" -> parts[-1] = "秋季"
             season = parts[-1] if len(parts) > 1 else default_training.get('season', '秋季')
             batch_config['year'] = year
             batch_config['season'] = season
@@ -251,35 +235,32 @@ def process_batch(batch_folder, config, bible_dict: BibleDict = None):
             batch_config['year'] = default_training.get('year', 2025)
             batch_config['season'] = default_training.get('season', '秋季')
     else:
-        # 使用默认配置
         batch_config['year'] = default_training.get('year', 2025)
         batch_config['season'] = default_training.get('season', '秋季')
         print(f"⚠ 文件夹名格式不标准，使用默认配置: {batch_config['year']}年{batch_config['season']}")
-    
-    # 查找文档
+
     listen_doc = find_document_in_folder(batch_folder, '听抄')
     scripture_doc = find_document_in_folder(batch_folder, '经文')
     morning_revival_docs = find_all_numbered_documents(batch_folder, '晨兴')
-    
+
     if not listen_doc:
         print(f"⚠ 跳过 {batch_name}: 未找到听抄文档")
-        return 1
-    
+        return None
+
     if not scripture_doc:
         print(f"⚠ 跳过 {batch_name}: 未找到经文文档")
-        return 1
-    
+        return None
+
     print(f"✓ 找到听抄文档: {os.path.basename(listen_doc)}")
     print(f"✓ 找到经文文档: {os.path.basename(scripture_doc)}")
-    
+
     if morning_revival_docs:
         for idx, doc in enumerate(morning_revival_docs, 1):
             print(f"✓ 找到晨兴文档{idx}: {os.path.basename(doc)}")
     else:
         print(f"⚠ 未找到晨兴文档，将跳过晨兴内容")
     print()
-    
-    # 解析文档
+
     output_dir = os.path.join(batch_config['output_dir'], safe_batch_name)
     try:
         training_data = parse_training_docs_improved(
@@ -287,8 +268,8 @@ def process_batch(batch_folder, config, bible_dict: BibleDict = None):
             listen_path=listen_doc,
             morning_revival_path=morning_revival_docs[0] if morning_revival_docs else None,
             morning_revival_path2=morning_revival_docs[1] if len(morning_revival_docs) > 1 else None,
-            title='',  # 不使用配置标题，完全从文档自动提取
-            subtitle='',  # 不使用配置副标题，完全从文档自动提取
+            title='',
+            subtitle='',
             year=batch_config['year'],
             season=batch_config['season'],
             output_dir=output_dir,
@@ -299,273 +280,197 @@ def process_batch(batch_folder, config, bible_dict: BibleDict = None):
         print(f"✗ 文档解析失败: {e}")
         import traceback
         traceback.print_exc()
-        return 1
-    
-    # 生成HTML (使用已定义的 output_dir)
+        return None
+
     try:
-        generator = HTMLGenerator(
-            template_dir=config['template_dir'],
-            output_dir=output_dir
-        )
-        generator.generate_all(training_data)
+        export_training_json(training_data, output_dir)
     except Exception as e:
-        print(f"✗ HTML生成失败: {e}")
+        print(f"✗ training.json 生成失败: {e}")
         import traceback
         traceback.print_exc()
-        return 1
-    
-    print(f"✓ 完成: {output_dir}/index.html")
-    
-    return 0
+        return None
+
+    print(f"✓ 完成: {output_dir}/training.json")
+
+    # Collect image list (for trainings.json metadata)
+    training_images = []
+    images_dir = os.path.join(output_dir, 'images')
+    if os.path.exists(images_dir):
+        for fn in os.listdir(images_dir):
+            if fn.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                training_images.append(f"images/{fn}")
+
+    return {
+        'name': batch_name,
+        'year': training_data.year,
+        'season': training_data.season,
+        'title': training_data.title,
+        'chapter_count': len(training_data.chapters),
+        'path': safe_batch_name,
+        'images': training_images,
+    }
+
 
 
 def generate_main_index(config, batch_results):
-    """
-    生成总主页，链接所有批次
-    
-    Args:
-        config: 配置字典
-        batch_results: 批次结果列表，每项包含 {name, year, season, title, chapter_count, path}
-    """
+    """生成总主页（SPA 模式）：复制 SPA shell、生成 trainings.json 和所有静态资产。"""
     if not batch_results:
         return
-    
+
     output_dir = config.get('output_dir', 'output')
     template_dir = config.get('template_dir', 'src/templates')
-    
-    # 准备模板数据
+
+    # ── 整理训练列表 ──────────────────────────────────────────────────────
     trainings = []
     total_chapters = 0
-    
+
     for result in batch_results:
-        # 收集该训练的图片列表
-        training_images = []
-        # 使用 URL 安全的路径名
-        safe_name = url_safe_name(result['name'])
-        training_dir = os.path.join(output_dir, safe_name)
-        images_dir = os.path.join(training_dir, 'images')
-        if os.path.exists(images_dir):
-            for filename in os.listdir(images_dir):
-                if filename.endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                    training_images.append(f"images/{filename}")
-        
         trainings.append({
             'year': result['year'],
             'season': result['season'],
             'title': result['title'],
             'chapter_count': result['chapter_count'],
-            'path': safe_name,  # 使用 URL 安全的路径
-            'images': training_images  # 图片列表
+            'path': result['path'],
+            'images': result.get('images', []),
         })
         total_chapters += result['chapter_count']
-    
-    # 按年份和月份排序（最新的在前）
-    # 从文件夹名称提取年份和月份，如 "2025-07 冬季训练" -> (2025, 7)
-    def get_sort_key(training):
-        # 尝试从path中提取年份和月份
-        import re
-        match = re.match(r'(\d{4})-(\d{2})', training['path'])
-        if match:
-            year = int(match.group(1))
-            month = int(match.group(2))
-            return (year, month)
-        # 降级到使用year和season
+
+    def get_sort_key(t):
+        m = re.match(r'(\d{4})-(\d{2})', t['path'])
+        if m:
+            return (int(m.group(1)), int(m.group(2)))
         season_order = {'春季': 1, '夏季': 2, '秋季': 3, '冬季': 4}
-        return (training['year'], season_order.get(training['season'], 5))
-    
+        return (t['year'], season_order.get(t['season'], 5))
+
     trainings.sort(key=get_sort_key, reverse=True)
-    
-    # 先生成搜索索引（从已生成的 HTML 提取全文），确保 core_urls 扫描时文件已存在
-    generate_search_index(output_dir, trainings)
-    
-    # 自动扫描所有训练的资源（用于主页和 SW）
-    training_pages = []
-    for training in trainings:
-        training_dir = os.path.join(output_dir, training['path'])
-        training_path = training['path']
-        
-        # 自动扫描所有 HTML/HTM 文件
-        if os.path.exists(training_dir):
-            for filename in os.listdir(training_dir):
-                if filename.endswith(('.html', '.htm')):
-                    # index.html 使用目录路径，其他文件使用完整路径
-                    if filename == 'index.html':
-                        training_pages.append(f"./{training_path}/")
-                    else:
-                        training_pages.append(f"./{training_path}/{filename}")
-        
-        # 收集训练 js/ 目录下所有 JSON 文件
-        js_dir = os.path.join(training_dir, 'js')
-        if os.path.exists(js_dir):
-            for filename in sorted(os.listdir(js_dir)):
-                if filename.endswith('.json'):
-                    training_pages.append(f"./{training_path}/js/{filename}")
 
-        # 训练目录不再有独立 css/（已移至根目录共享），此处保留兼容扫描
-        css_dir = os.path.join(training_dir, 'css')
-        if os.path.exists(css_dir):
-            for filename in os.listdir(css_dir):
-                if filename.endswith('.css'):
-                    training_pages.append(f"./{training_path}/css/{filename}")
-    
-    # 自动扫描核心静态资源（用于安装对话框缓存）
-    core_urls = ['./', './manifest.json', './trainings.json', './version.json']
-    for subdir, ext_filter in [
-        ('js',     lambda f: f.endswith('.js') and not f.endswith('.original')),
-        ('css',    lambda f: f.endswith('.css')),
-        ('data',   lambda f: f.endswith('.json')),
-        ('icons',  lambda f: f.endswith(('.svg', '.png'))),
-        ('vendor', lambda f: f.endswith('.js')),
-    ]:
-        d = os.path.join(output_dir, subdir)
-        if os.path.exists(d):
-            for filename in sorted(os.listdir(d)):
-                if ext_filter(filename):
-                    core_urls.append(f'./{subdir}/{filename}')
+    # ── 生成搜索索引（读取 training.json）──────────────────────────────
+    generate_search_index_from_json(output_dir, trainings)
 
-    # 渲染模板
-    env = Environment(loader=FileSystemLoader(template_dir))
-    template = env.get_template('main_index.html')
-
-    html_content = template.render(
-        trainings=trainings,
-        total_chapters=total_chapters,
-        generation_time=datetime.now().strftime('%Y年%m月%d日 %H:%M'),
-        training_pages=training_pages,
-        core_urls=core_urls,
-    )
-    
-    # 保存主页
-    index_path = os.path.join(output_dir, 'index.html')
-    with open(index_path, 'w', encoding='utf-8') as f:
-        f.write(html_content)
-    
-    # 生成 trainings.json（用于热更新）
+    # ── trainings.json ────────────────────────────────────────────────────
     trainings_json = {
         'version': datetime.now().strftime('%Y%m%d%H%M%S'),
         'generation_time': datetime.now().strftime('%Y年%m月%d日 %H:%M'),
         'trainings': trainings,
-        'total_chapters': total_chapters
+        'total_chapters': total_chapters,
     }
-    trainings_json_path = os.path.join(output_dir, 'trainings.json')
-    with open(trainings_json_path, 'w', encoding='utf-8') as f:
+    with open(os.path.join(output_dir, 'trainings.json'), 'w', encoding='utf-8') as f:
         json.dump(trainings_json, f, ensure_ascii=False, indent=2)
     print(f"✓ trainings.json 已生成")
-    
-    # 生成 PWA 文件
-    # 复制静态图标
+
+    # ── 复制 SPA index.html shell ─────────────────────────────────────────
+    spa_shell_src = os.path.join('src', 'static', 'index.html')
+    spa_shell_dst = os.path.join(output_dir, 'index.html')
+    if os.path.exists(spa_shell_src):
+        shutil.copy2(spa_shell_src, spa_shell_dst)
+        print(f"✓ SPA index.html 已复制")
+    else:
+        print(f"⚠ 未找到 src/static/index.html — SPA shell 缺失")
+
+    # ── 图标 ──────────────────────────────────────────────────────────────
     icons_dir = os.path.join(output_dir, 'icons')
     os.makedirs(icons_dir, exist_ok=True)
-    
-    # 复制 SVG 图标
-    icon_src = os.path.join('src', 'static', 'icons', 'icon.svg')
-    icon_dst = os.path.join(icons_dir, 'icon.svg')
-    if os.path.exists(icon_src):
-        shutil.copy2(icon_src, icon_dst)
-    
-    # 复制 PNG 图标（PWA/网页图标）
-    # 仅保留实际被引用的尺寸：favicon(16/32) + iOS(120/152/167/180) + PWA(192/512)
-    icon_filenames = [
-        'icon-16.png', 'icon-32.png',
-        'icon-120.png', 'icon-152.png', 'icon-167.png', 'icon-180.png',
-        'icon-192.png', 'icon-512.png'
-    ]
-    for icon_filename in icon_filenames:
-        icon_src = os.path.join('src', 'static', 'icons', icon_filename)
-        icon_dst = os.path.join(icons_dir, icon_filename)
-        if os.path.exists(icon_src):
-            shutil.copy2(icon_src, icon_dst)
+    for icon_fn in ['icon.svg', 'icon-16.png', 'icon-32.png',
+                    'icon-120.png', 'icon-152.png', 'icon-167.png',
+                    'icon-180.png', 'icon-192.png', 'icon-512.png']:
+        src = os.path.join('src', 'static', 'icons', icon_fn)
+        if os.path.exists(src):
+            shutil.copy2(src, os.path.join(icons_dir, icon_fn))
 
-    
-    # 复制 vendor 目录（包含 jszip 等库）
+    # ── vendor 目录（localforage 等第三方库）────────────────────────────
     vendor_src = os.path.join('src', 'static', 'js', 'vendor')
     vendor_dst = os.path.join(output_dir, 'vendor')
     if os.path.exists(vendor_src):
         os.makedirs(vendor_dst, exist_ok=True)
-        for filename in os.listdir(vendor_src):
-            src_file = os.path.join(vendor_src, filename)
-            dst_file = os.path.join(vendor_dst, filename)
-            if os.path.isfile(src_file):
-                shutil.copy2(src_file, dst_file)
+        for fn in os.listdir(vendor_src):
+            src_f = os.path.join(vendor_src, fn)
+            if os.path.isfile(src_f):
+                shutil.copy2(src_f, os.path.join(vendor_dst, fn))
         print(f"✓ vendor 目录已复制")
-    
-    # 复制 hot-update.js 到 js 目录
+
+    # ── 共享 JS → output/js/ ─────────────────────────────────────────────
     js_dir = os.path.join(output_dir, 'js')
     os.makedirs(js_dir, exist_ok=True)
-    hot_update_src = os.path.join('src', 'static', 'js', 'hot-update.js')
-    hot_update_dst = os.path.join(js_dir, 'hot-update.js')
-    if os.path.exists(hot_update_src):
-        shutil.copy2(hot_update_src, hot_update_dst)
-        print(f"✓ hot-update.js 已复制")
-
-    # 复制所有共享 JS 文件到根 js/ 目录（训练页面以 ../js/ 引用）
     shared_js_files = [
         'app-update.js', 'nav-stack.js', 'theme-toggle.js',
         'bible-dict.js', 'speech.js', 'highlight.js', 'outline.js',
         'scripture-popup.js', 'toc-redirect.js', 'font-control.js',
-        'search.js',
+        'search.js', 'image-utils.js', 'hot-update.js',
+        # SPA-specific
+        'ref-detector.js', 'router.js', 'renderer.js',
     ]
     for js_file in shared_js_files:
         src = os.path.join('src', 'static', 'js', js_file)
-        dst = os.path.join(js_dir, js_file)
         if os.path.exists(src):
-            shutil.copy2(src, dst)
+            shutil.copy2(src, os.path.join(js_dir, js_file))
     print(f"✓ 共享 JS 文件已复制到 js/")
-    # 生成 remote-config.js（URL 从 config.yaml 读取，以 base64 编码输出）
+
+    # ── remote-config.js ──────────────────────────────────────────────────
     remote_servers = config.get('remote_servers', {})
     if remote_servers:
         generate_remote_config_js(remote_servers, output_dir)
-    # 混淆 JS 文件（可选，需要 npx javascript-obfuscator）
-    try:
-        from encrypt_app_update import obfuscate_all
-        obfuscate_all(output_dir)
-    except Exception:
-        pass  # 未安装 obfuscator 时跳过，不影响功能
-    # 复制共享 CSS 文件到根 css/ 目录（训练页面以 ../css/ 引用）
+
+    # ── 可选混淆 ──────────────────────────────────────────────────────────
+    # 默认仅在 CI 环境（GitHub Actions）混淆；本地开发跳过以方便调试。
+    # 强制开启：设置环境变量 OBFUSCATE_JS=1
+    # 强制关闭：设置环境变量 OBFUSCATE_JS=0
+    _ob_env = os.environ.get('OBFUSCATE_JS', '').strip().lower()
+    if _ob_env in ('0', 'false', 'no'):
+        do_obfuscate = False
+    elif _ob_env in ('1', 'true', 'yes'):
+        do_obfuscate = True
+    else:
+        do_obfuscate = bool(os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS'))
+    if do_obfuscate:
+        try:
+            from encrypt_app_update import obfuscate_all
+            obfuscate_all(output_dir)
+        except Exception:
+            pass
+    else:
+        print("⏭  跳过 JS 混淆（本地开发模式；如需开启请设置 OBFUSCATE_JS=1）")
+
+    # ── 共享 CSS → output/css/ ────────────────────────────────────────────
     css_dir = os.path.join(output_dir, 'css')
     os.makedirs(css_dir, exist_ok=True)
     css_src_dir = os.path.join('src', 'static', 'css')
     if os.path.exists(css_src_dir):
         for css_file in os.listdir(css_src_dir):
             if css_file.endswith('.css'):
-                shutil.copy2(os.path.join(css_src_dir, css_file), os.path.join(css_dir, css_file))
+                shutil.copy2(os.path.join(css_src_dir, css_file),
+                             os.path.join(css_dir, css_file))
     print(f"✓ 共享 CSS 文件已复制到 css/")
-    
-    # manifest.json
-    manifest_template = env.get_template('main_manifest.json')
-    manifest_content = manifest_template.render()
-    manifest_path = os.path.join(output_dir, 'manifest.json')
-    with open(manifest_path, 'w', encoding='utf-8') as f:
-        f.write(manifest_content)
-    
-    # sw.js - 纯路由版，不需要版本号和资源列表
-    sw_template = env.get_template('main_sw.js')
-    sw_content = sw_template.render()
-    sw_path = os.path.join(output_dir, 'sw.js')
-    with open(sw_path, 'w', encoding='utf-8') as f:
-        f.write(sw_content)
-    print(f"✓ Service Worker 已生成: {sw_path}")
 
-    # 复制 _headers 文件（用于 Cloudflare Pages 的 MIME 类型配置）
+    # ── manifest.json（静态，无模板变量）────────────────────────────────
+    manifest_src = os.path.join(template_dir, 'main_manifest.json')
+    if os.path.exists(manifest_src):
+        shutil.copy2(manifest_src, os.path.join(output_dir, 'manifest.json'))
+    print(f"✓ manifest.json 已生成")
+
+    # ── sw.js（纯路由版，静态文件）───────────────────────────────────────
+    sw_src = os.path.join(template_dir, 'main_sw.js')
+    if os.path.exists(sw_src):
+        shutil.copy2(sw_src, os.path.join(output_dir, 'sw.js'))
+    print(f"✓ Service Worker 已生成")
+
+    # ── _headers（Cloudflare Pages MIME）────────────────────────────────
     headers_src = os.path.join(template_dir, '_headers')
     if os.path.exists(headers_src):
-        headers_dst = os.path.join(output_dir, '_headers')
-        shutil.copy2(headers_src, headers_dst)
+        shutil.copy2(headers_src, os.path.join(output_dir, '_headers'))
         print(f"✓ _headers 文件已复制")
 
-    # 复制 changelog.json（根目录 -> output/）
-    changelog_src = 'changelog.json'
-    if os.path.exists(changelog_src):
-        shutil.copy2(changelog_src, os.path.join(output_dir, 'changelog.json'))
+    # ── changelog.json ────────────────────────────────────────────────────
+    if os.path.exists('changelog.json'):
+        shutil.copy2('changelog.json', os.path.join(output_dir, 'changelog.json'))
         print(f"✓ changelog.json 已复制")
-    
-    # 创建 .nojekyll 文件（确保 GitHub Pages 不忽略 _ 开头的文件）
-    nojekyll_path = os.path.join(output_dir, '.nojekyll')
-    with open(nojekyll_path, 'w') as f:
+
+    # ── .nojekyll ──────────────────────────────────────────────────────────
+    with open(os.path.join(output_dir, '.nojekyll'), 'w') as f:
         f.write('')
-    print(f"✓ .nojekyll 文件已创建")
-    
-    print(f"\n✓ 总主页已生成: {index_path}")
+    print(f"✓ .nojekyll 已创建")
+
+    index_path = os.path.join(output_dir, 'index.html')
+    print(f"\n✓ SPA 主页已生成: {index_path}")
 
 
 def main():
@@ -704,98 +609,47 @@ def main():
     failed_count = 0
     skip_existing = batch_config.get('skip_existing', False)
     strict_exit_on_batch_failure = batch_config.get('strict_exit_on_batch_failure', False)
-    batch_results = []  # 收集成功的批次信息
-    
+    batch_results = []
+
     for batch_folder in batch_folders:
         batch_name = os.path.basename(batch_folder)
         safe_batch_name = url_safe_name(batch_name)
         output_dir = os.path.join(config['output_dir'], safe_batch_name)
-        
-        # 检查是否跳过已存在的
-        if skip_existing and os.path.exists(output_dir):
-            print(f"⏭ 跳过 {batch_name}: 输出目录已存在")
-            
-            # 尝试读取已有的信息用于主页
+
+        # skip_existing: check for training.json (SPA mode)
+        if skip_existing and os.path.exists(os.path.join(output_dir, 'training.json')):
+            print(f"⏭ 跳过 {batch_name}: training.json 已存在")
+            # Read existing training.json for metadata
             try:
-                index_path = os.path.join(output_dir, 'index.html')
-                if os.path.exists(index_path):
-                    # 从文件夹名提取年份和季节
-                    year, season = 2025, "秋季"
-                    if '-' in batch_name:
-                        parts = batch_name.split('-')
-                        try:
-                            year = int(parts[0])
-                            # 取最后一段作为训练类型
-                            season = parts[-1] if len(parts) > 1 else season
-                        except ValueError:
-                            pass
-                    
-                    # 简单估算篇章数（可以后续优化为读取实际数据）
-                    batch_results.append({
-                        'name': batch_name,
-                        'year': year,
-                        'season': season,
-                        'title': f'{year}年{season}',
-                        'chapter_count': 9,  # 默认值
-                        'path': batch_name
-                    })
-            except:
-                pass
-            continue
-            
-        result = process_batch(batch_folder, config, bible_dict)
-        if result == 0:
-            success_count += 1
-            
-            # 收集批次信息用于生成主页
-            try:
-                # 使用 URL 安全的路径名
-                safe_batch_name = url_safe_name(batch_name)
-                
-                # 从输出目录读取训练数据
-                year, season = 2025, "秋季"
-                if '-' in batch_name:
-                    parts = batch_name.split('-')
-                    try:
-                        year = int(parts[0])
-                        # 取最后一段作为训练类型
-                        season = parts[-1] if len(parts) > 1 else season
-                    except ValueError:
-                        pass
-                
-                # 统计章节数（使用 URL 安全的路径）
-                safe_output_dir = os.path.join(config['output_dir'], safe_batch_name)
-                chapter_count = 0
-                for i in range(1, 13):  # 最多12篇
-                    if os.path.exists(os.path.join(safe_output_dir, f'{i}_cx.htm')):
-                        chapter_count += 1
-                
-                # 尝试从生成的文件中提取标题（简化版）
-                index_path = os.path.join(safe_output_dir, 'index.html')
-                title = f'{year}年{season}训练'
-                if os.path.exists(index_path):
-                    try:
-                        with open(index_path, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                            # 简单提取 <title> 标签内容
-                            match = re.search(r'<title>(.*?)</title>', content)
-                            if match:
-                                title = match.group(1).strip()
-                    except:
-                        pass
-                
+                with open(os.path.join(output_dir, 'training.json'), encoding='utf-8') as f:
+                    tdata = json.load(f)
+                images = []
+                images_dir = os.path.join(output_dir, 'images')
+                if os.path.exists(images_dir):
+                    for fn in os.listdir(images_dir):
+                        if fn.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                            images.append(f"images/{fn}")
                 batch_results.append({
                     'name': batch_name,
-                    'year': year,
-                    'season': season,
-                    'title': title,
-                    'chapter_count': chapter_count,
-                    'path': batch_name
+                    'year': tdata.get('year', 2025),
+                    'season': tdata.get('season', ''),
+                    'title': tdata.get('title', ''),
+                    'chapter_count': len(tdata.get('chapters', [])),
+                    'path': safe_batch_name,
+                    'images': images,
                 })
-            except Exception as e:
-                print(f"⚠ 收集批次信息失败: {e}")
+                success_count += 1
+            except Exception:
+                pass
+            continue
+
+        result = process_batch(batch_folder, config, bible_dict)
+        if result is not None:
+            success_count += 1
+            batch_results.append(result)
         else:
             failed_count += 1
+
     
     # 生成总主页
     if batch_results:
@@ -803,8 +657,6 @@ def main():
             generate_main_index(config, batch_results)
         except Exception as e:
             print(f"⚠ 生成总主页失败: {e}")
-            import traceback
-            traceback.print_exc()
             import traceback
             traceback.print_exc()
     

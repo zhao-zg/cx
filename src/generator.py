@@ -1146,3 +1146,150 @@ def generate_search_index(output_root: str, trainings: list) -> None:
         json.dump(index_data, fh, ensure_ascii=False, separators=(',', ':'))
 
     print(f"✓ search-index.json 已生成: {len(entries)} 条索引（处理 {total_files} 个文件）")
+
+
+# ---------------------------------------------------------------------------
+# JSON Export (SPA mode - replaces HTMLGenerator.generate_all)
+# ---------------------------------------------------------------------------
+
+def export_training_json(training_data, output_dir: str) -> None:
+    """Export training data as training.json for the SPA renderer.
+
+    Generates:
+      output_dir/training.json        — full training data with precomputed contexts
+      output_dir/js/scriptures-data.json — supplementary verse texts not in bible-text.json
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Create a minimal HTMLGenerator-like object to reuse enrichment/scripture methods
+    gen = HTMLGenerator.__new__(HTMLGenerator)
+    gen.output_dir = output_dir
+
+    # Build full training dict. Section ctx is no longer pre-computed; the JS
+    # renderer passes chapter.scripture as fallback context to wrapRefs().
+    training_dict = training_data.to_dict()
+
+    # Enrich with per-para contexts (morning_feeding_contexts, message_reading_contexts)
+    # and feeding_refs — all stored as pure text strings in JSON, used by JS renderer.
+    for ch_dict in training_dict.get('chapters', []):
+        gen._enrich_chapter_feeding_refs(ch_dict)
+        gen._enrich_section_contexts(ch_dict)
+
+    # Write training.json (compact, no indent)
+    json_path = os.path.join(output_dir, 'training.json')
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(training_dict, f, ensure_ascii=False, separators=(',', ':'))
+    print(f"  ✓ training.json 已写出 ({len(training_data.chapters)} 篇章)")
+
+    # Write supplementary scripture data (for popup, excludes bible-text.json entries)
+    try:
+        gen._generate_scriptures_data_json(training_data)
+    except Exception as e:
+        print(f"  ⚠ scriptures-data.json 生成失败: {e}")
+
+
+def generate_search_index_from_json(output_root: str, trainings: list) -> None:
+    """Build search-index.json by reading training.json files (SPA mode).
+
+    Replaces generate_search_index() which relied on parsed HTML files.
+    URL format: '{path}/{num}/{view}' (hash-routable in the SPA).
+    """
+    from datetime import datetime as _dt
+
+    TYPE_MAP = [
+        ('h',  '听抄',   lambda ch: ch.get('message_content', [])),
+        ('ts', '详情',   None),   # sections — handled separately
+        ('cv', '纲目',   None),   # sections — handled separately
+        ('zs', '职事摘录', lambda ch: [ch.get('ministry_excerpt', '')] if ch.get('ministry_excerpt') else []),
+    ]
+
+    def flatten_sections(sections, buf):
+        for sec in sections:
+            t = (sec.get('level', '') + ' ' + sec.get('title', '')).strip()
+            if t:
+                buf.append(t)
+            for para in sec.get('content', []):
+                if para:
+                    buf.append(para)
+            flatten_sections(sec.get('children', []), buf)
+
+    entries = []
+    total_files = 0
+
+    for training in trainings:
+        path          = training.get('path', '')
+        title         = training.get('title', '')
+        year          = training.get('year', '')
+        season        = training.get('season', '')
+        season_label  = f"{year}-{season}" if year and season else path
+
+        json_path = os.path.join(output_root, path, 'training.json')
+        if not os.path.isfile(json_path):
+            continue
+
+        total_files += 1
+        with open(json_path, encoding='utf-8') as f:
+            tdata = json.load(f)
+
+        for chapter in tdata.get('chapters', []):
+            num = chapter.get('number', 0)
+            ch_title = f"第{num}篇 {chapter.get('title', '')}"
+
+            # message content (h)
+            for pi, para in enumerate(chapter.get('message_content', [])):
+                if len(para) >= 10:
+                    entries.append({'url': f"{path}/{num}/h", 'training': title,
+                                    'season_label': season_label, 'chapter': num,
+                                    'type': 'h', 'type_label': '听抄',
+                                    'chapter_title': ch_title, 'pi': pi,
+                                    'selector': 'content-text', 'text': para[:200]})
+
+            # detail sections (ts)
+            ts_buf = []; flatten_sections(chapter.get('detail_sections', []), ts_buf)
+            for pi, para in enumerate(ts_buf):
+                if len(para) >= 10:
+                    entries.append({'url': f"{path}/{num}/ts", 'training': title,
+                                    'season_label': season_label, 'chapter': num,
+                                    'type': 'ts', 'type_label': '详情',
+                                    'chapter_title': ch_title, 'pi': pi,
+                                    'selector': 'content-text', 'text': para[:200]})
+
+            # outline sections (cv)
+            cv_buf = []; flatten_sections(chapter.get('outline_sections', []), cv_buf)
+            for pi, para in enumerate(cv_buf):
+                if len(para) >= 10:
+                    entries.append({'url': f"{path}/{num}/cv", 'training': title,
+                                    'season_label': season_label, 'chapter': num,
+                                    'type': 'cv', 'type_label': '纲目',
+                                    'chapter_title': ch_title, 'pi': pi,
+                                    'selector': 'outline-item', 'text': para[:200]})
+
+            # morning revival (cx)
+            for revival in chapter.get('morning_revivals', []):
+                for pi, para in enumerate(revival.get('morning_feeding', [])):
+                    if len(para) >= 10:
+                        entries.append({'url': f"{path}/{num}/cx", 'training': title,
+                                        'season_label': season_label, 'chapter': num,
+                                        'type': 'cx', 'type_label': '晨兴',
+                                        'chapter_title': ch_title, 'pi': pi,
+                                        'selector': 'content-text', 'text': para[:200]})
+
+            # ministry excerpt (zs)
+            zs_text = chapter.get('ministry_excerpt', '')
+            if len(zs_text) >= 10:
+                entries.append({'url': f"{path}/{num}/zs", 'training': title,
+                                'season_label': season_label, 'chapter': num,
+                                'type': 'zs', 'type_label': '职事摘录',
+                                'chapter_title': ch_title, 'pi': 0,
+                                'selector': 'content-text', 'text': zs_text[:200]})
+
+    index_data = {
+        'version': _dt.now().strftime('%Y%m%d%H%M%S'),
+        'count':   len(entries),
+        'entries': entries,
+    }
+    out_path = os.path.join(output_root, 'data', 'search-index.json')
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, 'w', encoding='utf-8') as fh:
+        json.dump(index_data, fh, ensure_ascii=False, separators=(',', ':'))
+    print(f"✓ search-index.json 已生成: {len(entries)} 条索引（{total_files} 个 training.json）")

@@ -781,6 +781,7 @@
         setupEventListeners: function () {
             var self = this;
             var _showTimer = null;
+            var _pointerCancelled = false;
 
             // 仅隐藏选择菜单（不影响标注菜单）
             function _hideSelMenu() {
@@ -807,6 +808,7 @@
             // 保证 _pointerDown 在任何情况下都能被重置，避免卡在 true 导致后续选区菜单无法出现
             document.addEventListener('touchend', function () {
                 self._pointerDown = false;
+                _pointerCancelled = false;
                 clearTimeout(_showTimer);
                 _showTimer = setTimeout(function () { self._handleTextSelection(); }, 200);
             }, true);
@@ -815,6 +817,7 @@
             // 必须在 touchcancel 里清除 _pointerDown，否则 selectionchange 会被永久拦截
             document.addEventListener('touchcancel', function () {
                 self._pointerDown = false;
+                _pointerCancelled = true;
                 clearTimeout(_showTimer);
                 _showTimer = setTimeout(function () { self._handleTextSelection(); }, 300);
             });
