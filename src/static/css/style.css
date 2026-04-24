@@ -698,6 +698,24 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .cache-status.success{color:var(--success-text)}
 .cache-status.error{color:var(--danger-text)}
 .cache-status.warning{color:var(--warning-text)}
+/* 偏好设置行（toggle 开关）*/
+.pref-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;gap:12px}
+.pref-label-wrap{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.pref-title{font-size:13px;font-weight:500;color:var(--text-primary);line-height:1.4}
+.pref-desc{font-size:11px;color:var(--text-muted);line-height:1.4}
+.pref-toggle{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
+.pref-toggle input{opacity:0;width:0;height:0;position:absolute}
+.pref-toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:22px;transition:background .2s;cursor:pointer}
+.pref-toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.pref-toggle input:checked+.pref-toggle-slider{background:var(--brand)}
+.pref-toggle input:checked+.pref-toggle-slider::before{transform:translateX(18px)}
+/* 更新 toast 横幅 */
+.cx-update-toast{position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--brand);color:#fff;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.2);animation:cxToastIn .3s ease forwards}
+@keyframes cxToastIn{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+.cx-update-toast-text{flex:1;font-weight:500;line-height:1.4}
+.cx-update-toast-action{background:rgba(255,255,255,.25);border:none;color:#fff;font-size:12px;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.cx-update-toast-action:active{background:rgba(255,255,255,.4)}
+.cx-update-toast-close{background:none;border:none;color:rgba(255,255,255,.8);font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;-webkit-tap-highlight-color:transparent}
 /* \u6e05\u9664\u6570\u636e\u5bf9\u8bdd\u6846 */
 .cx-dialog-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--overlay-strong);z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px}
 .cx-dialog{background:var(--surface);border-radius:14px;width:min(320px,calc(100vw - 40px));box-shadow:var(--dialog-shadow);overflow:hidden}

@@ -212,6 +212,12 @@
             console.log('[更新] 初始化更新模块');
             this.cleanupOldApks();
             this.loadConfig();
+            // 自动检查更新（需用户开启）
+            try {
+                if (localStorage.getItem('cx_auto_check_update') === '1') {
+                    setTimeout(function() { AppUpdate.silentCheckUpdate(); }, 2000);
+                }
+            } catch(e) {}
         },
 
         // 清理上次更新遗留的 APK 文件（安装完成后重启时执行）
@@ -1132,12 +1138,121 @@
             });
     };
 
+    // ── 静默后台检查更新（自动检查更新偏好设置开启时调用）────────────
+    AppUpdate.silentCheckUpdate = function() {
+        // 同会话已弹过则跳过
+        try { if (sessionStorage.getItem('cx_update_toast_shown')) return; } catch(e) {}
+
+        var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        var isStandalone = (window.navigator.standalone === true) ||
+                           (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+
+        if (isCapacitor) {
+            // Capacitor：走 Cloudflare 服务器
+            var CLOUDFLARE_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
+            if (!CLOUDFLARE_SERVERS.length) return;
+            getCurrentApkVersion().then(function(currentVersion) {
+                var ts = Date.now();
+                var fetches = CLOUDFLARE_SERVERS.map(function(url) {
+                    return fetch(url + 'version.json?t=' + ts, { cache: 'no-cache' })
+                        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                        .then(function(d) { return { serverUrl: url, versionInfo: d }; });
+                });
+                var race = typeof Promise.any === 'function'
+                    ? Promise.any(fetches)
+                    : new Promise(function(resolve) {
+                        var done = false;
+                        fetches.forEach(function(p) { p.then(function(d) { if (!done) { done = true; resolve(d); } }).catch(function() {}); });
+                        setTimeout(function() { if (!done) resolve(null); }, 8000);
+                    });
+                race.then(function(result) {
+                    if (!result) return;
+                    var latest = result.versionInfo.apk_version || result.versionInfo.version || '';
+                    if (!latest) return;
+                    var cmp = AppUpdate.compareVersion(latest.replace('v', ''), currentVersion.replace('v', ''));
+                    if (cmp > 0) showUpdateToast(latest, 'capacitor');
+                }).catch(function() {});
+            }).catch(function() {});
+        } else if (isStandalone) {
+            // PWA standalone：走 version.json
+            var root = window.CX_ROOT || './';
+            var currentPwa = '';
+            try { currentPwa = localStorage.getItem('cx_pwa_version') || ''; } catch(e) {}
+            fetch(root + 'version.json?t=' + Date.now(), { cache: 'no-cache' })
+                .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(function(v) {
+                    var latest = v.version || v.apk_version || '';
+                    if (!latest) return;
+                    var cmp = currentPwa
+                        ? AppUpdate.compareVersion(latest, currentPwa)
+                        : 1;
+                    if (cmp > 0) showUpdateToast(latest, 'pwa');
+                }).catch(function() {});
+        }
+    };
+
+    // ── 更新 toast 横幅（顶部非阻塞提示）────────────────────────────
+    function showUpdateToast(version, type) {
+        try { if (sessionStorage.getItem('cx_update_toast_shown')) return; } catch(e) {}
+        try { sessionStorage.setItem('cx_update_toast_shown', '1'); } catch(e) {}
+
+        if (document.getElementById('cxUpdateToast')) return;
+
+        var toast = document.createElement('div');
+        toast.id = 'cxUpdateToast';
+        toast.className = 'cx-update-toast';
+        toast.innerHTML =
+            '<span class="cx-update-toast-text">🆕 发现新版本 v' + version + '</span>' +
+            '<button class="cx-update-toast-action" id="cxUpdateToastAction">查看详情</button>' +
+            '<button class="cx-update-toast-close" id="cxUpdateToastClose" aria-label="关闭">×</button>';
+        document.body.appendChild(toast);
+
+        function dismiss() {
+            toast.style.transition = 'opacity .3s, transform .3s';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-100%)';
+            setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 350);
+        }
+
+        document.getElementById('cxUpdateToastClose').addEventListener('click', dismiss);
+        document.getElementById('cxUpdateToastAction').addEventListener('click', function() {
+            dismiss();
+            if (type === 'capacitor') {
+                if (window.AppUpdate && window.AppUpdate.showCloudflareUpdateDialog) {
+                    window.AppUpdate.showCloudflareUpdateDialog();
+                }
+            } else {
+                var root = window.CX_ROOT || './';
+                if (window.AppUpdate && window.AppUpdate.showPwaUpdateDialog) {
+                    window.AppUpdate.showPwaUpdateDialog({ root: root });
+                }
+            }
+        });
+
+        // 5s 后自动消失
+        setTimeout(dismiss, 5000);
+    }
+
     // 初始化
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() { AppUpdate.init(); });
     } else {
         AppUpdate.init();
     }
+
+    // PWA standalone 页面无 AppUpdate.init 启动路径，补充自动检查
+    (function() {
+        var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        if (isCapacitor) return; // Capacitor 由 init() 处理
+        var isStandalone = (window.navigator.standalone === true) ||
+                           (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+        if (!isStandalone) return;
+        try {
+            if (localStorage.getItem('cx_auto_check_update') === '1') {
+                setTimeout(function() { AppUpdate.silentCheckUpdate(); }, 2000);
+            }
+        } catch(e) {}
+    })();
 
     window.AppUpdate = AppUpdate;
 })();

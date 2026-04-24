@@ -453,6 +453,19 @@
                 </div>
                 <div class="cache-status" id="actionStatus"></div>
             </div>
+            <div class="theme-section" id="autoCheckSection" style="display:none">
+                <div class="theme-section-title">偏好设置</div>
+                <div class="pref-row">
+                    <div class="pref-label-wrap">
+                        <span class="pref-title">自动检查更新</span>
+                        <span class="pref-desc">启动时自动检查是否有新版本</span>
+                    </div>
+                    <label class="pref-toggle">
+                        <input type="checkbox" id="autoCheckUpdateToggle">
+                        <span class="pref-toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
         `;
         document.body.appendChild(panel);
 
@@ -597,6 +610,25 @@
                     if (window.AppUpdate && window.AppUpdate.showPwaUpdateDialog) {
                         window.AppUpdate.showPwaUpdateDialog({ root: root, statusEl: statusEl });
                     }
+                });
+            }
+        }
+
+        // ── 自动检查更新偏好设置（Capacitor APK / PWA standalone）──────
+        if (isCapacitor || (isStandalone && ('caches' in window))) {
+            var autoCheckSection = document.getElementById('autoCheckSection');
+            var autoCheckToggle  = document.getElementById('autoCheckUpdateToggle');
+            if (autoCheckSection) autoCheckSection.style.display = '';
+            if (autoCheckToggle) {
+                try { autoCheckToggle.checked = localStorage.getItem('cx_auto_check_update') === '1'; } catch(e) {}
+                autoCheckToggle.addEventListener('change', function() {
+                    try {
+                        if (this.checked) {
+                            localStorage.setItem('cx_auto_check_update', '1');
+                        } else {
+                            localStorage.removeItem('cx_auto_check_update');
+                        }
+                    } catch(e) {}
                 });
             }
         }
