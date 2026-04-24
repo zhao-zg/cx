@@ -164,6 +164,7 @@
     <!-- 主题切换脚本 -->
     <script src="js/image-utils.js"></script>
     <script src="js/remote-config.js"></script>
+    <script src="vendor/localforage.min.js"></script>
     <script src="js/theme-toggle.js"></script>
     <script src="js/search.js"></script>
     
@@ -1041,11 +1042,16 @@
 
             // 仅清除笔记
             if (clearNotesOnly) {
-                try { localStorage.removeItem('cx_highlights'); } catch(e) {}
-                try { localStorage.removeItem('cx_highlights_bak'); } catch(e) {}
-                try { localStorage.removeItem('cx_highlights_bak_ts'); } catch(e) {}
-                if (actionStatus) { actionStatus.textContent = '✓ 划线笔记已清除，即将刷新...'; actionStatus.className = 'cache-status success'; }
-                window.location.reload(true);
+                var doReloadIndex = function() {
+                    try { localStorage.removeItem('cx_highlights'); } catch(e) {}
+                    try { localStorage.removeItem('cx_highlights_bak'); } catch(e) {}
+                    try { localStorage.removeItem('cx_highlights_bak_ts'); } catch(e) {}
+                    try { localStorage.removeItem('cx_hl_migrated'); } catch(e) {}
+                    if (actionStatus) { actionStatus.textContent = '✓ 划线笔记已清除，即将刷新...'; actionStatus.className = 'cache-status success'; }
+                    window.location.reload(true);
+                };
+                var _lf = (typeof localforage !== 'undefined') ? localforage.createInstance({ name: 'cx', storeName: 'highlights' }) : null;
+                (_lf ? _lf.clear() : Promise.resolve()).then(doReloadIndex).catch(doReloadIndex);
                 return;
             }
             

@@ -10,6 +10,15 @@
     var BACKUP_KEY  = 'cx_highlights_bak';
     var BACKUP_TS_KEY = 'cx_highlights_bak_ts';
 
+    // 已迁移到 IndexedDB：备份守卫置空，旧 localStorage 备份键无意义
+    try {
+        if (localStorage.getItem('cx_hl_migrated') === '1') {
+            window.CX = window.CX || {};
+            window.CX.notesGuard = { save: function() {} };
+            return;
+        }
+    } catch(e) {}
+
     // 启动时：若主键为空但备份存在（30天内），静默恢复
     try {
         var current = localStorage.getItem(NOTES_KEY);
@@ -749,11 +758,18 @@
                 if (onConfirm) { onConfirm(selected); return; }
                 // 内置实现（非主页）
                 if (selected === 'notes') {
-                    try { localStorage.removeItem('cx_highlights'); } catch(e) {}
-                    try { localStorage.removeItem('cx_highlights_bak'); } catch(e) {}
-                    try { localStorage.removeItem('cx_highlights_bak_ts'); } catch(e) {}
-                    if (statusEl) { statusEl.textContent = '✓ 划线笔记已清除，即将刷新...'; statusEl.className = 'cache-status success'; }
-                    window.location.reload(true);
+                    var doReload = function() {
+                        try { localStorage.removeItem('cx_highlights'); } catch(e) {}
+                        try { localStorage.removeItem('cx_highlights_bak'); } catch(e) {}
+                        try { localStorage.removeItem('cx_highlights_bak_ts'); } catch(e) {}
+                        try { localStorage.removeItem('cx_hl_migrated'); } catch(e) {}
+                        if (statusEl) { statusEl.textContent = '✓ 划线笔记已清除，即将刷新...'; statusEl.className = 'cache-status success'; }
+                        window.location.reload(true);
+                    };
+                    var clearP = (window.CXHighlight && window.CXHighlight.clearAllHighlightsForce)
+                        ? window.CXHighlight.clearAllHighlightsForce()
+                        : Promise.resolve();
+                    clearP.then(doReload).catch(doReload);
                     return;
                 }
                 var steps = [];

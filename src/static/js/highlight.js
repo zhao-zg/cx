@@ -4,9 +4,127 @@
  *
  * 数据模型：{id, start, end, text, color, underline, note, timestamp}
  * underline/note 字段为新增，旧数据读取时自动补默认值。
+ * 存储后端：localForage (IndexedDB)，每页独立一个键
  */
 (function () {
     'use strict';
+
+    // ─── IndexedDB 存储适配层 ─────────────────────────────────────────────
+    // 提供 Promise API，内部使用 localForage；localForage 不可用时降级到 localStorage。
+    // 升级迁移：首次运行将旧 cx_highlights（localStorage 中所有页的扁平 JSON）
+    // 逐页写入 IndexedDB，迁移成功后删除旧键并写入 cx_hl_migrated='1' 标志。
+    var CXStorage = (function () {
+        var _store = null;
+        var MIGRATED_KEY = 'cx_hl_migrated';
+
+        function init() {
+            if (typeof localforage === 'undefined') {
+                console.warn('[划线] localforage 未加载，降级到 localStorage');
+                return _initLegacy();
+            }
+            _store = localforage.createInstance({
+                driver:      [localforage.INDEXEDDB, localforage.LOCALSTORAGE],
+                name:        'cx',
+                storeName:   'highlights',
+                description: 'CX划线笔记'
+            });
+            return _migrate();
+        }
+
+        function _migrate() {
+            try {
+                if (localStorage.getItem(MIGRATED_KEY) === '1') return Promise.resolve();
+            } catch (e) { return Promise.resolve(); }
+
+            // 读旧主键 + 旧备份键，合并（旧主键数据优先）
+            var oldData = null, bakData = null;
+            try { oldData = JSON.parse(localStorage.getItem('cx_highlights') || 'null'); } catch (e) {}
+            try { bakData = JSON.parse(localStorage.getItem('cx_highlights_bak') || 'null'); } catch (e) {}
+
+            var merged = {};
+            var k;
+            if (bakData && typeof bakData === 'object') {
+                for (k in bakData) { if (bakData.hasOwnProperty(k)) merged[k] = bakData[k]; }
+            }
+            if (oldData && typeof oldData === 'object') {
+                for (k in oldData) { if (oldData.hasOwnProperty(k)) merged[k] = oldData[k]; }
+            }
+
+            var paths = Object.keys(merged);
+            if (!paths.length) {
+                try { localStorage.setItem(MIGRATED_KEY, '1'); } catch (e) {}
+                return Promise.resolve();
+            }
+
+            var promises = paths.map(function (path) {
+                var arr = merged[path];
+                if (!Array.isArray(arr) || !arr.length) return Promise.resolve();
+                return _store.setItem(path, arr);
+            });
+
+            return Promise.all(promises).then(function () {
+                try {
+                    localStorage.removeItem('cx_highlights');
+                    localStorage.removeItem('cx_highlights_bak');
+                    localStorage.removeItem('cx_highlights_bak_ts');
+                    localStorage.setItem(MIGRATED_KEY, '1');
+                } catch (e) {}
+                console.log('[划线] 已迁移 ' + paths.length + ' 页数据到 IndexedDB');
+            }).catch(function (err) {
+                console.warn('[划线] 迁移失败，旧数据保留:', err);
+                // 不写 MIGRATED_KEY，下次启动继续尝试
+            });
+        }
+
+        // localForage 不可用时的 localStorage Promise 包装（接口一致）
+        function _initLegacy() {
+            _store = {
+                getItem: function (key) {
+                    return Promise.resolve().then(function () {
+                        try {
+                            var all = JSON.parse(localStorage.getItem('cx_highlights') || '{}');
+                            return all[key] || null;
+                        } catch (e) { return null; }
+                    });
+                },
+                setItem: function (key, val) {
+                    return Promise.resolve().then(function () {
+                        try {
+                            var all = JSON.parse(localStorage.getItem('cx_highlights') || '{}');
+                            all[key] = val;
+                            localStorage.setItem('cx_highlights', JSON.stringify(all));
+                        } catch (e) {}
+                    });
+                },
+                clear: function () {
+                    return Promise.resolve().then(function () {
+                        try { localStorage.removeItem('cx_highlights'); } catch (e) {}
+                    });
+                }
+            };
+            return Promise.resolve();
+        }
+
+        function getPage(pathname) {
+            return _store.getItem(pathname).then(function (arr) {
+                return Array.isArray(arr) ? arr : [];
+            }).catch(function () { return []; });
+        }
+
+        function setPage(pathname, arr) {
+            return _store.setItem(pathname, arr).catch(function (e) {
+                console.error('[划线] 保存失败:', e);
+            });
+        }
+
+        function clear() {
+            return _store ? _store.clear().catch(function (e) {
+                console.error('[划线] 清除失败:', e);
+            }) : Promise.resolve();
+        }
+
+        return { init: init, getPage: getPage, setPage: setPage, clear: clear };
+    })();
 
     var CXHighlight = {
 
@@ -35,65 +153,43 @@
         init: function () {
             this._selectedColor = this.config.defaultColor;
             this.createMenus();
-            this.loadHighlights();
-            this._scheduleRestore();
             this.setupEventListeners();
-        },
-
-        // ─── 第一次恢复：DOMContentLoaded 后立即执行 ──────────────────
-        // highlight.js 是 defer 脚本，运行时 DOMContentLoaded 尚未触发；
-        // 注册到 DOMContentLoaded 可保证 scripture-popup.js 的 annotateInlineRefs
-        // （同步注册，先执行）已改写完 .content-text，偏移计算正确。
-        // 经文块（.scripture-block）此时可能还空着，但经文块之前的高亮可立即显示；
-        // 经文块之后的高亮偏移会在 redoHighlights() 里被修正。
-        _scheduleRestore: function () {
+            // 存储初始化（含一次性迁移）完成后再加载并渲染划线
             var self = this;
-            function doRestore() { self.restoreHighlights(); }
-            if (document.readyState === 'complete') {
-                doRestore();
-            } else {
-                document.addEventListener('DOMContentLoaded', doRestore);
-            }
+            CXStorage.init().then(function () { self.restoreHighlights(); });
         },
 
-        // ─── 第二次恢复：供外部在异步内容渲染后调用 ──────────────────
+        // ─── 供外部在异步内容渲染后调用（经文块填充后重算偏移）────────────
         // scripture-popup.js 的 renderScriptureBlocks 填充完经文块后调用，
-        // 重算所有偏移，修正经文块之后区域的高亮坐标。
-        // 无经文块的页面不会触发此方法，无额外开销。
+        // 修正经文块之后区域的高亮坐标。无经文块的页面不会触发此方法。
         redoHighlights: function () {
             this.clearAllMarks();
             this.restoreHighlights();
         },
 
-        // ─── 本地存储 ─────────────────────────────────────────────
+        // ─── 存储键 ───────────────────────────────────────────────
         getPageKey: function () {
             return window.location.pathname;
         },
 
+        // ─── 从 IndexedDB 加载当前页划线（异步，返回 Promise）────────────
         loadHighlights: function () {
-            try {
-                var pageKey = this.getPageKey();
-                var allData = JSON.parse(localStorage.getItem(this.config.storageKey) || '{}');
-                this.highlights = (allData[pageKey] || []).map(function (h) {
+            var self = this;
+            return CXStorage.getPage(this.getPageKey()).then(function (arr) {
+                self.highlights = arr.map(function (h) {
                     if (h.underline === undefined) h.underline = false;
                     if (h.note      === undefined) h.note      = '';
                     return h;
                 });
-            } catch (e) {
+            }).catch(function (e) {
                 console.error('[划线] 加载失败:', e);
-                this.highlights = [];
-            }
+                self.highlights = [];
+            });
         },
 
+        // ─── 保存当前页划线到 IndexedDB（异步，返回 Promise）────────────
         saveHighlights: function () {
-            try {
-                var pageKey = this.getPageKey();
-                var allData = JSON.parse(localStorage.getItem(this.config.storageKey) || '{}');
-                allData[pageKey] = this.highlights;
-                localStorage.setItem(this.config.storageKey, JSON.stringify(allData));
-            } catch (e) {
-                console.error('[划线] 保存失败:', e);
-            }
+            return CXStorage.setPage(this.getPageKey(), this.highlights);
         },
 
         // ─── 文本节点遍历 ───────────────────────────────────────────
@@ -222,10 +318,12 @@
             markEl.parentNode.insertBefore(icon, markEl.nextSibling);
         },
 
-        // ─── 恢复全部划线 ─────────────────────────────────────────
+        // ─── 恢复全部划线（异步，先从 IndexedDB 加载再渲染）─────────
         restoreHighlights: function () {
             var self = this;
-            this.highlights.forEach(function (h) { self.applyHighlight(h); });
+            return this.loadHighlights().then(function () {
+                self.highlights.forEach(function (h) { self.applyHighlight(h); });
+            });
         },
 
         // ─── 清除所有 DOM 标记 ────────────────────────────────────
@@ -264,11 +362,13 @@
             };
 
             this.highlights.push(highlight);
-            this.saveHighlights();
+            var self = this;
+            this.saveHighlights().then(function () {
+                self.clearAllMarks();
+                self.restoreHighlights();
+            });
             window.getSelection().removeAllRanges();
             this._pendingRange = null;
-            this.clearAllMarks();
-            this.restoreHighlights();
             return highlight.id;
         },
 
@@ -277,16 +377,20 @@
             if (!h) return;
             if (changes.color     !== undefined) h.color     = changes.color;
             if (changes.underline !== undefined) h.underline = changes.underline;
-            this.saveHighlights();
-            this.clearAllMarks();
-            this.restoreHighlights();
+            var self = this;
+            this.saveHighlights().then(function () {
+                self.clearAllMarks();
+                self.restoreHighlights();
+            });
         },
 
         removeHighlight: function (id) {
             this.highlights = this.highlights.filter(function (h) { return h.id !== id; });
-            this.saveHighlights();
-            this.clearAllMarks();
-            this.restoreHighlights();
+            var self = this;
+            this.saveHighlights().then(function () {
+                self.clearAllMarks();
+                self.restoreHighlights();
+            });
         },
 
         // 仅删除标记（背景色 + 下划线），保留笔记
@@ -300,9 +404,11 @@
                 this.removeHighlight(id);
                 return;
             }
-            this.saveHighlights();
-            this.clearAllMarks();
-            this.restoreHighlights();
+            var self = this;
+            this.saveHighlights().then(function () {
+                self.clearAllMarks();
+                self.restoreHighlights();
+            });
         },
 
         saveNote: function (id, text) {
@@ -314,21 +420,30 @@
                 this.removeHighlight(id);
                 return;
             }
-            this.saveHighlights();
-            this.clearAllMarks();
-            this.restoreHighlights();
+            var self = this;
+            this.saveHighlights().then(function () {
+                self.clearAllMarks();
+                self.restoreHighlights();
+            });
         },
 
         removeNote: function (id) {
             this.saveNote(id, '');
         },
 
-        // 保留：清除全页高亮（可由外部调用）
+        // 清除全页高亮（需用户确认）
         clearAllHighlights: function () {
             if (!confirm('确定要清除本页所有划线吗？')) return;
             this.highlights = [];
-            this.saveHighlights();
             this.clearAllMarks();
+            this.saveHighlights();
+        },
+
+        // 无需确认地清除所有页面全部划线（供清除数据对话框调用，返回 Promise）
+        clearAllHighlightsForce: function () {
+            this.highlights = [];
+            this.clearAllMarks();
+            return CXStorage.clear();
         },
 
         // ─── 创建所有 UI DOM ──────────────────────────────────────
