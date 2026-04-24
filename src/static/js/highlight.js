@@ -781,8 +781,6 @@
         setupEventListeners: function () {
             var self = this;
             var _showTimer = null;
-            // touchcancel 后、touchend 前：系统正在处理选择手柄拖动，暂停 selectionchange 弹菜单
-            var _pointerCancelled = false;
 
             // 仅隐藏选择菜单（不影响标注菜单）
             function _hideSelMenu() {
@@ -801,7 +799,6 @@
             // ─── 移动端 ──────────────────────────────────────────────
             document.addEventListener('touchstart', function () {
                 self._pointerDown = true;
-                _pointerCancelled = false;  // 新触摸清除取消标志
                 clearTimeout(_showTimer);
                 _hideSelMenu();         // 新触摸开始时隐藏选择菜单
             }, { passive: true });
@@ -810,21 +807,18 @@
             // 保证 _pointerDown 在任何情况下都能被重置，避免卡在 true 导致后续选区菜单无法出现
             document.addEventListener('touchend', function () {
                 self._pointerDown = false;
-                _pointerCancelled = false;  // 手指已抬起，允许 selectionchange 再次触发菜单
                 clearTimeout(_showTimer);
                 _showTimer = setTimeout(function () { self._handleTextSelection(); }, 200);
             }, true);
 
             // iOS / Android 长按选词：系统接管手势，触发 touchcancel 而非 touchend
             // 必须在 touchcancel 里清除 _pointerDown，否则 selectionchange 会被永久拦截
-            // 同时设 _pointerCancelled=true：避免 selectionchange 在手柄拖动期间反复弹菜单
-            // 引发布局重排，导致 Android WebView 选区跳到文档末尾的 BUG
             document.addEventListener('touchcancel', function () {
                 self._pointerDown = false;
-                _pointerCancelled = true;
                 clearTimeout(_showTimer);
-                _showTimer = setTimeout(function () { _pointerCancelled = false; self._handleTextSelection(); }, 300);
+                _showTimer = setTimeout(function () { self._handleTextSelection(); }, 300);
             });
+
 
             // 滚动时关闭所有菜单
             window.addEventListener('scroll', function () {

@@ -882,8 +882,7 @@
             caches.keys().then(function(keys) {
                 var hasTrainingCache = keys.some(function(key) { return key.indexOf('cx-') === 0; });
                 if (hasTrainingCache) {
-                    cacheAllBtn.querySelector('.cache-icon').textContent = '✅';
-                    cacheAllBtn.querySelector('.cache-text').textContent = '已缓存';
+                    cacheAllBtn.style.display = 'none';
                     if (dataToolsStatus && !dataToolsStatus.textContent) {
                         dataToolsStatus.textContent = '✓ 已缓存全部数据';
                         dataToolsStatus.className = 'cache-status success';

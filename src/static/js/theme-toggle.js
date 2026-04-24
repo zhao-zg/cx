@@ -421,9 +421,8 @@
                            min="0" max="7" step="1" value="2" 
                            oninput="handleFontSliderChange(this.value)">
                     <span class="font-label-large">A</span>
+                    <span class="font-size-value" id="fontSizeDisplay">18px</span>
                 </div>
-                <div class="font-size-value" id="fontSizeDisplay">18px</div>
-                <div class="font-size-indicator" id="fontSizeIndicator">档位 3/8</div>
             </div>
 
             <div class="theme-section" id="settingsActionsSection" style="display:none">
@@ -692,20 +691,22 @@
         if (isStandalone && ('caches' in window)) {
             var cacheBtn = document.getElementById('cacheAllBtn');
             if (cacheBtn) {
-                // 初始化按钮状态：已缓存则显示 ✅
+                // 已缓存则隐藏按钮，未缓存才显示
                 (function() {
                     var flag = null;
                     try { flag = localStorage.getItem('cx_all_cached'); } catch(e) {}
                     if (flag) {
                         caches.keys().then(function(keys) {
                             if (keys.some(function(k) { return k.indexOf('cx-') === 0; })) {
-                                cacheBtn.querySelector('.cache-icon').textContent = '✅';
-                                cacheBtn.querySelector('.cache-text').textContent = '已缓存';
+                                // 已缓存，不显示按钮
+                                return;
                             }
+                            cacheBtn.style.display = 'inline-flex';
                         });
+                    } else {
+                        cacheBtn.style.display = 'inline-flex';
                     }
                 })();
-                cacheBtn.style.display = 'inline-flex';
                 cacheBtn.addEventListener('click', function() {
                     if (window.CX && window.CX.cacheAll) {
                         window.CX.cacheAll(document.getElementById('actionStatus'));
@@ -1237,12 +1238,6 @@
         const slider = document.getElementById('fontSizeSlider');
         if (slider) {
             slider.value = currentSizeIndex;
-        }
-        
-        // 更新档位指示器
-        const indicator = document.getElementById('fontSizeIndicator');
-        if (indicator) {
-            indicator.textContent = `档位 ${currentSizeIndex + 1}/8`;
         }
     }
     
