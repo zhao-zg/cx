@@ -671,6 +671,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .cx-feedback-textarea{width:100%;height:120px;background:var(--surface-alt);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);resize:none;outline:none;line-height:1.6;box-sizing:border-box;font-family:inherit;-webkit-appearance:none;display:block}
 .cx-feedback-textarea:focus{border-color:var(--brand)}
 .cx-feedback-count{text-align:right;font-size:11px;color:var(--text-muted);margin-top:4px;height:16px;width:100%;contain:strict}
+.cx-feedback-tip{font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5;padding:6px 8px;background:var(--bg-secondary,rgba(0,0,0,.04));border-radius:6px}
 .cx-feedback-status{font-size:12px;text-align:center;min-height:16px;padding:4px 0 2px;color:var(--text-secondary)}
 .cx-feedback-status.success{color:var(--success-text)}
 .cx-feedback-status.error{color:var(--danger-text)}

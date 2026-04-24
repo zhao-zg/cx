@@ -878,6 +878,7 @@
             '  <div class="cx-feedback-body">',
             '    <textarea class="cx-feedback-textarea" id="cxFeedbackText" maxlength="' + MAX_LEN + '" placeholder="请描述您遇到的问题或建议…"></textarea>',
             '    <div class="cx-feedback-count" id="cxFeedbackCount">0/' + MAX_LEN + '</div>',
+            '    <div class="cx-feedback-tip">⚠️ 请先确认已是最新版本，部分问题在新版中已修复。</div>',
             '    <div class="cx-feedback-status" id="cxFeedbackStatus"></div>',
             '  </div>',
             '  <div class="cx-feedback-actions">',
