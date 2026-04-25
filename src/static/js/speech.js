@@ -538,8 +538,16 @@
       function commitSeek() {
         if (!_seekPending) return;
         _seekPending = false; isSeeking = false;
-        if (fullText) startSpeakingFromPercent(clamp(Number(progressBar.value) || 0, 0, 100));
-        else startProgressUpdate();
+        if (!fullText) { startProgressUpdate(); return; }
+        var pct = clamp(Number(progressBar.value) || 0, 0, 100);
+        // NativeTTS 正在播放时需先 stop，否则新 speak 指令会被忽略导致无声
+        if (useNativeTTS && state === 'playing') {
+          ++speakGeneration;   // 使旧 promise 失效，防止触发 onPlaybackNaturalEnd
+          nativeStopService();
+          setTimeout(function () { startSpeakingFromPercent(pct); }, 80);
+        } else {
+          startSpeakingFromPercent(pct);
+        }
       }
       progressBar.addEventListener('touchstart', function () {
         isSeeking = true; _seekPending = true; stopProgressUpdate();
