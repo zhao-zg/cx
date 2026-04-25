@@ -262,12 +262,12 @@
 }
 
 /* ── 二、主题切换按钮 & 设置面板 ────────────────────────────── */
-.theme-toggle-btn{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
+.theme-toggle-btn{position:absolute;top:6px;right:6px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
 .theme-toggle-btn:hover{background:var(--interactive-soft-hover);transform:scale(1.08);opacity:1}
 .theme-toggle-btn:active{transform:scale(.95)}
 .theme-toggle-btn svg{width:22px;height:22px;transition:transform .3s ease}
 .theme-toggle-btn:hover svg{transform:rotate(30deg)}
-@media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:10px;right:10px}.theme-toggle-btn svg{width:18px;height:18px}}
+@media (max-width:768px){.theme-toggle-btn{width:32px;height:32px;top:4px;right:4px}.theme-toggle-btn svg{width:18px;height:18px}}
 html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:none}
 .theme-panel-overlay{position:fixed;inset:0;background:var(--overlay-strong);z-index:997;display:none;opacity:0;transition:opacity .2s}
 .theme-panel-overlay.show{display:block;opacity:1}
@@ -312,13 +312,13 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:12px 12px 0;font-size:18px;-webkit-font-smoothing:antialiased}
 .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
-.header{position:relative;text-align:center;padding:16px 12px 14px;margin:-12px -12px 0;background:var(--header-bg);border-radius:12px 12px 0 0;border-bottom:1px solid rgba(255,255,255,.15)}
+.header{position:relative;text-align:center;padding:16px 37px 16px;margin:0px -12px 0;background:var(--header-bg);border-radius:12px 12px 0 0;border-bottom:1px solid rgba(255,255,255,.15)}
 .header h1{font-size:1.17em;margin-bottom:8px;color:var(--header-text);line-height:1.8;font-weight:600}
 .header .subtitle{font-size:0.88em;color:var(--header-subtitle);line-height:1.8}
 .header--chapter .chapter-title{margin:0;padding:0;background:transparent;box-shadow:none;color:var(--header-text);font-size:1.17em;font-weight:600;line-height:1.8}
 @media(min-width:768px){
     .container{padding:16px}
-    .header{margin:-16px -16px 0;padding:20px 16px 16px}
+    .header{margin:0px -16px 0;padding:20px 50px 20px}
     .header h1{font-size:1.5em;margin-bottom:10px}
 }
 .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
@@ -469,7 +469,6 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
     .hl-color-dot{width:34px;height:34px}
     body{padding:0}
     .container{padding:12px 16px;border-radius:0;border-left:none;border-right:none}
-    .header{padding:14px 10px}
     .content-text{padding-left:2px}
     .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
     .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}

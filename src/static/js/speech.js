@@ -399,15 +399,14 @@
         }
 
         if (typeof NativeTTS.addListener === 'function') {
-          NativeTTS.addListener('ttsPosition', function (data) {
+          var handle = NativeTTS.addListener('ttsPosition', function (data) {
             if (gen !== speakGeneration || !data || data.posMs == null) return;
             elapsedOffset = data.posMs / 1000;
             if (data.totalMs > 0) totalDuration = data.totalMs / 1000;
             startTime = Date.now();
-          }).then(function (handle) {
-            if (gen !== speakGeneration) { try { handle.remove(); } catch (e) {} }
-            else { _nativePositionHandle = handle; }
-          }).catch(function () {});
+          });
+          if (gen !== speakGeneration) { try { handle.remove(); } catch (e) {} }
+          else { _nativePositionHandle = handle; }
         }
 
         NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
