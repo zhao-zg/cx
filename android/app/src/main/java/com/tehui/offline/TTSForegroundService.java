@@ -219,7 +219,13 @@ public class TTSForegroundService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent == null || intent.getAction() == null) return START_NOT_STICKY;
+        if (intent == null || intent.getAction() == null) {
+            // START_STICKY 重建 or 系统传入空 Intent：必须先调 startForeground()，
+            // 否则触发 "did not call startForeground()" 崩溃。
+            startForeground(NOTIF_ID, buildNotification(false));
+            stopSelf();
+            return START_NOT_STICKY;
+        }
 
         switch (intent.getAction()) {
             case ACTION_SPEAK:    handleSpeak(intent);   break;
@@ -276,6 +282,16 @@ public class TTSForegroundService extends Service {
         sliceStartPositionMs = (long)(intent.getFloatExtra("startSecs", 0f) * 1000L);
         fullTotalDurationMs  = (long)(intent.getFloatExtra("totalSecs", 0f) * 1000L);
 
+        // ★ 必须在所有 return 之前调用 startForeground()。
+        //   Android 要求 startForegroundService() 调用后 5 秒内必须调用 startForeground()，
+        //   否则系统抛出 RemoteServiceException 崩溃。
+        Notification notif = buildNotification(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+        } else {
+            startForeground(NOTIF_ID, notif);
+        }
+
         if (text == null || text.trim().isEmpty()) {
             notifyError("文本为空");
             return;
@@ -301,15 +317,7 @@ public class TTSForegroundService extends Service {
         }
 
         acquireWakeLock();
-
-        // Start foreground with notification
         updatePlaybackState(true);
-        Notification notif = buildNotification(true);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
-        } else {
-            startForeground(NOTIF_ID, notif);
-        }
 
         if (ttsReady) {
             // 先显式 stop()，等引擎音频缓冲完全排空（200ms）再 speak()。
