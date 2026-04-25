@@ -533,6 +533,37 @@
       window.CXSpeech = window.CXSpeech || {};
       window.CXSpeech.cancel = function () { resetState(); };
 
+      // -- 电池优化说明弹框 ---------------------------------------------------
+      // 在跳转系统设置前向用户解释原因，避免突兀跳转。
+      // 使用 cx-dialog / cx-dialog-mask 样式（已在 style.css 中定义）。
+      function _showBatteryOptDialog(onConfirm) {
+        var mask = document.createElement('div');
+        mask.className = 'cx-dialog-mask';
+        mask.innerHTML =
+          '<div class="cx-dialog">' +
+            '<div class="cx-dialog-title">允许后台朗读</div>' +
+            '<div class="cx-dialog-desc">' +
+              '息屏或切换 App 时，Android 电池优化可能中断朗读。<br>' +
+              '建议在系统设置中将本 App 加入「不限制」名单，以保障连续播放。' +
+            '</div>' +
+            '<div class="cx-dialog-actions">' +
+              '<button class="cx-dialog-cancel">稍后再说</button>' +
+              '<button class="cx-dialog-confirm" style="color:var(--brand,#4f7ddb)">去设置</button>' +
+            '</div>' +
+          '</div>';
+        document.body.appendChild(mask);
+        mask.querySelector('.cx-dialog-cancel').addEventListener('click', function () {
+          document.body.removeChild(mask);
+        });
+        mask.querySelector('.cx-dialog-confirm').addEventListener('click', function () {
+          document.body.removeChild(mask);
+          onConfirm();
+        });
+        mask.addEventListener('click', function (e) {
+          if (e.target === mask) document.body.removeChild(mask);
+        });
+      }
+
       // -- Seekbar events -----------------------------------------------------
       var _seekPending = false;
       function commitSeek() {
@@ -573,7 +604,9 @@
             if (NativeTTS && typeof NativeTTS.isBatteryOptimizationIgnored === 'function') {
               NativeTTS.isBatteryOptimizationIgnored().then(function (r) {
                 if (!r.ignored && typeof NativeTTS.requestIgnoreBatteryOptimization === 'function') {
-                  NativeTTS.requestIgnoreBatteryOptimization();
+                  _showBatteryOptDialog(function () {
+                    NativeTTS.requestIgnoreBatteryOptimization();
+                  });
                 }
               }).catch(function () {});
             }
