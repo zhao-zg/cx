@@ -398,8 +398,8 @@
       m.title.textContent = frame.verseKey + ' 注' + frame.num;
       m.body.innerHTML = '<div class="scripture-popup-loading">加载中…</div>';
       ensureBibleNotes(function () {
-        var noteMap = (window.CX_BIBLE_NOTES || {})[frame.verseKey] || {};
-        var text = noteMap[frame.num] || '（未找到注解）';
+        var noteArr = (window.CX_BIBLE_NOTES || {})[frame.verseKey] || [];
+        var text = noteArr[parseInt(frame.num, 10) - 1] || '（未找到注解）';
         m.body.innerHTML = '<div class="scripture-popup-fn-body">' + renderNoteText(text, frame.verseKey) + '</div>';
         m.body.scrollTop = frame._scrollTop || 0;
       });

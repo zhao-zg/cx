@@ -83,7 +83,6 @@ class Chapter:
             'hymn_number': self.hymn_number,
             'hymn_image': self.hymn_image,
             'scripture': self.scripture,
-            'scripture_verses': self._extract_ref_keys(self.scripture_verses),
             'outline_sections': outline_sections,
             'detail_sections': detail_sections,
             'message_content': self.message_content,
@@ -242,7 +241,6 @@ class TrainingData:
             'subtitle': self.subtitle,
             'year': self.year,
             'season': self.season,
-            'app_version': self.app_version,
             'mottos': self.mottos,
             'motto_song_image': self.motto_song_image,
             'chapters': [ch.to_dict() for ch in self.chapters]

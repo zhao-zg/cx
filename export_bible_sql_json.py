@@ -446,7 +446,7 @@ def export_json(conn: sqlite3.Connection, out_dir: Path, normalize_xref: bool) -
         book_abbr = book_map.get(base.book_index, str(base.book_index))
         key = f"{book_abbr}{base.chapter}:{base.section}"
         sorted_items = sorted(seq_map.items(), key=lambda kv: int(kv[0]))
-        bible_notes[key] = {k: v for k, v in sorted_items}
+        bible_notes[key] = [v for _, v in sorted_items]
 
     bible_xrefs: Dict[str, Dict[str, str]] = {}
     for base, seq_map in xrefs_by_base.items():
