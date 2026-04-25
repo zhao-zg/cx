@@ -219,10 +219,18 @@ public class TTSForegroundService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        // Android 要求 startForegroundService() 后 5 秒内必须调 startForeground()。
+        // 在所有分支之前统一调用：无论 Intent 为 null、系统重建，还是任何 ACTION，
+        // 都能保证在 onStartCommand() 入口处立即满足要求，彻底避免超时崩溃。
+        Notification notif0 = buildNotification(false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIF_ID, notif0, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+        } else {
+            startForeground(NOTIF_ID, notif0);
+        }
+
         if (intent == null || intent.getAction() == null) {
-            // START_STICKY 重建 or 系统传入空 Intent：必须先调 startForeground()，
-            // 否则触发 "did not call startForeground()" 崩溃。
-            startForeground(NOTIF_ID, buildNotification(false));
+            // START_STICKY 重建 or 系统传入空 Intent：直接停止即可。
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -282,15 +290,8 @@ public class TTSForegroundService extends Service {
         sliceStartPositionMs = (long)(intent.getFloatExtra("startSecs", 0f) * 1000L);
         fullTotalDurationMs  = (long)(intent.getFloatExtra("totalSecs", 0f) * 1000L);
 
-        // ★ 必须在所有 return 之前调用 startForeground()。
-        //   Android 要求 startForegroundService() 调用后 5 秒内必须调用 startForeground()，
-        //   否则系统抛出 RemoteServiceException 崩溃。
-        Notification notif = buildNotification(true);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
-        } else {
-            startForeground(NOTIF_ID, notif);
-        }
+        // startForeground() 已在 onStartCommand() 最顶部统一调用，此处更新通知为播放状态。
+        updateNotification(true);
 
         if (text == null || text.trim().isEmpty()) {
             notifyError("文本为空");

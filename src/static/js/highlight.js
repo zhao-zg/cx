@@ -168,7 +168,18 @@
         },
 
         // ─── 存储键 ───────────────────────────────────────────────
+        // SPA 模式下 pathname 始终是 '/'，需从 hash 推导与旧静态页相同的 key，
+        // 这样 SPA 改造前保存的笔记可直接显示，新笔记也按章节隔离存储。
+        // 旧静态页命名规则：/{batch}/{num}_{view}.htm  e.g. /2025-07/1_cv.htm
         getPageKey: function () {
+            var hash = window.location.hash.replace(/^#\/?/, ''); // '2025-07/1/cv'
+            if (hash) {
+                var parts = hash.split('/').filter(Boolean);
+                if (parts.length >= 3) {
+                    // batch/num/view → /batch/num_view.htm（与旧静态页 key 一致）
+                    return '/' + parts[0] + '/' + parts[1] + '_' + parts[2] + '.htm';
+                }
+            }
             return window.location.pathname;
         },
 
