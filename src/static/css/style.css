@@ -312,14 +312,13 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:12px 12px 0;font-size:18px;-webkit-font-smoothing:antialiased}
 .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
-.header{position:relative;text-align:center;margin-bottom:12px;padding:16px 12px;background:var(--header-bg);border-radius:8px}
-.header--chapter{position:relative;background:var(--header-bg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding-top:14px;padding-bottom:14px}
+.header{position:relative;text-align:center;padding:16px 12px 14px;margin:-12px -12px 0;background:var(--header-bg);border-radius:12px 12px 0 0;border-bottom:1px solid rgba(255,255,255,.15)}
 .header h1{font-size:1.17em;margin-bottom:8px;color:var(--header-text);line-height:1.8;font-weight:600}
 .header .subtitle{font-size:0.88em;color:var(--header-subtitle);line-height:1.8}
-.header--chapter .chapter-title{margin:4px 0 0;padding:0;background:transparent;box-shadow:none;color:var(--header-text)}
+.header--chapter .chapter-title{margin:0;padding:0;background:transparent;box-shadow:none;color:var(--header-text);font-size:1.17em;font-weight:600;line-height:1.8}
 @media(min-width:768px){
     .container{padding:16px}
-    .header{margin-bottom:18px;padding:25px 20px}
+    .header{margin:-16px -16px 0;padding:20px 16px 16px}
     .header h1{font-size:1.5em;margin-bottom:10px}
 }
 .nav{text-align:center;margin-bottom:0px;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:0.88em}
@@ -381,7 +380,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 }
 
 /* ── 六、页面间导航栏 ───────────────────────────────────────── */
-.page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:6px 0 10px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.83em;box-sizing:border-box;overflow:hidden;box-shadow:var(--shadow-sm)}
+.page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:10px 0 10px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.83em;box-sizing:border-box;overflow:hidden;box-shadow:var(--shadow-sm)}
 .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 8px;border-radius:0;font-size:0.84em;background:var(--surface-alt);border:1px solid var(--btn-secondary-border);height:38px;line-height:38px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
 .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
 .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
@@ -408,8 +407,8 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 }
 
 /* ── 八、纲目层级与内容文字 ────────────────────────────────── */
-.section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:calc(1.25em + 10px);text-indent:-1.25em;border-left:3px solid var(--brand)}
-.section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:calc(1.25em + 8px);text-indent:-1.25em;border-left:2px solid rgba(var(--brand-rgb),.28)}
+.section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
+.section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
 .section-level3,.outline-item.level-3{font-size:1.04em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
 .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
 .section-level5,.outline-item.level-5{font-size:.97em;font-weight:450;margin:7px 0 5px;color:var(--heading-muted);line-height:1.6;margin-left:46px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
@@ -418,8 +417,8 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
 @media(min-width:768px){
     .content-text{padding-left:2px;font-size:1.05em}
-    .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:calc(1.75em + 10px);text-indent:-1.75em}
-    .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:calc(1.75em + 8px);text-indent:-1.75em}
+    .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
+    .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
     .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
     .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
     .section-level5,.outline-item.level-5{margin:8px 0 6px;font-size:1.01em;margin-left:58px;padding-left:1.5em;text-indent:-1.5em}
@@ -472,8 +471,8 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
     .container{padding:12px 16px;border-radius:0;border-left:none;border-right:none}
     .header{padding:14px 10px}
     .content-text{padding-left:2px}
-    .section-level1,.outline-item.level-1{margin-left:4px;padding-left:calc(1.1em + 10px);text-indent:-1.1em}
-    .section-level2,.outline-item.level-2{margin-left:11px;padding-left:calc(1.1em + 8px);text-indent:-1.1em}
+    .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
+    .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
     .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
     .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
     .section-level5,.outline-item.level-5{margin-left:32px;padding-left:1em;text-indent:-1em}
@@ -510,6 +509,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .level-btn.active{background:var(--bg);border-color:var(--brand);color:#fff;box-shadow:var(--interactive-soft-shadow)}
 .level-btn:active{transform:scale(0.95)}
 .outline-page{padding:8px}
+.outline-page .page-navigation,.morning-revival-page .page-navigation,.details-page .page-navigation,.hymn-page .page-navigation,.message-page .page-navigation,.ministry-page .page-navigation{margin-top:2px}
 .outline-content{margin-top:20px}
 .subsections{margin-left:0;display:block}
 
@@ -793,12 +793,6 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 /* ── 二十三、阅读进度条 ────────────────────────────────────── */
 .cx-reading-progress{position:fixed;top:0;left:0;right:0;height:2px;background:var(--brand);z-index:9990;width:0%;pointer-events:none;transition:width .1s linear;transform-origin:left}
 
-/* ── 二十四、面包屑导航 ─────────────────────────────────────── */
-.cx-breadcrumb{display:flex;align-items:center;gap:5px;font-size:0.82em;color:var(--text-muted);margin-bottom:8px;padding:2px 2px;white-space:nowrap;overflow:hidden;min-height:26px}
-.cx-bc-link{color:var(--brand);text-decoration:none;font-weight:600;flex-shrink:1;overflow:hidden;text-overflow:ellipsis;max-width:65%;line-height:1.4}
-.cx-bc-link:active{opacity:.7}
-.cx-bc-sep{flex-shrink:0;color:var(--text-muted);font-size:0.9em}
-.cx-bc-current{color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
 
 /* ── 二十六、首页年份分组标签 ──────────────────────────────── */
 .cx-year-header-row{padding:7px 16px 5px;background:var(--surface-alt);font-size:0.75em;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border)}

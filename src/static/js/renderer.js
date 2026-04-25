@@ -158,19 +158,13 @@
     var num = chapter.number;
     // 面包屑
     var trainingTitle = training && training.title ? training.title : '';
-    var breadcrumb = trainingTitle
-      ? '<div class="cx-breadcrumb">'+
-          '<a href="javascript:void(0)" class="cx-bc-link" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')" title="返回目录：' + escAttr(trainingTitle) + '">‹ ' + escText(trainingTitle) + '</a>'+
-          '<span class="cx-bc-sep">\u203a</span>'+
-          '<span class="cx-bc-current">\u7b2c' + num + '\u7bc7</span>'+
-        '</div>'
-      : '';
     function link(view, label) {
       var act = (view === activeView || (view === 'h' && activeView === 'ts')) ? ' active' : '';
       return '<a href="javascript:void(0)" class="nav-link' + act + '" title="' + label + '" onclick="CXRouter.navigate(\'' +
         escAttr(batchPath) + '/' + num + '/' + view + '\')">' + label + '</a>';
     }
     var html = '<div class="page-navigation">';
+    html += '<a href="javascript:void(0)" class="nav-link" title="返回目录" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')">返回</a>';
     html += link('cv', '纲目');
     html += link('h', '听抄');
     if (chapter.morning_revivals && chapter.morning_revivals.length > 0) {
@@ -184,7 +178,6 @@
     }
     html += '<button type="button" id="cx-search-btn" class="nav-link" title="搜索">🔍</button>';
     html += '</div>';
-    html = breadcrumb + html;
     html += buildBottomControlBar();
     return html;
   }
@@ -844,9 +837,9 @@
         try { sessionStorage.setItem('cx_access','ok'); } catch(e){}
         setMeta(training);
 
-        var subtitleLine = training.subtitle
-          ? '<div class="subtitle">总题：' + escText(training.subtitle) + '</div>'
-          : '';
+        var subtitleLine ='<div class="subtitle">' + escText(training.year + '-' + training.season) + '</div>';
+
+        var h1Text = training.subtitle || training.title;
 
         var navLinks = '<a href="javascript:void(0)" class="nav-link" title="返回主页" onclick="CXRouter.navigate(\'\')">返回主页</a>' +
           '<a href="javascript:void(0)" class="nav-link active" title="目录">目录</a>';
@@ -868,7 +861,7 @@
 
         var html = '<div class="container">' +
           '<div class="header">' +
-          '<h1>' + escText(training.title) + '</h1>' +
+          '<h1>' + escText(h1Text) + '</h1>' +
           subtitleLine +
           '</div>' +
           '<div class="content"><div class="index-page">' +
