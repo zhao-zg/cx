@@ -585,9 +585,7 @@
             // 覆盖 renderHome 以恢复 homeView
             var origRenderHome=window.CXRenderer.renderHome;
             window.CXRenderer.renderHome=function(){
-                window._cxShowHome();
-                // 重置 sessionStorage（允许主页显示）
-                try{sessionStorage.setItem('cx_access','ok');}catch(e){}
+                origRenderHome.call(window.CXRenderer);
             };
             // 覆盖 renderChapterView / renderBatchIndex 以切换到 app 视图
             ['renderChapterView','renderBatchIndex'].forEach(function(fn){
