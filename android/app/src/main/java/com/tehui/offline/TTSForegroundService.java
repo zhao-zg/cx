@@ -27,7 +27,6 @@ import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -52,7 +51,6 @@ public class TTSForegroundService extends Service {
     public static final String ACTION_PAUSE    = "com.tehui.tts.PAUSE";
     public static final String ACTION_RESUME   = "com.tehui.tts.RESUME";
     public static final String ACTION_SET_RATE = "com.tehui.tts.SET_RATE"; // 仅更新倍率，不重启播放
-    public static final String ACTION_SEEK_TO  = "com.tehui.tts.SEEK_TO";  // 拖动进度条 seek
 
     // ── Callback interface (set by NativeTTSPlugin) ───────────────────────
     public interface Listener {
@@ -66,13 +64,9 @@ public class TTSForegroundService extends Service {
     public static volatile Listener listener = null;
 
     // ── Constants ─────────────────────────────────────────────────────────
-    private static final String CHANNEL_ID          = "cx_tts_channel";
-    private static final int    NOTIF_ID            = 8001;
-    private static final int    CHUNK_SIZE          = 500;   // chars per chunk
-    /** speak() 调用后，若 onStart 在此时限内未触发，视为引擎将任务吞掉，立即重试。 */
-    private static final long   SPEAK_START_TIMEOUT = 5_000L;
-    /** 同一 chunk 允许的最大重试次数，超限跳块，避免死循环。 */
-    private static final int    MAX_CHUNK_RETRIES   = 3;
+    private static final String CHANNEL_ID = "cx_tts_channel";
+    private static final int    NOTIF_ID   = 8001;
+    private static final int    CHUNK_SIZE = 200;   // chars per chunk
 
     // ── TTS ───────────────────────────────────────────────────────────────
     private volatile TextToSpeech tts;  // volatile: 后台线程(UtteranceProgressListener)需要可见性
@@ -92,7 +86,6 @@ public class TTSForegroundService extends Service {
     private long                chunkStartTimeMs     = 0; // 当前 chunk 开始时的系统时钟（ms）
     private long                sliceStartPositionMs  = 0; // seek 点偏移，从 JS 传入的 startSecs * 1000
     private long                fullTotalDurationMs   = 0; // 全文稿总时长，从 JS 的 totalSecs * 1000
-    private long                pendingSeekPositionMs = -1; // seek 目标绝对位置；-1 表示无 pending seek
     private Voice               pinnedVoice          = null; // 锁定声音，避免 chunk 间换声
     private String              playTitle            = "";  // 锁屏/通知栏标题（篇章）
     private String              playArtist           = "";  // 锁屏/通知栏副标题（训练名）
@@ -100,9 +93,6 @@ public class TTSForegroundService extends Service {
 
     // 定期向 JS 推送播放位置，保持 APP 内进度条与 MediaSession 同步
     private Runnable            positionRunnable     = null;
-    // speak-start 超时看门狗：speak() 后若 onStart 迟迟不来，则重试当前 chunk
-    private Runnable            speakStartRunnable   = null;
-    private volatile int        chunkRetryCount      = 0;   // 当前 chunk 的重试计数
 
     // ── System Resources ──────────────────────────────────────────────────
     private AudioManager                          audioManager;
@@ -152,10 +142,9 @@ public class TTSForegroundService extends Service {
 
         // Callback: 处理锁屏/通知栏媒体控件的点击事件（播放/暂停/停止/拖动进度条）
         mediaSession.setCallback(new MediaSession.Callback() {
-            @Override public void onPlay()            { mainHandler.post(() -> handleResume()); }
-            @Override public void onPause()           { mainHandler.post(() -> handlePause()); }
-            @Override public void onStop()            { mainHandler.post(() -> handleStop()); }
-            @Override public void onSeekTo(long posMs){ mainHandler.post(() -> handleSeekTo(posMs)); }
+            @Override public void onPlay()  { mainHandler.post(() -> handleResume()); }
+            @Override public void onPause()  { mainHandler.post(() -> handlePause()); }
+            @Override public void onStop()   { mainHandler.post(() -> handleStop()); }
         });
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
@@ -175,18 +164,15 @@ public class TTSForegroundService extends Service {
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override
             public void onStart(String utteranceId) {
-                // 引擎成功接受任务并开始合成 → 取消 speak-start 超时看门狗
-                cancelSpeakStart();
+                // Engine accepted and started synthesising — no action needed
             }
 
             @Override
             public void onDone(String utteranceId) {
-                cancelSpeakStart(); // 确保超时被取消（onStart 可能被某些 ROM 跳过）
                 // Guard against stale callbacks from a previous speak() call
                 int gen = parseGen(utteranceId);
                 if (gen != speakGen || isStopped || isPaused) return;
 
-                chunkRetryCount = 0; // chunk 正常完成，重置重试计数
                 chunkIndex++;
 
                 // 上报字符进度，让 JS 侧用实际完成比例重新校准进度条（消除时间估算漂移）
@@ -215,11 +201,8 @@ public class TTSForegroundService extends Service {
             @Override
             @SuppressWarnings("deprecation")
             public void onError(String utteranceId) {
-                cancelSpeakStart(); // 确保超时被取消
                 int gen = parseGen(utteranceId);
                 if (gen != speakGen || isStopped) return;
-                chunkRetryCount = 0;
-                // Skip failed chunk, continue
                 chunkIndex++;
                 final int capturedGen = gen;
                 ttsHandler.post(() -> {
@@ -244,7 +227,6 @@ public class TTSForegroundService extends Service {
             case ACTION_PAUSE:    handlePause();          break;
             case ACTION_RESUME:   handleResume();         break;
             case ACTION_SET_RATE: handleSetRate(intent);  break;
-            case ACTION_SEEK_TO:  handleSeekTo(intent.getLongExtra("posMs", 0)); break;
         }
         return START_STICKY;
     }
@@ -261,7 +243,6 @@ public class TTSForegroundService extends Service {
         if (mainHandler != null) mainHandler.removeCallbacksAndMessages(null);
         if (ttsHandler  != null) ttsHandler.removeCallbacksAndMessages(null);
         positionRunnable  = null; // removeCallbacksAndMessages 已移除所有 pending callbacks
-        speakStartRunnable = null;
         if (ttsHandlerThread != null) { ttsHandlerThread.quitSafely(); ttsHandlerThread = null; }
         releaseWakeLock();
         abandonAudioFocus();
@@ -365,7 +346,6 @@ public class TTSForegroundService extends Service {
         speakGen++;
         final int gen = speakGen;
         tts.stop();
-        cancelSpeakStart();
         updatePlaybackState(true); // ★ 立即刷新，锁屏进度条用新倍率推进（不等 150ms 延迟）
         ttsHandler.postDelayed(() -> {
             if (speakGen != gen || isStopped || isPaused) return;
@@ -380,7 +360,6 @@ public class TTSForegroundService extends Service {
         pausedByUser = false;
         speakGen++;
         stopPositionBroadcast();
-        cancelSpeakStart();
         if (tts != null) tts.stop();
         finishPlayback();
     }
@@ -391,7 +370,7 @@ public class TTSForegroundService extends Service {
         isPaused = true;
         speakGen++;       // invalidate in-flight onDone callbacks
         stopPositionBroadcast();
-        cancelSpeakStart();
+
         if (tts != null) tts.stop();
         // 冻结进度位置：让锁屏进度条在暂停时显示正确位置
         chunkStartPositionMs = getCurrentPositionMs();
@@ -419,7 +398,6 @@ public class TTSForegroundService extends Service {
         isPaused = true;
         speakGen++;
         stopPositionBroadcast();
-        cancelSpeakStart();
         if (tts != null) tts.stop();
         chunkStartPositionMs = getCurrentPositionMs();
         chunkStartTimeMs     = 0;
@@ -503,28 +481,15 @@ public class TTSForegroundService extends Service {
             });
             return;
         }
-        // seek 后优先使用精确目标位置，否则按字符比例估算块起始位置
-        if (pendingSeekPositionMs >= 0) {
-            chunkStartPositionMs  = pendingSeekPositionMs;
-            pendingSeekPositionMs = -1;
-        } else {
-            chunkStartPositionMs = calculateChunkStartPositionMs();
-        }
+        chunkStartPositionMs = calculateChunkStartPositionMs();
         chunkStartTimeMs = System.currentTimeMillis();
         updatePlaybackState(true); // 刷新锁屏进度
         startPositionBroadcast(); // 开始定期向 JS 推送位置
-        scheduleSpeakStart(text); // 注册 speak-start 超时看门狗
     }
 
-    /** 调用 tts.speak()，封装了 API 21 前后的两种方式。返回 TextToSpeech.SUCCESS 或 ERROR。 */
-    @SuppressWarnings("deprecation")
+    /** 调用 tts.speak()。返回 TextToSpeech.SUCCESS 或 ERROR。 */
     private int doSpeak(TextToSpeech t, String text, String uid) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            return t.speak(text, TextToSpeech.QUEUE_FLUSH, null, uid);
-        }
-        HashMap<String, String> p = new HashMap<>();
-        p.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, uid);
-        return t.speak(text, TextToSpeech.QUEUE_FLUSH, p);
+        return t.speak(text, TextToSpeech.QUEUE_FLUSH, null, uid);
     }
 
     /** 开始每 500ms 向 JS 推送一次实际播放位置。重入安全。 */
@@ -547,60 +512,6 @@ public class TTSForegroundService extends Service {
         if (positionRunnable != null) {
             mainHandler.removeCallbacks(positionRunnable);
             positionRunnable = null;
-        }
-    }
-
-    /**
-     * speak-start 超时看门狗：speak() 调用后，若 onStart 在 SPEAK_START_TIMEOUT 内未触发，
-     * 说明 TTS 引擎被 ROM 节流或挂起、将本次任务静默丢弃。
-     * - 重试次数 < MAX_CHUNK_RETRIES：重新 speak 当前 chunk（重建引擎参数）
-     * - 超限：跳到下一 chunk，避免死循环
-     * 运行在 ttsHandler（THREAD_PRIORITY_AUDIO），不受 Doze 主线程节流影响。
-     */
-    private void scheduleSpeakStart(String chunkText) {
-        cancelSpeakStart();
-        if (chunkText == null || chunkText.isEmpty()) return;
-        final int gen        = speakGen;
-        final int chunkIdx   = chunkIndex;
-        speakStartRunnable = () -> {
-            if (isStopped || isPaused || speakGen != gen) return;
-            // speak() 被引擎静默吞掉
-            TextToSpeech t = tts;
-            if (t != null) t.stop();
-            if (chunkRetryCount < MAX_CHUNK_RETRIES) {
-                // 重试当前 chunk：递增 speakGen 让旧回调失效，重建引擎参数
-                chunkRetryCount++;
-                speakGen++;
-                final int newGen = speakGen;
-                ttsHandler.postDelayed(() -> {
-                    if (speakGen != newGen || isStopped || isPaused) return;
-                    setTtsParams();
-                    playChunkOnly();
-                }, 300);
-            } else {
-                // 重试耗尽，跳块
-                chunkRetryCount = 0;
-                chunkIndex++;
-                speakGen++;
-                final int newGen = speakGen;
-                ttsHandler.postDelayed(() -> {
-                    if (speakGen != newGen || isStopped || isPaused) return;
-                    if (chunkIndex < chunks.size()) {
-                        setTtsParams();
-                        playChunkOnly();
-                    } else {
-                        notifyFinished();
-                    }
-                }, 300);
-            }
-        };
-        ttsHandler.postDelayed(speakStartRunnable, SPEAK_START_TIMEOUT);
-    }
-
-    private void cancelSpeakStart() {
-        if (speakStartRunnable != null) {
-            ttsHandler.removeCallbacks(speakStartRunnable);
-            speakStartRunnable = null;
         }
     }
 
@@ -637,8 +548,7 @@ public class TTSForegroundService extends Service {
             .setActions(PlaybackState.ACTION_PLAY_PAUSE |
                         PlaybackState.ACTION_PAUSE |
                         PlaybackState.ACTION_PLAY |
-                        PlaybackState.ACTION_STOP |
-                        PlaybackState.ACTION_SEEK_TO)
+                        PlaybackState.ACTION_STOP)
             .build());
     }
 
@@ -678,43 +588,6 @@ public class TTSForegroundService extends Service {
         long sliceMs = getTotalDurationMs(); // 切片自身时长
         if (totalTextLength <= 0 || sliceMs <= 0) return sliceStartPositionMs;
         return sliceStartPositionMs + (long)((float) cumChars / totalTextLength * sliceMs);
-    }
-
-    private void handleSeekTo(long posMs) {
-        // posMs 是全文坐标（按 MediaMetadata 里的 fullTotalDurationMs）。
-        // 先转换到切片内的相对位置，再映射到 chunkIndex。
-        long sliceMs = getTotalDurationMs();
-        if (sliceMs <= 0 || chunks.isEmpty()) return;
-        long slicePos = posMs - sliceStartPositionMs;        // 全文坐标 → 切片坐标
-        slicePos = Math.max(0, Math.min(sliceMs, slicePos)); // 钳位到切片范围
-        float fraction = (float) slicePos / sliceMs;
-        int targetChar = (int)(fraction * totalTextLength);
-        int cumLen = 0;
-        int targetChunk = chunks.size() - 1;
-        for (int i = 0; i < chunks.size(); i++) {
-            if (cumLen + chunks.get(i).length() > targetChar) { targetChunk = i; break; }
-            cumLen += chunks.get(i).length();
-        }
-        chunkIndex      = targetChunk;
-        chunkRetryCount = 0;
-        isStopped = false;
-        isPaused  = false;
-        // ★ 冻结位置到 seek 目标：playChunkOnly 优先使用此值，让锁屏进度条立即跳到新位置，
-        //   避免等待 200ms 延迟 + calculateChunkStartPositionMs() 字符估算带来的偏差。
-        pendingSeekPositionMs = posMs;
-        chunkStartPositionMs  = posMs;
-        chunkStartTimeMs      = 0;
-        speakGen++;
-        cancelSpeakStart();
-        updatePlaybackState(true); // ★ 立即通知 MediaSession 新位置
-        final int gen = speakGen;
-        TextToSpeech t = tts;
-        if (t != null) t.stop();
-        ttsHandler.postDelayed(() -> {
-            if (speakGen != gen || isStopped) return;
-            setTtsParams();
-            playChunkOnly();
-        }, 200);
     }
 
     @SuppressWarnings("deprecation")

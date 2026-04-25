@@ -246,21 +246,17 @@
 
     controlsDiv.style.display = 'flex';
 
-    var initAttempts    = 0;
-    var maxInitAttempts = 40;
+    var initAttempts = 0;
 
     function startInit() {
       var engine = detectEngine();
-      // On native Android: wait specifically for NativeTTS.
-      // Don't fall back to WebSpeech immediately -- Android WebView's WebSpeech
-      // can switch between installed TTS engines between chunks, causing two voices.
-      if (engine.isNative && !engine.useNativeTTS && initAttempts < maxInitAttempts) {
+      // On native Android: wait up to 1.5 s for NativeTTS plugin to become available.
+      if (engine.isNative && !engine.useNativeTTS && initAttempts < 10) {
         initAttempts++;
         setTimeout(startInit, 150);
         return;
       }
       if (!engine.supported) {
-        if (initAttempts < maxInitAttempts) { initAttempts++; setTimeout(startInit, 150); return; }
         showUnsupported(engine.isNative ? '朗读插件未就绪' : '朗读暂不可用');
         return;
       }
@@ -268,160 +264,62 @@
       var useNativeTTS = engine.useNativeTTS;
       var useWebSpeech = engine.useWebSpeech;
 
-      console.log('TTS 引擎:', useNativeTTS ? 'NativeTTS (Foreground Service)' : 'Web Speech API');
-
       var playIcon  = playPauseBtn.querySelector('.play-icon');
       var pauseIcon = playPauseBtn.querySelector('.pause-icon');
 
       var savedRate = localStorage.getItem('speechRate');
       if (savedRate) rateSelect.value = savedRate;
 
-      // -- State --------------------------------------------------------------
+      // -- State machine: 'idle' | 'playing' | 'paused' -----------------------
+      var state         = 'idle';
       var fullText      = '';
-      var isPaused      = false;
-      var _wasPlayingOnHide = false; // 切走时是否正在播放（非暂停）
-      var isPlaying     = false;
       var totalDuration = 0;
-      var elapsedOffset = 0;
-      var startTime     = 0;
-      var pauseStartedAt = 0;
+      var elapsedOffset = 0;   // seconds elapsed at moment startTime was captured
+      var startTime     = 0;   // Date.now() when current playback segment started
       var progressInterval = null;
       var isSeeking     = false;
       var speakGeneration = 0;
       var isLooping     = localStorage.getItem('speechLoop') === '1';
+      var _pauseBarPct     = 0;  // NativeTTS: % position to resume from after pause
+      var _wsResumePercent = 0;  // Web Speech: % position to resume from after pause
+      var _nativePositionHandle = null;
+      var textChunks   = [];
+      var currentChunk = 0;
+
+      // -- State machine helpers ----------------------------------------------
+
+      function setState(s) {
+        state = s;
+        var playing = (s === 'playing');
+        if (playIcon && pauseIcon) {
+          playIcon.style.display  = playing ? 'none'   : 'inline';
+          pauseIcon.style.display = playing ? 'inline' : 'none';
+        }
+        playPauseBtn.setAttribute('aria-label', playing ? '暂停' : '播放');
+        updateMediaSessionState(playing);
+      }
 
       function updateLoopButton() {
         if (!loopBtn) return;
-        if (isLooping) loopBtn.classList.add('active');
-        else loopBtn.classList.remove('active');
+        loopBtn.classList.toggle('active', isLooping);
         loopBtn.title = isLooping ? '循环播放（已开启）' : '循环播放';
       }
 
       function onPlaybackNaturalEnd() {
         if (isLooping && fullText) {
-          // 循环：重置进度和时间熹，少1帧延迟后从头播放
-          elapsedOffset = 0; startTime = 0; progressBar.value = '0';
+          elapsedOffset = 0; startTime = 0;
+          progressBar.value = '0';
           speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
           setTimeout(function () { startSpeakingFromPercent(0); }, 300);
         } else {
-          resetState(false);
+          resetState();
         }
       }
 
       // NativeTTS 位置监听句柄（每 500ms Java 推送一次实际位置）
-      var _nativePositionHandle = null;
-      // 电池优化：本次 session 是否已经检查过（按需弹一次系统对话框）
-      var _batteryOptChecked = false;
-
-      // Web Speech chunk state
-      var textChunks      = [];
-      var currentChunk    = 0;
-      var isChunking      = false;
-      var chunkStartChars = [];  // 每块在 segText 中的起始字符偏移（累积）
-      var _segStartPct    = 0;   // 本次 startSpeakingFromPercent 的起始百分比
-      var _segLen         = 0;   // 本次 segText.length（safeText 后）
-
-      // -- WebSpeech voice pinning (prevents voice switching between chunks on Android) --
-      var _pinnedVoice = null;
-      function pinWebSpeechVoice() {
-        if (_pinnedVoice || !useWebSpeech) return;
-        var voices = [];
-        try { voices = window.speechSynthesis.getVoices() || []; } catch (e) { return; }
-        var sel = voices.filter(function (v) { return v.lang === lang; });
-        if (!sel.length) sel = voices.filter(function (v) { return v.lang && v.lang.toLowerCase().indexOf('zh') === 0; });
-        if (sel.length) _pinnedVoice = sel[0];
-      }
-      function applyPinnedVoice(utt) {
-        pinWebSpeechVoice();
-        if (_pinnedVoice) utt.voice = _pinnedVoice;
-      }
-      if (useWebSpeech) {
-        try { window.speechSynthesis.onvoiceschanged = function () { _pinnedVoice = null; pinWebSpeechVoice(); }; } catch (e) {}
-        pinWebSpeechVoice();
-      }
-
-      // -- WS keepalive -------------------------------------------------------
-      // 不用 pause()+resume()：该方式在部分 Chrome/WebView 上会对当前 utterance
-      // 触发 onerror(interrupted)，导致播放意外停止。
-      // 改为：每 3s 检查一次，若应播放但已静音 >2s 则从当前位置重启。
-      var _wsKeepalive = null;
-      var _wsSpeakingAt = 0;  // 最后确认有声音的时间戳，用于检测意外静音
-      function startWsKeepalive() {
-        if (!useWebSpeech) return;
-        stopWsKeepalive();
-        _wsSpeakingAt = Date.now();
-        _wsKeepalive = setInterval(function () {
-          if (isPaused || document.hidden) return;
-          try {
-            if (window.speechSynthesis.speaking) {
-              // 浏览器报告仍在播放，更新时间戳
-              _wsSpeakingAt = Date.now();
-            } else if ((isChunking || startTime > 0) && !isPaused &&
-                       (Date.now() - _wsSpeakingAt) > 1500 && totalDuration > 0) {
-              // 应该在播放但已静音超过 1.5s → 从当前位置重启
-              var est = clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 99);
-              startSpeakingFromPercent(est);
-            }
-          } catch (e) {}
-        }, 1000);
-      }
-      function stopWsKeepalive() {
-        if (_wsKeepalive) { clearInterval(_wsKeepalive); _wsKeepalive = null; }
-      }
-
-      // -- Silent AudioContext (Web Speech only) --------------------------------
-      // 在 Play 时创建一个全静音的循环 AudioContext，让浏览器视当前页面为「正在播放音频」，
-      // 从而减少后台 JS 定时器被节流的概率，改善后台朗读持续性。
-      var _silentCtx = null;
-      function ensureSilentAudio() {
-        if (!useWebSpeech || _silentCtx) return;
-        try {
-          var AC = window.AudioContext || window.webkitAudioContext;
-          if (!AC) return;
-          _silentCtx = new AC();
-          if (_silentCtx.state === 'suspended') _silentCtx.resume();
-          // 全零缓冲（真正静音），循环播放以保持 AudioContext 活跃
-          var buf = _silentCtx.createBuffer(1, _silentCtx.sampleRate, _silentCtx.sampleRate);
-          var src = _silentCtx.createBufferSource();
-          src.buffer = buf; src.loop = true;
-          src.connect(_silentCtx.destination);
-          src.start();
-        } catch (e) { _silentCtx = null; }
-      }
-      function stopSilentAudio() {
-        try { if (_silentCtx) { _silentCtx.close(); } } catch (e) {}
-        _silentCtx = null;
-      }
-
-      // -- MediaSession API (Web Speech only) -----------------------------------
-      // 向操作系统注册为「媒体会话」，使锁屏/通知栏显示播放控件，并帮助浏览器
-      // 将本页面识别为音频内容（有助于部分 Android 机型的后台续播）。
-      function setupMediaSession() {
-        if (!useWebSpeech || !('mediaSession' in navigator)) return;
-        try {
-          navigator.mediaSession.setActionHandler('play', function () {
-            if (isPaused) { playPauseBtn.click(); }
-            else if (!isPlaying && !isChunking) { playPauseBtn.click(); }
-          });
-          navigator.mediaSession.setActionHandler('pause', function () {
-            if ((isPlaying || isChunking) && !isPaused) { playPauseBtn.click(); }
-          });
-          navigator.mediaSession.setActionHandler('stop', function () {
-            if (window.CXSpeech && window.CXSpeech.cancel) window.CXSpeech.cancel();
-          });
-        } catch (e) {}
-      }
-      function updateMediaSession(playing) {
-        if (!useWebSpeech || !('mediaSession' in navigator)) return;
-        try {
-          if (playing && !navigator.mediaSession.metadata) {
-            navigator.mediaSession.metadata = new MediaMetadata({ title: document.title || '朗读' });
-          }
-          navigator.mediaSession.playbackState = playing ? 'playing' : (isPaused ? 'paused' : 'none');
-        } catch (e) {}
-      }
 
       // -- Progress helpers ---------------------------------------------------
+
       function currentElapsedSeconds() {
         if (!totalDuration) return 0;
         if (!startTime) return clamp(elapsedOffset, 0, totalDuration);
@@ -436,7 +334,7 @@
       }
 
       function startProgressUpdate() {
-        stopProgressUpdate();
+        if (progressInterval) return;
         progressInterval = setInterval(function () { if (!isSeeking) updateProgressUI(); }, 120);
       }
 
@@ -444,31 +342,48 @@
         if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
       }
 
-      function updateButtonState(playing) {
-        if (playIcon && pauseIcon) {
-          playIcon.style.display  = playing ? 'none'   : 'inline';
-          pauseIcon.style.display = playing ? 'inline' : 'none';
-        }
-        playPauseBtn.setAttribute('aria-label', playing ? '暂停' : '播放');
-        updateMediaSession(playing);
-      }
-
-      function resetState(keepText) {
+      function resetState() {
+        ++speakGeneration;
         stopProgressUpdate();
-        stopWsKeepalive();
-        stopSilentAudio();
-        isPaused = false; isPlaying = false;
-        startTime = 0; pauseStartedAt = 0; elapsedOffset = 0; totalDuration = 0;
-        textChunks = []; currentChunk = 0; isChunking = false;
-        chunkStartChars = []; _segStartPct = 0; _segLen = 0;
-        if (!keepText) fullText = '';
-        updateButtonState(false);
+        if (useNativeTTS) nativeStopService();
+        else { try { window.speechSynthesis.cancel(); } catch (e) {} }
+        fullText = '';
+        elapsedOffset = 0; startTime = 0; totalDuration = 0;
+        textChunks = []; currentChunk = 0;
         progressBar.value = '0';
         speechTime.textContent = '00:00 / 00:00';
+        setState('idle');
+      }
+
+      // -- MediaSession (Web Speech only) ------------------------------------
+
+      function setupMediaSession() {
+        if (!('mediaSession' in navigator)) return;
+        try {
+          navigator.mediaSession.setActionHandler('play', function () {
+            if (state !== 'playing') playPauseBtn.click();
+          });
+          navigator.mediaSession.setActionHandler('pause', function () {
+            if (state === 'playing') playPauseBtn.click();
+          });
+          navigator.mediaSession.setActionHandler('stop', function () {
+            if (window.CXSpeech && window.CXSpeech.cancel) window.CXSpeech.cancel();
+          });
+        } catch (e) {}
+      }
+
+      function updateMediaSessionState(playing) {
+        if (!useWebSpeech || !('mediaSession' in navigator)) return;
+        try {
+          if (playing && !navigator.mediaSession.metadata) {
+            navigator.mediaSession.metadata = new MediaMetadata({ title: document.title || '朗读' });
+          }
+          navigator.mediaSession.playbackState = playing ? 'playing' : (state === 'paused' ? 'paused' : 'none');
+        } catch (e) {}
       }
 
       // ======================================================================
-      // NativeTTS path -- pass entire text to Foreground Service; no JS chunking
+      // NativeTTS path
       // ======================================================================
 
       function nativeSpeak(segmentText, targetSeconds) {
@@ -478,29 +393,23 @@
         var gen  = speakGeneration;
         var rate = Number(rateSelect.value) || 0.5;
 
-        // 清理旧位置监听器
         if (_nativePositionHandle) {
           try { _nativePositionHandle.remove(); } catch (e) {}
           _nativePositionHandle = null;
         }
 
-        // 订阅 Java 实时位置事件（每 500ms 推送）。
-        // posMs/totalMs 是全文绝对坐标，直接用于驱动 APP 内进度条，
-        // 与 MediaSession 使用同一数据源，完全同步。
         if (typeof NativeTTS.addListener === 'function') {
-          try {
-            var hPos = NativeTTS.addListener('ttsPosition', function (data) {
-              if (gen !== speakGeneration || !data || data.posMs == null) return;
-              elapsedOffset = data.posMs / 1000;
-              if (data.totalMs > 0) totalDuration = data.totalMs / 1000;
-              startTime = Date.now();
-            });
-            hPos.then(function (handle) {
-              if (gen !== speakGeneration) { try { handle.remove(); } catch (e) {} }
-              else { _nativePositionHandle = handle; }
-            }).catch(function () {});
-          } catch (e) {}
+          NativeTTS.addListener('ttsPosition', function (data) {
+            if (gen !== speakGeneration || !data || data.posMs == null) return;
+            elapsedOffset = data.posMs / 1000;
+            if (data.totalMs > 0) totalDuration = data.totalMs / 1000;
+            startTime = Date.now();
+          }).then(function (handle) {
+            if (gen !== speakGeneration) { try { handle.remove(); } catch (e) {} }
+            else { _nativePositionHandle = handle; }
+          }).catch(function () {});
         }
+
         NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
                           startSecs: targetSeconds || 0, totalSecs: totalDuration || 0 })
           .then(function (result) {
@@ -511,16 +420,16 @@
           })
           .catch(function () {
             if (gen !== speakGeneration) return;
-            resetState(false);
+            stopProgressUpdate();
+            setState('idle');
             speechTime.textContent = '播放出错';
             speechTime.style.color = '#e53e3e';
             setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 3000);
           });
 
-        isPlaying = true; isPaused = false;
         elapsedOffset = targetSeconds || 0;
-        startTime = Date.now(); pauseStartedAt = 0;
-        updateButtonState(true);
+        startTime = Date.now();
+        setState('playing');
         startProgressUpdate();
       }
 
@@ -534,7 +443,7 @@
       }
 
       // ======================================================================
-      // Web Speech API path -- chunked to work around browser limits
+      // Web Speech API path
       // ======================================================================
 
       function splitIntoChunks(text, maxLen) {
@@ -548,159 +457,84 @@
         return result;
       }
 
-      var isSeekingInternal = false;
-
       function wsPlayNextChunk() {
-        if (!isChunking || currentChunk >= textChunks.length) { isChunking = false; onPlaybackNaturalEnd(); return; }
+        if (state !== 'playing') return;
+        if (currentChunk >= textChunks.length) { onPlaybackNaturalEnd(); return; }
         var gen  = speakGeneration;
         var rate = Number(rateSelect.value) || 0.5;
         var utt  = new SpeechSynthesisUtterance(textChunks[currentChunk]);
         utt.lang = lang; utt.rate = rate;
-        applyPinnedVoice(utt);
 
         utt.onstart = function () {
-          if (gen !== speakGeneration) return; /* 过期 utterance 不更新状态 */
-          _wsSpeakingAt = Date.now();
-          // 用实际字符位置重新校准进度，消除时间估算误差
-          if (_segLen > 0 && chunkStartChars.length > currentChunk && totalDuration > 0) {
-            var segFrac = chunkStartChars[currentChunk] / _segLen;
-            var newPct  = _segStartPct + (100 - _segStartPct) * segFrac;
-            elapsedOffset = (newPct / 100) * totalDuration;
-            startTime = Date.now();
-          }
-          updateButtonState(true);
-          if (!progressInterval) startProgressUpdate();
-          startWsKeepalive();
+          if (gen !== speakGeneration || state !== 'playing') return;
+          startTime = Date.now();
+          startProgressUpdate();
         };
         utt.onend = function () {
-          if (gen !== speakGeneration) return;
-          if (isPaused) return; // 用户已暂停，不推进下一块
-          currentChunk++; wsPlayNextChunk();
+          if (gen !== speakGeneration || state !== 'playing') return;
+          currentChunk++;
+          wsPlayNextChunk();
         };
         utt.onerror = function (event) {
           if (gen !== speakGeneration) return;
           var err = event && event.error;
-          if ((err === 'interrupted' || err === 'cancelled') && isSeekingInternal) return;
           if (err === 'interrupted' || err === 'cancelled') {
-            // Chrome/WebView 中断——只在本代有效时重试同一 chunk
-            // 若用户已手动暂停，则不恢复（音频焦点被其他 APP 抢占后释放时不应恢复）
-            if (gen !== speakGeneration) return;
-            if (isPaused) return;
-            setTimeout(wsPlayNextChunk, 150);
+            if (state !== 'playing') return;
+            setTimeout(function () {
+              if (gen !== speakGeneration || state !== 'playing') return;
+              wsPlayNextChunk();
+            }, 150);
             return;
           }
           currentChunk++;
-          if (currentChunk < textChunks.length) { setTimeout(wsPlayNextChunk, 100); }
-          else {
-            resetState(false); speechTime.textContent = '播放出错'; speechTime.style.color = '#e53e3e';
-            setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 3000);
+          if (currentChunk < textChunks.length) {
+            setTimeout(function () { if (gen !== speakGeneration) return; wsPlayNextChunk(); }, 100);
+          } else {
+            stopProgressUpdate(); setState('idle');
           }
         };
         window.speechSynthesis.speak(utt);
       }
 
       // ======================================================================
-      // Common entry: start speaking from a percentage position
+      // Common: start speaking from a percentage position (seek, first play, resume)
       // ======================================================================
 
       function startSpeakingFromPercent(percent) {
         if (!fullText) return;
-        var p           = clamp(Number(percent) || 0, 0, 100);
-        var targetSecs  = totalDuration ? (p / 100) * totalDuration : 0;
-        var charIndex   = clamp(Math.floor(fullText.length * (p / 100)), 0, Math.max(0, fullText.length - 1));
-        var segText     = safeText(fullText.slice(charIndex));
+        var p          = clamp(Number(percent) || 0, 0, 100);
+        var targetSecs = totalDuration ? (p / 100) * totalDuration : 0;
+        var charIndex  = clamp(Math.floor(fullText.length * (p / 100)), 0, Math.max(0, fullText.length - 1));
+        var segText    = safeText(fullText.slice(charIndex));
         if (!segText) return;
 
-        ++speakGeneration;
         progressBar.value = String(p);
         speechTime.textContent = formatTime(targetSecs) + ' / ' + formatTime(totalDuration);
 
         if (useNativeTTS) {
-          if (isPlaying || isPaused) {
-            // 服务已在运行：直接走 MediaSession onSeekTo 路径，无需重新 speak
-            var posMs = Math.round(targetSecs * 1000);
-            elapsedOffset = targetSecs;   // ★ 立即更新 JS 端位置，避免 seek 后进度条跳回
-            startTime = Date.now();
-            isPlaying = true; isPaused = false;
-            var NativeTTS = getNativeTTS();
-            if (NativeTTS) try { NativeTTS.seekTo({ posMs: posMs }); } catch (e) {}
-            updateButtonState(true);
-            startProgressUpdate();        // ★ 重启进度刷新，seek 后 UI 不冻结
-          } else {
-            // 服务尚未启动：首次播放，走完整 speak 路径
-            nativeSpeak(segText, targetSecs);
-          }
+          // nativeSpeak does its own ++speakGeneration
+          nativeSpeak(segText, targetSecs);
         } else {
-          ensureSilentAudio();
-          isSeekingInternal = true;
+          ++speakGeneration;
+          var gen = speakGeneration;
           try { window.speechSynthesis.cancel(); } catch (e) {}
-          isChunking = false; stopProgressUpdate(); stopWsKeepalive();
-
-          var rate = Number(rateSelect.value) || 0.5;
-          var gen  = speakGeneration;
-          elapsedOffset = targetSecs; startTime = Date.now(); pauseStartedAt = 0; isPaused = false;
-
-          if (segText.length > 200) {
-            textChunks = splitIntoChunks(segText, 200);
-            // 预计算每块在 segText 中的起始字符偏移，供 onstart 重新校准进度
-            _segStartPct = p; _segLen = segText.length;
-            chunkStartChars = [];
-            var _cum = 0;
-            for (var _ki = 0; _ki < textChunks.length; _ki++) {
-              chunkStartChars.push(_cum);
-              _cum += textChunks[_ki].length;
-            }
-            currentChunk = 0; isChunking = true;
-            setTimeout(function () { if (gen !== speakGeneration) return; isSeekingInternal = false; wsPlayNextChunk(); }, 50);
-          } else {
-            setTimeout(function () {
-              if (gen !== speakGeneration) return;
-              var utt = new SpeechSynthesisUtterance(segText); utt.lang = lang; utt.rate = rate;
-              applyPinnedVoice(utt);
-              utt.onstart = function () {
-                isSeekingInternal = false; elapsedOffset = targetSecs; startTime = Date.now();
-                _wsSpeakingAt = Date.now();
-                pauseStartedAt = 0; isPaused = false; updateButtonState(true); startProgressUpdate(); startWsKeepalive();
-              };
-              utt.onend = function () { if (gen === speakGeneration) onPlaybackNaturalEnd(); };
-              utt.onerror = function (event) {
-                if (gen !== speakGeneration) return;
-                var err = event && event.error;
-                if ((err === 'interrupted' || err === 'cancelled') && isSeekingInternal) return;
-                isSeekingInternal = false;
-                if (err === 'interrupted' || err === 'cancelled') {
-                  // Chrome 中断 — 若用户已手动暂停则不恢复，否则从当前进度重启
-                  if (isPaused) return;
-                  if (totalDuration > 0) {
-                    var est = clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 99);
-                    startSpeakingFromPercent(est);
-                  }
-                  return;
-                }
-                var msg = err === 'network' ? '需要网络' : err === 'synthesis-unavailable' ? '语音不可用' :
-                          err === 'synthesis-failed' ? '播放失败' : '错误';
-                resetState(false); speechTime.textContent = msg; speechTime.style.color = '#e53e3e';
-                setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 3000);
-              };
-              window.speechSynthesis.speak(utt);
-            }, 50);
-          }
+          stopProgressUpdate();
+          textChunks   = splitIntoChunks(segText, 200);
+          currentChunk = 0;
+          elapsedOffset = targetSecs; startTime = Date.now();
+          setState('playing');
+          setTimeout(function () {
+            if (gen !== speakGeneration) return;
+            wsPlayNextChunk();
+          }, 50);
         }
       }
 
       // -- safeCancel ---------------------------------------------------------
-      function safeCancel() {
-        if (useNativeTTS) { nativeStopService(); }
-        else { stopWsKeepalive(); try { window.speechSynthesis.cancel(); } catch (e) {} }
-        isChunking = false;
-      }
-
       window.CXSpeech = window.CXSpeech || {};
-      window.CXSpeech.cancel = function () { ++speakGeneration; safeCancel(); resetState(false); };
+      window.CXSpeech.cancel = function () { resetState(); };
 
       // -- Seekbar events -----------------------------------------------------
-      // Android WebView bug: <input type="range"> 的 'change' 事件在触摸释放时不可靠，
-      // 改用 touchend/mouseup 直接触发 seek，不依赖 change 事件。
       var _seekPending = false;
       function commitSeek() {
         if (!_seekPending) return;
@@ -721,25 +555,18 @@
       });
       progressBar.addEventListener('touchend', function () { commitSeek(); });
       progressBar.addEventListener('mouseup',  function () { commitSeek(); });
-      // 兜底：手指/鼠标在进度条外松开时也能触发 seek
-      document.addEventListener('touchend', function () { if (_seekPending) commitSeek(); });
-      document.addEventListener('mouseup',  function () { if (_seekPending) commitSeek(); });
 
       // -- Play / Pause button ------------------------------------------------
       playPauseBtn.addEventListener('click', function () {
 
-        // First press: load text and start
-        if (!isPlaying && !isChunking && !isPaused) {
-          // 首次播放时检查电池优化（仅 NativeTTS / Android APK）
-          if (useNativeTTS && !_batteryOptChecked) {
-            _batteryOptChecked = true;
+        // First press: load text and start from beginning
+        if (state === 'idle') {
+          if (useNativeTTS) {
             var NativeTTS = getNativeTTS();
             if (NativeTTS && typeof NativeTTS.isBatteryOptimizationIgnored === 'function') {
               NativeTTS.isBatteryOptimizationIgnored().then(function (r) {
-                if (!r.ignored) {
-                  if (window.confirm('为了支持朗读后台播放，需要关闭电池省电策略，是否前往关闭？')) {
-                    NativeTTS.requestIgnoreBatteryOptimization();
-                  }
+                if (!r.ignored && typeof NativeTTS.requestIgnoreBatteryOptimization === 'function') {
+                  NativeTTS.requestIgnoreBatteryOptimization();
                 }
               }).catch(function () {});
             }
@@ -753,67 +580,65 @@
           return;
         }
 
-        // Resume
-        if (isPaused) {
-          if (useNativeTTS) {
-            var NativeTTS = getNativeTTS();
-            if (NativeTTS) try { NativeTTS.resume(); } catch (e) {}
-            isPlaying = true;
-          } else {
-            try { window.speechSynthesis.resume(); } catch (e) {}
-          }
-          isPaused = false;
-          if (pauseStartedAt) { startTime += (Date.now() - pauseStartedAt); pauseStartedAt = 0; }
-          updateButtonState(true); startProgressUpdate();
+        // Resume from paused
+        if (state === 'paused') {
+          startSpeakingFromPercent(useNativeTTS ? _pauseBarPct : _wsResumePercent);
           return;
         }
 
-        // Pause
+        // Pause from playing
+        var pct = totalDuration > 0
+          ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100)
+          : 0;
+        stopProgressUpdate();
+        elapsedOffset = currentElapsedSeconds(); startTime = 0;
         if (useNativeTTS) {
-          var NativeTTS = getNativeTTS();
-          if (NativeTTS) try { NativeTTS.pause(); } catch (e) {}
-          isPlaying = false;
+          _pauseBarPct = pct;
+          nativeStopService();
+          setState('paused');
         } else {
-          try { window.speechSynthesis.pause(); } catch (e) {}
-          stopWsKeepalive();
+          _wsResumePercent = pct;
+          ++speakGeneration;
+          try { window.speechSynthesis.cancel(); } catch (e) {}
+          setState('paused');
         }
-        isPaused = true; pauseStartedAt = Date.now();
-        updateButtonState(false); stopProgressUpdate();
       });
 
       // -- Rate change --------------------------------------------------------
       rateSelect.addEventListener('change', function () {
         localStorage.setItem('speechRate', rateSelect.value);
         if (!fullText) return;
-        var newRate    = Number(rateSelect.value) || 0.5;
-        var current    = currentElapsedSeconds();
-        var oldTotal   = totalDuration;
-        totalDuration  = estimateTotalSeconds(fullText, newRate);
-        var newPercent = oldTotal > 0 ? clamp((current / oldTotal) * 100, 0, 100) : 0;
-        progressBar.value = String(newPercent);
-        // 修正 elapsedOffset 使进度时间显示与新倍率对应
-        elapsedOffset = (newPercent / 100) * totalDuration;
-        startTime = isPlaying ? Date.now() : 0;
+        var newRate   = Number(rateSelect.value) || 0.5;
+        var current   = currentElapsedSeconds();
+        var oldTotal  = totalDuration;
+        totalDuration = estimateTotalSeconds(fullText, newRate);
+        var newPct    = oldTotal > 0 ? clamp((current / oldTotal) * 100, 0, 100) : 0;
+        elapsedOffset = (newPct / 100) * totalDuration;
+        startTime     = state === 'playing' ? Date.now() : 0;
+        progressBar.value = String(newPct);
 
         if (useNativeTTS) {
-          // NativeTTS：通知 Service 切换倍率。
-          // Service 侧 handleSetRate 会先 stop() 引擎，等 150ms 引擎空闲后
-          // 用新倍率重播当前 chunk 头部（会重复约 500 字，但这是避免静音的必要代价）。
           var NativeTTS = getNativeTTS();
           if (NativeTTS && typeof NativeTTS.setRate === 'function') {
             try { NativeTTS.setRate({ rate: newRate }); } catch (e) {}
           }
-        } else {
-          startSpeakingFromPercent(newPercent);
+        } else if (state === 'playing') {
+          startSpeakingFromPercent(newPct);
+        } else if (state === 'paused') {
+          _wsResumePercent = newPct;
         }
       });
 
       // -- Page unload --------------------------------------------------------
-      window.addEventListener('beforeunload', function () { safeCancel(); resetState(false); });
+      window.addEventListener('beforeunload', function () {
+        ++speakGeneration;
+        if (useNativeTTS) nativeStopService();
+        else { try { window.speechSynthesis.cancel(); } catch (e) {} }
+      });
 
       // -- Loop button --------------------------------------------------------
+      updateLoopButton();
       if (loopBtn) {
-        updateLoopButton();
         loopBtn.addEventListener('click', function () {
           isLooping = !isLooping;
           localStorage.setItem('speechLoop', isLooping ? '1' : '0');
@@ -821,29 +646,20 @@
         });
       }
 
-      // -- visibilitychange ---------------------------------------------------
-      // NativeTTS: Foreground Service runs independently -- no JS recovery needed.
-      // Web Speech: resume if browser paused speechSynthesis in the background.
+      // -- visibilitychange (Web Speech only) ---------------------------------
       if (useWebSpeech) {
         document.addEventListener('visibilitychange', function () {
           if (document.visibilityState === 'hidden') {
-            // 页面隐藏：冻结时钟，避免将后台挂起时间错误计入已播放进度
-            _wasPlayingOnHide = (isChunking || startTime > 0) && !isPaused;
-            if (_wasPlayingOnHide) {
-              elapsedOffset = currentElapsedSeconds();
-              startTime = 0;
-            }
+            if (state === 'playing') { elapsedOffset = currentElapsedSeconds(); startTime = 0; }
             return;
           }
-          // 页面重新可见
-          if (isPaused) { _wasPlayingOnHide = false; return; }
+          if (state !== 'playing') return;
           try {
             if (window.speechSynthesis.paused) {
               startTime = Date.now();
               window.speechSynthesis.resume();
               startProgressUpdate();
-            } else if (!window.speechSynthesis.speaking && _wasPlayingOnHide) {
-              // 浏览器已停止朗读 — 从保存位置重启（仅当切走前确实在播放时）
+            } else if (!window.speechSynthesis.speaking) {
               if (totalDuration > 0) {
                 startTime = Date.now();
                 var est = clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 99);
@@ -851,11 +667,12 @@
               }
             }
           } catch (e) {}
-          _wasPlayingOnHide = false;
         });
       }
 
-      resetState(true);
+      setState('idle');
+      progressBar.value = '0';
+      speechTime.textContent = '00:00 / 00:00';
       if (useWebSpeech) setupMediaSession();
     }
 
