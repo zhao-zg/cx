@@ -395,7 +395,7 @@ def generate_main_index(config, batch_results):
         'app-update.js', 'nav-stack.js', 'theme-toggle.js',
         'bible-dict.js', 'speech.js', 'highlight.js', 'outline.js',
         'scripture-popup.js', 'toc-redirect.js', 'font-control.js',
-        'search.js', 'image-utils.js', 'hot-update.js',
+        'search.js', 'image-utils.js',
         # SPA-specific
         'ref-detector.js', 'router.js', 'renderer.js',
     ]
