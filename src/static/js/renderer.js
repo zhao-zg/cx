@@ -154,15 +154,23 @@
       '</div>';
   }
 
-  function buildPageNavigation(batchPath, chapter, activeView) {
+  function buildPageNavigation(batchPath, chapter, activeView, training) {
     var num = chapter.number;
+    // 面包屑
+    var trainingTitle = training && training.title ? training.title : '';
+    var breadcrumb = trainingTitle
+      ? '<div class="cx-breadcrumb">'+
+          '<a href="javascript:void(0)" class="cx-bc-link" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')" title="返回目录：' + escAttr(trainingTitle) + '">‹ ' + escText(trainingTitle) + '</a>'+
+          '<span class="cx-bc-sep">\u203a</span>'+
+          '<span class="cx-bc-current">\u7b2c' + num + '\u7bc7</span>'+
+        '</div>'
+      : '';
     function link(view, label) {
       var act = (view === activeView || (view === 'h' && activeView === 'ts')) ? ' active' : '';
       return '<a href="javascript:void(0)" class="nav-link' + act + '" title="' + label + '" onclick="CXRouter.navigate(\'' +
         escAttr(batchPath) + '/' + num + '/' + view + '\')">' + label + '</a>';
     }
     var html = '<div class="page-navigation">';
-    html += '<a href="javascript:void(0)" class="nav-link" title="返回目录" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')">返回</a>';
     html += link('cv', '纲目');
     html += link('h', '听抄');
     if (chapter.morning_revivals && chapter.morning_revivals.length > 0) {
@@ -176,6 +184,7 @@
     }
     html += '<button type="button" id="cx-search-btn" class="nav-link" title="搜索">🔍</button>';
     html += '</div>';
+    html = breadcrumb + html;
     html += buildBottomControlBar();
     return html;
   }
@@ -212,16 +221,20 @@
     var hasChildren = sec.children && sec.children.length > 0;
     var lvCls = outlineLevelClass(sec.level);
     var titleKey = sec.level + '\u3000' + sec.title;
-    var titleHtml = wrapRefs(titleKey, box.val);
+    // 若有子节点：前缀单独渲染为可点击 span，标题用 wrapRefs
+    var titleHtml;
+    if (hasChildren) {
+      var subId = 'subsection-' + sectionId;
+      titleHtml = '<span class="outline-lvl-toggle' + (defaultCollapsed ? '' : ' expanded') +
+        '" data-toggle-for="' + escAttr(subId) + '" onclick="toggleSection(\'' + escAttr(subId) + '\')">' +
+        escText(sec.level) + '</span>\u3000' + wrapRefs(sec.title, box.val);
+    } else {
+      titleHtml = wrapRefs(titleKey, box.val);
+    }
     scanCtxBox(titleKey, box);
 
     var html = '<div class="section" id="section-' + escAttr(sectionId) + '" data-level="' + depth + '">';
     html += '<div class="outline-item ' + lvCls + '">';
-    if (hasChildren) {
-      html += '<button class="toggle-btn' + (defaultCollapsed ? '' : ' expanded') +
-              '" onclick="toggleSection(\'subsection-' + escAttr(sectionId) + '\')">' +
-              '<span class="toggle-icon"></span></button>';
-    }
     html += titleHtml;
     html += '</div>';
 
@@ -291,7 +304,7 @@
   // ── 视图: cv（纲目）────────────────────────────────────────────────────
 
   function renderCv(batchPath, chapter, training) {
-    var nav = buildPageNavigation(batchPath, chapter, 'cv');
+    var nav = buildPageNavigation(batchPath, chapter, 'cv', training);
     var header = buildChapterHeader(chapter);
 
     var scriptureBlock = '';
@@ -328,7 +341,7 @@
   // ── 视图: h（听抄）────────────────────────────────────────────────────
 
   function renderH(batchPath, chapter, training) {
-    var nav = buildPageNavigation(batchPath, chapter, 'h');
+    var nav = buildPageNavigation(batchPath, chapter, 'h', training);
     var header = buildChapterHeader(chapter);
 
     var scriptureBlock = '';
@@ -346,7 +359,7 @@
     }
     var detailSecs = chapter.detail_sections || [];
     for (var di = 0; di < detailSecs.length; di++) {
-      content += renderMessageSection(detailSecs[di], 1, msgCtxBox);
+      content += renderMessageSection(detailSecs[di], 1, msgCtxBox.val);
     }
     if (!content && !msgs.length) {
       content = '<p class="no-content">职事信息内容暂缺</p>';
@@ -367,7 +380,7 @@
   // ── 视图: ts（详情）────────────────────────────────────────────────────
 
   function renderTs(batchPath, chapter, training) {
-    var nav = buildPageNavigation(batchPath, chapter, 'ts');
+    var nav = buildPageNavigation(batchPath, chapter, 'ts', training);
     var header = buildChapterHeader(chapter);
     var scriptureBlock = chapter.scripture
       ? '<div class="scripture">读经：' + buildScriptureBanner(chapter.scripture, chapter.scripture_verses) + '</div>'
@@ -395,7 +408,7 @@
   // ── 视图: sg（诗歌）────────────────────────────────────────────────────
 
   function renderSg(batchPath, chapter, training) {
-    var nav = buildPageNavigation(batchPath, chapter, 'sg');
+    var nav = buildPageNavigation(batchPath, chapter, 'sg', training);
     var header = buildChapterHeader(chapter);
     var root = win.CX_ROOT || './';
 
@@ -429,7 +442,7 @@
   // ── 视图: zs（职事信息摘录）─ 按 \n\n 分段 ─────────────────────────
 
   function renderZs(batchPath, chapter, training) {
-    var nav = buildPageNavigation(batchPath, chapter, 'zs');
+    var nav = buildPageNavigation(batchPath, chapter, 'zs', training);
     var header = buildChapterHeader(chapter);
     var scriptureBlock = chapter.scripture
       ? '<div class="scripture">读经：' + buildScriptureBanner(chapter.scripture, chapter.scripture_verses) + '</div>'
@@ -467,7 +480,7 @@
   // ── 视图: cx（晨兴）────────────────────────────────────────────────────
 
   function renderCx(batchPath, chapter, training) {
-    var nav = buildPageNavigation(batchPath, chapter, 'cx');
+    var nav = buildPageNavigation(batchPath, chapter, 'cx', training);
     var header = buildChapterHeader(chapter);
     var revivals = chapter.morning_revivals || [];
 
@@ -621,12 +634,13 @@
     if (nextBtn) nextBtn.addEventListener('click', function(){ if (currentPage < totalPages - 1) showPage(currentPage + 1, true); });
     dayLinks.forEach(function(l, i){ l.addEventListener('click', function(){ showPage(i, true); }); });
 
-    var touchStartX = 0, touchStartY = 0, isDragging = false, isHorizontal = null;
+    var touchStartX = 0, touchStartY = 0, touchStartTime = 0, isDragging = false, isHorizontal = null;
     container.addEventListener('touchstart', function(e){
       var sel = win.getSelection();
       if (sel && sel.toString().length > 0) { isDragging = false; return; }
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
       isDragging = true; isHorizontal = null;
       track.style.transition = 'none';
     }, {passive:true});
@@ -637,9 +651,10 @@
       var dy = e.touches[0].clientY - touchStartY;
       if (isHorizontal === null) {
         if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-        isHorizontal = Math.abs(dx) > Math.abs(dy);
+        // 水平方向需达到垂直分量的 2 倍，避免斜向滑动误触发翻页
+        isHorizontal = Math.abs(dx) >= 2 * Math.abs(dy);
       }
-      if (!isHorizontal) return;
+      if (!isHorizontal) { setTrack(-currentPage * 100, true); isDragging = false; return; }
       var pct = -currentPage * 100 + dx / container.offsetWidth * 100;
       if (currentPage === 0 && dx > 0) pct = dx / container.offsetWidth * 30;
       if (currentPage === totalPages - 1 && dx < 0) pct = -currentPage * 100 + dx / container.offsetWidth * 30;
@@ -648,11 +663,15 @@
 
     container.addEventListener('touchend', function(e){
       if (!isDragging) return;
-      var dx = e.changedTouches[0].clientX - touchStartX;
       isDragging = false;
-      if (isHorizontal !== true) return;
-      if (dx < -50 && currentPage < totalPages - 1) showPage(currentPage + 1, false);
-      else if (dx > 50 && currentPage > 0) showPage(currentPage - 1, false);
+      if (isHorizontal !== true) { setTrack(-currentPage * 100, true); return; }
+      var dx = e.changedTouches[0].clientX - touchStartX;
+      var dt = Date.now() - touchStartTime;
+      var vel = Math.abs(dx) / (dt || 1); // px/ms
+      var ratio = Math.abs(dx) / container.offsetWidth;
+      // 超过容器宽度 20% 或速度 > 0.3px/ms（快速轻扫）则翻页
+      if ((ratio > 0.20 || vel > 0.3) && dx < 0 && currentPage < totalPages - 1) showPage(currentPage + 1, false);
+      else if ((ratio > 0.20 || vel > 0.3) && dx > 0 && currentPage > 0) showPage(currentPage - 1, false);
       else setTrack(-currentPage * 100, true);
     });
 
@@ -670,6 +689,7 @@
   function setContent(html, viewType, batchPath, chapter, training) {
     showApp();
     var app = getApp();
+    rescueThemeBtn(); // 防止按钮随 innerHTML 替换被销毁
     app.innerHTML = html;
 
     try { sessionStorage.setItem('cx_access', 'ok'); } catch(e) {}
@@ -786,6 +806,15 @@
   // theme-toggle.js 在 DOMContentLoaded 时把 .theme-toggle-btn 追加到首屏的 .container；
   // SPA 切换视图后，新的 .container 不含按钮 → 把现有按钮移动过来。
   // 若按钮尚未创建（初始加载即到子页），轮询重试。
+
+  // 在 innerHTML 替换前调用：将按钮暂存到 body，防止随容器一起被销毁
+  function rescueThemeBtn() {
+    var btn = document.querySelector('.theme-toggle-btn');
+    if (btn && btn.parentElement !== document.body) {
+      document.body.appendChild(btn);
+    }
+  }
+
   function relocateThemeBtn(retry) {
     var btn = document.querySelector('.theme-toggle-btn');
     if (!btn) {
@@ -807,6 +836,7 @@
 
   function renderBatchIndex(batchPath) {
     showApp();
+    rescueThemeBtn();
     getApp().innerHTML = '<div class="home-status"><div class="home-status-icon">⏳</div>加载中...</div>';
 
     loadTraining(batchPath)
@@ -947,6 +977,7 @@
 
   function renderChapterView(batchPath, chNum, viewType) {
     showApp();
+    rescueThemeBtn();
     getApp().innerHTML = '<div class="home-status"><div class="home-status-icon">⏳</div>加载中...</div>';
     loadTraining(batchPath)
       .then(function(training) {

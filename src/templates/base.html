@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23,6 +23,13 @@
 
 </head>
 <body>
+    <!-- 阅读进度条 -->
+    <div id="cxReadingProgress" class="cx-reading-progress"></div>
+    <!-- Sticky 章节标题栏 -->
+    <div id="cxStickyBar" class="cx-sticky-bar">
+        <button class="cx-sticky-back" id="cxStickyBack">&#8249; 返回</button>
+        <span class="cx-sticky-title" id="cxStickyTitle"></span>
+    </div>
     <div class="container">
         {% block header %}
         <div class="header">
@@ -155,6 +162,56 @@
     </script>
     
     {% block extra_scripts %}{% endblock %}
+    <!-- 阅读进度条 & sticky 标题栏 JS -->
+    <script>
+    (function() {
+        var progressBar = document.getElementById('cxReadingProgress');
+        var stickyBar = document.getElementById('cxStickyBar');
+        var stickyTitle = document.getElementById('cxStickyTitle');
+        var stickyBack = document.getElementById('cxStickyBack');
+        var header = document.querySelector('.header');
+        var chapterTitle = document.querySelector('.chapter-title');
 
+        // 阅读进度条（所有内容页均显示）
+        if (progressBar) {
+            function updateProgress() {
+                var scrollTop = window.scrollY || 0;
+                var docH = document.documentElement.scrollHeight - window.innerHeight;
+                progressBar.style.width = (docH > 0 ? Math.min(100, scrollTop / docH * 100) : 0) + '%';
+            }
+            window.addEventListener('scroll', updateProgress, { passive: true });
+            updateProgress();
+        }
+
+        // Sticky 标题栏（仅章节页）
+        if (stickyBar && header && chapterTitle) {
+            stickyBar.style.display = 'flex';
+            stickyTitle.textContent = chapterTitle.textContent.trim();
+
+            if (stickyBack) {
+                stickyBack.addEventListener('click', function() {
+                    if (window.CXNavStack) {
+                        window.CXNavStack.initContentPage && history.back();
+                    } else {
+                        history.back();
+                    }
+                });
+            }
+
+            // IntersectionObserver：header 离开视口时显示 sticky bar
+            if (window.IntersectionObserver) {
+                var obs = new IntersectionObserver(function(entries) {
+                    var visible = entries[0].isIntersecting;
+                    if (visible) {
+                        stickyBar.classList.remove('visible');
+                    } else {
+                        stickyBar.classList.add('visible');
+                    }
+                }, { threshold: 0, rootMargin: '0px' });
+                obs.observe(header);
+            }
+        }
+    })();
+    </script>
 </body>
 </html>

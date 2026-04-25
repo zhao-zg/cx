@@ -279,6 +279,7 @@
       // -- State --------------------------------------------------------------
       var fullText      = '';
       var isPaused      = false;
+      var _wasPlayingOnHide = false; // 切走时是否正在播放（非暂停）
       var isPlaying     = false;
       var totalDuration = 0;
       var elapsedOffset = 0;
@@ -573,6 +574,7 @@
         };
         utt.onend = function () {
           if (gen !== speakGeneration) return;
+          if (isPaused) return; // 用户已暂停，不推进下一块
           currentChunk++; wsPlayNextChunk();
         };
         utt.onerror = function (event) {
@@ -826,21 +828,22 @@
         document.addEventListener('visibilitychange', function () {
           if (document.visibilityState === 'hidden') {
             // 页面隐藏：冻结时钟，避免将后台挂起时间错误计入已播放进度
-            if ((isChunking || startTime > 0) && !isPaused) {
+            _wasPlayingOnHide = (isChunking || startTime > 0) && !isPaused;
+            if (_wasPlayingOnHide) {
               elapsedOffset = currentElapsedSeconds();
               startTime = 0;
             }
             return;
           }
           // 页面重新可见
-          if (isPaused) return;
+          if (isPaused) { _wasPlayingOnHide = false; return; }
           try {
             if (window.speechSynthesis.paused) {
               startTime = Date.now();
               window.speechSynthesis.resume();
               startProgressUpdate();
-            } else if (!window.speechSynthesis.speaking && (isChunking || elapsedOffset > 0)) {
-              // 浏览器已停止朗读 — 从保存位置重启
+            } else if (!window.speechSynthesis.speaking && _wasPlayingOnHide) {
+              // 浏览器已停止朗读 — 从保存位置重启（仅当切走前确实在播放时）
               if (totalDuration > 0) {
                 startTime = Date.now();
                 var est = clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 99);
@@ -848,6 +851,7 @@
               }
             }
           } catch (e) {}
+          _wasPlayingOnHide = false;
         });
       }
 

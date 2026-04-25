@@ -106,6 +106,13 @@
     </style>
 </head>
 <body>
+    <!-- 阅读进度条 -->
+    <div id="cxReadingProgress" class="cx-reading-progress"></div>
+    <!-- Sticky 章节标题栏（内容页用） -->
+    <div id="cxStickyBar" class="cx-sticky-bar" style="display:none;">
+        <button class="cx-sticky-back" id="cxStickyBack" onclick="window.CXRouter&&CXRouter.back?CXRouter.back():history.back()">&#8249; 返回</button>
+        <span class="cx-sticky-title" id="cxStickyTitle"></span>
+    </div>
     <!-- 伪装维护页（非 PWA/APP 浏览器中显示，PWA 安装后自动隐藏） -->
     <div id="cxMaintenance">
         <div class="cx-maint-icon" id="cxMaintTrigger">📱</div>
@@ -275,7 +282,13 @@
             }
             
             var html = '';
+            var currentYear = null;
             trainings.forEach(function(training) {
+                var yr = String(training.year || '');
+                if (yr && yr !== currentYear) {
+                    currentYear = yr;
+                    html += '<div class="cx-year-header-row">' + yr + '</div>';
+                }
                 html += '<div class="training-card">';
                 html += '<div class="training-card-wrapper">';
                 html += '<a href="' + training.path + '/index.html" class="training-link">';
@@ -1188,6 +1201,40 @@
             });
         }
     });
+    </script>
+    <!-- 阅读进度条 JS（SPA 滚动监听） -->
+    <script>
+    (function(){
+        var prog = document.getElementById('cxReadingProgress');
+        if (!prog) return;
+        function updateProgress() {
+            var scrollTop = window.scrollY || 0;
+            var docH = document.documentElement.scrollHeight - window.innerHeight;
+            prog.style.width = (docH > 0 ? Math.min(100, scrollTop / docH * 100) : 0) + '%';
+        }
+        window.addEventListener('scroll', updateProgress, { passive: true });
+        // SPA 视图切换后 docH 变化，hashchange 时重置到 0
+        window.addEventListener('hashchange', function(){ prog.style.width = '0%'; });
+        // sticky bar scroll 监听
+        var stickyBar = document.getElementById('cxStickyBar');
+        if (stickyBar) {
+            var _lastHeader = null;
+            var _stickyObs = null;
+            function watchHeader() {
+                var h = document.querySelector('.header');
+                if (h === _lastHeader) return;
+                if (_stickyObs) { _stickyObs.disconnect(); _stickyObs = null; }
+                _lastHeader = h;
+                if (!h) return;
+                _stickyObs = new IntersectionObserver(function(entries){
+                    stickyBar.classList.toggle('visible', !entries[0].isIntersecting);
+                }, { threshold: 0 });
+                _stickyObs.observe(h);
+            }
+            // poll for header changes after SPA navigation
+            setInterval(watchHeader, 500);
+        }
+    })();
     </script>
 </body>
 </html>

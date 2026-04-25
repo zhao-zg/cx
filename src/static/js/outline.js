@@ -7,17 +7,10 @@
 function toggleSection(id) {
     var element = document.getElementById(id);
     if (!element) return;
-
-    var buttons = document.querySelectorAll('button[onclick*="' + id + '"]');
-    var button = buttons[0];
-
-    if (element.style.display === 'none' || element.style.display === '') {
-        element.style.display = 'block';
-        if (button) button.classList.add('expanded');
-    } else {
-        element.style.display = 'none';
-        if (button) button.classList.remove('expanded');
-    }
+    var isHidden = element.style.display === 'none' || element.style.display === '';
+    element.style.display = isHidden ? 'block' : 'none';
+    var prefix = document.querySelector('[data-toggle-for="' + id + '"]');
+    if (prefix) prefix.classList.toggle('expanded', isHidden);
 }
 
 // 展开到指定级别（仅纲目页面使用）
@@ -29,20 +22,12 @@ function expandToLevel(maxLevel) {
     if (event && event.target) {
         event.target.classList.add('active');
     }
-    
-    // 获取所有 subsections
+    // 遗历展开/收起
     document.querySelectorAll('.subsections').forEach(function(subsection) {
         var parentLevel = parseInt(subsection.getAttribute('data-parent-level')) || 1;
-        var toggleBtn = subsection.previousElementSibling ? subsection.previousElementSibling.querySelector('.toggle-btn') : null;
-        
-        if (parentLevel < maxLevel) {
-            // 展开
-            subsection.style.display = 'block';
-            if (toggleBtn) toggleBtn.classList.add('expanded');
-        } else {
-            // 收起
-            subsection.style.display = 'none';
-            if (toggleBtn) toggleBtn.classList.remove('expanded');
-        }
+        var show = parentLevel < maxLevel;
+        subsection.style.display = show ? 'block' : 'none';
+        var prefix = document.querySelector('[data-toggle-for="' + subsection.id + '"]');
+        if (prefix) prefix.classList.toggle('expanded', show);
     });
 }

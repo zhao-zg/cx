@@ -829,7 +829,11 @@
                     if (highlights) localStorage.setItem('cx_highlights', highlights);
                     if (firstUse)   localStorage.setItem('cx_first_use', firstUse);
                 } catch(ex) {}
-                Promise.all(steps).then(function() { window.location.reload(true); });
+                Promise.all(steps).then(function() {
+                    // 完整页面重载而非 hash 切换，确保 SW 真正注销
+                    try{window.history.replaceState(null,'',window.location.pathname);}catch(e){}
+                    window.location.reload();
+                });
             }
         });
     }

@@ -286,6 +286,21 @@
       var last2 = 0, m2;
       while ((m2 = _INLINE_F5_RE.exec(seg)) !== null) {
         result.push(escHtml(seg.slice(last2, m2.index)));
+        // 短格式（书卷+中文章数，无章/篇/节字）时，检查上下文以排除误识别
+        // 规则1：前后均为汉字 → 嵌在词语中（如"圣徒一同"中的"徒一"），跳过
+        // 规则2：后接量词 → 同样跳过（如"徒一个"）
+        var isShortForm = !/[章篇节]/.test(m2[0]);
+        if (isShortForm) {
+          var nextChar = (m2.index + m2[0].length < seg.length) ? seg[m2.index + m2[0].length] : '';
+          var prevChar = m2.index > 0 ? seg[m2.index - 1] : '';
+          var isCJK = /[\u4e00-\u9fff]/;
+          if ((isCJK.test(prevChar) && isCJK.test(nextChar)) ||
+              /[个种们位只件份次些条样]/.test(nextChar)) {
+            result.push(escHtml(m2[0]));
+            last2 = m2.index + m2[0].length;
+            continue;
+          }
+        }
         var irefs = expandCnRefs(m2[0], book, ch);  // 传入当前 book/ch，支持无书卷名的相对章引用
         if (irefs.length > 0) {
           var ilm = irefs[irefs.length - 1].match(/^([^\d:]+)(\d+):(\d+)/);

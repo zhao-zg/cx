@@ -225,7 +225,7 @@
 
         // ─── 应用单个划线到 DOM ──────────────────────────────────────
         applyHighlight: function (highlight) {
-            var container = document.querySelector('.content');
+            var container = document.querySelector('#app .content') || document.querySelector('.content');
             if (!container) return;
             var textNodes = this.getTextNodes(container);
             var charCount = 0;
@@ -336,7 +336,7 @@
             });
             // 解包后会产生大量相邻碎片文本节点，normalize 合并它们
             // 否则 restoreHighlights 里的字符偏移计算会出错
-            var container = document.querySelector('.content');
+            var container = document.querySelector('#app .content') || document.querySelector('.content');
             if (container) container.normalize();
         },
 
@@ -344,8 +344,9 @@
         addHighlight: function (color, underline) {
             var range = this._pendingRange;
             if (!range) return null;
-            var container = document.querySelector('.content');
-            if (!container || !container.contains(range.commonAncestorContainer)) return null;
+            var rangeNode = range.commonAncestorContainer;
+            var container = (rangeNode.nodeType === 3 ? rangeNode.parentElement : rangeNode).closest('.content');
+            if (!container) return null;
             var position = this.getSelectionPosition(container, range);
             if (!position) return null;
 
@@ -469,6 +470,7 @@
 
         // A. 选中新文字时的菜单
         _createSelectionMenu: function () {
+            if (document.getElementById('hl-selection-menu')) return;
             var self = this;
             var menu = document.createElement('div');
             menu.id        = 'hl-selection-menu';
@@ -521,6 +523,7 @@
 
         // B. 点击已有高亮后的菜单
         _createAnnotationMenu: function () {
+            if (document.getElementById('hl-annotation-menu')) return;
             var self = this;
             var menu = document.createElement('div');
             menu.id        = 'hl-annotation-menu';
@@ -593,6 +596,8 @@
 
         // C. 笔记编辑模态框
         _createNoteModal: function () {
+            // 防止 SPA 多次 init() 重复创建
+            if (document.getElementById('hl-note-modal')) return;
             var self = this;
             var modal = document.createElement('div');
             modal.id        = 'hl-note-modal';
@@ -612,7 +617,6 @@
             document.getElementById('hl-note-cancel').addEventListener('click', function () {
                 var id = modal.dataset.highlightId;
                 modal.style.display = 'none';
-                // 如果是刚创建的纯笔记条目（无背景、无下划线、无内容），取消时删除
                 if (id) {
                     var h = self.highlights.find(function (x) { return x.id === id; });
                     if (h && !h.note && !h.color && !h.underline) self.removeHighlight(id);
@@ -779,9 +783,11 @@
 
         // ─── 事件监听 ─────────────────────────────────────────────
         setupEventListeners: function () {
+            // 防止 SPA 多次 init() 重复绑定
+            if (this._listenersSetup) return;
+            this._listenersSetup = true;
             var self = this;
             var _showTimer = null;
-            var _pointerCancelled = false;
 
             // 仅隐藏选择菜单（不影响标注菜单）
             function _hideSelMenu() {
@@ -789,55 +795,37 @@
                 if (m && m.style.display !== 'none') m.style.display = 'none';
             }
 
-            // ─── 桌面端 ──────────────────────────────────────────────
-            document.addEventListener('mousedown', function () { self._pointerDown = true; });
-            document.addEventListener('mouseup', function (e) {
-                self._pointerDown = false;
-                clearTimeout(_showTimer);
-                _showTimer = setTimeout(function () { self._handleTextSelection(e); }, 30);
-            });
-
-            // ─── 移动端 ──────────────────────────────────────────────
+            // ─── 新触摸开始：取消挂起的菜单定时器，隐藏旧选择菜单 ─────────
             document.addEventListener('touchstart', function () {
-                self._pointerDown = true;
                 clearTimeout(_showTimer);
-                _hideSelMenu();         // 新触摸开始时隐藏选择菜单
+                _hideSelMenu();
             }, { passive: true });
 
-            // 捕获阶段监听 touchend：菜单内 stopPropagation 无法阻止捕获阶段，
-            // 保证 _pointerDown 在任何情况下都能被重置，避免卡在 true 导致后续选区菜单无法出现
-            document.addEventListener('touchend', function () {
-                self._pointerDown = false;
-                _pointerCancelled = false;
+            // ─── 桌面端 mouseup：快速响应 ──────────────────────────────
+            document.addEventListener('mouseup', function (e) {
                 clearTimeout(_showTimer);
-                _showTimer = setTimeout(function () { self._handleTextSelection(); }, 200);
-            }, true);
-
-            // iOS / Android 长按选词：系统接管手势，触发 touchcancel 而非 touchend
-            // 必须在 touchcancel 里清除 _pointerDown，否则 selectionchange 会被永久拦截
-            document.addEventListener('touchcancel', function () {
-                self._pointerDown = false;
-                _pointerCancelled = true;
-                clearTimeout(_showTimer);
-                _showTimer = setTimeout(function () { self._handleTextSelection(); }, 300);
+                _showTimer = setTimeout(function () { self._handleTextSelection(e); }, 50);
             });
 
+            // ─── selectionchange：移动端长按/选词的核心触发点 ───────────
+            // iOS 长按：touchcancel 后 selectionchange 连续触发；
+            // Android 长按：选区稳定后 selectionchange 停止触发；
+            // 用 debounce 等选区稳定再弹菜单，无需跟踪 pointer 状态。
+            document.addEventListener('selectionchange', function () {
+                _hideSelMenu();
+                clearTimeout(_showTimer);
+                _showTimer = setTimeout(function () {
+                    var sel = window.getSelection();
+                    if (sel && sel.toString().trim().length > 0) {
+                        self._handleTextSelection();
+                    }
+                }, 350);
+            });
 
             // 滚动时关闭所有菜单
             window.addEventListener('scroll', function () {
                 self.hideAllMenus();
             }, { passive: true });
-
-            // ─── selectionchange ──────────────────────────────────────
-            document.addEventListener('selectionchange', function () {
-                clearTimeout(_showTimer);
-                _hideSelMenu();
-                if (self._pointerDown || _pointerCancelled) return; // 手指仍按下或系统拖选中，等 touchend 负责
-                _showTimer = setTimeout(function () {
-                    var sel = window.getSelection();
-                    if (sel && sel.toString().trim().length > 0) self._handleTextSelection();
-                }, 200);
-            });
 
             // 点击事件：区分"点击高亮/笔记图标"与"点击空白关闭菜单"
             document.addEventListener('click', function (e) {
@@ -878,8 +866,10 @@
             if (!sel || sel.toString().trim().length === 0) return;
             if (!sel.rangeCount) return;
             var range     = sel.getRangeAt(0);
-            var container = document.querySelector('.content');
-            if (!container || !container.contains(range.commonAncestorContainer)) return;
+            // 优先从选区节点向上找最近的 .content，避免 querySelector 返回隐藏的 homeView 里的同名元素
+            var rangeNode = range.commonAncestorContainer;
+            var container = (rangeNode.nodeType === 3 ? rangeNode.parentElement : rangeNode).closest('.content');
+            if (!container) return;
             this.showSelectionMenu(range.cloneRange());
         }
     };

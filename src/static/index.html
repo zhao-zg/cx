@@ -100,6 +100,8 @@
     </style>
 </head>
 <body>
+    <!-- 阅读进度条 -->
+    <div id="cxReadingProgress" class="cx-reading-progress"></div>
     <!-- 伪装维护页 -->
     <div id="cxMaintenance">
         <div class="cx-maint-icon" id="cxMaintTrigger">📱</div>
@@ -255,7 +257,10 @@
             var trainings=data.trainings||[];
             if(!trainings.length){grid.innerHTML='<div class="home-status">暂无训练内容</div>';return;}
             var html='';
+            var currentYear=null;
             trainings.forEach(function(t){
+                var yr=String(t.year||'');
+                if(yr&&yr!==currentYear){currentYear=yr;html+='<div class="cx-year-header-row">'+yr+'</div>';}
                 var yearSeason=t.year+'-'+(t.season.split(' ')[0]||t.season);
                 var titleText=t.subtitle||t.season.split(' ').slice(1).join(' ')||t.title||t.season;
                 html+='<div class="training-card">';
@@ -540,17 +545,26 @@
 
     function clearAllCachesAndMemory(opts){
         opts=opts||{};
+        var goHome=function(){
+            // 完整页面重载（非 hash 切换）：SW 被注销后仍控制当前标签页的 fetch，
+            // 若只做 hash 变化，SW 会把新请求的资源重新写回缓存。
+            // replaceState 去除 hash → reload 触发全新页面加载，SW 彻底注销。
+            try{window.history.replaceState(null,'',window.location.pathname);}catch(e){}
+            window.location.reload();
+        };
         if(opts.clearNotesOnly){
             try{localStorage.removeItem('cx_highlights');}catch(e){}
+            try{localStorage.removeItem('cx_highlights_bak');}catch(e){}
             var lf=(typeof localforage!=='undefined')?localforage.createInstance({name:'cx',storeName:'highlights'}):null;
-            (lf?lf.clear():Promise.resolve()).then(function(){window.location.reload(true);}).catch(function(){window.location.reload(true);});
+            (lf?lf.clear():Promise.resolve()).then(goHome).catch(goHome);
             return;
         }
         var steps=[];
         steps.push(new Promise(function(resolve){try{var keys=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.startsWith('cx_')&&k!=='cx_first_use')keys.push(k);if(k==='fontSize'||k==='globalFontSize'||k==='readingTheme'||k==='speechRate')keys.push(k);}keys.forEach(function(k){localStorage.removeItem(k);});resolve();}catch(e){resolve();}}));
         steps.push(new Promise(function(resolve){try{sessionStorage.clear();resolve();}catch(e){resolve();}}));
+        if('serviceWorker' in navigator)steps.push(navigator.serviceWorker.getRegistrations().then(function(regs){return Promise.all(regs.map(function(r){return r.unregister();}));}).catch(function(){}));
         if('caches' in window)steps.push(caches.keys().then(function(keys){return Promise.all(keys.map(function(k){return caches.delete(k);}));}).catch(function(){}));
-        Promise.all(steps).then(function(){window.location.reload(true);});
+        Promise.all(steps).then(goHome);
     }
 
     // 注册 CX.cacheAll 钩子（供 theme-toggle.js 调用）
@@ -591,6 +605,17 @@
             document.addEventListener('DOMContentLoaded',function(){
                 if(window.CXRouter)window.CXRouter.start();
             });
+        }
+    })();
+    </script>
+    <!-- 阅读进度条 JS -->
+    <script>
+    (function(){
+        var prog=document.getElementById('cxReadingProgress');
+        if(prog){
+            function updProg(){var s=window.scrollY||0;var d=document.documentElement.scrollHeight-window.innerHeight;prog.style.width=(d>0?Math.min(100,s/d*100):0)+'%';}
+            window.addEventListener('scroll',updProg,{passive:true});
+            window.addEventListener('hashchange',function(){prog.style.width='0%';});
         }
     })();
     </script>

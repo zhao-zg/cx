@@ -1,3 +1,10 @@
+<!-- 面包屑导航 -->
+<div class="cx-breadcrumb">
+    <a href="./index.html" class="cx-bc-link" title="{{ training.title }}" onclick="try{sessionStorage.setItem('cx_user_back','true')}catch(e){}">{{ training.title }}</a>
+    <span class="cx-bc-sep">›</span>
+    <span class="cx-bc-current">第{{ chapter.number }}篇</span>
+</div>
+
 <!-- 页面间跳转导航 -->
 <div class="page-navigation">
     <a href="./index.html" class="nav-link" title="返回目录">返回</a>
