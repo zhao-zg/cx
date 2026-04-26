@@ -195,6 +195,30 @@
             return window.location.pathname;
         },
 
+        // ─── TextQuoteSelector 辅助函数 ─────────────────────────────────
+        // 从页面全文提取 highlight 前后各 win 个字符作为上下文（prefix/suffix）
+        _extractContext: function (pageText, start, end, win) {
+            win = win || 25;
+            return {
+                prefix: pageText.substring(Math.max(0, start - win), start),
+                suffix: pageText.substring(end, Math.min(pageText.length, end + win))
+            };
+        },
+
+        // 从右侧对齐比较两个字符串（用于比较 prefix 右端）
+        _overlapRight: function (saved, actual) {
+            var i = saved.length - 1, j = actual.length - 1, count = 0;
+            while (i >= 0 && j >= 0 && saved[i] === actual[j]) { i--; j--; count++; }
+            return count;
+        },
+
+        // 从左侧对齐比较两个字符串（用于比较 suffix 左端）
+        _overlapLeft: function (saved, actual) {
+            var i = 0, count = 0;
+            while (i < saved.length && i < actual.length && saved[i] === actual[i]) { i++; count++; }
+            return count;
+        },
+
         // ─── 从 IndexedDB 加载当前页划线（异步，返回 Promise）────────────
         loadHighlights: function () {
             var self = this;
@@ -327,27 +351,61 @@
                 }
                 charCount = 0; // 重置供下方循环使用
                 if (fullText !== highlight.text) {
-                    // 偏移已失效，在全文中找离原始偏移最近的那次出现（支持重复文本）
+                    // 偏移已失效，收集全文并找最佳匹配位置
                     var pageText = '';
                     for (var k = 0; k < textNodes.length; k++) pageText += textNodes[k].textContent;
-                    var bestPos = -1, bestDist = Infinity, searchFrom = 0;
+
+                    // 收集所有出现位置
+                    var candidates = [];
+                    var searchFrom = 0;
                     while (true) {
                         var pos = pageText.indexOf(highlight.text, searchFrom);
                         if (pos < 0) break;
-                        var dist = Math.abs(pos - highlight.start);
-                        if (dist < bestDist) { bestDist = dist; bestPos = pos; }
+                        candidates.push(pos);
                         searchFrom = pos + 1;
                     }
-                    if (bestPos < 0) {
+                    if (!candidates.length) {
                         console.warn('[划线] 文本已不存在，跳过恢复:', highlight.text.substring(0, 20));
                         return;
                     }
-                    // 更新偏移并写回存储（自愈）
+
+                    var bestPos = -1;
+                    // 优先用 prefix/suffix 评分（TextQuoteSelector）
+                    if (highlight.prefix !== undefined && highlight.suffix !== undefined) {
+                        var bestScore = -1;
+                        for (var ci = 0; ci < candidates.length; ci++) {
+                            var cp = candidates[ci];
+                            var ce = cp + highlight.text.length;
+                            var actualPrefix = pageText.substring(Math.max(0, cp - 25), cp);
+                            var actualSuffix = pageText.substring(ce, Math.min(pageText.length, ce + 25));
+                            var score = self._overlapRight(highlight.prefix, actualPrefix) +
+                                        self._overlapLeft(highlight.suffix, actualSuffix);
+                            // 同分时取离原始偏移最近的
+                            if (score > bestScore ||
+                                (score === bestScore && Math.abs(cp - highlight.start) < Math.abs(bestPos - highlight.start))) {
+                                bestScore = score;
+                                bestPos = cp;
+                            }
+                        }
+                        console.log('[划线] TextQuoteSelector 自愈 score=' + bestScore + ':', highlight.text.substring(0, 20), '@', bestPos);
+                    } else {
+                        // 无上下文字段，退化为最近偏移
+                        var bestDist = Infinity;
+                        for (var di = 0; di < candidates.length; di++) {
+                            var dist = Math.abs(candidates[di] - highlight.start);
+                            if (dist < bestDist) { bestDist = dist; bestPos = candidates[di]; }
+                        }
+                        console.log('[划线] 偏移自愈:', highlight.text.substring(0, 20), '@', bestPos);
+                    }
+
+                    // 更新偏移，补充/修正上下文字段，写回存储（自愈）
                     highlight.start = bestPos;
                     highlight.end   = bestPos + highlight.text.length;
+                    var newCtx = self._extractContext(pageText, highlight.start, highlight.end);
+                    highlight.prefix = newCtx.prefix;
+                    highlight.suffix = newCtx.suffix;
                     var selfHeal = self;
                     setTimeout(function() { selfHeal.saveHighlights(); }, 0);
-                    console.log('[划线] 偏移自愈:', highlight.text.substring(0, 20), '@', bestPos);
                     charCount = 0;
                 }
             }
@@ -448,11 +506,19 @@
             var position = this.getSelectionPosition(container, range);
             if (!position) return null;
 
+            // 提取前后文上下文（TextQuoteSelector）
+            var textNodes = this.getTextNodes(container);
+            var pageText = '';
+            for (var ti = 0; ti < textNodes.length; ti++) pageText += textNodes[ti].textContent;
+            var ctx = this._extractContext(pageText, position.start, position.end);
+
             var highlight = {
                 id:        Date.now().toString(),
                 start:     position.start,
                 end:       position.end,
                 text:      range.toString(),
+                prefix:    ctx.prefix,
+                suffix:    ctx.suffix,
                 // 'note' 和 null 均表示无背景色；其他值使用传入颜色，缺省用默认色
                 color:     (color === null || color === 'note' || color === undefined) ? null : (color || this.config.defaultColor),
                 underline: !!underline,
