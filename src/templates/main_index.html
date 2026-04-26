@@ -714,7 +714,7 @@
         doInstall();
     }
 
-    // PWA 启动时检查缓存版本与完整性
+    // PWA 启动时检查缓存完整性（不做版本比较，版本更新由自动/手动检查更新处理）
     function checkPwaStartupCache() {
         var isStandalone = window.navigator.standalone === true ||
                            window.matchMedia('(display-mode: standalone)').matches;
@@ -723,44 +723,36 @@
         if (!isStandalone || isCapacitor || !('caches' in window)) return;
         var storedVersion = null;
         try { storedVersion = localStorage.getItem('cx_pwa_version'); } catch(e) {}
-        fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
-            .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-            .then(function(v) {
-                var remoteVersion = v.version || v.apk_version;
-                var targetVersion = remoteVersion || storedVersion;
-                var versionChanged = remoteVersion && storedVersion !== remoteVersion;
-                if (versionChanged) {
-                    console.log('[PWA] 版本更新: 本地=' + storedVersion + ' 远程=' + remoteVersion + '，强制重新缓存');
-                    showMandatoryInstallDialog('update', targetVersion);
-                    return;
-                }
-                // 版本一致时，再检查缓存完整性
-                waitForTrainings(5000).then(function(trainings) {
-                    return verifyCacheIntegrity(trainings);
-                }).then(function(result) {
-                    if (!result.ok) {
-                        var mode = storedVersion ? 'update' : 'install';
-                        console.log('[PWA] 缓存不完整（' + Math.round((result.coverage || 0) * 100) + '%），触发' + mode);
+        // 仅检查缓存完整性，不做版本比较
+        waitForTrainings(5000).then(function(trainings) {
+            return verifyCacheIntegrity(trainings);
+        }).then(function(result) {
+            if (!result.ok) {
+                var mode = storedVersion ? 'install' : 'install';
+                console.log('[PWA] 缓存不完整（' + Math.round((result.coverage || 0) * 100) + '%），触发' + mode);
+                // 尝试从 version.json 获取版本号（供缓存完成后写入），离线时用本地版本
+                fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
+                    .then(function(r) { return r.ok ? r.json() : {}; })
+                    .catch(function() { return {}; })
+                    .then(function(v) {
+                        var targetVersion = (v && (v.version || v.apk_version)) || storedVersion || '';
                         showMandatoryInstallDialog(mode, targetVersion);
-                    }
-                    // 缓存完整且版本一致：正常使用
-                }).catch(function() {});
-            })
-            .catch(function(err) {
-                console.log('[PWA] version.json 获取失败:', err.message);
-                // 离线且从未缓存：显示非阻塞提示横幅，不阻塞 UI
-                if (!storedVersion) {
-                    var banner = document.getElementById('cxOfflineBanner');
-                    if (banner) {
-                        banner.classList.add('show');
-                        var dismissBtn = banner.querySelector('.cx-banner-dismiss');
-                        if (dismissBtn) dismissBtn.addEventListener('click', function() {
-                            banner.classList.remove('show');
-                        });
-                    }
+                    });
+            }
+            // 缓存完整：正常使用
+        }).catch(function() {
+            // 离线且从未缓存：显示非阻塞提示横幅，不阻塞 UI
+            if (!storedVersion) {
+                var banner = document.getElementById('cxOfflineBanner');
+                if (banner) {
+                    banner.classList.add('show');
+                    var dismissBtn = banner.querySelector('.cx-banner-dismiss');
+                    if (dismissBtn) dismissBtn.addEventListener('click', function() {
+                        banner.classList.remove('show');
+                    });
                 }
-                // 已有版本记录但离线：静默使用现有缓存
-            });
+            }
+        });
     }
 
     // 缓存所有训练资源
