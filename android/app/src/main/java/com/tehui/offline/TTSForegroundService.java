@@ -72,7 +72,8 @@ public class TTSForegroundService extends Service {
     private volatile TextToSpeech tts;  // volatile: 后台线程(UtteranceProgressListener)需要可见性
     private volatile boolean      ttsReady      = false;
     private int                   ttsInitRetries = 0;  // TTS 初始化重试计数
-    private static final int      MAX_TTS_RETRIES = 5;
+    private static final int      MAX_TTS_RETRIES = 3;
+    private static final long[]   TTS_RETRY_DELAYS = {500, 1000, 2000}; // 指数退避（ms）
     private volatile boolean      ttsInitFailed  = false; // 所有重试均失败后置 true
 
     // ── Playback State ────────────────────────────────────────────────────
@@ -191,10 +192,11 @@ public class TTSForegroundService extends Service {
                     TextToSpeech old = tts;
                     tts = null;
                     try { if (old != null) old.shutdown(); } catch (Exception ignored) {}
-                    // 延迟 2s 重试，给系统 TTS provider 更多时间就绪
+                    long delay = TTS_RETRY_DELAYS[Math.min(ttsInitRetries - 1, TTS_RETRY_DELAYS.length - 1)];
+                    android.util.Log.w("TTSFgSvc", "retrying in " + delay + "ms");
                     mainHandler.postDelayed(() -> {
                         if (!isStopped) initTts();
-                    }, 2000);
+                    }, delay);
                 } else {
                     ttsInitFailed = true;
                     notifyError("TTS 初始化失败，请检查系统语音引擎");
