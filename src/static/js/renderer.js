@@ -41,6 +41,10 @@
   // 缓存已加载的 training.json
   var _cache = {};
 
+  // 滚动位置记忆
+  var _scrollSaveTimer = null;
+  var _scrollSaveHandler = null;
+
   function loadTraining(batchPath) {
     if (_cache[batchPath]) return Promise.resolve(_cache[batchPath]);
     var root = win.CX_ROOT || './';
@@ -700,7 +704,44 @@
     relocateThemeBtn();
     initSpeechForView(viewType, chapter);
 
-    try { localStorage.setItem('cx_last_page', win.location.href); } catch(e){}
+    // 先读取上次保存的滚动位置（在覆盖之前），用于本次恢复
+    var _restoreScroll = sessionStorage.getItem('cx_restore_scroll');
+    var _savedScrollVal = _restoreScroll ? parseInt(localStorage.getItem('cx_last_scroll') || '0', 10) : 0;
+    var _savedDateVal = _restoreScroll ? (localStorage.getItem('cx_last_page_date') || '') : '';
+
+    try {
+      var _today = new Date().toISOString().slice(0, 10);
+      localStorage.setItem('cx_last_page', win.location.href);
+      localStorage.setItem('cx_last_page_date', _today);
+      localStorage.setItem('cx_last_page_view', viewType || '');
+      localStorage.setItem('cx_last_scroll', '0'); // 重置，等待滚动事件更新
+    } catch(e){}
+
+    // 设置滚动位置保存监听
+    if (_scrollSaveHandler) {
+      win.removeEventListener('scroll', _scrollSaveHandler);
+      _scrollSaveHandler = null;
+    }
+    _scrollSaveHandler = function() {
+      if (_scrollSaveTimer) clearTimeout(_scrollSaveTimer);
+      _scrollSaveTimer = setTimeout(function() {
+        try { localStorage.setItem('cx_last_scroll', String(win.scrollY || 0)); } catch(e){}
+      }, 300);
+    };
+    win.addEventListener('scroll', _scrollSaveHandler, {passive: true});
+
+    // 恢复滚动位置
+    if (_restoreScroll) {
+      sessionStorage.removeItem('cx_restore_scroll');
+      var _todayStr = new Date().toISOString().slice(0, 10);
+      var _isCx = (viewType === 'cx');
+      // 晨兴页：仅同天恢复滚动；其他页面始终恢复
+      var _shouldRestore = _savedScrollVal > 0 && (!_isCx || _savedDateVal === _todayStr);
+      if (_shouldRestore) {
+        // 延迟确保 initDayPager 等异步初始化完成后再滚动
+        setTimeout(function() { try { win.scrollTo(0, _savedScrollVal); } catch(e){} }, 200);
+      }
+    }
 
     if (win.CXSearch && win.CXSearch.handleSearchTargetSPA) {
       setTimeout(function(){ try { win.CXSearch.handleSearchTargetSPA(); } catch(e){} }, 100);

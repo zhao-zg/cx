@@ -72,7 +72,8 @@ public class TTSForegroundService extends Service {
     private volatile TextToSpeech tts;  // volatile: 后台线程(UtteranceProgressListener)需要可见性
     private volatile boolean      ttsReady      = false;
     private int                   ttsInitRetries = 0;  // TTS 初始化重试计数
-    private static final int      MAX_TTS_RETRIES = 3;
+    private static final int      MAX_TTS_RETRIES = 5;
+    private volatile boolean      ttsInitFailed  = false; // 所有重试均失败后置 true
 
     // ── Playback State ────────────────────────────────────────────────────
     private final List<String>  chunks     = new ArrayList<>();
@@ -163,12 +164,20 @@ public class TTSForegroundService extends Service {
 
     /** 初始化 TTS 引擎，失败时最多自动重试 MAX_TTS_RETRIES 次。 */
     private void initTts() {
+        ttsInitFailed = false;
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
                 ttsInitRetries = 0;
                 ttsReady = true;
+                ttsInitFailed = false;
                 // 初始化完成后立即枚举 voices，避免首次 speak 时再走 setLanguage() 随机选声音
                 pinnedVoice = pickBestVoice(playLang);
+                // 仅在确认初始化成功后才设置 UtteranceProgressListener，
+                // 避免在 retry 过程中对已作废的 tts 实例设置监听器。
+                TextToSpeech ready = tts;
+                if (ready != null) {
+                    ready.setOnUtteranceProgressListener(buildUtteranceListener());
+                }
                 // If a speak request arrived before init completed, start now
                 if (!chunks.isEmpty() && !isStopped && !isPaused) {
                     setTtsParams(); // first-time init: set language + rate before first chunk
@@ -182,17 +191,21 @@ public class TTSForegroundService extends Service {
                     TextToSpeech old = tts;
                     tts = null;
                     try { if (old != null) old.shutdown(); } catch (Exception ignored) {}
-                    // 延迟 1.5s 重试，等待系统 TTS provider 就绪
+                    // 延迟 2s 重试，给系统 TTS provider 更多时间就绪
                     mainHandler.postDelayed(() -> {
                         if (!isStopped) initTts();
-                    }, 1500);
+                    }, 2000);
                 } else {
+                    ttsInitFailed = true;
                     notifyError("TTS 初始化失败，请检查系统语音引擎");
                 }
             }
         });
+    }
 
-        tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+    /** 构建 UtteranceProgressListener（拆出以便 initTts 成功后单独设置）。 */
+    private UtteranceProgressListener buildUtteranceListener() {
+        return new UtteranceProgressListener() {
             @Override
             public void onStart(String utteranceId) {
                 // Engine accepted and started synthesising — no action needed
@@ -242,7 +255,7 @@ public class TTSForegroundService extends Service {
                     }
                 });
             }
-        });
+        };
     }
 
     @Override
@@ -362,8 +375,15 @@ public class TTSForegroundService extends Service {
                 setTtsParams();  // 应用最新 playRate 和语言（引擎已空闲，不会触发 onError）
                 playChunkOnly();
             }, 200);
+        } else if (ttsInitFailed) {
+            // 上次全部重试均失败，用户再次点播放时允许重新初始化。
+            android.util.Log.w("TTSFgSvc", "Re-attempting TTS init after previous failure");
+            ttsInitRetries = 0;
+            ttsInitFailed = false;
+            initTts();
+            // chunks 已设置好，initTts 成功后的回调里会自动调用 playChunkOnly()
         }
-        // else: TTS.OnInitListener will call setTtsParams()+playChunkOnly when ready
+        // else: TTS 仍在初始化中，OnInitListener 成功时会自动调用 setTtsParams()+playChunkOnly
     }
 
     private void handleSetRate(Intent intent) {
