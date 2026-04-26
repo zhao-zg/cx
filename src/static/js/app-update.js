@@ -249,13 +249,28 @@
         },
 
         loadConfig: function() {
-            return fetch('/app_config.json')
-                .then(function(response) { return response.json(); })
-                .then(function(config) {
-                    this.config.currentVersion = config.version;
-                    console.log('[更新] 当前版本:', this.config.currentVersion);
-                }.bind(this))
-                .catch(function(error) { console.error('[更新] 加载配置失败:', error); });
+            // 优先从 localStorage 读取已缓存的版本号（Capacitor 启动时由 App.getInfo() 写入）
+            var self = this;
+            var cached = null;
+            try { cached = localStorage.getItem('cx_apk_version'); } catch(e) {}
+            if (cached) {
+                self.config.currentVersion = cached;
+                console.log('[更新] 当前版本 (cached):', cached);
+                return Promise.resolve();
+            }
+            // 降级：尝试相对路径 fetch
+            return fetch('./app_config.json', { cache: 'no-cache' })
+                .then(function(response) {
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return response.text();
+                })
+                .then(function(text) {
+                    if (!text || !text.trim()) throw new Error('empty response');
+                    var config = JSON.parse(text);
+                    self.config.currentVersion = config.version;
+                    console.log('[更新] 当前版本:', self.config.currentVersion);
+                })
+                .catch(function(error) { console.warn('[更新] 加载配置失败（已忽略）:', error.message || error); });
         },
 
         compareVersion: function(v1, v2) {

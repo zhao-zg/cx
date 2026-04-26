@@ -590,8 +590,12 @@
             });
     }
 
-    // 注册 Service Worker
+    // 注册 Service Worker（非 Capacitor 原生环境）
     if('serviceWorker' in navigator){
+        var _isNativeApp=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+        if(_isNativeApp){
+            // Capacitor WebView 不支持 SW，跳过注册
+        } else {
         navigator.serviceWorker.register('./sw.js').then(function(reg){
             reg.update().catch(function(){});
             reg.addEventListener('updatefound',function(){
@@ -609,6 +613,7 @@
             if(isNative)return;
             refreshing=true;window.location.reload();
         });
+        } // end else (non-native)
     }
 
     // 主页 PWA/清理功能委托（供 theme-toggle.js 调用）

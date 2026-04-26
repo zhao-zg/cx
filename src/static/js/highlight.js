@@ -327,8 +327,28 @@
                 }
                 charCount = 0; // 重置供下方循环使用
                 if (fullText !== highlight.text) {
-                    console.warn('[划线] 文本不匹配，跳过恢复:', highlight.text, '→', fullText);
-                    return;
+                    // 偏移已失效，在全文中找离原始偏移最近的那次出现（支持重复文本）
+                    var pageText = '';
+                    for (var k = 0; k < textNodes.length; k++) pageText += textNodes[k].textContent;
+                    var bestPos = -1, bestDist = Infinity, searchFrom = 0;
+                    while (true) {
+                        var pos = pageText.indexOf(highlight.text, searchFrom);
+                        if (pos < 0) break;
+                        var dist = Math.abs(pos - highlight.start);
+                        if (dist < bestDist) { bestDist = dist; bestPos = pos; }
+                        searchFrom = pos + 1;
+                    }
+                    if (bestPos < 0) {
+                        console.warn('[划线] 文本已不存在，跳过恢复:', highlight.text.substring(0, 20));
+                        return;
+                    }
+                    // 更新偏移并写回存储（自愈）
+                    highlight.start = bestPos;
+                    highlight.end   = bestPos + highlight.text.length;
+                    var selfHeal = self;
+                    setTimeout(function() { selfHeal.saveHighlights(); }, 0);
+                    console.log('[划线] 偏移自愈:', highlight.text.substring(0, 20), '@', bestPos);
+                    charCount = 0;
                 }
             }
 
