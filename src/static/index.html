@@ -154,6 +154,7 @@
     <script src="js/image-utils.js"></script>
     <script src="js/remote-config.js"></script>
     <script src="vendor/localforage.min.js"></script>
+    <script src="js/dev-console.js"></script>
     <script src="js/theme-toggle.js"></script>
     <script src="js/search.js"></script>
     <script src="vendor/jszip.min.js"></script>
@@ -190,7 +191,7 @@
         './version.json','./trainings.json','./search-index.json',
         './css/style.css',
         './js/ref-detector.js','./js/router.js','./js/renderer.js',
-        './js/theme-toggle.js','./js/search.js','./js/speech.js',
+        './js/dev-console.js','./js/theme-toggle.js','./js/search.js','./js/speech.js',
         './js/outline.js','./js/scripture-popup.js','./js/image-utils.js',
         './js/remote-config.js','./js/nav-stack.js',
         './js/bible-dict.js','./js/highlight.js',
@@ -301,25 +302,98 @@
         }
     })();
 
-    // ── APK 更新（Logo 点击隐藏入口）────────────────────────────────────
+    // ── 隐藏管理面板（Logo 连点 5 次 + 密码）────────────────────────────
     (function(){
-        if(!CX_ENV.isAndroid||!CX_ENV.isCapacitorApp)return;
-        var clickCount=0,clickTimer=null;
         var logo=document.getElementById('mainLogo');
         if(!logo)return;
+        var cnt=0,tmr=null;
         logo.addEventListener('click',function(){
-            clickCount++;
-            if(clickTimer)clearTimeout(clickTimer);
-            clickTimer=setTimeout(function(){clickCount=0;},5000);
-            if(clickCount>=8){
-                clickCount=0;if(clickTimer)clearTimeout(clickTimer);
+            cnt++;
+            if(tmr)clearTimeout(tmr);
+            tmr=setTimeout(function(){cnt=0;},3000);
+            if(cnt>=5){
+                cnt=0;if(tmr)clearTimeout(tmr);
                 var pw=prompt('请输入管理密码：');
-                if(pw==='1189'){
-                    if(window.AppUpdate&&window.AppUpdate.showGitHubUpdateDialog)window.AppUpdate.showGitHubUpdateDialog();
-                    else alert('更新功能未加载');
-                }else if(pw!==null){alert('密码错误');}
+                if(pw===null)return;
+                if(pw!=='1189'){alert('密码错误');return;}
+                showAdminPanel();
             }
         });
+
+        function showAdminPanel(){
+            if(document.getElementById('cxAdminMask'))return;
+
+            var isCapacitorApp=CX_ENV.isCapacitorApp;
+            var isPwaStandalone=CX_ENV.isStandalone&&!isCapacitorApp&&('caches' in window);
+            var canUpdate=isCapacitorApp||isPwaStandalone;
+            var devOn=false;
+            try{devOn=localStorage.getItem('cx_dev_mode')==='1';}catch(e){}
+
+            var mask=document.createElement('div');
+            mask.id='cxAdminMask';
+            mask.className='cx-dialog-mask';
+            mask.innerHTML=[
+                '<div class="cx-dialog" style="padding:0 0 4px">',
+                '  <div class="cx-dialog-title" style="padding:18px 16px 4px;font-size:16px">🔧 管理面板</div>',
+                '  <div style="padding:4px 16px 12px">',
+                // 检查更新行（按需显示）
+                canUpdate?[
+                    '  <div class="pref-row" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:2px">',
+                    '    <div class="pref-label-wrap">',
+                    '      <span class="pref-title">检查更新</span>',
+                    '      <span class="pref-desc">'+(isCapacitorApp?'检查并安装最新 APK':'检查 PWA 缓存更新')+'</span>',
+                    '    </div>',
+                    '    <button id="cxAdminUpdateBtn" style="flex-shrink:0;padding:6px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent">检查</button>',
+                    '  </div>',
+                ].join(''):'',
+                // 开发者模式行
+                '  <div class="pref-row" style="padding-top:'+(canUpdate?'10px':'4px')+'">',
+                '    <div class="pref-label-wrap">',
+                '      <span class="pref-title">开发者模式</span>',
+                '      <span class="pref-desc">在页面底部显示调试日志</span>',
+                '    </div>',
+                '    <label class="pref-toggle">',
+                '      <input type="checkbox" id="cxAdminDevToggle"'+(devOn?' checked':'')+'>',
+                '      <span class="pref-toggle-slider"></span>',
+                '    </label>',
+                '  </div>',
+                '  </div>',
+                '  <div style="text-align:center;padding:4px 16px 14px">',
+                '    <button id="cxAdminClose" style="padding:7px 32px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer;color:var(--text-secondary);-webkit-tap-highlight-color:transparent">关闭</button>',
+                '  </div>',
+                '</div>'
+            ].join('');
+            document.body.appendChild(mask);
+
+            // 关闭
+            function close(){if(mask.parentNode)mask.parentNode.removeChild(mask);}
+            document.getElementById('cxAdminClose').addEventListener('click',close);
+            mask.addEventListener('click',function(e){if(e.target===mask)close();});
+
+            // 检查更新
+            if(canUpdate){
+                document.getElementById('cxAdminUpdateBtn').addEventListener('click',function(){
+                    close();
+                    if(isCapacitorApp){
+                        if(window.AppUpdate&&window.AppUpdate.showCloudflareUpdateDialog)window.AppUpdate.showCloudflareUpdateDialog();
+                        else if(window.AppUpdate&&window.AppUpdate.showGitHubUpdateDialog)window.AppUpdate.showGitHubUpdateDialog();
+                    } else {
+                        // PWA
+                        var root=window.CX_ROOT||'./';
+                        if(window.AppUpdate&&window.AppUpdate.showPwaUpdateDialog)
+                            window.AppUpdate.showPwaUpdateDialog({root:root});
+                    }
+                });
+            }
+
+            // 开发者模式开关
+            document.getElementById('cxAdminDevToggle').addEventListener('change',function(){
+                var on=this.checked;
+                try{localStorage.setItem('cx_dev_mode',on?'1':'0');}catch(e){}
+                if(on&&window.CXDevConsole)window.CXDevConsole.init();
+                else if(!on&&window.CXDevConsole)window.CXDevConsole.destroy();
+            });
+        }
     })();
 
     // ── 页面记忆：保存 ────────────────────────────────────────────────────

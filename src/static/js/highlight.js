@@ -16,6 +16,7 @@
     var CXStorage = (function () {
         var _store = null;
         var MIGRATED_KEY = 'cx_hl_migrated';
+        var MIGRATED_VER = '2'; // 升版本号强制重跑迁移（修复路径规范化）
 
         function init() {
             if (typeof localforage === 'undefined') {
@@ -42,7 +43,7 @@
 
         function _migrate() {
             try {
-                if (localStorage.getItem(MIGRATED_KEY) === '1') return Promise.resolve();
+                if (localStorage.getItem(MIGRATED_KEY) === MIGRATED_VER) return Promise.resolve();
             } catch (e) { return Promise.resolve(); }
 
             // 读旧主键 + 旧备份键，合并（旧主键数据优先）
@@ -61,7 +62,7 @@
 
             var paths = Object.keys(merged);
             if (!paths.length) {
-                try { localStorage.setItem(MIGRATED_KEY, '1'); } catch (e) {}
+                try { localStorage.setItem(MIGRATED_KEY, MIGRATED_VER); } catch (e) {}
                 return Promise.resolve();
             }
 
@@ -78,7 +79,7 @@
                     localStorage.removeItem('cx_highlights');
                     localStorage.removeItem('cx_highlights_bak');
                     localStorage.removeItem('cx_highlights_bak_ts');
-                    localStorage.setItem(MIGRATED_KEY, '1');
+                    localStorage.setItem(MIGRATED_KEY, MIGRATED_VER);
                 } catch (e) {}
                 console.log('[划线] 已迁移 ' + paths.length + ' 页数据到 IndexedDB');
             }).catch(function (err) {
@@ -197,23 +198,62 @@
         // ─── 从 IndexedDB 加载当前页划线（异步，返回 Promise）────────────
         loadHighlights: function () {
             var self = this;
-            var key = this.getPageKey();
-            return CXStorage.getPage(key).then(function (arr) {
-                if (arr && arr.length) return arr;
-                // 已迁移但 key 带旧平台前缀（/android_asset/public/...）的数据自愈：
-                // 尝试旧前缀 key，找到后写回规范化 key 并删除旧 key。
-                var legacyKey = '/android_asset/public' + key;
-                return CXStorage.getPage(legacyKey).then(function (legacyArr) {
-                    if (!legacyArr || !legacyArr.length) return arr || [];
-                    // 自愈：写入规范化 key，删除旧 key
-                    return CXStorage.setPage(key, legacyArr).then(function () {
-                        return CXStorage.setPage(legacyKey, []).then(function () {
-                            console.log('[划线] 自愈迁移:', legacyKey, '→', key);
-                            return legacyArr;
-                        });
-                    });
+            var key = this.getPageKey(); // e.g. /2025-07/1_cv.htm
+
+            // 所有可能的历史 key 变体（覆盖各版本/平台的存储路径差异）
+            var keyVariants = [
+                key,                                             // 规范化 key（当前版本）
+                '/android_asset/public' + key,                  // Android 旧路径前缀
+                '/public' + key,                                 // 部分 Capacitor 版本
+                key.replace(/\.htm$/, '.html'),                  // .html 扩展名
+                '/android_asset/public' + key.replace(/\.htm$/, '.html')
+            ];
+
+            // 从 localStorage cx_highlights 直接取，作为最终兜底
+            function tryLocalStorageDirect(k) {
+                try {
+                    var all = JSON.parse(localStorage.getItem('cx_highlights') || '{}');
+                    // 同样尝试所有 key 变体
+                    var variants = [k, '/android_asset/public' + k,
+                                    k.replace(/\.htm$/, '.html'),
+                                    '/android_asset/public' + k.replace(/\.htm$/, '.html')];
+                    for (var i = 0; i < variants.length; i++) {
+                        if (all[variants[i]] && all[variants[i]].length) {
+                            console.log('[划线] localStorage 兜底命中:', variants[i]);
+                            return all[variants[i]];
+                        }
+                    }
+                } catch (e) {}
+                return null;
+            }
+
+            // 顺序查询所有 IndexedDB key 变体
+            function tryVariants(index) {
+                if (index >= keyVariants.length) return Promise.resolve(null);
+                return CXStorage.getPage(keyVariants[index]).then(function (arr) {
+                    if (arr && arr.length) {
+                        if (keyVariants[index] !== key) {
+                            // 命中非规范化 key，自愈写回规范化 key
+                            console.log('[划线] 自愈迁移:', keyVariants[index], '→', key);
+                            CXStorage.setPage(key, arr).catch(function () {});
+                        }
+                        return arr;
+                    }
+                    return tryVariants(index + 1);
                 });
-            }).then(function (arr) {
+            }
+
+            return tryVariants(0).then(function (arr) {
+                if (!arr || !arr.length) {
+                    // IndexedDB 所有变体均无数据，最后从 localStorage 直接取
+                    var lsArr = tryLocalStorageDirect(key);
+                    if (lsArr) {
+                        // 找到了，写入 IndexedDB 规范化 key 并返回
+                        CXStorage.setPage(key, lsArr).catch(function () {});
+                        arr = lsArr;
+                    }
+                }
+                console.log('[划线] key=' + key + ', 找到条数=' + (arr ? arr.length : 0));
                 self.highlights = (arr || []).map(function (h) {
                     if (h.underline === undefined) h.underline = false;
                     if (h.note      === undefined) h.note      = '';

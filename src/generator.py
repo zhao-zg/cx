@@ -61,6 +61,7 @@ class HTMLGenerator:
                 'toc-redirect.js',
                 'nav-stack.js',
                 'image-utils.js',
+                'dev-console.js',
                 'theme-toggle.js',
                 'app-update.js',
                 'font-control.js',

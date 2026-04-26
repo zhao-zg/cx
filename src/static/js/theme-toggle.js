@@ -330,6 +330,9 @@
     }
     
     // 页面加载时创建主题切换UI
+    function initDevConsole()  { window.CXDevConsole && window.CXDevConsole.init(); }
+    function destroyDevConsole() { window.CXDevConsole && window.CXDevConsole.destroy(); }
+
     function initThemeToggle() {
         // 内页启动缓存检测：非主页 + PWA standalone + 缓存缺失 → 跳回主页触发安装
         (function() {
@@ -514,6 +517,9 @@
 
         // 初始化操作区按钮（所有页面通用）
         initSettingsActions();
+
+        // 如已开启开发者模式，自动初始化控制台
+        try { if (localStorage.getItem('cx_dev_mode') === '1') initDevConsole(); } catch(e) {}
 
         if (window.matchMedia) {
             var themeQuery = window.matchMedia('(prefers-color-scheme: dark)');

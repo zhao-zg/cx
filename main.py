@@ -392,7 +392,7 @@ def generate_main_index(config, batch_results):
     js_dir = os.path.join(output_dir, 'js')
     os.makedirs(js_dir, exist_ok=True)
     shared_js_files = [
-        'app-update.js', 'nav-stack.js', 'theme-toggle.js',
+        'app-update.js', 'nav-stack.js', 'dev-console.js', 'theme-toggle.js',
         'bible-dict.js', 'speech.js', 'highlight.js', 'outline.js',
         'scripture-popup.js', 'toc-redirect.js', 'font-control.js',
         'search.js', 'image-utils.js',
