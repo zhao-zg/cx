@@ -25,6 +25,7 @@
     var parts = path.split('/').filter(Boolean);
     var R = win.CXRenderer;
     if (!R) return;
+    win.scrollTo(0, 0);
     if (parts.length === 0) {
       R.renderHome();
     } else if (parts.length === 1) {
