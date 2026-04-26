@@ -769,6 +769,10 @@
         _positionMenuByRect: function (menu, rect) {
             menu.style.position  = 'fixed';
             menu.style.transform = 'none';
+            // 先移出视口再显示，防止 position:fixed top:auto 首次出现时
+            // 定位到文档末尾导致页面突然滚到底部（Android WebView 已知问题）
+            menu.style.top       = '-9999px';
+            menu.style.left      = '-9999px';
             menu.style.display   = 'flex';
             menu.style.opacity   = '0';
             requestAnimationFrame(function () {

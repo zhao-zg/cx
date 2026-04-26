@@ -521,9 +521,9 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .day-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
 .day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:var(--brand)}
 .day-link.active{font-weight:700}
-.pages-container{position:relative;overflow:hidden;touch-action:pan-y;transition:height .2s ease}
+.pages-container{position:relative;overflow:hidden;overflow:clip;touch-action:pan-y;transition:height .2s ease}
 .pages-track{display:flex;align-items:flex-start;will-change:transform;transition:transform .3s cubic-bezier(.25,.46,.45,.94)}
-.day-page{background:var(--surface);padding:0 2px;flex:0 0 100%;width:100%;min-width:0;height:auto;overflow:hidden}
+.day-page{background:var(--surface);padding:0 2px;flex:0 0 100%;width:100%;min-width:0;height:auto;overflow:hidden;overflow:clip}
 .page-controls{display:flex;justify-content:space-between;align-items:center;margin:16px 0 12px;padding:8px;background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-sm)}
 .prev-btn,.next-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:34px;padding:10px 14px;background:var(--surface-alt);border:1px solid var(--btn-secondary-border);border-radius:5px;color:var(--btn-secondary-text);font-size:0.92em;cursor:pointer;font-weight:600;transition:background .2s}
 .prev-btn:hover,.next-btn:hover{background:var(--btn-secondary-hover-bg)}

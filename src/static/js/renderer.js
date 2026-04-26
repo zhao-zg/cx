@@ -604,6 +604,10 @@
     var currentPage = 0;
 
     function setTrack(pct, animate) {
+      // 重置容器内 scrollTop/scrollLeft，防止浏览器在选中文字时隐式滚动 overflow:hidden 元素，
+      // 导致顶部内容被裁剪（overflow:clip 也一起处理，兼容旧版本）
+      container.scrollTop = 0;
+      container.scrollLeft = 0;
       track.style.transition = animate ? 'transform .3s cubic-bezier(.25,.46,.45,.94)' : 'none';
       track.style.transform = 'translateX(' + pct + '%)';
     }
@@ -618,6 +622,8 @@
       if (win.CXSpeech && win.CXSpeech.cancel) try { win.CXSpeech.cancel(); } catch(e) {}
       currentPage = idx;
       setTrack(-currentPage * 100, true);
+      // 每次翻页也重置各 day-page 的 scrollTop，防止浏览器跟随选区时把内容滚走
+      pages.forEach(function(p) { p.scrollTop = 0; p.scrollLeft = 0; });
       pages.forEach(function(p, i){ p.classList.toggle('is-active', i === currentPage); });
       dayLinks.forEach(function(l, i){ l.classList.toggle('active', i === currentPage); });
       if (prevBtn) prevBtn.disabled = currentPage === 0;
