@@ -61,9 +61,20 @@
         });
     }
 
-    // 主页回退 → 退出
+    // 主页回退 → 退出（SPA 模式：感知当前 hash，非首页时先返回上一级）
     function initHomePage() {
         setupBackHandler(function() {
+            // SPA 模式：根据当前 hash 决定行为
+            var hash = window.location.hash.replace(/^#\/?/, '');
+            var parts = hash.split('/').filter(Boolean);
+            if (parts.length >= 3) {
+                // 章节视图 → 返回批次目录
+                if (window.CXRouter) { window.CXRouter.navigate(parts[0]); return; }
+            } else if (parts.length >= 1) {
+                // 批次目录 → 返回首页
+                if (window.CXRouter) { window.CXRouter.navigate(''); return; }
+            }
+            // 已在首页 → 退出
             if (isCapacitor()) {
                 window.Capacitor.Plugins.App.exitApp();
             } else {
