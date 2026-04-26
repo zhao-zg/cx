@@ -685,6 +685,20 @@
 
     showPage(initialPage || 0, false);
     win.addEventListener('resize', updateHeight);
+
+    // ── 防止浏览器在选中文字时隐式滚动 overflow:hidden 容器 ──────────────
+    // setTrack/showPage 已在翻页时重置，但静止阅读时选中文字也会触发隐式滚动。
+    // 把容器和所有 day-page 的 scrollTop/Left 钉在 0，避免顶部内容被裁剪。
+    function _lockScroll(el) {
+      el.addEventListener('scroll', function () {
+        if (el.scrollTop !== 0 || el.scrollLeft !== 0) {
+          el.scrollTop = 0;
+          el.scrollLeft = 0;
+        }
+      }, { passive: true });
+    }
+    _lockScroll(container);
+    pages.forEach(function (p) { _lockScroll(p); });
   }
 
   // ── 设置内容并初始化全部功能 ─────────────────────────────────────────
