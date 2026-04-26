@@ -70,7 +70,9 @@ public class TTSForegroundService extends Service {
 
     // ── TTS ───────────────────────────────────────────────────────────────
     private volatile TextToSpeech tts;  // volatile: 后台线程(UtteranceProgressListener)需要可见性
-    private volatile boolean      ttsReady  = false;
+    private volatile boolean      ttsReady      = false;
+    private int                   ttsInitRetries = 0;  // TTS 初始化重试计数
+    private static final int      MAX_TTS_RETRIES = 3;
 
     // ── Playback State ────────────────────────────────────────────────────
     private final List<String>  chunks     = new ArrayList<>();
@@ -156,8 +158,14 @@ public class TTSForegroundService extends Service {
             @Override public void onPause()  { mainHandler.post(() -> handlePause()); }
             @Override public void onStop()   { mainHandler.post(() -> handleStop()); }
         });
+        initTts();
+    }
+
+    /** 初始化 TTS 引擎，失败时最多自动重试 MAX_TTS_RETRIES 次。 */
+    private void initTts() {
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
+                ttsInitRetries = 0;
                 ttsReady = true;
                 // 初始化完成后立即枚举 voices，避免首次 speak 时再走 setLanguage() 随机选声音
                 pinnedVoice = pickBestVoice(playLang);
@@ -167,7 +175,20 @@ public class TTSForegroundService extends Service {
                     playChunkOnly();
                 }
             } else {
-                notifyError("TTS 初始化失败");
+                // OxygenOS/MIUI 上 TTS 引擎首次初始化偶发 ERROR，稍后重试通常成功
+                ttsInitRetries++;
+                android.util.Log.w("TTSFgSvc", "TTS init failed, retry " + ttsInitRetries + "/" + MAX_TTS_RETRIES);
+                if (ttsInitRetries < MAX_TTS_RETRIES) {
+                    TextToSpeech old = tts;
+                    tts = null;
+                    try { if (old != null) old.shutdown(); } catch (Exception ignored) {}
+                    // 延迟 1.5s 重试，等待系统 TTS provider 就绪
+                    mainHandler.postDelayed(() -> {
+                        if (!isStopped) initTts();
+                    }, 1500);
+                } else {
+                    notifyError("TTS 初始化失败，请检查系统语音引擎");
+                }
             }
         });
 
@@ -194,9 +215,6 @@ public class TTSForegroundService extends Service {
                 }
 
                 // 通过专用播放线程（ttsHandler）派发下一块。
-                // onDone 在 TTS binder 线程；不能直接调 speak()（灰屏时引擎挂起）；
-                // 主线程（mainHandler）息屏后被 Doze 节流，会导致 chunk 间停顿至亮屏；
-                // ttsHandler（THREAD_PRIORITY_AUDIO + WakeLock）不受 Doze 影响。
                 final int capturedGen = gen;
                 ttsHandler.post(() -> {
                     if (speakGen != capturedGen || isStopped || isPaused) return;

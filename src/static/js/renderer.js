@@ -685,7 +685,7 @@
     rescueThemeBtn(); // 防止按钮随 innerHTML 替换被销毁
     app.innerHTML = html;
 
-    try { sessionStorage.setItem('cx_access', 'ok'); } catch(e) {}
+    try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e) {}
     setMeta(training);
     document.title = '第' + (chapter ? chapter.number : '') + '篇 - ' + ({
       cv:'纲目', cx:'晨兴', h:'听抄', ts:'详情', sg:'诗歌', zs:'职事信息'
@@ -834,7 +834,7 @@
 
     loadTraining(batchPath)
       .then(function(training) {
-        try { sessionStorage.setItem('cx_access','ok'); } catch(e){}
+        try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e){}
         setMeta(training);
 
         var subtitleLine ='<div class="subtitle">' + escText(training.year + '-' + training.season) + '</div>';
@@ -920,7 +920,7 @@
         buildFooter(training) +
         '</div>';
       getApp().innerHTML = html;
-      try { sessionStorage.setItem('cx_access','ok'); } catch(e){}
+      try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e){}
       document.title = '标语 - ' + (training.title || '');
       setMeta(training);
       relocateThemeBtn();
@@ -950,7 +950,7 @@
         buildFooter(training) +
         '</div>';
       getApp().innerHTML = html;
-      try { sessionStorage.setItem('cx_access','ok'); } catch(e){}
+      try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e){}
       document.title = '标语诗歌 - ' + (training.title || '');
       setMeta(training);
       relocateThemeBtn();
@@ -961,7 +961,7 @@
 
   function renderHome() {
     showHome();
-    try { sessionStorage.setItem('cx_access', 'ok'); } catch(e) {}
+    try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e) {}
     try { localStorage.setItem('cx_last_page', win.location.href); } catch(e) {}
     relocateThemeBtn();
   }
