@@ -31,6 +31,15 @@
             return _migrate();
         }
 
+        function _normalizePath(path) {
+            // 统一去除 Capacitor Android 的前缀 /android_asset/public 和 /public，
+            // 以及 PWA 可能出现的多余前缀，只保留 /batch/... 形式的相对路径。
+            return path
+                .replace(/^\/android_asset\/public/, '')
+                .replace(/^\/public(?=\/)/, '')
+                .replace(/^\/index\.html$/, '/');
+        }
+
         function _migrate() {
             try {
                 if (localStorage.getItem(MIGRATED_KEY) === '1') return Promise.resolve();
@@ -59,7 +68,9 @@
             var promises = paths.map(function (path) {
                 var arr = merged[path];
                 if (!Array.isArray(arr) || !arr.length) return Promise.resolve();
-                return _store.setItem(path, arr);
+                // 迁移时规范化 key，抹掉平台前缀，确保 APK / PWA 数据共用同一个 key
+                var normalizedPath = _normalizePath(path);
+                return _store.setItem(normalizedPath, arr);
             });
 
             return Promise.all(promises).then(function () {
@@ -186,8 +197,24 @@
         // ─── 从 IndexedDB 加载当前页划线（异步，返回 Promise）────────────
         loadHighlights: function () {
             var self = this;
-            return CXStorage.getPage(this.getPageKey()).then(function (arr) {
-                self.highlights = arr.map(function (h) {
+            var key = this.getPageKey();
+            return CXStorage.getPage(key).then(function (arr) {
+                if (arr && arr.length) return arr;
+                // 已迁移但 key 带旧平台前缀（/android_asset/public/...）的数据自愈：
+                // 尝试旧前缀 key，找到后写回规范化 key 并删除旧 key。
+                var legacyKey = '/android_asset/public' + key;
+                return CXStorage.getPage(legacyKey).then(function (legacyArr) {
+                    if (!legacyArr || !legacyArr.length) return arr || [];
+                    // 自愈：写入规范化 key，删除旧 key
+                    return CXStorage.setPage(key, legacyArr).then(function () {
+                        return CXStorage.setPage(legacyKey, []).then(function () {
+                            console.log('[划线] 自愈迁移:', legacyKey, '→', key);
+                            return legacyArr;
+                        });
+                    });
+                });
+            }).then(function (arr) {
+                self.highlights = (arr || []).map(function (h) {
                     if (h.underline === undefined) h.underline = false;
                     if (h.note      === undefined) h.note      = '';
                     return h;
