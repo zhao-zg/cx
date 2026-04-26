@@ -140,6 +140,16 @@ public class TTSForegroundService extends Service {
             MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
         mediaSession.setActive(true);
 
+        // ★ 最早调用 startForeground()：在 onCreate() 阶段就满足要求。
+        // OnePlus/ColorOS 等 ROM 会激进延迟服务调度，导致 5 秒计时器在
+        // onStartCommand() 被调用前就到期。这里是防止崩溃的最早时机。
+        Notification earlyNotif = buildNotification(false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIF_ID, earlyNotif, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+        } else {
+            startForeground(NOTIF_ID, earlyNotif);
+        }
+
         // Callback: 处理锁屏/通知栏媒体控件的点击事件（播放/暂停/停止/拖动进度条）
         mediaSession.setCallback(new MediaSession.Callback() {
             @Override public void onPlay()  { mainHandler.post(() -> handleResume()); }
