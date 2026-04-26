@@ -417,13 +417,14 @@
             if (status === 'cancelled' || status === 'stopped') return;
             onPlaybackNaturalEnd();
           })
-          .catch(function () {
+          .catch(function (err) {
             if (gen !== speakGeneration) return;
             stopProgressUpdate();
             setState('idle');
-            speechTime.textContent = '播放出错';
+            var msg = (err && (err.message || err)) || '朗读失败';
+            speechTime.textContent = msg;
             speechTime.style.color = '#e53e3e';
-            setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 3000);
+            setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 4000);
           });
 
         elapsedOffset = targetSeconds || 0;

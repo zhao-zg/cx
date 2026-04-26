@@ -323,8 +323,10 @@ public class TTSForegroundService extends Service {
         updateMediaMetadata(); // 让锁屏/通知栏知道标题和总时长
 
         if (!requestAudioFocus()) {
-            notifyError("无法获取音频焦点");
-            return;
+            // 音频焦点申请被拒（OxygenOS/MIUI 省电策略等），降级继续播放。
+            // TTS 引擎不强依赖焦点，绝大多数情况下仍可正常发声；
+            // 拒绝报错反而让用户完全无法使用，降级比报错更合理。
+            android.util.Log.w("TTSFgSvc", "requestAudioFocus failed, continuing anyway");
         }
 
         acquireWakeLock();
