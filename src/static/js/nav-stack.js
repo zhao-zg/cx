@@ -68,35 +68,65 @@
         });
     }
 
-    // 主页回退 → 退出（SPA 模式：感知当前 hash，非首页时先返回上一级）
+    // 主页回退 — Capacitor APK 与 PWA 逻辑完全分开
+    // APK:  backButton 在 hash 变化【前】触发 → 读当前路径、显式路由
+    // PWA:  popstate   在 hash 变化【后】触发 → 读 __cxCurrentPath（router 在 dispatch 时写入）
+    //       浏览器已通过 history.back() 改变了 hash，router 的 hashchange 会自动渲染目标页，
+    //       fallback 只需处理"已在主页按返回 → 退出"的情况。
     function initHomePage() {
-        setupBackHandler(function() {
-            // backStack 有内容，说明某个弹框/面板注册了关闭回调
-            var hash = window.location.hash.replace(/^#\/?/, '');
-            var parts = hash.split('/').filter(Boolean);
-            console.log('[NavStack] initHomePage handleBack hash="' + hash + '" parts=' + JSON.stringify(parts));
-            if (parts.length >= 3) {
-                // 章节视图 → 返回批次目录
-                if (window.CXRouter) { window.CXRouter.navigate(parts[0]); return; }
-            } else if (parts.length >= 1) {
-                // 批次目录 → 返回首页
-                if (window.CXRouter) { window.CXRouter.navigate(''); return; }
+        if (isCapacitor()) {
+            window.Capacitor.Plugins.App.addListener('backButton', function() {
+                if (window.CX && window.CX.backStack && window.CX.backStack.size() > 0) {
+                    try { history.back(); } catch(e) {}
+                    return;
+                }
+                handleBackCommon(function() {
+                    // backButton 在 hash 变化前触发，__cxCurrentPath 与 location.hash 均可信
+                    var path = (typeof window.__cxCurrentPath === 'string')
+                        ? window.__cxCurrentPath
+                        : window.location.hash.replace(/^#\/?/, '');
+                    var parts = path.split('/').filter(Boolean);
+                    console.log('[NavStack] Capacitor backButton path="' + path + '" parts=' + JSON.stringify(parts));
+                    if (parts.length >= 3) {
+                        // 章节视图 → 批次目录
+                        if (window.CXRouter) { window.CXRouter.navigate(parts[0]); return; }
+                    } else if (parts.length >= 1) {
+                        // 批次目录 → 主页
+                        if (window.CXRouter) { window.CXRouter.navigate(''); return; }
+                    }
+                    // 已在主页 → 退出 APP
+                    window.Capacitor.Plugins.App.exitApp();
+                });
+            });
+        } else if (isPWA()) {
+            if (window.CX && window.CX.backStack) {
+                window.CX.backStack.setFallback(function() {
+                    if (window.__cxExiting) return;
+                    if (Date.now() - _loadedAt < _GRACE_MS) return;
+                    // popstate 在 hash 变化【后】触发，location.hash 已是目标页；
+                    // __cxCurrentPath 是 router dispatch 写入的"返回前所在路径"。
+                    var path = (typeof window.__cxCurrentPath === 'string')
+                        ? window.__cxCurrentPath
+                        : window.location.hash.replace(/^#\/?/, '');
+                    var parts = path.split('/').filter(Boolean);
+                    console.log('[NavStack] PWA fallback path="' + path + '" parts=' + JSON.stringify(parts));
+                    if (parts.length > 0) {
+                        // 从子页面（批次/章节）返回 —— 浏览器的 history.back() 已改变 hash，
+                        // router 的 hashchange 会自动渲染正确视图，此处无需再做路由。
+                        return;
+                    }
+                    // 已在主页 → 尝试退出 PWA
+                    handleBackCommon(function() {
+                        window.__cxExiting = true;
+                        window.close();
+                        setTimeout(function() {
+                            window.history.back();
+                            setTimeout(function() { window.__cxExiting = false; }, 400);
+                        }, 150);
+                    });
+                });
             }
-            // 已在首页 → 退出
-            if (isCapacitor()) {
-                window.Capacitor.Plugins.App.exitApp();
-            } else {
-                window.__cxExiting = true;
-                window.close();
-                setTimeout(function() {
-                    window.history.back();
-                    // history.back() 可能触发 hashchange，导致路由重渲染主页；
-                    // __cxExiting 已阻断 onHashChange，此处在 back() 完成后复位，
-                    // 避免用户放弃退出后（如桌面浏览器 close() 失效）路由永久失效。
-                    setTimeout(function() { window.__cxExiting = false; }, 400);
-                }, 150);
-            }
-        });
+        }
     }
 
     // 标语页回退 → 目录页

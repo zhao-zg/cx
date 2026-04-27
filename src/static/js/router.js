@@ -23,6 +23,8 @@
 
   function dispatch(path) {
     var parts = path.split('/').filter(Boolean);
+    // 记录当前路由路径，供 nav-stack.js 返回键处理读取（popstate 后 hash 已改变，需此值定位来源页）
+    win.__cxCurrentPath = path;
     var R = win.CXRenderer;
     console.log('[Router] dispatch path="' + path + '" parts=' + JSON.stringify(parts) + ' CXRenderer=' + (R ? 'ok' : 'NULL'));
     if (!R) { console.warn('[Router] CXRenderer 未就绪，dispatch 中止'); return; }
