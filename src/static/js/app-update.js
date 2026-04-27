@@ -1128,6 +1128,12 @@
                     btnEl.textContent = '立即更新';
                     btnEl.onclick = function() {
                         closeDialog();
+                        window.__cxUpdateInProgress = true;
+                        // 激活等待中的新版 SW（若有），使其在重载后接管页面
+                        if (window.__cxSwWaiting) {
+                            try { window.__cxSwWaiting.postMessage({type:'SKIP_WAITING'}); } catch(ex){}
+                            window.__cxSwWaiting = null;
+                        }
                         if (extStatusEl) { extStatusEl.textContent = '正在清除旧缓存...'; extStatusEl.className = 'cache-status'; }
                         var steps = [];
                         if ('caches' in window) {
@@ -1135,7 +1141,8 @@
                                 return Promise.all(keys.filter(function(k) { return k.indexOf('cx-') === 0; }).map(function(k) { return caches.delete(k); }));
                             }).catch(function() {}));
                         }
-                        try { localStorage.removeItem('cx_pwa_version'); } catch(ex) {}
+                        // 保存新版本号（而非删除），使重载后 checkPwaStartupCache 能识别为首次安装并触发强制缓存
+                        try { localStorage.setItem('cx_pwa_version', remoteVersion); } catch(ex) {}
                         try { localStorage.removeItem('cx_all_cached'); } catch(ex) {}
                         if (window.CX && window.CX.errorLog) window.CX.errorLog.clear();
                         Promise.all(steps).then(function() { window.location.replace(root + 'index.html'); });
@@ -1267,6 +1274,13 @@
                 setTimeout(function() { AppUpdate.silentCheckUpdate(); }, 2000);
             }
         } catch(e) {}
+        // 处理 index.html 中在 app-update.js 加载前设置的待处理更新通知
+        if (window.__cxPwaUpdateReady) {
+            window.__cxPwaUpdateReady = false;
+            setTimeout(function() {
+                AppUpdate.showPwaUpdateDialog({root: window.CX_ROOT || './'});
+            }, 300);
+        }
     })();
 
     window.AppUpdate = AppUpdate;

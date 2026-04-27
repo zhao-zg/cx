@@ -580,7 +580,16 @@
                 var remoteVersion=v.version||v.apk_version;
                 var targetVersion=remoteVersion||storedVersion;
                 var versionChanged=remoteVersion&&storedVersion!==remoteVersion;
-                if(versionChanged){showMandatoryInstallDialog('update',targetVersion);return;}
+                if(versionChanged){
+                    if(storedVersion){
+                        // 已有旧版本，有新版本：弹提示，让用户决定是否更新
+                        _showPwaUpdateReady();
+                    } else {
+                        // 首次安装或清除数据后：强制缓存（无历史数据，必须安装）
+                        showMandatoryInstallDialog('install',targetVersion);
+                    }
+                    return;
+                }
                 waitForTrainings(5000).then(function(trainings){return verifyCacheIntegrity(trainings);})
                     .then(function(result){if(!result.ok){var m=storedVersion?'update':'install';showMandatoryInstallDialog(m,targetVersion);}})
                     .catch(function(){});
@@ -588,6 +597,16 @@
             .catch(function(err){
                 if(!storedVersion){var b=document.getElementById('cxOfflineBanner');if(b){b.classList.add('show');var d=b.querySelector('.cx-banner-dismiss');if(d)d.addEventListener('click',function(){b.classList.remove('show');});}}
             });
+    }
+
+    // PWA 更新就绪通知（SW 更新或版本号变化时调用）
+    // 若 app-update.js 尚未就绪则设标记，由 app-update.js 在加载后处理
+    function _showPwaUpdateReady(){
+        if(window.AppUpdate&&window.AppUpdate.showPwaUpdateDialog){
+            window.AppUpdate.showPwaUpdateDialog({root:window.CX_ROOT||'./'});
+        } else {
+            window.__cxPwaUpdateReady=true;
+        }
     }
 
     // 注册 Service Worker（非 Capacitor 原生环境）
