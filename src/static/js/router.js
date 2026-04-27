@@ -67,6 +67,10 @@
         // same hash — force re-dispatch (e.g. return to home from home)
         dispatch(hashPath || '');
       } else {
+        // Android Chrome PWA 在 location.hash 赋值时会错误触发 popstate，
+        // 导致 backStack fallback 把刚导航的页面当成"需要返回"。
+        // 先调 skipNext() 让 backStack 忽略下一次 popstate。
+        if (win.CX && win.CX.backStack && win.CX.backStack.skipNext) win.CX.backStack.skipNext();
         win.location.hash = newHash;
       }
     },

@@ -219,7 +219,10 @@
             }
         },
         size: function() { return _stack.length; },
-        setFallback: function(fn) { this._fallback = fn; }
+        setFallback: function(fn) { this._fallback = fn; },
+        // Android Chrome PWA 在 location.hash 赋值后会错误触发 popstate；
+        // 路由跳转前调用此方法跳过下一次 popstate，避免误触 fallback。
+        skipNext: function() { _skip++; }
     };
 
     // ── CX.lockOverlayScroll：弹框遮罩层防滚动穿透（通用工具）──
