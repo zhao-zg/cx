@@ -222,7 +222,12 @@
         setFallback: function(fn) { this._fallback = fn; },
         // Android Chrome PWA 在 location.hash 赋值后会错误触发 popstate；
         // 路由跳转前调用此方法跳过下一次 popstate，避免误触 fallback。
-        skipNext: function() { _skip++; }
+        skipNext: function() { _skip++; },
+        // 弃置栈顶 entry（不调 history.back()），用于弹框内发起导航跳转的场景。
+        // _skip++ 确保该 pushState 占位条目触发的 popstate 被静默吸收。
+        abandon: function() {
+            if (_stack.length > 0) { _stack.pop(); _skip++; }
+        }
     };
 
     // ── CX.lockOverlayScroll：弹框遮罩层防滚动穿透（通用工具）──

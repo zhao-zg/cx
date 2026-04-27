@@ -1076,7 +1076,19 @@
     s._spaPatch = true;
     if (s.navigateTo) {
       s.navigateTo = function(entry, query) {
-        try { sessionStorage.setItem('cx_search_target', JSON.stringify({url:entry.url,pi:entry.pi,selector:entry.selector,query:query})); } catch(e){}
+        try { sessionStorage.setItem('cx_search_target', JSON.stringify({
+          url:       entry.url,
+          pi:        entry.pi,
+          selector:  entry.selector,
+          query:     query,
+          day_index: (typeof entry.day_index === 'number') ? entry.day_index : null
+        })); } catch(e){}
+        // 关闭弹框 UI，但不调 history.back()（避免异步 back 撤销随后的导航）
+        if (s._modal) s._modal.classList.remove('active');
+        if (s._inBackStack) {
+          if (win.CX && win.CX.backStack && win.CX.backStack.abandon) win.CX.backStack.abandon();
+          s._inBackStack = false;
+        }
         if (win.CXRouter) win.CXRouter.navigate(entry.url);
       };
     }

@@ -1214,6 +1214,17 @@ def generate_search_index_from_json(output_root: str, trainings: list) -> None:
                     buf.append(para)
             flatten_sections(sec.get('children', []), buf)
 
+    def flatten_sections_content_only(sections, buf):
+        """ts 视图专用：只收内容段落，跳过标题。
+        DOM 中标题渲染为 .section-levelN，内容才是 .content-text，
+        pi 必须只计内容段才能与 querySelectorAll('.content-text') 对齐。
+        """
+        for sec in sections:
+            for para in sec.get('content', []):
+                if para:
+                    buf.append(para)
+            flatten_sections_content_only(sec.get('children', []), buf)
+
     entries = []
     total_files = 0
 
@@ -1245,16 +1256,6 @@ def generate_search_index_from_json(output_root: str, trainings: list) -> None:
                                     'chapter_title': ch_title, 'pi': pi,
                                     'selector': 'content-text', 'text': para[:200]})
 
-            # detail sections (ts)
-            ts_buf = []; flatten_sections(chapter.get('detail_sections', []), ts_buf)
-            for pi, para in enumerate(ts_buf):
-                if len(para) >= 10:
-                    entries.append({'url': f"{path}/{num}/ts", 'training': title,
-                                    'season_label': season_label, 'chapter': num,
-                                    'type': 'ts', 'type_label': '详情',
-                                    'chapter_title': ch_title, 'pi': pi,
-                                    'selector': 'content-text', 'text': para[:200]})
-
             # outline sections (cv)
             cv_buf = []; flatten_sections(chapter.get('outline_sections', []), cv_buf)
             for pi, para in enumerate(cv_buf):
@@ -1265,14 +1266,26 @@ def generate_search_index_from_json(output_root: str, trainings: list) -> None:
                                     'chapter_title': ch_title, 'pi': pi,
                                     'selector': 'outline-item', 'text': para[:200]})
 
-            # morning revival (cx)
-            for revival in chapter.get('morning_revivals', []):
-                for pi, para in enumerate(revival.get('morning_feeding', [])):
+            # morning revival (cx) — day_index 记录第几天，前端在对应 day-page 内按 pi 定位
+            # DOM 顺序：morning_feeding(.content-text) → message_reading(.content-text)
+            for day_idx, revival in enumerate(chapter.get('morning_revivals', [])):
+                mf = revival.get('morning_feeding', [])
+                for pi, para in enumerate(mf):
                     if len(para) >= 10:
                         entries.append({'url': f"{path}/{num}/cx", 'training': title,
                                         'season_label': season_label, 'chapter': num,
-                                        'type': 'cx', 'type_label': '晨兴',
+                                        'type': 'cx', 'type_label': '晨兴喂养',
                                         'chapter_title': ch_title, 'pi': pi,
+                                        'day_index': day_idx,
+                                        'selector': 'content-text', 'text': para[:200]})
+                mf_len = len(mf)
+                for mri, para in enumerate(revival.get('message_reading', [])):
+                    if len(para) >= 10:
+                        entries.append({'url': f"{path}/{num}/cx", 'training': title,
+                                        'season_label': season_label, 'chapter': num,
+                                        'type': 'cx', 'type_label': '信息选读',
+                                        'chapter_title': ch_title, 'pi': mf_len + mri,
+                                        'day_index': day_idx,
                                         'selector': 'content-text', 'text': para[:200]})
 
             # ministry excerpt (zs)

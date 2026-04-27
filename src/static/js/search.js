@@ -314,6 +314,108 @@
       }
     },
 
+    // ── SPA 版高亮定位（renderer.js 在 renderChapterView 完成后调用）─────
+    // 与 handleSearchTarget 逻辑相同，但用 router 当前路径验证，而非 pathname。
+    handleSearchTargetSPA: function () {
+      var raw;
+      try {
+        raw = sessionStorage.getItem('cx_search_target');
+        if (!raw) return;
+        sessionStorage.removeItem('cx_search_target');
+      } catch (e) { return; }
+
+      var target;
+      try { target = JSON.parse(raw); } catch (e) { return; }
+
+      // 用 router 当前路径验证目标是否匹配（SPA hash 路由，pathname 不变）
+      var currentPath = win.CXRouter ? win.CXRouter.currentPath() : win.location.hash.replace(/^#\/?/, '');
+      if (!target.url || target.url !== currentPath) return;
+
+      // cx 视图：用 day_index 限定查询范围到具体 day-page，避免全局 pi 错位
+      var el;
+      if (typeof target.day_index === 'number') {
+        var scopeEl = document.querySelector('.day-page[data-page="' + target.day_index + '"]');
+        if (scopeEl) el = scopeEl.querySelectorAll('.' + target.selector)[target.pi];
+      } else {
+        el = document.querySelectorAll('.' + target.selector)[target.pi];
+      }
+      if (!el) return;
+
+      // 显示隐藏祖先；晨兴横滑 day-page 需点击对应 day-link
+      var dayPage = null;
+      var node = el.parentElement;
+      while (node && node !== document.body) {
+        if (node.classList && node.classList.contains('day-page')) { dayPage = node; break; }
+        if (node.style.display === 'none') node.style.display = '';
+        node = node.parentElement;
+      }
+
+      if (dayPage) {
+        var dayIndex = parseInt(dayPage.getAttribute('data-page'), 10);
+        var dayLinks = document.querySelectorAll('.day-link');
+        if (!isNaN(dayIndex) && dayLinks[dayIndex]) {
+          dayLinks[dayIndex].click();
+        }
+        setTimeout(function () {
+          var rect = el.getBoundingClientRect();
+          var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+          var targetY = Math.max(0, scrollY + rect.top - 80);
+          window.scrollTo({ top: targetY, behavior: 'smooth' });
+        }, 350);
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      // 关键词 <mark> 高亮，5 秒后淡出移除
+      var terms = (target.query || '').trim().split(/\s+/).filter(Boolean);
+      if (!terms.length) return;
+
+      var reStr = terms.map(function (t) {
+        return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }).join('|');
+      var re = new RegExp('(' + reStr + ')', 'gi');
+
+      el.classList.add('cx-search-target');
+      var marks = [];
+      (function wrapText(nd) {
+        if (nd.nodeType === 3) {
+          var val = nd.nodeValue;
+          if (!re.test(val)) return;
+          re.lastIndex = 0;
+          var frag = document.createDocumentFragment();
+          var last = 0, m;
+          while ((m = re.exec(val)) !== null) {
+            if (m.index > last) frag.appendChild(document.createTextNode(val.slice(last, m.index)));
+            var mark = document.createElement('mark');
+            mark.className = 'cx-search-hl';
+            mark.textContent = m[1];
+            frag.appendChild(mark);
+            marks.push(mark);
+            last = m.index + m[1].length;
+          }
+          if (last < val.length) frag.appendChild(document.createTextNode(val.slice(last)));
+          nd.parentNode.replaceChild(frag, nd);
+        } else if (nd.nodeType === 1 && nd.tagName !== 'MARK') {
+          Array.prototype.slice.call(nd.childNodes).forEach(wrapText);
+        }
+      })(el);
+
+      setTimeout(function () {
+        el.classList.remove('cx-search-target');
+        marks.forEach(function (mark) {
+          mark.style.transition = 'background-color 0.5s';
+          mark.style.backgroundColor = 'transparent';
+        });
+        setTimeout(function () {
+          marks.forEach(function (mark) {
+            if (mark.parentNode) {
+              mark.parentNode.replaceChild(document.createTextNode(mark.textContent), mark);
+            }
+          });
+        }, 600);
+      }, 5000);
+    },
+
     // ── Modal 开/关 ───────────────────────────────────────────────────────
 
     open: function () {
