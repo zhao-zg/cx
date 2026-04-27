@@ -190,6 +190,14 @@
         }));
       } catch (e) { /* storage 不可用时忽略 */ }
 
+      // SPA 模式：关闭搜索面板再用 hash 路由跳转，由 renderer.js 渲染完成后调用 handleSearchTargetSPA 高亮分段
+      if (win.CXRouter) {
+        this.close();
+        win.CXRouter.navigate(entry.url);
+        return;
+      }
+
+      // 多页面回退：直接跳转到静态 HTML 文件
       var root = (win.CX_ROOT !== undefined ? win.CX_ROOT : './');
       win.location.href = root + entry.url;
     },
@@ -312,6 +320,101 @@
           setTimeout(doHighlight, 400);
         });
       }
+    },
+
+    // ── SPA 模式：renderer.js 渲染章节后调用，读 sessionStorage 做高亮定位 ──
+    // 与 handleSearchTarget 的区别：无 pathname 验证（SPA 始终在 index.html），
+    // 且不需要等待 DOMContentLoaded（DOM 由 renderer 直接写入，调用时已就绪）。
+    handleSearchTargetSPA: function () {
+      var raw;
+      try {
+        raw = sessionStorage.getItem('cx_search_target');
+        if (!raw) return;
+        sessionStorage.removeItem('cx_search_target');
+      } catch (e) { return; }
+
+      var target;
+      try { target = JSON.parse(raw); } catch (e) { return; }
+
+      // 验证 url 与当前 hash 路径匹配（防止残留条目被错误页面消费）
+      var curPath = (win.location.hash || '').replace(/^#\/?/, '');
+      if (target.url && curPath !== target.url) return;
+
+      function doHighlight() {
+        var els = document.querySelectorAll('.' + target.selector);
+        var el = els[target.pi];
+        if (!el) return;
+
+        // 显示隐藏祖先节点；晨兴用 translateX 横滑
+        var dayPage = null;
+        var node = el.parentElement;
+        while (node && node !== document.body) {
+          if (node.classList && node.classList.contains('day-page')) { dayPage = node; break; }
+          if (node.style.display === 'none') node.style.display = '';
+          node = node.parentElement;
+        }
+
+        var doScroll = function () {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+
+        if (dayPage) {
+          var dayIndex = parseInt(dayPage.getAttribute('data-page'), 10);
+          var dayLinks = document.querySelectorAll('.day-link');
+          if (!isNaN(dayIndex) && dayLinks[dayIndex]) {
+            dayLinks[dayIndex].click();
+          }
+          setTimeout(function () {
+            var rect = el.getBoundingClientRect();
+            var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+            window.scrollTo({ top: Math.max(0, scrollY + rect.top - 80), behavior: 'smooth' });
+          }, 350);
+        } else {
+          doScroll();
+        }
+
+        // 高亮关键词
+        var terms = (target.query || '').trim().split(/\s+/).filter(Boolean);
+        if (!terms.length) { el.classList.add('cx-search-target'); return; }
+        var reStr = terms.map(function (t) {
+          return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }).join('|');
+        var re = new RegExp('(' + reStr + ')', 'gi');
+        el.classList.add('cx-search-target');
+        var marks = [];
+        (function wrapText(node) {
+          if (node.nodeType === 3) {
+            var val = node.nodeValue;
+            if (!re.test(val)) return;
+            re.lastIndex = 0;
+            var frag = document.createDocumentFragment();
+            var last = 0, m;
+            while ((m = re.exec(val)) !== null) {
+              if (m.index > last) frag.appendChild(document.createTextNode(val.slice(last, m.index)));
+              var mark = document.createElement('mark');
+              mark.className = 'cx-search-hl';
+              mark.textContent = m[1];
+              frag.appendChild(mark);
+              marks.push(mark);
+              last = m.index + m[0].length;
+            }
+            if (last < val.length) frag.appendChild(document.createTextNode(val.slice(last)));
+            node.parentNode.replaceChild(frag, node);
+          } else if (node.nodeType === 1 && node.tagName !== 'MARK') {
+            Array.prototype.slice.call(node.childNodes).forEach(wrapText);
+          }
+        })(el);
+        setTimeout(function () {
+          marks.forEach(function (m) {
+            if (m.parentNode) {
+              m.parentNode.replaceChild(document.createTextNode(m.textContent), m);
+            }
+          });
+          el.classList.remove('cx-search-target');
+        }, 2000);
+      }
+
+      setTimeout(doHighlight, 100);
     },
 
     // ── Modal 开/关 ───────────────────────────────────────────────────────
@@ -548,8 +651,11 @@
     init: function () {
       var self = this;
 
-      // 处理跳转导航目标（从搜索结果页跳转后高亮段落）
+  // 处理跳转导航目标（从搜索结果页跳转后高亮段落）
       this.handleSearchTarget();
+
+      // SPA 模式：由 renderer.js 在每次渲染章节后调用 handleSearchTargetSPA，无需在 init 里调用
+      // （handleSearchTarget 会因 pathname 验证失败而退出，保留代码兼容不影响）
 
       // 绑定页内搜索按钮（#cx-search-btn）
       function bindBtn() {
