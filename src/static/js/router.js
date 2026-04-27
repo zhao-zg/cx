@@ -68,10 +68,26 @@
       if (win.location.hash === newHash) {
         // same hash — force re-dispatch (e.g. return to home from home)
         dispatch(hashPath || '');
+        return;
+      }
+      // 判断是否为同一章节内的视图切换（cx↔cv↔h↔ts↔sg↔zs）
+      // 视图切换：replaceState 替换当前历史条目，不新增条目，
+      //   避免返回键需逐一回放每个视图标签（与 APK backButton 行为一致）
+      // 跨层级跳转（home↔批次↔章节）：location.hash 新增历史条目，
+      //   确保返回键可逐级退回
+      var curParts = (win.__cxCurrentPath || '').split('/').filter(Boolean);
+      var newParts = (hashPath || '').split('/').filter(Boolean);
+      var isSameChapterViewSwitch = (
+        curParts.length === 3 && newParts.length === 3 &&
+        curParts[0] === newParts[0] && curParts[1] === newParts[1]
+      );
+      if (isSameChapterViewSwitch) {
+        // 同章节视图切换：replaceState 不触发 popstate / hashchange，需手动 dispatch
+        try { win.history.replaceState(null, '', win.location.pathname + newHash); } catch(e) {}
+        dispatch(hashPath || '');
       } else {
-        // Android Chrome PWA 在 location.hash 赋值时会错误触发 popstate，
-        // 导致 backStack fallback 把刚导航的页面当成"需要返回"。
-        // 先调 skipNext() 让 backStack 忽略下一次 popstate。
+        // 跨层级跳转：Android Chrome PWA 在 location.hash 赋值时会触发虚假 popstate，
+        // 先 skipNext() 让 backStack 忽略它；hashchange 会自动触发 dispatch
         if (win.CX && win.CX.backStack && win.CX.backStack.skipNext) win.CX.backStack.skipNext();
         win.location.hash = newHash;
       }

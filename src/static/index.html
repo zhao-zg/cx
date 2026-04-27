@@ -434,9 +434,12 @@
                     if(!lastPageIsMain){
                         sessionStorage.setItem('cx_has_restored','true');
                         sessionStorage.setItem('cx_restore_scroll','true');
-                        // SPA 模式：直接跳 hash，不 reload
+                        // skipNext()：抑制 Android Chrome PWA hash 赋值时触发的虚假 popstate
+                        if(window.CX&&window.CX.backStack&&window.CX.backStack.skipNext)window.CX.backStack.skipNext();
                         console.log('[页面记忆] 恢复至 lastHash="' + lastHash + '"');
                         window.location.hash=lastHash;
+                        // 提前 return 前必须注册返回键处理，否则 PWA fallback 永远为 null
+                        if(window.CXNavStack)window.CXNavStack.initHomePage();
                         return;
                     }
                 }
