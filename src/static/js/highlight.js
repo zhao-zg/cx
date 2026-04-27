@@ -929,7 +929,7 @@
             menu.style.display   = 'flex';
             menu.style.opacity   = '0';
             requestAnimationFrame(function () {
-                var GAP_BELOW = 74; // 菜单放在选区下方时的间距
+                var GAP_BELOW = 84; // 菜单放在选区下方时的间距
                 var GAP_ABOVE = 64; // 菜单放在选区上方时的间距（需高于系统复制菜单，约 50px）
                 var viewTop;
                 var belowAvail = window.innerHeight - rect.bottom - GAP_BELOW;
