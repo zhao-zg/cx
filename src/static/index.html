@@ -607,10 +607,14 @@
             return navigator.serviceWorker.ready;
         }).then(function(){checkPwaStartupCache();}).catch(function(e){console.error('[SW]',e);});
         var refreshing=false;
+        var wasControlled=!!navigator.serviceWorker.controller;
         navigator.serviceWorker.addEventListener('controllerchange',function(){
             if(refreshing)return;
             var isNative=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
             if(isNative)return;
+            // 仅在已有旧 SW 的情况下才刷新（真正的 SW 更新）
+            // 清理数据后首次激活（wasControlled=false）不需要刷新，避免用户操作被打断
+            if(!wasControlled)return;
             refreshing=true;window.location.reload();
         });
         } // end else (non-native)
