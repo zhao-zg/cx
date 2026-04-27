@@ -216,6 +216,7 @@
     // CXRouter 会调用 CXRenderer，renderer 内部调用 _showApp() / _showHome()
     // 这两个函数注册到 CXRenderer 里；这里提前注册以便 renderer.js 可以访问
     window._cxShowHome = function() {
+        console.log('[_cxShowHome] called from:', new Error().stack.split('\n').slice(1,4).join(' | '));
         document.getElementById('homeView').style.display = '';
         document.getElementById('app').style.display = 'none';
         document.title = '特会信息合集';
@@ -607,14 +608,10 @@
             return navigator.serviceWorker.ready;
         }).then(function(){checkPwaStartupCache();}).catch(function(e){console.error('[SW]',e);});
         var refreshing=false;
-        var wasControlled=!!navigator.serviceWorker.controller;
         navigator.serviceWorker.addEventListener('controllerchange',function(){
             if(refreshing)return;
             var isNative=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
             if(isNative)return;
-            // 仅在已有旧 SW 的情况下才刷新（真正的 SW 更新）
-            // 清理数据后首次激活（wasControlled=false）不需要刷新，避免用户操作被打断
-            if(!wasControlled)return;
             refreshing=true;window.location.reload();
         });
         } // end else (non-native)

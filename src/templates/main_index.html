@@ -543,7 +543,6 @@
         
         // 监听 SW 控制器变化（静默刷新）
         var refreshing = false;
-        var wasControlled = !!navigator.serviceWorker.controller;
         navigator.serviceWorker.addEventListener('controllerchange', function() {
             if (refreshing) return;
             // Capacitor APK 内资源已内置，SW 更新不需要触发 reload；
@@ -551,9 +550,6 @@
             var isCapacitorApp = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
                                     window.Capacitor.isNativePlatform());
             if (isCapacitorApp) return;
-            // 仅在已有旧 SW 的情况下才刷新（真正的 SW 更新）
-            // 清理数据后首次激活（wasControlled=false）不需要刷新，避免用户操作被打断
-            if (!wasControlled) return;
             refreshing = true;
             console.log('[主页] Service Worker 已更新，刷新页面');
             window.location.reload();

@@ -25,6 +25,7 @@
     var parts = path.split('/').filter(Boolean);
     var R = win.CXRenderer;
     if (!R) return;
+    console.log('[Router] dispatch:', path, 'parts:', parts.length, new Error().stack.split('\n').slice(1,4).join(' | '));
     win.scrollTo(0, 0);
     if (parts.length === 0) {
       R.renderHome();
