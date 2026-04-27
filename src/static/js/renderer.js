@@ -168,7 +168,7 @@
         escAttr(batchPath) + '/' + num + '/' + view + '\')">' + label + '</a>';
     }
     var html = '<div class="page-navigation">';
-    html += '<a href="javascript:void(0)" class="nav-link" title="返回目录" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')">返回</a>';
+    html += '<a href="javascript:void(0)" class="nav-link" title="返回目录" onclick="CXRouter.back()">返回</a>';
     html += link('cv', '纲目');
     html += link('h', '听抄');
     if (chapter.morning_revivals && chapter.morning_revivals.length > 0) {
@@ -951,7 +951,7 @@
     loadTraining(batchPath).then(function(training) {
       var nav = '<div class="page-navigation">' +
         '<a href="javascript:void(0)" class="nav-link" title="返回主页" onclick="CXRouter.navigate(\'\')">返回主页</a>' +
-        '<a href="javascript:void(0)" class="nav-link" title="目录" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')">目录</a>' +
+        '<a href="javascript:void(0)" class="nav-link" title="目录" onclick="CXRouter.back()">目录</a>' +
         '<a href="javascript:void(0)" class="nav-link active" title="标语">标语</a>' +
         (training.motto_song_image ? '<a href="javascript:void(0)" class="nav-link" title="标语诗歌" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '/motto_song\')">标语诗歌</a>' : '') +
         '</div>';
@@ -997,7 +997,7 @@
     loadTraining(batchPath).then(function(training) {
       var nav = '<div class="page-navigation">' +
         '<a href="javascript:void(0)" class="nav-link" title="返回主页" onclick="CXRouter.navigate(\'\')">返回主页</a>' +
-        '<a href="javascript:void(0)" class="nav-link" title="目录" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')">目录</a>' +
+        '<a href="javascript:void(0)" class="nav-link" title="目录" onclick="CXRouter.back()">目录</a>' +
         (training.mottos && training.mottos.length ? '<a href="javascript:void(0)" class="nav-link" title="标语" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '/motto\')">标语</a>' : '') +
         '<a href="javascript:void(0)" class="nav-link active" title="标语诗歌">标语诗歌</a>' +
         '</div>';

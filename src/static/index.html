@@ -417,7 +417,22 @@
             console.log('[页面记忆] isApp=true hasRestored=' + hasRestored + ' curHash="' + curHash + '" curHashIsMain=' + curHashIsMain);
             if(hasRestored||!curHashIsMain){
                 sessionStorage.setItem('cx_has_restored','true');
-                console.log('[页面记忆] 已恢复或当前非主页，直接 initHomePage');
+                if(!hasRestored&&!curHashIsMain){
+                    // PWA 冷启动：Chrome 以非主页 hash 恢复页面，此时历史栈只有一条，
+                    // device back 会直接退出 PWA。注入 home/batch 历史条目使返回键可逐级退回。
+                    var curPath=curHash.replace(/^#\/?/,'');
+                    var curParts=curPath.split('/').filter(Boolean);
+                    try{
+                        history.replaceState(null,'',location.pathname+'#/');
+                        if(curParts.length>=2){
+                            history.pushState(null,'',location.pathname+'#/'+curParts[0]);
+                        }
+                        history.pushState(null,'',location.pathname+curHash);
+                    }catch(e){}
+                    console.log('[页面记忆] 冷启动非主页，注入历史栈 curParts='+JSON.stringify(curParts));
+                }else{
+                    console.log('[页面记忆] 已恢复或当前非主页，直接 initHomePage');
+                }
                 if(window.CXNavStack)window.CXNavStack.initHomePage();
                 return;
             }
