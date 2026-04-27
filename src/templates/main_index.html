@@ -309,13 +309,6 @@
             });
             
             grid.innerHTML = html;
-            
-            // PWA 模式下仅显示数据工具区
-            var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-            if (isStandalone) {
-                var cacheAllBtnEl = document.getElementById('cacheAllBtn');
-                if (cacheAllBtnEl) cacheAllBtnEl.style.display = 'inline-flex';
-            }
         }
         
         // 显示加载错误
@@ -856,7 +849,6 @@
             try {
                 localStorage.setItem('cx_all_cached', Date.now().toString());
             } catch (e) {}
-            updateCacheAllButtonState();
         }).catch(function(err) {
             console.error('缓存所有训练失败:', err);
             if (statusEl) {
@@ -866,66 +858,16 @@
         });
     }
 
-    function updateCacheAllButtonState() {
-        var cacheAllBtn = document.getElementById('cacheAllBtn');
-        var dataToolsStatus = document.getElementById('actionStatus');
-        if (!cacheAllBtn) return;
-
-        var flag = null;
-        try {
-            flag = localStorage.getItem('cx_all_cached');
-        } catch (e) {}
-
-        if (!flag) {
-            cacheAllBtn.querySelector('.cache-icon').textContent = '📦';
-            cacheAllBtn.querySelector('.cache-text').textContent = '缓存数据';
-            return;
-        }
-
-        if ('caches' in window) {
-            caches.keys().then(function(keys) {
-                var hasTrainingCache = keys.some(function(key) { return key.indexOf('cx-') === 0; });
-                if (hasTrainingCache) {
-                    cacheAllBtn.style.display = 'none';
-                    if (dataToolsStatus && !dataToolsStatus.textContent) {
-                        dataToolsStatus.textContent = '✓ 已缓存全部数据';
-                        dataToolsStatus.className = 'cache-status success';
-                    }
-                } else {
-                    try { localStorage.removeItem('cx_all_cached'); } catch (e) {}
-                    cacheAllBtn.querySelector('.cache-icon').textContent = '📦';
-                    cacheAllBtn.querySelector('.cache-text').textContent = '缓存数据';
-                }
-            }).catch(function() {
-                cacheAllBtn.querySelector('.cache-icon').textContent = '📦';
-                cacheAllBtn.querySelector('.cache-text').textContent = '缓存数据';
-            });
-        }
-    }
-    
     document.addEventListener('DOMContentLoaded', function() {
         var installBtn = document.getElementById('installBtn');
         var androidApkBtn = document.getElementById('androidApkBtn');
         var installStatus = document.getElementById('actionStatus');
         var clearDataBtn = document.getElementById('clearDataBtn');
-        var cacheAllBtn = document.getElementById('cacheAllBtn');
-        var dataToolsStatus = document.getElementById('actionStatus');
         
         if (!('serviceWorker' in navigator)) {
             return;
         }
         
-        // 安卓设备只要不是 Capacitor APP 内，都显示 APK 下载按钮（含平板/PWA）
-        // androidApkBtn 由 theme-toggle.js 的 initSettingsActions 统一处理
-
-        // 缓存数据按钮由 theme-toggle.js 统一显示；主页注册实现函数供其他页面委托
-        window.CX.cacheAll = function(statusEl) {
-            if (cacheAllBtn) cacheAllBtn.disabled = true;
-            cacheAllTrainings(statusEl || dataToolsStatus).finally(function() {
-                if (cacheAllBtn) cacheAllBtn.disabled = false;
-            });
-        };
-
         // 非 iOS：注册主页 PWA 安装钩子（含状态文字反馈），供 theme-toggle.js 调用
         if (!CX_ENV.isIOS) {
             window.CX.installPWA = function() {
@@ -1028,8 +970,6 @@
         // 注册主页清理函数（含保留笔记选项）供 theme-toggle.js 调用
         window.CX.clearData = promptClearData;
 
-        updateCacheAllButtonState();
-        
         // 清理所有缓存和记忆的函数
         function clearAllCachesAndMemory(options) {
             options = options || {};

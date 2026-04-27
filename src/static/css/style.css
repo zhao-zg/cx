@@ -398,8 +398,8 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .font-btn:active{transform:translateY(0)}
 .font-btn:disabled{opacity:.5;cursor:not-allowed}
 .hymn-number{font-size:0.97em;color:var(--text-soft);margin:12px 0;text-align:center;padding:8px;background:var(--muted);border-radius:6px}
-.scripture{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
-.scripture-verses{font-size:0.97em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
+.scripture{font-size:1.00em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border-radius:6px;line-height:1.9;text-align:justify}
+.scripture-verses{font-size:1.00em;color:var(--text);margin:10px 0;padding:8px 10px;background:var(--scripture-bg);border:1px solid var(--border);border-radius:6px;line-height:1.9;text-align:justify}
 .section{margin:18px 0}
 @media(min-width:768px){
     .scripture,.scripture-verses{font-size:1.00em;padding:12px;line-height:1.9}
@@ -433,11 +433,11 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 
 /* ── 九、页脚、经文切换、下拉等 ────────────────────────────── */
 .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
-.scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:0.96em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
+.scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:1.00em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
 .scripture-section{margin:8px 0;padding:6px 10px 6px 12px;background:var(--scripture-bg);border:1px solid var(--border);border-left:3px solid var(--brand);border-radius:var(--radius-md)}
-.scripture-ref{color:var(--text-muted);font-size:0.88em;margin-left:2px}
+.scripture-ref{color:var(--text-muted);font-size:0.93em;margin-left:2px}
 .scripture-ref[data-refs]{cursor:pointer;color:var(--text-muted);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
-.verse-line{margin-bottom:8px;font-size:0.94em;line-height:1.9;color:var(--text-soft);text-align:justify}
+.verse-line{margin-bottom:8px;font-size:1.00em;line-height:1.9;color:var(--text-soft);text-align:justify}
 .verse-line:last-child{margin-bottom:0}
 .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
 

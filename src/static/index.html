@@ -636,7 +636,6 @@
     }
 
     // 主页 PWA/清理功能委托（供 theme-toggle.js 调用）
-    window.CX.cacheAll=function(statusEl){cacheAllTrainings(statusEl).catch(function(){});};
     window.CX.clearData=function(){
         if(window.CX&&window.CX.showClearDialog){window.CX.showClearDialog(function(sel){clearAllCachesAndMemory({clearNotesOnly:sel==='notes'});});}
     };
@@ -663,7 +662,7 @@
         Promise.all(steps).then(goHome);
     }
 
-    // 注册 CX.cacheAll 钩子（供 theme-toggle.js 调用）
+    // 主页 PWA 安装功能委托（供 theme-toggle.js 调用）
     document.addEventListener('DOMContentLoaded',function(){
         window.CX.installPWA=function(){
             var p=window._pwaInstallPrompt;if(!p)return;
