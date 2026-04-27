@@ -417,24 +417,7 @@
             console.log('[页面记忆] isApp=true hasRestored=' + hasRestored + ' curHash="' + curHash + '" curHashIsMain=' + curHashIsMain);
             if(hasRestored||!curHashIsMain){
                 sessionStorage.setItem('cx_has_restored','true');
-                if(!curHashIsMain&&history.length===1){
-                    // PWA 冷启动：Chrome 以非主页 hash 恢复页面，此时历史栈只有一条，
-                    // device back 会直接退出 PWA。注入 home/batch 历史条目使返回键可逐级退回。
-                    // 用 history.length===1 而非 !hasRestored 判断，防止 Chrome 保留
-                    // sessionStorage 时 hasRestored='true' 却仍只有 1 条历史的边界情况。
-                    var curPath=curHash.replace(/^#\/?/,'');
-                    var curParts=curPath.split('/').filter(Boolean);
-                    try{
-                        history.replaceState(null,'',location.pathname+'#/');
-                        if(curParts.length>=2){
-                            history.pushState(null,'',location.pathname+'#/'+curParts[0]);
-                        }
-                        history.pushState(null,'',location.pathname+curHash);
-                    }catch(e){}
-                    console.log('[页面记忆] 冷启动非主页，注入历史栈 history.length=1 curParts='+JSON.stringify(curParts));
-                }else{
-                    console.log('[页面记忆] 已恢复或当前非主页，无需注入 history.length='+history.length);
-                }
+                console.log('[页面记忆] 已恢复或当前非主页，直接 initHomePage');
                 if(window.CXNavStack)window.CXNavStack.initHomePage();
                 return;
             }
@@ -451,16 +434,9 @@
                     if(!lastPageIsMain){
                         sessionStorage.setItem('cx_has_restored','true');
                         sessionStorage.setItem('cx_restore_scroll','true');
-                        var lastPath=lastHash.replace(/^#\/?/,'');
-                        var lastParts=lastPath.split('/').filter(Boolean);
-                        // 若恢复到章节，先 pushState 注入 batch 历史条目（不触发事件），
-                        // 使返回键可从章节→批次目录→主页逐级退回，而非直接跳到主页。
-                        if(lastParts.length>=2){
-                            try{history.pushState(null,'',location.pathname+'#/'+lastParts[0]);}catch(e){}
-                        }
                         // skipNext()：抑制 Android Chrome PWA hash 赋值时触发的虚假 popstate
                         if(window.CX&&window.CX.backStack&&window.CX.backStack.skipNext)window.CX.backStack.skipNext();
-                        console.log('[页面记忆] 恢复至 lastHash="' + lastHash + '" lastParts='+JSON.stringify(lastParts));
+                        console.log('[页面记忆] 恢复至 lastHash="' + lastHash + '"');
                         window.location.hash=lastHash;
                         // 提前 return 前必须注册返回键处理，否则 PWA fallback 永远为 null
                         if(window.CXNavStack)window.CXNavStack.initHomePage();
