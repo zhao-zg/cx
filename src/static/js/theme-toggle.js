@@ -197,6 +197,7 @@
     var _skip = 0;
     window.addEventListener('popstate', function() {
         if (_skip > 0) { _skip--; return; }
+        console.log('[backStack] popstate 触发 hash="' + window.location.hash + '" stackSize=' + _stack.length + ' hasFallback=' + !!window.CX.backStack._fallback);
         if (_stack.length > 0) {
             var fn = _stack.pop();
             if (fn) fn();

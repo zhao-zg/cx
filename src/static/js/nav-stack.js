@@ -47,6 +47,7 @@
                     if (window.__cxExiting) return;
                     // 忽略页面加载后短时间内的虚假 popstate（iOS/Android PWA 已知问题）
                     if (Date.now() - _loadedAt < _GRACE_MS) return;
+                    console.log('[NavStack] fallback 触发 hash="' + window.location.hash + '" backStackSize=' + window.CX.backStack.size());
                     handleBackCommon(handleBack);
                 });
             }
@@ -70,9 +71,10 @@
     // 主页回退 → 退出（SPA 模式：感知当前 hash，非首页时先返回上一级）
     function initHomePage() {
         setupBackHandler(function() {
-            // SPA 模式：根据当前 hash 决定行为
+            // backStack 有内容，说明某个弹框/面板注册了关闭回调
             var hash = window.location.hash.replace(/^#\/?/, '');
             var parts = hash.split('/').filter(Boolean);
+            console.log('[NavStack] initHomePage handleBack hash="' + hash + '" parts=' + JSON.stringify(parts));
             if (parts.length >= 3) {
                 // 章节视图 → 返回批次目录
                 if (window.CXRouter) { window.CXRouter.navigate(parts[0]); return; }

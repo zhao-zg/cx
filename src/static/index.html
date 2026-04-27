@@ -409,34 +409,40 @@
     (function(){
         try{
             var isApp=CX_ENV.isInApp||CX_ENV.isCapacitorApp;
-            if(!isApp)return;
+            if(!isApp){ console.log('[页面记忆] 非 App/PWA，跳过恢复'); return; }
             var hasRestored=sessionStorage.getItem('cx_has_restored');
             // 如果当前 hash 已有非主页路由，不再额外跳转
             var curHash=window.location.hash;
             var curHashIsMain=!curHash||curHash==='#'||curHash==='#/';
+            console.log('[页面记忆] isApp=true hasRestored=' + hasRestored + ' curHash="' + curHash + '" curHashIsMain=' + curHashIsMain);
             if(hasRestored||!curHashIsMain){
                 sessionStorage.setItem('cx_has_restored','true');
+                console.log('[页面记忆] 已恢复或当前非主页，直接 initHomePage');
                 if(window.CXNavStack)window.CXNavStack.initHomePage();
                 return;
             }
             var lastPage=localStorage.getItem('cx_last_page');
             var lastPageTime=localStorage.getItem('cx_last_page_time');
+            console.log('[页面记忆] lastPage=' + lastPage);
             if(lastPage&&lastPageTime){
                 var timeDiff=Date.now()-parseInt(lastPageTime);
                 if(timeDiff<7*24*60*60*1000){
                     var lastHash='';
                     try{lastHash=new URL(lastPage).hash;}catch(e){}
                     var lastPageIsMain=!lastHash||lastHash==='#'||lastHash==='#/';
+                    console.log('[页面记忆] lastHash="' + lastHash + '" lastPageIsMain=' + lastPageIsMain + ' timeDiff=' + timeDiff);
                     if(!lastPageIsMain){
                         sessionStorage.setItem('cx_has_restored','true');
                         sessionStorage.setItem('cx_restore_scroll','true');
                         // SPA 模式：直接跳 hash，不 reload
+                        console.log('[页面记忆] 恢复至 lastHash="' + lastHash + '"');
                         window.location.hash=lastHash;
                         return;
                     }
                 }
             }
             sessionStorage.setItem('cx_has_restored','true');
+            console.log('[页面记忆] 无历史页或已在主页，initHomePage');
             if(window.CXNavStack)window.CXNavStack.initHomePage();
         }catch(e){console.error('[页面记忆]',e);}
     })();
