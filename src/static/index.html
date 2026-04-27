@@ -216,7 +216,6 @@
     // CXRouter 会调用 CXRenderer，renderer 内部调用 _showApp() / _showHome()
     // 这两个函数注册到 CXRenderer 里；这里提前注册以便 renderer.js 可以访问
     window._cxShowHome = function() {
-        console.log('[_cxShowHome] called from:', new Error().stack.split('\n').slice(1,4).join(' | '));
         document.getElementById('homeView').style.display = '';
         document.getElementById('app').style.display = 'none';
         document.title = '特会信息合集';

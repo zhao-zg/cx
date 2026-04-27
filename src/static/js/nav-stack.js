@@ -1,6 +1,10 @@
 ﻿(function() {
     'use strict';
 
+    // 页面加载时间戳：用于过滤 iOS/Android PWA 在加载后短时间内触发的虚假 popstate
+    var _loadedAt = Date.now();
+    var _GRACE_MS = 500;  // 500ms 内忽略 popstate（已知 iOS Safari PWA 会在启动时触发虚假事件）
+
     function isCapacitor() {
         return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
     }
@@ -41,6 +45,8 @@
             if (window.CX && window.CX.backStack) {
                 window.CX.backStack.setFallback(function() {
                     if (window.__cxExiting) return;
+                    // 忽略页面加载后短时间内的虚假 popstate（iOS/Android PWA 已知问题）
+                    if (Date.now() - _loadedAt < _GRACE_MS) return;
                     handleBackCommon(handleBack);
                 });
             }
@@ -82,6 +88,10 @@
                 window.close();
                 setTimeout(function() {
                     window.history.back();
+                    // history.back() 可能触发 hashchange，导致路由重渲染主页；
+                    // __cxExiting 已阻断 onHashChange，此处在 back() 完成后复位，
+                    // 避免用户放弃退出后（如桌面浏览器 close() 失效）路由永久失效。
+                    setTimeout(function() { window.__cxExiting = false; }, 400);
                 }, 150);
             }
         });

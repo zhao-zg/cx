@@ -25,7 +25,6 @@
     var parts = path.split('/').filter(Boolean);
     var R = win.CXRenderer;
     if (!R) return;
-    console.log('[Router] dispatch:', path, 'parts:', parts.length, new Error().stack.split('\n').slice(1,4).join(' | '));
     win.scrollTo(0, 0);
     if (parts.length === 0) {
       R.renderHome();
@@ -43,6 +42,8 @@
   }
 
   function onHashChange() {
+    // 若正在执行 PWA 退出（history.back），忽略本次 hash 变化，避免路由重渲染
+    if (win.__cxExiting) return;
     dispatch(getPath());
   }
 
@@ -55,6 +56,8 @@
     },
 
     navigate: function (hashPath) {
+      // 用户主动导航，清除退出标记（防止 exit 流程误阻断后续导航）
+      win.__cxExiting = false;
       var newHash = '#/' + (hashPath || '');
       if (win.location.hash === newHash) {
         // same hash — force re-dispatch (e.g. return to home from home)
