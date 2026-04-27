@@ -929,16 +929,17 @@
             menu.style.display   = 'flex';
             menu.style.opacity   = '0';
             requestAnimationFrame(function () {
-                var GAP = 20; // 菜单与选区的最小间距
+                var GAP_BELOW = 10; // 菜单放在选区下方时的间距
+                var GAP_ABOVE = 64; // 菜单放在选区上方时的间距（需高于系统复制菜单，约 50px）
                 var viewTop;
-                var belowAvail = window.innerHeight - rect.bottom - GAP;
-                var aboveAvail = rect.top - GAP;
+                var belowAvail = window.innerHeight - rect.bottom - GAP_BELOW;
+                var aboveAvail = rect.top - GAP_ABOVE;
                 if (belowAvail >= menu.offsetHeight || belowAvail >= aboveAvail) {
-                    viewTop = rect.bottom + GAP;
+                    viewTop = rect.bottom + GAP_BELOW;
                 } else {
-                    viewTop = rect.top - menu.offsetHeight - GAP;
+                    viewTop = rect.top - menu.offsetHeight - GAP_ABOVE;
                 }
-                viewTop = Math.max(GAP, Math.min(viewTop, window.innerHeight - menu.offsetHeight - GAP));
+                viewTop = Math.max(GAP_BELOW, Math.min(viewTop, window.innerHeight - menu.offsetHeight - GAP_BELOW));
 
                 var left = rect.left + rect.width / 2 - menu.offsetWidth / 2;
                 left = Math.max(10, Math.min(left, window.innerWidth - menu.offsetWidth - 10));

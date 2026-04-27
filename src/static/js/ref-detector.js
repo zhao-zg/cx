@@ -91,9 +91,11 @@
     var abbr = '[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启](?:前|后|上|下|壹|贰|叁)?';
     var bookPat = '(?:(?:' + _sortedFullNames.join('|') + '|' + abbr + '))?';
     var bookReq = '(?:' + _sortedFullNames.join('|') + '|' + abbr + ')';
-    // 章节式（含书卷名可选）、纯中文节号续（第?CN节 / CN至CN节）或书卷+中文章号速记（但二）
+    var versePart = '(?:' + CN + '(?:[至到]' + CN + ')?节(?:[上下]半?)?)?';
+    // 「篇」是诗篇专属，须有显式「诗」/「诗篇」前缀；其他书卷用「章」
     return new RegExp(
-      '(?:' + bookPat + CN + '[章篇](?:' + CN + '(?:[至到]' + CN + ')?节(?:[上下]半?)?)?'
+      '(?:(?:诗篇|诗)' + CN + '篇' + versePart
+      + '|' + bookPat + CN + '章' + versePart
       + '|第?' + CN + '(?:[至到]' + CN + ')?节(?:[上下]半?)?'
       + '|' + bookReq + CN + ')'
       , 'g');
@@ -152,7 +154,8 @@
     // Format4: 阿拉伯章:节  e.g. 约壹1:1 / 腓4:13~15
     var F4 = new RegExp('^(' + BOOK_PAT + '?)(\\d+):(\\d+)([上下]?)(?:[~～\\-](\\d+)([上下]?))?$');
     // Format5: 中文「章节式」 e.g. 三章十九节 / 三章十九至二十一节 / 诗篇一百一十九篇 / 三章十七节上半
-    var F5 = new RegExp('^(' + BOOK_PAT + ')?(' + CN_N + ')[章篇](?:(' + CN_N + ')(?:[至到](' + CN_N + '))?节([上下]半?)?)?');
+    // 「篇」仅匹配诗篇（书卷缩写 诗），其他书卷用「章」
+    var F5 = new RegExp('^(' + BOOK_PAT + ')?(' + CN_N + ')([章篇])(?:(' + CN_N + ')(?:[至到](' + CN_N + '))?节([上下]半?)?)?');
     // Format6: 单章书卷 + 阿拉伯节  e.g. 犹20 / 门10~12 / 俄5
     var SINGLE_BOOK = '(?:犹|门|俄|约贰|约叁)';
     var F6 = new RegExp('^(' + SINGLE_BOOK + ')(\\d+)([上下]?)(?:[~～\\-](\\d+)([上下]?))?$');
@@ -190,11 +193,13 @@
       // F5: 章节式
       if ((m = F5.exec(p))) {
         var b5 = m[1] ? normalizeBookNames(m[1]) : book; if (!b5) continue;
+        // 「篇」仅适用于诗篇
+        if (m[3] === '篇' && b5 !== '诗') continue;
         var c5 = cnToInt(m[2]); if (!c5 || c5 > 150) continue;
         book = b5; ch = c5;
-        if (m[3]) {
-          var v1_5 = cnToInt(m[3]), v2_5 = m[4] ? cnToInt(m[4]) : v1_5;
-          var mod5 = m[5] ? m[5][0] : '';  // 取首字上/下
+        if (m[4]) {
+          var v1_5 = cnToInt(m[4]), v2_5 = m[5] ? cnToInt(m[5]) : v1_5;
+          var mod5 = m[6] ? m[6][0] : '';  // 取首字上/下
           if (v1_5) emitRange(book, ch, v1_5, mod5, v2_5, '');
         } else {
           refs.push(book + ch + ':0');
