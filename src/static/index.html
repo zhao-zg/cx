@@ -625,9 +625,6 @@
     function clearAllCachesAndMemory(opts){
         opts=opts||{};
         var goHome=function(){
-            // 完整页面重载（非 hash 切换）：SW 被注销后仍控制当前标签页的 fetch，
-            // 若只做 hash 变化，SW 会把新请求的资源重新写回缓存。
-            // replaceState 去除 hash → reload 触发全新页面加载，SW 彻底注销。
             try{window.history.replaceState(null,'',window.location.pathname);}catch(e){}
             window.location.reload();
         };
@@ -643,6 +640,7 @@
         steps.push(new Promise(function(resolve){try{sessionStorage.clear();resolve();}catch(e){resolve();}}));
         if('serviceWorker' in navigator)steps.push(navigator.serviceWorker.getRegistrations().then(function(regs){return Promise.all(regs.map(function(r){return r.unregister();}));}).catch(function(){}));
         if('caches' in window)steps.push(caches.keys().then(function(keys){return Promise.all(keys.map(function(k){return caches.delete(k);}));}).catch(function(){}));
+        if('indexedDB' in window)steps.push(new Promise(function(resolve){try{var dbs=['cx-trainings','cx-cache','workbox-expiration'];Promise.all(dbs.map(function(n){return new Promise(function(r){var req=indexedDB.deleteDatabase(n);req.onsuccess=req.onerror=req.onblocked=r;});})).then(resolve);}catch(e){resolve();}}));
         Promise.all(steps).then(goHome);
     }
 
