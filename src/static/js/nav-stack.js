@@ -103,13 +103,30 @@
                 window.CX.backStack.setFallback(function() {
                     if (window.__cxExiting) return;
                     if (Date.now() - _loadedAt < _GRACE_MS) return;
-                    // popstate 在 hash 变化【后】触发，location.hash 已是目标页；
-                    // __cxCurrentPath 是 router dispatch 写入的"返回前所在路径"。
+                    // popstate 在 hash 变化【后】触发：
+                    //   path    = __cxCurrentPath = 返回前所在路径（router dispatch 时写入）
+                    //   newHash = location.hash   = 浏览器已跳到的页面
                     var path = (typeof window.__cxCurrentPath === 'string')
                         ? window.__cxCurrentPath
                         : window.location.hash.replace(/^#\/?/, '');
                     var parts = path.split('/').filter(Boolean);
-                    console.log('[NavStack] PWA fallback path="' + path + '" parts=' + JSON.stringify(parts));
+                    var newHash = window.location.hash.replace(/^#\/?/, '');
+                    var newParts = newHash.split('/').filter(Boolean);
+                    console.log('[NavStack] PWA fallback from="' + path + '" to="' + newHash + '"');
+
+                    // Ghost entry 检测：从批次目录（parts=1）返回到了同一批次的章节视图（newParts=3）
+                    // 成因：章节内视图切换用 replaceState → 历史条目被替换为最后一个 view，
+                    //       离开章节后该条目仍留在历史栈，返回时浏览器会弹回这条 ghost。
+                    // 处理：抑制 hashchange dispatch + 再调 history.back() 跳过 ghost，
+                    //       同时 skipNext() 抑制下一条 popstate fallback，让 hashchange 正常渲染目标。
+                    if (parts.length === 1 && newParts.length >= 3 && parts[0] === newParts[0]) {
+                        console.log('[NavStack] PWA ghost entry detected, skipping...');
+                        if (window.CXRouter && window.CXRouter.skipNextDispatch) window.CXRouter.skipNextDispatch();
+                        if (window.CX.backStack.skipNext) window.CX.backStack.skipNext();
+                        try { history.back(); } catch(e) {}
+                        return;
+                    }
+
                     if (parts.length > 0) {
                         // 从子页面（批次/章节）返回 —— 浏览器的 history.back() 已改变 hash，
                         // router 的 hashchange 会自动渲染正确视图，此处无需再做路由。

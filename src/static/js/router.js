@@ -14,6 +14,7 @@
   'use strict';
 
   var _started = false;
+  var _skipNextDispatch = false;  // 用于跳过 ghost history 条目的 hashchange dispatch
 
   function getPath() {
     var h = win.location.hash || '#/';
@@ -48,6 +49,11 @@
     // 若正在执行 PWA 退出（history.back），忽略本次 hash 变化，避免路由重渲染
     console.log('[Router] hashchange hash="' + win.location.hash + '" __cxExiting=' + !!win.__cxExiting);
     if (win.__cxExiting) return;
+    if (_skipNextDispatch) {
+      _skipNextDispatch = false;
+      console.log('[Router] hashchange skipped (ghost entry)');
+      return;
+    }
     dispatch(getPath());
   }
 
@@ -96,6 +102,9 @@
     back: function () {
       win.history.back();
     },
+
+    // 让下一次 hashchange 不触发 dispatch（用于跳过 ghost replaceState 条目）
+    skipNextDispatch: function() { _skipNextDispatch = true; },
 
     currentPath: function () {
       return getPath();
