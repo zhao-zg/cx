@@ -7,7 +7,8 @@
  *
  * 暴露：window.CXRouter
  *   .start()
- *   .navigate(hashPath)   e.g. navigate('2025-04') or navigate('2025-04/1/cx')
+ *   .navigate(hashPath)        e.g. navigate('2025-04') or navigate('2025-04/1/cx')
+ *   .navigateReplace(hashPath) 同 navigate，但用 replaceState（不新增历史条目），用于返回键显式层级跳转
  *   .back()
  */
 (function (win) {
@@ -101,6 +102,18 @@
 
     back: function () {
       win.history.back();
+    },
+
+    // 用 replaceState 跳转到 hashPath（不新增历史条目），并立即 dispatch 渲染。
+    // 用于 PWA 返回键的显式层级跳转，天然覆盖 ghost entry，无需额外检测。
+    navigateReplace: function (hashPath) {
+      win.__cxExiting = false;
+      var newHash = '#/' + (hashPath || '');
+      console.log('[Router] navigateReplace("' + hashPath + '") curHash="' + win.location.hash + '" → newHash="' + newHash + '"');
+      // 抑制 replaceState 可能产生的 hashchange（部分浏览器实现差异）
+      _skipNextDispatch = true;
+      try { win.history.replaceState(null, '', win.location.pathname + newHash); } catch(e) {}
+      dispatch(hashPath || '');
     },
 
     // 让下一次 hashchange 不触发 dispatch（用于跳过 ghost replaceState 条目）
