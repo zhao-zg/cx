@@ -90,12 +90,49 @@ jobs:
           echo "new_tag=${NEW_TAG}" >> $GITHUB_OUTPUT
           echo "✅ 版本已递增: ${NEW_VERSION}"
 
+      - name: Update changelog
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          python3 << 'PY'
+          import subprocess, json
+          from datetime import date
+
+          # 获取已暂存的变更文件，提取新增的资源目录名
+          result = subprocess.run(['git', 'diff', '--staged', '--name-only'], capture_output=True, text=True)
+          folders = set()
+          for line in result.stdout.splitlines():
+              if line.startswith('resource/'):
+                  parts = line.split('/')
+                  if len(parts) >= 2 and parts[1]:
+                      folders.add(parts[1])
+
+          if not folders:
+              print('ℹ️ 未检测到资源目录变更，跳过 changelog 更新')
+              exit(0)
+
+          version = '${{ steps.bump_version.outputs.new_version }}'
+          with open('changelog.json', 'r', encoding='utf-8') as f:
+              changelog = json.load(f)
+
+          entry = {
+              'date': str(date.today()),
+              'new': [f'新增资源：{f}' for f in sorted(folders)]
+          }
+          changelog[version] = entry
+
+          with open('changelog.json', 'w', encoding='utf-8') as f:
+              json.dump(changelog, f, ensure_ascii=False, indent=2)
+              f.write('\n')
+
+          print(f'✅ changelog.json 已更新版本 {version}，资源：{sorted(folders)}')
+          PY
+
       - name: Commit and push changes
         if: steps.check_changes.outputs.has_changes == 'true'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add resource/ app_config.json
+          git add resource/ app_config.json changelog.json
           git commit -m "🤖 自动下载: 新增训练资源 + 版本${{ steps.bump_version.outputs.new_version }}"
           git push
 
