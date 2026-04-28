@@ -97,6 +97,8 @@ public class TTSForegroundService extends Service {
 
     // 定期向 JS 推送播放位置，保持 APP 内进度条与 MediaSession 同步
     private Runnable            positionRunnable     = null;
+    // 自然播放结束后延迟销毁 Service 的 Runnable；循环播放时在宽限期内取消，避免 TTS 反复初始化
+    private Runnable            _pendingStop         = null;
 
     // ── System Resources ──────────────────────────────────────────────────
     private AudioManager                          audioManager;
@@ -322,6 +324,8 @@ public class TTSForegroundService extends Service {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void handleSpeak(Intent intent) {
+        // 取消宽限期内挂起的延迟停止，循环播放时复用现有 TTS 实例而无需重建 Service
+        cancelPendingStop();
         String text   = intent.getStringExtra("text");
         String lang   = intent.getStringExtra("lang");
         String title  = intent.getStringExtra("title");
@@ -420,13 +424,22 @@ public class TTSForegroundService extends Service {
         isPaused     = false;
         pausedByUser = false;
         speakGen++;
+        cancelPendingStop();
         stopPositionBroadcast();
         if (tts != null) tts.stop();
-        finishPlayback();
+        releaseWakeLock();
+        abandonAudioFocus();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE);
+        } else {
+            stopForeground(true);
+        }
+        stopSelf();
     }
 
     private void handlePause() {
         if (isPaused || isStopped) return;
+        cancelPendingStop();
         pausedByUser = true; // 用户主动暂停（按钮/锁屏控件），焦点归还后不自动恢复
         isPaused = true;
         speakGen++;       // invalidate in-flight onDone callbacks
@@ -441,6 +454,7 @@ public class TTSForegroundService extends Service {
 
     private void handleResume() {
         if (!isPaused || isStopped) return;
+        cancelPendingStop();
         isPaused     = false;
         pausedByUser = false;
         speakGen++;
@@ -809,12 +823,38 @@ public class TTSForegroundService extends Service {
         stopPositionBroadcast();
         releaseWakeLock();
         abandonAudioFocus();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            stopForeground(STOP_FOREGROUND_REMOVE);
-        } else {
-            stopForeground(true);
+        // 更新通知为暂停/结束状态（保持前台 Service，避免 OEM 在宽限期内杀进程）
+        updateNotification(false);
+        // 不立即销毁 Service：延迟 2 秒宽限期，允许循环播放直接复用现有 TTS 实例。
+        // 若 2 秒内收到新的 speak()，cancelPendingStop() 会取消销毁并继续播放。
+        // 若无新请求（非循环场景），2 秒后真正停止。
+        schedulePendingStop();
+    }
+
+    /** 安排 2 秒后延迟销毁 Service（用于自然播放结束后的宽限期）。 */
+    private void schedulePendingStop() {
+        cancelPendingStop();
+        _pendingStop = new Runnable() {
+            @Override public void run() {
+                _pendingStop = null;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE);
+                } else {
+                    //noinspection deprecation
+                    stopForeground(true);
+                }
+                stopSelf();
+            }
+        };
+        mainHandler.postDelayed(_pendingStop, 2000);
+    }
+
+    /** 取消挂起的延迟停止（循环播放收到新 speak() 时调用）。 */
+    private void cancelPendingStop() {
+        if (_pendingStop != null) {
+            mainHandler.removeCallbacks(_pendingStop);
+            _pendingStop = null;
         }
-        stopSelf();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
