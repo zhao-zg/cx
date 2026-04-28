@@ -975,6 +975,7 @@
 
   function renderMotto(batchPath) {
     showApp();
+    rescueThemeBtn();
     loadTraining(batchPath).then(function(training) {
       var nav = '<div class="page-navigation">' +
         '<a href="javascript:void(0)" class="nav-link" title="返回主页" onclick="CXRouter.navigate(\'\')">返回主页</a>' +
@@ -1020,6 +1021,7 @@
 
   function renderMottoSong(batchPath) {
     showApp();
+    rescueThemeBtn();
     var root = win.CX_ROOT || './';
     loadTraining(batchPath).then(function(training) {
       var nav = '<div class="page-navigation">' +
