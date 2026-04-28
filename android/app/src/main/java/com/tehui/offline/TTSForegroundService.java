@@ -96,9 +96,9 @@ public class TTSForegroundService extends Service {
     private Bitmap              appIconBitmap        = null; // APP 图标，缓存避免重复解码
 
     // 定期向 JS 推送播放位置，保持 APP 内进度条与 MediaSession 同步
-    private Runnable            positionRunnable     = null;
+    private volatile Runnable   positionRunnable     = null;
     // 自然播放结束后延迟销毁 Service 的 Runnable；循环播放时在宽限期内取消，避免 TTS 反复初始化
-    private Runnable            _pendingStop         = null;
+    private volatile Runnable   _pendingStop         = null;
 
     // ── System Resources ──────────────────────────────────────────────────
     private AudioManager                          audioManager;
