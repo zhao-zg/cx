@@ -1274,11 +1274,12 @@
                 setTimeout(function() { AppUpdate.silentCheckUpdate(); }, 2000);
             }
         } catch(e) {}
-        // 处理 index.html 中在 app-update.js 加载前设置的待处理更新通知
+        // 处理 index.html 中在 app-update.js 加载前设置的待处理更新通知（用 toast 替代直接弹框）
         if (window.__cxPwaUpdateReady) {
             window.__cxPwaUpdateReady = false;
+            try { sessionStorage.removeItem('cx_update_toast_shown'); } catch(e) {}
             setTimeout(function() {
-                AppUpdate.showPwaUpdateDialog({root: window.CX_ROOT || './'});
+                AppUpdate.silentCheckUpdate();
             }, 300);
         }
     })();

@@ -609,10 +609,11 @@
     }
 
     // PWA 更新就绪通知（SW 更新或版本号变化时调用）
-    // 若 app-update.js 尚未就绪则设标记，由 app-update.js 在加载后处理
+    // 使用 toast 横幅提示而非直接弹出更新对话框
     function _showPwaUpdateReady(){
-        if(window.AppUpdate&&window.AppUpdate.showPwaUpdateDialog){
-            window.AppUpdate.showPwaUpdateDialog({root:window.CX_ROOT||'./'});
+        try{sessionStorage.removeItem('cx_update_toast_shown');}catch(e){}
+        if(window.AppUpdate&&window.AppUpdate.silentCheckUpdate){
+            window.AppUpdate.silentCheckUpdate();
         } else {
             window.__cxPwaUpdateReady=true;
         }
