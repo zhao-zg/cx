@@ -12,6 +12,14 @@ from .models import TrainingData, Chapter
 from .parser_improved import ImprovedParser
 
 
+def _normalize_source_abbr(text: str) -> str:
+    """将出处引用中的中文书名替换为英文缩写：
+    - 李常受文集 → CWWL
+    - 生命读经   → L-S
+    """
+    return text.replace('李常受文集', 'CWWL').replace('生命读经', 'L-S')
+
+
 class HTMLGenerator:
     """HTML生成器"""
     
@@ -110,7 +118,7 @@ class HTMLGenerator:
             pass
     
     def _feeding_to_refs(self, text: str) -> str:
-        """从晨兴喂养段落开头的中文经文引用提取 data-refs 字符串。"""
+        """从晨读喂养段落开头的中文经文引用提取 data-refs 字符串。"""
         if not text:
             return ''
         m = re.match(r'^(\S+)', text.strip())
@@ -140,7 +148,7 @@ class HTMLGenerator:
         return result
 
     def _enrich_chapter_feeding_refs(self, chapter_dict: dict):
-        """为 chapter_dict 中每个晨兴的 feeding_scriptures 预计算 feeding_refs 列表。"""
+        """为 chapter_dict 中每个晨读的 feeding_scriptures 预计算 feeding_refs 列表。"""
         chapter_scripture = chapter_dict.get('scripture', '')
         for revival in chapter_dict.get('morning_revivals', []):
             fs = revival.get('feeding_scriptures', [])
@@ -584,7 +592,7 @@ class HTMLGenerator:
         return cur_book, cur_chapter
 
     def _enrich_section_contexts(self, chapter_dict: dict):
-        """为每个晨兴的 morning_feeding / message_reading 预计算逐段起始上下文，
+        """为每个晨读的 morning_feeding / message_reading 预计算逐段起始上下文，
         使段落间经文引用能正确接续（跨段落上下文传播）。"""
         chapter_scripture = chapter_dict.get('scripture', '')
         default_book = ImprovedParser._extract_primary_book(chapter_scripture) if chapter_scripture else ''
@@ -964,7 +972,7 @@ class HTMLGenerator:
         # 生成诗歌页（_sg.htm）
         self._generate_hymn_page(num, chapter_dict, training_dict)
         
-        # 生成晨兴页（_cx.htm）
+        # 生成晨读页（_cx.htm）
         self._generate_morning_revival_page(num, chapter_dict, training_dict)
         
         # 生成职事信息摘录页（_zs.htm）
@@ -1028,7 +1036,7 @@ class HTMLGenerator:
             f.write(html)
     
     def _generate_morning_revival_page(self, num: int, chapter: dict, training: dict):
-        """生成晨兴页（_cx.htm）"""
+        """生成晨读页（_cx.htm）"""
         template = self.env.get_template('morning_revival.html')
         html = template.render(chapter=chapter, training=training, page_type='cx')
         
@@ -1076,7 +1084,7 @@ def generate_search_index(output_root: str, trainings: list) -> None:
     # (type_key, css_selector, label)
     TYPE_CONFIG = [
         ('h',  '.content-text', '听抄'),
-        ('cx', '.content-text', '晨兴'),
+        ('cx', '.content-text', '晨读'),
         ('cv', '.outline-item', '纲目'),
         ('zs', '.content-text', '职事摘录'),
     ]
@@ -1185,7 +1193,8 @@ def export_training_json(training_data, output_dir: str) -> str:
     # Write training.json (compact, no indent)
     json_path = os.path.join(output_dir, 'training.json')
     with open(json_path, 'w', encoding='utf-8') as f:
-        json.dump(training_dict, f, ensure_ascii=False, separators=(',', ':'))
+        json_text = json.dumps(training_dict, ensure_ascii=False, separators=(',', ':'))
+        f.write(_normalize_source_abbr(json_text))
     print(f"  ✓ training.json 已写出 ({len(training_data.chapters)} 篇章)")
 
     # Write supplementary scripture data (for popup, excludes bible-text.json entries)
@@ -1282,7 +1291,7 @@ def generate_search_index_from_json(output_root: str, trainings: list) -> None:
                     if len(para) >= 10:
                         entries.append({'url': f"{path}/{num}/cx", 'training': title,
                                         'season_label': season_label, 'chapter': num,
-                                        'type': 'cx', 'type_label': '晨兴喂养',
+                                        'type': 'cx', 'type_label': '晨读喂养',
                                         'chapter_title': ch_title, 'pi': pi,
                                         'day_index': day_idx,
                                         'selector': 'content-text', 'text': para[:200]})

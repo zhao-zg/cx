@@ -95,7 +95,7 @@
           }
         }
 
-        // cx: 晨兴
+        // cx: 晨读
         var revivals = chapter.morning_revivals || [];
         for (var dayIdx = 0; dayIdx < revivals.length; dayIdx++) {
           var revival = revivals[dayIdx];
@@ -105,7 +105,7 @@
             if (mfp.length >= 10) {
               entries.push({ url: path + '/' + num + '/cx',
                 training: trainingTitle, season_label: seasonLabel,
-                chapter: num, type: 'cx', type_label: '晨兴喂养',
+                chapter: num, type: 'cx', type_label: '晨读喂养',
                 chapter_title: chTitle, pi: mfi, day_index: dayIdx,
                 selector: 'content-text', text: mfp.slice(0, 200) });
             }
@@ -379,7 +379,7 @@
         var el = els[target.pi];
         if (!el) return;
 
-        // 显示隐藏的祖先节点；晨兴（_cx.htm）用 translateX 横滑，需点击对应 day-link
+        // 显示隐藏的祖先节点；晨读（_cx.htm）用 translateX 横滑，需点击对应 day-link
         var dayPage = null;
         var node = el.parentElement;
         while (node && node !== document.body) {
@@ -450,7 +450,7 @@
           }
         })(el);
 
-        // 5 秒后淡出移除（晨兴页需要时间滚动到匹配位置，延长高亮时间）
+        // 5 秒后淡出移除（晨读页需要时间滚动到匹配位置，延长高亮时间）
         setTimeout(function () {
           el.classList.remove('cx-search-target');
           marks.forEach(function (mark) {
@@ -503,7 +503,7 @@
       }
       if (!el) return;
 
-      // 显示隐藏祖先；晨兴横滑 day-page 需点击对应 day-link
+      // 显示隐藏祖先；晨读横滑 day-page 需点击对应 day-link
       var dayPage = null;
       var node = el.parentElement;
       while (node && node !== document.body) {

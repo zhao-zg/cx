@@ -178,7 +178,7 @@
     html += link('cv', '纲目');
     html += link('h', '听抄');
     if (chapter.morning_revivals && chapter.morning_revivals.length > 0) {
-      html += link('cx', '晨兴');
+      html += link('cx', '晨读');
     }
     if (chapter.hymn_number && String(chapter.hymn_number).trim()) {
       html += link('sg', '诗歌');
@@ -203,7 +203,7 @@
     return '<div class="footer"><p>' + escText(training.year + '-' + training.season) + '</p></div>';
   }
 
-  // ── 纲目递归（cv 视图 + 晨兴 outline）─────────────────────────────────
+  // ── 纲目递归（cv 视图 + 晨读 outline）─────────────────────────────────
 
   /* ctx-box：用可变对象在递归渲染中传播上下文，避免父节点识别出的书卷/章无法传给子节点 */
   function toCtxBox(ctx) {
@@ -480,7 +480,7 @@
     setContent(html, 'zs', batchPath, chapter, training);
   }
 
-  // ── 视图: cx（晨兴）────────────────────────────────────────────────────
+  // ── 视图: cx（晨读）────────────────────────────────────────────────────
 
   function renderCx(batchPath, chapter, training) {
     var nav = buildPageNavigation(batchPath, chapter, 'cx', training);
@@ -490,7 +490,7 @@
     if (!revivals.length) {
       var noContent = '<div class="container">' + header +
         '<div class="content"><div class="morning-revival-page">' + nav +
-        '<p class="no-content">暂无晨兴内容</p></div></div>' +
+        '<p class="no-content">暂无晨读内容</p></div></div>' +
         buildFooter(training) + '</div>';
       setContent(noContent, 'cx', batchPath, chapter, training);
       return;
@@ -523,7 +523,7 @@
       var hasFeeding = (rev.feeding_scriptures && rev.feeding_scriptures.length) || (rev.morning_feeding && rev.morning_feeding.length);
       var hasReading = rev.message_reading && rev.message_reading.length;
       if (hasFeeding) {
-        feedingHtml = '<div class="feeding-section"><h4>晨兴喂养</h4>';
+        feedingHtml = '<div class="feeding-section"><h4>晨读喂养</h4>';
         var fs = rev.feeding_scriptures || [];
         for (var fi = 0; fi < fs.length; fi++) {
           var frefs = feedingRefs[fi] || '';
@@ -593,7 +593,7 @@
     setTimeout(function(){ initDayPager(initialPage); }, 0);
   }
 
-  // ── 天翻页（晨兴）─ 与 morning_revival.html 内嵌脚本一致 ──────────
+  // ── 天翻页（晨读）─ 与 morning_revival.html 内嵌脚本一致 ──────────
 
   function initDayPager(initialPage) {
     var container = document.querySelector('.pages-container');
@@ -718,7 +718,7 @@
     try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e) {}
     setMeta(training);
     document.title = '第' + (chapter ? chapter.number : '') + '篇 - ' + ({
-      cv:'纲目', cx:'晨兴', h:'听抄', ts:'详情', sg:'诗歌', zs:'职事信息'
+      cv:'纲目', cx:'晨读', h:'听抄', ts:'详情', sg:'诗歌', zs:'职事信息'
     }[viewType] || '');
 
     if (win.CXScripturePopup && win.CXScripturePopup.init) try { win.CXScripturePopup.init(); } catch(e){}
@@ -761,7 +761,7 @@
       sessionStorage.removeItem('cx_restore_scroll');
       var _todayStr = new Date().toISOString().slice(0, 10);
       var _isCx = (viewType === 'cx');
-      // 晨兴页：仅同天恢复滚动；其他页面始终恢复
+      // 晨读页：仅同天恢复滚动；其他页面始终恢复
       var _shouldRestore = _savedScrollVal > 0 && (!_isCx || _savedDateVal === _todayStr);
       if (_shouldRestore) {
         // 延迟确保 initDayPager 等异步初始化完成后再滚动
@@ -812,9 +812,30 @@
         });
       } else if (viewType === 'cx') {
         var active = document.querySelector('.day-page.is-active') || document.querySelector('.day-page');
-        if (active) active.querySelectorAll('.outline-item, .content-text').forEach(function(el){
-          var t = getCleanText(el); if (t) text += t + '。';
-        });
+        if (active) {
+          // 纲目
+          active.querySelectorAll('.outline-item').forEach(function(el){
+            var t = getCleanText(el); if (t) text += t + '。';
+          });
+          // 晨读喂养经文（scripture-block-static 由 speech.js 包装层已展开书名）
+          var feedingSec = active.querySelector('.feeding-section');
+          if (feedingSec) {
+            feedingSec.querySelectorAll('.scripture-block-static').forEach(function(block){
+              var clone = block.cloneNode(true);
+              clone.querySelectorAll('sup').forEach(function(s){ s.remove(); });
+              var t = clone.textContent.trim();
+              if (t) text += t + '。';
+            });
+            feedingSec.querySelectorAll('.feeding-scripture').forEach(function(s){
+              var t = s.textContent.trim();
+              if (t) text += t + '。';
+            });
+          }
+          // 喂养正文 + 信息选读（.content-text）
+          active.querySelectorAll('.content-text').forEach(function(el){
+            var t = getCleanText(el); if (t) text += t + '。';
+          });
+        }
       } else if (viewType === 'h') {
         var msg = document.querySelector('.message-content');
         if (msg) {

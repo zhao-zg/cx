@@ -12,7 +12,7 @@
         // 周日：跳转到纲目页
         item.href = chapterNum + '_cv.htm';
       } else {
-        // 周一到周六：跳转到晨兴页对应的天
+        // 周一到周六：跳转到晨读页对应的天
         item.href = chapterNum + '_cx.htm#' + dayAnchors[dayOfWeek];
       }
     });

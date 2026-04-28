@@ -27,11 +27,11 @@ class Content:
 
 @dataclass
 class MorningRevival:
-    """晨兴内容（按天）"""
+    """晨读内容（按天）"""
     day: str  # 周一、周二...
     outline: List[Content] = field(default_factory=list)  # 大纲部分
-    feeding_scriptures: List[str] = field(default_factory=list)  # 晨兴喂养的经文部分
-    morning_feeding: List[str] = field(default_factory=list)  # 晨兴喂养
+    feeding_scriptures: List[str] = field(default_factory=list)  # 晨读喂养的经文部分
+    morning_feeding: List[str] = field(default_factory=list)  # 晨读喂养
     message_reading: List[str] = field(default_factory=list)  # 信息选读
     ref_reading: List[str] = field(default_factory=list)  # 参读
 
@@ -49,7 +49,7 @@ class Chapter:
     scripture_verses: str = ""  # 经文内容（经文正文）
     message_content: List[str] = field(default_factory=list)  # 职事信息内容（来自听抄.docx末尾）
     ministry_excerpt: str = ""  # 职事信息摘录（来自经文.docx）
-    morning_revivals: List[MorningRevival] = field(default_factory=list)  # 晨兴（来自晨兴.doc）
+    morning_revivals: List[MorningRevival] = field(default_factory=list)  # 晨读（来自晨读.doc）
     _day_outlines: dict = field(default_factory=dict)  # 内部使用：按天存储的大纲数据
     
     def add_outline_section(self, section: Content):
@@ -91,7 +91,7 @@ class Chapter:
         }
     
     def _build_morning_revival_dict(self, mr):
-        """构建单天晨兴字典。"""
+        """构建单天晨读字典。"""
         outline = self._sections_to_dict_debug(mr.outline, f"MorningRevival {mr.day}")
         fs, mf = self._extract_feeding_scriptures(mr.morning_feeding)
         return {
@@ -105,7 +105,7 @@ class Chapter:
 
     def _extract_feeding_scriptures(self, paragraphs: List[str]) -> tuple:
         """
-        从晨兴喂养段落中分离经文
+        从晨读喂养段落中分离经文
         
         Returns:
             (scriptures, content) 元组
