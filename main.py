@@ -377,6 +377,17 @@ def generate_main_index(config, batch_results):
         if os.path.exists(src):
             shutil.copy2(src, os.path.join(icons_dir, icon_fn))
 
+    # ── 静态图片 → output/images/（赞助二维码等）───────────────────────
+    static_img_src = os.path.join('src', 'static', 'image')
+    static_img_dst = os.path.join(output_dir, 'images')
+    if os.path.exists(static_img_src):
+        os.makedirs(static_img_dst, exist_ok=True)
+        for fn in os.listdir(static_img_src):
+            src_f = os.path.join(static_img_src, fn)
+            if os.path.isfile(src_f):
+                shutil.copy2(src_f, os.path.join(static_img_dst, fn))
+        print(f"✓ 静态图片已复制到 images/")
+
     # ── vendor 目录（localforage 等第三方库）────────────────────────────
     vendor_src = os.path.join('src', 'static', 'js', 'vendor')
     vendor_dst = os.path.join(output_dir, 'vendor')
