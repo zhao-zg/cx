@@ -306,13 +306,18 @@
 
       function onPlaybackNaturalEnd() {
         if (isLooping && fullText) {
+          // 立即递增 generation，使所有旧回调（ttsPosition listener、chunk onerror 等）失效
+          ++speakGeneration;
+          var loopGen = speakGeneration;
+          // 先进入 idle，防止 visibilitychange 在延迟内误判为"playing 但未在说话"而重入
+          setState('idle');
           elapsedOffset = 0; startTime = 0;
           progressBar.value = '0';
           speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
           setTimeout(function () {
-            if (state !== 'playing') return;
+            if (loopGen !== speakGeneration) return;  // 期间被手动取消/暂停则放弃
             startSpeakingFromPercent(0);
-          }, 300);
+          }, 50);
         } else {
           resetState();
         }
@@ -412,12 +417,14 @@
         }
 
         NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
-                          startSecs: targetSeconds || 0, totalSecs: totalDuration || 0 })
+                          startSecs: targetSeconds || 0, totalSecs: totalDuration || 0,
+                          loop: isLooping })
           .then(function (result) {
             if (gen !== speakGeneration) return;
             var status = result && result.status;
             if (status === 'cancelled' || status === 'stopped') return;
-            onPlaybackNaturalEnd();
+            // Java 已处理循环（loop=true 时永不触发 onFinished），到达此处说明非循环播放自然结束
+            resetState();
           })
           .catch(function (err) {
             if (gen !== speakGeneration) return;
@@ -466,6 +473,8 @@
         var rate = Number(rateSelect.value) || 0.5;
         var utt  = new SpeechSynthesisUtterance(textChunks[currentChunk]);
         utt.lang = lang; utt.rate = rate;
+        // 防止同一 utterance 的 onend 和 onerror(interrupted) 都触发时双重推进
+        var consumed = false;
 
         utt.onstart = function () {
           if (gen !== speakGeneration || state !== 'playing') return;
@@ -473,7 +482,8 @@
           startProgressUpdate();
         };
         utt.onend = function () {
-          if (gen !== speakGeneration || state !== 'playing') return;
+          if (consumed || gen !== speakGeneration || state !== 'playing') return;
+          consumed = true;
           currentChunk++;
           wsPlayNextChunk();
         };
@@ -481,13 +491,16 @@
           if (gen !== speakGeneration) return;
           var err = event && event.error;
           if (err === 'interrupted' || err === 'cancelled') {
-            if (state !== 'playing') return;
+            if (consumed || state !== 'playing') return;
+            consumed = true;
             setTimeout(function () {
               if (gen !== speakGeneration || state !== 'playing') return;
               wsPlayNextChunk();
             }, 150);
             return;
           }
+          if (consumed) return;
+          consumed = true;
           currentChunk++;
           if (currentChunk < textChunks.length) {
             setTimeout(function () { if (gen !== speakGeneration) return; wsPlayNextChunk(); }, 100);
@@ -667,7 +680,7 @@
         } else if (state === 'playing') {
           startSpeakingFromPercent(newPct);
         } else if (state === 'paused') {
-          _wsResumePercent = newPct;
+          _resumePercent = newPct;
         }
       });
 
@@ -685,6 +698,14 @@
           isLooping = !isLooping;
           localStorage.setItem('speechLoop', isLooping ? '1' : '0');
           updateLoopButton();
+          // NativeTTS 正在播放时需立即同步 loop 参数给 Java，否则下一轮仍用旧值循环
+          if (useNativeTTS && state === 'playing' && fullText) {
+            var pct = totalDuration > 0
+              ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100) : 0;
+            ++speakGeneration;
+            nativeStopService();
+            setTimeout(function () { startSpeakingFromPercent(pct); }, 80);
+          }
         });
       }
 

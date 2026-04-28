@@ -82,6 +82,7 @@ public class TTSForegroundService extends Service {
     private volatile boolean    isPaused     = false;
     private volatile boolean    pausedByUser = false; // true=用户手动暂停，false=系统失焦自动暂停
     private volatile boolean    isStopped  = false;
+    private volatile boolean    loopEnabled = false; // 循环播放开关，由 JS speak() 的 loop 参数控制
     private volatile int        speakGen   = 0;   // generation counter for stale-callback guard
     private float               playRate   = 1.0f;
     private String              playLang   = "zh-CN";
@@ -334,6 +335,7 @@ public class TTSForegroundService extends Service {
         if (title  != null && !title.isEmpty())  playTitle  = title;
         if (artist != null && !artist.isEmpty()) playArtist = artist;
         playRate             = intent.getFloatExtra("rate", 1.0f);
+        loopEnabled          = intent.getBooleanExtra("loop", false);
         sliceStartPositionMs = (long)(intent.getFloatExtra("startSecs", 0f) * 1000L);
         fullTotalDurationMs  = (long)(intent.getFloatExtra("totalSecs", 0f) * 1000L);
 
@@ -807,6 +809,21 @@ public class TTSForegroundService extends Service {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void notifyFinished() {
+        // 原生循环：直接在 Java 侧重置并重播，完全绕开 JS 往返，息屏后也不受影响
+        if (loopEnabled && !isStopped) {
+            chunkIndex           = 0;
+            chunkStartPositionMs = 0;
+            chunkStartTimeMs     = 0;
+            sliceStartPositionMs = 0;
+            speakGen++;
+            updateNotification(true);
+            final int gen = speakGen;
+            ttsHandler.postDelayed(() -> {
+                if (speakGen != gen || isStopped || isPaused) return;
+                playChunkOnly();
+            }, 50);
+            return;
+        }
         finishPlayback();
         Listener cb = listener;
         if (cb != null) cb.onFinished();

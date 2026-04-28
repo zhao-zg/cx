@@ -38,6 +38,7 @@ public class NativeTTSPlugin extends Plugin {
         String artist     = call.getString("artist", "");
         float  startSecs  = call.getFloat("startSecs", 0f);
         float  totalSecs  = call.getFloat("totalSecs", 0f);
+        boolean loop      = Boolean.TRUE.equals(call.getBoolean("loop", false));
 
         if (text == null || text.trim().isEmpty()) {
             call.reject("文本为空");
@@ -95,6 +96,7 @@ public class NativeTTSPlugin extends Plugin {
         intent.putExtra("artist",     artist);
         intent.putExtra("startSecs",  startSecs);
         intent.putExtra("totalSecs",  totalSecs);
+        intent.putExtra("loop",       loop);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getContext().startForegroundService(intent);
