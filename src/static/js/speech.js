@@ -280,8 +280,7 @@
       var isSeeking     = false;
       var speakGeneration = 0;
       var isLooping     = localStorage.getItem('speechLoop') === '1';
-      var _pauseBarPct     = 0;  // NativeTTS: % position to resume from after pause
-      var _wsResumePercent = 0;  // Web Speech: % position to resume from after pause
+      var _resumePercent = 0;   // % position to resume from after pause
       var _nativePositionHandle = null;
       var textChunks   = [];
       var currentChunk = 0;
@@ -310,7 +309,10 @@
           elapsedOffset = 0; startTime = 0;
           progressBar.value = '0';
           speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
-          setTimeout(function () { startSpeakingFromPercent(0); }, 300);
+          setTimeout(function () {
+            if (state !== 'playing') return;
+            startSpeakingFromPercent(0);
+          }, 300);
         } else {
           resetState();
         }
@@ -623,7 +625,7 @@
 
         // Resume from paused
         if (state === 'paused') {
-          startSpeakingFromPercent(useNativeTTS ? _pauseBarPct : _wsResumePercent);
+          startSpeakingFromPercent(_resumePercent);
           return;
         }
 
@@ -633,12 +635,11 @@
           : 0;
         stopProgressUpdate();
         elapsedOffset = currentElapsedSeconds(); startTime = 0;
+        _resumePercent = pct;
         if (useNativeTTS) {
-          _pauseBarPct = pct;
           nativeStopService();
           setState('paused');
         } else {
-          _wsResumePercent = pct;
           ++speakGeneration;
           try { window.speechSynthesis.cancel(); } catch (e) {}
           setState('paused');

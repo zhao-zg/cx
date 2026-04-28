@@ -821,8 +821,10 @@ public class TTSForegroundService extends Service {
     @SuppressWarnings("deprecation")
     private void finishPlayback() {
         stopPositionBroadcast();
-        releaseWakeLock();
-        abandonAudioFocus();
+        // 不在此处释放 WakeLock 和 AudioFocus：循环播放时 JS 会在 300ms 内发出新的
+        // speak()，若提前放弃焦点，其他 App 可能抢占且不再归还，导致下一轮无声；
+        // 提前释放 WakeLock 则省电 ROM 可能在宽限期内挂起 CPU。
+        // handleStop() / onDestroy() 才真正释放两者。
         // 更新通知为暂停/结束状态（保持前台 Service，避免 OEM 在宽限期内杀进程）
         updateNotification(false);
         // 不立即销毁 Service：延迟 2 秒宽限期，允许循环播放直接复用现有 TTS 实例。
@@ -837,6 +839,9 @@ public class TTSForegroundService extends Service {
         _pendingStop = new Runnable() {
             @Override public void run() {
                 _pendingStop = null;
+                // 非循环场景：宽限期满，此时真正释放音频焦点和 WakeLock。
+                releaseWakeLock();
+                abandonAudioFocus();
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     stopForeground(STOP_FOREGROUND_REMOVE);
                 } else {
