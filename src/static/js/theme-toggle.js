@@ -797,6 +797,11 @@
                         return Promise.all(keys.map(function(k) { return caches.delete(k); }));
                     }).catch(function() {}));
                 }
+                if (window.localforage) {
+                    steps.push(window.localforage.keys().then(function(keys) {
+                        return Promise.all(keys.filter(function(k) { return k && k.indexOf('cx_search_') === 0; }).map(function(k) { return window.localforage.removeItem(k); }));
+                    }).catch(function() {}));
+                }
                 try {
                     var theme = localStorage.getItem('readingTheme');
                     var fontSize = localStorage.getItem('globalFontSize');
