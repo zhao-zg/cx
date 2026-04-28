@@ -55,6 +55,12 @@
       })
       .then(function(data) {
         _cache[batchPath] = data;
+        // 异步提取搜索缓存（不阻塞渲染）
+        setTimeout(function() {
+          if (win.CXSearch && win.CXSearch._cacheTraining) {
+            win.CXSearch._cacheTraining(batchPath, data);
+          }
+        }, 0);
         return data;
       });
   }

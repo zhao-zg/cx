@@ -282,8 +282,9 @@ def process_batch(batch_folder, config, bible_dict: BibleDict = None):
         traceback.print_exc()
         return None
 
+    training_version = ''
     try:
-        export_training_json(training_data, output_dir)
+        training_version = export_training_json(training_data, output_dir)
     except Exception as e:
         print(f"✗ training.json 生成失败: {e}")
         import traceback
@@ -308,6 +309,7 @@ def process_batch(batch_folder, config, bible_dict: BibleDict = None):
         'chapter_count': len(training_data.chapters),
         'path': safe_batch_name,
         'images': training_images,
+        'version': training_version,
     }
 
 
@@ -332,6 +334,7 @@ def generate_main_index(config, batch_results):
             'chapter_count': result['chapter_count'],
             'path': result['path'],
             'images': result.get('images', []),
+            'version': result.get('version', ''),
         })
         total_chapters += result['chapter_count']
 
@@ -343,9 +346,6 @@ def generate_main_index(config, batch_results):
         return (t['year'], season_order.get(t['season'], 5))
 
     trainings.sort(key=get_sort_key, reverse=True)
-
-    # ── 生成搜索索引（读取 training.json）──────────────────────────────
-    generate_search_index_from_json(output_dir, trainings)
 
     # ── trainings.json ────────────────────────────────────────────────────
     trainings_json = {

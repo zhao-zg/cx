@@ -1153,12 +1153,14 @@ def generate_search_index(output_root: str, trainings: list) -> None:
 # JSON Export (SPA mode - replaces HTMLGenerator.generate_all)
 # ---------------------------------------------------------------------------
 
-def export_training_json(training_data, output_dir: str) -> None:
+def export_training_json(training_data, output_dir: str) -> str:
     """Export training data as training.json for the SPA renderer.
 
     Generates:
       output_dir/training.json        — full training data with precomputed contexts
       output_dir/js/scriptures-data.json — supplementary verse texts not in bible-text.json
+
+    Returns: version string (timestamp) written into training.json
     """
     os.makedirs(output_dir, exist_ok=True)
 
@@ -1176,6 +1178,10 @@ def export_training_json(training_data, output_dir: str) -> None:
         gen._enrich_chapter_feeding_refs(ch_dict)
         gen._enrich_section_contexts(ch_dict)
 
+    from datetime import datetime as _dt
+    version = _dt.now().strftime('%Y%m%d%H%M%S')
+    training_dict['version'] = version
+
     # Write training.json (compact, no indent)
     json_path = os.path.join(output_dir, 'training.json')
     with open(json_path, 'w', encoding='utf-8') as f:
@@ -1187,6 +1193,8 @@ def export_training_json(training_data, output_dir: str) -> None:
         gen._generate_scriptures_data_json(training_data)
     except Exception as e:
         print(f"  ⚠ scriptures-data.json 生成失败: {e}")
+
+    return version
 
 
 def generate_search_index_from_json(output_root: str, trainings: list) -> None:
