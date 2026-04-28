@@ -6,6 +6,8 @@
    ============================================================ */
 
 /* ── 一、CSS 变量（主题 tokens）────────────────────────────── */
+/* :root 仅存放各主题共用的全局常量（不被 cool 主题块覆盖的值）；
+   主题色、阴影、交互软色等默认值统一在下方 [data-theme="cool"] 中定义。 */
 :root{
     --brand:#667eea;
     --brand-dark:#5B67D4;
@@ -18,28 +20,12 @@
     --btn-primary-bg:var(--bg);
     --btn-primary-text:#fff;
     --btn-primary-border:var(--brand);
-    --focus-ring:rgba(var(--brand-rgb),.35);
-    --selection-bg:rgba(var(--brand-rgb),.22);
-    --panel-overlay:rgba(0,0,0,.3);
-    --theme-color:#f7f8fc;
+    --btn-secondary-text:var(--brand);
+    --text-primary:var(--text);
+    --text-secondary:var(--text-soft);
+    --button-hover-shadow:0 2px 6px rgba(0,0,0,.08);
     --header-text:#fff;
     --header-subtitle:rgba(255,255,255,.9);
-    --interactive-soft-bg:rgba(var(--brand-rgb),.08);
-    --interactive-soft-hover:rgba(var(--brand-rgb),.12);
-    --interactive-soft-border:rgba(var(--brand-rgb),.16);
-    --interactive-soft-shadow:0 2px 8px rgba(var(--brand-rgb),.15);
-    --button-hover-shadow:0 2px 6px rgba(0,0,0,.08);
-    --panel-shadow:0 4px 16px rgba(0,0,0,.08),0 12px 48px rgba(0,0,0,.1);
-    --menu-shadow:0 4px 20px rgba(0,0,0,.22);
-    --dialog-shadow:0 8px 32px rgba(0,0,0,.22);
-    --overlay-strong:rgba(0,0,0,.45);
-    --control-track-bg:rgba(var(--brand-rgb),.15);
-    --control-thumb-shadow:0 2px 6px rgba(var(--brand-rgb),.4);
-    --control-thumb-shadow-hover:0 3px 10px rgba(var(--brand-rgb),.4);
-    --note-preview-bg:rgba(var(--brand-rgb),.08);
-    --section-divider:#e2e8f0;
-    --group-divider-bg:#e8ecf0;
-    --toc-title-color:#2d3748;
     --card-bg:var(--surface);
     --card-border:var(--border);
     --card-shadow:0 2px 8px rgba(0,0,0,.1);
@@ -59,9 +45,7 @@
     --sponsor-bg:#fffbf2;
     --sponsor-bg-active:#fef3c7;
     --sponsor-wx-color:#07C160;
-    --sponsor-wx-bg:rgba(7,193,96,.08);
     --sponsor-zfb-color:#1677FF;
-    --sponsor-zfb-bg:rgba(22,119,255,.08);
     --footnote-ref:#c07818;
     --footnote-ref-hover:#e08000;
     --viewer-overlay-bg:rgba(0,0,0,.92);
@@ -84,14 +68,11 @@
     --text:#1f2937;
     --text-soft:#4b5563;
     --text-muted:#6b7280;
-    --text-primary:var(--text);
-    --text-secondary:var(--text-soft);
     --heading:#111827;
     --heading-strong:#030712;
     --heading-soft:#374151;
     --heading-muted:#4b5563;
     --btn-secondary-bg:#fafaf9;
-    --btn-secondary-text:var(--brand);
     --btn-secondary-border:rgba(113,136,227,.22);
     --btn-secondary-hover-bg:#eef3ff;
     --btn-secondary-active-bg:rgba(var(--brand-rgb),0.1);
@@ -123,8 +104,6 @@
     --brand-dark:#6B5026;
     --brand-rgb:125,96,48;
     --bg:linear-gradient(135deg,#8C6D3F,#7A5A2E);
-    --btn-primary-bg:var(--bg);
-    --btn-primary-border:var(--brand);
     --surface:#fffaf4;
     --surface-alt:#f7efe5;
     --page-bg:#f4ede2;
@@ -136,14 +115,11 @@
     --text:#292524;
     --text-soft:#62574d;
     --text-muted:#87786a;
-    --text-primary:var(--text);
-    --text-secondary:var(--text-soft);
     --heading:#1c1917;
     --heading-strong:#0c0a09;
     --heading-soft:#4f463f;
     --heading-muted:#62574d;
     --btn-secondary-bg:#fdf4e8;
-    --btn-secondary-text:var(--brand);
     --btn-secondary-border:rgba(140,109,63,.22);
     --btn-secondary-hover-bg:#e8d5bc;
     --btn-secondary-active-bg:rgba(var(--brand-rgb),0.10);
@@ -193,8 +169,6 @@
     --brand-dark:#6b83c4;
     --brand-rgb:123,147,212;
     --bg:linear-gradient(135deg,#2a3a5c,#1e2d4a);
-    --btn-primary-bg:var(--bg);
-    --btn-primary-border:var(--brand);
     --surface: #181b21;
     --surface-alt: #20252d;
     --page-bg: #101319;
@@ -207,16 +181,12 @@
     --text: #dde1ea;
     --text-soft: #b8bfcc;
     --text-muted: #8a94a6;
-    --text-primary: var(--text);
-    --text-secondary: var(--text-soft);
-
     --heading: #edf0f7;
     --heading-strong: #edf0f7;
     --heading-soft: #d0d6e4;
     --heading-muted: #a8b0c2;
 
     --btn-secondary-bg: #202634;
-    --btn-secondary-text: var(--brand);
     --btn-secondary-border: rgba(145,163,255,.2);
     --btn-secondary-hover-bg: #293041;
     --btn-secondary-active-bg: rgba(var(--brand-rgb),0.18);
@@ -407,21 +377,21 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 }
 
 /* ── 八、纲目层级与内容文字 ────────────────────────────────── */
-.section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:6px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
-.section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1.25em;text-indent:-1.25em}
-.section-level3,.outline-item.level-3{font-size:1.04em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:26px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
-.section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:36px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
-.section-level5,.outline-item.level-5{font-size:.97em;font-weight:450;margin:7px 0 5px;color:var(--heading-muted);line-height:1.6;margin-left:46px;text-align:justify;padding-left:1.1em;text-indent:-1.1em}
+.section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:0px;text-align:justify;padding-left:1.1em;padding-right:0.3em;text-indent:-1.1em}
+.section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:8px;text-align:justify;padding-left:1.1em;padding-right:0.3em;text-indent:-1.1em}
+.section-level3,.outline-item.level-3{font-size:1.04em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
+.section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:24px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
+.section-level5,.outline-item.level-5{font-size:.97em;font-weight:450;margin:7px 0 5px;color:var(--heading-muted);line-height:1.6;margin-left:32px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
 .outline-item .outline-level,.outline-item .outline-text{display:inline}
 .outline-children{margin-left:0}
-.content-text{margin:14px 0;padding-left:2px;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
+.content-text{margin:14px 0;padding-inline:0.3em;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}
 @media(min-width:768px){
-    .content-text{padding-left:2px;font-size:1.05em}
+    .content-text{font-size:1.05em}
     .section-level1,.outline-item.level-1{margin:18px 0 16px;font-size:1.15em;margin-left:10px;padding-left:1.75em;text-indent:-1.75em}
-    .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:22px;padding-left:1.75em;text-indent:-1.75em}
-    .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:34px;padding-left:1.5em;text-indent:-1.5em}
-    .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:46px;padding-left:1.5em;text-indent:-1.5em}
-    .section-level5,.outline-item.level-5{margin:8px 0 6px;font-size:1.01em;margin-left:58px;padding-left:1.5em;text-indent:-1.5em}
+    .section-level2,.outline-item.level-2{margin:15px 0 10px;font-size:1.10em;margin-left:24px;padding-left:1.75em;text-indent:-1.75em}
+    .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:38px;padding-left:1.5em;text-indent:-1.5em}
+    .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:52px;padding-left:1.5em;text-indent:-1.5em}
+    .section-level5,.outline-item.level-5{margin:8px 0 6px;font-size:1.01em;margin-left:66px;padding-left:1.5em;text-indent:-1.5em}
 }
 .outline-item{display:block}
 .outline-lvl-toggle{cursor:pointer;-webkit-tap-highlight-color:transparent;color:inherit;font-weight:bold;display:inline;touch-action:manipulation}
@@ -469,12 +439,6 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
     .hl-color-dot{width:34px;height:34px}
     body{padding:0}
     .container{padding:12px 16px;border-radius:0;border-left:none;border-right:none}
-    .content-text{padding-left:2px;padding-right:2px}
-    .section-level1,.outline-item.level-1{margin-left:4px;padding-left:1.1em;text-indent:-1.1em}
-    .section-level2,.outline-item.level-2{margin-left:11px;padding-left:1.1em;text-indent:-1.1em}
-    .section-level3,.outline-item.level-3{margin-left:18px;padding-left:1em;text-indent:-1em}
-    .section-level4,.outline-item.level-4{margin-left:25px;padding-left:1em;text-indent:-1em}
-    .section-level5,.outline-item.level-5{margin-left:32px;padding-left:1em;text-indent:-1em}
     .nav{gap:6px}
     .page-navigation{gap:0}
     .bottom-control-bar{gap:6px;padding:4px 8px max(4px,env(safe-area-inset-bottom))}
@@ -731,7 +695,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .cx-dialog-confirm{flex:1;padding:13px;background:none;border:none;font-size:14px;font-weight:600;color:var(--danger-text);cursor:pointer}
 .cx-dialog-confirm:active,.cx-dialog-cancel:active{background:var(--surface-alt)}
 
-/* ── 开发者调试面板 ─────────────────────────────────────────── */
+/* ── 二十二、开发者调试面板 ────────────────────────────────── */
 #cx-dev-console{position:fixed;bottom:0;left:0;right:0;z-index:19999;background:rgba(0,0,0,.92);color:#0f0;font-family:'Courier New',monospace;font-size:11px;line-height:1.5;pointer-events:auto;transition:height .25s ease;overflow:hidden}
 #cx-dev-console.collapsed{height:calc(40px + env(safe-area-inset-bottom, 0px));max-height:calc(40px + env(safe-area-inset-bottom, 0px))}
 #cx-dev-console.expanded{height:calc(45vh + env(safe-area-inset-bottom, 0px));max-height:calc(400px + env(safe-area-inset-bottom, 0px))}
@@ -747,7 +711,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .cx-dev-log.info{color:#4cf}
 .cx-dev-log.debug{color:#aaa}
 
-/* ── 二十二、经文弹框（scripture-popup.js）──────────────────── */
+/* ── 二十三、经文弹框（scripture-popup.js）──────────────────── */
 .scripture-popup-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--overlay-strong);z-index:1200;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s}
 .scripture-popup-overlay--open{opacity:1;pointer-events:auto}
 .scripture-popup{background:var(--surface);border-radius:14px;width:100%;max-width:560px;max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--dialog-shadow);transform:translateY(16px);transition:transform .2s;overflow:hidden}
@@ -785,7 +749,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .verse-ref:hover{color:var(--brand-dark,#0060c0)}
 .scripture-ref--inline{cursor:pointer;color:var(--text-muted);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;font-size:inherit;margin-left:0}
 
-/* ── 二十二、图片查看器（hymn / motto_song 共用）──────────── */
+/* ── 二十四、图片查看器（hymn / motto_song 共用）──────────── */
 .image-viewer-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--viewer-overlay-bg);z-index:9999;overflow:hidden;touch-action:none}
 .image-viewer-overlay.show{display:flex;align-items:center;justify-content:center}
 .image-viewer-content{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative}
@@ -805,7 +769,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
     .image-viewer-overlay.portrait .image-viewer-content img{width:auto;max-width:min(100%,60vh)}
 }
 
-/* ── 二十三、阅读进度条 ────────────────────────────────────── */
+/* ── 二十五、阅读进度条 ────────────────────────────────────── */
 .cx-reading-progress{position:fixed;top:0;left:0;right:0;height:2px;background:var(--brand);z-index:9990;width:0%;pointer-events:none;transition:width .1s linear;transform-origin:left}
 
 
