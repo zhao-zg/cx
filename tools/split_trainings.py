@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """
 解析 97-25-特会合辑.txt，识别每个训练/特会。
 
