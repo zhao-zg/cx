@@ -717,6 +717,12 @@ def parse_cn_outline_2024(lines: list, verse_dict: dict) -> list:
         if re.match(r'^─{10,}', s) or '详细信息' in s:
             break
 
+        # 晨兴/每日内容区——不属于纲目，停止解析
+        if s in ('晨兴喂养', '信息选读') or s.startswith('参读'):
+            break
+        if _DAY_BLOCK_HDR_RE.match(s):
+            break
+
         # 导航行（含 | 的短行）
         if _is_nav_line(s):
             prev_verse_key = None
@@ -932,6 +938,10 @@ def _extract_day_content(day_block_lines: list) -> tuple:
         # 跳过导航行 / "今日晨兴/..." 等结束标记
         if _is_nav_line(s) or s.startswith('今日晨兴') or s.startswith('TOP'):
             continue
+
+        # 下一个日内容块开始或新篇章头 → 停止
+        if _DAY_BLOCK_HDR_RE.match(s) or _MSG_HEADER_FULL_RE.match(s):
+            break
 
         if mode == 'feeding':
             morning_feeding.append(s)

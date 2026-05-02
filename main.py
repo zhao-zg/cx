@@ -548,6 +548,11 @@ def generate_resource_packs(output_dir, all_trainings):
     packs_dir = os.path.join(output_dir, 'resource-packs')
     os.makedirs(packs_dir, exist_ok=True)
 
+    # 清理旧 zip，防止分组策略变化后出现僵尸包
+    for _old in os.listdir(packs_dir):
+        if _old.endswith('.zip'):
+            os.remove(os.path.join(packs_dir, _old))
+
     def _has_images(path):
         img_dir = os.path.join(output_dir, path, 'images')
         return os.path.isdir(img_dir) and any(
