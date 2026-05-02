@@ -382,6 +382,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .section-level3,.outline-item.level-3{font-size:1.04em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
 .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:24px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
 .section-level5,.outline-item.level-5{font-size:.97em;font-weight:450;margin:7px 0 5px;color:var(--heading-muted);line-height:1.6;margin-left:32px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
+.outline-node-content .outline-content-text{font-size:.98em;font-weight:450;margin:7px 0 5px;color:var(--heading-muted);line-height:1.6;text-align:justify;padding-left:1.6em}
 .outline-item .outline-level,.outline-item .outline-text{display:inline}
 .outline-children{margin-left:0}
 .content-text{margin:14px 0;padding-inline:0.3em;text-indent:2em;color:var(--text);line-height:1.8;font-size:1.00em;text-align:justify}

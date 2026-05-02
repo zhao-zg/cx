@@ -266,6 +266,46 @@ jobs:
         
         echo ""
       
+    - name: 裁剪历史训练（APK 仅保留最新 N 个）
+      run: |
+        echo "=== 裁剪历史训练，仅保留最新 N 个 ==="
+        python3 << 'PY'
+        import yaml, json, shutil, re, os
+
+        with open('config.yaml', encoding='utf-8') as f:
+            cfg = yaml.safe_load(f)
+        max_n = cfg.get('batch_processing', {}).get('max_latest_trainings', 7)
+
+        with open('output/trainings.json', encoding='utf-8') as f:
+            data = json.load(f)
+
+        # trainings.json 已按时间倒序排列（历史合辑与当届训练混合）
+        keep = {t['path'] for t in data['trainings'][:max_n]}
+        print(f'保留的训练 ({max_n}): {sorted(keep)}')
+
+        output_dir = 'output'
+        removed = 0
+        for entry in os.listdir(output_dir):
+            if not re.match(r'^\d{4}-\d{2}$', entry):
+                continue
+            if entry in keep:
+                continue
+            shutil.rmtree(os.path.join(output_dir, entry))
+            removed += 1
+
+        # 资源包不打入 APK，按需下载
+        rp_dir = os.path.join(output_dir, 'resource-packs')
+        if os.path.isdir(rp_dir):
+            shutil.rmtree(rp_dir)
+            print('已移除 resource-packs/（APK 不打包）')
+
+        print(f'已删除 {removed} 个历史训练目录')
+        PY
+        echo ""
+        echo "=== 裁剪后 output/ 目录内容 ==="
+        ls output/ | grep -E '^[0-9]{4}-[0-9]{2}$' || echo "(无 YYYY-MM 目录)"
+        du -sh output/
+
     - name: 同步 Capacitor
       run: |
         echo "=== 同步 Capacitor ==="

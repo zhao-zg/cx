@@ -240,6 +240,14 @@
     html += '<div class="outline-item ' + lvCls + '">';
     html += titleHtml;
     html += '</div>';
+    if (sec.content && sec.content.length) {
+      html += '<div class="outline-node-content">';
+      for (var ci = 0; ci < sec.content.length; ci++) {
+        html += '<div class="outline-content-text">' + wrapRefs(sec.content[ci], box.val) + '</div>';
+        scanCtxBox(sec.content[ci], box);
+      }
+      html += '</div>';
+    }
 
     if (hasChildren) {
       var disp = defaultCollapsed ? 'none' : 'block';
@@ -285,10 +293,12 @@
     var levelLen = (sec.level || '').length;
     var levelN = levelLen <= 4 ? levelLen : 4;
     if (levelN === 0) levelN = 1;
-    var titleKey = sec.level + '\u3000' + sec.title;
     var html = '<div class="section" id="section-' + escAttr(sec.level || '') + '">';
-    html += '<div class="section-level' + levelN + '">' + wrapRefs(titleKey, box.val) + '</div>';
-    scanCtxBox(titleKey, box);
+    if (sec.level || sec.title) {
+      var titleKey = sec.level + '\u3000' + sec.title;
+      html += '<div class="section-level' + levelN + '">' + wrapRefs(titleKey, box.val) + '</div>';
+      scanCtxBox(titleKey, box);
+    }
     if (sec.content && sec.content.length) {
       for (var i = 0; i < sec.content.length; i++) {
         html += '<div class="content-text">' + wrapRefs(sec.content[i], box.val) + '</div>';
@@ -960,6 +970,7 @@
           buildFooter(training) +
           '</div>';
 
+        rescueThemeBtn();
         getApp().innerHTML = html;
         document.title = training.title || '目录';
         initSearchBtn();
@@ -967,11 +978,14 @@
         try { localStorage.setItem('cx_last_page', win.location.href); } catch(e){}
       })
       .catch(function(err) {
-        getApp().innerHTML = '<div class="home-status error"><div class="home-status-icon">❌</div><p>加载失败：' + escText(String(err)) + '</p><button class="home-retry-btn" onclick="location.reload()">重试</button></div>';
+        var isCapacitor = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
+        var packHint = isCapacitor
+          ? '<p style="font-size:13px;color:var(--text-secondary)">此训练可能需要下载历史资源包</p>' +
+            '<button class="home-retry-btn" onclick="window.CXResourcePack&&CXResourcePack.showPacksDialog()">📦 下载历史资源</button>'
+          : '';
+        getApp().innerHTML = '<div class="home-status error"><div class="home-status-icon">❌</div><p>加载失败：' + escText(String(err)) + '</p><button class="home-retry-btn" onclick="location.reload()">重试</button>' + packHint + '</div>';
       });
   }
-
-  // ── 标语页 ────────────────────────────────────────────────────────────
 
   function renderMotto(batchPath) {
     showApp();
@@ -1003,21 +1017,29 @@
       }
       flushPara();
 
-      var html = '<div class="container"><div class="header"><h1>' + escText(training.title) + '</h1></div>' +
+      var subtitleLine = '<div class="subtitle">' + escText(training.year + '-' + training.season) + '</div>';
+      var h1Text = training.subtitle || training.title;
+      var html = '<div class="container"><div class="header"><h1>' + escText(h1Text) + '</h1>' + subtitleLine + '</div>' +
         '<div class="content"><div class="motto-page">' + nav +
         '<div class="motto-container">' + (paragraphs || '<div class="no-motto">本次训练暂无标语</div>') + '</div>' +
         '</div></div>' +
         buildFooter(training) +
         '</div>';
+      rescueThemeBtn();
       getApp().innerHTML = html;
       try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e){}
       document.title = '标语 - ' + (training.title || '');
       setMeta(training);
       relocateThemeBtn();
-    }).catch(function(){ getApp().innerHTML = '<p>加载失败</p>'; });
+    }).catch(function(err){
+      var isCapacitor = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
+      var packHint = isCapacitor
+        ? '<p style="font-size:13px;color:var(--text-secondary)">此训练可能需要下载历史资源包</p>' +
+          '<button class="home-retry-btn" onclick="window.CXResourcePack&&CXResourcePack.showPacksDialog()">📦 下载历史资源</button>'
+        : '';
+      getApp().innerHTML = '<div class="home-status error"><p>加载失败</p>' + packHint + '</div>';
+    });
   }
-
-  // ── 标语诗歌页 ────────────────────────────────────────────────────────
 
   function renderMottoSong(batchPath) {
     showApp();
@@ -1031,8 +1053,10 @@
         '<a href="javascript:void(0)" class="nav-link active" title="标语诗歌">标语诗歌</a>' +
         '</div>';
 
+      var subtitleLine = '<div class="subtitle">' + escText(training.year + '-' + training.season) + '</div>';
+      var h1Text = training.subtitle || training.title;
       var imgUrl = root + escAttr(batchPath) + '/' + escAttr(training.motto_song_image || '');
-      var html = '<div class="container"><div class="header"><h1>' + escText(training.title) + '</h1></div>' +
+      var html = '<div class="container"><div class="header"><h1>' + escText(h1Text) + '</h1>' + subtitleLine + '</div>' +
         '<div class="content"><div class="song-page">' + nav +
         '<div class="song-container"><div class="song-image-wrapper">' +
         '<img src="' + imgUrl + '" alt="标语诗歌" class="song-image" onclick="window.openImageViewer&&openImageViewer(this.src)">' +
@@ -1040,15 +1064,21 @@
         '</div></div></div></div>' +
         buildFooter(training) +
         '</div>';
+      rescueThemeBtn();
       getApp().innerHTML = html;
       try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e){}
       document.title = '标语诗歌 - ' + (training.title || '');
       setMeta(training);
       relocateThemeBtn();
-    }).catch(function(){ getApp().innerHTML = '<p>加载失败</p>'; });
+    }).catch(function(err){
+      var isCapacitor = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
+      var packHint = isCapacitor
+        ? '<p style="font-size:13px;color:var(--text-secondary)">此训练可能需要下载历史资源包</p>' +
+          '<button class="home-retry-btn" onclick="window.CXResourcePack&&CXResourcePack.showPacksDialog()">📦 下载历史资源</button>'
+        : '';
+      getApp().innerHTML = '<div class="home-status error"><p>加载失败</p>' + packHint + '</div>';
+    });
   }
-
-  // ── 首页 ────────────────────────────────────────────────────────────────
 
   function renderHome() {
     showHome();
@@ -1083,8 +1113,13 @@
         else renderCx(batchPath, chapter, training);
       })
       .catch(function(err) {
+        var isCapacitor = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
+        var packHint = isCapacitor
+          ? '<p style="font-size:13px;color:var(--text-secondary)">此训练可能需要下载历史资源包</p>' +
+            '<button class="home-retry-btn" onclick="window.CXResourcePack&&CXResourcePack.showPacksDialog()">📦 下载历史资源</button>'
+          : '';
         getApp().innerHTML = '<div class="home-status error"><p>加载失败：' + escText(String(err)) + '</p>' +
-          '<button class="home-retry-btn" onclick="CXRouter.navigate(\'' + escAttr(batchPath+'/'+chNum+'/'+viewType) + '\')">重试</button></div>';
+          '<button class="home-retry-btn" onclick="CXRouter.navigate(\'' + escAttr(batchPath+'/'+chNum+'/'+viewType) + '\')">重试</button>' + packHint + '</div>';
       });
   }
 

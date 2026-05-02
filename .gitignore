@@ -39,7 +39,8 @@ android/app/src/main/java/com/tehui/*
 ios/
 .capacitor/
 resource/bible2/
-resource/历史合辑/
+# 历史合辑大文件（本地保存，不提交 git）
+resource/历史合辑/97-25-特会合辑.txt
 # Output
 output/
 

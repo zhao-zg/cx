@@ -338,6 +338,40 @@ def generate_main_index(config, batch_results):
         })
         total_chapters += result['chapter_count']
 
+    # ── 合并已生成的历史训练（由 split_trainings.py 生成，不在 batch_results 中）──
+    current_paths = {t['path'] for t in trainings}
+    for entry in sorted(os.listdir(output_dir)):
+        if not re.match(r'^\d{4}-\d{2}$', entry):
+            continue
+        if entry in current_paths:
+            continue
+        meta_path = os.path.join(output_dir, entry, 'training.json')
+        if not os.path.exists(meta_path):
+            continue
+        try:
+            with open(meta_path, 'r', encoding='utf-8') as f:
+                meta = json.load(f)
+            chapter_count = len(meta.get('chapters', []))
+            images_dir = os.path.join(output_dir, entry, 'images')
+            images = []
+            if os.path.exists(images_dir):
+                images = [f'images/{fn}' for fn in os.listdir(images_dir)
+                          if fn.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+            trainings.append({
+                'year': meta.get('year', int(entry[:4])),
+                'season': meta.get('season', ''),
+                'title': meta.get('title', ''),
+                'subtitle': meta.get('subtitle', ''),
+                'chapter_count': chapter_count,
+                'path': entry,
+                'images': images,
+                'version': meta.get('version', ''),
+            })
+            total_chapters += chapter_count
+            current_paths.add(entry)
+        except Exception as e:
+            print(f"⚠ 跳过历史训练 {entry}: {e}")
+
     def get_sort_key(t):
         m = re.match(r'(\d{4})-(\d{2})', t['path'])
         if m:
@@ -363,6 +397,19 @@ def generate_main_index(config, batch_results):
     spa_shell_dst = os.path.join(output_dir, 'index.html')
     if os.path.exists(spa_shell_src):
         shutil.copy2(spa_shell_src, spa_shell_dst)
+        # 注入 CX_MAX_LATEST_TRAININGS，使 PWA 与 APK 保持相同的「默认只缓存最新 N 个训练」行为
+        _max_n = config.get('max_latest_trainings', 7)
+        try:
+            with open(spa_shell_dst, 'r', encoding='utf-8') as _f:
+                _html = _f.read()
+            _marker = "window.CX_ROOT = './';\n"
+            _replacement = "window.CX_ROOT = './';\n    window.CX_MAX_LATEST_TRAININGS = " + str(_max_n) + ";\n"
+            if _marker in _html and _replacement not in _html:
+                _html = _html.replace(_marker, _replacement, 1)
+            with open(spa_shell_dst, 'w', encoding='utf-8') as _f:
+                _f.write(_html)
+        except Exception as _e:
+            print(f"⚠ 注入 CX_MAX_LATEST_TRAININGS 失败: {_e}")
         print(f"✓ SPA index.html 已复制")
     else:
         print(f"⚠ 未找到 src/static/index.html — SPA shell 缺失")
@@ -409,6 +456,8 @@ def generate_main_index(config, batch_results):
         'search.js', 'image-utils.js',
         # SPA-specific
         'ref-detector.js', 'router.js', 'renderer.js',
+        # 历史资源包下载
+        'resource-pack.js',
     ]
     for js_file in shared_js_files:
         src = os.path.join('src', 'static', 'js', js_file)
@@ -480,8 +529,101 @@ def generate_main_index(config, batch_results):
         f.write('')
     print(f"✓ .nojekyll 已创建")
 
+    # ── 历史资源包 ────────────────────────────────────────────────────────
+    generate_resource_packs(output_dir, trainings)
+
     index_path = os.path.join(output_dir, 'index.html')
     print(f"\n✓ SPA 主页已生成: {index_path}")
+
+
+def generate_resource_packs(output_dir, all_trainings):
+    """将历史训练分组打包成可下载的 ZIP 资源包，并生成 resource-packs.json 清单。
+
+    分组策略：
+    - 训练文件夹有图片（images/ 目录含文件）→ 每 2 年一包
+    - 训练文件夹无图片 → 每 10 年一包
+    """
+    import zipfile
+
+    packs_dir = os.path.join(output_dir, 'resource-packs')
+    os.makedirs(packs_dir, exist_ok=True)
+
+    def _has_images(path):
+        img_dir = os.path.join(output_dir, path, 'images')
+        return os.path.isdir(img_dir) and any(
+            os.path.isfile(os.path.join(img_dir, f)) for f in os.listdir(img_dir)
+        )
+
+    # 确定"有图片时代"的起始年份（该年及之后统一用2年分组）
+    img_year_starts = [
+        t['year'] for t in all_trainings
+        if isinstance(t.get('year'), int) and _has_images(t.get('path', ''))
+    ]
+    img_era_start = min(img_year_starts) if img_year_starts else 9999
+
+    # 按策略分组：无图片时代10年一组，有图片时代2年一组
+    groups = {}  # (year_start, span) -> [training, ...]
+    for t in all_trainings:
+        year = t.get('year')
+        if not isinstance(year, int):
+            continue
+        path = t.get('path', '')
+        if year >= img_era_start:
+            span = 2
+            year_start = ((year - 1997) // span) * span + 1997
+        else:
+            span = 10
+            year_start = ((year - 1997) // span) * span + 1997
+        groups.setdefault((year_start, span), []).append(t)
+
+    manifest = []
+    for (year_start, span) in sorted(groups.keys()):
+        group = groups[(year_start, span)]
+        # 用组内实际年份范围命名，避免"2017-2026"与"2025-2026"重叠的误导
+        actual_years = [t['year'] for t in group if isinstance(t.get('year'), int)]
+        actual_end = max(actual_years) if actual_years else year_start + span - 1
+        pack_id = f'pack-{year_start}-{actual_end}'
+        zip_name = f'{pack_id}.zip'
+        zip_path = os.path.join(packs_dir, zip_name)
+
+        # 构建 zip：打包每个训练文件夹下的所有文件
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED,
+                             compresslevel=6, allowZip64=True) as zf:
+            for t in group:
+                path = t.get('path', '')
+                training_dir = os.path.join(output_dir, path)
+                if not os.path.isdir(training_dir):
+                    continue
+                for root_w, dirs, files in os.walk(training_dir):
+                    for fn in files:
+                        abs_path = os.path.join(root_w, fn)
+                        rel_path = os.path.relpath(abs_path, output_dir)
+                        # 统一使用正斜杠（跨平台兼容）
+                        arc_name = rel_path.replace(os.sep, '/')
+                        zf.write(abs_path, arc_name)
+
+        size_bytes = os.path.getsize(zip_path)
+        manifest.append({
+            'id': pack_id,
+            'label': f'{year_start}–{actual_end} 年训练',
+            'year_start': year_start,
+            'year_end': actual_end,
+            'training_count': len(group),
+            'size_bytes': size_bytes,
+            'path': f'resource-packs/{zip_name}',
+            'trainings': [{'path': t['path'], 'chapter_count': t['chapter_count']} for t in group],
+        })
+        print(f"✓ 资源包已生成: {zip_name} "
+              f"({len(group)} 训练, {size_bytes/1024/1024:.1f} MB)")
+
+    # 写清单文件
+    manifest_path = os.path.join(output_dir, 'resource-packs.json')
+    with open(manifest_path, 'w', encoding='utf-8') as f:
+        json.dump({
+            'version': datetime.now().strftime('%Y%m%d%H%M%S'),
+            'packs': manifest,
+        }, f, ensure_ascii=False, indent=2)
+    print(f"✓ resource-packs.json 已生成 ({len(manifest)} 个资源包)")
 
 
 def main():
@@ -614,6 +756,19 @@ def main():
             with open(_dst, 'w', encoding='utf-8') as _wf:
                 json.dump(_jdata, _wf, ensure_ascii=False, separators=(',', ':'))
     print(f"✓ 圣经数据 JSON 已生成并压缩到 {_data_dir_early}/")
+
+    # ── 历史合辑：自动调用 split_trainings.py 生成 training.json ──
+    _split_script = os.path.join(os.path.dirname(__file__), 'tools', 'split_trainings.py')
+    if os.path.exists(_split_script):
+        print("\n正在解析历史合辑...")
+        _split_ret = subprocess.run(
+            [sys.executable, _split_script, '--mode', 'json'],
+            cwd=os.path.dirname(_split_script),
+        )
+        if _split_ret.returncode == 0:
+            print("✓ 历史合辑解析完成")
+        else:
+            print("⚠ 历史合辑解析失败（split_trainings.py 返回非零退出码）")
 
     # 处理每个批次
     success_count = 0

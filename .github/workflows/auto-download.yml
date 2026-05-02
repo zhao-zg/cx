@@ -98,7 +98,12 @@ jobs:
           from datetime import date
 
           # 获取已暂存的变更文件，提取新增的资源目录名
-          result = subprocess.run(['git', 'diff', '--staged', '--name-only'], capture_output=True, text=True)
+          # 使用 core.quotepath=false 禁止 Git 对中文路径进行转义（否则含中文的目录名
+          # 会被输出为 "resource/\xe5..." 格式，导致 startswith('resource/') 匹配失败）
+          result = subprocess.run(
+              ['git', '-c', 'core.quotepath=false', 'diff', '--staged', '--name-only'],
+              capture_output=True, text=True, encoding='utf-8'
+          )
           folders = set()
           for line in result.stdout.splitlines():
               if line.startswith('resource/'):
@@ -114,10 +119,30 @@ jobs:
           with open('changelog.json', 'r', encoding='utf-8') as f:
               changelog = json.load(f)
 
-          entry = {
-              'date': str(date.today()),
-              'new': [f'新增资源：{f}' for f in sorted(folders)]
-          }
+          # 区分"新增目录"与"更新已有目录内容"
+          import os
+          new_folders = []
+          updated_folders = []
+          for f in sorted(folders):
+              folder_path = os.path.join('resource', f)
+              # 通过 git log 判断该目录在本次提交前是否已存在
+              prev = subprocess.run(
+                  ['git', '-c', 'core.quotepath=false', 'diff', '--staged',
+                   '--diff-filter=A', '--name-only', '--', f'resource/{f}/'],
+                  capture_output=True, text=True, encoding='utf-8'
+              )
+              # 如果该目录下有新增文件（A = Added），视为新增；否则视为更新
+              if prev.stdout.strip():
+                  new_folders.append(f)
+              else:
+                  updated_folders.append(f)
+
+          entry = {'date': str(date.today())}
+          if new_folders:
+              entry['new'] = [f'新增训练资源：{f}' for f in new_folders]
+          if updated_folders:
+              entry.setdefault('opt', [])
+              entry['opt'] += [f'更新训练资源：{f}' for f in updated_folders]
           changelog[version] = entry
 
           with open('changelog.json', 'w', encoding='utf-8') as f:
