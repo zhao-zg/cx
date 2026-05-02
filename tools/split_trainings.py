@@ -1940,6 +1940,11 @@ def main():
             with open(filepath, encoding='utf-8', errors='replace') as f:
                 lines = f.readlines()
             det_start = ds if ds is not None else detect_detail_start(lines)
+            # 跳过无详细内容区的 stub 文件（如仅含索引的跨年合辑占位文件）；
+            # 这类文件解析只会产生 0 章节训练，且会覆盖大合辑已输出的正确内容。
+            if ds is None and det_start >= len(lines):
+                print(f"  [跳过-stub] {os.path.basename(filepath)}: 无详细内容区")
+                continue
             sections = parse_index_sections(lines, det_start)
             if not sections:
                 print(f"  [跳过] {os.path.basename(filepath)}: 未识别到训练章节")

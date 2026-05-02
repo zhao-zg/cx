@@ -307,18 +307,24 @@
                 if(cBtn)cBtn.style.display='inline-flex';
             }
 
-            // 检查缓存状态：只显示已缓存的训练；若均未缓存则显示全部 7 个（兜底）
-            if('caches' in window){
-                Promise.all(displayTrainings.map(function(t){
-                    return caches.match('./'+t.path+'/training.json')
-                        .then(function(r){return!!r;},function(){return false;});
-                })).then(function(flags){
-                    var cached=displayTrainings.filter(function(_,i){return flags[i];});
-                    grid.innerHTML=buildGridHtml(cached.length>0?cached:displayTrainings);
-                }).catch(function(){grid.innerHTML=buildGridHtml(displayTrainings);});
-            }else{
-                grid.innerHTML=buildGridHtml(displayTrainings);
-            }
+            // ── refreshHomeGrid：刷新主页 grid（每次导航回主页时调用）──
+            window.refreshHomeGrid=function(){
+                var g=document.getElementById('trainingsGrid');
+                if(!g)return;
+                if('caches' in window){
+                    Promise.all(displayTrainings.map(function(t){
+                        return caches.match('./'+t.path+'/training.json')
+                            .then(function(r){return!!r;},function(){return false;});
+                    })).then(function(flags){
+                        var cached=displayTrainings.filter(function(_,i){return flags[i];});
+                        g.innerHTML=buildGridHtml(cached.length>0?cached:displayTrainings);
+                    }).catch(function(){g.innerHTML=buildGridHtml(displayTrainings);});
+                }else{
+                    g.innerHTML=buildGridHtml(displayTrainings);
+                }
+            };
+
+            window.refreshHomeGrid();
         }
 
         function showLoadError(){
@@ -735,10 +741,12 @@
     // 在 renderer.js 初始化完成后挂载切换函数
     (function waitRenderer(){
         if(window.CXRenderer){
-            // 覆盖 renderHome 以恢复 homeView
+            // 覆盖 renderHome 以恢复 homeView 并刷新缓存 grid
             var origRenderHome=window.CXRenderer.renderHome;
             window.CXRenderer.renderHome=function(){
                 origRenderHome.call(window.CXRenderer);
+                // 重新检查缓存，更新主页 grid（用户下载训练后返回主页时触发）
+                if(window.refreshHomeGrid)window.refreshHomeGrid();
             };
             // 覆盖 renderChapterView / renderBatchIndex 以切换到 app 视图
             ['renderChapterView','renderBatchIndex'].forEach(function(fn){
