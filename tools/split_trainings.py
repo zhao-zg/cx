@@ -79,8 +79,9 @@ def collect_src_files() -> list:
                 continue  # 旧原始分片，跳过
             sources.append((fp, None))
 
-    # 3. 年份子目录下的 .txt（大合辑存在时跳过，避免重复处理）
-    if not os.path.exists(big) and os.path.isdir(base):
+    # 3. 年份子目录下的 .txt（始终包含，为大合辑中缺失的晨兴内容提供补充）
+    #    大合辑只含大纲，年份子目录文件含完整晨兴，处理顺序保证年份文件覆盖大合辑输出。
+    if os.path.isdir(base):
         for entry in sorted(os.listdir(base)):
             sub = os.path.join(base, entry)
             if not os.path.isdir(sub):
@@ -595,8 +596,9 @@ def parse_one_message(header_line: str, detail_lines: list) -> tuple:
         number = 0
         title = header_line.strip()
 
-    # 读取经文引用
+    # 读取经文引用 & 诗歌编号（两者都出现在 detail_lines 前20行）
     scripture = ''
+    hymn_number = ''
     for raw in detail_lines[:20]:
         s = raw.strip()
         # 处理各种 读经 后接方式：全角：、全角∶(ratio U+2236)、ASCII:、或直接接经文
@@ -607,7 +609,12 @@ def parse_one_message(header_line: str, detail_lines: list) -> tuple:
             rest = rest.strip()
             if rest:
                 scripture = rest
-                break
+        # 诗歌行：诗歌：xxx / 诗歌∶xxx / 诗歌xxx
+        elif s.startswith('诗歌') and not hymn_number:
+            rest = s[2:]
+            if rest and rest[0] in '：:∶':
+                rest = rest[1:]
+            hymn_number = rest.strip() or s
 
     blocks = _split_into_blocks(detail_lines)
 
@@ -672,6 +679,7 @@ def parse_one_message(header_line: str, detail_lines: list) -> tuple:
         number=number,
         title=title,
         scripture=scripture,
+        hymn_number=hymn_number,
         outline_sections=outline_sections,
         detail_sections=detail_sections if detail_sections_built else outline_sections,
         message_content=message_content,
@@ -951,6 +959,62 @@ def _extract_day_content(day_block_lines: list) -> tuple:
             ref_reading.append(s)
 
     return morning_feeding, message_reading, ref_reading
+
+
+def _extract_week_hymns(detail_lines: list) -> dict:
+    """扫描 detail_lines 中的周纲目块，提取每周的诗歌编号。
+
+    支持两种来源：
+    1. 周 header 行后紧跟的 `诗歌∶xxx` 参考行（短行 < 50 chars）
+    2. `第X周　诗歌` 页面 header 后的第一行内容（书目+首），如 `补充本第214首`
+
+    返回 {week_num: hymn_text}，week_num 从 1 开始。
+    """
+    hymns: dict = {}
+    n = len(detail_lines)
+
+    # Regex: 第X周　... or 第X周诗歌
+    week_hdr_re = re.compile(r'^第([一二三四五六七八九十]+)[周]\s*(.*)')
+
+    for i, raw in enumerate(detail_lines):
+        s = raw.strip()
+        m = week_hdr_re.match(s)
+        if not m:
+            continue
+        week_num = _cn_ord_to_int(m.group(1))
+        if week_num <= 0:
+            continue
+        rest_title = m.group(2).strip()
+
+        # Pattern 2: `第X周　诗歌` 页面 → 下一非空行是 `书目第N首` 或 `书目N首`
+        if rest_title in ('诗歌', '诗 歌'):
+            for j in range(i + 1, min(i + 5, n)):
+                nxt = detail_lines[j].strip()
+                if nxt and not _is_nav_line(nxt):
+                    if week_num not in hymns:
+                        hymns[week_num] = nxt
+                    break
+            continue
+
+        # Pattern 1: week header followed within 5 lines by `诗歌∶xxx` (short line)
+        if week_num not in hymns:
+            for j in range(i + 1, min(i + 8, n)):
+                nxt = detail_lines[j].strip()
+                if not nxt:
+                    continue
+                if _is_nav_line(nxt) or nxt.startswith('读经'):
+                    continue
+                if nxt.startswith('诗歌') and len(nxt) < 50:
+                    rest = nxt[2:]
+                    if rest and rest[0] in '：:∶':
+                        rest = rest[1:]
+                    hymns[week_num] = rest.strip() or nxt
+                    break
+                # Stop at outline content (level 1 marker 壹贰叁 or body text)
+                if (nxt[0] in '壹贰叁肆伍陆' and '\u3000' in nxt) or len(nxt) > 60:
+                    break
+
+    return hymns
 
 
 def _extract_morning_revivals(detail_lines: list, chapters: list[Chapter],
@@ -1352,7 +1416,8 @@ def parse_training_to_data(sec: dict, lines: list, seq: int,
             if not nxt:
                 continue
             if (_is_nav_line(nxt) or nxt.startswith('读经')
-                    or nxt.startswith('诗歌') or nxt.startswith('TOP')):
+                    or nxt.startswith('诗歌') or nxt.startswith('TOP')
+                    or (('Outline' in nxt or '纲目' in nxt or '目录' in nxt) and len(nxt) < 60)):
                 is_real_hdr = True
             break
         if not is_real_hdr:
@@ -1374,6 +1439,13 @@ def parse_training_to_data(sec: dict, lines: list, seq: int,
         end_pos = msg_positions[k + 1][0] if k + 1 < len(msg_positions) else len(detail_lines)
         chapter_positions.append((pos, end_pos))
     _extract_morning_revivals(detail_lines, chapters, chapter_positions)
+
+    # 提取周纲目中的诗歌编号，赋给尚无诗歌的章节（历史旧格式）
+    week_hymns = _extract_week_hymns(detail_lines)
+    if week_hymns:
+        for ch in chapters:
+            if not ch.hymn_number and ch.number in week_hymns:
+                ch.hymn_number = week_hymns[ch.number]
 
     # 合并重复晨兴章节（如半年度训练：听抄1-12 + 晨兴13-24 → 仅保留1-12并附晨兴）
     chapters = _merge_duplicate_mr_chapters(chapters)
@@ -1874,10 +1946,18 @@ def main():
                 continue
             # 排序后统一分配 seq
             sections.sort(key=lambda s: (s['year'], s['idx_start']))
+            # 年份子目录文件（YYYY-NN-*.txt）直接从文件名提取 seq，
+            # 避免与大合辑已分配的 seq 编号冲突。
+            fname_now = os.path.basename(filepath)
+            fn_seq_m = re.match(r'(\d{4})-(\d{2})-', fname_now)
             for sec in sections:
                 y = sec['year']
-                year_counts_global[y] = year_counts_global.get(y, 0) + 1
-                sec['seq'] = year_counts_global[y]
+                if fn_seq_m and int(fn_seq_m.group(1)) == y:
+                    # 文件名有匹配年份的 YYYY-NN 前缀，直接用文件名序号覆盖同训练的输出
+                    sec['seq'] = int(fn_seq_m.group(2))
+                else:
+                    year_counts_global[y] = year_counts_global.get(y, 0) + 1
+                    sec['seq'] = year_counts_global[y]
             detail_index = build_detail_index(lines, det_start)
             all_file_data.append((sections, lines, detail_index, det_start,
                                    os.path.basename(filepath)))

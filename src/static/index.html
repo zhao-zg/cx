@@ -257,36 +257,46 @@
         function renderTrainings(data){
             var grid=document.getElementById('trainingsGrid');
             if(!grid)return;
-            var trainings=data.trainings||[];
-            if(!trainings.length){grid.innerHTML='<div class="home-status">暂无训练内容</div>';return;}
-            var html='';
-            var currentYear=null;
-            trainings.forEach(function(t){
+            var allTrainings=data.trainings||[];
+            // 只显示最新 7 个训练（trainings.json 按最新在前排序）
+            var displayTrainings=allTrainings.slice(0,7);
+
+            function buildCard(t){
                 var yr=String(t.year||'');
-                if(yr&&yr!==currentYear){currentYear=yr;html+='<div class="cx-year-header-row">'+yr+'</div>';}
                 var yearSeason=t.year+'-'+(t.season.split(' ')[0]||t.season);
                 var titleText=t.subtitle||t.season.split(' ').slice(1).join(' ')||t.title||t.season;
-                html+='<div class="training-card">';
-                html+='<div class="training-card-wrapper">';
-                html+='<div class="training-link" onclick="window.CXRouter&&CXRouter.navigate(\''+t.path+'\')" role="button" tabindex="0">';
-                html+='<div class="training-info">';
-                html+='<div class="training-header">';
-                html+='<div class="year-season">'+yearSeason+'</div>';
-                html+='<div class="info">共 '+t.chapter_count+' 篇</div>';
-                html+='</div>';
-                html+='<div class="training-title-row">';
-                html+='<div class="title">'+titleText+'</div>';
-                html+='<span class="arrow">→</span>';
-                html+='</div>';
-                html+='</div>';
-                html+='</div>';
-                html+='</div>';
-                html+='</div>';
-            });
-            grid.innerHTML=html;
-            // 构建训练页面列表（供 PWA 缓存用）
+                return '<div class="training-card">'
+                    +'<div class="training-card-wrapper">'
+                    +'<div class="training-link" onclick="window.CXRouter&&CXRouter.navigate(\''+t.path+'\')" role="button" tabindex="0">'
+                    +'<div class="training-info">'
+                    +'<div class="training-header">'
+                    +'<div class="year-season">'+yearSeason+'</div>'
+                    +'<div class="info">共 '+t.chapter_count+' 篇</div>'
+                    +'</div>'
+                    +'<div class="training-title-row">'
+                    +'<div class="title">'+titleText+'</div>'
+                    +'<span class="arrow">→</span>'
+                    +'</div>'
+                    +'</div>'
+                    +'</div>'
+                    +'</div>'
+                    +'</div>';
+            }
+
+            function buildGridHtml(list){
+                if(!list.length)return'<div class="home-status">暂无训练内容</div>';
+                var html='',currentYear=null;
+                list.forEach(function(t){
+                    var yr=String(t.year||'');
+                    if(yr&&yr!==currentYear){currentYear=yr;html+='<div class="cx-year-header-row">'+yr+'</div>';}
+                    html+=buildCard(t);
+                });
+                return html;
+            }
+
+            // 构建训练页面列表（仅最新 7 个，供 PWA 缓存用）
             var pages=[];
-            trainings.forEach(function(t){
+            displayTrainings.forEach(function(t){
                 pages.push('./'+t.path+'/training.json');
                 (t.images||[]).forEach(function(img){pages.push('./'+t.path+'/'+img);});
             });
@@ -295,6 +305,19 @@
             if(CX_ENV.isStandalone){
                 var cBtn=document.getElementById('cacheAllBtn');
                 if(cBtn)cBtn.style.display='inline-flex';
+            }
+
+            // 检查缓存状态：只显示已缓存的训练；若均未缓存则显示全部 7 个（兜底）
+            if('caches' in window){
+                Promise.all(displayTrainings.map(function(t){
+                    return caches.match('./'+t.path+'/training.json')
+                        .then(function(r){return!!r;},function(){return false;});
+                })).then(function(flags){
+                    var cached=displayTrainings.filter(function(_,i){return flags[i];});
+                    grid.innerHTML=buildGridHtml(cached.length>0?cached:displayTrainings);
+                }).catch(function(){grid.innerHTML=buildGridHtml(displayTrainings);});
+            }else{
+                grid.innerHTML=buildGridHtml(displayTrainings);
             }
         }
 
