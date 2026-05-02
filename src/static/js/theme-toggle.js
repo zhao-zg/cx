@@ -458,9 +458,7 @@
                     <button class="action-btn feedback" id="feedbackBtn">
                         <span class="cache-icon">💬</span><span class="cache-text">问题反馈</span>
                     </button>
-                    <button class="action-btn" id="resourcePackBtn" style="display:none">
-                        <span class="cache-icon">📦</span><span class="cache-text">历史资源</span>
-                    </button>
+
                 </div>
                 <div class="cache-status" id="actionStatus"></div>
             </div>
@@ -647,18 +645,7 @@
             }
         }
 
-        // ── 历史资源包（Capacitor APK / PWA standalone）───────────────
-        if (isCapacitor || (isStandalone && ('caches' in window))) {
-            var resourcePackBtn = document.getElementById('resourcePackBtn');
-            if (resourcePackBtn) {
-                resourcePackBtn.style.display = 'inline-flex';
-                resourcePackBtn.addEventListener('click', function() {
-                    if (window.CXResourcePack && window.CXResourcePack.showPacksDialog) {
-                        window.CXResourcePack.showPacksDialog();
-                    }
-                });
-            }
-        }
+
 
         // ── 安卓离线 APK（Android 浏览器，非 Capacitor，所有页面可用）──
         if (isAndroid && !isCapacitor) {
