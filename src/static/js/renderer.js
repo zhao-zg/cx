@@ -996,6 +996,7 @@
         '<a href="javascript:void(0)" class="nav-link" title="目录" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')">目录</a>' +
         '<a href="javascript:void(0)" class="nav-link active" title="标语">标语</a>' +
         (training.motto_song_image ? '<a href="javascript:void(0)" class="nav-link" title="标语诗歌" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '/motto_song\')">标语诗歌</a>' : '') +
+        '<button type="button" id="cx-search-btn" class="nav-link" title="搜索">🔍</button>' +
         '</div>';
 
       var paragraphs = '';
@@ -1030,6 +1031,7 @@
       try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e){}
       document.title = '标语 - ' + (training.title || '');
       setMeta(training);
+      initSearchBtn();
       relocateThemeBtn();
     }).catch(function(err){
       var isCapacitor = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
@@ -1051,6 +1053,7 @@
         '<a href="javascript:void(0)" class="nav-link" title="目录" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')">目录</a>' +
         (training.mottos && training.mottos.length ? '<a href="javascript:void(0)" class="nav-link" title="标语" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '/motto\')">标语</a>' : '') +
         '<a href="javascript:void(0)" class="nav-link active" title="标语诗歌">标语诗歌</a>' +
+        '<button type="button" id="cx-search-btn" class="nav-link" title="搜索">🔍</button>' +
         '</div>';
 
       var subtitleLine = '<div class="subtitle">' + escText(training.year + '-' + training.season) + '</div>';
@@ -1069,6 +1072,7 @@
       try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e){}
       document.title = '标语诗歌 - ' + (training.title || '');
       setMeta(training);
+      initSearchBtn();
       relocateThemeBtn();
     }).catch(function(err){
       var isCapacitor = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
