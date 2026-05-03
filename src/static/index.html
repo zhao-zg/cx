@@ -663,7 +663,7 @@
                     }
                     return;
                 }
-                waitForTrainings(5000).then(function(trainings){var n=window.CX_MAX_LATEST_TRAININGS||trainings.length;return verifyCacheIntegrity(trainings.slice(0,n));})
+                waitForTrainings(5000).then(function(trainings){var n=window.CX_MAX_LATEST_TRAININGS||trainings.length;var converted=trainings.filter(function(t){return!t.is_collection;});return verifyCacheIntegrity(converted.slice(0,n));})
                     .then(function(result){if(!result.ok){var m=storedVersion?'update':'install';showMandatoryInstallDialog(m,targetVersion);}})
                     .catch(function(){});
             })
