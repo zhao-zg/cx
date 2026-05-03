@@ -471,21 +471,20 @@ def _classify_block(nav: str, lines: list) -> str:
     if not nav:
         return 'skip'
 
-    # nav 的结构是"我能跳到哪里"的链接列表：
-    #   对照区 nav: '纲目|对照-听抄-目录'      —— 链接里同时有 对照 和 听抄，本块是对照 → skip
-    #   听抄区（旧格式）nav: '纲目|Outline|对照-目录' —— 链接里有 对照 但无 听抄，本块是听抄 → message_content
-    #   听抄区（新格式）nav: '纲目|outline-听抄-目录' —— 链接里有 听抄 但无 对照，本块是听抄 → message_content
-    #   （2025全时特会格式：outline小写，含听抄但不含对照 → 本块即中文散文听抄）
+    # nav 的结构是"我能跳到哪里"的链接列表，同时隐含"本块是什么视图"：
+    #   本块是「对照」（中英逐行）→ nav 同时含 "对照" 和 "听抄"（可跳去听抄）→ skip
+    #   本块是「听抄」（中文散文）→ nav 含 "听抄" 但不含 "对照"（可跳去 outline 但无对照）→ message_content
+    #   适用 2025全时特会（纲目|..） 与 2014+晨兴格式（晨兴-纲目|..）
 
-    # 对照块：nav 同时含 "对照" 和 "听抄" → 本块是对照（中英逐行），skip
+    # 对照块：nav 同时含 "对照" 和 "听抄" → 本块是对照（中英逐行），不含有效阅读内容，skip
     if '对照' in nav and '听抄' in nav:
         return 'skip'
 
-    # 听抄块：nav 含 "听抄" 但不含 "对照" → 本块是听抄全文（2025新格式）
+    # 听抄块：nav 含 "听抄" 但不含 "对照" → 本块是听抄全文（中文散文），message_content
     if '听抄' in nav and '对照' not in nav:
         return 'message_content'
 
-    # 听抄块：nav 含 "对照" 但不含 "听抄" → 本块是听抄/消息全文（旧格式）
+    # 老格式兜底：nav 含 "对照" 但不含 "听抄" → 本块是听抄/消息全文（pre-2014格式）
     if '对照' in nav and '听抄' not in nav:
         return 'message_content'
 
