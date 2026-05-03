@@ -1872,13 +1872,18 @@ def write_sections(sections: list, lines: list, detail_index: list,
         key=lambda x: x[1]
     )
     for i, (sec, d_start) in enumerate(all_matched_sorted):
-        if i + 1 < len(all_matched_sorted):
-            next_d_start = all_matched_sorted[i + 1][1]
+        # 向后找第一个 d_start 严格大于当前的条目作为边界
+        # 跳过与当前相同位置的条目（例如同一训练既有正规条目又有合辑条目时，
+        # 两者 d_start 相同，若直接取 next 会导致 range=0）
+        next_d_start = n
+        for j in range(i + 1, len(all_matched_sorted)):
+            if all_matched_sorted[j][1] > d_start:
+                next_d_start = all_matched_sorted[j][1]
+                break
         else:
-            # 最后一个匹配训练：在 detail_sorted 中找第一个属于不同训练的 first_msg_line
+            # 在 detail_sorted 中找第一个属于不同训练的 first_msg_line
             # 避免把后续其他区段的海量内容都纳入该训练
             curr_norm = sec.get('first_msg_norm', '')
-            next_d_start = n
             for _ss, _fml, _nt, _nf in detail_sorted:
                 if _fml > d_start and _nt != curr_norm:
                     next_d_start = _fml
