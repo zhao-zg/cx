@@ -460,8 +460,11 @@ def _classify_block(nav: str, lines: list) -> str:
         return 'cn_outline'
 
     # 老格式（2001 等）：第一段为 '纲目'（不带 '晨兴-' 前缀）也视为大纲块
+    # 但如果 nav 含 听抄，这是2025全时特会的对照块或听抄块（非大纲），不能归为 cn_outline
     _nav_first_seg = nav.split('|')[0].strip()
-    if _nav_first_seg == '纲目' or _nav_first_seg.endswith('-纲目') and '晨兴' not in _nav_first_seg:
+    _is_zhuyin_first = (_nav_first_seg == '纲目' or
+                        (_nav_first_seg.endswith('-纲目') and '晨兴' not in _nav_first_seg))
+    if _is_zhuyin_first and '听抄' not in nav:
         return 'cn_outline'
 
     # 英文大纲（GENERAL SUBJECT 前置块）
@@ -469,14 +472,20 @@ def _classify_block(nav: str, lines: list) -> str:
         return 'skip'
 
     # nav 的结构是"我能跳到哪里"的链接列表：
-    #   对照区 nav: '纲目|outline-听抄-目录'  —— 链接里有 听抄，本块是对照 → skip
-    #   听抄区 nav: '纲目|Outline|对照-目录'  —— 链接里有 对照，本块是听抄 → message_content
+    #   对照区 nav: '纲目|对照-听抄-目录'      —— 链接里同时有 对照 和 听抄，本块是对照 → skip
+    #   听抄区（旧格式）nav: '纲目|Outline|对照-目录' —— 链接里有 对照 但无 听抄，本块是听抄 → message_content
+    #   听抄区（新格式）nav: '纲目|outline-听抄-目录' —— 链接里有 听抄 但无 对照，本块是听抄 → message_content
+    #   （2025全时特会格式：outline小写，含听抄但不含对照 → 本块即中文散文听抄）
 
-    # 对照块：nav 含 "听抄" 作为链接 → 本块是对照（中英逐行），skip
-    if '听抄' in nav:
+    # 对照块：nav 同时含 "对照" 和 "听抄" → 本块是对照（中英逐行），skip
+    if '对照' in nav and '听抄' in nav:
         return 'skip'
 
-    # 听抄块：nav 含 "对照" 但不含 "听抄" → 本块是听抄/消息全文
+    # 听抄块：nav 含 "听抄" 但不含 "对照" → 本块是听抄全文（2025新格式）
+    if '听抄' in nav and '对照' not in nav:
+        return 'message_content'
+
+    # 听抄块：nav 含 "对照" 但不含 "听抄" → 本块是听抄/消息全文（旧格式）
     if '对照' in nav and '听抄' not in nav:
         return 'message_content'
 

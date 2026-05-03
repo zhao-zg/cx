@@ -633,6 +633,13 @@ def generate_resource_packs(output_dir, all_trainings):
 
 def main():
     """主函数"""
+    import sys as _sys
+    if hasattr(_sys.stdout, 'reconfigure'):
+        try:
+            _sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            _sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
     print("="*60)
     print(" Word文档静态网站生成器 (通用批量版)")
     print("="*60)
