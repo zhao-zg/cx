@@ -311,17 +311,27 @@
             window.refreshHomeGrid=function(){
                 var g=document.getElementById('trainingsGrid');
                 if(!g)return;
-                if('caches' in window){
-                    Promise.all(displayTrainings.map(function(t){
+                if(!('caches' in window)){g.innerHTML=buildGridHtml(displayTrainings);return;}
+                // 检查全部训练是否已缓存：先用 caches.keys() 快速找到 cx-YYYY-NN 独立缓存，
+                // 再对剩余项做 caches.match（覆盖 cx-main 资源包下载的训练）
+                var all=allTrainings.length?allTrainings:displayTrainings;
+                caches.keys().then(function(keys){
+                    var keySet={};keys.forEach(function(k){keySet[k]=true;});
+                    var byKey=all.filter(function(t){return keySet['cx-'+t.path];});
+                    var rest=all.filter(function(t){return!keySet['cx-'+t.path];});
+                    if(!rest.length){
+                        g.innerHTML=buildGridHtml(byKey.length?byKey:displayTrainings);
+                        return;
+                    }
+                    return Promise.all(rest.map(function(t){
                         return caches.match('./'+t.path+'/training.json')
                             .then(function(r){return!!r;},function(){return false;});
                     })).then(function(flags){
-                        var cached=displayTrainings.filter(function(_,i){return flags[i];});
-                        g.innerHTML=buildGridHtml(cached.length>0?cached:displayTrainings);
-                    }).catch(function(){g.innerHTML=buildGridHtml(displayTrainings);});
-                }else{
-                    g.innerHTML=buildGridHtml(displayTrainings);
-                }
+                        var fromMatch=rest.filter(function(_,i){return flags[i];});
+                        var cached=byKey.concat(fromMatch);
+                        g.innerHTML=buildGridHtml(cached.length?cached:displayTrainings);
+                    });
+                }).catch(function(){g.innerHTML=buildGridHtml(displayTrainings);});
             };
 
             window.refreshHomeGrid();
