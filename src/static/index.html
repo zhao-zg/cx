@@ -578,7 +578,7 @@
 
     function cacheAllTrainings(statusEl,onProgress){
         if(!('caches' in window)){if(statusEl)statusEl.textContent='当前环境不支持缓存';return Promise.resolve();}
-        var trainings=window.__cxTrainings||[];
+        var trainings=(window.__cxTrainings||[]).filter(function(t){return!t.is_collection;});
         if(!trainings.length){if(statusEl)statusEl.textContent='训练列表尚未加载';return Promise.resolve();}
         var maxN=window.CX_MAX_LATEST_TRAININGS||trainings.length;trainings=trainings.slice(0,maxN);
         var coreUrls=window.__cxCoreUrls||[];

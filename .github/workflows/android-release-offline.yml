@@ -279,8 +279,9 @@ jobs:
         with open('output/trainings.json', encoding='utf-8') as f:
             data = json.load(f)
 
-        # trainings.json 已按时间倒序排列（历史合辑与当届训练混合）
-        keep = {t['path'] for t in data['trainings'][:max_n]}
+        # trainings.json 已按时间倒序排列，只保留转换训练（排除合辑）的最新 N 个
+        non_collection = [t for t in data['trainings'] if not t.get('is_collection')]
+        keep = {t['path'] for t in non_collection[:max_n]}
         print(f'保留的训练 ({max_n}): {sorted(keep)}')
 
         output_dir = 'output'
