@@ -366,6 +366,7 @@ def generate_main_index(config, batch_results):
                 'path': entry,
                 'images': images,
                 'version': meta.get('version', ''),
+                'is_collection': True,
             })
             total_chapters += chapter_count
             current_paths.add(entry)
