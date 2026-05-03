@@ -325,6 +325,8 @@
           btn.style.color = 'var(--text-secondary)';
         }
         if (progEl) progEl.style.display = 'none';
+        // 刷新主页 grid，使已下载的训练高亮显示
+        if (win.refreshHomeGrid) win.refreshHomeGrid();
       }).catch(function (err) {
         if (btn) { btn.disabled = false; btn.textContent = '⬇ 重试'; }
         if (progEl) progEl.style.display = 'none';

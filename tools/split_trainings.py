@@ -1826,38 +1826,63 @@ def write_sections(sections: list, lines: list, detail_index: list,
     # 对 detail_index 按 first_msg_line 排序，用于范围搜索
     detail_sorted = sorted(detail_index, key=lambda x: x[1])  # by first_msg_line
 
-    # 构建 detail_index 的搜索上界：第 k 个训练搜索范围 first_msg_line < next_k 的 first_msg_line
-    # 我们按顺序匹配：sections 顺序 == detail sections 顺序
     # 先找每个训练对应的 detail range
     matched_detail: dict[int, tuple[int, int]] = {}  # idx_start -> (detail_start, detail_end)
 
+    # 将 sections 分成常规训练和多年合辑两组，分别用独立的 search_after 匹配
+    # 合辑在大文件中占据中段位置，若与常规训练共用 search_after 会导致
+    # 常规训练的 search_after 跳过包含晨兴内容的前段区域
+    regular_sections = [s for s in sections if not is_multiyear_compilation(s['header'])]
+    compilation_sections = [s for s in sections if is_multiyear_compilation(s['header'])]
+
+    # ── 常规训练匹配（独立 search_after） ──
     search_after = detail_start
-    for k, sec in enumerate(sections):
+    for sec in regular_sections:
         norm_title = sec['first_msg_norm']
         if not norm_title:
             continue
-        # 搜索范围：search_after ~ n
         result = find_detail_range(detail_sorted, norm_title, search_after, n)
         if result is None:
             print(f"[未匹配详细内容] {sec['header']!r}  first_msg={norm_title!r}")
             continue
         sec_start, first_msg_line = result
-        search_after = first_msg_line + 1  # 下次从这之后搜索
+        search_after = first_msg_line + 1
         matched_detail[sec['idx_start']] = (sec_start, first_msg_line)
 
-    # 确定每个 detail range 的结束行（= 下个训练 detail 起始行 - 1）
-    idx_list = [s['idx_start'] for s in sections]
-    for i, sec in enumerate(sections):
-        if sec['idx_start'] not in matched_detail:
+    # ── 多年合辑匹配（独立 search_after，从 detail_start 重新开始） ──
+    compilation_sections.sort(key=lambda s: (s['year'], s['idx_start']))
+    search_after_comp = detail_start
+    for sec in compilation_sections:
+        norm_title = sec['first_msg_norm']
+        if not norm_title:
             continue
-        d_start, _ = matched_detail[sec['idx_start']]
-        # 找下一个有 detail 的训练
-        next_d_start = n
-        for j in range(i + 1, len(sections)):
-            nxt = sections[j]
-            if nxt['idx_start'] in matched_detail:
-                next_d_start = matched_detail[nxt['idx_start']][0]
-                break
+        result = find_detail_range(detail_sorted, norm_title, search_after_comp, n)
+        if result is None:
+            print(f"[未匹配合辑详细内容] {sec['header']!r}  first_msg={norm_title!r}")
+            continue
+        sec_start, first_msg_line = result
+        search_after_comp = first_msg_line + 1
+        matched_detail[sec['idx_start']] = (sec_start, first_msg_line)
+
+    # 确定每个 detail range 的结束行
+    # 将所有已匹配的训练按 detail 起始行排序，用于确定每段的边界
+    all_matched_sorted = sorted(
+        [(sec, matched_detail[sec['idx_start']][0])
+         for sec in sections if sec['idx_start'] in matched_detail],
+        key=lambda x: x[1]
+    )
+    for i, (sec, d_start) in enumerate(all_matched_sorted):
+        if i + 1 < len(all_matched_sorted):
+            next_d_start = all_matched_sorted[i + 1][1]
+        else:
+            # 最后一个匹配训练：在 detail_sorted 中找第一个属于不同训练的 first_msg_line
+            # 避免把后续其他区段的海量内容都纳入该训练
+            curr_norm = sec.get('first_msg_norm', '')
+            next_d_start = n
+            for _ss, _fml, _nt, _nf in detail_sorted:
+                if _fml > d_start and _nt != curr_norm:
+                    next_d_start = _fml
+                    break
         d_end = find_detail_end(lines, d_start, next_d_start)
         matched_detail[sec['idx_start']] = (d_start, d_end)
 
