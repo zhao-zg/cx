@@ -104,6 +104,16 @@
       .replace(/[－—～~]/g, '-')
       .replace(/[。；，、]$/g, '');
 
+    /* 「书+章+标题」格式：诗二二标题 / 诗22标题 → 诗22:0T */
+    if (/标题$/.test(ref)) {
+      var titleRef = ref.slice(0, -2); /* 去掉"标题" */
+      var btT = parseBookAndTail(titleRef);
+      if (btT && btT.book) {
+        var chT = normalizeNumToken(btT.tail);
+        if (chT) return btT.book + chT + ':0T';
+      }
+    }
+
     var bt = parseBookAndTail(ref);
     var book = bt ? bt.book : (fallbackBook || '');
     var tail = bt ? bt.tail : ref;
@@ -451,22 +461,24 @@
       /* :0T = 标题专属引用，从 :0 键取内容，与普通经节同样渲染（支持注解/串珠） */
       if (nr.slice(-3) === ':0T') {
         var titleKey = nr.slice(0, -1); /* 诗22:0T → 诗22:0 */
+        var titleLabel = titleKey.replace(/:0$/, ':标题'); /* 诗22:0 → 诗22:标题 */
         var titleRaw = dict[titleKey] || '';
         if (titleRaw) {
           return '<div class="scripture-popup-verse" data-vkey="' + esc(titleKey) + '">'
-            + '<span class="scripture-popup-ref">' + esc(titleKey) + '</span>'
+            + '<span class="scripture-popup-ref">' + esc(titleLabel) + '</span>'
             + '<span class="scripture-popup-text">' + renderVerseText(titleRaw, titleKey) + '</span>'
             + '</div>';
         }
         return '<div class="scripture-popup-verse scripture-popup-verse--missing">'
-          + '<span class="scripture-popup-ref">' + esc(nr.slice(0, -1)) + '</span>'
+          + '<span class="scripture-popup-ref">' + esc(titleLabel) + '</span>'
           + '<span class="scripture-popup-text">（未收录标题）</span></div>';
       }
       var raw = dict[nr] || (bk !== nr ? dict[bk] : '');
       /* :0 整章引用首位标题行，同样用普通经节样式渲染 */
       if (raw && nr.slice(-2) === ':0') {
+        var titleLabel0 = bk.replace(/:0$/, ':标题'); /* 诗22:0 → 诗22:标题 */
         return '<div class="scripture-popup-verse" data-vkey="' + esc(bk) + '">'
-          + '<span class="scripture-popup-ref">' + esc(bk) + '</span>'
+          + '<span class="scripture-popup-ref">' + esc(titleLabel0) + '</span>'
           + '<span class="scripture-popup-text">' + renderVerseText(raw, bk) + '</span>'
           + '</div>';
       }
