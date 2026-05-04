@@ -664,7 +664,10 @@
           self._countEl.textContent = '共 ' + result.totalAll + ' 条结果';
         }
         self._renderResults(result.groups, terms, q);
-        /* 不显示未缓存训练的"查看更多训练"按钟 */
+        var remaining = self._searchQueue.length - self._queueOffset;
+        if (remaining > 0) {
+          self._resultsEl.appendChild(self._buildLoadMoreTrainingsBtn(remaining));
+        }
       });
     },
 
