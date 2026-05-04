@@ -392,8 +392,9 @@
     if (frame.type === 'verses') {
       m.title.textContent = frame.label || (frame.refs || '').replace(/,/g, '、');
       m.body.innerHTML = '<div class="scripture-popup-loading">加载中…</div>';
+      var _isTitleRef = frame.label && /标题/.test(frame.label);
       ensureBibleText(function () {
-        m.body.innerHTML = renderVerseList(frame.refs, frame.verseKey || '');
+        m.body.innerHTML = renderVerseList(frame.refs, frame.verseKey || '', _isTitleRef);
         m.body.scrollTop = frame._scrollTop || 0;
       });
     } else if (frame.type === 'footnote') {
@@ -430,11 +431,33 @@
   }
 
   /* 渲染经文列表（支持 {N} → fn-ref, [a] → xref-ref） */
-  function renderVerseList(refs, contextRef) {
+  /* titleOnly=true 时：:0 refs 只显示标题条目，不展开整章 */
+  function renderVerseList(refs, contextRef, titleOnly) {
     var dict = window.CX_SCRIPTURES_DATA || {};
     /* 整章展开只从全本圣经 bible-text.json 里取节列表 */
     var bibleDict = window.CX_BIBLE_TEXT_DATA || dict;
     var contextBook = getBookFromRef(contextRef || '');
+    /* titleOnly 模式：直接使用 :0 ref，不展开整章 */
+    if (titleOnly) {
+      var tokens = (refs || '').split(',').map(function(r){return r.trim();}).filter(Boolean);
+      var titleRefs = [];
+      tokens.forEach(function(token) {
+        var nr = normalizeRef(token, contextBook) || token;
+        if (nr.slice(-2) === ':0') { titleRefs.push(nr); }
+        else { titleRefs.push(nr); }
+      });
+      var titleHtml = titleRefs.map(function(nr) {
+        var raw = (bibleDict || {})[nr] || (dict || {})[nr] || '';
+        if (raw) {
+          return '<div class="scripture-popup-verse scripture-popup-verse--title">'    
+            + '<span class="scripture-popup-text" style="font-style:italic;color:var(--color-text-secondary,#888)">' + esc(raw) + '</span>'
+            + '</div>';
+        }
+        return '<div class="scripture-popup-verse scripture-popup-verse--missing">'
+          + '<span class="scripture-popup-text">（标题未收录）</span></div>';
+      }).join('');
+      return titleHtml || '<div class="scripture-popup-empty">暂无标题</div>';
+    }
     /* 展开整章/区间引用，并规范化中文写法 */
     var refArr = parseAndExpandRefs(refs, bibleDict, contextBook);
     if (!refArr.length) return '<div class="scripture-popup-empty">暂无经文</div>';
