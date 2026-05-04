@@ -837,8 +837,11 @@ class HTMLGenerator:
         # 剥离 …… 截断标记，得到需要在整节中匹配的纯文字
         if half_type == '上':
             content = re.sub(r'[…\.]+\s*$', '', half_text).strip()
-        else:
+        elif half_type == '下':
             content = re.sub(r'^\s*[…\.]+', '', half_text).strip()
+        else:  # 中
+            content = re.sub(r'^\s*[…\.]+', '', half_text).strip()
+            content = re.sub(r'[…\.]+\s*$', '', content).strip()
         if not content:
             return None
 
@@ -851,10 +854,15 @@ class HTMLGenerator:
             # 从 full_marked 起始（含首部标记）到最后一个内容字符
             marked_end = plain_to_marked[end_pos - 1] + 1
             return full_marked[:marked_end]
-        else:
+        elif half_type == '下':
             # 从上一字符结束位置起（含为本字符服务的前导标记）到末尾
             marked_start = plain_to_marked[pos - 1] + 1 if pos > 0 else 0
             return full_marked[marked_start:]
+        else:  # 中
+            # 截取对应区间（含两端可能紧邻的标记）
+            marked_start = plain_to_marked[pos - 1] + 1 if pos > 0 else 0
+            marked_end = plain_to_marked[end_pos - 1] + 1
+            return full_marked[marked_start:marked_end]
 
     def _generate_scriptures_data_json(self, training_data: TrainingData):
         """生成 js/scriptures-data.json，仅包含全本圣经 bible-text.json 中没有的经文条目。"""
@@ -870,7 +878,7 @@ class HTMLGenerator:
             total = len(scriptures)
             # 过滤整节已在 bible-text.json 的条目
             scriptures = {k: v for k, v in scriptures.items() if k not in bible_keys}
-            # 对半节（上/下）用整节带标记文本补全 {N}/[a]，仍保留在 scriptures-data.json
+            # 对半节（上/中/下）用整节带标记文本补全 {N}/[a]，仍保留在 scriptures-data.json
             if bible_data:
                 for k in list(scriptures.keys()):
                     if k and k[-1] in '上中下':
