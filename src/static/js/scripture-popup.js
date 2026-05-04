@@ -24,7 +24,7 @@
   var REF_NUM_RE = '[0-9一二三四五六七八九十百零〇○]+';
   var RANGE_SEP = '[\\-~～—]';  /* 范围分隔符：- ~ ～ — */
   /* 支持：太4:19 / 太四19 / 太四19-22 / 太4:19~22 / 罗五17～21 / 路九23 */
-  var INLINE_REF_RE = new RegExp('(' + REF_BOOK_RE + '(?:' + REF_NUM_RE + ':' + REF_NUM_RE + '(?:' + RANGE_SEP + REF_NUM_RE + ')?[上下]?|[一二三四五六七八九十百零〇○]+' + REF_NUM_RE + '(?:' + RANGE_SEP + REF_NUM_RE + ')?[上下]?))', 'g');
+  var INLINE_REF_RE = new RegExp('(' + REF_BOOK_RE + '(?:' + REF_NUM_RE + ':' + REF_NUM_RE + '(?:' + RANGE_SEP + REF_NUM_RE + ')?[上中下]?|[一二三四五六七八九十百零〇○]+' + REF_NUM_RE + '(?:' + RANGE_SEP + REF_NUM_RE + ')?[上中下]?))', 'g');
 
   /* ── HTML 转义 ── */
   function esc(str) {
@@ -119,7 +119,7 @@
     var tail = bt ? bt.tail : ref;
     if (!book) return ref;
 
-    var m1 = tail.match(new RegExp('^(' + REF_NUM_RE + '):(' + REF_NUM_RE + '(?:-' + REF_NUM_RE + ')?)([上下]?)$'));
+    var m1 = tail.match(new RegExp('^(' + REF_NUM_RE + '):(' + REF_NUM_RE + '(?:-' + REF_NUM_RE + ')?)([上中下]?)$'));
     if (m1) {
       var ch = normalizeNumToken(m1[1]);
       if (!ch) return ref;
@@ -136,7 +136,7 @@
       return v ? (book + ch + ':' + v + suffix) : ref;
     }
 
-    var m2 = tail.match(/^([一二三四五六七八九十百零〇○]+)(\d+(?:-\d+)?)([上下]?)$/);
+    var m2 = tail.match(/^([一二三四五六七八九十百零〇○]+)(\d+(?:-\d+)?)([上中下]?)$/);
     if (m2) {
       var ch2 = normalizeNumToken(m2[1]);
       if (!ch2) return ref;
@@ -153,7 +153,7 @@
       return v2 ? (book + ch2 + ':' + v2 + suffix2) : ref;
     }
 
-    var m3 = tail.match(new RegExp('^(' + REF_NUM_RE + ')([一二三四五六七八九十百零〇○]+)([上下]?)$'));
+    var m3 = tail.match(new RegExp('^(' + REF_NUM_RE + ')([一二三四五六七八九十百零〇○]+)([上中下]?)$'));
     if (m3) {
       var ch3 = normalizeNumToken(m3[1]);
       var v3 = normalizeNumToken(m3[2]);
@@ -164,7 +164,7 @@
 
     /* 单章书卷：犹20 → 犹1:20，门8 → 门1:8 */
     if (SINGLE_CHAPTER_BOOKS[book]) {
-      var m4 = tail.match(/^(\d+(?:-\d+)?)([上下]?)$/);
+      var m4 = tail.match(/^(\d+(?:-\d+)?)([上中下]?)$/);
       if (m4) {
         var vr4 = m4[1], suffix4 = m4[2] || '';
         if (vr4.indexOf('-') >= 0) {
@@ -205,8 +205,8 @@
       var chKeys = Object.keys(bibleDict || {})
         .filter(function (k) { return k.indexOf(prefix) === 0 && k.slice(-2) !== ':0'; })
         .sort(function (a, b) {
-          var av = parseInt((a.split(':')[1] || '').replace(/[上下]/g, ''), 10);
-          var bv = parseInt((b.split(':')[1] || '').replace(/[上下]/g, ''), 10);
+          var av = parseInt((a.split(':')[1] || '').replace(/[上中下]/g, ''), 10);
+          var bv = parseInt((b.split(':')[1] || '').replace(/[上中下]/g, ''), 10);
           return av - bv;
         });
       // 若该章有标题（":0" 条目有内容），置于列表首位
@@ -214,7 +214,7 @@
       return chKeys.length ? chKeys : [nr];
     }
 
-    var mr = nr.match(new RegExp('^(' + REF_BOOK_RE + ')(\\d+):(\\d+)-(\\d+)([上下]?)$'));
+    var mr = nr.match(new RegExp('^(' + REF_BOOK_RE + ')(\\d+):(\\d+)-(\\d+)([上中下]?)$'));
     if (mr && !mr[5]) {
       var book = mr[1], ch = parseInt(mr[2], 10), v1 = parseInt(mr[3], 10), v2 = parseInt(mr[4], 10);
       if (!isNaN(ch) && !isNaN(v1) && !isNaN(v2) && v2 >= v1) {
@@ -440,7 +440,7 @@
 
   /* 剥除上/下后缀，得到完整节键（用于查找注解/串珠） */
   function baseKey(ref) {
-    return ref.replace(/[上下]$/, '');
+    return ref.replace(/[上中下]$/, '');
   }
 
   /* 渲染经文列表（支持 {N} → fn-ref, [a] → xref-ref） */
@@ -488,14 +488,17 @@
           + '<span class="scripture-popup-text">' + renderVerseText(raw, bk) + '</span>'
           + '</div>';
       }
-      /* 无精确匹配时，尝试上/下半节合并显示（如 弗3:17 → 弗3:17上 + 弗3:17下） */
-      if (!/[上下]$/.test(nr)) {
-        var upRaw = dict[nr + '上'], downRaw = dict[nr + '下'];
-        if (upRaw || downRaw) {
+      /* 无精确匹配时，尝试上/中/下半节合并显示 */
+      if (!/[上中下]$/.test(nr)) {
+        var upRaw = dict[nr + '上'], midRaw = dict[nr + '中'], downRaw = dict[nr + '下'];
+        if (upRaw || midRaw || downRaw) {
           var combined = '';
           if (upRaw) combined += '<div class="scripture-popup-verse" data-vkey="' + esc(bk) + '">'
             + '<span class="scripture-popup-ref">' + esc(ref + '上') + '</span>'
             + '<span class="scripture-popup-text">' + renderVerseText(upRaw, bk) + '</span></div>';
+          if (midRaw) combined += '<div class="scripture-popup-verse" data-vkey="' + esc(bk) + '">'
+            + '<span class="scripture-popup-ref">' + esc(ref + '中') + '</span>'
+            + '<span class="scripture-popup-text">' + renderVerseText(midRaw, bk) + '</span></div>';
           if (downRaw) combined += '<div class="scripture-popup-verse" data-vkey="' + esc(bk) + '">'
             + '<span class="scripture-popup-ref">' + esc(ref + '下') + '</span>'
             + '<span class="scripture-popup-text">' + renderVerseText(downRaw, bk) + '</span></div>';

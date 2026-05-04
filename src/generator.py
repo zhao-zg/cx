@@ -166,7 +166,7 @@ class HTMLGenerator:
             return ''
         _ref_re = re.compile(
             r'([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼约犹启来]'
-            r'(?:[一二三四五六七八九十后前上下壹贰叁]\d+|\d+):\d+[上下]?)'
+            r'(?:[一二三四五六七八九十后前上下壹贰叁]\d+|\d+):\d+[上中下]?)'
         )
         refs = _ref_re.findall(scripture_text)
         # 去重同时保持顺序
@@ -741,7 +741,7 @@ class HTMLGenerator:
     # 与 parser_improved.py 中 VERSE_PATTERN 保持一致，直接用汉字避免 Unicode 转义错误
     _VERSE_LINE_RE = re.compile(
         r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多彼约犹启来]'
-        r'(?:[一二三四五六七八九十后前上下壹贰叁]\d+|\d+):\d+[上下]?)[　\s\t]+(.+)'
+        r'(?:[一二三四五六七八九十后前上下壹贰叁]\d+|\d+):\d+[上中下]?)[　\s\t]+(.+)'
     )
 
     def _collect_training_scriptures(self, training_data: TrainingData) -> dict:

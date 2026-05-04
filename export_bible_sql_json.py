@@ -423,6 +423,8 @@ def export_json(conn: sqlite3.Connection, out_dir: Path, normalize_xref: bool) -
             suffix = "上"
         elif flag == 2:
             suffix = "下"
+        elif flag == 3:
+            suffix = "中"
 
         book_abbr = book_map.get(b, str(b))
         key = f"{book_abbr}{ch}:{sec}{suffix}"
