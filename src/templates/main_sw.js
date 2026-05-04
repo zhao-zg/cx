@@ -87,11 +87,7 @@ self.addEventListener('fetch', event => {
 
   const responsePromise = (async () => {
     // 1. 缓存优先 (尝试原始 URL 和规范化 URL)
-    let cached = await caches.match(request) || await caches.match(normalizedUrl);
-    // 目录 URL（以 / 结尾）额外尝试 index.html，解决 PWA start_url="./" 离线加载问题
-    if (!cached && normalizedUrl.endsWith('/')) {
-      cached = await caches.match(normalizedUrl + 'index.html');
-    }
+    const cached = await caches.match(request) || await caches.match(normalizedUrl);
     if (cached) return cached;
 
     // 2. 缓存未命中 → 从网络取并写缓存
