@@ -731,6 +731,7 @@
       cv:'纲目', cx:'晨读', h:'听抄', ts:'详情', sg:'诗歌', zs:'职事信息'
     }[viewType] || '');
 
+    win.CX_TRAINING_PATH = batchPath;  /* 告知 scripture-popup.js 当前训练路径，用于加载 scriptures-data.json */
     if (win.CXScripturePopup && win.CXScripturePopup.init) try { win.CXScripturePopup.init(); } catch(e){}
     if (win.CXFontControl && win.CXFontControl.apply) try { win.CXFontControl.apply(); } catch(e){}
     if (win.CXHighlight && win.CXHighlight.init) try { win.CXHighlight.init(); } catch(e){}
