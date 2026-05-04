@@ -250,13 +250,13 @@
         if (v1_7) emitRange(book, ch, v1_7, mod1_7, v2_7, mod2_7);
         continue;
       }
-      // F9: book + chapter + 「标题」 e.g. 诗二二标题 → 诗22:0
+      // F9: book + chapter + 「标题」 e.g. 诗二二标题 → 诗22:0T（T=title-only，区别于整章 :0）
       if ((m = F9.exec(p))) {
         var b9 = normalizeBookNames(m[1]);
         var c9 = m[2] ? cnToInt(m[2]) : parseInt(m[3], 10);
         if (!b9 || !c9 || c9 > 150) continue;
         book = b9; ch = c9;
-        refs.push(book + ch + ':0');
+        refs.push(book + ch + ':0T');
         continue;
       }
       // F8: book + CN_chapter（整章速记）e.g. 但二 → 但2:0 / 腓四～五 → 腓4:0,腓5:0
