@@ -448,23 +448,26 @@
       var nr = normalizeRef(ref) || ref;
       var bk = baseKey(nr);               /* 去掉上/下，用于查注解/串珠 */
       /* 优先用半节文本，若无则退到完整节文本 */
-      /* :0T = 标题专属引用，从 :0 键取内容 */
+      /* :0T = 标题专属引用，从 :0 键取内容，与普通经节同样渲染（支持注解/串珠） */
       if (nr.slice(-3) === ':0T') {
         var titleKey = nr.slice(0, -1); /* 诗22:0T → 诗22:0 */
         var titleRaw = dict[titleKey] || '';
         if (titleRaw) {
-          return '<div class="scripture-popup-verse scripture-popup-verse--title" data-vkey="' + esc(titleKey) + '">'
-            + '<span class="scripture-popup-text" style="font-style:italic;color:var(--color-text-secondary,#888);font-size:.95em">' + esc(titleRaw) + '</span>'
+          return '<div class="scripture-popup-verse" data-vkey="' + esc(titleKey) + '">'
+            + '<span class="scripture-popup-ref">' + esc(titleKey) + '</span>'
+            + '<span class="scripture-popup-text">' + renderVerseText(titleRaw, titleKey) + '</span>'
             + '</div>';
         }
         return '<div class="scripture-popup-verse scripture-popup-verse--missing">'
+          + '<span class="scripture-popup-ref">' + esc(nr.slice(0, -1)) + '</span>'
           + '<span class="scripture-popup-text">（未收录标题）</span></div>';
       }
       var raw = dict[nr] || (bk !== nr ? dict[bk] : '');
-      /* :0 整章引用首位标题行 */
+      /* :0 整章引用首位标题行，同样用普通经节样式渲染 */
       if (raw && nr.slice(-2) === ':0') {
-        return '<div class="scripture-popup-verse scripture-popup-verse--title" data-vkey="' + esc(bk) + '">'
-          + '<span class="scripture-popup-text" style="font-style:italic;color:var(--color-text-secondary,#888);font-size:.95em">' + esc(raw) + '</span>'
+        return '<div class="scripture-popup-verse" data-vkey="' + esc(bk) + '">'
+          + '<span class="scripture-popup-ref">' + esc(bk) + '</span>'
+          + '<span class="scripture-popup-text">' + renderVerseText(raw, bk) + '</span>'
           + '</div>';
       }
       if (raw) {
