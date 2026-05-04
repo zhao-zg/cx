@@ -93,11 +93,15 @@
     var bookReq = '(?:' + _sortedFullNames.join('|') + '|' + abbr + ')';
     var versePart = '(?:' + CN + '(?:[至到]' + CN + ')?节(?:[上下]半?)?)?';
     // 「篇」是诗篇专属，须有显式「诗」/「诗篇」前缀；其他书卷用「章」
+    // 快捷章节格式（bookReq+CN，无「章」字，如「弗四」「启二一」）：
+    // 限制为不含「百」，因除诗篇外无书卷超过 66 章；诗篇已由「篇」分支覆盖
+    var CN_NO_BAI = '[一二三四五六七八九十]+';
     return new RegExp(
       '(?:(?:诗篇|诗)' + CN + '篇' + versePart
       + '|' + bookPat + CN + '章' + versePart
       + '|第?' + CN + '(?:[至到]' + CN + ')?节(?:[上下]半?)?'
-      + '|' + bookReq + CN + ')'
+      + '|' + bookReq + CN_NO_BAI + '(?:[~～\\-]' + CN_NO_BAI + ')?'
+      + ')'
       , 'g');
   }());
   function normalizeBookNames(text) {
@@ -161,8 +165,8 @@
     var F6 = new RegExp('^(' + SINGLE_BOOK + ')(\\d+)([上下]?)(?:[~～\\-](\\d+)([上下]?))?$');
     // Format7: 纯中文节号（续）e.g. 三十七节 / 三十六至三十七节 / 第三十七节
     var F7 = new RegExp('^第?(' + CN_N + ')节?([上下]半?)?(?:[至到~～](' + CN_N + ')节([上下]半?)?)?$');
-    // Format8: book + CN_chapter（整章速记，无节号、无"章"字）e.g. 但二 / 弗四
-    var F8 = new RegExp('^(' + BOOK_PAT + ')(' + CN_N + ')$');
+    // Format8: book + CN_chapter（整章速记，无节号、无"章"字）e.g. 但二 / 弗四 / 腓四～五
+    var F8 = new RegExp('^(' + BOOK_PAT + ')(' + CN_N + ')(?:[~～\\-](' + CN_N + '))?$');
 
     function emitRange(b, c, v1, m1, v2, m2) {
       v2 = v2 || v1; m2 = m2 || (v2===v1 ? m1 : '');
@@ -175,6 +179,14 @@
     var parts = refText.split(/[,，、；。]+/);
     for (var pi = 0; pi < parts.length; pi++) {
       var p = parts[pi].trim().replace(/^参[看阅]?\s*/, '').replace(/^[—─]+\s*/, '').replace(/[：:。，；,;)）」』】〗\]]+$/g, '');
+      // 预处理：若 part 不以合法经文引用字符开头，且含破折号，则取破折号后部分
+      // 处理「表征神的荣耀—结一4」→「结一4」类型的括号内嵌入式引用
+      if (p && !/^[一二三四五六七八九十百\d]/.test(p) &&
+          !/^[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启]/.test(p)) {
+        var _di = p.lastIndexOf('—');
+        if (_di < 0) _di = p.lastIndexOf('\u2014');
+        if (_di >= 0) p = p.slice(_di + 1).trim().replace(/[：:。，；,;)）」』】〗\]]+$/g, '');
+      }
       if (!p) continue;
       var m;
       // F4: arabic chapter:verse
@@ -235,12 +247,20 @@
         if (v1_7) emitRange(book, ch, v1_7, mod1_7, v2_7, mod2_7);
         continue;
       }
-      // F8: book + CN_chapter（整章速记）e.g. 但二 → 但2:0
+      // F8: book + CN_chapter（整章速记）e.g. 但二 → 但2:0 / 腓四～五 → 腓4:0,腓5:0
       if ((m = F8.exec(p))) {
         var b8 = normalizeBookNames(m[1]); var c8 = cnToInt(m[2]);
         if (!b8 || !c8 || c8 > 150) continue;
         book = b8; ch = c8;
-        refs.push(book + ch + ':0');
+        if (m[3]) {
+          var c8end = cnToInt(m[3]);
+          if (c8end && c8end >= c8 && c8end <= 150) {
+            for (var ci8 = c8; ci8 <= c8end; ci8++) refs.push(book + ci8 + ':0');
+            ch = c8end;
+          } else { refs.push(book + ch + ':0'); }
+        } else {
+          refs.push(book + ch + ':0');
+        }
         continue;
       }
     }
@@ -267,7 +287,7 @@
     //   ② 书卷缩写 + 数字/中文章号    (弗四5 / 腓4:13)
     //   ③ 阿拉伯章:节               (4:13)
     // 不合法：书卷缩写后接非数字汉字（如"耶稣"→耶+稣，稣不是章节号）
-    var DASH_REF_START = /^(?:[一二三四五六七八九十百][\d一二三四五六七八九十百章篇~～\-]|[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启](?:前|后|上|下|壹|贰|叁)?[\d一二三四五六七八九十百]|\d+:\d)/;
+    var DASH_REF_START = /^(?:[一二三四五六七八九十百][\d一二三四五六七八九十百章篇~～\-]|[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启](?:前|后|上|下|壹|贰|叁)?[\d一二三四五六七八九十百]|\d+:\d|\d+(?:[~～\-]\d+)?节)/;
     var splitPos = -1;
     var depth = 0;
     for (var i = text.length - 1; i >= 0; i--) {
@@ -313,7 +333,9 @@
         }
         // 规则3：含章/篇的引用，首字为单字书卷缩写且紧接中文数字，前一字又是汉字
         // → 该缩写实为复合词的一部分，非书卷名（如"全书二十二章"中"书"前有"全"）
-        if (!isShortForm && isCJK.test(prevCharI) && isCJK.test(m2[0][0])
+        // 注意：若首字为中文数字（如"十一节"中的"十"），不应触发此规则，那是合法的相对节引用
+        var _isBookAbbr = /^[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启]/.test(m2[0]);
+        if (!isShortForm && isCJK.test(prevCharI) && _isBookAbbr
             && /[一二三四五六七八九十百]/.test(m2[0][1] || '')) {
           result.push(escHtml(m2[0]));
           last2 = m2.index + m2[0].length;
