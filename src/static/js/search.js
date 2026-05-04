@@ -182,7 +182,6 @@
 
     _loadBatch: function (offset) {
       var self = this;
-      var root = (win.CX_ROOT !== undefined ? win.CX_ROOT : './');
       var paths = this._searchQueue.slice(offset, offset + this.SEARCH_BATCH_SIZE);
       var promises = paths.map(function (path) {
         if (self._searchCache[path]) return Promise.resolve();
@@ -193,22 +192,8 @@
         return fromForage.then(function (cached) {
           if (cached && cached.version === expectedVer && cached.entries) {
             self._searchCache[path] = cached.entries;
-            return;
           }
-          return fetch(root + path + '/training.json')
-            .then(function (r) {
-              if (!r.ok) throw new Error('HTTP ' + r.status);
-              return r.json();
-            })
-            .then(function (data) {
-              var entries = self._buildSearchEntries(path, data);
-              self._searchCache[path] = entries;
-              var ver = self._trainingVersions[path] || data.version || '';
-              if (win.localforage) {
-                win.localforage.setItem('cx_search_' + path, { version: ver, entries: entries });
-              }
-            })
-            .catch(function () {});
+          /* 未缓存的训练直接跳过，不网络拉取 */
         }).catch(function () {});
       });
       return Promise.all(promises);
@@ -644,10 +629,7 @@
           self._countEl.textContent = '共 ' + result.totalAll + ' 条结果';
         }
         self._renderResults(result.groups, terms, q);
-        var remaining = self._searchQueue.length - self._queueOffset;
-        if (remaining > 0) {
-          self._resultsEl.appendChild(self._buildLoadMoreTrainingsBtn(remaining));
-        }
+        /* 不显示未缓存训练的"查看更多训练"按钟 */
       });
     },
 
