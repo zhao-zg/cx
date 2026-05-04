@@ -631,7 +631,7 @@
                     return cacheAllTrainings(statusEl,function(percent){if(progressBar)progressBar.style.width=Math.min(percent,100)+'%';}).then(function(){
                         if(progressBar)progressBar.style.width='100%';
                         if(statusEl)statusEl.textContent='✓ 下载完成，正在验证...';
-                        return verifyCacheIntegrity(trainings.slice(0,window.CX_MAX_LATEST_TRAININGS||trainings.length));
+                        return verifyCacheIntegrity(trainings.filter(function(t){return!t.is_collection;}).slice(0,window.CX_MAX_LATEST_TRAININGS||trainings.length));
                     }).then(function(result){
                         if(result.ok){try{localStorage.setItem('cx_pwa_version',targetVersion);}catch(e){}
                             if(statusEl)statusEl.textContent='✅ 缓存完整，即将进入...';
