@@ -575,6 +575,7 @@
                 return{ok:tCov>=1,coverage:tCov,missingCore:0,missingTrainings:missingT.map(function(t){return t.path;})};
             });
         }).catch(function(){return{ok:false,coverage:0,missingCore:0,missingTrainings:[]};});
+    }
 
     function cacheAllTrainings(statusEl,onProgress){
         if(!('caches' in window)){if(statusEl)statusEl.textContent='当前环境不支持缓存';return Promise.resolve();}
