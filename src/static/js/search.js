@@ -197,6 +197,32 @@
     },
 
 
+    // ── 持续加载批次直到有 targetGroups 个训练产生结果，或队列耗尽 ───────────
+    // 返回 Promise<{entries, newOffset}>
+
+    _loadUntilEnoughResults: function (startOffset, targetGroups, query) {
+      var self = this;
+      var allEntries = [];
+      function step(off) {
+        if (off >= self._searchQueue.length) return Promise.resolve(off);
+        return self._loadBatch(off).then(function () {
+          var paths = self._searchQueue.slice(off, off + self.SEARCH_BATCH_SIZE);
+          var newOff = Math.min(off + self.SEARCH_BATCH_SIZE, self._searchQueue.length);
+          paths.forEach(function (p) {
+            if (self._searchCache[p]) allEntries = allEntries.concat(self._searchCache[p]);
+          });
+          var result = self.search(query, allEntries);
+          if (result.groups.length >= targetGroups || newOff >= self._searchQueue.length) {
+            return Promise.resolve(newOff);
+          }
+          return step(newOff);
+        });
+      }
+      return step(startOffset).then(function (newOff) {
+        return { entries: allEntries, newOffset: newOff };
+      });
+    },
+
     // ── 加载一批训练的搜索数据（localforage 命中 → fetch 降级）──────────────
 
     _loadBatch: function (offset) {
@@ -642,19 +668,12 @@
       this._countEl.textContent = '搜索中…';
       this._resultsEl.innerHTML = '';
       this._ensureTrainings().then(function () {
-        return self._loadBatch(0);
-      }).then(function () {
-        self._queueOffset = self.SEARCH_BATCH_SIZE;
-        var allEntries = [];
-        var loaded = self._searchQueue.slice(0, self._queueOffset);
-        for (var i = 0; i < loaded.length; i++) {
-          if (self._searchCache[loaded[i]]) {
-            allEntries = allEntries.concat(self._searchCache[loaded[i]]);
-          }
-        }
+        return self._loadUntilEnoughResults(0, self.SEARCH_BATCH_SIZE, q);
+      }).then(function (loaded) {
+        self._queueOffset = loaded.newOffset;
         var terms = q.toLowerCase().split(/\s+/).filter(Boolean);
-        var result = self.search(q, allEntries);
-        if (allEntries.length === 0) {
+        var result = self.search(q, loaded.entries);
+        if (loaded.entries.length === 0) {
           self._countEl.textContent = '请先访问训练页面以建立搜索索引';
         } else if (result.totalAll === 0) {
           self._countEl.textContent = '未找到相关内容';
@@ -758,20 +777,14 @@
       btn.disabled = true;
       btn.textContent = '加载中…';
       var offset = this._queueOffset;
-      this._loadBatch(offset).then(function () {
-        var newPaths = self._searchQueue.slice(offset, offset + self.SEARCH_BATCH_SIZE);
-        self._queueOffset += self.SEARCH_BATCH_SIZE;
-        var newEntries = [];
-        for (var i = 0; i < newPaths.length; i++) {
-          if (self._searchCache[newPaths[i]]) {
-            newEntries = newEntries.concat(self._searchCache[newPaths[i]]);
-          }
-        }
-        var terms = self._currentQuery.toLowerCase().split(/\s+/).filter(Boolean);
-        var result = self.search(self._currentQuery, newEntries);
+      var q = this._currentQuery;
+      this._loadUntilEnoughResults(offset, self.SEARCH_BATCH_SIZE, q).then(function (loaded) {
+        self._queueOffset = loaded.newOffset;
+        var terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+        var result = self.search(q, loaded.entries);
         if (btn.parentNode) btn.parentNode.removeChild(btn);
         if (result.groups.length > 0) {
-          self._appendGroupsToEl(result.groups, terms, self._currentQuery, self._resultsEl);
+          self._appendGroupsToEl(result.groups, terms, q, self._resultsEl);
         }
         var remaining = self._searchQueue.length - self._queueOffset;
         if (remaining > 0) {
