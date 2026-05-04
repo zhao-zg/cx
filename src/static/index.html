@@ -556,25 +556,25 @@
     }
 
     function verifyCacheIntegrity(trainings){
-        if(!('caches' in window))return Promise.resolve({ok:false,coverage:0});
+        if(!('caches' in window))return Promise.resolve({ok:false,coverage:0,missingCore:0,missingTrainings:[]});
         var coreUrls=window.__cxCoreUrls||[];
         return caches.keys().then(function(keys){
             var hasCoreCache=keys.some(function(k){return k==='cx-main'||k.indexOf('cx-main-')===0;});
-            if(!hasCoreCache)return{ok:false,coverage:0};
-            var checkUrls=coreUrls.filter(function(u){return u!=='./';});
+            if(!hasCoreCache)return{ok:false,coverage:0,missingCore:coreUrls.length,missingTrainings:(trainings||[]).map(function(t){return t.path;})};
+            var checkUrls=coreUrls.filter(function(u){return u!=='./';}); 
             return caches.open('cx-main').then(function(cache){
-                return Promise.all(checkUrls.map(function(u){return cache.match(u).then(function(r){return!!r;});}));
+                return Promise.all(checkUrls.map(function(u){return cache.match(u).then(function(r){return r?null:u;});}));
             }).then(function(results){
-                var hits=results.filter(Boolean).length;
+                var missingUrls=results.filter(Boolean);
+                var hits=checkUrls.length-missingUrls.length;
                 var cov=checkUrls.length>0?hits/checkUrls.length:1;
-                if(cov<1)return{ok:false,coverage:cov};
-                if(!trainings||!trainings.length)return{ok:true,coverage:1};
-                var tHits=trainings.filter(function(t){return keys.some(function(k){return k==='cx-'+t.path;});});
-                var tCov=tHits.length/trainings.length;
-                return{ok:tCov>=1,coverage:tCov};
+                if(cov<1)return{ok:false,coverage:cov,missingCore:missingUrls.length,missingCoreUrls:missingUrls,missingTrainings:[]};
+                if(!trainings||!trainings.length)return{ok:true,coverage:1,missingCore:0,missingTrainings:[]};
+                var missingT=trainings.filter(function(t){return!keys.some(function(k){return k==='cx-'+t.path;});});
+                var tCov=(trainings.length-missingT.length)/trainings.length;
+                return{ok:tCov>=1,coverage:tCov,missingCore:0,missingTrainings:missingT.map(function(t){return t.path;})};
             });
-        }).catch(function(){return{ok:false,coverage:0};});
-    }
+        }).catch(function(){return{ok:false,coverage:0,missingCore:0,missingTrainings:[]};});
 
     function cacheAllTrainings(statusEl,onProgress){
         if(!('caches' in window)){if(statusEl)statusEl.textContent='当前环境不支持缓存';return Promise.resolve();}
@@ -635,7 +635,17 @@
                         if(result.ok){try{localStorage.setItem('cx_pwa_version',targetVersion);}catch(e){}
                             if(statusEl)statusEl.textContent='✅ 缓存完整，即将进入...';
                             setTimeout(function(){var m=document.getElementById('cxInstallMask');if(m&&m.parentNode)m.parentNode.removeChild(m);},800);
-                        }else{if(statusEl)statusEl.textContent='⚠ 部分资源未完整（'+Math.round((result.coverage||0)*100)+'%），请重试';if(retryBtn)retryBtn.style.display='block';}
+                        }else{
+                            var msg='⚠ 部分资源未完整（'+Math.round((result.coverage||0)*100)+'%）';
+                            if(result.missingCore&&result.missingCore>0){
+                                msg+='\n缺少核心资源 '+result.missingCore+' 个';
+                                if(result.missingCoreUrls&&result.missingCoreUrls.length)msg+='：'+result.missingCoreUrls.slice(0,3).map(function(u){return u.split('/').pop();}).join('、')+(result.missingCoreUrls.length>3?'...':'');
+                            }
+                            if(result.missingTrainings&&result.missingTrainings.length)msg+='\n缺少训练：'+result.missingTrainings.join('、');
+                            msg+='\n请重试';
+                            if(statusEl){statusEl.textContent=msg;statusEl.style.whiteSpace='pre-line';}
+                            if(retryBtn)retryBtn.style.display='block';
+                        }
                     });
                 }).catch(function(err){if(statusEl)statusEl.textContent='⚠ 出错：'+(err&&err.message||'未知')+'，请重试';if(retryBtn)retryBtn.style.display='block';});
             });
