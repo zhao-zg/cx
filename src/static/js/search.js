@@ -169,7 +169,11 @@
             var curPath = ctx.trainingPath;
             paths = [curPath].concat(paths.filter(function (p) { return p !== curPath; }));
           }
-          self._searchQueue = paths;
+          // 只保留已缓存的训练（有 cx-{path} 缓存键，或已有本地搜索索引）
+          return self._filterCachedPaths(paths);
+        })
+        .then(function (filtered) {
+          self._searchQueue = filtered;
         })
         .catch(function () {
           if (!self._searchQueue.length) {
@@ -178,10 +182,26 @@
         });
     },
 
+    // 过滤出有 SW 缓存（cx-{path}）或本地搜索索引的训练路径
+    _filterCachedPaths: function (paths) {
+      var self = this;
+      if (!('caches' in win)) {
+        // 无 SW 环境：只保留已有本地搜索索引的训练
+        return Promise.resolve(paths.filter(function (p) { return !!self._searchCache[p]; }));
+      }
+      return win.caches.keys().then(function (keys) {
+        var cxSet = {};
+        keys.forEach(function (k) { cxSet[k] = true; });
+        return paths.filter(function (p) { return cxSet['cx-' + p]; });
+      }).catch(function () { return paths; });
+    },
+
+
     // ── 加载一批训练的搜索数据（localforage 命中 → fetch 降级）──────────────
 
     _loadBatch: function (offset) {
       var self = this;
+      var root = (win.CX_ROOT !== undefined ? win.CX_ROOT : './');
       var paths = this._searchQueue.slice(offset, offset + this.SEARCH_BATCH_SIZE);
       var promises = paths.map(function (path) {
         if (self._searchCache[path]) return Promise.resolve();
@@ -192,8 +212,23 @@
         return fromForage.then(function (cached) {
           if (cached && cached.version === expectedVer && cached.entries) {
             self._searchCache[path] = cached.entries;
+            return;
           }
-          /* 未缓存的训练直接跳过，不网络拉取 */
+          // _searchQueue 已过滤为已缓存训练，fetch 将由 SW 从缓存返回，不走网络
+          return fetch(root + path + '/training.json')
+            .then(function (r) {
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              return r.json();
+            })
+            .then(function (data) {
+              var entries = self._buildSearchEntries(path, data);
+              self._searchCache[path] = entries;
+              if (win.localforage) {
+                var ver = self._trainingVersions[path] || data.version || '';
+                win.localforage.setItem('cx_search_' + path, { version: ver, entries: entries });
+              }
+            })
+            .catch(function () {});
         }).catch(function () {});
       });
       return Promise.all(promises);
