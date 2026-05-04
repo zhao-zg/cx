@@ -185,8 +185,14 @@
     // 过滤出有 SW 缓存（cx-{path}）或本地搜索索引的训练路径
     _filterCachedPaths: function (paths) {
       var self = this;
+      // Capacitor APK：文件全部打包在本地，直接放行所有路径
+      var isCap = win.Capacitor !== undefined
+        || win.location.protocol === 'capacitor:'
+        || win.location.hostname === 'localhost';
+      if (isCap) return Promise.resolve(paths);
+
       if (!('caches' in win)) {
-        // 无 SW 环境：只保留已有本地搜索索引的训练
+        // 无 SW 且非 Capacitor：只保留已有本地搜索索引的训练
         return Promise.resolve(paths.filter(function (p) { return !!self._searchCache[p]; }));
       }
       return win.caches.keys().then(function (keys) {
