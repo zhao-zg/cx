@@ -101,6 +101,7 @@
       + '|' + bookPat + CN + '章' + versePart
       + '|第?' + CN + '(?:[至到]' + CN + ')?节(?:[上下]半?)?'
       + '|' + bookReq + CN_NO_BAI + '(?:[~～\\-]' + CN_NO_BAI + ')?(?:\\d+[上下]?(?:[~～\\-]\\d+[上下]?)?)?'
+      + '|' + bookReq + '(?:' + CN_NO_BAI + '|[1-9]\\d*)标题'
       + ')'
       , 'g');
   }());
@@ -165,6 +166,8 @@
     var F6 = new RegExp('^(' + SINGLE_BOOK + ')(\\d+)([上下]?)(?:[~～\\-](\\d+)([上下]?))?$');
     // Format7: 纯中文节号（续）e.g. 三十七节 / 三十六至三十七节 / 第三十七节
     var F7 = new RegExp('^第?(' + CN_N + ')节?([上下]半?)?(?:[至到~～](' + CN_N + ')节([上下]半?)?)?$');
+    // Format9: book + CN章/阿拉伯章 + 「标题」  e.g. 诗二二标题 / 诗22标题
+    var F9 = new RegExp('^(' + BOOK_PAT + ')(?:(' + CN_N + ')|([1-9]\\d*))标题$');
     // Format8: book + CN_chapter（整章速记，无节号、无"章"字）e.g. 但二 / 弗四 / 腓四～五
     var F8 = new RegExp('^(' + BOOK_PAT + ')(' + CN_N + ')(?:[~～\\-](' + CN_N + '))?$');
 
@@ -245,6 +248,15 @@
         var v1_7 = cnToInt(m[1]), v2_7 = m[3] ? cnToInt(m[3]) : v1_7;
         var mod1_7 = m[2] ? m[2][0] : '', mod2_7 = m[4] ? m[4][0] : '';
         if (v1_7) emitRange(book, ch, v1_7, mod1_7, v2_7, mod2_7);
+        continue;
+      }
+      // F9: book + chapter + 「标题」 e.g. 诗二二标题 → 诗22:0
+      if ((m = F9.exec(p))) {
+        var b9 = normalizeBookNames(m[1]);
+        var c9 = m[2] ? cnToInt(m[2]) : parseInt(m[3], 10);
+        if (!b9 || !c9 || c9 > 150) continue;
+        book = b9; ch = c9;
+        refs.push(book + ch + ':0');
         continue;
       }
       // F8: book + CN_chapter（整章速记）e.g. 但二 → 但2:0 / 腓四～五 → 腓4:0,腓5:0

@@ -195,6 +195,8 @@
           var bv = parseInt((b.split(':')[1] || '').replace(/[上下]/g, ''), 10);
           return av - bv;
         });
+      // 若该章有标题（":0" 条目有内容），置于列表首位
+      if ((bibleDict || {})[nr]) chKeys.unshift(nr);
       return chKeys.length ? chKeys : [nr];
     }
 
@@ -443,6 +445,12 @@
       var bk = baseKey(nr);               /* 去掉上/下，用于查注解/串珠 */
       /* 优先用半节文本，若无则退到完整节文本 */
       var raw = dict[nr] || (bk !== nr ? dict[bk] : '');
+      /* 标题行（section=0）特殊渲染：斜体显示，不显示节号 */
+      if (raw && nr.slice(-2) === ':0') {
+        return '<div class="scripture-popup-verse scripture-popup-verse--title" data-vkey="' + esc(bk) + '">'
+          + '<span class="scripture-popup-text" style="font-style:italic;color:var(--color-text-secondary,#888);font-size:.95em">' + esc(raw) + '</span>'
+          + '</div>';
+      }
       if (raw) {
         return '<div class="scripture-popup-verse" data-vkey="' + esc(bk) + '">'
           + '<span class="scripture-popup-ref">' + esc(ref) + '</span>'
