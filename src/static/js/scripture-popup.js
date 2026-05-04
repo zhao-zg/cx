@@ -249,14 +249,30 @@
     _cbText.push(cb);
     if (_loadingText) return;
     _loadingText = true;
-    loadJSON(getRootPath() + 'data/bible-text.json', function (data) {
-      if (data) {
-        window.CX_BIBLE_TEXT_DATA = data;  /* 保留全本圣经独立引用，供整章展开使用 */
-        window.CX_SCRIPTURES_DATA = Object.assign(window.CX_SCRIPTURES_DATA || {}, data);
+    /* 并行加载全本圣经 + 训练专属经文（scriptures-data.json）
+       scriptures-data.json 只含 bible-text.json 没有的条目（如半节 中/上/下），
+       最后合并确保训练专属数据优先。 */
+    var pending = 2, bibleData = null, suppData = null;
+    function allDone() {
+      if (--pending > 0) return;
+      if (bibleData) {
+        window.CX_BIBLE_TEXT_DATA = bibleData;  /* 保留全本圣经独立引用，供整章展开使用 */
+        window.CX_SCRIPTURES_DATA = Object.assign(window.CX_SCRIPTURES_DATA || {}, bibleData);
+      }
+      /* 训练专属条目最后合并，确保其优先于全本圣经同键条目 */
+      if (suppData) {
+        window.CX_SCRIPTURES_DATA = Object.assign(window.CX_SCRIPTURES_DATA || {}, suppData);
       }
       window.CX_BIBLE_TEXT_READY = 1;
       var cbs = _cbText.slice(); _cbText = [];
       cbs.forEach(function (f) { f(); });
+    }
+    loadJSON(getRootPath() + 'data/bible-text.json', function (data) {
+      bibleData = data; allDone();
+    });
+    /* 训练专属经文：路径相对于当前训练目录下的 js/ 子目录 */
+    loadJSON('js/scriptures-data.json', function (data) {
+      suppData = data; allDone();
     });
   }
 

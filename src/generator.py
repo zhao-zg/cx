@@ -873,7 +873,7 @@ class HTMLGenerator:
             # 对半节（上/下）用整节带标记文本补全 {N}/[a]，仍保留在 scriptures-data.json
             if bible_data:
                 for k in list(scriptures.keys()):
-                    if k and k[-1] in '上下':
+                    if k and k[-1] in '上中下':
                         full_marked = bible_data.get(k[:-1])
                         if full_marked:
                             enriched = self._enrich_half_verse(scriptures[k], full_marked, k[-1])
