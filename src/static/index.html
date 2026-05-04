@@ -588,7 +588,7 @@
         function rep(){var p=totalResources>0?Math.round(cachedResources/totalResources*100):0;if(onProgress)onProgress(p);return p;}
         var cacheShared=caches.open('cx-main').then(function(cache){
             return Promise.allSettled(coreUrls.map(function(url){
-                return fetch(url,{cache:'no-cache'}).then(function(r){cachedResources++;if(statusEl)statusEl.textContent='核心资源：'+cachedResources+'/'+coreUrls.length;if(r.ok)return cache.put(url,r.clone());}).catch(function(){cachedResources++;rep();});
+                return fetch(url,{cache:'no-cache'}).then(function(r){cachedResources++;if(statusEl)statusEl.textContent='核心资源：'+cachedResources+'/'+coreUrls.length;if(r.ok){var puts=[cache.put(url,r.clone())];if(url==='./index.html')puts.push(cache.put('./',r.clone()));return Promise.all(puts);}}).catch(function(){cachedResources++;rep();});
             }));
         }).catch(function(){});
         return cacheShared.then(function(){
