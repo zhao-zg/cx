@@ -100,6 +100,7 @@
       '(?:(?:诗篇|诗)' + CN + '篇' + versePart
       + '|' + bookPat + CN + '章' + versePart
       + '|第?' + CN + '(?:[至到]' + CN + ')?节(?:[上下]半?)?'
+      + '|(?:犹|门|俄|约贰|约叁)' + CN + '(?:[至到]' + CN + ')?节(?:[上下]半?)?'
       + '|' + bookReq + CN_NO_BAI + '(?:[~～\\-]' + CN_NO_BAI + ')?(?:\\d+[上中下]?(?:[~～\\-]\\d+[上中下]?)?)?'
       + '|' + bookReq + '(?:' + CN_NO_BAI + '|[1-9]\\d*)标题'
       + ')'
@@ -164,6 +165,8 @@
     // Format6: 单章书卷 + 阿拉伯节  e.g. 犹20 / 门10~12 / 俄5
     var SINGLE_BOOK = '(?:犹|门|俄|约贰|约叁)';
     var F6 = new RegExp('^(' + SINGLE_BOOK + ')(\\d+)([上中下]?)(?:[~～\\-](\\d+)([上中下]?))?$');
+    // Format10: 单章书卷 + 中文节号  e.g. 犹二十节 / 门十至十二节 / 俄五节
+    var F10 = new RegExp('^(' + SINGLE_BOOK + ')(' + CN_N + ')节?([上下]半?)?(?:[至到](' + CN_N + ')节([上下]半?)?)?$');
     // Format7: 纯中文节号（续）e.g. 三十七节 / 三十六至三十七节 / 第三十七节
     var F7 = new RegExp('^第?(' + CN_N + ')节?([上中下]半?)?(?:[至到~～](' + CN_N + ')节([上中下]半?)?)?$');
     // Format9: book + CN章/阿拉伯章 + 「标题」  e.g. 诗二二标题 / 诗22标题
@@ -203,6 +206,14 @@
       if ((m = F6.exec(p))) {
         book = m[1]; ch = 1;
         emitRange(book, ch, parseInt(m[2],10), m[3]||'', m[4]?parseInt(m[4],10):0, m[5]||'');
+        continue;
+      }
+      // F10: 单章书卷 + 中文节号  e.g. 犹二十节 / 门十至十二节
+      if ((m = F10.exec(p))) {
+        book = m[1]; ch = 1;
+        var v1_10 = cnToInt(m[2]), v2_10 = m[4] ? cnToInt(m[4]) : v1_10;
+        var mod1_10 = m[3] ? m[3][0] : '', mod2_10 = m[5] ? m[5][0] : '';
+        if (v1_10) emitRange(book, ch, v1_10, mod1_10, v2_10, mod2_10);
         continue;
       }
       // F5: 章节式
