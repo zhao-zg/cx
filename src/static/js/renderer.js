@@ -47,6 +47,17 @@
 
   function loadTraining(batchPath) {
     if (_cache[batchPath]) return Promise.resolve(_cache[batchPath]);
+    // 本地导入训练（LocalForage）
+    if (batchPath.indexOf('local-') === 0 && win.CXLocalImport) {
+      return win.CXLocalImport.getTraining(batchPath).then(function (d) {
+        if (!d) throw new Error('本地训练不存在，请重新导入');
+        _cache[batchPath] = d;
+        setTimeout(function () {
+          if (win.CXSearch && win.CXSearch._cacheTraining) win.CXSearch._cacheTraining(batchPath, d);
+        }, 0);
+        return d;
+      });
+    }
     var root = win.CX_ROOT || './';
     return fetch(root + batchPath + '/training.json')
       .then(function(r) {

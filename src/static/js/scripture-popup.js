@@ -254,9 +254,21 @@
     if (_loadingText) return;
     _loadingText = true;
 
+    /* 本地导入路径（local-YYYY-NN）：从 localforage 读取补充经文，无需网络 */
+    var isLocal = tp && /^local-/.test(tp);
+    function loadSupp(onData) {
+      if (!tp) { onData(null); return; }
+      if (isLocal && window.CXLocalImport && window.CXLocalImport.loadScriptures) {
+        window.CXLocalImport.loadScriptures(tp).then(onData).catch(function() { onData(null); });
+      } else if (!isLocal) {
+        loadJSON(getRootPath() + tp + '/js/scriptures-data.json', onData);
+      } else {
+        onData(null);
+      }
+    }
+
     if (_bibleLoaded) {
       /* bible 已加载，只需重新加载当前训练的补充经文 */
-      var suppUrl = tp ? (getRootPath() + tp + '/js/scriptures-data.json') : null;
       function applySupp(data) {
         var base = window.CX_BIBLE_TEXT_DATA || {};
         window.CX_SCRIPTURES_DATA = data
@@ -267,11 +279,11 @@
         var cbs = _cbText.slice(); _cbText = [];
         cbs.forEach(function (f) { f(); });
       }
-      if (suppUrl) { loadJSON(suppUrl, applySupp); } else { applySupp(null); }
+      loadSupp(applySupp);
       return;
     }
 
-    /* bible 尚未加载：并行加载 bible-text.json + 当前训练补充经文 */
+    /* bible 尚未加载：bible-text.json 同步加载，补充经文按类型加载 */
     var pending = tp ? 2 : 1, bibleData = null, suppData = null;
     function allDone() {
       if (--pending > 0) return;
@@ -294,9 +306,7 @@
       bibleData = data; allDone();
     });
     if (tp) {
-      loadJSON(getRootPath() + tp + '/js/scriptures-data.json', function (data) {
-        suppData = data; allDone();
-      });
+      loadSupp(function(data) { suppData = data; allDone(); });
     }
   }
 

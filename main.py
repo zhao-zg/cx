@@ -144,8 +144,8 @@ def scan_resource_folders(resource_dir='resource'):
     if not os.path.exists(resource_dir):
         return []
     
-    # 非训练批次目录（数据源目录），跳过不处理
-    _SKIP_DIRS = {'bible', 'bible-db', 'bible2'}
+    # 历史合辑由 build-trainings-json.js 单独处理，跳过 Word 文档批处理
+    _SKIP_DIRS = {'bible', 'bible-db', 'bible2', '历史合辑'}
 
     folders = []
     for item in os.listdir(resource_dir):
@@ -338,7 +338,7 @@ def generate_main_index(config, batch_results):
         })
         total_chapters += result['chapter_count']
 
-    # ── 合并已生成的历史训练（由 split_trainings.py 生成，不在 batch_results 中）──
+    # ── 合并已生成的历史训练（由 build-trainings-json.js 生成，不在 batch_results 中）──
     current_paths = {t['path'] for t in trainings}
     for entry in sorted(os.listdir(output_dir)):
         if not re.match(r'^\d{4}-\d{2}$', entry):
@@ -457,6 +457,8 @@ def generate_main_index(config, batch_results):
         'search.js', 'image-utils.js',
         # SPA-specific
         'ref-detector.js', 'router.js', 'renderer.js',
+        # 本地 TXT 导入
+        'txt-importer.js',
         # 历史资源包下载
         'resource-pack.js',
     ]
@@ -770,18 +772,18 @@ def main():
                 json.dump(_jdata, _wf, ensure_ascii=False, separators=(',', ':'))
     print(f"✓ 圣经数据 JSON 已生成并压缩到 {_data_dir_early}/")
 
-    # ── 历史合辑：自动调用 split_trainings.py 生成 training.json ──
-    _split_script = os.path.join(os.path.dirname(__file__), 'tools', 'split_trainings.py')
-    if os.path.exists(_split_script):
-        print("\n正在解析历史合辑...")
+    # ── 历史合辑：调用 build-trainings-json.js 生成 training.json ──
+    _build_js = os.path.join(os.path.dirname(__file__), 'tools', 'build-trainings-json.js')
+    if os.path.exists(_build_js):
+        print("\n正在解析历史合辑（training.json）...")
         _split_ret = subprocess.run(
-            [sys.executable, _split_script, '--mode', 'json'],
-            cwd=os.path.dirname(_split_script),
+            ['node', _build_js],
+            cwd=os.path.dirname(_build_js),
         )
         if _split_ret.returncode == 0:
-            print("✓ 历史合辑解析完成")
+            print("✓ 历史合辑 training.json 生成完成")
         else:
-            print("⚠ 历史合辑解析失败（split_trainings.py 返回非零退出码）")
+            print("⚠ 历史合辑 training.json 生成失败")
 
     # 处理每个批次
     success_count = 0

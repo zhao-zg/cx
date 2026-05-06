@@ -199,13 +199,43 @@
     mask.className = 'cx-dialog-mask';
     mask.innerHTML =
       '<div class="cx-dialog" style="max-width:420px;padding:0 0 4px">' +
-        '<div class="cx-dialog-title" style="padding:18px 16px 8px;font-size:16px">📦 历史资源包</div>' +
-        '<div id="cxRpContent" style="padding:0 16px 8px;max-height:60vh;overflow-y:auto">' +
-          '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">⏳ 加载清单中…</div>' +
+        // 标题
+        '<div class="cx-dialog-title" style="padding:14px 16px 0;font-size:16px">训练资源管理</div>' +
+        // 标签切换
+        '<div style="display:flex;border-bottom:1px solid var(--border);margin:8px 16px 0;gap:0">' +
+          '<button id="cxRpTabPack" style="flex:1;padding:7px 0;border:none;border-bottom:2px solid var(--brand);background:none;font-size:13px;font-weight:600;color:var(--brand);cursor:pointer">📦 历史资源包</button>' +
+          '<button id="cxRpTabImport" style="flex:1;padding:7px 0;border:none;border-bottom:2px solid transparent;background:none;font-size:13px;color:var(--text-secondary);cursor:pointer">📥 本地导入</button>' +
         '</div>' +
-        '<div style="padding:8px 16px 12px;display:flex;gap:8px;justify-content:flex-end">' +
-          '<button id="cxRpDownloadAllBtn" style="display:none;padding:7px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer">全部下载</button>' +
-          '<button id="cxRpCloseBtn" style="padding:7px 20px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--text-secondary)">关闭</button>' +
+        // 历史资源包面板
+        '<div id="cxRpPanelPack">' +
+          '<div id="cxRpContent" style="padding:0 16px 8px;max-height:55vh;overflow-y:auto">' +
+            '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">⏳ 加载清单中…</div>' +
+          '</div>' +
+          '<div style="padding:8px 16px 12px;display:flex;gap:8px;justify-content:flex-end">' +
+            '<button id="cxRpDownloadAllBtn" style="display:none;padding:7px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer">全部下载</button>' +
+            '<button id="cxRpCloseBtn" style="padding:7px 20px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--text-secondary)">关闭</button>' +
+          '</div>' +
+        '</div>' +
+        // 本地导入面板（初始隐藏）
+        '<div id="cxRpPanelImport" style="display:none">' +
+          '<div style="padding:12px 16px 4px">' +
+            '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;line-height:1.6">' +
+              '支持独立训练（如 2026-1-ICSC.txt）或历史合辑（如 97-25-特会合辑.txt）。<br>导入内容保存在本机，无需网络。' +
+            '</div>' +
+            '<label style="display:inline-block;padding:7px 14px;background:var(--brand);color:#fff;border-radius:8px;font-size:13px;cursor:pointer">' +
+              '📂 选择 TXT 文件' +
+              '<input id="cxRpFileInput" type="file" accept=".txt" style="display:none">' +
+            '</label>' +
+          '</div>' +
+          // 进度/状态区
+          '<div id="cxRpImportStatus" style="padding:0 16px 4px;min-height:20px"></div>' +
+          // 已导入列表
+          '<div id="cxRpImportList" style="padding:0 16px 4px;max-height:45vh;overflow-y:auto">' +
+            '<div style="text-align:center;padding:16px 0;color:var(--text-secondary);font-size:13px">⏳ 加载中…</div>' +
+          '</div>' +
+          '<div style="padding:8px 16px 12px;display:flex;justify-content:flex-end">' +
+            '<button id="cxRpImportCloseBtn" style="padding:7px 20px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--text-secondary)">关闭</button>' +
+          '</div>' +
         '</div>' +
       '</div>';
     document.body.appendChild(mask);
@@ -221,12 +251,150 @@
       win.CX && win.CX.backStack && win.CX.backStack.pop();
       closeDialog();
     });
+    document.getElementById('cxRpImportCloseBtn').addEventListener('click', function () {
+      win.CX && win.CX.backStack && win.CX.backStack.pop();
+      closeDialog();
+    });
     mask.addEventListener('click', function (e) {
       if (e.target === mask) {
         win.CX && win.CX.backStack && win.CX.backStack.pop();
         closeDialog();
       }
     });
+
+    // ── 标签切换 ──
+    var tabPack = document.getElementById('cxRpTabPack');
+    var tabImport = document.getElementById('cxRpTabImport');
+    var panelPack = document.getElementById('cxRpPanelPack');
+    var panelImport = document.getElementById('cxRpPanelImport');
+
+    function switchTab(tab) {
+      if (tab === 'pack') {
+        tabPack.style.borderBottomColor = 'var(--brand)';
+        tabPack.style.fontWeight = '600';
+        tabPack.style.color = 'var(--brand)';
+        tabImport.style.borderBottomColor = 'transparent';
+        tabImport.style.fontWeight = '';
+        tabImport.style.color = 'var(--text-secondary)';
+        panelPack.style.display = '';
+        panelImport.style.display = 'none';
+      } else {
+        tabImport.style.borderBottomColor = 'var(--brand)';
+        tabImport.style.fontWeight = '600';
+        tabImport.style.color = 'var(--brand)';
+        tabPack.style.borderBottomColor = 'transparent';
+        tabPack.style.fontWeight = '';
+        tabPack.style.color = 'var(--text-secondary)';
+        panelPack.style.display = 'none';
+        panelImport.style.display = '';
+      }
+    }
+
+    tabPack.addEventListener('click', function () { switchTab('pack'); });
+    tabImport.addEventListener('click', function () {
+      switchTab('import');
+      refreshImportList();
+    });
+
+    // ── 本地导入面板逻辑 ──
+    var fileInput = document.getElementById('cxRpFileInput');
+    var importStatus = document.getElementById('cxRpImportStatus');
+    var importList = document.getElementById('cxRpImportList');
+
+    function setImportStatus(msg, type) {
+      // type: '' | 'ok' | 'error' | 'progress'
+      var color = type === 'error' ? 'var(--error,#d32f2f)' :
+                  type === 'ok' ? 'var(--success-text,#2e7d32)' : 'var(--text-secondary)';
+      importStatus.innerHTML = '<div style="font-size:12px;color:' + color + ';padding:4px 0;line-height:1.6">' + msg + '</div>';
+    }
+
+    function refreshImportList() {
+      if (!win.CXLocalImport) {
+        importList.innerHTML = '<div style="font-size:12px;color:var(--error);padding:8px 0">导入模块未加载</div>';
+        return;
+      }
+      win.CXLocalImport.listImports().then(function (items) {
+        if (!items.length) {
+          importList.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--text-secondary);font-size:13px">暂无已导入训练</div>';
+          return;
+        }
+        var html = items.map(function (item) {
+          var date = item.importedAt ? new Date(item.importedAt).toLocaleDateString('zh-CN') : '';
+          return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
+            '<div style="flex:1;min-width:0">' +
+              '<div style="font-size:13px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(item.year + ' ' + (item.title || item.season || '')) + '</div>' +
+              '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' +
+                (item.chapter_count || 0) + ' 篇' + (date ? ' · ' + date : '') +
+              '</div>' +
+            '</div>' +
+            '<button class="cx-rp-del-btn" data-path="' + escAttr(item.path) + '" style="flex-shrink:0;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:none;color:var(--text-secondary)">🗑</button>' +
+          '</div>';
+        }).join('');
+        importList.innerHTML = html;
+        // 绑定删除按钮
+        var delBtns = importList.querySelectorAll('.cx-rp-del-btn');
+        for (var i = 0; i < delBtns.length; i++) {
+          (function(btn) {
+            btn.addEventListener('click', function () {
+              var path = btn.getAttribute('data-path');
+              if (!confirm('确认删除该训练？')) return;
+              win.CXLocalImport.deleteImport(path).then(function () {
+                refreshImportList();
+                if (win.refreshHomeGrid) win.refreshHomeGrid();
+              }).catch(function (e) {
+                alert('删除失败：' + e.message);
+              });
+            });
+          })(delBtns[i]);
+        }
+      }).catch(function (e) {
+        importList.innerHTML = '<div style="color:var(--error);font-size:12px;padding:8px 0">加载失败：' + escHtml(String(e)) + '</div>';
+      });
+    }
+
+    fileInput.addEventListener('change', function () {
+      var file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      if (!win.CXLocalImport) {
+        setImportStatus('导入模块未加载', 'error');
+        return;
+      }
+      setImportStatus('⏳ 正在读取文件…', '');
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var text = e.target.result;
+        var filename = file.name;
+        // 显示进度条包装器
+        importStatus.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);padding:4px 0">' +
+          '<div id="cxRpImportMsg">⏳ 正在解析…</div>' +
+          '<div style="height:4px;background:var(--border);border-radius:2px;margin-top:4px;overflow:hidden">' +
+            '<div id="cxRpImportBar" style="height:100%;background:var(--brand);width:0%;transition:width .2s"></div>' +
+          '</div>' +
+        '</div>';
+        win.CXLocalImport.parseAndSave(text, filename, function (done, total, msg) {
+          var msgEl = document.getElementById('cxRpImportMsg');
+          var barEl = document.getElementById('cxRpImportBar');
+          if (msgEl && msg) msgEl.textContent = msg;
+          if (barEl && total) barEl.style.width = Math.round(done / total * 100) + '%';
+        }).then(function (result) {
+          setImportStatus('✅ 成功导入 ' + result.count + ' 个训练', 'ok');
+          refreshImportList();
+          if (win.refreshHomeGrid) win.refreshHomeGrid();
+          fileInput.value = '';
+        }).catch(function (err) {
+          setImportStatus('❌ 导入失败：' + escHtml(String(err.message || err)), 'error');
+          fileInput.value = '';
+        });
+      };
+      reader.onerror = function () {
+        setImportStatus('❌ 文件读取失败', 'error');
+        fileInput.value = '';
+      };
+      reader.readAsText(file, 'UTF-8');
+    });
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function escAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
 
     // 加载清单并渲染列表
     fetchManifest().then(function (manifest) {
