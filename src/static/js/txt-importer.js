@@ -1065,72 +1065,61 @@
    *   5. 用目录元数据（year/seq/title）填充训练对象
    */
   function parseOldCombinedFile(lines, onProgress) {
-    // ── 1. 解析时间顺序目录（行1 到 第一个 回页首） ──────────────────────────
-    var firstRoPage = -1;
-    for (var i = 1; i < Math.min(2000, lines.length); i++) {
-      if (lines[i].trim() === '回页首') { firstRoPage = i; break; }
+    // ── 1. 找详细区起点（文件前 15000 行内最后一个「回页首」+ 3） ──────────────
+    var lastRo = -1;
+    for (var i = 0; i < Math.min(15000, lines.length); i++) {
+      if (lines[i].trim() === '回页首') lastRo = i;
     }
-    var indexEnd = firstRoPage >= 0 ? firstRoPage : 300;
-    var indexEntries = [];
-    var yearSeqCount = {};
-    for (var i = 1; i < indexEnd; i++) {
-      var s = lines[i].trim();
-      if (!s) continue;
-      // 格式：YYYY类型\u3000标题（全角空格分隔）
-      var m = s.match(/^(\d{4})(\S+?)\u3000(.+)/);
-      if (!m) continue;
-      var year = parseInt(m[1], 10);
-      if (year < 1990 || year > 2100) continue;
-      yearSeqCount[year] = (yearSeqCount[year] || 0) + 1;
-      var seq = yearSeqCount[year];
-      var seqStr = seq < 10 ? '0' + seq : '' + seq;
-      indexEntries.push({
-        year: year, seq: seq, type: m[2], title: m[3].trim(),
-        path: 'local-' + year + '-' + seqStr
-      });
+    var firstDetailStart = lastRo >= 0 ? lastRo + 3 : 0;
+
+    // ── 2. 在详细区按「TOP-目录」分割出各训练段的起始行 ───────────────────────
+    // secStarts[i] = 第 i 段的起始行（原数组下标）
+    var secStarts = [firstDetailStart];
+    for (var i = firstDetailStart; i < lines.length; i++) {
+      if (lines[i].trim() === 'TOP-目录') secStarts.push(i + 1);
+    }
+    function getSecEnd(idx) {
+      // 下一段起点 -1（即下一个 TOP-目录 行本身不属于当前段）
+      return idx + 1 < secStarts.length ? secStarts[idx + 1] - 1 : lines.length;
     }
 
-    // ── 2. 找详细区起点（最后一个「回页首」 +3 in first 15000 lines） ──────────
-    var detailStart = detectInlineStart(lines);
+    // ── 3. 从 INDEX 区获取 237 个训练元数据（Chinese-year 边界） ───────────────
+    var bounds = detectTrainingBoundaries(lines);
+    if (!bounds.length) return [parseSingleTraining(lines, null)];
+    assignSeqs(bounds, null);
 
-    // ── 3. 按「回页首」分割详细区 ─────────────────────────────────────────────
-    var sections = [];  // [{start, end}]，下标均指 lines 原数组
-    var sStart = detailStart;
-    for (var i = detailStart; i < lines.length; i++) {
-      if (lines[i].trim() === '回页首') {
-        if (i > sStart) sections.push({ start: sStart, end: i });
-        // 跳过紧随其后的空行
-        var nextContent = i + 1;
-        while (nextContent < lines.length && !lines[nextContent].trim()) nextContent++;
-        sStart = nextContent;
-        i = nextContent - 1;
-      }
-    }
-    if (sStart < lines.length) sections.push({ start: sStart, end: lines.length });
-
-    // ── 4. 逐段解析并组装训练对象 ──────────────────────────────────────────────
-    var total = sections.length;
+    // ── 4. 逐训练合并 INDEX 元数据 + DETAIL 章节 ────────────────────────────────
+    var total = bounds.length;
     var results = [];
     for (var i = 0; i < total; i++) {
-      var meta = indexEntries[i];  // 可能为 undefined（段数 > 目录数时）
-      var year  = meta ? meta.year : 0;
-      var seq   = meta ? meta.seq  : (i + 1);
-      var seqStr = seq < 10 ? '0' + seq : '' + seq;
-      var path  = meta ? meta.path : ('local-' + year + '-' + seqStr);
-      var titleFromMeta = meta ? meta.title : '';
-      var typeFromMeta  = meta ? meta.type  : '';
+      var b = bounds[i];
+      var seqStr = b.seq < 10 ? '0' + b.seq : '' + b.seq;
+      var defaultPath = 'local-' + b.year + '-' + seqStr;
 
-      // 直接在原数组上解析该段的章节（避免大数组复制）
-      var chapters = parseDetailArea(lines, sections[i].start, sections[i].end);
+      // 从 INDEX 区解析标题 / 副标题 / 标语
+      var idxEnd = (i + 1 < bounds.length) ? bounds[i + 1].idxStart : firstDetailStart;
+      var indexInfo = parseIndexArea(lines, b.idxStart, idxEnd);
 
+      // 从 DETAIL 区解析章节（按位置对应：INDEX[i] <-> DETAIL section[i]）
+      var chapters;
+      if (i < secStarts.length) {
+        chapters = parseDetailArea(lines, secStarts[i], getSecEnd(i));
+      } else {
+        // 无对应 DETAIL 段：用 INDEX 中的篇目列表构造空章节
+        chapters = (indexInfo.msgTitles || []).map(function(t, idx) {
+          return makeEmptyChapter(idx + 1, t);
+        });
+      }
+
+      var shortTitle = getShortTitle(indexInfo.title || b.headerLine || '');
       var td = {
-        path: path,
-        title: titleFromMeta || (chapters[0] ? chapters[0].title : path),
-        subtitle: '',
-        year: year,
-        season: seqStr + ' ' + typeFromMeta,
-        mottos: [],
-        motto_song_text: '',
+        path: defaultPath,
+        title: shortTitle,
+        subtitle: indexInfo.subtitle || '',
+        year: b.year,
+        season: seqStr + ' ' + shortTitle,
+        mottos: indexInfo.mottos || [],
+        motto_song_text: indexInfo.mottoSongText || '',
         motto_song_image: '',
         chapters: chapters,
         version: getNowVersion()
@@ -1400,6 +1389,8 @@
     // Node.js 构建时使用的解析函数（浏览器中忽略）
     parseSingleTraining: parseSingleTraining,
     parseCombinedFile: parseCombinedFile,
+    isOldCombinedFormat: isOldCombinedFormat,
+    parseOldCombinedFile: parseOldCombinedFile,
     detectDetailStart: detectDetailStart,
     extractYearSeqFromFilename: extractYearSeqFromFilename,
     detectTrainingBoundaries: detectTrainingBoundaries,
