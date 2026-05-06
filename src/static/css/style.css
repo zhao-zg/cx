@@ -305,8 +305,8 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{ou
 .cx-highlight:hover{opacity:.8}
 /* 搜索结果高亮（橙色，与笔记高亮黄/绿/蓝/粉区分） */
 mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;padding:0 1px}
-/* 搜索目标元素高亮：左边框+背景脉冲，解决跨文本节点边界无法插入 mark 的问题 */
-.cx-search-target{border-left:3px solid #ff8c00 !important;padding-left:8px !important;animation:cx-target-pulse 1s ease-in-out 2;transition:border-color 0.5s,background-color 0.5s}
+/* 搜索目标元素高亮：左侧内嵌阴影竖线+背景脉冲，不影响元素自身 padding */
+.cx-search-target{box-shadow:inset 3px 0 0 #ff8c00 !important;animation:cx-target-pulse 1s ease-in-out 2;transition:box-shadow 0.5s,background-color 0.5s}
 @keyframes cx-target-pulse{0%,100%{background-color:transparent}50%{background-color:rgba(255,179,71,0.25)}}
 .cx-note-icon{font-size:.75em;cursor:pointer;vertical-align:super;line-height:1;margin-left:1px;-webkit-user-select:none;user-select:none}
 .hl-menu{display:none;flex-direction:column;gap:5px;padding:8px;background:var(--surface);border-radius:12px;box-shadow:var(--menu-shadow);border:1px solid var(--border);z-index:9999;min-width:min(220px,calc(100vw - 24px));max-width:min(340px,calc(100vw - 24px));-webkit-user-select:none;user-select:none;transition:opacity .15s ease}
