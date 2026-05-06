@@ -54,6 +54,8 @@ if (!_ref || !_ref.expandCnRefs) {
 
 var parseSingleTraining        = _imp.parseSingleTraining;
 var parseCombinedFile          = _imp.parseCombinedFile;
+var isOldCombinedFormat        = _imp.isOldCombinedFormat;
+var parseOldCombinedFile       = _imp.parseOldCombinedFile;
 var detectDetailStart          = _imp.detectDetailStart;
 var extractYearSeqFromFilename = _imp.extractYearSeqFromFilename;
 var collectInlineVerses        = _imp.collectInlineVerses;
@@ -208,14 +210,15 @@ function processFile(filePath, inYearSubdir) {
   } else {
     // ── 合辑或根目录单训练文件 ────────────────────────────────────────────
     var results;
+    var isOldCmb = isOldCombinedFormat && isOldCombinedFormat(lines);
     try {
-      results = parseCombinedFile(lines, null);
+      results = isOldCmb ? parseOldCombinedFile(lines, null) : parseCombinedFile(lines, null);
     } catch (e) {
       console.warn('  [解析失败] ' + filename + ': ' + e.message);
       return 0;
     }
 
-    // 如果 parseCombinedFile 退化为单训练，尝试用文件名取 year/seq
+    // 如果退化为单训练，尝试用文件名取 year/seq
     if (results.length === 1) {
       var ys2 = extractYearSeqFromFilename(filename);
       if (ys2 && (!results[0].year || results[0].year !== ys2.year)) {
@@ -226,51 +229,84 @@ function processFile(filePath, inYearSubdir) {
       }
     }
 
-    // 合辑文件：构建详细区索引（单训练文件跳过）
     var isCombined = results.length > 1;
-    var detailStart2 = isCombined ? detectCombinedDetailStart(lines) : 0;
-    var detailIndex2 = isCombined ? buildDetailIndex(lines, detailStart2) : [];
-    var searchAfter2 = detailStart2;
-    var matchedDetail2 = []; // [{sectionStart, year, seq}]
 
-    results.forEach(function(td2) {
-      var pm = (td2.path || '').match(/^local-(\d+)-(\d+)/);
-      if (!pm) return;
-      var year2 = parseInt(pm[1], 10);
-      var seq2  = parseInt(pm[2], 10);
-      if (!year2 || !seq2) return;
-      if (enrichAndWrite(td2, year2, seq2)) {
-        count++;
-        if (!isCombined) {
-          // 单训练文件：直接扫全文提取经文
-          writeScriptures(collectInlineVerses(lines), year2, seq2);
-        } else {
-          // 合辑：以 msgTitles[0] 在 detailIndex2 中顺序查找，用 searchAfter2 防重复消耗
-          var firstMsgTitle = (td2.msgTitles && td2.msgTitles[0]) || '';
-          var normFirst = normTitle(firstMsgTitle);
-          var found = null;
-          for (var j = 0; j < detailIndex2.length; j++) {
-            var e = detailIndex2[j];
-            if (e.firstMsgLine < searchAfter2) continue;
-            if (e.title === firstMsgTitle || normTitle(e.title) === normFirst) {
-              found = e;
-              break;
-            }
-          }
-          if (found) {
-            searchAfter2 = found.firstMsgLine + 1;
-            matchedDetail2.push({ sectionStart: found.sectionStart, year: year2, seq: seq2 });
+    if (isOldCmb && isCombined) {
+      // ── 旧合辑格式（97-25）：用 TOP-目录 边界切片提取经文 ──────────────
+      // 找 DETAIL 区起点（文件前 15000 行最后一个「回页首」+3）
+      var lastRo = -1;
+      for (var li2 = 0; li2 < Math.min(15000, lines.length); li2++) {
+        if (lines[li2].trim() === '回页首') lastRo = li2;
+      }
+      var firstDS = lastRo >= 0 ? lastRo + 3 : 0;
+      // 按 TOP-目录 分段
+      var detailSecStarts = [firstDS];
+      for (var li2 = firstDS; li2 < lines.length; li2++) {
+        if (lines[li2].trim() === 'TOP-目录') detailSecStarts.push(li2 + 1);
+      }
+
+      results.forEach(function (td2, idx) {
+        var pm = (td2.path || '').match(/^local-(\d+)-(\d+)/);
+        if (!pm) return;
+        var year2 = parseInt(pm[1], 10);
+        var seq2  = parseInt(pm[2], 10);
+        if (!year2 || !seq2) return;
+        if (enrichAndWrite(td2, year2, seq2)) {
+          count++;
+          if (idx < detailSecStarts.length) {
+            var dStart = detailSecStarts[idx];
+            var dEnd   = idx + 1 < detailSecStarts.length ? detailSecStarts[idx + 1] - 1 : lines.length;
+            writeScriptures(collectInlineVerses(lines.slice(dStart, dEnd)), year2, seq2);
           }
         }
-      }
-    });
+      });
 
-    // 按 sectionStart 升序，逐训练确定范围并提取经文
-    matchedDetail2.sort(function(a, b) { return a.sectionStart - b.sectionStart; });
-    matchedDetail2.forEach(function(m, i) {
-      var end = i + 1 < matchedDetail2.length ? matchedDetail2[i + 1].sectionStart : lines.length;
-      writeScriptures(collectInlineVerses(lines.slice(m.sectionStart, end)), m.year, m.seq);
-    });
+    } else {
+      // ── 普通合辑 或 单训练：原有逻辑（title-matching 或直接扫全文）────
+      var detailStart2 = isCombined ? detectCombinedDetailStart(lines) : 0;
+      var detailIndex2 = isCombined ? buildDetailIndex(lines, detailStart2) : [];
+      var searchAfter2 = detailStart2;
+      var matchedDetail2 = []; // [{sectionStart, year, seq}]
+
+      results.forEach(function(td2) {
+        var pm = (td2.path || '').match(/^local-(\d+)-(\d+)/);
+        if (!pm) return;
+        var year2 = parseInt(pm[1], 10);
+        var seq2  = parseInt(pm[2], 10);
+        if (!year2 || !seq2) return;
+        if (enrichAndWrite(td2, year2, seq2)) {
+          count++;
+          if (!isCombined) {
+            // 单训练文件：直接扫全文提取经文
+            writeScriptures(collectInlineVerses(lines), year2, seq2);
+          } else {
+            // 合辑：以 msgTitles[0] 在 detailIndex2 中顺序查找，用 searchAfter2 防重复消耗
+            var firstMsgTitle = (td2.msgTitles && td2.msgTitles[0]) || '';
+            var normFirst = normTitle(firstMsgTitle);
+            var found = null;
+            for (var j = 0; j < detailIndex2.length; j++) {
+              var e = detailIndex2[j];
+              if (e.firstMsgLine < searchAfter2) continue;
+              if (e.title === firstMsgTitle || normTitle(e.title) === normFirst) {
+                found = e;
+                break;
+              }
+            }
+            if (found) {
+              searchAfter2 = found.firstMsgLine + 1;
+              matchedDetail2.push({ sectionStart: found.sectionStart, year: year2, seq: seq2 });
+            }
+          }
+        }
+      });
+
+      // 按 sectionStart 升序，逐训练确定范围并提取经文
+      matchedDetail2.sort(function(a, b) { return a.sectionStart - b.sectionStart; });
+      matchedDetail2.forEach(function(m, i) {
+        var end = i + 1 < matchedDetail2.length ? matchedDetail2[i + 1].sectionStart : lines.length;
+        writeScriptures(collectInlineVerses(lines.slice(m.sectionStart, end)), m.year, m.seq);
+      });
+    }
   }
 
   return count;

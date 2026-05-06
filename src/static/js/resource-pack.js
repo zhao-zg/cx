@@ -601,42 +601,57 @@
         : Promise.resolve([]);
       var p_netPaths = ('caches' in win)
         ? caches.keys().then(function (allKeys) {
-            // 1. 命名缓存 cx-YYYY-NN（初始安装、单独缓存训练写入）
+            // 1. 命名缓存 cx-YYYY-NN（初始安装）
             var sources = _loadSources();
-            var fromNamed = allKeys
+            var namedSet = {};  // 记录哪些路径来自命名缓存（只读/初装）
+            allKeys
               .filter(function (k) { return /^cx-\d{4}-\d{2}$/.test(k); })
               .map(function (k) { return k.slice(3); })        // 去掉 'cx-' 前缀
-              .filter(function (tp) { return !sources[tp]; }); // 排除已在资源包来源里的
+              .filter(function (tp) { return !sources[tp]; })  // 排除资源包来源里的
+              .forEach(function (tp) { namedSet[tp] = true; });
             // 2. cx-main 中匹配 YYYY-NN/training.json 且不在 sources 的条目
             return caches.open(CACHE_NAME).then(function (cache) {
               return cache.keys().then(function (keys) {
-                var seen = {};
-                fromNamed.forEach(function (tp) { seen[tp] = true; });
+                var mainSet = {};
                 keys.forEach(function (req) {
                   var m = new URL(req.url).pathname.match(/^\/?([\d]{4}-[\d]{2})\/training\.json$/);
-                  if (m && !sources[m[1]]) seen[m[1]] = true;
+                  if (m && !sources[m[1]] && !namedSet[m[1]]) mainSet[m[1]] = true;
                 });
-                return Object.keys(seen).sort().reverse();
+                // 合并：命名缓存（初装）+ cx-main 额外条目
+                var result = Object
+                  .keys(namedSet).map(function (tp) { return { tp: tp, isInitial: true }; })
+                  .concat(Object.keys(mainSet).map(function (tp) { return { tp: tp, isInitial: false }; }));
+                result.sort(function (a, b) { return b.tp.localeCompare(a.tp); });
+                return result;
               });
             });
           })
         : Promise.resolve([]);
-      var p_netTrainings = p_netPaths.then(function (paths) {
-        return Promise.all(paths.map(function (tp) {
+      // 从命名缓存中找 training.json（用 keys() 扫描，不依赖精确 URL）
+      function _fetchFromNamedCache(tp) {
+        return caches.open('cx-' + tp).then(function (c) {
+          return c.keys().then(function (reqs) {
+            for (var ri = 0; ri < reqs.length; ri++) {
+              try {
+                if (new URL(reqs[ri].url).pathname.endsWith('/training.json')) return c.match(reqs[ri]);
+              } catch (e) {}
+            }
+            return null;
+          });
+        }).catch(function () { return null; });
+      }
+      var p_netTrainings = p_netPaths.then(function (items) {
+        return Promise.all(items.map(function (item) {
+          var tp = item.tp;
           var url = win.location.origin + '/' + tp + '/training.json';
-          // 优先找命名缓存 cx-YYYY-NN，再找 cx-main
-          return caches.open('cx-' + tp).then(function (c) {
-            return c.match(url);
-          }).catch(function () { return null; }).then(function (r) {
-            if (r) return r;
-            return caches.open(CACHE_NAME).then(function (c) {
-              return c.match(url);
-            }).catch(function () { return null; });
-          }).then(function (r) {
+          var p = item.isInitial
+            ? _fetchFromNamedCache(tp)  // 命名缓存：用 keys() 扫描
+            : caches.open(CACHE_NAME).then(function (c) { return c.match(url); }).catch(function () { return null; });
+          return p.then(function (r) {
             if (!r) return null;
             return r.json().then(function (d) {
-              return { path: tp, title: d.title || tp, chapter_count: (d.chapters || []).length };
-            }).catch(function () { return { path: tp, title: tp, chapter_count: 0 }; });
+              return { path: tp, title: d.title || tp, chapter_count: (d.chapters || []).length, isInitial: item.isInitial };
+            }).catch(function () { return { path: tp, title: tp, chapter_count: 0, isInitial: item.isInitial }; });
           }).catch(function () { return null; });
         })).then(function (arr) { return arr.filter(Boolean); });
       });
@@ -667,7 +682,7 @@
         localImports.forEach(function (li) { localKeySet[li.path.replace(/^local-/, '')] = true; });
         var netFiltered = netTrainings.filter(function (tr) { return !localKeySet[tr.path]; });
         var unifiedItems = netFiltered.map(function (tr) {
-          return { type: 'net', path: tr.path, title: tr.title,
+          return { type: tr.isInitial ? 'initial' : 'net', path: tr.path, title: tr.title,
                    chapter_count: tr.chapter_count, sortKey: tr.path };
         }).concat(localImports.map(function (item) {
           return { type: 'local', path: item.path,
@@ -679,22 +694,32 @@
         if (unifiedItems.length) {
           hasAny = true;
           unifiedItems.forEach(function (item) {
+            var isInitial = item.type === 'initial';
             var badge = item.type === 'local'
               ? ' <span style="display:inline-block;font-size:10px;padding:1px 5px;background:rgba(0,112,204,.1);color:var(--brand);border:1px solid var(--brand);border-radius:4px;margin-left:4px;white-space:nowrap;vertical-align:middle;line-height:1.4">本地</span>'
-              : '';
+              : isInitial
+                ? ' <span style="display:inline-block;font-size:10px;padding:1px 5px;background:rgba(80,160,80,.1);color:#2a7a2a;border:1px solid #2a7a2a;border-radius:4px;margin-left:4px;white-space:nowrap;vertical-align:middle;line-height:1.4">已安装</span>'
+                : '';
             var sub = (item.chapter_count || 0) + ' 篇';
             if (item.type === 'local' && item.importedAt) sub += ' · ' + new Date(item.importedAt).toLocaleDateString('zh-CN');
+            // 初装训练：无复选框、无删除按钮（只读保护）
+            var leftCtrl = isInitial
+              ? '<span style="flex-shrink:0;width:15px;height:15px;display:inline-block"></span>'
+              : '<input type="checkbox" data-path="' + escAttr(item.path) + '" data-src="' + item.type + '" style="flex-shrink:0;margin:0;width:15px;height:15px">';
+            var rightCtrl = isInitial
+              ? '<span style="font-size:11px;color:var(--text-secondary);padding:4px 6px;white-space:nowrap">📦</span>'
+              : '<button class="cx-cm-del-one" data-path="' + escAttr(item.path) + '" data-src="' + item.type + '"' +
+                  ' style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:none;color:var(--text-secondary)">🗑</button>';
             html +=
               '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
-                '<input type="checkbox" data-path="' + escAttr(item.path) + '" data-src="' + item.type + '" style="flex-shrink:0;margin:0;width:15px;height:15px">' +
+                leftCtrl +
                 '<div style="flex:1;min-width:0;overflow:hidden">' +
                   '<div style="font-size:13px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
                     escHtml(item.title) + badge +
                   '</div>' +
                   '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' + sub + '</div>' +
                 '</div>' +
-                '<button class="cx-cm-del-one" data-path="' + escAttr(item.path) + '" data-src="' + item.type + '"' +
-                  ' style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:none;color:var(--text-secondary)">🗑</button>' +
+                rightCtrl +
               '</div>';
           });
         }

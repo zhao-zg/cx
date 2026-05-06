@@ -1233,6 +1233,7 @@
           try {
             var lines = text.split(/\r?\n/);
             var trainings = [];
+            var isCombined = false;
 
             // 判断是否为合辑文件（内含多个训练）
             // 优先检测旧「特会及训练信息合辑」格式（97-25-特会合辑.txt）
@@ -1241,6 +1242,7 @@
               trainings = parseOldCombinedFile(lines, function(done, total) {
                 if (onProgress) onProgress(done, total, '正在解析第 ' + done + ' / ' + total + ' 个训练…');
               });
+              isCombined = true;  // 旧合辑：历史内容不含内联经文，跳过2024+格式提取
             } else {
               var boundaries = detectTrainingBoundaries(lines);
               var isCombined = boundaries.length > 1;
