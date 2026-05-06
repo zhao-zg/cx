@@ -338,7 +338,7 @@
                         return;
                     }
                     return Promise.all(rest.map(function(t){
-                        return caches.match('./'+t.path+'/training.json')
+                        return caches.match(window.location.origin+'/'+t.path+'/training.json')
                             .then(function(r){return!!r;},function(){return false;});
                     })).then(function(flags){
                         var fromMatch=rest.filter(function(_,i){return flags[i];});

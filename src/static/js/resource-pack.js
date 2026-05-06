@@ -258,31 +258,45 @@
 
   // ── 历史资源包下载 dialog ───────────────────────────────────────────────────────────────
 
-  function showPacksDialog() {
+  function showPacksDialog(backFn) {
     var existing = document.getElementById('cxResourcePackMask');
     if (existing) { document.body.removeChild(existing); }
     var mask = document.createElement('div');
     mask.id = 'cxResourcePackMask';
     mask.className = 'cx-dialog-mask';
+    var titleHtml = backFn
+      ? '<div style="display:flex;align-items:center;gap:6px;padding:14px 16px 10px">' +
+          '<button id="cxRpBackBtn" style="padding:4px 8px;background:none;border:none;font-size:16px;cursor:pointer;color:var(--text-secondary);line-height:1">←</button>' +
+          '<span style="font-size:16px;font-weight:600;color:var(--heading)">历史资源包</span>' +
+        '</div>'
+      : '<div class="cx-dialog-title" style="padding:14px 16px 10px;font-size:16px">历史资源包</div>';
     mask.innerHTML =
       '<div class="cx-dialog" style="max-width:420px;padding:0 0 4px">' +
-        '<div class="cx-dialog-title" style="padding:14px 16px 10px;font-size:16px">历史资源包</div>' +
+        titleHtml +
         '<div id="cxRpContent" style="padding:0 16px 8px;max-height:55vh;overflow-y:auto">' +
           '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">⏳ 加载清单中…</div>' +
         '</div>' +
         '<div style="padding:8px 16px 12px;display:flex;gap:8px;justify-content:flex-end">' +
           '<button id="cxRpDownloadAllBtn" style="display:none;padding:7px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer">全部下载</button>' +
-          '<button id="cxRpCloseBtn" style="padding:7px 20px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--text-secondary)">关闭</button>' +
+          (backFn ? '<button id="cxRpCloseBtn" style="padding:7px 20px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--text-secondary)">← 返回</button>'
+                  : '<button id="cxRpCloseBtn" style="padding:7px 20px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--text-secondary)">关闭</button>') +
         '</div>' +
       '</div>';
     document.body.appendChild(mask);
+    function doClose() { if (mask.parentNode) mask.parentNode.removeChild(mask); }
+    function closeDialog() { doClose(); if (backFn) backFn(); }
     win.CX && win.CX.backStack && win.CX.backStack.push(closeDialog);
-    function closeDialog() { if (mask.parentNode) mask.parentNode.removeChild(mask); }
     document.getElementById('cxRpCloseBtn').addEventListener('click', function () {
       win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog();
     });
+    if (backFn) {
+      var backBtn = document.getElementById('cxRpBackBtn');
+      if (backBtn) backBtn.addEventListener('click', function () {
+        win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog();
+      });
+    }
     mask.addEventListener('click', function (e) {
-      if (e.target === mask) { win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog(); }
+      if (e.target === mask) { win.CX && win.CX.backStack && win.CX.backStack.pop(); doClose(); }
     });
     fetchManifest().then(function (manifest) {
       renderPacksUI(manifest.packs || []);
@@ -442,12 +456,11 @@
         '<div id="cxCmContent" style="padding:0 16px 8px;max-height:55vh;overflow-y:auto">' +
           '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">⏳ 加载中…</div>' +
         '</div>' +
-        '<div style="padding:8px 16px 12px;display:flex;gap:8px;justify-content:flex-end">' +
-          '<button id="cxCmPacksBtn" style="padding:7px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer">📦 下载资源包</button>' +
-          '<button id="cxCmImportBtn" style="padding:7px 14px;background:var(--surface-alt);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer">📂 导入 TXT</button>' +
-          '<button id="cxCmCloseBtn" style="padding:7px 20px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--text-secondary)">关闭</button>' +
+        '<div style="padding:8px 16px 12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">' +
+          '<button id="cxCmPacksBtn" style="padding:7px 14px;background:var(--surface-alt);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap">📦 资源包</button>' +
+          '<button id="cxCmImportBtn" style="padding:7px 14px;background:var(--surface-alt);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap">📂 导入</button>' +
+          '<button id="cxCmCloseBtn" style="padding:7px 20px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--text-secondary);white-space:nowrap">关闭</button>' +
         '</div>' +
-        '<input id="cxCmFileInput" type="file" accept=".txt" style="display:none;position:fixed;top:-9999px;left:-9999px">' +
         '<div id="cxCmImportOverlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.45);border-radius:inherit;align-items:center;justify-content:center;z-index:10">' +
           '<div style="background:var(--surface);border-radius:12px;padding:20px 24px;min-width:220px;text-align:center">' +
             '<div id="cxCmImportMsg" style="font-size:13px;color:var(--text-primary);margin-bottom:8px">解析中…</div>' +
@@ -465,7 +478,7 @@
     });
     document.getElementById('cxCmPacksBtn').addEventListener('click', function () {
       win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog();
-      showPacksDialog();
+      showPacksDialog(showCachedDialog);
     });
     mask.addEventListener('click', function (e) {
       if (e.target === mask) { win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog(); }
@@ -510,37 +523,42 @@
         refreshContent();
       }).catch(function () { refreshContent(); });
     });
-    var fileInput = document.getElementById('cxCmFileInput');
-    // 确保 input 直接挂在 body 下，避免 PWA 里被 overflow:hidden 的弹窗容器拦截
-    if (fileInput && fileInput.parentNode !== document.body) {
-      document.body.appendChild(fileInput);
-    }
+    // 每次点击动态创建 input，不使用 accept 过滤，兼容各类 PWA/Android 文件管理器
     document.getElementById('cxCmImportBtn').addEventListener('click', function () {
-      fileInput.value = ''; fileInput.click();
-    });
-    fileInput.addEventListener('change', function () {
-      var file = fileInput.files && fileInput.files[0];
-      if (!file) return;
       if (!win.CXLocalImport) { alert('导入模块未加载'); return; }
-      var overlay = document.getElementById('cxCmImportOverlay');
-      var msgEl   = document.getElementById('cxCmImportMsg');
-      var barEl   = document.getElementById('cxCmImportBar');
-      overlay.style.display = 'flex';
-      var reader = new FileReader();
-      reader.onload = function (e) {
-        win.CXLocalImport.parseAndSave(e.target.result, file.name, function (done, total, msg) {
-          if (msgEl) msgEl.textContent = msg || ('解析中 ' + done + '/' + total);
-          if (barEl && total) barEl.style.width = Math.round(done / total * 100) + '%';
-        }).then(function () {
-          overlay.style.display = 'none';
-          if (win.refreshHomeGrid) win.refreshHomeGrid();
-          refreshContent();
-        }).catch(function (err) {
-          overlay.style.display = 'none';
-          alert('导入失败：' + err.message);
-        });
-      };
-      reader.readAsText(file, 'utf-8');
+      var fi = document.createElement('input');
+      fi.type = 'file';
+      fi.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px';
+      document.body.appendChild(fi);
+      fi.addEventListener('change', function () {
+        var file = fi.files && fi.files[0];
+        document.body.removeChild(fi);
+        if (!file) return;
+        var overlay = document.getElementById('cxCmImportOverlay');
+        var msgEl   = document.getElementById('cxCmImportMsg');
+        var barEl   = document.getElementById('cxCmImportBar');
+        if (overlay) overlay.style.display = 'flex';
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          win.CXLocalImport.parseAndSave(e.target.result, file.name, function (done, total, msg) {
+            if (msgEl) msgEl.textContent = msg || ('解析中 ' + done + '/' + total);
+            if (barEl && total) barEl.style.width = Math.round(done / total * 100) + '%';
+          }).then(function () {
+            if (overlay) overlay.style.display = 'none';
+            if (win.refreshHomeGrid) win.refreshHomeGrid();
+            refreshContent();
+          }).catch(function (err) {
+            if (overlay) overlay.style.display = 'none';
+            alert('导入失败：' + err.message);
+          });
+        };
+        reader.onerror = function () {
+          if (overlay) overlay.style.display = 'none';
+          alert('文件读取失败，请重试');
+        };
+        reader.readAsText(file, 'utf-8');
+      });
+      fi.click();
     });
     refreshContent();
     function refreshContent() {
