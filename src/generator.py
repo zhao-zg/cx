@@ -589,6 +589,12 @@ class HTMLGenerator:
                 chap_m = re.search(r'(\d+):', refs[-1])
                 if chap_m:
                     cur_chapter = int(chap_m.group(1))
+            else:
+                # 括号内无经文，但若内容是纯书名，仍更新书卷上下文
+                normalized = ImprovedParser._normalize_book_names(content.strip())
+                if normalized in ImprovedParser._FULL_BOOK_MAP.values():
+                    cur_book = normalized
+                    cur_chapter = 0
             last_end = m.end()
         cur_book, cur_chapter = self._extract_bare_ref_context(
             main_text[last_end:], cur_book, cur_chapter)
@@ -682,6 +688,11 @@ class HTMLGenerator:
                 span_text = str(escape(m.group(0)))
                 parts.append(f'<span class="scripture-ref" data-refs="{data_refs}">{span_text}</span>')
             else:
+                # 括号内无经文，但若内容是纯书名（如〔启示录〕），仍更新书卷上下文
+                normalized = ImprovedParser._normalize_book_names(content.strip())
+                if normalized in ImprovedParser._FULL_BOOK_MAP.values():
+                    current_book = normalized
+                    current_chapter = 0
                 parts.append(str(escape(m.group(0))))
             last_end = m.end()
         trailing = main_text[last_end:]
