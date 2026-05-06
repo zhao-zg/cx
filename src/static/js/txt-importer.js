@@ -1039,6 +1039,108 @@
     return counts;
   }
 
+  // ── 旧合辑格式（97-25-特会合辑.txt）专用解析器 ─────────────────────────────
+
+  /**
+   * 判断是否为旧"特会及训练信息合辑"大文件格式：
+   * 第一行是 "特会及训练信息合辑"，且前 300 行含多个 YYYY类型　标题 格式。
+   */
+  function isOldCombinedFormat(lines) {
+    if (!lines.length) return false;
+    if (lines[0].trim() !== '特会及训练信息合辑') return false;
+    var cnt = 0;
+    for (var i = 1; i < Math.min(300, lines.length); i++) {
+      if (/^\d{4}[^\d\s]/.test(lines[i].trim())) cnt++;
+    }
+    return cnt >= 5;
+  }
+
+  /**
+   * 解析旧合辑大文件（97-25-特会合辑.txt）。
+   * 策略：
+   *   1. 从开头到第一个「回页首」解析时间顺序目录，得到每个训练的 (year, seq, type, title)
+   *   2. 用 detectInlineStart() 找到详细区起点（最后一个「回页首」之后）
+   *   3. 按「回页首」把详细区切成 N 段，每段 = 一个训练的全部章节
+   *   4. 对每段调用 parseDetailArea(lines, start, end) 直接解析（传原数组+下标，无需复制）
+   *   5. 用目录元数据（year/seq/title）填充训练对象
+   */
+  function parseOldCombinedFile(lines, onProgress) {
+    // ── 1. 解析时间顺序目录（行1 到 第一个 回页首） ──────────────────────────
+    var firstRoPage = -1;
+    for (var i = 1; i < Math.min(2000, lines.length); i++) {
+      if (lines[i].trim() === '回页首') { firstRoPage = i; break; }
+    }
+    var indexEnd = firstRoPage >= 0 ? firstRoPage : 300;
+    var indexEntries = [];
+    var yearSeqCount = {};
+    for (var i = 1; i < indexEnd; i++) {
+      var s = lines[i].trim();
+      if (!s) continue;
+      // 格式：YYYY类型\u3000标题（全角空格分隔）
+      var m = s.match(/^(\d{4})(\S+?)\u3000(.+)/);
+      if (!m) continue;
+      var year = parseInt(m[1], 10);
+      if (year < 1990 || year > 2100) continue;
+      yearSeqCount[year] = (yearSeqCount[year] || 0) + 1;
+      var seq = yearSeqCount[year];
+      var seqStr = seq < 10 ? '0' + seq : '' + seq;
+      indexEntries.push({
+        year: year, seq: seq, type: m[2], title: m[3].trim(),
+        path: 'local-' + year + '-' + seqStr
+      });
+    }
+
+    // ── 2. 找详细区起点（最后一个「回页首」 +3 in first 15000 lines） ──────────
+    var detailStart = detectInlineStart(lines);
+
+    // ── 3. 按「回页首」分割详细区 ─────────────────────────────────────────────
+    var sections = [];  // [{start, end}]，下标均指 lines 原数组
+    var sStart = detailStart;
+    for (var i = detailStart; i < lines.length; i++) {
+      if (lines[i].trim() === '回页首') {
+        if (i > sStart) sections.push({ start: sStart, end: i });
+        // 跳过紧随其后的空行
+        var nextContent = i + 1;
+        while (nextContent < lines.length && !lines[nextContent].trim()) nextContent++;
+        sStart = nextContent;
+        i = nextContent - 1;
+      }
+    }
+    if (sStart < lines.length) sections.push({ start: sStart, end: lines.length });
+
+    // ── 4. 逐段解析并组装训练对象 ──────────────────────────────────────────────
+    var total = sections.length;
+    var results = [];
+    for (var i = 0; i < total; i++) {
+      var meta = indexEntries[i];  // 可能为 undefined（段数 > 目录数时）
+      var year  = meta ? meta.year : 0;
+      var seq   = meta ? meta.seq  : (i + 1);
+      var seqStr = seq < 10 ? '0' + seq : '' + seq;
+      var path  = meta ? meta.path : ('local-' + year + '-' + seqStr);
+      var titleFromMeta = meta ? meta.title : '';
+      var typeFromMeta  = meta ? meta.type  : '';
+
+      // 直接在原数组上解析该段的章节（避免大数组复制）
+      var chapters = parseDetailArea(lines, sections[i].start, sections[i].end);
+
+      var td = {
+        path: path,
+        title: titleFromMeta || (chapters[0] ? chapters[0].title : path),
+        subtitle: '',
+        year: year,
+        season: seqStr + ' ' + typeFromMeta,
+        mottos: [],
+        motto_song_text: '',
+        motto_song_image: '',
+        chapters: chapters,
+        version: getNowVersion()
+      };
+      results.push(td);
+      if (onProgress) onProgress(i + 1, total);
+    }
+    return results;
+  }
+
   /**
    * 解析合辑文件（多训练）。
    * 返回一组训练对象。onProgress(done, total) 在每个训练完成后调用。
@@ -1144,31 +1246,38 @@
             var trainings = [];
 
             // 判断是否为合辑文件（内含多个训练）
-            var boundaries = detectTrainingBoundaries(lines);
-            var isCombined = boundaries.length > 1;
-
-            if (isCombined) {
-              // 合辑：批量解析
-              if (onProgress) onProgress(0, boundaries.length, '正在检测训练边界…');
-              trainings = parseCombinedFile(lines, function(done, total) {
+            // 优先检测旧「特会及训练信息合辑」格式（97-25-特会合辑.txt）
+            if (isOldCombinedFormat(lines)) {
+              if (onProgress) onProgress(0, 1, '正在解析旧合辑文件…');
+              trainings = parseOldCombinedFile(lines, function(done, total) {
                 if (onProgress) onProgress(done, total, '正在解析第 ' + done + ' / ' + total + ' 个训练…');
               });
             } else {
-              // 单训练
-              if (onProgress) onProgress(0, 1, '正在解析…');
-              var ys = extractYearSeqFromFilename(filename || '');
-              var defaultPath = null;
-              if (ys) {
-                var seqStr = ys.seq < 10 ? '0' + ys.seq : '' + ys.seq;
-                defaultPath = 'local-' + ys.year + '-' + seqStr;
+              var boundaries = detectTrainingBoundaries(lines);
+              var isCombined = boundaries.length > 1;
+              if (isCombined) {
+                // 合辑：批量解析
+                if (onProgress) onProgress(0, boundaries.length, '正在检测训练边界…');
+                trainings = parseCombinedFile(lines, function(done, total) {
+                  if (onProgress) onProgress(done, total, '正在解析第 ' + done + ' / ' + total + ' 个训练…');
+                });
+              } else {
+                // 单训练
+                if (onProgress) onProgress(0, 1, '正在解析…');
+                var ys = extractYearSeqFromFilename(filename || '');
+                var defaultPath = null;
+                if (ys) {
+                  var seqStr = ys.seq < 10 ? '0' + ys.seq : '' + ys.seq;
+                  defaultPath = 'local-' + ys.year + '-' + seqStr;
+                }
+                var td = parseSingleTraining(lines, defaultPath);
+                if (!td.path) {
+                  // fallback：用时间戳
+                  td.path = 'local-' + getNowVersion();
+                }
+                trainings = [td];
+                if (onProgress) onProgress(1, 1, '解析完成');
               }
-              var td = parseSingleTraining(lines, defaultPath);
-              if (!td.path) {
-                // fallback：用时间戳
-                td.path = 'local-' + getNowVersion();
-              }
-              trainings = [td];
-              if (onProgress) onProgress(1, 1, '解析完成');
             }
 
             if (!trainings.length) {
