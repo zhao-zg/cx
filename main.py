@@ -543,8 +543,9 @@ def generate_resource_packs(output_dir, all_trainings):
     """将历史训练分组打包成可下载的 ZIP 资源包，并生成 resource-packs.json 清单。
 
     分组策略：
-    - 训练文件夹有图片（images/ 目录含文件）→ 每 2 年一包
-    - 训练文件夹无图片 → 每 10 年一包
+    - 有图片的训练（由 Word 文档转换，访问时自然得到缓存）→ 单独列入 individuals，不打包
+    - 其余历史训练 → 每 10 年一包，不打入图片文件
+    - 包列表倒序排列（较新的在前）
     """
     import zipfile
 
@@ -562,39 +563,45 @@ def generate_resource_packs(output_dir, all_trainings):
             os.path.isfile(os.path.join(img_dir, f)) for f in os.listdir(img_dir)
         )
 
-    # 确定"有图片时代"的起始年份（该年及之后统一用2年分组）
-    img_year_starts = [
-        t['year'] for t in all_trainings
-        if isinstance(t.get('year'), int) and _has_images(t.get('path', ''))
+    # 有图片的训练 → individuals（访问页面时自然缓存，无需另行打包）
+    # 无图片的训练 → 按 10 年分组打包
+    sorted_trainings = sorted(
+        [t for t in all_trainings if isinstance(t.get('year'), int)],
+        key=lambda t: (t.get('year', 0), t.get('path', '')),
+        reverse=True
+    )
+    individuals_raw = [t for t in sorted_trainings if _has_images(t.get('path', ''))]
+    pack_trainings  = [t for t in sorted_trainings if not _has_images(t.get('path', ''))]
+
+    # 构建 individuals 列表（轻量信息，无需下载链接）
+    individuals = [
+        {
+            'path': t.get('path', ''),
+            'title': t.get('title', ''),
+            'season': t.get('season', ''),
+            'year': t.get('year'),
+            'chapter_count': t.get('chapter_count', 0),
+        }
+        for t in individuals_raw
     ]
-    img_era_start = min(img_year_starts) if img_year_starts else 9999
 
-    # 按策略分组：无图片时代10年一组，有图片时代2年一组
-    groups = {}  # (year_start, span) -> [training, ...]
-    for t in all_trainings:
+    # 按 10 年分组历史训练（不打入图片）
+    groups = {}  # year_start -> [training, ...]
+    for t in pack_trainings:
         year = t.get('year')
-        if not isinstance(year, int):
-            continue
-        path = t.get('path', '')
-        if year >= img_era_start:
-            span = 2
-            year_start = ((year - 1997) // span) * span + 1997
-        else:
-            span = 10
-            year_start = ((year - 1997) // span) * span + 1997
-        groups.setdefault((year_start, span), []).append(t)
+        year_start = ((year - 1997) // 10) * 10 + 1997
+        groups.setdefault(year_start, []).append(t)
 
-    manifest = []
-    for (year_start, span) in sorted(groups.keys()):
-        group = groups[(year_start, span)]
-        # 用组内实际年份范围命名，避免"2017-2026"与"2025-2026"重叠的误导
+    manifest_packs = []
+    for year_start in sorted(groups.keys(), reverse=True):  # 倒序：较新的包在前
+        group = groups[year_start]
         actual_years = [t['year'] for t in group if isinstance(t.get('year'), int)]
-        actual_end = max(actual_years) if actual_years else year_start + span - 1
+        actual_end = max(actual_years) if actual_years else year_start + 9
         pack_id = f'pack-{year_start}-{actual_end}'
         zip_name = f'{pack_id}.zip'
         zip_path = os.path.join(packs_dir, zip_name)
 
-        # 构建 zip：打包每个训练文件夹下的所有文件
+        # 构建 zip：打包每个训练文件夹，跳过图片文件
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED,
                              compresslevel=6, allowZip64=True) as zf:
             for t in group:
@@ -606,12 +613,15 @@ def generate_resource_packs(output_dir, all_trainings):
                     for fn in files:
                         abs_path = os.path.join(root_w, fn)
                         rel_path = os.path.relpath(abs_path, output_dir)
-                        # 统一使用正斜杠（跨平台兼容）
                         arc_name = rel_path.replace(os.sep, '/')
+                        # 跳过图片文件（images/ 目录），减小包体积
+                        if '/images/' in arc_name.replace(os.sep, '/') or \
+                                arc_name.replace(os.sep, '/').startswith('images/'):
+                            continue
                         zf.write(abs_path, arc_name)
 
         size_bytes = os.path.getsize(zip_path)
-        manifest.append({
+        manifest_packs.append({
             'id': pack_id,
             'label': f'{year_start}–{actual_end} 年训练',
             'year_start': year_start,
@@ -622,16 +632,18 @@ def generate_resource_packs(output_dir, all_trainings):
             'trainings': [{'path': t['path'], 'chapter_count': t['chapter_count']} for t in group],
         })
         print(f"✓ 资源包已生成: {zip_name} "
-              f"({len(group)} 训练, {size_bytes/1024/1024:.1f} MB)")
+              f"({len(group)} 训练, {size_bytes/1024/1024:.1f} MB, 不含图片)")
 
-    # 写清单文件
+    # 写清单文件（包含 packs + individuals）
     manifest_path = os.path.join(output_dir, 'resource-packs.json')
     with open(manifest_path, 'w', encoding='utf-8') as f:
         json.dump({
             'version': datetime.now().strftime('%Y%m%d%H%M%S'),
-            'packs': manifest,
+            'packs': manifest_packs,
+            'individuals': individuals,
         }, f, ensure_ascii=False, indent=2)
-    print(f"✓ resource-packs.json 已生成 ({len(manifest)} 个资源包)")
+    print(f"✓ resource-packs.json 已生成 ({len(manifest_packs)} 个资源包, "
+          f"{len(individuals)} 个独立训练)")
 
 
 def main():

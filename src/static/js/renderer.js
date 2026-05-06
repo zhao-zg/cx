@@ -59,10 +59,32 @@
       });
     }
     var root = win.CX_ROOT || './';
-    return fetch(root + batchPath + '/training.json')
+    var isNative = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
+    // Capacitor 原生 App 无 SW，WebView HTTP 缓存可能服务旧版 training.json；
+    // 用 cache:'reload' 强制绕过 WebView HTTP 缓存，确保取到 APK 包内最新文件。
+    var fetchOpts = isNative ? { cache: 'reload' } : {};
+    return fetch(root + batchPath + '/training.json', fetchOpts)
       .then(function(r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
+      })
+      .catch(function(fetchErr) {
+        // Capacitor 原生：fetch 失败(如 APK 未打包该训练)，尝试从 Cache Storage 兜底；
+        // 这确保用户通过资源包/旧版已缓存的历史训练仍可离线打开。
+        if (isNative && ('caches' in win)) {
+          // 尝试多种可能的 URL 格式（绝对 URL 和相对路径）
+          var cacheUrls = [
+            (win.location.origin || '') + '/' + batchPath + '/training.json',
+            root + batchPath + '/training.json'
+          ];
+          return caches.match(cacheUrls[0]).then(function(r1) {
+            return r1 || caches.match(cacheUrls[1]);
+          }).then(function(cachedResp) {
+            if (cachedResp && cachedResp.ok) return cachedResp.json();
+            throw fetchErr;
+          });
+        }
+        throw fetchErr;
       })
       .then(function(data) {
         _cache[batchPath] = data;

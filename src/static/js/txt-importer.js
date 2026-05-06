@@ -267,6 +267,52 @@
 
     var path = defaultPath || ('local-' + year + '-' + seqStr);
 
+    // ── 5. 后处理：合并"第N篇"大纲 与"第N周"晨兴的分离章节 ──────────────────
+    // 某些训练（如12月半年度训练）文件中，提纲区用"第一篇…第十二篇"编号，
+    // 晨兴区用"第十三周…第二十四周"连续编号，导致 parseDetailArea 生成 24 章。
+    // 实际文件中两类章节交替出现（第一篇→第十三周→第二篇→第十四周…）
+    // 或分为前后两段，需按位置配对：提纲[i] 取对应晨兴[i] 的 morning_revivals。
+    (function mergeOutlineAndMorning() {
+      if (chapters.length < 2 || chapters.length % 2 !== 0) return;
+      var half = chapters.length / 2;
+
+      // 模式1：交替排列 [outline, morning, outline, morning, …]
+      var isInterleaved = chapters.every(function (c, idx) {
+        if (idx % 2 === 0) {
+          return (c.outline_sections && c.outline_sections.length > 0) &&
+                 (!c.morning_revivals || c.morning_revivals.length === 0);
+        } else {
+          return (!c.outline_sections || c.outline_sections.length === 0) &&
+                 (c.morning_revivals && c.morning_revivals.length > 0);
+        }
+      });
+      if (isInterleaved) {
+        var merged = [];
+        for (var mi = 0; mi < chapters.length; mi += 2) {
+          var oc = chapters[mi], mc = chapters[mi + 1];
+          oc.morning_revivals = mc.morning_revivals;
+          oc.number = (mi / 2) + 1;
+          merged.push(oc);
+        }
+        chapters = merged;
+        return;
+      }
+
+      // 模式2：前后两段 [outline×N, morning×N]
+      var A = chapters.slice(0, half);
+      var B = chapters.slice(half);
+      var aHasOutline = A.some(function (c) { return c.outline_sections && c.outline_sections.length > 0; });
+      var bHasMorning = B.some(function (c) { return c.morning_revivals && c.morning_revivals.length > 0; });
+      var aNoMorning  = A.every(function (c) { return !c.morning_revivals || c.morning_revivals.length === 0; });
+      var bNoOutline  = B.every(function (c) { return !c.outline_sections || c.outline_sections.length === 0; });
+      if (!aHasOutline || !bHasMorning || !aNoMorning || !bNoOutline) return;
+      for (var si = 0; si < half; si++) {
+        A[si].morning_revivals = B[si].morning_revivals;
+        A[si].number = si + 1;
+      }
+      chapters = A;
+    }());
+
     return {
       path: path,
       title: shortTitle,

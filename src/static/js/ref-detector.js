@@ -98,10 +98,11 @@
     var CN_NO_BAI = '[一二三四五六七八九十]+';
     return new RegExp(
       '(?:(?:诗篇|诗)' + CN + '篇' + versePart
-      + '|' + bookPat + CN + '章' + versePart
+      + '|' + bookPat + '第?' + CN + '章' + versePart
       + '|第?' + CN + '(?:[至到]' + CN + ')?节(?:[上下]半?)?'
       + '|(?:犹|门|俄|约贰|约叁)' + CN + '(?:[至到]' + CN + ')?节(?:[上下]半?)?'
-      + '|' + bookReq + CN_NO_BAI + '(?:[~～\\-]' + CN_NO_BAI + ')?(?:\\d+[上中下]?(?:[~～\\-]\\d+[上中下]?)?)?'
+      + '|' + bookReq + CN_NO_BAI + '\\d+[~～\\-]' + CN_NO_BAI + '\\d+'
+      + '|' + bookReq + CN_NO_BAI + '(?:[~～\\-]' + CN_NO_BAI + ')?(?:\\d+[上中下]?(?:[~～\\-]\\d+[上中下]?)?)?节?(?:[上下]半?)?'
       + '|' + bookReq + '(?:' + CN_NO_BAI + '|[1-9]\\d*)标题'
       + ')'
       , 'g');
@@ -159,9 +160,11 @@
     var F3 = /^(\d+)([上中下]?)节?([上中下]半?)?(?:[~～\-](\d+)([上中下]?)节?([上中下]半?)?)?$/;
     // Format4: 阿拉伯章:节  e.g. 约壹1:1 / 腓4:13~15
     var F4 = new RegExp('^(' + BOOK_PAT + '?)(\\d+):(\\d+)([上中下]?)(?:[~～\\-](\\d+)([上中下]?))?$');
-    // Format5: 中文「章节式」 e.g. 三章十九节 / 三章十九至二十一节 / 诗篇一百一十九篇 / 三章十七节上半
-    // 「篇」仅匹配诗篇（书卷缩写 诗），其他书卷用「章」
-    var F5 = new RegExp('^(' + BOOK_PAT + ')?(' + CN_N + ')([章篇])(?:(' + CN_N + ')(?:[至到](' + CN_N + '))?节([上下]半?)?)?');
+    // Format1x: book + CN章1 + 阿拉伯节1 + 范围符 + CN章2 + 阿拉伯节2 (跨章范围) e.g. 伯二11~三二1
+    var F1x = new RegExp('^(' + BOOK_PAT + ')(' + CN_N + ')(\\d+)[~～\\-](' + CN_N + ')(\\d+)$');
+    // Format5: 中文「章节式」 e.g. 三章十九节 / 三章十九至二十一节 / 约伯记第一章 / 三章十七节上半
+    // 「篇」仅匹配诗篇（书卷缩写 诗），其他书卷用「章」；支持「第」做章号前缀
+    var F5 = new RegExp('^(' + BOOK_PAT + ')?第?(' + CN_N + ')([章篇])(?:(' + CN_N + ')(?:[至到](' + CN_N + '))?节([上下]半?)?)?');
     // Format6: 单章书卷 + 阿拉伯节  e.g. 犹20 / 门10~12 / 俄5
     var SINGLE_BOOK = '(?:犹|门|俄|约贰|约叁)';
     var F6 = new RegExp('^(' + SINGLE_BOOK + ')(\\d+)([上中下]?)(?:[~～\\-](\\d+)([上中下]?))?$');
@@ -232,6 +235,16 @@
         }
         continue;
       }
+      // F1x: book + cn_chapter1 + arabic_verse1 ~ cn_chapter2 + arabic_verse2 (跨章范围)
+      if ((m = F1x.exec(p))) {
+        var bx = m[1]; var c1x = cnToInt(m[2]); var v1x = parseInt(m[3], 10);
+        var c2x = cnToInt(m[4]); var v2x = parseInt(m[5], 10);
+        if (!bx || !c1x || !c2x || c1x > 150 || c2x > 150) continue;
+        book = bx; ch = c2x;
+        refs.push(book + c1x + ':' + v1x);
+        if (c2x !== c1x || v2x !== v1x) refs.push(book + c2x + ':' + v2x);
+        continue;
+      }
       // F1: book + cn_chapter + arabic_verse
       if ((m = F1.exec(p))) {
         book = m[1]; ch = cnToInt(m[2]); if (!ch || ch > 150) continue;
@@ -258,7 +271,8 @@
       if (book && ch && (m = F7.exec(p))) {
         var v1_7 = cnToInt(m[1]), v2_7 = m[3] ? cnToInt(m[3]) : v1_7;
         var mod1_7 = m[2] ? m[2][0] : '', mod2_7 = m[4] ? m[4][0] : '';
-        if (v1_7) emitRange(book, ch, v1_7, mod1_7, v2_7, mod2_7);
+        // 节号>176（诗119:176 为圣经最大节数）→ 可能是页码等非经文编号，跳过
+        if (v1_7 && v1_7 <= 176 && v2_7 <= 176) emitRange(book, ch, v1_7, mod1_7, v2_7, mod2_7);
         continue;
       }
       // F9: book + chapter + 「标题」 e.g. 诗二二标题 → 诗22:0T（T=title-only，区别于整章 :0）
@@ -381,6 +395,14 @@
     while ((m = PAREN_RE.exec(mainText)) !== null) {
       // 括号前的文字：先扫描行内引用再转义
       pushPlain(mainText.slice(last, m.index));
+      // 含"页"字的括号是页码/书页引用，非经文，直接回退渲染（如"创世记L-S，四五五页"）
+      if (m[1].indexOf('页') >= 0) {
+        result.push(escHtml(m[0][0]));
+        pushPlain(m[1]);
+        result.push(escHtml(m[0][m[0].length - 1]));
+        last = m.index + m[0].length;
+        continue;
+      }
       // 尝试展开括号内容
       var refs = expandCnRefs(m[1], book, ch);
       if (refs.length > 0) {

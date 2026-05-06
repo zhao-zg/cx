@@ -54,11 +54,7 @@
         .home-retry-btn{margin-top:20px;padding:10px 20px;background:var(--btn-primary-bg);color:var(--btn-primary-text);border:1px solid var(--btn-primary-border);border-radius:6px;cursor:pointer;font:inherit;font-weight:600;box-shadow:var(--shadow-sm)}
         .home-retry-btn:active{transform:scale(.98)}
         .footer{text-align:center;padding:16px;color:var(--text-muted);background:var(--surface-alt);border-top:1px solid var(--border)}
-        /* 清除数据对话框 */
-        .cx-dialog-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--overlay-strong);z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px}
-        .cx-dialog{background:var(--surface);border-radius:14px;width:min(320px,calc(100vw - 40px));box-shadow:var(--dialog-shadow);overflow:hidden}
-        .cx-dialog-title{font-size:15px;font-weight:600;color:var(--heading);padding:16px 16px 0;text-align:center}
-        .cx-dialog-desc{font-size:12px;color:var(--text-muted);padding:4px 16px 12px;text-align:center;line-height:1.6}
+        /* 清除数据对话框（cx-dialog-mask/cx-dialog/title/desc 已移入 style.css 统一管理）*/
         .cx-dialog-opts{display:flex;flex-direction:column;gap:8px;padding:0 16px 14px}
         .cx-dialog-opt{display:flex;align-items:flex-start;gap:11px;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;background:var(--surface-alt);transition:border-color .15s,background .15s;-webkit-tap-highlight-color:transparent}
         .cx-dialog-opt.selected{border-color:var(--brand);background:var(--interactive-soft-bg)}
@@ -415,6 +411,14 @@
                     '    <button id="cxAdminResourcePackBtn" style="flex-shrink:0;padding:6px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent">📦 下载</button>',
                     '  </div>',
                 ].join(''):'',
+                // 缓存管理行
+                '  <div class="pref-row" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:2px">',
+                '    <div class="pref-label-wrap">',
+                '      <span class="pref-title">缓存管理</span>',
+                '      <span class="pref-desc">管理已下载和导入的训练</span>',
+                '    </div>',
+                '    <button id="cxAdminCacheMgrBtn" style="flex-shrink:0;padding:6px 14px;background:var(--surface-alt);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent">📚 管理</button>',
+                '  </div>',
                 // 开发者模式行
                 '  <div class="pref-row" style="padding-top:'+(canUpdate?'10px':'4px')+'">',
 
@@ -465,7 +469,15 @@
                         window.CXResourcePack.showPacksDialog();
                 });
             }
-
+            // 缓存管理按鈕
+            var _cmBtn=document.getElementById('cxAdminCacheMgrBtn');
+            if(_cmBtn){
+                _cmBtn.addEventListener('click',function(){
+                    close();
+                    if(window.CXResourcePack&&window.CXResourcePack.showCachedDialog)
+                        window.CXResourcePack.showCachedDialog();
+                });
+            }
             // 开发者模式开关
             document.getElementById('cxAdminDevToggle').addEventListener('change',function(){
                 var on=this.checked;
