@@ -10,7 +10,8 @@
   'use strict';
 
   var CACHE_NAME = 'cx-main';
-  var SOURCES_KEY = 'cx-pack-sources'; // localStorage key 用于训练来源记录
+  // cx_ 前缀与其他 localStorage 设置键保持一致；cx- 前缀仅用于 Cache API 名称
+  var SOURCES_KEY = 'cx_pack_sources';
 
   // ── 工具 ───────────────────────────────────────────────────────────────────────────
 
@@ -90,6 +91,11 @@
   // sources 格式：{ "<trainingPath>": { packPath, packLabel, ts }, … }
 
   function _loadSources() {
+    // 迁移旧 key（cx-pack-sources → cx_pack_sources）
+    try {
+      var old = win.localStorage.getItem('cx-pack-sources');
+      if (old) { win.localStorage.setItem(SOURCES_KEY, old); win.localStorage.removeItem('cx-pack-sources'); }
+    } catch (e) {}
     try { return JSON.parse(win.localStorage.getItem(SOURCES_KEY) || '{}'); }
     catch (e) { return {}; }
   }
@@ -135,11 +141,17 @@
     }).catch(function () { if (onDone) onDone(); });
   }
 
-  // 删除单个训练缓存（网络缓存路径，如 2025-04）
+  // 删除单个训练缓存：同时清命名缓存 cx-{path} 和 cx-main 内的条目
   function deleteTraining(trainingPath, onDone) {
     if (!('caches' in win)) { if (onDone) onDone(); return; }
     var prefix = '/' + trainingPath + '/';
-    caches.open(CACHE_NAME).then(function (cache) {
+    var namedName = 'cx-' + trainingPath;
+    // 1. 删除命名缓存（初始安装流程写入的 cx-YYYY-NN）
+    var p1 = caches.has(namedName).then(function (exists) {
+      if (exists) return caches.delete(namedName);
+    }).catch(function () {});
+    // 2. 删除 cx-main 内该训练的所有条目（资源包写入的）
+    var p2 = caches.open(CACHE_NAME).then(function (cache) {
       return cache.keys().then(function (keys) {
         var toDelete = keys.filter(function (req) {
           var p = new URL(req.url).pathname;
@@ -147,7 +159,9 @@
         });
         return Promise.all(toDelete.map(function (req) { return cache.delete(req); }));
       });
-    }).then(function () { if (onDone) onDone(); })
+    }).catch(function () {});
+    Promise.all([p1, p2])
+      .then(function () { if (onDone) onDone(); })
       .catch(function () { if (onDone) onDone(); });
   }
 
@@ -513,12 +527,14 @@
       if (!boxes.length) return;
       if (!confirm('确认删除选中的 ' + boxes.length + ' 个训练？')) return;
       deleteSelBtn.disabled = true; deleteSelBtn.textContent = '删除中…';
-      Promise.all(boxes.map(function (b) {
-        var path = b.getAttribute('data-path');
-        var src  = b.getAttribute('data-src');
-        if (src === 'local') return win.CXLocalImport ? win.CXLocalImport.deleteImport(path) : Promise.resolve();
-        return new Promise(function (res) { deleteTraining(path, res); });
-      })).then(function () {
+      boxes.reduce(function (p, b) {
+        return p.then(function () {
+          var path = b.getAttribute('data-path');
+          var src  = b.getAttribute('data-src');
+          if (src === 'local') return win.CXLocalImport ? win.CXLocalImport.deleteImport(path) : Promise.resolve();
+          return new Promise(function (res) { deleteTraining(path, res); });
+        });
+      }, Promise.resolve()).then(function () {
         if (win.refreshHomeGrid) win.refreshHomeGrid();
         refreshContent();
       }).catch(function () { refreshContent(); });
@@ -584,27 +600,43 @@
           }))
         : Promise.resolve([]);
       var p_netPaths = ('caches' in win)
-        ? caches.open(CACHE_NAME).then(function (cache) {
-            return cache.keys().then(function (keys) {
-              var seen = {};
-              keys.forEach(function (req) {
-                var m = new URL(req.url).pathname.match(/^\/?([\d]{4}-[\d]{2})\/training\.json$/);
-                if (m && !sources[m[1]]) seen[m[1]] = true;
+        ? caches.keys().then(function (allKeys) {
+            // 1. 命名缓存 cx-YYYY-NN（初始安装、单独缓存训练写入）
+            var sources = _loadSources();
+            var fromNamed = allKeys
+              .filter(function (k) { return /^cx-\d{4}-\d{2}$/.test(k); })
+              .map(function (k) { return k.slice(3); })        // 去掉 'cx-' 前缀
+              .filter(function (tp) { return !sources[tp]; }); // 排除已在资源包来源里的
+            // 2. cx-main 中匹配 YYYY-NN/training.json 且不在 sources 的条目
+            return caches.open(CACHE_NAME).then(function (cache) {
+              return cache.keys().then(function (keys) {
+                var seen = {};
+                fromNamed.forEach(function (tp) { seen[tp] = true; });
+                keys.forEach(function (req) {
+                  var m = new URL(req.url).pathname.match(/^\/?([\d]{4}-[\d]{2})\/training\.json$/);
+                  if (m && !sources[m[1]]) seen[m[1]] = true;
+                });
+                return Object.keys(seen).sort().reverse();
               });
-              return Object.keys(seen).sort().reverse();
             });
           })
         : Promise.resolve([]);
       var p_netTrainings = p_netPaths.then(function (paths) {
         return Promise.all(paths.map(function (tp) {
           var url = win.location.origin + '/' + tp + '/training.json';
-          return caches.open(CACHE_NAME).then(function (cache) {
-            return cache.match(url).then(function (r) {
-              if (!r) return null;
-              return r.json().then(function (d) {
-                return { path: tp, title: d.title || tp, chapter_count: (d.chapters || []).length };
-              }).catch(function () { return { path: tp, title: tp, chapter_count: 0 }; });
-            });
+          // 优先找命名缓存 cx-YYYY-NN，再找 cx-main
+          return caches.open('cx-' + tp).then(function (c) {
+            return c.match(url);
+          }).catch(function () { return null; }).then(function (r) {
+            if (r) return r;
+            return caches.open(CACHE_NAME).then(function (c) {
+              return c.match(url);
+            }).catch(function () { return null; });
+          }).then(function (r) {
+            if (!r) return null;
+            return r.json().then(function (d) {
+              return { path: tp, title: d.title || tp, chapter_count: (d.chapters || []).length };
+            }).catch(function () { return { path: tp, title: tp, chapter_count: 0 }; });
           }).catch(function () { return null; });
         })).then(function (arr) { return arr.filter(Boolean); });
       });
@@ -630,39 +662,38 @@
               '</div>';
           });
         }
-        if (netTrainings.length) {
+        // 合并 net + local 为统一列表：本地导入优先（屏蔽同序号网络缓存），按 YYYY-NN 倒序
+        var localKeySet = {};
+        localImports.forEach(function (li) { localKeySet[li.path.replace(/^local-/, '')] = true; });
+        var netFiltered = netTrainings.filter(function (tr) { return !localKeySet[tr.path]; });
+        var unifiedItems = netFiltered.map(function (tr) {
+          return { type: 'net', path: tr.path, title: tr.title,
+                   chapter_count: tr.chapter_count, sortKey: tr.path };
+        }).concat(localImports.map(function (item) {
+          return { type: 'local', path: item.path,
+                   title: item.year + ' ' + (item.title || item.season || ''),
+                   chapter_count: item.chapter_count, importedAt: item.importedAt,
+                   sortKey: item.path.replace(/^local-/, '') };
+        }));
+        unifiedItems.sort(function (a, b) { return b.sortKey.localeCompare(a.sortKey); });
+        if (unifiedItems.length) {
           hasAny = true;
-          html += '<div style="font-size:11px;font-weight:600;color:var(--text-secondary);padding:10px 0 4px;letter-spacing:.05em">🌐 单独训练</div>';
-          netTrainings.forEach(function (tr) {
+          unifiedItems.forEach(function (item) {
+            var badge = item.type === 'local'
+              ? ' <span style="display:inline-block;font-size:10px;padding:1px 5px;background:rgba(0,112,204,.1);color:var(--brand);border:1px solid var(--brand);border-radius:4px;margin-left:4px;white-space:nowrap;vertical-align:middle;line-height:1.4">本地</span>'
+              : '';
+            var sub = (item.chapter_count || 0) + ' 篇';
+            if (item.type === 'local' && item.importedAt) sub += ' · ' + new Date(item.importedAt).toLocaleDateString('zh-CN');
             html +=
               '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
-                '<input type="checkbox" data-path="' + escAttr(tr.path) + '" data-src="net" style="flex-shrink:0;margin:0;width:15px;height:15px">' +
-                '<div style="flex:1;min-width:0">' +
-                  '<div style="font-size:13px;font-weight:500;color:var(--text-primary)">' + escHtml(tr.title) + '</div>' +
-                  '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' + (tr.chapter_count || 0) + ' 篇</div>' +
-                '</div>' +
-                '<button class="cx-cm-del-one" data-path="' + escAttr(tr.path) + '" data-src="net"' +
-                  ' style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:none;color:var(--text-secondary)">🗑</button>' +
-              '</div>';
-          });
-        }
-        if (localImports.length) {
-          hasAny = true;
-          html += '<div style="font-size:11px;font-weight:600;color:var(--text-secondary);padding:10px 0 4px;letter-spacing:.05em">📥 本地导入</div>';
-          localImports.forEach(function (item) {
-            var date = item.importedAt ? new Date(item.importedAt).toLocaleDateString('zh-CN') : '';
-            html +=
-              '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
-                '<input type="checkbox" data-path="' + escAttr(item.path) + '" data-src="local" style="flex-shrink:0;margin:0;width:15px;height:15px">' +
+                '<input type="checkbox" data-path="' + escAttr(item.path) + '" data-src="' + item.type + '" style="flex-shrink:0;margin:0;width:15px;height:15px">' +
                 '<div style="flex:1;min-width:0;overflow:hidden">' +
                   '<div style="font-size:13px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
-                    escHtml(item.year + ' ' + (item.title || item.season || '')) +
+                    escHtml(item.title) + badge +
                   '</div>' +
-                  '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' +
-                    (item.chapter_count || 0) + ' 篇' + (date ? ' · ' + date : '') +
-                  '</div>' +
+                  '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' + sub + '</div>' +
                 '</div>' +
-                '<button class="cx-cm-del-one" data-path="' + escAttr(item.path) + '" data-src="local"' +
+                '<button class="cx-cm-del-one" data-path="' + escAttr(item.path) + '" data-src="' + item.type + '"' +
                   ' style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:none;color:var(--text-secondary)">🗑</button>' +
               '</div>';
           });

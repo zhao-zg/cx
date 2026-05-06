@@ -311,11 +311,19 @@
                 if(!g)return;
 
                 function renderWithLocals(cachedList){
-                    // 合并本地导入（始终显示，排在最前面）
                     if(window.CXLocalImport){
                         window.CXLocalImport.listImports().then(function(localItems){
-                            // localItems 已是 {year,season,title,chapter_count,path,is_local:true} 格式
-                            var combined=localItems.concat(cachedList);
+                            // 本地导入优先：local-YYYY-NN 屏蔽同序号的网络缓存 YYYY-NN
+                            var localKeys={};
+                            localItems.forEach(function(li){localKeys[li.path.replace(/^local-/,'')]=true;});
+                            var netFiltered=cachedList.filter(function(t){return !localKeys[t.path];});
+                            var combined=localItems.concat(netFiltered);
+                            // 按 YYYY-NN 倒序（local- 前缀去掉后再比较）
+                            combined.sort(function(a,b){
+                                var ka=a.path.replace(/^local-/,'');
+                                var kb=b.path.replace(/^local-/,'');
+                                return kb.localeCompare(ka);
+                            });
                             g.innerHTML=buildGridHtml(combined.length?combined:displayTrainings);
                         }).catch(function(){
                             g.innerHTML=buildGridHtml(cachedList.length?cachedList:displayTrainings);
@@ -384,34 +392,40 @@
             var devOn=false;
             try{devOn=localStorage.getItem('cx_dev_mode')==='1';}catch(e){}
 
+            var _ver='';try{_ver=localStorage.getItem('cx_pwa_version')||'';}catch(e){}
+            var _btnB='flex-shrink:0;padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+            var _btnPrimary=_btnB+'background:var(--brand);color:#fff;border:none;';
+            var _btnOutline=_btnB+'background:transparent;color:var(--brand);border:1.5px solid var(--brand);';
             var mask=document.createElement('div');
             mask.id='cxAdminMask';
             mask.className='cx-dialog-mask';
             mask.innerHTML=[
                 '<div class="cx-dialog" style="padding:0 0 4px">',
-                '  <div class="cx-dialog-title" style="padding:18px 16px 4px;font-size:16px">🔧 管理面板</div>',
+                '  <div style="padding:14px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px">',
+                '    <span style="font-size:15px;font-weight:600;color:var(--text-primary)">🔧 管理面板</span>',
+                _ver?'<span style="font-size:11px;color:var(--text-secondary);background:var(--surface-alt);border:1px solid var(--border);border-radius:4px;padding:2px 7px;white-space:nowrap">v'+_ver+'</span>':'',
+                '  </div>',
                 '  <div style="padding:4px 16px 12px">',
                 // 检查更新行（按需显示）
                 canUpdate?[
-                    '  <div class="pref-row" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:2px">',
+                    '  <div class="pref-row" style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:2px">',
                     '    <div class="pref-label-wrap">',
                     '      <span class="pref-title">检查更新</span>',
-                    '      <span class="pref-desc">'+(isCapacitorApp?'检查并安装最新 APK':'检查 PWA 缓存更新')+'</span>',
+                    '      <span class="pref-desc">'+(isCapacitorApp?'检查并安装最新 APK':'检查 PWA 缓存是否最新')+'</span>',
                     '    </div>',
-                    '    <button id="cxAdminUpdateBtn" style="flex-shrink:0;padding:6px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent">检查</button>',
+                    '    <button id="cxAdminUpdateBtn" style="'+_btnOutline+'">检查</button>',
                     '  </div>',
                 ].join(''):'',
-                // 资源管理行（合并「历史资源包下载」与「缓存管理」）
-                '  <div class="pref-row" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:2px">',
+                // 资源管理行
+                '  <div class="pref-row" style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:2px">',
                 '    <div class="pref-label-wrap">',
                 '      <span class="pref-title">资源管理</span>',
-                '      <span class="pref-desc">管理已缓存训练 · 下载历史资源包</span>',
+                '      <span class="pref-desc">已缓存训练 · 历史资源包 · 本地导入</span>',
                 '    </div>',
-                '    <button id="cxAdminCacheMgrBtn" style="flex-shrink:0;padding:6px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent">📦 管理</button>',
+                '    <button id="cxAdminCacheMgrBtn" style="'+_btnPrimary+'">📦 管理</button>',
                 '  </div>',
                 // 开发者模式行
-                '  <div class="pref-row" style="padding-top:'+(canUpdate?'10px':'4px')+'">',
-
+                '  <div class="pref-row" style="padding-top:8px">',
                 '    <div class="pref-label-wrap">',
                 '      <span class="pref-title">开发者模式</span>',
                 '      <span class="pref-desc">在页面底部显示调试日志</span>',
@@ -645,8 +659,9 @@
                         return verifyCacheIntegrity(trainings.filter(function(t){return!t.is_collection;}).slice(0,window.CX_MAX_LATEST_TRAININGS||trainings.length));
                     }).then(function(result){
                         if(result.ok){try{localStorage.setItem('cx_pwa_version',targetVersion);}catch(e){}
-                            if(statusEl)statusEl.textContent='✅ 缓存完整，即将进入...';
-                            setTimeout(function(){var m=document.getElementById('cxInstallMask');if(m&&m.parentNode)m.parentNode.removeChild(m);},800);
+                            if(statusEl)statusEl.textContent='✅ 缓存完整，即将重载...';
+                            if(progressBar)progressBar.style.width='100%';
+                            setTimeout(function(){window.location.reload();},1200);
                         }else{
                             var msg='⚠ 部分资源未完整（'+Math.round((result.coverage||0)*100)+'%）';
                             if(result.missingCore&&result.missingCore>0){
@@ -750,7 +765,7 @@
             return;
         }
         var steps=[];
-        steps.push(new Promise(function(resolve){try{var keys=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.startsWith('cx_')&&k!=='cx_first_use')keys.push(k);if(k==='fontSize'||k==='globalFontSize'||k==='readingTheme'||k==='speechRate')keys.push(k);}keys.forEach(function(k){localStorage.removeItem(k);});resolve();}catch(e){resolve();}}));
+        steps.push(new Promise(function(resolve){try{var keys=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.startsWith('cx_')&&k!=='cx_first_use')keys.push(k);else if(k&&k.startsWith('cx-'))keys.push(k);if(k==='fontSize'||k==='globalFontSize'||k==='readingTheme'||k==='speechRate')keys.push(k);}keys.forEach(function(k){localStorage.removeItem(k);});resolve();}catch(e){resolve();}}));
         steps.push(new Promise(function(resolve){try{sessionStorage.clear();resolve();}catch(e){resolve();}}));
         if('serviceWorker' in navigator)steps.push(navigator.serviceWorker.getRegistrations().then(function(regs){return Promise.all(regs.map(function(r){return r.unregister();}));}).catch(function(){}));
         if('caches' in window)steps.push(caches.keys().then(function(keys){return Promise.all(keys.map(function(k){return caches.delete(k);}));}).catch(function(){}));
