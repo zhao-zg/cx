@@ -50,53 +50,6 @@
     return verseDict;
   }
 
-  /** 归一化标题：去除常见破折号变体、空白，用于近似匹配。 */
-  function normInlineTitle(s) {
-    return s.replace(/[\u2014\u2015\u2500\u2501\uff0d\u2013\u2012\s]/g, '').trim();
-  }
-
-  /**
-   * 扫描合辑文件详细区，返回 [{sectionStart, firstMsgLine, title}, ...]。
-   * 对每个 第一篇/第一周 行向上最多查 15 行找 标语 起始；遇 ^TOP 停止。
-   */
-  function buildInlineDetailIndex(lines, detailStart) {
-    var FIRST_RE = /^第一[篇周]\s*(.+)/;
-    var entries = [];
-    for (var i = detailStart; i < lines.length; i++) {
-      var s = lines[i].trim();
-      var m = FIRST_RE.exec(s);
-      if (!m) continue;
-      var title = m[1].trim();
-      var sectionStart = i;
-      for (var back = 1; back <= 15; back++) {
-        var prev = i - back;
-        if (prev < detailStart) break;
-        var pl = lines[prev].trim();
-        if (pl === '标\u3000语' || pl === '标语' || pl === '标　语') {
-          sectionStart = prev; break;
-        }
-        if (/^TOP/.test(pl)) break;
-      }
-      entries.push({ sectionStart: sectionStart, firstMsgLine: i, title: title });
-    }
-    return entries;
-  }
-
-  /**
-   * 检测合辑文件详细区起始行。
-   * 先用 detectDetailStart；若未找到，回退到最后一个 回页首 + 3。
-   */
-  function detectInlineStart(lines) {
-    var ds = detectDetailStart(lines);
-    if (ds < lines.length) return ds;
-    var limit = Math.min(15000, lines.length);
-    var last = -1;
-    for (var i = 0; i < limit; i++) {
-      if (lines[i].trim() === '回页首') last = i;
-    }
-    return last >= 0 ? last + 3 : 0;
-  }
-
   // 中文层级字符集（与 split_trainings.py 保持一致）
   var LEVEL1_CHARS = '壹贰叁肆伍陆柒捌玖拾';
   var LEVEL2_CHARS = '一二三四五六七八九十';
@@ -470,7 +423,64 @@
       var chapter = parseOneChapter(pos.num, pos.title, msgLines);
       chapters.push(chapter);
     }
+    // 合并重复晨兴章节（半年度训练等格式：听抄 12篇 + 晨兴 12周，标题相同时合并）
+    chapters = _mergeDuplicateMrChapters(chapters);
     return chapters;
+  }
+
+  /**
+   * 规范化章节标题用于合并比对（移植自 Python _normalize_title）。
+   * 去空白、统一破折号、去顿号。
+   */
+  function _normalizeChTitle(t) {
+    return t.replace(/\s+/g, '').replace(/[─—–‐‑‒⁻₋]/g, '-').replace(/、/g, '');
+  }
+
+  /**
+   * 合并重复晨兴章节：半年度训练同一内容以「听抄篇」+「晨兴周」两批呈现时，
+   * 将晨兴数据合并入听抄篇，删除多余的晨兴章节。
+   * 条件：无晨兴章节数 == 有晨兴章节数 >= 4 且 80%+ 标题匹配。
+   * 移植自 Python _merge_duplicate_mr_chapters()。
+   */
+  function _mergeDuplicateMrChapters(chapters) {
+    var noMr = chapters.filter(function(c) {
+      return !c.morning_revivals || !c.morning_revivals.length;
+    });
+    var withMr = chapters.filter(function(c) {
+      return c.morning_revivals && c.morning_revivals.length > 0;
+    });
+    if (!noMr.length || !withMr.length ||
+        noMr.length !== withMr.length || noMr.length < 4) {
+      return chapters;
+    }
+
+    // 构建 withMr 标题 → 章节 映射
+    var titleToMrCh = {};
+    for (var i = 0; i < withMr.length; i++) {
+      var key = _normalizeChTitle(withMr[i].title);
+      if (!(key in titleToMrCh)) titleToMrCh[key] = withMr[i];
+    }
+
+    // 统计匹配率（80% 阈值与 Python 一致）
+    var matchCount = 0;
+    var noMrNorm = [];
+    for (var i = 0; i < noMr.length; i++) {
+      var nk = _normalizeChTitle(noMr[i].title);
+      noMrNorm.push(nk);
+      if (nk in titleToMrCh) matchCount++;
+    }
+    if (matchCount < noMr.length * 0.8) return chapters;
+
+    // 合并：将 withMr 章节的 morning_revivals 复制到对应的 noMr 章节，删除 withMr 章节
+    var toRemove = [];
+    for (var i = 0; i < noMr.length; i++) {
+      var src = titleToMrCh[noMrNorm[i]];
+      if (src) {
+        noMr[i].morning_revivals = src.morning_revivals;
+        toRemove.push(src);
+      }
+    }
+    return chapters.filter(function(c) { return toRemove.indexOf(c) < 0; });
   }
 
   /** 解析单章节：提取 scripture/hymn，解析大纲 */
@@ -1055,40 +1065,170 @@
     return cnt >= 5;
   }
 
+  // ── 旧合辑文件（97-25）detail 区匹配辅助函数 ────────────────────────────────
+
+  /** 规范化标题（统一破折号变体，去首尾空白）。移植自 Python normalize() */
+  function _normTitleMatch(s) {
+    return s.replace(/[—–－]/g, '─').trim();
+  }
+
+  /**
+   * 去标点/空白，用于模糊匹配。移植自 Python fuzzy_key()。
+   * 去掉"信息"前缀，去除 _PUNC_REMOVE_RE 覆盖字符及空白。
+   */
+  function _fuzzyKeyMatch(s) {
+    s = s.replace(/[—–－]/g, '─');
+    s = s.replace(_PUNC_REMOVE_RE, '');
+    s = s.replace(/[\s\u3000]/g, '');
+    if (s.slice(0, 2) === '信息') s = s.slice(2);
+    return s;
+  }
+
+  /**
+   * 从 INDEX 区该训练块中提取「第01篇/第1篇」标题（规范化后）。
+   * 移植自 Python extract_first_msg_title()。
+   */
+  function _extractFirstMsgNorm(lines, start, end) {
+    for (var j = start + 1; j < end; j++) {
+      var s = lines[j].trim();
+      if (/^第0?1篇/.test(s)) {
+        var title = s.replace(/^第0?1篇[\s\u3000]*/, '');
+        return _normTitleMatch(title);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 在 detail 区扫描所有「第一[篇周]」位置，构建 detail 索引。
+   * 返回 [{sectionStart, firstMsgLine, normTitle, fuzzyTitle}]（按出现顺序）。
+   * 移植自 Python build_detail_index()。
+   */
+  function _buildOldCombDetailIndex(lines, detailStart) {
+    var entries = [];
+    var n = lines.length;
+    // 带非空标题的第一篇/周 header
+    var FIRST_MSG_RE = /^第一[篇周]/;
+    var MSG_HDR_RE   = /^第[一二三四五六七八九十百千]+[篇周][\s\u3000]+(.*)/;
+
+    for (var i = detailStart; i < n; i++) {
+      var s = lines[i].trim();
+      if (!FIRST_MSG_RE.test(s)) continue;
+      var m = MSG_HDR_RE.exec(s);
+      if (!m || !m[1].trim()) continue;
+      var rawTitle = m[1].trim();
+
+      // 向上找「标　语」起始（15 行以内）→ section_start
+      var sectionStart = i;
+      for (var back = 1; back < 15 && (i - back) >= detailStart; back++) {
+        var pl = lines[i - back].trim();
+        if (pl === '标\u3000语' || pl === '标语') { sectionStart = i - back; break; }
+        if (/^TOP/.test(pl)) break;
+      }
+
+      entries.push({
+        sectionStart : sectionStart,
+        firstMsgLine : i,
+        normTitle    : _normTitleMatch(rawTitle),
+        fuzzyTitle   : _fuzzyKeyMatch(rawTitle)
+      });
+    }
+    return entries; // 已按 firstMsgLine 升序（扫描顺序）
+  }
+
+  /**
+   * 在 detail 索引中找 normTitle 匹配的条目（firstMsgLine >= searchAfter）。
+   * 先精确，再 fuzzy，再前缀。移植自 Python find_detail_range()。
+   */
+  function _findOldCombDetailRange(detailIndex, normTitle, searchAfter) {
+    var fuzz = _fuzzyKeyMatch(normTitle);
+    var j, e;
+    // 精确匹配
+    for (j = 0; j < detailIndex.length; j++) {
+      e = detailIndex[j];
+      if (e.firstMsgLine < searchAfter) continue;
+      if (e.normTitle === normTitle) return e;
+    }
+    // fuzzy 匹配
+    for (j = 0; j < detailIndex.length; j++) {
+      e = detailIndex[j];
+      if (e.firstMsgLine < searchAfter) continue;
+      if (e.fuzzyTitle === fuzz) return e;
+    }
+    // 前缀匹配（14 / 10 / 6 字符逐步退化）
+    var prefixLens = [14, 10, 6];
+    for (var pi = 0; pi < prefixLens.length; pi++) {
+      var plen = prefixLens[pi];
+      if (fuzz.length < plen) continue;
+      var fp = fuzz.slice(0, plen);
+      for (j = 0; j < detailIndex.length; j++) {
+        e = detailIndex[j];
+        if (e.firstMsgLine < searchAfter) continue;
+        if (e.fuzzyTitle.slice(0, plen) === fp) return e;
+      }
+    }
+    return null;
+  }
+
   /**
    * 解析旧合辑大文件（97-25-特会合辑.txt）。
-   * 策略：
-   *   1. 从开头到第一个「回页首」解析时间顺序目录，得到每个训练的 (year, seq, type, title)
-   *   2. 用 detectInlineStart() 找到详细区起点（最后一个「回页首」之后）
-   *   3. 按「回页首」把详细区切成 N 段，每段 = 一个训练的全部章节
-   *   4. 对每段调用 parseDetailArea(lines, start, end) 直接解析（传原数组+下标，无需复制）
-   *   5. 用目录元数据（year/seq/title）填充训练对象
+   * 策略（与 Python split_trainings.py generate_json() 等价）：
+   *   1. 找 detail 区起点（最后一个「回页首」+ 3）
+   *   2. 从 INDEX 区检测 237 个训练边界，并提取每个训练的「第01篇」标题
+   *   3. 扫描 detail 区，对所有「第一[篇周]」行构建 detail 索引
+   *   4. 按训练顺序做标题匹配，将每个训练映射到其 detail 行范围
+   *   5. 逐训练调用 parseDetailArea()，填充标题/副标题/标语元数据
    */
   function parseOldCombinedFile(lines, onProgress) {
-    // ── 1. 找详细区起点（文件前 15000 行内最后一个「回页首」+ 3） ──────────────
+    var n = lines.length;
+
+    // ── 1. 找 detail 区起点（最后一个「回页首」+ 3） ────────────────────────────
     var lastRo = -1;
-    for (var i = 0; i < Math.min(15000, lines.length); i++) {
+    for (var i = 0; i < Math.min(15000, n); i++) {
       if (lines[i].trim() === '回页首') lastRo = i;
     }
     var firstDetailStart = lastRo >= 0 ? lastRo + 3 : 0;
 
-    // ── 2. 在详细区按「TOP-目录」分割出各训练段的起始行 ───────────────────────
-    // secStarts[i] = 第 i 段的起始行（原数组下标）
-    var secStarts = [firstDetailStart];
-    for (var i = firstDetailStart; i < lines.length; i++) {
-      if (lines[i].trim() === 'TOP-目录') secStarts.push(i + 1);
-    }
-    function getSecEnd(idx) {
-      // 下一段起点 -1（即下一个 TOP-目录 行本身不属于当前段）
-      return idx + 1 < secStarts.length ? secStarts[idx + 1] - 1 : lines.length;
-    }
-
-    // ── 3. 从 INDEX 区获取 237 个训练元数据（Chinese-year 边界） ───────────────
+    // ── 2. 从 INDEX 区获取训练边界，并提取第01篇规范化标题 ──────────────────────
     var bounds = detectTrainingBoundaries(lines);
     if (!bounds.length) return [parseSingleTraining(lines, null)];
     assignSeqs(bounds, null);
 
-    // ── 4. 逐训练合并 INDEX 元数据 + DETAIL 章节 ────────────────────────────────
+    for (var i = 0; i < bounds.length; i++) {
+      var idxEnd = (i + 1 < bounds.length) ? bounds[i + 1].idxStart : firstDetailStart;
+      bounds[i].idxEnd = idxEnd;
+      bounds[i].firstMsgNorm = _extractFirstMsgNorm(lines, bounds[i].idxStart, idxEnd);
+    }
+
+    // ── 3. 构建 detail 索引（一次全量扫描，O(n)） ───────────────────────────────
+    var detailIndex = _buildOldCombDetailIndex(lines, firstDetailStart);
+
+    // ── 4. 按训练顺序匹配 INDEX section → detail 起始行 ─────────────────────────
+    var matchedDetail = {}; // bounds[i].idxStart → {dStart, detailEnd}
+    var searchAfter = firstDetailStart;
+    for (var i = 0; i < bounds.length; i++) {
+      var norm = bounds[i].firstMsgNorm;
+      if (!norm) continue;
+      var entry = _findOldCombDetailRange(detailIndex, norm, searchAfter);
+      if (entry) {
+        matchedDetail[bounds[i].idxStart] = { dStart: entry.sectionStart };
+        searchAfter = entry.firstMsgLine + 1;
+      }
+    }
+
+    // ── 5. 确定每个已匹配训练的 detail 结束行（下一训练 dStart 即为边界） ─────────
+    var allMatched = [];
+    for (var i = 0; i < bounds.length; i++) {
+      var md = matchedDetail[bounds[i].idxStart];
+      if (md) allMatched.push({ idxStart: bounds[i].idxStart, dStart: md.dStart });
+    }
+    allMatched.sort(function(a, b) { return a.dStart - b.dStart; });
+    for (var i = 0; i < allMatched.length; i++) {
+      var detailEnd = i + 1 < allMatched.length ? allMatched[i + 1].dStart : n;
+      matchedDetail[allMatched[i].idxStart].detailEnd = detailEnd;
+    }
+
+    // ── 6. 逐训练解析并构建训练对象 ─────────────────────────────────────────────
     var total = bounds.length;
     var results = [];
     for (var i = 0; i < total; i++) {
@@ -1096,16 +1236,14 @@
       var seqStr = b.seq < 10 ? '0' + b.seq : '' + b.seq;
       var defaultPath = 'local-' + b.year + '-' + seqStr;
 
-      // 从 INDEX 区解析标题 / 副标题 / 标语
-      var idxEnd = (i + 1 < bounds.length) ? bounds[i + 1].idxStart : firstDetailStart;
-      var indexInfo = parseIndexArea(lines, b.idxStart, idxEnd);
+      var indexInfo = parseIndexArea(lines, b.idxStart, b.idxEnd || n);
 
-      // 从 DETAIL 区解析章节（按位置对应：INDEX[i] <-> DETAIL section[i]）
       var chapters;
-      if (i < secStarts.length) {
-        chapters = parseDetailArea(lines, secStarts[i], getSecEnd(i));
+      var md = matchedDetail[b.idxStart];
+      if (md && md.detailEnd !== undefined) {
+        chapters = parseDetailArea(lines, md.dStart, md.detailEnd);
       } else {
-        // 无对应 DETAIL 段：用 INDEX 中的篇目列表构造空章节
+        // 无匹配 detail：用 INDEX 中的篇目列表构造空章节
         chapters = (indexInfo.msgTitles || []).map(function(t, idx) {
           return makeEmptyChapter(idx + 1, t);
         });
@@ -1302,6 +1440,9 @@
             }
             // else: 旧合辑（历史格式，pre-2015 内容无内联经文），跳过经文提取
 
+            // 富化晨兴 feeding_refs / context（依赖 ref-detector.js，浏览器导入时已加载）
+            if (win.CXEnricher) win.CXEnricher.enrichTrainings(trainings);
+
             // 逐一保存到 LocalForage
             loadIndex().then(function(index) {
               var indexMap = {};
@@ -1390,10 +1531,7 @@
     extractYearSeqFromFilename: extractYearSeqFromFilename,
     detectTrainingBoundaries: detectTrainingBoundaries,
     // 经文提取工具（构建脚本复用）
-    collectInlineVerses: collectInlineVerses,
-    normInlineTitle: normInlineTitle,
-    buildInlineDetailIndex: buildInlineDetailIndex,
-    detectInlineStart: detectInlineStart
+    collectInlineVerses: collectInlineVerses
   };
 
 })(typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : {}));

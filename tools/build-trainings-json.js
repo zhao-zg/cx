@@ -36,12 +36,15 @@ global.localforage = {
 var ROOT        = path.resolve(__dirname, '..');
 var TXT_IMP     = path.join(ROOT, 'src', 'static', 'js', 'txt-importer.js');
 var REF_DET     = path.join(ROOT, 'src', 'static', 'js', 'ref-detector.js');
+var ENRICHER    = path.join(ROOT, 'src', 'static', 'js', 'training-enricher.js');
 
 require(TXT_IMP);
 require(REF_DET);
+require(ENRICHER);
 
 var _imp = global.window.CXLocalImport;
 var _ref = global.window.CXRef;
+var _enr = global.window.CXEnricher;
 
 if (!_imp || !_imp.parseSingleTraining) {
   console.error('错误: txt-importer.js 未正确暴露 parseSingleTraining');
@@ -49,6 +52,10 @@ if (!_imp || !_imp.parseSingleTraining) {
 }
 if (!_ref || !_ref.expandCnRefs) {
   console.error('错误: ref-detector.js 未正确暴露 expandCnRefs');
+  process.exit(1);
+}
+if (!_enr || !_enr.enrichChapter) {
+  console.error('错误: training-enricher.js 未正确暴露 enrichChapter');
   process.exit(1);
 }
 
@@ -59,11 +66,8 @@ var parseOldCombinedFile       = _imp.parseOldCombinedFile;
 var detectDetailStart          = _imp.detectDetailStart;
 var extractYearSeqFromFilename = _imp.extractYearSeqFromFilename;
 var collectInlineVerses        = _imp.collectInlineVerses;
-var normTitle                  = _imp.normInlineTitle;
-var buildDetailIndex           = _imp.buildInlineDetailIndex;
-var detectCombinedDetailStart  = _imp.detectInlineStart;
-var expandCnRefs              = _ref.expandCnRefs;
-var scanCtx                   = _ref.scanCtx;
+var detectTrainingBoundaries   = _imp.detectTrainingBoundaries;
+var enrichChapter              = _enr.enrichChapter;
 
 // ── 3. 路径 ───────────────────────────────────────────────────────────────────
 var RESOURCE_DIR = path.join(ROOT, 'resource', '历史合辑');
@@ -97,55 +101,8 @@ function writeScriptures(verseDict, year, seq) {
   fs.writeFileSync(path.join(jsDir, 'scriptures-data.json'), JSON.stringify(filtered), 'utf8');
 }
 
-// ── 4. 富化函数（镜像 Python 的 _enrich_chapter_feeding_refs / _enrich_section_contexts）
-
-/**
- * 计算单章所有晨读的 feeding_refs / morning_feeding_contexts / message_reading_contexts。
- */
-function enrichChapter(chapter) {
-  var scripture = chapter.scripture || '';
-  var revivals  = chapter.morning_revivals || [];
-
-  for (var ri = 0; ri < revivals.length; ri++) {
-    var rev = revivals[ri];
-
-    // ── feeding_refs ──────────────────────────────────────────────────────
-    var fs = rev.feeding_scriptures || [];
-    var ctxStr = scripture;
-    rev.feeding_refs = fs.map(function(text) {
-      var m = (text || '').trim().match(/^(\S+)/);
-      var refPart = m ? m[1].replace(/[，、；。：:,;)）\]]+$/, '') : '';
-      var ctxM = ctxStr.match(/^([^\d:]+)(\d+):(\d+)/);
-      var defBook = ctxM ? ctxM[1] : '';
-      var defCh   = ctxM ? parseInt(ctxM[2], 10) : 0;
-      var refs = expandCnRefs(refPart, defBook, defCh);
-      if (refs.length > 0) {
-        var lr = refs[refs.length - 1].replace(/[上中下]$/, '');
-        var lm = lr.match(/^([^\d:]+)(\d+):(\d+)/);
-        if (lm) ctxStr = lm[1] + lm[2] + ':' + lm[3];
-      }
-      return refs.join(',');
-    });
-
-    // ── morning_feeding_contexts ──────────────────────────────────────────
-    var mf = rev.morning_feeding || [];
-    ctxStr = scripture;
-    rev.morning_feeding_contexts = mf.map(function(para) {
-      var c = ctxStr;
-      ctxStr = scanCtx(para, ctxStr) || ctxStr;
-      return c;
-    });
-
-    // ── message_reading_contexts ──────────────────────────────────────────
-    var mr = rev.message_reading || [];
-    ctxStr = scripture;
-    rev.message_reading_contexts = mr.map(function(para) {
-      var c = ctxStr;
-      ctxStr = scanCtx(para, ctxStr) || ctxStr;
-      return c;
-    });
-  }
-}
+// ── 4. 富化函数（由 training-enricher.js 提供）─────────────────────────────────
+// enrichChapter = _enr.enrichChapter（已在上方赋局部变量）
 
 // ── 5. 写出 training.json ─────────────────────────────────────────────────────
 function writeTraining(td, year, seq) {
@@ -262,13 +219,18 @@ function processFile(filePath, inYearSubdir) {
       });
 
     } else {
-      // ── 普通合辑 或 单训练：原有逻辑（title-matching 或直接扫全文）────
-      var detailStart2 = isCombined ? detectCombinedDetailStart(lines) : 0;
-      var detailIndex2 = isCombined ? buildDetailIndex(lines, detailStart2) : [];
-      var searchAfter2 = detailStart2;
-      var matchedDetail2 = []; // [{sectionStart, year, seq}]
+      // ── 普通合辑 或 单训练文件 ────────────────────────────────────────────
+      // 经文提取：单训练扫全文；合辑按边界切片（与浏览器端保持一致）
 
-      results.forEach(function(td2) {
+      if (isCombined) {
+        var boundaries = detectTrainingBoundaries(lines);
+        for (var bi = 0; bi < boundaries.length; bi++) {
+          boundaries[bi].end = bi + 1 < boundaries.length
+            ? boundaries[bi + 1].idxStart : lines.length;
+        }
+      }
+
+      results.forEach(function(td2, bIdx) {
         var pm = (td2.path || '').match(/^local-(\d+)-(\d+)/);
         if (!pm) return;
         var year2 = parseInt(pm[1], 10);
@@ -277,34 +239,14 @@ function processFile(filePath, inYearSubdir) {
         if (enrichAndWrite(td2, year2, seq2)) {
           count++;
           if (!isCombined) {
-            // 单训练文件：直接扫全文提取经文
             writeScriptures(collectInlineVerses(lines), year2, seq2);
-          } else {
-            // 合辑：以 msgTitles[0] 在 detailIndex2 中顺序查找，用 searchAfter2 防重复消耗
-            var firstMsgTitle = (td2.msgTitles && td2.msgTitles[0]) || '';
-            var normFirst = normTitle(firstMsgTitle);
-            var found = null;
-            for (var j = 0; j < detailIndex2.length; j++) {
-              var e = detailIndex2[j];
-              if (e.firstMsgLine < searchAfter2) continue;
-              if (e.title === firstMsgTitle || normTitle(e.title) === normFirst) {
-                found = e;
-                break;
-              }
-            }
-            if (found) {
-              searchAfter2 = found.firstMsgLine + 1;
-              matchedDetail2.push({ sectionStart: found.sectionStart, year: year2, seq: seq2 });
-            }
+          } else if (bIdx < boundaries.length) {
+            writeScriptures(
+              collectInlineVerses(lines.slice(boundaries[bIdx].idxStart, boundaries[bIdx].end)),
+              year2, seq2
+            );
           }
         }
-      });
-
-      // 按 sectionStart 升序，逐训练确定范围并提取经文
-      matchedDetail2.sort(function(a, b) { return a.sectionStart - b.sectionStart; });
-      matchedDetail2.forEach(function(m, i) {
-        var end = i + 1 < matchedDetail2.length ? matchedDetail2[i + 1].sectionStart : lines.length;
-        writeScriptures(collectInlineVerses(lines.slice(m.sectionStart, end)), m.year, m.seq);
       });
     }
   }
