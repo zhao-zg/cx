@@ -297,7 +297,9 @@
         '</div>' +
       '</div>';
     document.body.appendChild(mask);
-    function doClose() { if (mask.parentNode) mask.parentNode.removeChild(mask); }
+    document.body.style.overflow = 'hidden';
+    mask.addEventListener('touchmove', function(e) { if (e.target === mask) e.preventDefault(); e.stopPropagation(); }, { passive: false });
+    function doClose() { document.body.style.overflow = ''; if (mask.parentNode) mask.parentNode.removeChild(mask); }
     function closeDialog() { doClose(); if (backFn) backFn(); }
     win.CX && win.CX.backStack && win.CX.backStack.push(closeDialog);
     document.getElementById('cxRpCloseBtn').addEventListener('click', function () {
@@ -485,8 +487,10 @@
         '</div>' +
       '</div>';
     document.body.appendChild(mask);
+    document.body.style.overflow = 'hidden';
+    mask.addEventListener('touchmove', function(e) { if (e.target === mask) e.preventDefault(); e.stopPropagation(); }, { passive: false });
     win.CX && win.CX.backStack && win.CX.backStack.push(closeDialog);
-    function closeDialog() { if (mask.parentNode) mask.parentNode.removeChild(mask); }
+    function closeDialog() { document.body.style.overflow = ''; if (mask.parentNode) mask.parentNode.removeChild(mask); }
     document.getElementById('cxCmCloseBtn').addEventListener('click', function () {
       win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog();
     });
@@ -682,13 +686,15 @@
         localImports.forEach(function (li) { localKeySet[li.path.replace(/^local-/, '')] = true; });
         var netFiltered = netTrainings.filter(function (tr) { return !localKeySet[tr.path]; });
         var unifiedItems = netFiltered.map(function (tr) {
-          return { type: tr.isInitial ? 'initial' : 'net', path: tr.path, title: tr.title,
+          return { type: tr.isInitial ? 'initial' : 'net', path: tr.path,
+                   title: tr.path + ' ' + tr.title,
                    chapter_count: tr.chapter_count, sortKey: tr.path };
         }).concat(localImports.map(function (item) {
+          var yearSeq = item.path.replace(/^local-/, '');
           return { type: 'local', path: item.path,
-                   title: item.year + ' ' + (item.title || item.season || ''),
+                   title: yearSeq + ' ' + (item.title || item.season || ''),
                    chapter_count: item.chapter_count, importedAt: item.importedAt,
-                   sortKey: item.path.replace(/^local-/, '') };
+                   sortKey: yearSeq };
         }));
         unifiedItems.sort(function (a, b) { return b.sortKey.localeCompare(a.sortKey); });
         if (unifiedItems.length) {

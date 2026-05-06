@@ -1237,15 +1237,18 @@
 
             // 判断是否为合辑文件（内含多个训练）
             // 优先检测旧「特会及训练信息合辑」格式（97-25-特会合辑.txt）
-            if (isOldCombinedFormat(lines)) {
+            var isOldCmb = isOldCombinedFormat(lines);
+            var boundaries = null;
+
+            if (isOldCmb) {
               if (onProgress) onProgress(0, 1, '正在解析旧合辑文件…');
               trainings = parseOldCombinedFile(lines, function(done, total) {
                 if (onProgress) onProgress(done, total, '正在解析第 ' + done + ' / ' + total + ' 个训练…');
               });
               isCombined = true;  // 旧合辑：历史内容不含内联经文，跳过2024+格式提取
             } else {
-              var boundaries = detectTrainingBoundaries(lines);
-              var isCombined = boundaries.length > 1;
+              boundaries = detectTrainingBoundaries(lines);
+              isCombined = boundaries.length > 1;
               if (isCombined) {
                 // 合辑：批量解析
                 if (onProgress) onProgress(0, boundaries.length, '正在检测训练边界…');
@@ -1283,31 +1286,21 @@
               if (trainings[0] && trainings[0].path) {
                 scripturesMap[trainings[0].path] = collectInlineVerses(lines);
               }
-            } else {
-              // 合辑：按详细区索引匹配
-              var ds = detectInlineStart(lines);
-              var dIdx = buildInlineDetailIndex(lines, ds);
-              var searchAfter = ds;
-              var matched = [];  // [{sectionStart, path}]
-              trainings.forEach(function(td) {
-                var firstTitle = (td.msgTitles && td.msgTitles[0]) || '';
-                var normFirst = normInlineTitle(firstTitle);
-                for (var j = 0; j < dIdx.length; j++) {
-                  var e = dIdx[j];
-                  if (e.firstMsgLine < searchAfter) continue;
-                  if (e.title === firstTitle || normInlineTitle(e.title) === normFirst) {
-                    searchAfter = e.firstMsgLine + 1;
-                    matched.push({ sectionStart: e.sectionStart, path: td.path });
-                    break;
-                  }
+            } else if (!isOldCmb && boundaries) {
+              // 现代合辑：用训练边界直接切片（不依赖 msgTitles 标题匹配）
+              for (var bi = 0; bi < boundaries.length; bi++) {
+                boundaries[bi].end = bi + 1 < boundaries.length
+                  ? boundaries[bi + 1].idxStart : lines.length;
+              }
+              trainings.forEach(function(td, i) {
+                if (i < boundaries.length) {
+                  scripturesMap[td.path] = collectInlineVerses(
+                    lines.slice(boundaries[i].idxStart, boundaries[i].end)
+                  );
                 }
               });
-              matched.sort(function(a, b) { return a.sectionStart - b.sectionStart; });
-              matched.forEach(function(m, i) {
-                var end = i + 1 < matched.length ? matched[i + 1].sectionStart : lines.length;
-                scripturesMap[m.path] = collectInlineVerses(lines.slice(m.sectionStart, end));
-              });
             }
+            // else: 旧合辑（历史格式，pre-2015 内容无内联经文），跳过经文提取
 
             // 逐一保存到 LocalForage
             loadIndex().then(function(index) {
