@@ -260,7 +260,19 @@ class ImprovedParser:
         r'^(?:([一二三四五六七八九十百]+)节(?:[至到]([一二三四五六七八九十百]+)节)?'
         r'|([一二三四五六七八九十百]+)[至到]([一二三四五六七八九十百]+)节)$'
     )
-    
+    # 跨章节范围：cn章arabic节 ~ cn章arabic节（两端各含章节，如「三21~五11」）
+    _CROSS_CHAP_VERSE_RE = re.compile(
+        r'^(' + _CN_CHAP_PAT + r')(\d+)([上中下]?)[~～\-—]+(' + _CN_CHAP_PAT + r')(\d+)([上中下]?)$'
+    )
+    # 续章范围：arabic节 ~ cn章arabic节（起始用当前章，如「12~八13」）
+    _VERSE_TO_CROSS_CHAP_RE = re.compile(
+        r'^(\d+)([上中下]?)[~～\-—]+(' + _CN_CHAP_PAT + r')(\d+)([上中下]?)$'
+    )
+    # 相对章范围：cn章 ~ cn章（无节号，如「十二~十六」）
+    _REL_CHAP_RANGE_RE = re.compile(
+        r'^(' + _CN_CHAP_PAT + r')[~～\-—]+(' + _CN_CHAP_PAT + r')$'
+    )
+
     def __init__(self, output_dir: str = 'output', bible_dict: BibleDict = None):
         self.output_dir = output_dir
         self.bible_dict = bible_dict  # 外部传入的持久化经文字典（可选）
@@ -2253,6 +2265,20 @@ class ImprovedParser:
                     refs.append(f'{current_book}{current_chapter}:0')
                 continue
 
+            # 2.5 跨章节范围：cn章+arabic节 ~ cn章+arabic节（同书，如「三21~五11」）
+            if current_book:
+                m = cls._CROSS_CHAP_VERSE_RE.match(part)
+                if m:
+                    ch1 = cls._cn_to_int(m.group(1)); v1 = int(m.group(2)); mod1 = m.group(3) or ''
+                    ch2 = cls._cn_to_int(m.group(4)); v2 = int(m.group(5)); mod2 = m.group(6) or ''
+                    if ch1 and ch2 and ch1 <= 150 and ch2 <= 150:
+                        refs.append(f'{current_book}{ch1}:{v1}{mod1}')
+                        for c in range(ch1 + 1, ch2):
+                            refs.append(f'{current_book}{c}:0')
+                        refs.append(f'{current_book}{ch2}:{v2}{mod2}')
+                        current_chapter = ch2
+                    continue
+
             # 3. 相对章：只有中文章 + 阿拉伯节（一19~21上）
             if current_book:
                 m = cls._REL_CHAP_RE.match(part)
@@ -2292,6 +2318,16 @@ class ImprovedParser:
                         refs.append(f'{current_book}{current_chapter}:0')
                     continue
 
+            # 4.5 相对章范围：cn章 ~ cn章（无节号，如「十二~十六」）
+            if current_book:
+                m = cls._REL_CHAP_RANGE_RE.match(part)
+                if m:
+                    ch1 = cls._cn_to_int(m.group(1)); ch2 = cls._cn_to_int(m.group(2))
+                    if ch1 and ch2 and ch1 <= 150 and ch2 <= 150:
+                        refs.extend(f'{current_book}{c}:0' for c in range(ch1, ch2 + 1))
+                        current_chapter = ch2
+                    continue
+
             # 5. 纯节续：阿拉伯数字[上下][~数字[上下]]（同书同章）
             if current_book and current_chapter:
                 m = cls._CONT_VERSE_RE.match(part)
@@ -2301,6 +2337,20 @@ class ImprovedParser:
                     cls._emit_verse_range(current_book, current_chapter,
                                           v1, mod1, int(v2_s) if v2_s else v1,
                                           mod2 if v2_s else mod1, refs)
+                    continue
+
+            # 5.5 续章范围：arabic节 ~ cn章+arabic节（起始用当前章，如「12~八13」）
+            if current_book and current_chapter:
+                m = cls._VERSE_TO_CROSS_CHAP_RE.match(part)
+                if m:
+                    v1 = int(m.group(1)); mod1 = m.group(2) or ''
+                    ch2 = cls._cn_to_int(m.group(3)); v2 = int(m.group(4)); mod2 = m.group(5) or ''
+                    if ch2 and ch2 <= 150:
+                        refs.append(f'{current_book}{current_chapter}:{v1}{mod1}')
+                        for c in range(current_chapter + 1, ch2):
+                            refs.append(f'{current_book}{c}:0')
+                        refs.append(f'{current_book}{ch2}:{v2}{mod2}')
+                        current_chapter = ch2
                     continue
 
             # 4b. 相对整章：须以「章」字结尾（如「九一章」）。

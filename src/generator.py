@@ -253,6 +253,7 @@ class HTMLGenerator:
             f'(?:'                                                         # optional verse range
             f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'                    # format A groups 6,7 (was 5,6)
             f'|({cn_num})[至到]({cn_num})节'                              # format B groups 8,9 (was 7,8)
+            f'|({cn_num}(?:[跟和]{cn_num})+)节'                           # format C group 10: X跟Y节
             f')?'
             f')'
         )
@@ -290,6 +291,7 @@ class HTMLGenerator:
             f'(?:'                                                          # optional verse range
             f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'                     # format A groups 4,5: Y节[至Z节]
             f'|({cn_num})[至到]({cn_num})节'                               # format B groups 6,7: Y至Z节
+            f'|({cn_num}(?:[跟和]{cn_num})+)节'                            # format C group 8: Y跟Z节
             f')?'                                                           # verse range is optional
             # 无节时后面不能紧跟文意性汉字（的/中/里/讲/说/是/来/等/个）
             r'(?![的中里讲说是来等个])'
@@ -306,8 +308,8 @@ class HTMLGenerator:
             return cls._INLINE_REL_VERSE_RE
         cn = r'[一二三四五六七八九十百]+'
         cls._INLINE_REL_VERSE_RE = re.compile(
-            f'({cn})[至到]({cn})节'   # format A: X至Y节
-            f'|({cn})节'               # format B: X节（单节）
+            f'({cn})[至到]({cn})节'             # format A: X至Y节
+            f'|(?<!每)({cn})节'        # format B: X节（「每」前置或「在/里」后置则是自然语言，不识别）
         )
         return cls._INLINE_REL_VERSE_RE
 
@@ -360,6 +362,7 @@ class HTMLGenerator:
                     chap_cn    = m.group(3)
                     verse_cn   = m.group(4) or m.group(6)
                     end_verse_cn = m.group(5) or m.group(7)
+                    verse_list_cn = m.group(8)  # format C: Y跟Z节
                     chap = ImprovedParser._cn_to_int(chap_cn) or 0
                     if not chap or chap > 150:
                         result.append(str(escape(m.group(0))))
@@ -367,7 +370,12 @@ class HTMLGenerator:
                         continue
                     cur_chapter = chap   # 更新章号，供后续纯节引用使用
                     refs_list = []
-                    if verse_cn:
+                    if verse_list_cn:
+                        for _part in re.split(r'[跟和]', verse_list_cn):
+                            _v = ImprovedParser._cn_to_int(_part.strip()) or 0
+                            if _v and _v <= 200:
+                                refs_list.append(f'{cur_book}{chap}:{_v}')
+                    elif verse_cn:
                         v1 = ImprovedParser._cn_to_int(verse_cn) or 0
                         v2 = ImprovedParser._cn_to_int(end_verse_cn) if end_verse_cn else v1
                         if v1:
@@ -461,6 +469,7 @@ class HTMLGenerator:
                 chap_cn = m.group(5)
                 verse_cn = m.group(6) or m.group(8)      # format A: Y节 / format B: Y (before 至)
                 end_verse_cn = m.group(7) or m.group(9)  # format A: Z节 / format B: Z节
+                verse_list_cn = m.group(10)              # format C: Y跟Z节
                 chap = ImprovedParser._cn_to_int(chap_cn) or 0
                 if not chap or chap > 150:
                     result.append(str(escape(m.group(0))))
@@ -470,7 +479,12 @@ class HTMLGenerator:
                 cur_book = book
                 cur_chapter = chap
                 refs_list = []
-                if verse_cn:
+                if verse_list_cn:
+                    for _part in re.split(r'[跟和]', verse_list_cn):
+                        _v = ImprovedParser._cn_to_int(_part.strip()) or 0
+                        if _v and _v <= 200:
+                            refs_list.append(f'{book}{chap}:{_v}')
+                elif verse_cn:
                     v1 = ImprovedParser._cn_to_int(verse_cn) or 0
                     v2 = ImprovedParser._cn_to_int(end_verse_cn) if end_verse_cn else v1
                     if v1:
