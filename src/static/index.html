@@ -401,23 +401,13 @@
                     '    <button id="cxAdminUpdateBtn" style="flex-shrink:0;padding:6px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent">检查</button>',
                     '  </div>',
                 ].join(''):'',
-                // 历史资源包行
-                canUpdate?[
-                    '  <div class="pref-row" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:2px">',
-                    '    <div class="pref-label-wrap">',
-                    '      <span class="pref-title">历史资源</span>',
-                    '      <span class="pref-desc">下载历史训练资源包（需联网）</span>',
-                    '    </div>',
-                    '    <button id="cxAdminResourcePackBtn" style="flex-shrink:0;padding:6px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent">📦 下载</button>',
-                    '  </div>',
-                ].join(''):'',
-                // 缓存管理行
+                // 资源管理行（合并「历史资源包下载」与「缓存管理」）
                 '  <div class="pref-row" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:2px">',
                 '    <div class="pref-label-wrap">',
-                '      <span class="pref-title">缓存管理</span>',
-                '      <span class="pref-desc">管理已下载和导入的训练</span>',
+                '      <span class="pref-title">资源管理</span>',
+                '      <span class="pref-desc">管理已缓存训练 · 下载历史资源包</span>',
                 '    </div>',
-                '    <button id="cxAdminCacheMgrBtn" style="flex-shrink:0;padding:6px 14px;background:var(--surface-alt);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent">📚 管理</button>',
+                '    <button id="cxAdminCacheMgrBtn" style="flex-shrink:0;padding:6px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent">📦 管理</button>',
                 '  </div>',
                 // 开发者模式行
                 '  <div class="pref-row" style="padding-top:'+(canUpdate?'10px':'4px')+'">',
@@ -460,16 +450,7 @@
                 });
             }
 
-            // 历史资源包按钮
-            var _rpBtn=document.getElementById('cxAdminResourcePackBtn');
-            if(_rpBtn){
-                _rpBtn.addEventListener('click',function(){
-                    close();
-                    if(window.CXResourcePack&&window.CXResourcePack.showPacksDialog)
-                        window.CXResourcePack.showPacksDialog();
-                });
-            }
-            // 缓存管理按鈕
+            // 资源管理按钮（进入 showCachedDialog，内部可跳转下载弹层）
             var _cmBtn=document.getElementById('cxAdminCacheMgrBtn');
             if(_cmBtn){
                 _cmBtn.addEventListener('click',function(){
