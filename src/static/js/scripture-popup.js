@@ -181,12 +181,22 @@
   function parseAndExpandRefs(refs, bibleDict, contextBook) {
     var tokens = splitRefTokens(refs);
     var lastBook = contextBook || '';
+    var lastChapter = '';   // 上一个成功解析的章号（十进制字符串）
     var out = [];
     tokens.forEach(function (token) {
+      // 纯节号续接（如 8~9、19~24）：仅含数字+范围符，无书卷前缀
+      // 此时继承 lastBook + lastChapter，拼成完整引用再解析
+      var bareVerse = token.replace(/[～~—\-]/g, '-').match(/^(\d+)(-\d+)?([上中下]?)$/);
+      if (bareVerse && lastBook && lastChapter) {
+        token = lastBook + lastChapter + ':' + token;
+      }
       var nr = normalizeRef(token, lastBook);
       if (!nr) return;
       var bk = getBookFromRef(nr);
       if (bk) lastBook = bk;
+      // 更新 lastChapter（从规范化后的 book+章:节 中提取章号）
+      var chm = nr.match(/(\d+):/);
+      if (chm) lastChapter = chm[1];
       out = out.concat(expandRefToken(nr, bibleDict));
     });
     return out;

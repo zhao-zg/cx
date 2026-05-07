@@ -531,11 +531,7 @@
     var revivals = chapter.morning_revivals || [];
 
     if (!revivals.length) {
-      var noContent = '<div class="container">' + header +
-        '<div class="content"><div class="morning-revival-page">' + nav +
-        '<p class="no-content">暂无晨读内容</p></div></div>' +
-        buildFooter(training) + '</div>';
-      setContent(noContent, 'cx', batchPath, chapter, training);
+      if (win.CXRouter) win.CXRouter.navigateReplace(batchPath + '/' + chapter.number + '/cv');
       return;
     }
 
@@ -985,8 +981,9 @@
         navLinks += '<button type="button" id="cx-search-btn" class="nav-link" title="搜索">🔍</button>';
 
         var tocItems = (training.chapters || []).map(function(ch) {
+          var defView = (ch.morning_revivals && ch.morning_revivals.length > 0) ? 'cx' : 'cv';
           return '<a href="javascript:void(0)" class="toc-item" onclick="CXRouter.navigate(\'' +
-            escAttr(batchPath) + '/' + ch.number + '/cx\')" data-chapter="' + ch.number + '">' +
+            escAttr(batchPath) + '/' + ch.number + '/' + defView + '\')" data-chapter="' + ch.number + '">' +
             '<span class="toc-num">第' + ch.number + '篇</span>' +
             '<span class="toc-title">' + escText(ch.title) + '</span>' +
             '</a>';
@@ -1148,7 +1145,7 @@
         else if (viewType === 'ts') renderTs(batchPath, chapter, training);
         else if (viewType === 'sg') renderSg(batchPath, chapter, training);
         else if (viewType === 'zs') renderZs(batchPath, chapter, training);
-        else renderCx(batchPath, chapter, training);
+        else renderCv(batchPath, chapter, training);
       })
       .catch(function(err) {
         var isCapacitor = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
