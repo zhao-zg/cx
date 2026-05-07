@@ -165,6 +165,25 @@
       .catch(function () { if (onDone) onDone(); });
   }
 
+  // 恢复已删除的初始安装训练：从服务器重新下载 training.json 缓存到 cx-main
+  function restoreInitialTraining(trainingPath, rowEl) {
+    var url = win.location.origin + '/' + trainingPath + '/training.json';
+    var btn = rowEl.querySelector('.cx-restore-initial');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+    caches.open(CACHE_NAME).then(function (cache) {
+      return fetch(url, { cache: 'no-cache' }).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return cache.put(url, r);
+      });
+    }).then(function () {
+      if (win.refreshHomeGrid) win.refreshHomeGrid();
+      tabLoaded['default'] = false; renderDefaultTab();
+    }).catch(function (err) {
+      if (btn) { btn.disabled = false; btn.textContent = '↺ 重新安装'; }
+      alert('恢复失败：' + (err && err.message ? err.message : '网络错误'));
+    });
+  }
+
   // ── 下载资源包 ──────────────────────────────────────────────────────────────────
 
   function downloadPack(pack, onProgress) {
@@ -516,7 +535,7 @@
                 '</div>' +
                 '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' + (tr.chapter_count || 0) + ' 篇</div>' +
               '</div>' +
-              '<button class="cx-cm-del-one action-btn danger icon" data-path="' + escAttr(tr.path) + '" data-src="default">🗑</button>' +
+              '<button class="cx-cm-del-one action-btn danger icon" data-path="' + escAttr(tr.path) + '" data-src="default"' + (tr.isInitial ? ' data-initial="1"' : '') + '>🗑</button>' +
             '</div>';
         });
         content.innerHTML = html;
@@ -527,10 +546,23 @@
         Array.prototype.forEach.call(content.querySelectorAll('.cx-cm-del-one'), function (btn) {
           btn.addEventListener('click', function () {
             var path = btn.getAttribute('data-path');
-            if (!confirm('确认删除该训练的缓存？')) return;
+            var isInitial = btn.getAttribute('data-initial') === '1';
+            if (!confirm('确认删除该训练的缓存？' + (isInitial ? '\n（已安装训练删除后可在此重新安装）' : ''))) return;
+            var rowEl = btn.parentElement;
             deleteTraining(path, function () {
               if (win.refreshHomeGrid) win.refreshHomeGrid();
-              tabLoaded['default'] = false; renderDefaultTab();
+              if (isInitial && rowEl) {
+                // 转换行：显示"已删除 + 重新安装"；不刷新整个 Tab
+                rowEl.innerHTML =
+                  '<div style="flex:1;min-width:0;font-size:13px;color:var(--text-secondary)">已删除</div>' +
+                  '<button class="cx-restore-initial action-btn" data-path="' + escAttr(path) + '" ' +
+                    'style="font-size:12px;padding:3px 8px">↺ 重新安装</button>';
+                rowEl.querySelector('.cx-restore-initial').addEventListener('click', function () {
+                  restoreInitialTraining(path, rowEl);
+                });
+              } else {
+                tabLoaded['default'] = false; renderDefaultTab();
+              }
             });
           });
         });
