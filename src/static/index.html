@@ -440,9 +440,11 @@
                 '</div>'
             ].join('');
             document.body.appendChild(mask);
+            if(window.CX&&window.CX.lockOverlayScroll)window.CX.lockOverlayScroll(mask);
 
             // 关闭
-            function close(){if(mask.parentNode)mask.parentNode.removeChild(mask);}
+            function close(){if(mask.parentNode)mask.parentNode.removeChild(mask);if(window.CX&&window.CX.backStack)window.CX.backStack.pop();}
+            if(window.CX&&window.CX.backStack)window.CX.backStack.push(function(){if(mask.parentNode)mask.parentNode.removeChild(mask);});
             document.getElementById('cxAdminClose').addEventListener('click',close);
             mask.addEventListener('click',function(e){if(e.target===mask)close();});
 

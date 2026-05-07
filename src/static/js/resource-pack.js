@@ -335,6 +335,8 @@
       '</div>';
 
     document.body.appendChild(mask);
+    // 防触摸滚动穿透（统一通用工具）
+    if (win.CX && win.CX.lockOverlayScroll) win.CX.lockOverlayScroll(mask);
 
     function closeDialog() { if (mask.parentNode) mask.parentNode.removeChild(mask); if (backFn) backFn(); }
     win.CX && win.CX.backStack && win.CX.backStack.push(closeDialog);
