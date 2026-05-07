@@ -1134,14 +1134,15 @@
                             try { window.__cxSwWaiting.postMessage({type:'SKIP_WAITING'}); } catch(ex){}
                             window.__cxSwWaiting = null;
                         }
-                        if (extStatusEl) { extStatusEl.textContent = '正在清除旧缓存...'; extStatusEl.className = 'cache-status'; }
+                        if (extStatusEl) { extStatusEl.textContent = '正在准备更新...'; extStatusEl.className = 'cache-status'; }
                         var steps = [];
                         if ('caches' in window) {
+                            // 只清除命名训练缓存（cx-YYYY-NN），保留 cx-main（历史合辑包数据）
                             steps.push(caches.keys().then(function(keys) {
-                                return Promise.all(keys.filter(function(k) { return k.indexOf('cx-') === 0; }).map(function(k) { return caches.delete(k); }));
+                                return Promise.all(keys.filter(function(k) { return /^cx-\d{4}-\d{2}$/.test(k); }).map(function(k) { return caches.delete(k); }));
                             }).catch(function() {}));
                         }
-                        // 保存新版本号（而非删除），使重载后 checkPwaStartupCache 能识别为首次安装并触发强制缓存
+                        // 保存新版本号，使重载后 checkPwaStartupCache 进行完整性检查并触发增量缓存
                         try { localStorage.setItem('cx_pwa_version', remoteVersion); } catch(ex) {}
                         try { localStorage.removeItem('cx_all_cached'); } catch(ex) {}
                         if (window.CX && window.CX.errorLog) window.CX.errorLog.clear();

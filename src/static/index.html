@@ -394,9 +394,6 @@
             try{devOn=localStorage.getItem('cx_dev_mode')==='1';}catch(e){}
 
             var _ver='';try{_ver=localStorage.getItem('cx_pwa_version')||'';}catch(e){}
-            var _btnB='flex-shrink:0;padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent;';
-            var _btnPrimary=_btnB+'background:var(--brand);color:#fff;border:none;';
-            var _btnOutline=_btnB+'background:transparent;color:var(--brand);border:1.5px solid var(--brand);';
             var mask=document.createElement('div');
             mask.id='cxAdminMask';
             mask.className='cx-dialog-mask';
@@ -414,7 +411,7 @@
                     '      <span class="pref-title">检查更新</span>',
                     '      <span class="pref-desc">'+(isCapacitorApp?'检查并安装最新 APK':'检查 PWA 缓存是否最新')+'</span>',
                     '    </div>',
-                    '    <button id="cxAdminUpdateBtn" style="'+_btnOutline+'">检查</button>',
+                    '    <button id="cxAdminUpdateBtn" class="action-btn feedback icon">检查</button>',
                     '  </div>',
                 ].join(''):'',
                 // 资源管理行
@@ -423,7 +420,7 @@
                 '      <span class="pref-title">资源管理</span>',
                 '      <span class="pref-desc">已缓存训练 · 历史资源包 · 本地导入</span>',
                 '    </div>',
-                '    <button id="cxAdminCacheMgrBtn" style="'+_btnPrimary+'">📦 管理</button>',
+                '    <button id="cxAdminCacheMgrBtn" class="action-btn primary icon">📦 管理</button>',
                 '  </div>',
                 // 开发者模式行
                 '  <div class="pref-row" style="padding-top:8px">',
@@ -437,8 +434,8 @@
                 '    </label>',
                 '  </div>',
                 '  </div>',
-                '  <div style="text-align:center;padding:4px 16px 14px">',
-                '    <button id="cxAdminClose" style="padding:7px 32px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer;color:var(--text-secondary);-webkit-tap-highlight-color:transparent">关闭</button>',
+                '  <div style="padding:4px 16px 14px">',
+                '    <button id="cxAdminClose" class="action-btn">关闭</button>',
                 '  </div>',
                 '</div>'
             ].join('');
@@ -648,16 +645,20 @@
         function doInstall(){
             if(retryBtn)retryBtn.style.display='none';
             if(progressBar)progressBar.style.width='0%';
-            if(statusEl)statusEl.textContent='正在清理旧缓存...';
-            var clearStep=('caches' in window)?caches.keys().then(function(keys){return Promise.all(keys.filter(function(k){return k.indexOf('cx-')===0;}).map(function(k){return caches.delete(k);}));}).catch(function(){}):Promise.resolve();
-            clearStep.then(function(){
-                if(statusEl)statusEl.textContent='正在等待训练列表...';
-                waitForTrainings(15000).then(function(trainings){
+            if(statusEl)statusEl.textContent='正在等待训练列表...';
+            // 先获取训练列表，再按需清理——只清除本次将要重新下载的命名缓存
+            // 保留其他已安装的默认训练（命名缓存）和历史包数据（cx-main）
+            waitForTrainings(15000).then(function(trainings){
+                var toCache=trainings.filter(function(t){return!t.is_collection;}).slice(0,window.CX_MAX_LATEST_TRAININGS||trainings.length);
+                var refreshKeys=toCache.map(function(t){return'cx-'+t.path;});
+                if(statusEl)statusEl.textContent='正在清理旧缓存...';
+                var clearStep=('caches' in window)?caches.keys().then(function(keys){return Promise.all(keys.filter(function(k){return refreshKeys.indexOf(k)!==-1;}).map(function(k){return caches.delete(k);}));}).catch(function(){}):Promise.resolve();
+                return clearStep.then(function(){
                     if(statusEl)statusEl.textContent='开始缓存资源...';
                     return cacheAllTrainings(statusEl,function(percent){if(progressBar)progressBar.style.width=Math.min(percent,100)+'%';}).then(function(){
                         if(progressBar)progressBar.style.width='100%';
                         if(statusEl)statusEl.textContent='✓ 下载完成，正在验证...';
-                        return verifyCacheIntegrity(trainings.filter(function(t){return!t.is_collection;}).slice(0,window.CX_MAX_LATEST_TRAININGS||trainings.length));
+                        return verifyCacheIntegrity(toCache);
                     }).then(function(result){
                         if(result.ok){try{localStorage.setItem('cx_pwa_version',targetVersion);}catch(e){}
                             if(statusEl)statusEl.textContent='✅ 缓存完整，即将重载...';
@@ -675,8 +676,8 @@
                             if(retryBtn)retryBtn.style.display='block';
                         }
                     });
-                }).catch(function(err){if(statusEl)statusEl.textContent='⚠ 出错：'+(err&&err.message||'未知')+'，请重试';if(retryBtn)retryBtn.style.display='block';});
-            });
+                });
+            }).catch(function(err){if(statusEl)statusEl.textContent='⚠ 出错：'+(err&&err.message||'未知')+'，请重试';if(retryBtn)retryBtn.style.display='block';});
         }
         if(retryBtn)retryBtn.addEventListener('click',doInstall);
         doInstall();
@@ -726,6 +727,16 @@
         var _isNativeApp=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
         if(_isNativeApp){
             // Capacitor WebView 不支持 SW，跳过注册
+            // Cache API 可用；首次安装时（无 cx_pwa_version）触发训练缓存初始化
+            if('caches' in window){
+                var _capVer=null;try{_capVer=localStorage.getItem('cx_pwa_version');}catch(e){}
+                if(!_capVer){
+                    fetch('./version.json?t='+Date.now(),{cache:'no-store'})
+                        .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+                        .then(function(v){showMandatoryInstallDialog('install',v.version||v.apk_version||'');})
+                        .catch(function(){/* 离线时跳过 */});
+                }
+            }
         } else {
         navigator.serviceWorker.register('./sw.js').then(function(reg){
             reg.update().catch(function(){});

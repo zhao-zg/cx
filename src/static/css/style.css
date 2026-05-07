@@ -623,6 +623,9 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .action-btn.sponsor:active{background:var(--sponsor-bg-active)}
 .action-btn.feedback{color:var(--brand);border-color:var(--interactive-soft-border);background:var(--interactive-soft-bg)}
 .action-btn.feedback:active{background:var(--interactive-soft-hover)}
+.action-btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.action-btn.primary:active{opacity:.88}
+.action-btn.icon{width:auto;min-height:32px;padding:4px 10px;font-size:13px}
 @media(max-width:360px){.actions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* 反馈问题对话框 */
 .cx-feedback-box{background:var(--surface);border-radius:16px;width:min(320px,calc(100vw - 40px));box-shadow:var(--dialog-shadow);overflow:hidden}

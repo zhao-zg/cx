@@ -270,211 +270,60 @@
     });
   }
 
-  // ── 历史资源包下载 dialog ───────────────────────────────────────────────────────────────
+  // ── 资源管理 dialog（3-Tab：默认 / 历史 / 导入）─────────────────────────────
 
+  // showPacksDialog 现在作为 showCachedDialog 的别名，并切换到历史 Tab
   function showPacksDialog(backFn) {
-    var existing = document.getElementById('cxResourcePackMask');
-    if (existing) { document.body.removeChild(existing); }
-    var mask = document.createElement('div');
-    mask.id = 'cxResourcePackMask';
-    mask.className = 'cx-dialog-mask';
-    var titleHtml = backFn
-      ? '<div style="display:flex;align-items:center;gap:6px;padding:14px 16px 10px">' +
-          '<button id="cxRpBackBtn" style="padding:4px 8px;background:none;border:none;font-size:16px;cursor:pointer;color:var(--text-secondary);line-height:1">←</button>' +
-          '<span style="font-size:16px;font-weight:600;color:var(--heading)">历史资源包</span>' +
-        '</div>'
-      : '<div class="cx-dialog-title" style="padding:14px 16px 10px;font-size:16px">历史资源包</div>';
-    mask.innerHTML =
-      '<div class="cx-dialog" style="max-width:420px;padding:0 0 4px">' +
-        titleHtml +
-        '<div id="cxRpContent" style="padding:0 16px 8px;max-height:55vh;overflow-y:auto">' +
-          '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">⏳ 加载清单中…</div>' +
-        '</div>' +
-        '<div style="padding:8px 16px 12px;display:flex;gap:8px;justify-content:flex-end">' +
-          '<button id="cxRpDownloadAllBtn" style="display:none;padding:7px 14px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer">全部下载</button>' +
-          (backFn ? '<button id="cxRpCloseBtn" style="padding:7px 20px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--text-secondary)">← 返回</button>'
-                  : '<button id="cxRpCloseBtn" style="padding:7px 20px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--text-secondary)">关闭</button>') +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(mask);
-    function doClose() { if (mask.parentNode) mask.parentNode.removeChild(mask); }
-    function closeDialog() { doClose(); if (backFn) backFn(); }
-    win.CX && win.CX.backStack && win.CX.backStack.push(closeDialog);
-    document.getElementById('cxRpCloseBtn').addEventListener('click', function () {
-      win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog();
-    });
-    if (backFn) {
-      var backBtn = document.getElementById('cxRpBackBtn');
-      if (backBtn) backBtn.addEventListener('click', function () {
-        win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog();
-      });
-    }
-    mask.addEventListener('click', function (e) {
-      if (e.target === mask) { win.CX && win.CX.backStack && win.CX.backStack.pop(); doClose(); }
-    });
-    fetchManifest().then(function (manifest) {
-      renderPacksUI(manifest.packs || []);
-    }).catch(function (err) {
-      document.getElementById('cxRpContent').innerHTML =
-        '<div style="color:var(--error);padding:16px 0">获取清单失败：' + escHtml(err.message) + '</div>';
-    });
-    function makeRow(id, labelHtml, subHtml, progId, barId, pctId, btnId) {
-      return '<div class="cx-rp-item" id="' + id + '" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">' +
-        '<div style="flex:1;min-width:0">' +
-          '<div style="font-size:14px;font-weight:500;color:var(--text-primary)">' + labelHtml + '</div>' +
-          '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px">' + subHtml + '</div>' +
-          '<div class="cx-rp-progress" id="' + progId + '" style="display:none;margin-top:6px">' +
-            '<div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">' +
-              '<div class="cx-rp-bar" id="' + barId + '" style="height:100%;width:0%;background:var(--brand);transition:width .2s"></div>' +
-            '</div>' +
-            '<div class="cx-rp-pct" id="' + pctId + '" style="font-size:11px;color:var(--text-secondary);margin-top:2px">0%</div>' +
-          '</div>' +
-        '</div>' +
-        '<div style="display:flex;gap:5px;flex-shrink:0" id="' + btnId + '_wrap"></div>' +
-      '</div>';
-    }
-    function makeActionBtns(btnId, isCached, onDownload, onDelete) {
-      var wrap = document.getElementById(btnId + '_wrap');
-      if (!wrap) return;
-      wrap.innerHTML = '';
-      if (isCached) {
-        if (onDelete) {
-          var dBtn = document.createElement('button');
-          dBtn.textContent = '🗑'; dBtn.title = '删除缓存';
-          dBtn.style.cssText = 'padding:5px 9px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;background:none;color:var(--text-secondary)';
-          dBtn.addEventListener('click', onDelete); wrap.appendChild(dBtn);
-        }
-        var cBtn = document.createElement('button');
-        cBtn.textContent = '✓ 已缓存'; cBtn.disabled = true;
-        cBtn.style.cssText = 'padding:5px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:default;background:var(--surface-alt);color:var(--text-secondary)';
-        wrap.appendChild(cBtn);
-      } else if (onDownload) {
-        var dlBtn = document.createElement('button');
-        dlBtn.id = btnId;
-        dlBtn.textContent = '⬇ 下载';
-        dlBtn.style.cssText = 'padding:5px 12px;border-radius:8px;border:none;font-size:12px;cursor:pointer;background:var(--brand);color:#fff';
-        dlBtn.addEventListener('click', onDownload); wrap.appendChild(dlBtn);
-      } else {
-        var iBtn = document.createElement('button');
-        iBtn.textContent = '未缓存'; iBtn.disabled = true;
-        iBtn.style.cssText = 'padding:5px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:default;background:none;color:var(--text-secondary)';
-        wrap.appendChild(iBtn);
-      }
-    }
-    function renderPacksUI(packs) {
-      var content = document.getElementById('cxRpContent');
-      if (!packs.length) {
-        content.innerHTML = '<div style="padding:16px 0;color:var(--text-secondary)">暂无资源包</div>';
-        return;
-      }
-      var html = '';
-      packs.forEach(function (pack, i) {
-        html += makeRow('cxRpPk_' + i, escHtml(pack.label),
-          escHtml(pack.training_count + ' 个训练 · ' + fmtSize(pack.size_bytes)),
-          'cxRpPkProg_' + i, 'cxRpPkBar_' + i, 'cxRpPkPct_' + i, 'cxRpPkBtn_' + i);
-      });
-      content.innerHTML = html;
-      var cachedArr = new Array(packs.length).fill(false);
-      Promise.all(packs.map(isPackCached)).then(function (arr) {
-        arr.forEach(function (c, i) { cachedArr[i] = c; });
-        packs.forEach(function (pack, i) {
-          (function bindPack(pk, idx) {
-            function refreshBtn() {
-              makeActionBtns('cxRpPkBtn_' + idx, cachedArr[idx],
-                cachedArr[idx] ? null : function () { startPackDownload(pk, idx, packs, cachedArr); },
-                cachedArr[idx] ? function () {
-                  if (!confirm('确认删除"’ + pk.label + ""的缓存？\n（仅删除由该包下载且未被后续操作替换的训练）')) return;
-                  deletePack(pk, function () {
-                    cachedArr[idx] = false; refreshBtn();
-                    if (win.refreshHomeGrid) win.refreshHomeGrid();
-                  });
-                } : null
-              );
-            }
-            refreshBtn();
-          })(pack, i);
-        });
-        var hasUncached = cachedArr.some(function (c) { return !c; });
-        var allBtn = document.getElementById('cxRpDownloadAllBtn');
-        if (allBtn && hasUncached) {
-          allBtn.style.display = '';
-          allBtn.addEventListener('click', function () {
-            allBtn.disabled = true; allBtn.textContent = '下载中…';
-            packs.reduce(function (p, pack, i) {
-              return p.then(function () {
-                if (cachedArr[i]) return Promise.resolve();
-                return startPackDownload(pack, i, packs, cachedArr);
-              });
-            }, Promise.resolve()).then(function () {
-              allBtn.textContent = '✓ 全部下载完成';
-            }).catch(function (err) {
-              allBtn.disabled = false; allBtn.textContent = '全部下载';
-              alert('下载失败：' + err.message);
-            });
-          });
-        }
-      });
-    }
-    function startPackDownload(pack, i, packs, cachedArr) {
-      var progEl = document.getElementById('cxRpPkProg_' + i);
-      var barEl  = document.getElementById('cxRpPkBar_' + i);
-      var pctEl  = document.getElementById('cxRpPkPct_' + i);
-      var wrap   = document.getElementById('cxRpPkBtn_' + i + '_wrap');
-      if (wrap) wrap.innerHTML = '<button disabled style="padding:5px 12px;border-radius:8px;border:none;font-size:12px;background:var(--surface-alt);color:var(--text-secondary)">下载中…</button>';
-      if (progEl) progEl.style.display = '';
-      return downloadPack(pack, function (ratio) {
-        var pct = Math.round(ratio * 100);
-        if (barEl) barEl.style.width = pct + '%';
-        if (pctEl) pctEl.textContent = pct + '%';
-      }).then(function () {
-        cachedArr[i] = true;
-        if (progEl) progEl.style.display = 'none';
-        makeActionBtns('cxRpPkBtn_' + i, true, null, function () {
-          if (!confirm('确认删除"’ + pack.label + ""的缓存？\n（仅删除由该包下载且未被后续操作替换的训练）')) return;
-          deletePack(pack, function () {
-            cachedArr[i] = false;
-            makeActionBtns('cxRpPkBtn_' + i, false,
-              function () { startPackDownload(pack, i, packs, cachedArr); }, null);
-            if (win.refreshHomeGrid) win.refreshHomeGrid();
-          });
-        });
-        if (win.refreshHomeGrid) win.refreshHomeGrid();
-      }).catch(function (err) {
-        if (progEl) progEl.style.display = 'none';
-        if (wrap) wrap.innerHTML = '<button style="padding:5px 12px;border-radius:8px;border:none;font-size:12px;cursor:pointer;background:var(--brand);color:#fff">⬇ 重试</button>';
-        var retryBtn = wrap && wrap.querySelector('button');
-        if (retryBtn) retryBtn.addEventListener('click', function () { startPackDownload(pack, i, packs, cachedArr); });
-        alert('下载失败：' + err.message);
-        throw err;
-      });
-    }
+    showCachedDialog(backFn, 'history');
   }
 
-  // ── 已缓存训练管理 dialog ───────────────────────────────────────────────────────────────
-
-  function showCachedDialog() {
+  function showCachedDialog(backFn, initialTab) {
     var existing = document.getElementById('cxCacheMgrMask');
     if (existing) { document.body.removeChild(existing); }
+
+    var activeTab = initialTab || 'default';
+    // 追踪哪些 Tab 已经加载过数据，避免重复请求
+    var tabLoaded = { 'default': false, history: false, 'import': false };
+
     var mask = document.createElement('div');
     mask.id = 'cxCacheMgrMask';
     mask.className = 'cx-dialog-mask';
+
+    var _tabBtn = 'flex:1;padding:10px 4px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;cursor:pointer;font-weight:500;color:var(--text-secondary);transition:color .15s,border-color .15s;-webkit-tap-highlight-color:transparent';
+    var _tabBtnActive = 'flex:1;padding:10px 4px;background:none;border:none;border-bottom:2px solid var(--brand);font-size:13px;cursor:pointer;font-weight:600;color:var(--brand);transition:color .15s,border-color .15s;-webkit-tap-highlight-color:transparent';
+
     mask.innerHTML =
       '<div class="cx-dialog" style="max-width:440px;padding:0 0 4px;position:relative">' +
-        '<div class="cx-dialog-title" style="padding:14px 16px 0;font-size:16px">已缓存训练</div>' +
-        '<div id="cxCmSelBar" style="display:none;padding:6px 16px;background:var(--surface-alt);border-bottom:1px solid var(--border)">' +
+        // 标题行
+        '<div style="padding:14px 16px 0;font-size:16px;font-weight:600;color:var(--heading)">资源管理</div>' +
+        // Tab 导航栏
+        '<div style="display:flex;border-bottom:1px solid var(--border);margin:6px 0 0 0">' +
+          '<button id="cxTabBtnDefault" style="' + _tabBtn + '">默认</button>' +
+          '<button id="cxTabBtnHistory" style="' + _tabBtn + '">历史</button>' +
+          '<button id="cxTabBtnImport" style="' + _tabBtn + '">导入</button>' +
+        '</div>' +
+        // 多选工具栏（仅默认/导入 Tab 可见）
+        '<div id="cxCmSelBar" style="display:none;padding:6px 16px;background:var(--surface-alt);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">' +
           '<label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);cursor:pointer">' +
             '<input type="checkbox" id="cxCmSelectAll" style="margin:0"> 全选' +
           '</label>' +
-          '<button id="cxCmDeleteSel" style="float:right;padding:5px 14px;border-radius:8px;border:none;font-size:12px;cursor:pointer;background:#d32f2f;color:#fff">删除选中(0)</button>' +
+          '<button id="cxCmDeleteSel" class="action-btn danger icon">删除选中(0)</button>' +
         '</div>' +
-        '<div id="cxCmContent" style="padding:0 16px 8px;max-height:55vh;overflow-y:auto">' +
+        // Tab 内容区
+        '<div id="cxTabDefault" style="padding:0 16px 8px;max-height:55vh;overflow-y:auto">' +
           '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">⏳ 加载中…</div>' +
         '</div>' +
-        '<div style="padding:8px 16px 12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">' +
-          '<button id="cxCmPacksBtn" style="padding:7px 14px;background:var(--surface-alt);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap">📦 资源包</button>' +
-          '<button id="cxCmImportBtn" style="padding:7px 14px;background:var(--surface-alt);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap">📂 导入</button>' +
-          '<button id="cxCmCloseBtn" style="padding:7px 20px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--text-secondary);white-space:nowrap">关闭</button>' +
+        '<div id="cxTabHistory" style="display:none;padding:0 16px 8px;max-height:55vh;overflow-y:auto">' +
+          '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">⏳ 加载清单中…</div>' +
         '</div>' +
+        '<div id="cxTabImport" style="display:none;padding:0 16px 8px;max-height:55vh;overflow-y:auto">' +
+          '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">⏳ 加载中…</div>' +
+        '</div>' +
+        // 底部按钮
+        '<div style="padding:8px 16px 12px">' +
+          '<button id="cxCmCloseBtn" class="action-btn">关闭</button>' +
+        '</div>' +
+        // 导入进度遮罩
         '<div id="cxCmImportOverlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.45);border-radius:inherit;align-items:center;justify-content:center;z-index:10">' +
           '<div style="background:var(--surface);border-radius:12px;padding:20px 24px;min-width:220px;text-align:center">' +
             '<div id="cxCmImportMsg" style="font-size:13px;color:var(--text-primary);margin-bottom:8px">解析中…</div>' +
@@ -484,36 +333,70 @@
           '</div>' +
         '</div>' +
       '</div>';
+
     document.body.appendChild(mask);
+
+    function closeDialog() { if (mask.parentNode) mask.parentNode.removeChild(mask); if (backFn) backFn(); }
     win.CX && win.CX.backStack && win.CX.backStack.push(closeDialog);
-    function closeDialog() { if (mask.parentNode) mask.parentNode.removeChild(mask); }
     document.getElementById('cxCmCloseBtn').addEventListener('click', function () {
       win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog();
-    });
-    document.getElementById('cxCmPacksBtn').addEventListener('click', function () {
-      win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog();
-      showPacksDialog(showCachedDialog);
     });
     mask.addEventListener('click', function (e) {
       if (e.target === mask) { win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog(); }
     });
+
+    // ── Tab 切换 ──────────────────────────────────────────────────────────
     var selBar       = document.getElementById('cxCmSelBar');
     var selectAllChk = document.getElementById('cxCmSelectAll');
     var deleteSelBtn = document.getElementById('cxCmDeleteSel');
+
+    function switchTab(tabId) {
+      activeTab = tabId;
+      // 更新 Tab 按钮样式
+      ['default', 'history', 'import'].forEach(function (t) {
+        var btn = document.getElementById('cxTabBtn' + (t === 'default' ? 'Default' : t === 'history' ? 'History' : 'Import'));
+        if (btn) btn.style.cssText = t === tabId ? _tabBtnActive : _tabBtn;
+      });
+      // 切换内容区显示
+      var tabMap = { 'default': 'cxTabDefault', history: 'cxTabHistory', 'import': 'cxTabImport' };
+      Object.keys(tabMap).forEach(function (t) {
+        var el = document.getElementById(tabMap[t]);
+        if (el) el.style.display = t === tabId ? '' : 'none';
+      });
+      // 多选工具栏：只对默认/导入 Tab 显示（切 Tab 时复位）
+      selBar.style.display = 'none';
+      selectAllChk.checked = false;
+      selectAllChk.indeterminate = false;
+      // 懒加载：首次切入才加载
+      if (!tabLoaded[tabId]) {
+        tabLoaded[tabId] = true;
+        if (tabId === 'default')  renderDefaultTab();
+        if (tabId === 'history')  renderHistoryTab();
+        if (tabId === 'import')   renderImportTab();
+      }
+    }
+
+    document.getElementById('cxTabBtnDefault').addEventListener('click', function () { switchTab('default'); });
+    document.getElementById('cxTabBtnHistory').addEventListener('click', function () { switchTab('history'); });
+    document.getElementById('cxTabBtnImport').addEventListener('click', function () { switchTab('import'); });
+
+    // ── 多选工具栏公共逻辑 ────────────────────────────────────────────
     function getCheckboxes() {
+      var scope = activeTab === 'default' ? 'cxTabDefault' : 'cxTabImport';
       return Array.prototype.slice.call(
-        document.querySelectorAll('#cxCmContent input[type=checkbox][data-path]')
+        document.querySelectorAll('#' + scope + ' input[type=checkbox][data-path]')
       );
     }
     function updateSelBar() {
+      if (activeTab === 'history') { selBar.style.display = 'none'; return; }
       var boxes   = getCheckboxes();
       var checked = boxes.filter(function (b) { return b.checked; });
       if (boxes.length) {
         selBar.style.display = '';
-        deleteSelBtn.textContent        = '删除选中(' + checked.length + ')';
-        deleteSelBtn.disabled           = checked.length === 0;
-        selectAllChk.indeterminate      = checked.length > 0 && checked.length < boxes.length;
-        selectAllChk.checked            = boxes.length > 0 && checked.length === boxes.length;
+        deleteSelBtn.textContent   = '删除选中(' + checked.length + ')';
+        deleteSelBtn.disabled      = checked.length === 0;
+        selectAllChk.indeterminate = checked.length > 0 && checked.length < boxes.length;
+        selectAllChk.checked       = boxes.length > 0 && checked.length === boxes.length;
       } else {
         selBar.style.display = 'none';
       }
@@ -536,97 +419,23 @@
         });
       }, Promise.resolve()).then(function () {
         if (win.refreshHomeGrid) win.refreshHomeGrid();
-        refreshContent();
-      }).catch(function () { refreshContent(); });
-    });
-    // 每次点击动态创建 input，不使用 accept 过滤，兼容各类 PWA/Android 文件管理器
-    document.getElementById('cxCmImportBtn').addEventListener('click', function () {
-      if (!win.CXLocalImport) { alert('导入模块未加载'); return; }
-      var fi = document.createElement('input');
-      fi.type = 'file';
-      fi.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px';
-      document.body.appendChild(fi);
-      fi.addEventListener('change', function () {
-        var file = fi.files && fi.files[0];
-        document.body.removeChild(fi);
-        if (!file) return;
-        var overlay = document.getElementById('cxCmImportOverlay');
-        var msgEl   = document.getElementById('cxCmImportMsg');
-        var barEl   = document.getElementById('cxCmImportBar');
-        if (overlay) overlay.style.display = 'flex';
-        var reader = new FileReader();
-        reader.onload = function (e) {
-          win.CXLocalImport.parseAndSave(e.target.result, file.name, function (done, total, msg) {
-            if (msgEl) msgEl.textContent = msg || ('解析中 ' + done + '/' + total);
-            if (barEl && total) barEl.style.width = Math.round(done / total * 100) + '%';
-          }).then(function () {
-            if (overlay) overlay.style.display = 'none';
-            if (win.refreshHomeGrid) win.refreshHomeGrid();
-            refreshContent();
-          }).catch(function (err) {
-            if (overlay) overlay.style.display = 'none';
-            alert('导入失败：' + err.message);
-          });
-        };
-        reader.onerror = function () {
-          if (overlay) overlay.style.display = 'none';
-          alert('文件读取失败，请重试');
-        };
-        reader.readAsText(file, 'utf-8');
+        if (activeTab === 'default') { tabLoaded['default'] = false; renderDefaultTab(); }
+        if (activeTab === 'import')  { tabLoaded['import'] = false; renderImportTab(); }
+      }).catch(function () {
+        if (activeTab === 'default') { tabLoaded['default'] = false; renderDefaultTab(); }
+        if (activeTab === 'import')  { tabLoaded['import'] = false; renderImportTab(); }
       });
-      fi.click();
     });
-    refreshContent();
-    function refreshContent() {
-      var content = document.getElementById('cxCmContent');
+
+    // ── 默认 Tab ──────────────────────────────────────────────────────
+    function renderDefaultTab() {
+      var content = document.getElementById('cxTabDefault');
       if (!content) return;
       content.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">⏳ 加载中…</div>';
       selBar.style.display = 'none';
+
       var sources = _loadSources();
-      var packGroupMap = {};
-      Object.keys(sources).forEach(function (tp) {
-        var rec = sources[tp];
-        var key = rec.packLabel + '||' + rec.packPath;
-        if (!packGroupMap[key]) packGroupMap[key] = { packLabel: rec.packLabel, packPath: rec.packPath, paths: [] };
-        packGroupMap[key].paths.push(tp);
-      });
-      var packGroups = Object.keys(packGroupMap).map(function (k) { return packGroupMap[k]; });
-      var p_packCached = ('caches' in win)
-        ? Promise.all(packGroups.map(function (g) {
-            var url = win.location.origin + '/' + g.paths[0] + '/training.json';
-            return caches.open(CACHE_NAME).then(function (c) {
-              return c.match(url).then(function (r) { return !!r; });
-            }).catch(function () { return false; });
-          }))
-        : Promise.resolve([]);
-      var p_netPaths = ('caches' in win)
-        ? caches.keys().then(function (allKeys) {
-            // 1. 命名缓存 cx-YYYY-NN（初始安装）
-            var sources = _loadSources();
-            var namedSet = {};  // 记录哪些路径来自命名缓存（只读/初装）
-            allKeys
-              .filter(function (k) { return /^cx-\d{4}-\d{2}$/.test(k); })
-              .map(function (k) { return k.slice(3); })        // 去掉 'cx-' 前缀
-              .filter(function (tp) { return !sources[tp]; })  // 排除资源包来源里的
-              .forEach(function (tp) { namedSet[tp] = true; });
-            // 2. cx-main 中匹配 YYYY-NN/training.json 且不在 sources 的条目
-            return caches.open(CACHE_NAME).then(function (cache) {
-              return cache.keys().then(function (keys) {
-                var mainSet = {};
-                keys.forEach(function (req) {
-                  var m = new URL(req.url).pathname.match(/^\/?([\d]{4}-[\d]{2})\/training\.json$/);
-                  if (m && !sources[m[1]] && !namedSet[m[1]]) mainSet[m[1]] = true;
-                });
-                // 合并：命名缓存（初装）+ cx-main 额外条目
-                var result = Object
-                  .keys(namedSet).map(function (tp) { return { tp: tp, isInitial: true }; })
-                  .concat(Object.keys(mainSet).map(function (tp) { return { tp: tp, isInitial: false }; }));
-                result.sort(function (a, b) { return b.tp.localeCompare(a.tp); });
-                return result;
-              });
-            });
-          })
-        : Promise.resolve([]);
+
       // 从命名缓存中找 training.json（用 keys() 扫描，不依赖精确 URL）
       function _fetchFromNamedCache(tp) {
         return caches.open('cx-' + tp).then(function (c) {
@@ -640,12 +449,39 @@
           });
         }).catch(function () { return null; });
       }
-      var p_netTrainings = p_netPaths.then(function (items) {
+
+      if (!('caches' in win)) {
+        content.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--text-secondary)">此环境不支持缓存</div>';
+        return;
+      }
+
+      caches.keys().then(function (allKeys) {
+        var namedSet = {};
+        allKeys
+          .filter(function (k) { return /^cx-\d{4}-\d{2}$/.test(k); })
+          .map(function (k) { return k.slice(3); })
+          .filter(function (tp) { return !sources[tp]; })
+          .forEach(function (tp) { namedSet[tp] = true; });
+
+        return caches.open(CACHE_NAME).then(function (cache) {
+          return cache.keys().then(function (keys) {
+            var mainSet = {};
+            keys.forEach(function (req) {
+              var m = new URL(req.url).pathname.match(/^\/?([0-9]{4}-[0-9]{2})\/training\.json$/);
+              if (m && !sources[m[1]] && !namedSet[m[1]]) mainSet[m[1]] = true;
+            });
+            var items = Object.keys(namedSet).map(function (tp) { return { tp: tp, isInitial: true }; })
+              .concat(Object.keys(mainSet).map(function (tp) { return { tp: tp, isInitial: false }; }));
+            items.sort(function (a, b) { return b.tp.localeCompare(a.tp); });
+            return items;
+          });
+        });
+      }).then(function (items) {
         return Promise.all(items.map(function (item) {
-          var tp = item.tp;
+          var tp  = item.tp;
           var url = win.location.origin + '/' + tp + '/training.json';
-          var p = item.isInitial
-            ? _fetchFromNamedCache(tp)  // 命名缓存：用 keys() 扫描
+          var p   = item.isInitial
+            ? _fetchFromNamedCache(tp)
             : caches.open(CACHE_NAME).then(function (c) { return c.match(url); }).catch(function () { return null; });
           return p.then(function (r) {
             if (!r) return null;
@@ -654,117 +490,314 @@
             }).catch(function () { return { path: tp, title: tp, chapter_count: 0, isInitial: item.isInitial }; });
           }).catch(function () { return null; });
         })).then(function (arr) { return arr.filter(Boolean); });
+      }).then(function (trainings) {
+        if (!trainings.length) {
+          content.innerHTML =
+            '<div style="text-align:center;padding:28px 16px;color:var(--text-secondary)">' +
+              '<div style="font-size:28px;margin-bottom:10px">📱</div>' +
+              '<div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:6px">暂无默认训练</div>' +
+              '<div style="font-size:11px;line-height:1.8">App 初次安装时写入的训练会在此显示<br>历史合辑包请在「历史」标签中下载</div>' +
+            '</div>';
+          return;
+        }
+        var html = '';
+        trainings.forEach(function (tr) {
+          var badge = tr.isInitial
+            ? ' <span style="display:inline-block;font-size:10px;padding:1px 5px;background:rgba(80,160,80,.1);color:#2a7a2a;border:1px solid #2a7a2a;border-radius:4px;margin-left:4px;white-space:nowrap;vertical-align:middle;line-height:1.4">已安装</span>'
+            : '';
+          html +=
+            '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
+              '<input type="checkbox" data-path="' + escAttr(tr.path) + '" data-src="default" style="flex-shrink:0;margin:0;width:15px;height:15px">' +
+              '<div style="flex:1;min-width:0;overflow:hidden">' +
+                '<div style="font-size:13px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+                  escHtml(tr.title) + badge +
+                '</div>' +
+                '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' + (tr.chapter_count || 0) + ' 篇</div>' +
+              '</div>' +
+              '<button class="cx-cm-del-one action-btn danger icon" data-path="' + escAttr(tr.path) + '" data-src="default">🗑</button>' +
+            '</div>';
+        });
+        content.innerHTML = html;
+        updateSelBar();
+        Array.prototype.forEach.call(content.querySelectorAll('input[type=checkbox][data-path]'), function (cb) {
+          cb.addEventListener('change', updateSelBar);
+        });
+        Array.prototype.forEach.call(content.querySelectorAll('.cx-cm-del-one'), function (btn) {
+          btn.addEventListener('click', function () {
+            var path = btn.getAttribute('data-path');
+            if (!confirm('确认删除该训练的缓存？')) return;
+            deleteTraining(path, function () {
+              if (win.refreshHomeGrid) win.refreshHomeGrid();
+              tabLoaded['default'] = false; renderDefaultTab();
+            });
+          });
+        });
+      }).catch(function () {
+        content.innerHTML = '<div style="color:var(--error);padding:16px 0">加载失败，请重试</div>';
       });
+    }
+
+    // ── 历史 Tab ──────────────────────────────────────────────────────
+    function renderHistoryTab() {
+      var content = document.getElementById('cxTabHistory');
+      if (!content) return;
+      content.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">⏳ 加载清单中…</div>';
+
+      fetchManifest().then(function (manifest) {
+        var packs = manifest.packs || [];
+        if (!packs.length) {
+          content.innerHTML = '<div style="padding:16px 0;color:var(--text-secondary)">暂无资源包</div>';
+          return;
+        }
+
+        function makePackRow(pack, i) {
+          return '<div class="cx-rp-item" id="cxRpPk_' + i + '" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">' +
+            '<div style="flex:1;min-width:0">' +
+              '<div style="font-size:14px;font-weight:500;color:var(--text-primary)">' + escHtml(pack.label) + '</div>' +
+              '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px">' +
+                escHtml(pack.training_count + ' 个训练 · ' + fmtSize(pack.size_bytes)) +
+              '</div>' +
+              '<div id="cxRpPkProg_' + i + '" style="display:none;margin-top:6px">' +
+                '<div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">' +
+                  '<div id="cxRpPkBar_' + i + '" style="height:100%;width:0%;background:var(--brand);transition:width .2s"></div>' +
+                '</div>' +
+                '<div id="cxRpPkPct_' + i + '" style="font-size:11px;color:var(--text-secondary);margin-top:2px">0%</div>' +
+              '</div>' +
+            '</div>' +
+            '<div style="display:flex;gap:5px;flex-shrink:0" id="cxRpPkBtn_' + i + '_wrap"></div>' +
+          '</div>';
+        }
+
+        function makeActionBtns(btnId, isCached, onDownload, onDelete) {
+          var wrap = document.getElementById(btnId + '_wrap');
+          if (!wrap) return;
+          wrap.innerHTML = '';
+          if (isCached) {
+            if (onDelete) {
+              var dBtn = document.createElement('button');
+              dBtn.textContent = '🗑'; dBtn.title = '删除缓存';
+              dBtn.className = 'action-btn danger icon';
+              dBtn.addEventListener('click', onDelete); wrap.appendChild(dBtn);
+            }
+            var cBtn = document.createElement('button');
+            cBtn.textContent = '✓ 已缓存'; cBtn.disabled = true;
+            cBtn.className = 'action-btn cached icon';
+            wrap.appendChild(cBtn);
+          } else if (onDownload) {
+            var dlBtn = document.createElement('button');
+            dlBtn.textContent = '⬇ 下载';
+            dlBtn.className = 'action-btn primary icon';
+            dlBtn.addEventListener('click', onDownload); wrap.appendChild(dlBtn);
+          } else {
+            var iBtn = document.createElement('button');
+            iBtn.textContent = '未缓存'; iBtn.disabled = true;
+            iBtn.className = 'action-btn icon';
+            wrap.appendChild(iBtn);
+          }
+        }
+
+        function startPackDownload(pack, i, cachedArr) {
+          var progEl = document.getElementById('cxRpPkProg_' + i);
+          var barEl  = document.getElementById('cxRpPkBar_' + i);
+          var pctEl  = document.getElementById('cxRpPkPct_' + i);
+          var wrap   = document.getElementById('cxRpPkBtn_' + i + '_wrap');
+          if (wrap) wrap.innerHTML = '<button disabled style="padding:5px 12px;border-radius:8px;border:none;font-size:12px;background:var(--surface-alt);color:var(--text-secondary)">下载中…</button>';
+          if (progEl) progEl.style.display = '';
+          return downloadPack(pack, function (ratio) {
+            var pct = Math.round(ratio * 100);
+            if (barEl) barEl.style.width = pct + '%';
+            if (pctEl) pctEl.textContent = pct + '%';
+          }).then(function () {
+            cachedArr[i] = true;
+            if (progEl) progEl.style.display = 'none';
+            makeActionBtns('cxRpPkBtn_' + i, true, null, function () {
+              if (!confirm('确认删除「' + pack.label + '」的缓存？\n（仅删除由该包下载且未被后续操作替换的训练）')) return;
+              deletePack(pack, function () {
+                cachedArr[i] = false;
+                makeActionBtns('cxRpPkBtn_' + i, false,
+                  function () { startPackDownload(pack, i, cachedArr); }, null);
+                if (win.refreshHomeGrid) win.refreshHomeGrid();
+              });
+            });
+            if (win.refreshHomeGrid) win.refreshHomeGrid();
+          }).catch(function (err) {
+            if (progEl) progEl.style.display = 'none';
+            if (wrap) {
+              wrap.innerHTML = '<button style="padding:5px 12px;border-radius:8px;border:none;font-size:12px;cursor:pointer;background:var(--brand);color:#fff">⬇ 重试</button>';
+              var retryBtn = wrap.querySelector('button');
+              if (retryBtn) retryBtn.addEventListener('click', function () { startPackDownload(pack, i, cachedArr); });
+            }
+            alert('下载失败：' + err.message);
+            throw err;
+          });
+        }
+
+        var rowsHtml = '';
+        packs.forEach(function (pack, i) { rowsHtml += makePackRow(pack, i); });
+
+        content.innerHTML =
+          rowsHtml +
+          '<div id="cxRpDlAllRow" class="pref-row" style="display:none;border-top:1px solid var(--border);padding-top:10px;margin-top:4px">' +
+            '<div class="pref-label-wrap">' +
+              '<span class="pref-title">批量下载</span>' +
+              '<span class="pref-desc">一次下载所有未缓存资源包</span>' +
+            '</div>' +
+            '<button id="cxRpDownloadAllBtn" class="action-btn primary icon">⬇ 全部下载</button>' +
+          '</div>';
+
+        var cachedArr = new Array(packs.length).fill(false);
+        Promise.all(packs.map(isPackCached)).then(function (arr) {
+          arr.forEach(function (c, i) { cachedArr[i] = c; });
+          packs.forEach(function (pack, i) {
+            (function (pk, idx) {
+              function refreshBtn() {
+                makeActionBtns('cxRpPkBtn_' + idx, cachedArr[idx],
+                  cachedArr[idx] ? null : function () { startPackDownload(pk, idx, cachedArr); },
+                  cachedArr[idx] ? function () {
+                    if (!confirm('确认删除「' + pk.label + '」的缓存？\n（仅删除由该包下载且未被后续操作替换的训练）')) return;
+                    deletePack(pk, function () {
+                      cachedArr[idx] = false; refreshBtn();
+                      if (win.refreshHomeGrid) win.refreshHomeGrid();
+                    });
+                  } : null
+                );
+              }
+              refreshBtn();
+            })(pack, i);
+          });
+          var hasUncached = cachedArr.some(function (c) { return !c; });
+          var allBtn = document.getElementById('cxRpDownloadAllBtn');
+          var allRow = document.getElementById('cxRpDlAllRow');
+          if (allBtn && hasUncached) {
+            if (allRow) allRow.style.display = 'flex';
+            allBtn.addEventListener('click', function () {
+              allBtn.disabled = true; allBtn.textContent = '下载中…';
+              packs.reduce(function (p, pack, i) {
+                return p.then(function () {
+                  if (cachedArr[i]) return Promise.resolve();
+                  return startPackDownload(pack, i, cachedArr);
+                });
+              }, Promise.resolve()).then(function () {
+                allBtn.textContent = '✓ 全部完成';
+              }).catch(function (err) {
+                allBtn.disabled = false; allBtn.textContent = '全部下载';
+                alert('下载失败：' + err.message);
+              });
+            });
+          }
+        });
+      }).catch(function (err) {
+        var c2 = document.getElementById('cxTabHistory');
+        if (c2) c2.innerHTML = '<div style="color:var(--error);padding:16px 0">获取清单失败：' + escHtml(err.message) + '</div>';
+      });
+    }
+
+    // ── 导入 Tab ──────────────────────────────────────────────────────
+    function renderImportTab() {
+      var content = document.getElementById('cxTabImport');
+      if (!content) return;
+      content.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">⏳ 加载中…</div>';
+      selBar.style.display = 'none';
+
+      function doImport() {
+        if (!win.CXLocalImport) { alert('导入模块未加载'); return; }
+        var fi = document.createElement('input');
+        fi.type = 'file';
+        fi.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px';
+        document.body.appendChild(fi);
+        fi.addEventListener('change', function () {
+          var file = fi.files && fi.files[0];
+          document.body.removeChild(fi);
+          if (!file) return;
+          var overlay = document.getElementById('cxCmImportOverlay');
+          var msgEl   = document.getElementById('cxCmImportMsg');
+          var barEl   = document.getElementById('cxCmImportBar');
+          if (overlay) overlay.style.display = 'flex';
+          var reader = new FileReader();
+          reader.onload = function (e) {
+            win.CXLocalImport.parseAndSave(e.target.result, file.name, function (done, total, msg) {
+              if (msgEl) msgEl.textContent = msg || ('解析中 ' + done + '/' + total);
+              if (barEl && total) barEl.style.width = Math.round(done / total * 100) + '%';
+            }).then(function () {
+              if (overlay) overlay.style.display = 'none';
+              if (win.refreshHomeGrid) win.refreshHomeGrid();
+              tabLoaded['import'] = false; renderImportTab();
+            }).catch(function (err) {
+              if (overlay) overlay.style.display = 'none';
+              alert('导入失败：' + err.message);
+            });
+          };
+          reader.onerror = function () {
+            if (overlay) overlay.style.display = 'none';
+            alert('文件读取失败，请重试');
+          };
+          reader.readAsText(file, 'utf-8');
+        });
+        fi.click();
+      }
+
       var p_local = win.CXLocalImport
         ? win.CXLocalImport.listImports().catch(function () { return []; })
         : Promise.resolve([]);
-      Promise.all([p_packCached, p_netTrainings, p_local]).then(function (res) {
-        var packCachedArr = res[0], netTrainings = res[1], localImports = res[2];
-        var html = '', hasAny = false;
-        var cachedPacks = packGroups.filter(function (g, i) { return packCachedArr[i]; });
-        if (cachedPacks.length) {
-          hasAny = true;
-          html += '<div style="font-size:11px;font-weight:600;color:var(--text-secondary);padding:10px 0 4px;letter-spacing:.05em">📦 来自资源包</div>';
-          cachedPacks.forEach(function (g) {
-            html +=
-              '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">' +
-                '<div style="flex:1;min-width:0">' +
-                  '<div style="font-size:13px;font-weight:500;color:var(--text-primary)">' + escHtml(g.packLabel) + '</div>' +
-                  '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' + g.paths.length + ' 个训练</div>' +
-                '</div>' +
-                '<button class="cx-cm-del-pack" data-pack-key="' + escAttr(g.packLabel + '||' + g.packPath) + '"'  +
-                  ' style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:none;color:var(--text-secondary)">🗑</button>' +
-              '</div>';
-          });
-        }
-        // 合并 net + local 为统一列表：本地导入优先（屏蔽同序号网络缓存），按 YYYY-NN 倒序
-        var localKeySet = {};
-        localImports.forEach(function (li) { localKeySet[li.path.replace(/^local-/, '')] = true; });
-        var netFiltered = netTrainings.filter(function (tr) { return !localKeySet[tr.path]; });
-        var unifiedItems = netFiltered.map(function (tr) {
-          return { type: tr.isInitial ? 'initial' : 'net', path: tr.path, title: tr.title,
-                   chapter_count: tr.chapter_count, sortKey: tr.path };
-        }).concat(localImports.map(function (item) {
-          return { type: 'local', path: item.path,
-                   title: item.year + ' ' + (item.title || item.season || ''),
-                   chapter_count: item.chapter_count, importedAt: item.importedAt,
-                   sortKey: item.path.replace(/^local-/, '') };
-        }));
-        unifiedItems.sort(function (a, b) { return b.sortKey.localeCompare(a.sortKey); });
-        if (unifiedItems.length) {
-          hasAny = true;
-          unifiedItems.forEach(function (item) {
-            var isInitial = item.type === 'initial';
-            var badge = item.type === 'local'
-              ? ' <span style="display:inline-block;font-size:10px;padding:1px 5px;background:rgba(0,112,204,.1);color:var(--brand);border:1px solid var(--brand);border-radius:4px;margin-left:4px;white-space:nowrap;vertical-align:middle;line-height:1.4">本地</span>'
-              : isInitial
-                ? ' <span style="display:inline-block;font-size:10px;padding:1px 5px;background:rgba(80,160,80,.1);color:#2a7a2a;border:1px solid #2a7a2a;border-radius:4px;margin-left:4px;white-space:nowrap;vertical-align:middle;line-height:1.4">已安装</span>'
-                : '';
+
+      p_local.then(function (localImports) {
+        var html = '<div class="pref-row" style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:4px">' +
+          '<div class="pref-label-wrap">' +
+            '<span class="pref-title">本地文件</span>' +
+            '<span class="pref-desc">导入 TXT 格式训练文本</span>' +
+          '</div>' +
+          '<button id="cxTabImportFileBtn" class="action-btn primary icon">📂 导入</button>' +
+        '</div>';
+        if (!localImports.length) {
+          html += '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">暂无本地导入</div>';
+        } else {
+          localImports.slice().sort(function (a, b) {
+            return b.path.replace(/^local-/, '').localeCompare(a.path.replace(/^local-/, ''));
+          }).forEach(function (item) {
             var sub = (item.chapter_count || 0) + ' 篇';
-            if (item.type === 'local' && item.importedAt) sub += ' · ' + new Date(item.importedAt).toLocaleDateString('zh-CN');
-            // 初装训练：无复选框、无删除按钮（只读保护）
-            var leftCtrl = isInitial
-              ? '<span style="flex-shrink:0;width:15px;height:15px;display:inline-block"></span>'
-              : '<input type="checkbox" data-path="' + escAttr(item.path) + '" data-src="' + item.type + '" style="flex-shrink:0;margin:0;width:15px;height:15px">';
-            var rightCtrl = isInitial
-              ? '<span style="font-size:11px;color:var(--text-secondary);padding:4px 6px;white-space:nowrap">📦</span>'
-              : '<button class="cx-cm-del-one" data-path="' + escAttr(item.path) + '" data-src="' + item.type + '"' +
-                  ' style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:none;color:var(--text-secondary)">🗑</button>';
+            if (item.importedAt) sub += ' · ' + new Date(item.importedAt).toLocaleDateString('zh-CN');
             html +=
               '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
-                leftCtrl +
+                '<input type="checkbox" data-path="' + escAttr(item.path) + '" data-src="local" style="flex-shrink:0;margin:0;width:15px;height:15px">' +
                 '<div style="flex:1;min-width:0;overflow:hidden">' +
                   '<div style="font-size:13px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
-                    escHtml(item.title) + badge +
+                    escHtml(item.year + ' ' + (item.title || item.season || '')) +
+                    ' <span style="display:inline-block;font-size:10px;padding:1px 5px;background:rgba(0,112,204,.1);color:var(--brand);border:1px solid var(--brand);border-radius:4px;margin-left:4px;white-space:nowrap;vertical-align:middle;line-height:1.4">本地</span>' +
                   '</div>' +
                   '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' + sub + '</div>' +
                 '</div>' +
-                rightCtrl +
+                  '<button class="cx-cm-del-one action-btn danger icon" data-path="' + escAttr(item.path) + '" data-src="local">🗑</button>' +
               '</div>';
           });
         }
-        if (!hasAny) html = '<div style="text-align:center;padding:32px 0;color:var(--text-secondary)">暂无已缓存训练</div>';
         content.innerHTML = html;
+
+        var importFileBtn = document.getElementById('cxTabImportFileBtn');
+        if (importFileBtn) importFileBtn.addEventListener('click', doImport);
+
         updateSelBar();
-        getCheckboxes().forEach(function (cb) { cb.addEventListener('change', updateSelBar); });
-        var packDelBtns = content.querySelectorAll('.cx-cm-del-pack');
-        for (var pi = 0; pi < packDelBtns.length; pi++) {
-          (function (btn) {
-            btn.addEventListener('click', function () {
-              var key = btn.getAttribute('data-pack-key');
-              var g   = packGroupMap[key];
-              if (!g) return;
-              if (!confirm('确认删除"' + g.packLabel + '"的缓存？\n（仅删除由该包下载且未被后续操作替换的训练）')) return;
-              var fakePack = { path: g.packPath, label: g.packLabel,
-                trainings: g.paths.map(function (p) { return { path: p }; }) };
-              deletePack(fakePack, function () {
+        Array.prototype.forEach.call(content.querySelectorAll('input[type=checkbox][data-path]'), function (cb) {
+          cb.addEventListener('change', updateSelBar);
+        });
+        Array.prototype.forEach.call(content.querySelectorAll('.cx-cm-del-one'), function (btn) {
+          btn.addEventListener('click', function () {
+            var path = btn.getAttribute('data-path');
+            if (!confirm('确认删除该导入训练？')) return;
+            if (win.CXLocalImport) {
+              win.CXLocalImport.deleteImport(path).then(function () {
                 if (win.refreshHomeGrid) win.refreshHomeGrid();
-                refreshContent();
+                tabLoaded['import'] = false; renderImportTab();
               });
-            });
-          })(packDelBtns[pi]);
-        }
-        var delOneBtns = content.querySelectorAll('.cx-cm-del-one');
-        for (var di = 0; di < delOneBtns.length; di++) {
-          (function (btn) {
-            btn.addEventListener('click', function () {
-              var path = btn.getAttribute('data-path');
-              var src  = btn.getAttribute('data-src');
-              if (!confirm('确认删除该训练的缓存？')) return;
-              var done = function () {
-                if (win.refreshHomeGrid) win.refreshHomeGrid();
-                refreshContent();
-              };
-              src === 'local'
-                ? (win.CXLocalImport ? win.CXLocalImport.deleteImport(path).then(done) : done())
-                : deleteTraining(path, done);
-            });
-          })(delOneBtns[di]);
-        }
+            }
+          });
+        });
       }).catch(function () {
-        if (content) content.innerHTML = '<div style="color:var(--error);padding:16px 0">加载失败，请重试</div>';
+        content.innerHTML = '<div style="color:var(--error);padding:16px 0">加载失败，请重试</div>';
       });
     }
+
+    // ── 初始化：切换到指定 Tab ────────────────────────────────────────
+    switchTab(activeTab);
   }
 
   // ── 公开 API ──────────────────────────────────────────────────────────────────

@@ -307,9 +307,11 @@ class HTMLGenerator:
         if cls._INLINE_REL_VERSE_RE is not None:
             return cls._INLINE_REL_VERSE_RE
         cn = r'[一二三四五六七八九十百]+'
+        # 「X节」前面不能是这些自然语言修饰字，否则不是经文引用
+        _no_pre = r'(?<![哪那这有前后没无每])'
         cls._INLINE_REL_VERSE_RE = re.compile(
             f'({cn})[至到]({cn})节'             # format A: X至Y节
-            f'|(?<!每)({cn})节'        # format B: X节（「每」前置或「在/里」后置则是自然语言，不识别）
+            f'|{_no_pre}({cn})节(?![在里])'     # format B: X节（前后均有自然语言守卫）
         )
         return cls._INLINE_REL_VERSE_RE
 
