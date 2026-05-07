@@ -99,7 +99,7 @@
     var CN_NO_BAI = '[一二三四五六七八九十]+';
     return new RegExp(
       '(?:(?:诗篇|诗)' + CN + '篇' + versePart
-      + '|' + bookPat + '第?' + CN + '章' + versePart
+      + '|' + bookPat + '的?第?' + CN + '(?:[至到]' + CN + ')?章' + versePart
       + '|第?' + CN + '(?:节(?:[至到]' + CN + '节)?|(?:[至到]' + CN + ')?节)(?:[上下]半?)?'
       + '|(?:犹|门|俄|约贰|约叁)' + CN + '(?:节(?:[至到]' + CN + '节)?|(?:[至到]' + CN + ')?节)(?:[上下]半?)?'
       + '|' + bookReq + CN_NO_BAI + '\\d+[~～\\-]' + CN_NO_BAI + '\\d+'
@@ -162,11 +162,14 @@
     // Format4: 阿拉伯章:节  e.g. 约壹1:1 / 腓4:13~15
     var F4 = new RegExp('^(' + BOOK_PAT + '?)(\\d+):(\\d+)([上中下]?)(?:[~～\\-](\\d+)([上中下]?))?$');
     // Format1x: book + CN章1 + 阿拉伯节1 + 范围符 + CN章2 + 阿拉伯节2 (跨章范围) e.g. 伯二11~三二1
-    var F1x = new RegExp('^(' + BOOK_PAT + ')(' + CN_N + ')(\\d+)[~～\\-](' + CN_N + ')(\\d+)$');
+    // 书卷可省略（?），省略时回退到上下文 book
+    var F1x = new RegExp('^(' + BOOK_PAT + ')?(' + CN_N + ')(\\d+)[~～\\-](' + CN_N + ')(\\d+)$');
     // Format5: 中文「章节式」 e.g. 三章十九节 / 三章十九至二十一节 / 约伯记第一章 / 三章十七节上半
     // 「篇」仅匹配诗篇（书卷缩写 诗），其他书卷用「章」；支持「第」做章号前缀
     // 支持「章」与节号之间的「的」连接词，如「一章的一到四节」
-    var F5 = new RegExp('^(' + BOOK_PAT + ')?第?(' + CN_N + ')([章篇])(?:(?:的第?)?(' + CN_N + ')(?:[至到](' + CN_N + '))?节([上下]半?)?)?');
+    // 支持书卷与章号之间的「的」，如「启示录的二十二章」→「启的二十二章」（normalizeBookNames后）
+    // 支持章范围，如「五到七章」→ 整章5-7
+    var F5 = new RegExp('^(' + BOOK_PAT + ')?的?第?(' + CN_N + ')(?:[至到](' + CN_N + '))?([章篇])(?:(?:的第?)?(' + CN_N + ')(?:[至到](' + CN_N + '))?节([上下]半?)?)?');
     // Format6: 单章书卷 + 阿拉伯节  e.g. 犹20 / 门10~12 / 俄5
     var SINGLE_BOOK = '(?:犹|门|俄|约贰|约叁)';
     var F6 = new RegExp('^(' + SINGLE_BOOK + ')(\\d+)([上中下]?)(?:[~～\\-](\\d+)([上中下]?))?$');
@@ -177,7 +180,8 @@
     // Format9: book + CN章/阿拉伯章 + 「标题」  e.g. 诗二二标题 / 诗22标题
     var F9 = new RegExp('^(' + BOOK_PAT + ')(?:(' + CN_N + ')|([1-9]\\d*))标题$');
     // Format8: book + CN_chapter（整章速记，无节号、无"章"字）e.g. 但二 / 弗四 / 腓四～五
-    var F8 = new RegExp('^(' + BOOK_PAT + ')(' + CN_N + ')(?:[~～\\-](' + CN_N + '))?$');
+    // 书卷可省略（?），省略时回退到上下文 book（如「十二~十六」在罗马书上下文中）
+    var F8 = new RegExp('^(' + BOOK_PAT + ')?(' + CN_N + ')(?:[~～\\-](' + CN_N + '))?$');
 
     function emitRange(b, c, v1, m1, v2, m2) {
       v2 = v2 || v1; m2 = m2 || (v2===v1 ? m1 : '');
@@ -223,25 +227,28 @@
         if (v1_10) emitRange(book, ch, v1_10, mod1_10, v2_10, mod2_10);
         continue;
       }
-      // F5: 章节式
+      // F5: 章节式（含章范围、书卷+的+章）
       if ((m = F5.exec(p))) {
         var b5 = m[1] ? normalizeBookNames(m[1]) : book; if (!b5) continue;
         // 「篇」仅适用于诗篇
-        if (m[3] === '篇' && b5 !== '诗') continue;
+        if (m[4] === '篇' && b5 !== '诗') continue;
         var c5 = cnToInt(m[2]); if (!c5 || c5 > 150) continue;
-        book = b5; ch = c5;
-        if (m[4]) {
-          var v1_5 = cnToInt(m[4]), v2_5 = m[5] ? cnToInt(m[5]) : v1_5;
-          var mod5 = m[6] ? m[6][0] : '';  // 取首字上/下
-          if (v1_5) emitRange(book, ch, v1_5, mod5, v2_5, '');
+        var c5end = m[3] ? cnToInt(m[3]) : c5;
+        if (!c5end || c5end < c5 || c5end > 150) c5end = c5;
+        book = b5; ch = c5end;
+        if (m[5]) {
+          var v1_5 = cnToInt(m[5]), v2_5 = m[6] ? cnToInt(m[6]) : v1_5;
+          var mod5 = m[7] ? m[7][0] : '';  // 取首字上/下
+          if (v1_5) emitRange(book, c5, v1_5, mod5, v2_5, '');
         } else {
-          refs.push(book + ch + ':0');
+          for (var ci5 = c5; ci5 <= c5end; ci5++) refs.push(book + ci5 + ':0');
         }
         continue;
       }
       // F1x: book + cn_chapter1 + arabic_verse1 ~ cn_chapter2 + arabic_verse2 (跨章范围)
+      // 书卷可省略，省略时回退到上下文 book
       if ((m = F1x.exec(p))) {
-        var bx = m[1]; var c1x = cnToInt(m[2]); var v1x = parseInt(m[3], 10);
+        var bx = m[1] || book; var c1x = cnToInt(m[2]); var v1x = parseInt(m[3], 10);
         var c2x = cnToInt(m[4]); var v2x = parseInt(m[5], 10);
         if (!bx || !c1x || !c2x || c1x > 150 || c2x > 150) continue;
         book = bx; ch = c2x;
@@ -271,6 +278,18 @@
         emitRange(book, ch, v1f, mod1f, v2f, mod2f);
         continue;
       }
+      // Fvc: 纯阿拉伯节 ~ 中文章+阿拉伯节（跨章范围）e.g. 12~八13 / 1~四15
+      // 表示：当前章第v1节 到 第c2章第v2节
+      var F_vc = book && ch ? new RegExp('^(\\d+)[~～\\-](' + CN_N + ')(\\d+)$') : null;
+      if (F_vc && (m = F_vc.exec(p))) {
+        var v1vc = parseInt(m[1], 10); var c2vc = cnToInt(m[2]); var v2vc = parseInt(m[3], 10);
+        if (v1vc && c2vc && c2vc <= 150) {
+          refs.push(book + ch + ':' + v1vc);
+          if (c2vc !== ch || v2vc !== v1vc) refs.push(book + c2vc + ':' + v2vc);
+          ch = c2vc;
+          continue;
+        }
+      }
       // F7: 纯中文节号续（同书卷+同章）e.g. 三十七节 / 三十六至三十七节
       if (book && ch && (m = F7.exec(p))) {
         var v1_7 = cnToInt(m[1]), v2_7 = m[3] ? cnToInt(m[3]) : v1_7;
@@ -289,8 +308,9 @@
         continue;
       }
       // F8: book + CN_chapter（整章速记）e.g. 但二 → 但2:0 / 腓四～五 → 腓4:0,腓5:0
+      // 书卷可省略，省略时回退到上下文 book（如「十二~十六」在罗马书上下文中）
       if ((m = F8.exec(p))) {
-        var b8 = normalizeBookNames(m[1]); var c8 = cnToInt(m[2]);
+        var b8 = normalizeBookNames(m[1] || '') || book; var c8 = cnToInt(m[2]);
         if (!b8 || !c8 || c8 > 150) continue;
         book = b8; ch = c8;
         if (m[3]) {
