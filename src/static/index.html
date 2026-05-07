@@ -621,8 +621,7 @@
                 var resources=getTrainingResources(t.path,t.images||[]);
                 if(statusEl)statusEl.textContent='缓存：'+t.title;
                 return caches.open('cx-'+t.path).then(function(cache){
-                    return Promise.all(resources.map(function(url){f 修复熄屏，循环播放问题
-
+                    return Promise.all(resources.map(function(url){
                         return fetch(url,{redirect:'follow',cache:'no-cache'}).then(function(r){
                             if(r.ok){cachedResources++;rep();return cache.put(r.url,r.clone());}
                         }).catch(function(){cachedResources++;rep();});
