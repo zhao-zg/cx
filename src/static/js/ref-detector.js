@@ -165,7 +165,8 @@
     var F1x = new RegExp('^(' + BOOK_PAT + ')(' + CN_N + ')(\\d+)[~～\\-](' + CN_N + ')(\\d+)$');
     // Format5: 中文「章节式」 e.g. 三章十九节 / 三章十九至二十一节 / 约伯记第一章 / 三章十七节上半
     // 「篇」仅匹配诗篇（书卷缩写 诗），其他书卷用「章」；支持「第」做章号前缀
-    var F5 = new RegExp('^(' + BOOK_PAT + ')?第?(' + CN_N + ')([章篇])(?:(' + CN_N + ')(?:[至到](' + CN_N + '))?节([上下]半?)?)?');
+    // 支持「章」与节号之间的「的」连接词，如「一章的一到四节」
+    var F5 = new RegExp('^(' + BOOK_PAT + ')?第?(' + CN_N + ')([章篇])(?:(?:的第?)?(' + CN_N + ')(?:[至到](' + CN_N + '))?节([上下]半?)?)?');
     // Format6: 单章书卷 + 阿拉伯节  e.g. 犹20 / 门10~12 / 俄5
     var SINGLE_BOOK = '(?:犹|门|俄|约贰|约叁)';
     var F6 = new RegExp('^(' + SINGLE_BOOK + ')(\\d+)([上中下]?)(?:[~～\\-](\\d+)([上中下]?))?$');
@@ -350,46 +351,85 @@
     var PAREN_RE = /[（(〔]([^）)〕\n]{1,60})[）)〕]/g;
     var result = [], last = 0, m;
 
-    // 对纯文本段扫描行内章节式引用
+    // 对纯文本段扫描行内章节式引用，同时处理《书名》上下文更新
     function pushPlain(seg) {
+      var isCJK = /[\u4e00-\u9fff]/;
+      // 收集行内经文引用匹配
+      var allMatches = [];
       _INLINE_F5_RE.lastIndex = 0;
-      var last2 = 0, m2;
+      var m2;
       while ((m2 = _INLINE_F5_RE.exec(seg)) !== null) {
-        result.push(escHtml(seg.slice(last2, m2.index)));
-        // 短格式（书卷+中文章数，无章/篇/节字）时，检查上下文以排除误识别
+        allMatches.push({ index: m2.index, text: m2[0] });
+      }
+      // 收集《书全名...》上下文更新点（如《雅歌结晶读经》→ 上下文切换到歌）
+      var BOOK_TITLE_RE = /《([^》\n]{2,15})》/g;
+      BOOK_TITLE_RE.lastIndex = 0;
+      var bm;
+      while ((bm = BOOK_TITLE_RE.exec(seg)) !== null) {
+        var inner = bm[1];
+        for (var ki = 0; ki < _sortedFullNames.length; ki++) {
+          if (inner.indexOf(_sortedFullNames[ki]) === 0) {
+            allMatches.push({ index: bm.index, text: bm[0], ctxBook: FULL_BOOK_MAP[_sortedFullNames[ki]] });
+            break;
+          }
+        }
+      }
+      // 按位置排序，去除重叠（保留先出现的）
+      allMatches.sort(function (a, b) { return a.index - b.index; });
+      var filtered = [], prevEnd = 0;
+      for (var mi = 0; mi < allMatches.length; mi++) {
+        if (allMatches[mi].index >= prevEnd) {
+          filtered.push(allMatches[mi]);
+          prevEnd = allMatches[mi].index + allMatches[mi].text.length;
+        }
+      }
+      var last2 = 0;
+      for (var fi = 0; fi < filtered.length; fi++) {
+        var fm = filtered[fi];
+        result.push(escHtml(seg.slice(last2, fm.index)));
+        last2 = fm.index + fm.text.length;
+        // 《书名》：更新上下文，原文直接输出
+        if (fm.ctxBook !== undefined) {
+          book = fm.ctxBook; ch = 0;
+          result.push(escHtml(fm.text));
+          continue;
+        }
+        // 行内经文引用：应用规则 1-4 过滤
+        // 短格式（书卷+中文章数，无章/篇/节字）时检查上下文以排除误识别
         // 规则1：前后均为汉字 → 嵌在词语中（如"圣徒一同"中的"徒一"），跳过
         // 规则2：后接量词 → 同样跳过（如"徒一个"）
-        var isShortForm = !/[章篇节]/.test(m2[0]);
-        var isCJK = /[\u4e00-\u9fff]/;
-        var prevCharI = m2.index > 0 ? seg[m2.index - 1] : '';
+        var isShortForm = !/[章篇节]/.test(fm.text);
+        var prevCharI = fm.index > 0 ? seg[fm.index - 1] : '';
         if (isShortForm) {
-          var nextChar = (m2.index + m2[0].length < seg.length) ? seg[m2.index + m2[0].length] : '';
+          var nextChar = (fm.index + fm.text.length < seg.length) ? seg[fm.index + fm.text.length] : '';
           if ((isCJK.test(prevCharI) && isCJK.test(nextChar)) ||
               /[个种们位只件份次些条样]/.test(nextChar)) {
-            result.push(escHtml(m2[0]));
-            last2 = m2.index + m2[0].length;
-            continue;
+            result.push(escHtml(fm.text)); continue;
           }
         }
         // 规则3：含章/篇的引用，首字为单字书卷缩写且紧接中文数字，前一字又是汉字
         // → 该缩写实为复合词的一部分，非书卷名（如"全书二十二章"中"书"前有"全"）
         // 注意：若首字为中文数字（如"十一节"中的"十"），不应触发此规则，那是合法的相对节引用
-        var _isBookAbbr = /^[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启]/.test(m2[0]);
+        var _isBookAbbr = /^[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启]/.test(fm.text);
         if (!isShortForm && isCJK.test(prevCharI) && _isBookAbbr
-            && /[一二三四五六七八九十百]/.test(m2[0][1] || '')) {
-          result.push(escHtml(m2[0]));
-          last2 = m2.index + m2[0].length;
-          continue;
+            && /[一二三四五六七八九十百]/.test(fm.text[1] || '')) {
+          result.push(escHtml(fm.text)); continue;
         }
-        var irefs = expandCnRefs(m2[0], book, ch);  // 传入当前 book/ch，支持无书卷名的相对章引用
+        // 规则4：纯中文节引用（无书卷、无章号），前驱为自然语言修饰字 → 跳过
+        // 对应 Python _no_pre = '(?<![哪那这有前后没无每外的此同某上下])'
+        // 例：「这一节」「在这一节」「在此一节」「下一节」→ 不识别
+        var _isPureVerse = !/[章篇]/.test(fm.text) && !_isBookAbbr;
+        if (_isPureVerse && prevCharI && '哪那这有前后没无每外的此同某上下'.indexOf(prevCharI) >= 0) {
+          result.push(escHtml(fm.text)); continue;
+        }
+        var irefs = expandCnRefs(fm.text, book, ch);  // 传入当前 book/ch，支持无书卷名的相对章引用
         if (irefs.length > 0) {
           var ilm = irefs[irefs.length - 1].match(/^([^\d:]+)(\d+):(\d+)/);
           if (ilm) { book = ilm[1]; ch = parseInt(ilm[2], 10); }
-          result.push(makeSpan(m2[0], irefs));
+          result.push(makeSpan(fm.text, irefs));
         } else {
-          result.push(escHtml(m2[0]));
+          result.push(escHtml(fm.text));
         }
-        last2 = m2.index + m2[0].length;
       }
       result.push(escHtml(seg.slice(last2)));
     }

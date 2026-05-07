@@ -456,7 +456,7 @@ def generate_main_index(config, batch_results):
         'scripture-popup.js', 'toc-redirect.js', 'font-control.js',
         'search.js', 'image-utils.js',
         # SPA-specific
-        'ref-detector.js', 'router.js', 'renderer.js',
+        'ref-detector.js', 'training-enricher.js', 'router.js', 'renderer.js',
         # 本地 TXT 导入
         'txt-importer.js',
         # 历史资源包下载

@@ -548,8 +548,6 @@
     for (var ri = 0; ri < revivals.length; ri++) {
       var rev = revivals[ri];
       var dayPrefix = 'day' + (ri + 1) + '-';
-      var mfCtxs = rev.morning_feeding_contexts || [];
-      var mrCtxs = rev.message_reading_contexts || [];
       var feedingRefs = rev.feeding_refs || [];
 
       var outlineHtml = '';
@@ -577,9 +575,10 @@
           }
         }
         var mf = rev.morning_feeding || [];
+        var mfBox = toCtxBox(chapter.scripture || '');
         for (var mfi = 0; mfi < mf.length; mfi++) {
-          var mfCtx = mfCtxs[mfi] || chapter.scripture || '';
-          feedingHtml += '<p class="content-text">' + wrapRefs(mf[mfi], mfCtx) + '</p>';
+          feedingHtml += '<p class="content-text">' + wrapRefs(mf[mfi], mfBox.val) + '</p>';
+          scanCtxBox(mf[mfi], mfBox);
         }
         feedingHtml += '</div>';
       }
@@ -588,9 +587,10 @@
       if (hasReading) {
         readingHtml = '<div class="reading-section"><h4>信息选读</h4>';
         var mr = rev.message_reading;
+        var mrBox = toCtxBox(chapter.scripture || '');
         for (var mri = 0; mri < mr.length; mri++) {
-          var mrCtx = mrCtxs[mri] || chapter.scripture || '';
-          readingHtml += '<p class="content-text">' + wrapRefs(mr[mri], mrCtx) + '</p>';
+          readingHtml += '<p class="content-text">' + wrapRefs(mr[mri], mrBox.val) + '</p>';
+          scanCtxBox(mr[mri], mrBox);
         }
         readingHtml += '</div>';
       }
