@@ -404,6 +404,25 @@
           prevEnd = allMatches[mi].index + allMatches[mi].text.length;
         }
       }
+      // 延伸：吸收紧随其后的「、N」「、N~M」续接节号（同书同章接续引用）
+      // 例："弗三2、8~9" 中 _INLINE_F5_RE 只匹配"弗三2"，「、8~9」通过此步并入同一 span
+      // 两个子模式：① 有范围符（N~M）—— 无需后置汉字限制；② 纯数字N —— 后不跟汉字（防误吸"19日"）
+      var CONT_VERSE_RE = /^[、，](?:\d+[~～\-]\d+[上中下]?|\d+[上中下]?(?![\u4e00-\u9fff]))/;
+      for (var ei = 0; ei < filtered.length; ei++) {
+        var fmEi = filtered[ei];
+        if (fmEi.ctxBook !== undefined) continue;
+        fmEi.origEnd = fmEi.index + fmEi.text.length; // 保存延伸前的原始末位（Rules 1-4 nextChar 用）
+        var posEi = fmEi.origEnd;
+        var nextFmEi = ei + 1 < filtered.length ? filtered[ei + 1] : null;
+        for (;;) {
+          var contM = CONT_VERSE_RE.exec(seg.slice(posEi));
+          if (!contM) break;
+          var consumed = posEi + contM[0].length;
+          if (nextFmEi && consumed > nextFmEi.index) break;
+          fmEi.text = fmEi.text + contM[0];
+          posEi = consumed;
+        }
+      }
       var last2 = 0;
       for (var fi = 0; fi < filtered.length; fi++) {
         var fm = filtered[fi];
@@ -422,7 +441,9 @@
         var isShortForm = !/[章篇节]/.test(fm.text);
         var prevCharI = fm.index > 0 ? seg[fm.index - 1] : '';
         if (isShortForm) {
-          var nextChar = (fm.index + fm.text.length < seg.length) ? seg[fm.index + fm.text.length] : '';
+          // 用原始末位（延伸前）计算 nextChar，避免续接节号延伸后误触 Rule1/2
+          var _origEnd = fm.origEnd !== undefined ? fm.origEnd : fm.index + fm.text.length;
+          var nextChar = _origEnd < seg.length ? seg[_origEnd] : '';
           if ((isCJK.test(prevCharI) && isCJK.test(nextChar)) ||
               /[个种们位只件份次些条样]/.test(nextChar)) {
             result.push(escHtml(fm.text)); continue;
