@@ -446,7 +446,7 @@
             function close(){if(mask.parentNode)mask.parentNode.removeChild(mask);if(window.CX&&window.CX.backStack)window.CX.backStack.pop();}
             if(window.CX&&window.CX.backStack)window.CX.backStack.push(function(){if(mask.parentNode)mask.parentNode.removeChild(mask);});
             document.getElementById('cxAdminClose').addEventListener('click',close);
-            mask.addEventListener('click',function(e){if(e.target===mask)close();});
+            mask.addEventListener('click',function(e){if(e.target===mask){e.stopPropagation();close();}});
 
             // 检查更新
             if(canUpdate){

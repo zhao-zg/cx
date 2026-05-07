@@ -344,7 +344,7 @@
       win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog();
     });
     mask.addEventListener('click', function (e) {
-      if (e.target === mask) { win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog(); }
+      if (e.target === mask) { e.stopPropagation(); win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog(); }
     });
 
     // ── Tab 切换 ──────────────────────────────────────────────────────────

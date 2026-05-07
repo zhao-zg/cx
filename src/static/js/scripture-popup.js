@@ -397,7 +397,7 @@
 
     /* 点遮罩关闭 */
     overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) closeModal();
+      if (e.target === overlay) { e.stopPropagation(); closeModal(); }
     });
 
     /* 防滚动穿透 */

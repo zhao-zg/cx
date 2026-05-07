@@ -503,7 +503,8 @@
             const panel = document.getElementById('themePanel');
             const btn = document.querySelector('.theme-toggle-btn');
             if (panel && panel.classList.contains('show') && !panel.contains(e.target) && !btn.contains(e.target)) {
-                // 若点击发生在任意弹出对话框内，不关闭面板
+                // 若点击发生在任意弹出对话框内（含已从 DOM 移除的，closest 对 detached 仍有效），不关闭面板
+                if (e.target.closest && e.target.closest('.cx-dialog-mask')) return;
                 var masks = document.querySelectorAll('.cx-dialog-mask');
                 for (var i = 0; i < masks.length; i++) {
                     if (masks[i].contains(e.target)) return;
@@ -738,6 +739,7 @@
             '</div>'
         ].join('');
         document.body.appendChild(mask);
+        window.CX.lockOverlayScroll(mask);
 
         // 注册到 backStack：返回键触发关闭
         window.CX.backStack.push(function() {
@@ -751,6 +753,7 @@
 
         // 用事件委托代替多个 getElementById，避免时序问题
         mask.addEventListener('click', function(e) {
+            if (e.target === mask) e.stopPropagation(); // 防止冒泡至 document 误触关闭主题面板
             var t = e.target;
             // 选项卡片点击
             var opt = t.closest ? t.closest('.cx-dialog-opt') : null;
@@ -853,6 +856,7 @@
             '</div>'
         ].join('');
         document.body.appendChild(mask);
+        window.CX.lockOverlayScroll(mask);
 
         // 注册到 backStack：返回键触发关闭
         window.CX.backStack.push(function() {
@@ -867,7 +871,8 @@
         // 关闭 & 标签切换
         mask.addEventListener('click', function(e) {
             var t = e.target;
-            if (t === mask || t.id === 'cxSponsorClose') { closeSponsor(); return; }
+            if (t === mask) { e.stopPropagation(); closeSponsor(); return; }
+            if (t.id === 'cxSponsorClose') { closeSponsor(); return; }
             var tab = t.closest ? t.closest('.cx-sponsor-tab') : (t.classList.contains('cx-sponsor-tab') ? t : null);
             if (tab && tab.dataset.type) {
                 mask.querySelectorAll('.cx-sponsor-tab').forEach(function(b) { b.classList.remove('active'); });
@@ -929,6 +934,7 @@
             '</div>'
         ].join('');
         document.body.appendChild(mask);
+        window.CX.lockOverlayScroll(mask);
 
         window.CX.backStack.push(function() {
             if (mask.parentNode) mask.parentNode.removeChild(mask);
@@ -945,7 +951,7 @@
         }, 100);
 
         mask.addEventListener('click', function(e) {
-            if (e.target === mask) closeMask();
+            if (e.target === mask) { e.stopPropagation(); closeMask(); }
         });
 
         var closeBtn = document.getElementById('cxFeedbackClose');
