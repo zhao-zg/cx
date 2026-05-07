@@ -278,21 +278,14 @@
   }
 
   function showCachedDialog(backFn, initialTab) {
-    var existing = document.getElementById('cxCacheMgrMask');
-    if (existing) { document.body.removeChild(existing); }
-
     var activeTab = initialTab || 'default';
     // 追踪哪些 Tab 已经加载过数据，避免重复请求
     var tabLoaded = { 'default': false, history: false, 'import': false };
 
-    var mask = document.createElement('div');
-    mask.id = 'cxCacheMgrMask';
-    mask.className = 'cx-dialog-mask';
-
     var _tabBtn = 'flex:1;padding:10px 4px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;cursor:pointer;font-weight:500;color:var(--text-secondary);transition:color .15s,border-color .15s;-webkit-tap-highlight-color:transparent';
     var _tabBtnActive = 'flex:1;padding:10px 4px;background:none;border:none;border-bottom:2px solid var(--brand);font-size:13px;cursor:pointer;font-weight:600;color:var(--brand);transition:color .15s,border-color .15s;-webkit-tap-highlight-color:transparent';
 
-    mask.innerHTML =
+    var dialogHtml =
       '<div class="cx-dialog" style="max-width:440px;padding:0 0 4px;position:relative">' +
         // 标题行
         '<div style="padding:14px 16px 0;font-size:16px;font-weight:600;color:var(--heading)">资源管理</div>' +
@@ -334,18 +327,25 @@
         '</div>' +
       '</div>';
 
-    document.body.appendChild(mask);
-    // 防触摸滚动穿透（统一通用工具）
-    if (win.CX && win.CX.lockOverlayScroll) win.CX.lockOverlayScroll(mask);
+    var dlg = win.CX.openDialog({
+      id: 'cxCacheMgrMask',
+      html: dialogHtml,
+      onClose: function() { if (backFn) backFn(); }
+    });
+    if (!dlg) return;
+    var mask = dlg.mask;
 
-    function closeDialog() { if (mask.parentNode) mask.parentNode.removeChild(mask); if (backFn) backFn(); }
-    win.CX && win.CX.backStack && win.CX.backStack.push(closeDialog);
-    document.getElementById('cxCmCloseBtn').addEventListener('click', function () {
-      win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog();
-    });
-    mask.addEventListener('click', function (e) {
-      if (e.target === mask) { e.stopPropagation(); win.CX && win.CX.backStack && win.CX.backStack.pop(); closeDialog(); }
-    });
+    document.getElementById('cxCmCloseBtn').addEventListener('click', dlg.close);
+
+    // ── 训练名称格式（与主页保持一致）："2024-01 国际华语特会" ─────────────
+    function _trainingLabel(path, year, season, title) {
+      var normalPath = (path || '').replace(/^local-/, '');
+      var seq  = (season || '').split(' ')[0] || normalPath.split('-')[1] || '';
+      var yr   = year || normalPath.split('-')[0] || '';
+      var ys   = yr + (seq ? '-' + seq : '');
+      var name = season ? (season.split(' ').slice(1).join(' ') || title || path) : (title || path);
+      return (ys + (name ? ' ' + name : '')).trim();
+    }
 
     // ── Tab 切换 ──────────────────────────────────────────────────────────
     var selBar       = document.getElementById('cxCmSelBar');
@@ -488,8 +488,8 @@
           return p.then(function (r) {
             if (!r) return null;
             return r.json().then(function (d) {
-              return { path: tp, title: d.title || tp, chapter_count: (d.chapters || []).length, isInitial: item.isInitial };
-            }).catch(function () { return { path: tp, title: tp, chapter_count: 0, isInitial: item.isInitial }; });
+              return { path: tp, year: d.year, season: d.season, title: d.title || tp, chapter_count: (d.chapters || []).length, isInitial: item.isInitial };
+            }).catch(function () { return { path: tp, year: null, season: null, title: tp, chapter_count: 0, isInitial: item.isInitial }; });
           }).catch(function () { return null; });
         })).then(function (arr) { return arr.filter(Boolean); });
       }).then(function (trainings) {
@@ -512,7 +512,7 @@
               '<input type="checkbox" data-path="' + escAttr(tr.path) + '" data-src="default" style="flex-shrink:0;margin:0;width:15px;height:15px">' +
               '<div style="flex:1;min-width:0;overflow:hidden">' +
                 '<div style="font-size:13px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
-                  escHtml(tr.title) + badge +
+                  escHtml(_trainingLabel(tr.path, tr.year, tr.season, tr.title)) + badge +
                 '</div>' +
                 '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' + (tr.chapter_count || 0) + ' 篇</div>' +
               '</div>' +
@@ -763,7 +763,7 @@
                 '<input type="checkbox" data-path="' + escAttr(item.path) + '" data-src="local" style="flex-shrink:0;margin:0;width:15px;height:15px">' +
                 '<div style="flex:1;min-width:0;overflow:hidden">' +
                   '<div style="font-size:13px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
-                    escHtml(item.year + ' ' + (item.title || item.season || '')) +
+                    escHtml(_trainingLabel(item.path, item.year, item.season, item.title)) +
                     ' <span style="display:inline-block;font-size:10px;padding:1px 5px;background:rgba(0,112,204,.1);color:var(--brand);border:1px solid var(--brand);border-radius:4px;margin-left:4px;white-space:nowrap;vertical-align:middle;line-height:1.4">本地</span>' +
                   '</div>' +
                   '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' + sub + '</div>' +

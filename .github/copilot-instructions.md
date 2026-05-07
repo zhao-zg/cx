@@ -76,7 +76,7 @@ mask.addEventListener('click', function(e) {
 | 经文弹框 | `scripture-popup.js` | 低层 API（自有结构） |
 | App 更新对话框 | `app-update.js` | 低层 API（自有结构） |
 | APK 更新对话框 | `app-update.js` | 低层 API（自有结构） |
-| 资源管理对话框 | `resource-pack.js` | 低层 API |
+| 资源管理对话框 | `resource-pack.js` | ✅ |
 | 管理面板 | `index.html` | 低层 API |
 | 朗读权限提示 | `speech.js` | — (一次性提示，不需要) |
 | 首次安装进度框 | `index.html` | — (进度弹框，不可中途关闭) |
