@@ -209,7 +209,9 @@
     var html = '<div class="page-navigation">';
     html += '<a href="javascript:void(0)" class="nav-link" title="返回目录" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')">返回</a>';
     html += link('cv', '纲目');
-    html += link('h', '听抄');
+    if (chapter.message_content && chapter.message_content.length > 0) {
+      html += link('h', '听抄');
+    }
     if (chapter.morning_revivals && chapter.morning_revivals.length > 0) {
       html += link('cx', '晨读');
     }
@@ -387,6 +389,10 @@
   // ── 视图: h（听抄）────────────────────────────────────────────────────
 
   function renderH(batchPath, chapter, training) {
+    if (!chapter.message_content || !chapter.message_content.length) {
+      if (win.CXRouter) win.CXRouter.navigateReplace(batchPath + '/' + chapter.number + '/cv');
+      return;
+    }
     var nav = buildPageNavigation(batchPath, chapter, 'h', training);
     var header = buildChapterHeader(chapter);
 
@@ -406,9 +412,6 @@
     var detailSecs = chapter.detail_sections || [];
     for (var di = 0; di < detailSecs.length; di++) {
       content += renderMessageSection(detailSecs[di], 1, msgCtxBox.val);
-    }
-    if (!content && !msgs.length) {
-      content = '<p class="no-content">职事信息内容暂缺</p>';
     }
 
     var html = '<div class="container">' +
