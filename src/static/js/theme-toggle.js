@@ -266,6 +266,39 @@
             overlay.removeEventListener('touchmove',  _onTouchMove);
         };
     };
+
+    // ── CX.openDialog：通用弹框工厂 ─────────────────────────────────────────
+    // 统一处理：遮罩创建、lockOverlayScroll、backStack 注册、遮罩点击关闭。
+    // opts: { id, html, className, onClose }
+    //   id        — 重复打开守卫（可选）
+    //   html      — 遮罩内的 innerHTML
+    //   className — 遮罩 class，默认 'cx-dialog-mask'
+    //   onClose   — 关闭后回调（可选）
+    // 返回 { mask, close } 或 null（id 重复时）
+    window.CX.openDialog = function(opts) {
+        if (opts.id && document.getElementById(opts.id)) return null;
+        var mask = document.createElement('div');
+        if (opts.id) mask.id = opts.id;
+        mask.className = opts.className || 'cx-dialog-mask';
+        mask.innerHTML = opts.html || '';
+        document.body.appendChild(mask);
+        window.CX.lockOverlayScroll(mask);
+        var _closed = false;
+        function _destroy() {
+            if (_closed) return; _closed = true;
+            if (mask.parentNode) mask.parentNode.removeChild(mask);
+            if (opts.onClose) opts.onClose();
+        }
+        // 系统返回键（popstate）触发：只移除 DOM，无需再调 history.back()
+        window.CX.backStack.push(function() { _destroy(); });
+        // 主动关闭（按钮/遮罩点击）：移除 DOM + 消耗 history 记录
+        function close() { _destroy(); window.CX.backStack.pop(); }
+        // 点遮罩空白区关闭，阻止冒泡避免误触设置面板
+        mask.addEventListener('click', function(e) {
+            if (e.target === mask) { e.stopPropagation(); close(); }
+        });
+        return { mask: mask, close: close };
+    };
 })();
 
 // 初始化主题切换和字体控制功能
@@ -707,71 +740,58 @@
     // 清除数据对话框（所有页面共用）
     // onConfirm(selected) selected = 'regular' | 'notes'
     function showClearDialog(onConfirm) {
-        if (document.getElementById('cxClearDialogMask')) return;
         var selected = 'regular';
-        var mask = document.createElement('div');
-        mask.id = 'cxClearDialogMask';
-        mask.className = 'cx-dialog-mask';
-        mask.innerHTML = [
-            '<div class="cx-dialog">',
-            '  <div class="cx-dialog-title">清除数据</div>',
-            '  <div class="cx-dialog-desc">选择要清除的内容</div>',
-            '  <div class="cx-dialog-opts">',
-            '    <div class="cx-dialog-opt selected" data-val="regular">',
-            '      <div class="cx-dialog-opt-icon">🧾</div>',
-            '      <div class="cx-dialog-opt-body">',
-            '        <div class="cx-dialog-opt-title">常规数据</div>',
-            '        <div class="cx-dialog-opt-sub">离线缓存、阅读进度、字体语速设置<br>保留划线笔记</div>',
-            '      </div>',
-            '    </div>',
-            '    <div class="cx-dialog-opt" data-val="notes">',
-            '      <div class="cx-dialog-opt-icon">📝</div>',
-            '      <div class="cx-dialog-opt-body">',
-            '        <div class="cx-dialog-opt-title">划线笔记</div>',
-            '        <div class="cx-dialog-opt-sub">仅清除所有划线和高亮<br>保留其他设置</div>',
-            '      </div>',
-            '    </div>',
-            '  </div>',
-            '  <div class="cx-dialog-actions">',
-            '    <button class="cx-dialog-cancel" data-action="cancel">取消</button>',
-            '    <button class="cx-dialog-confirm" data-action="confirm">确定清除</button>',
-            '  </div>',
-            '</div>'
-        ].join('');
-        document.body.appendChild(mask);
-        window.CX.lockOverlayScroll(mask);
-
-        // 注册到 backStack：返回键触发关闭
-        window.CX.backStack.push(function() {
-            if (mask.parentNode) mask.parentNode.removeChild(mask);
+        var dlg = window.CX.openDialog({
+            id: 'cxClearDialogMask',
+            html: [
+                '<div class="cx-dialog">',
+                '  <div class="cx-dialog-title">清除数据</div>',
+                '  <div class="cx-dialog-desc">选择要清除的内容</div>',
+                '  <div class="cx-dialog-opts">',
+                '    <div class="cx-dialog-opt selected" data-val="regular">',
+                '      <div class="cx-dialog-opt-icon">🧾</div>',
+                '      <div class="cx-dialog-opt-body">',
+                '        <div class="cx-dialog-opt-title">常规数据</div>',
+                '        <div class="cx-dialog-opt-sub">离线缓存、阅读进度、字体语速设置<br>保留划线笔记</div>',
+                '      </div>',
+                '    </div>',
+                '    <div class="cx-dialog-opt" data-val="notes">',
+                '      <div class="cx-dialog-opt-icon">📝</div>',
+                '      <div class="cx-dialog-opt-body">',
+                '        <div class="cx-dialog-opt-title">划线笔记</div>',
+                '        <div class="cx-dialog-opt-sub">仅清除所有划线和高亮<br>保留其他设置</div>',
+                '      </div>',
+                '    </div>',
+                '  </div>',
+                '  <div class="cx-dialog-actions">',
+                '    <button class="cx-dialog-cancel" data-action="cancel">取消</button>',
+                '    <button class="cx-dialog-confirm" data-action="confirm">确定清除</button>',
+                '  </div>',
+                '</div>'
+            ].join('')
         });
-
-        function closeClearMask() {
-            if (mask.parentNode) mask.parentNode.removeChild(mask);
-            window.CX.backStack.pop(); // 消耗 pushState 记录
-        }
+        if (!dlg) return;
 
         // 用事件委托代替多个 getElementById，避免时序问题
-        mask.addEventListener('click', function(e) {
-            if (e.target === mask) e.stopPropagation(); // 防止冒泡至 document 误触关闭主题面板
+        dlg.mask.addEventListener('click', function(e) {
             var t = e.target;
             // 选项卡片点击
             var opt = t.closest ? t.closest('.cx-dialog-opt') : null;
             if (opt && opt.getAttribute('data-val')) {
                 selected = opt.getAttribute('data-val');
-                var opts = mask.querySelectorAll('.cx-dialog-opt');
+                var opts = dlg.mask.querySelectorAll('.cx-dialog-opt');
                 for (var i = 0; i < opts.length; i++) { opts[i].classList.remove('selected'); }
                 opt.classList.add('selected');
                 return;
             }
-            // 取消按钮
-            if (t.getAttribute('data-action') === 'cancel' || t === mask) {
-                closeClearMask();
+            // 取消按钮（t === mask 由 openDialog 统一处理）
+            if (t.getAttribute('data-action') === 'cancel') {
+                dlg.close();
                 return;
             }
             // 确定清除按钮
             if (t.getAttribute('data-action') === 'confirm') {
-                closeClearMask();
+                dlg.close();
                 var statusEl = document.getElementById('actionStatus');
                 if (statusEl) { statusEl.textContent = '🧹 正在清理中，请稍候...'; statusEl.className = 'cache-status'; }
                 if (onConfirm) { onConfirm(selected); return; }
@@ -835,47 +855,33 @@
 
     // 赞助对话框
     function showSponsorDialog() {
-        if (document.getElementById('cxSponsorMask')) return;
-
         var SPONSOR_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
         var imgFiles = { wx: 'images/zanzhu-wx.png', zfb: 'images/zanzhu-zfb.jpg' };
 
-        var mask = document.createElement('div');
-        mask.id = 'cxSponsorMask';
-        mask.className = 'cx-dialog-mask';
-        mask.innerHTML = [
-            '<div class="cx-sponsor-box">',
-            '  <div class="cx-sponsor-close" id="cxSponsorClose">×</div>',
-            '  <div class="cx-sponsor-title">❤️ 顾念微工</div>',
-            '  <div class="cx-sponsor-desc">蒙福有余，可助这盏灯不灭 🌟</div>',
-            '  <div class="cx-sponsor-tabs">',
-            '    <button class="cx-sponsor-tab active" data-type="wx">🟢 微信</button>',
-            '    <button class="cx-sponsor-tab" data-type="zfb">🔵 支付宝</button>',
-            '  </div>',
-            '  <div class="cx-sponsor-img-wrap" id="cxSponsorImgWrap"></div>',
-            '</div>'
-        ].join('');
-        document.body.appendChild(mask);
-        window.CX.lockOverlayScroll(mask);
-
-        // 注册到 backStack：返回键触发关闭
-        window.CX.backStack.push(function() {
-            if (mask.parentNode) mask.parentNode.removeChild(mask);
+        var dlg = window.CX.openDialog({
+            id: 'cxSponsorMask',
+            html: [
+                '<div class="cx-sponsor-box">',
+                '  <div class="cx-sponsor-close" id="cxSponsorClose">×</div>',
+                '  <div class="cx-sponsor-title">❤️ 顾念微工</div>',
+                '  <div class="cx-sponsor-desc">蒙福有余，可助这盏灯不灭 🌟</div>',
+                '  <div class="cx-sponsor-tabs">',
+                '    <button class="cx-sponsor-tab active" data-type="wx">🟢 微信</button>',
+                '    <button class="cx-sponsor-tab" data-type="zfb">🔵 支付宝</button>',
+                '  </div>',
+                '  <div class="cx-sponsor-img-wrap" id="cxSponsorImgWrap"></div>',
+                '</div>'
+            ].join('')
         });
+        if (!dlg) return;
 
-        function closeSponsor() {
-            if (mask.parentNode) mask.parentNode.removeChild(mask);
-            window.CX.backStack.pop(); // 消耗 pushState 记录
-        }
-
-        // 关闭 & 标签切换
-        mask.addEventListener('click', function(e) {
+        // 关闭 & 标签切换（t === mask 空白区由 openDialog 统一处理）
+        dlg.mask.addEventListener('click', function(e) {
             var t = e.target;
-            if (t === mask) { e.stopPropagation(); closeSponsor(); return; }
-            if (t.id === 'cxSponsorClose') { closeSponsor(); return; }
+            if (t.id === 'cxSponsorClose') { dlg.close(); return; }
             var tab = t.closest ? t.closest('.cx-sponsor-tab') : (t.classList.contains('cx-sponsor-tab') ? t : null);
             if (tab && tab.dataset.type) {
-                mask.querySelectorAll('.cx-sponsor-tab').forEach(function(b) { b.classList.remove('active'); });
+                dlg.mask.querySelectorAll('.cx-sponsor-tab').forEach(function(b) { b.classList.remove('active'); });
                 tab.classList.add('active');
                 loadImg(tab.dataset.type);
             }
@@ -907,58 +913,42 @@
 
     // 反馈问题对话框
     function showFeedbackDialog() {
-        if (document.getElementById('cxFeedbackMask')) return;
-
         var PUSH_URLS = (window.CX_SERVERS && window.CX_SERVERS.push) || [];
         var MAX_LEN = 500;
 
-        var mask = document.createElement('div');
-        mask.id = 'cxFeedbackMask';
-        mask.className = 'cx-dialog-mask';
-        mask.innerHTML = [
-            '<div class="cx-feedback-box">',
-            '  <div class="cx-feedback-header">',
-            '    <div class="cx-feedback-title">💬 反馈问题</div>',
-            '    <button class="cx-feedback-close" id="cxFeedbackClose">×</button>',
-            '  </div>',
-            '  <div class="cx-feedback-body">',
-            '    <textarea class="cx-feedback-textarea" id="cxFeedbackText" maxlength="' + MAX_LEN + '" placeholder="请描述您遇到的问题或建议…"></textarea>',
-            '    <div class="cx-feedback-count" id="cxFeedbackCount">0/' + MAX_LEN + '</div>',
-            '    <div class="cx-feedback-tip">⚠️ 请先确认已是最新版本，部分问题在新版中已修复。</div>',
-            '    <div class="cx-feedback-status" id="cxFeedbackStatus"></div>',
-            '  </div>',
-            '  <div class="cx-feedback-actions">',
-            '    <button class="cx-feedback-cancel" id="cxFeedbackCancelBtn">取消</button>',
-            '    <button class="cx-feedback-submit" id="cxFeedbackSubmitBtn">发送</button>',
-            '  </div>',
-            '</div>'
-        ].join('');
-        document.body.appendChild(mask);
-        window.CX.lockOverlayScroll(mask);
-
-        window.CX.backStack.push(function() {
-            if (mask.parentNode) mask.parentNode.removeChild(mask);
+        var dlg = window.CX.openDialog({
+            id: 'cxFeedbackMask',
+            html: [
+                '<div class="cx-feedback-box">',
+                '  <div class="cx-feedback-header">',
+                '    <div class="cx-feedback-title">💬 反馈问题</div>',
+                '    <button class="cx-feedback-close" id="cxFeedbackClose">×</button>',
+                '  </div>',
+                '  <div class="cx-feedback-body">',
+                '    <textarea class="cx-feedback-textarea" id="cxFeedbackText" maxlength="' + MAX_LEN + '" placeholder="请描述您遇到的问题或建议…"></textarea>',
+                '    <div class="cx-feedback-count" id="cxFeedbackCount">0/' + MAX_LEN + '</div>',
+                '    <div class="cx-feedback-tip">⚠️ 请先确认已是最新版本，部分问题在新版中已修复。</div>',
+                '    <div class="cx-feedback-status" id="cxFeedbackStatus"></div>',
+                '  </div>',
+                '  <div class="cx-feedback-actions">',
+                '    <button class="cx-feedback-cancel" id="cxFeedbackCancelBtn">取消</button>',
+                '    <button class="cx-feedback-submit" id="cxFeedbackSubmitBtn">发送</button>',
+                '  </div>',
+                '</div>'
+            ].join('')
         });
-
-        function closeMask() {
-            if (mask.parentNode) mask.parentNode.removeChild(mask);
-            window.CX.backStack.pop();
-        }
+        if (!dlg) return;
 
         setTimeout(function() {
             var ta = document.getElementById('cxFeedbackText');
             if (ta) ta.focus();
         }, 100);
 
-        mask.addEventListener('click', function(e) {
-            if (e.target === mask) { e.stopPropagation(); closeMask(); }
-        });
-
         var closeBtn = document.getElementById('cxFeedbackClose');
-        if (closeBtn) closeBtn.addEventListener('click', closeMask);
+        if (closeBtn) closeBtn.addEventListener('click', dlg.close);
 
         var cancelBtn = document.getElementById('cxFeedbackCancelBtn');
-        if (cancelBtn) cancelBtn.addEventListener('click', closeMask);
+        if (cancelBtn) cancelBtn.addEventListener('click', dlg.close);
 
         var textarea = document.getElementById('cxFeedbackText');
         var countEl = document.getElementById('cxFeedbackCount');
@@ -1117,7 +1107,7 @@
                             if (window.CX && window.CX.errorLog) window.CX.errorLog.clear();
                             if (window.CX && window.CX.nativeCrashLog) window.CX.nativeCrashLog.clear();
                             if (statusEl) { statusEl.textContent = '✓ 发送成功，感谢您的反馈！'; statusEl.className = 'cx-feedback-status success'; }
-                            setTimeout(closeMask, 1800);
+                            setTimeout(dlg.close, 1800);
                         })
                         .catch(function() { clearTimeout(timer); tryPush(idx + 1); });
                     }
