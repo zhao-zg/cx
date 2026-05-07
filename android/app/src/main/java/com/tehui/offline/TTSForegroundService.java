@@ -336,7 +336,9 @@ public class TTSForegroundService extends Service {
         if (artist != null && !artist.isEmpty()) playArtist = artist;
         playRate             = intent.getFloatExtra("rate", 1.0f);
         loopEnabled          = intent.getBooleanExtra("loop", false);
-        sliceStartPositionMs = (long)(intent.getFloatExtra("startSecs", 0f) * 1000L);
+        // JS 现在传完整文本，seek 偏移由 startSecs/totalSecs 比率计算 chunkIndex 实现，
+        // 循环时 chunkIndex=0 对应全文开头，不再受熄屏截断位置影响。
+        sliceStartPositionMs = 0;
         fullTotalDurationMs  = (long)(intent.getFloatExtra("totalSecs", 0f) * 1000L);
 
         // startForeground() 已在 onStartCommand() 最顶部统一调用，此处更新通知为播放状态。
@@ -359,6 +361,22 @@ public class TTSForegroundService extends Service {
         chunks.clear();
         chunks.addAll(splitText(text, CHUNK_SIZE));
         totalTextLength = text.length();
+
+        // 根据 startSecs/totalSecs 比率跳到正确的起始 chunk（替代之前由 JS sliceText 实现的 seek）
+        float seekSecs  = intent.getFloatExtra("startSecs", 0f);
+        float totalSecs = intent.getFloatExtra("totalSecs", 0f);
+        if (seekSecs > 0f && totalSecs > 0f && totalTextLength > 0) {
+            int targetChar = (int)(totalTextLength * (seekSecs / totalSecs));
+            int cumLen = 0;
+            for (int i = 0; i < chunks.size(); i++) {
+                if (cumLen + chunks.get(i).length() > targetChar) {
+                    chunkIndex = i;
+                    break;
+                }
+                cumLen += chunks.get(i).length();
+            }
+        }
+
         updateMediaMetadata(); // 让锁屏/通知栏知道标题和总时长
 
         if (!requestAudioFocus()) {

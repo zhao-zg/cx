@@ -520,7 +520,9 @@
         var p          = clamp(Number(percent) || 0, 0, 100);
         var targetSecs = totalDuration ? (p / 100) * totalDuration : 0;
         var charIndex  = clamp(Math.floor(fullText.length * (p / 100)), 0, Math.max(0, fullText.length - 1));
-        var segText    = safeText(fullText.slice(charIndex));
+        // NativeTTS: 始终传完整文本，由 Java 通过 startSecs/totalSecs 定位起始 chunk，
+        // 这样循环重置 chunkIndex=0 时从全文开头播放，而非熄屏时的截断位置。
+        var segText    = useNativeTTS ? safeText(fullText) : safeText(fullText.slice(charIndex));
         if (!segText) return;
 
         progressBar.value = String(p);
