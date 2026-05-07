@@ -249,12 +249,12 @@ class HTMLGenerator:
             f'(?:'
             f'({cn_num})[至到]({cn_num})[章篇]'                          # groups 2,3: chapter range X至Y章
             f'|({cn_num}(?:、[一二三四五六七八九十百]+)+)[章篇]'          # group 4: chapter list X、Y章
-            f'|({cn_num})[章篇]'                                          # group 5: single chapter (was 4)
+            f'|(?:第)?({cn_num})[章篇]'                                   # group 5: single chapter (was 4)
             f'(?:'                                                         # optional verse range
-            f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'                    # format A groups 6,7 (was 5,6)
-            f'|({cn_num})[至到]({cn_num})节'                              # format B groups 8,9 (was 7,8)
+            f'(?:(?:的第?)?({cn_num})节(?:[至到]({cn_num})节)?)'          # format A groups 6,7 (was 5,6): [的第?]Y节[至Z节]
+            f'|(?:的第?)?({cn_num})[至到]({cn_num})节'                    # format B groups 8,9 (was 7,8): [的第?]Y至Z节
             f'|({cn_num}(?:[跟和]{cn_num})+)节'                           # format C group 10: X跟Y节
-            f')?'
+            f')?' 
             f')'
         )
         return cls._INLINE_BARE_REF_RE
@@ -287,10 +287,10 @@ class HTMLGenerator:
         cls._INLINE_REL_CHAP_RE = re.compile(
             f'({cn_num})[至到]({cn_num})[章篇]'                           # groups 1,2: chapter range X至Y章
             f'|'
-            f'({cn_num})[章篇]'                                            # group 3: single chapter
+            f'(?:第)?({cn_num})[章篇]'                                    # group 3: single chapter
             f'(?:'                                                          # optional verse range
-            f'(?:({cn_num})节(?:[至到]({cn_num})节)?)'                     # format A groups 4,5: Y节[至Z节]
-            f'|({cn_num})[至到]({cn_num})节'                               # format B groups 6,7: Y至Z节
+            f'(?:(?:的第?)?({cn_num})节(?:[至到]({cn_num})节)?)'           # format A groups 4,5: [的第?]Y节[至Z节]
+            f'|(?:的第?)?({cn_num})[至到]({cn_num})节'                     # format B groups 6,7: [的第?]Y至Z节
             f'|({cn_num}(?:[跟和]{cn_num})+)节'                            # format C group 8: Y跟Z节
             f')?'                                                           # verse range is optional
             # 无节时后面不能紧跟文意性汉字（的/中/里/讲/说/是/来/等/个）
@@ -308,10 +308,10 @@ class HTMLGenerator:
             return cls._INLINE_REL_VERSE_RE
         cn = r'[一二三四五六七八九十百]+'
         # 「X节」前面不能是这些自然语言修饰字，否则不是经文引用
-        _no_pre = r'(?<![哪那这有前后没无每])'
+        _no_pre = r'(?<![哪那这有前后没无每外的此同某上下])'
         cls._INLINE_REL_VERSE_RE = re.compile(
             f'({cn})[至到]({cn})节'             # format A: X至Y节
-            f'|{_no_pre}({cn})节(?![在里])'     # format B: X节（前后均有自然语言守卫）
+            f'|{_no_pre}({cn})节'     # format B: X节（前后均有自然语言守卫）
         )
         return cls._INLINE_REL_VERSE_RE
 
@@ -343,9 +343,9 @@ class HTMLGenerator:
                 if m.group(1):  # chapter range X至Y章/篇
                     _uses_pian = m.group(0).endswith('篇')
                 else:           # single chapter X章/篇
-                    _chap_cn_len = len(m.group(3))
-                    _uses_pian = (len(m.group(0)) > _chap_cn_len and
-                                  m.group(0)[_chap_cn_len] == '篇')
+                    _chap_end_in_match = m.start(3) - m.start() + len(m.group(3))
+                    _uses_pian = (len(m.group(0)) > _chap_end_in_match and
+                                  m.group(0)[_chap_end_in_match] == '篇')
                 if _uses_pian and cur_book != '诗':
                     result.append(str(escape(m.group(0))))
                     last = m.end()
@@ -435,7 +435,7 @@ class HTMLGenerator:
             elif m.group(4):  # list: book+X、Y章/篇
                 _bare_uses_pian = m.group(0).endswith('篇')
             else:           # single: book+X章/篇...
-                _bare_pian_pos = len(m.group(1)) + len(m.group(5))
+                _bare_pian_pos = m.start(5) - m.start() + len(m.group(5))
                 _bare_uses_pian = (len(m.group(0)) > _bare_pian_pos and
                                    m.group(0)[_bare_pian_pos] == '篇')
             if _bare_uses_pian and book != '诗':
