@@ -729,15 +729,23 @@
         var _isNativeApp=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
         if(_isNativeApp){
             // Capacitor WebView 不支持 SW，跳过注册
-            // Cache API 可用；首次安装时（无 cx_pwa_version）触发训练缓存初始化
+            // APK 所有资源已内置，首次启动在后台静默填充 Cache API，不阻塞用户；
+            // 完成后写 cx_pwa_version，后续启动直接跳过。
             if('caches' in window){
                 var _capVer=null;try{_capVer=localStorage.getItem('cx_pwa_version');}catch(e){}
-                if(!_capVer){
-                    fetch('./version.json?t='+Date.now(),{cache:'no-store'})
-                        .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-                        .then(function(v){showMandatoryInstallDialog('install',v.version||v.apk_version||'');})
-                        .catch(function(){/* 离线时跳过 */});
-                }
+                fetch('./version.json?t='+Date.now(),{cache:'no-store'})
+                    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+                    .then(function(v){
+                        var _ver=v.version||v.apk_version||'';
+                        // 版本未变则跳过，避免每次启动都重复填充
+                        if(_capVer&&_capVer===_ver)return;
+                        waitForTrainings(15000).then(function(){
+                            return cacheAllTrainings(null,null);
+                        }).then(function(){
+                            if(_ver)try{localStorage.setItem('cx_pwa_version',_ver);}catch(e){}
+                        }).catch(function(){});
+                    })
+                    .catch(function(){/* 离线时跳过 */});
             }
         } else {
         navigator.serviceWorker.register('./sw.js').then(function(reg){
