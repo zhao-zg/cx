@@ -262,7 +262,7 @@
             function buildCard(t){
                 var yr=String(t.year||'');
                 var yearSeason=t.year+'-'+(t.season.split(' ')[0]||t.season);
-                var titleText=t.subtitle||t.season.split(' ').slice(1).join(' ')||t.title||t.season;
+                var titleText=t.season.split(' ').slice(1).join(' ')||t.title||t.season;
                 var localBadge=t.is_local?'<span style="display:inline-block;font-size:10px;padding:1px 5px;background:var(--interactive-soft-bg,rgba(var(--brand-rgb,0,112,204),0.1));color:var(--brand);border:1px solid var(--brand);border-radius:4px;margin-left:4px;vertical-align:middle;line-height:1.4;white-space:nowrap">本地导入</span>':'';
                 return '<div class="training-card">'
                     +'<div class="training-card-wrapper">'
@@ -621,7 +621,8 @@
                 var resources=getTrainingResources(t.path,t.images||[]);
                 if(statusEl)statusEl.textContent='缓存：'+t.title;
                 return caches.open('cx-'+t.path).then(function(cache){
-                    return Promise.all(resources.map(function(url){
+                    return Promise.all(resources.map(function(url){f 修复熄屏，循环播放问题
+
                         return fetch(url,{redirect:'follow',cache:'no-cache'}).then(function(r){
                             if(r.ok){cachedResources++;rep();return cache.put(r.url,r.clone());}
                         }).catch(function(){cachedResources++;rep();});
