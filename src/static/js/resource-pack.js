@@ -12,6 +12,8 @@
   var CACHE_NAME = 'cx-main';
   // cx_ 前缀与其他 localStorage 设置键保持一致；cx- 前缀仅用于 Cache API 名称
   var SOURCES_KEY = 'cx_pack_sources';
+  // 记录初始安装的训练元数据，供删除后展示"可恢复"状态用
+  var INITIAL_TRAININGS_KEY = 'cx_initial_trainings';
 
   // ── 工具 ───────────────────────────────────────────────────────────────────────────
 
@@ -102,6 +104,14 @@
 
   function _saveSources(obj) {
     try { win.localStorage.setItem(SOURCES_KEY, JSON.stringify(obj)); } catch (e) {}
+  }
+
+  function _loadInitialTrainings() {
+    try { return JSON.parse(win.localStorage.getItem(INITIAL_TRAININGS_KEY) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function _saveInitialTrainings(obj) {
+    try { win.localStorage.setItem(INITIAL_TRAININGS_KEY, JSON.stringify(obj)); } catch (e) {}
   }
 
   function _markPackSources(pack) {
@@ -511,7 +521,52 @@
               return { path: tp, year: d.year, season: d.season, title: d.title || tp, chapter_count: (d.chapters || []).length, isInitial: item.isInitial };
             }).catch(function () { return { path: tp, year: null, season: null, title: tp, chapter_count: 0, isInitial: item.isInitial }; });
           }).catch(function () { return null; });
-        })).then(function (arr) { return arr.filter(Boolean); });
+        })).then(function (arr) {
+          var trainings = arr.filter(Boolean);
+
+          // 更新 cx_initial_trainings：保存扫到的初始安装训练元数据，供删除后恢复用
+          var savedInitials = _loadInitialTrainings();
+          trainings.forEach(function (tr) {
+            if (tr.isInitial) {
+              savedInitials[tr.path] = { year: tr.year, season: tr.season, title: tr.title, chapter_count: tr.chapter_count };
+            }
+          });
+          _saveInitialTrainings(savedInitials);
+
+          // 追加已删除（缓存已清除）的初始训练
+          // restorable = 该 path 仍存在于当前版本（trainings.json 或 resource-packs.json）
+          // 若当前版本已无此训练（老版本独有），则标记为不可恢复
+          var currentPaths = {};
+          trainings.forEach(function (tr) { currentPaths[tr.path] = true; });
+
+          // 收集"当前版本已知"的所有训练 path：来自 window.__cxTrainings 和 manifest
+          var knownPaths = {};
+          (win.__cxTrainings || []).forEach(function (t) { if (t.path) knownPaths[t.path] = true; });
+          if (_manifest) {
+            (_manifest.packs || []).forEach(function (pack) {
+              (pack.trainings || []).forEach(function (t) { if (t.path) knownPaths[t.path] = true; });
+            });
+          }
+          var hasKnownPaths = Object.keys(knownPaths).length > 0;
+
+          Object.keys(savedInitials).forEach(function (tp) {
+            if (!currentPaths[tp] && !sources[tp]) {
+              var meta = savedInitials[tp];
+              // 若能确定当前版本的已知列表（knownPaths 非空），则检查是否还在列表里
+              var restorable = !hasKnownPaths || !!knownPaths[tp];
+              trainings.push({ path: tp, year: meta.year, season: meta.season, title: meta.title || tp,
+                chapter_count: meta.chapter_count || 0, isInitial: true, deleted: true, restorable: restorable });
+            }
+          });
+
+          // 排序：现有缓存在前（降序），已删除在后（降序）
+          trainings.sort(function (a, b) {
+            if (!!a.deleted !== !!b.deleted) return a.deleted ? 1 : -1;
+            return b.path.localeCompare(a.path);
+          });
+
+          return trainings;
+        });
       }).then(function (trainings) {
         if (!trainings.length) {
           content.innerHTML =
@@ -524,25 +579,54 @@
         }
         var html = '';
         trainings.forEach(function (tr) {
-          var badge = tr.isInitial
-            ? ' <span style="display:inline-block;font-size:10px;padding:1px 5px;background:rgba(80,160,80,.1);color:#2a7a2a;border:1px solid #2a7a2a;border-radius:4px;margin-left:4px;white-space:nowrap;vertical-align:middle;line-height:1.4">已安装</span>'
-            : '';
-          html +=
-            '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
-              '<input type="checkbox" data-path="' + escAttr(tr.path) + '" data-src="default" style="flex-shrink:0;margin:0;width:15px;height:15px">' +
-              '<div style="flex:1;min-width:0;overflow:hidden">' +
-                '<div style="font-size:13px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
-                  escHtml(_trainingLabel(tr.path, tr.year, tr.season, tr.title)) + badge +
+          var label = _trainingLabel(tr.path, tr.year, tr.season, tr.title);
+          if (tr.deleted) {
+            // 已删除的初始训练：可恢复 → 显示"↺ 重新安装"；已过期 → 显示"已过期"提示
+            var rightCol = tr.restorable !== false
+              ? '<button class="cx-restore-initial action-btn icon" data-path="' + escAttr(tr.path) + '" ' +
+                  'style="font-size:12px;padding:3px 10px;flex-shrink:0">↺ 重新安装</button>'
+              : '<span style="font-size:11px;color:var(--text-secondary);flex-shrink:0;padding:3px 6px">已过期</span>';
+            html +=
+              '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
+                '<div style="flex:1;min-width:0;overflow:hidden">' +
+                  '<div style="font-size:13px;font-weight:500;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+                    escHtml(label) +
+                  '</div>' +
+                  '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">缓存已清除</div>' +
                 '</div>' +
-                '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' + (tr.chapter_count || 0) + ' 篇</div>' +
-              '</div>' +
-              '<button class="cx-cm-del-one action-btn danger icon" data-path="' + escAttr(tr.path) + '" data-src="default"' + (tr.isInitial ? ' data-initial="1"' : '') + ' data-label="' + escAttr(_trainingLabel(tr.path, tr.year, tr.season, tr.title)) + '">🗑</button>' +
-            '</div>';
+                rightCol +
+              '</div>';
+          } else {
+            var badge = tr.isInitial
+              ? ' <span style="display:inline-block;font-size:10px;padding:1px 5px;background:rgba(80,160,80,.1);color:#2a7a2a;border:1px solid #2a7a2a;border-radius:4px;margin-left:4px;white-space:nowrap;vertical-align:middle;line-height:1.4">已安装</span>'
+              : '';
+            html +=
+              '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">' +
+                '<input type="checkbox" data-path="' + escAttr(tr.path) + '" data-src="default" style="flex-shrink:0;margin:0;width:15px;height:15px">' +
+                '<div style="flex:1;min-width:0;overflow:hidden">' +
+                  '<div style="font-size:13px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+                    escHtml(label) + badge +
+                  '</div>' +
+                  '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' + (tr.chapter_count || 0) + ' 篇</div>' +
+                '</div>' +
+                '<button class="cx-cm-del-one action-btn danger icon" data-path="' + escAttr(tr.path) + '" data-src="default"' + (tr.isInitial ? ' data-initial="1"' : '') + ' data-label="' + escAttr(label) + '">🗑</button>' +
+              '</div>';
+          }
         });
         content.innerHTML = html;
         updateSelBar();
         Array.prototype.forEach.call(content.querySelectorAll('input[type=checkbox][data-path]'), function (cb) {
           cb.addEventListener('change', updateSelBar);
+        });
+        // 绑定重新安装按钮（已删除行）
+        Array.prototype.forEach.call(content.querySelectorAll('.cx-restore-initial'), function (btn) {
+          btn.addEventListener('click', function () {
+            var path = btn.getAttribute('data-path');
+            var rowEl = btn.parentElement;
+            restoreInitialTraining(path, rowEl, function () {
+              tabLoaded['default'] = false; renderDefaultTab();
+            });
+          });
         });
         Array.prototype.forEach.call(content.querySelectorAll('.cx-cm-del-one'), function (btn) {
           btn.addEventListener('click', function () {
