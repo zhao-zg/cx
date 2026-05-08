@@ -307,6 +307,9 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{ou
 mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;padding:0 1px}
 /* 搜索目标元素高亮：左侧内嵌阴影竖线+背景脉冲，不影响元素自身 padding */
 .cx-search-target{box-shadow:inset 3px 0 0 #ff8c00 !important;animation:cx-target-pulse 1s ease-in-out 2;transition:box-shadow 0.5s,background-color 0.5s}
+/* 纲目搜索定位时，给 outline-item 补 5px 左 padding，使竖线与标题数字之间留出间距 */
+.outline-item.level-1.cx-search-target,.outline-item.level-2.cx-search-target{padding-left:calc(1.1em + 5px)}
+.outline-item.level-3.cx-search-target,.outline-item.level-4.cx-search-target,.outline-item.level-5.cx-search-target{padding-left:calc(1em + 5px)}
 @keyframes cx-target-pulse{0%,100%{background-color:transparent}50%{background-color:rgba(255,179,71,0.25)}}
 .cx-note-icon{font-size:.75em;cursor:pointer;vertical-align:super;line-height:1;margin-left:1px;-webkit-user-select:none;user-select:none}
 .hl-menu{display:none;flex-direction:column;gap:5px;padding:8px;background:var(--surface);border-radius:12px;box-shadow:var(--menu-shadow);border:1px solid var(--border);z-index:9999;min-width:min(220px,calc(100vw - 24px));max-width:min(340px,calc(100vw - 24px));-webkit-user-select:none;user-select:none;transition:opacity .15s ease}
@@ -393,6 +396,8 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
     .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:38px;padding-left:1.5em;text-indent:-1.5em}
     .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:52px;padding-left:1.5em;text-indent:-1.5em}
     .section-level5,.outline-item.level-5{margin:8px 0 6px;font-size:1.01em;margin-left:66px;padding-left:1.5em;text-indent:-1.5em}
+    .outline-item.level-1.cx-search-target,.outline-item.level-2.cx-search-target{padding-left:calc(1.75em + 5px)}
+    .outline-item.level-3.cx-search-target,.outline-item.level-4.cx-search-target,.outline-item.level-5.cx-search-target{padding-left:calc(1.5em + 5px)}
 }
 .outline-item{display:block}
 .outline-lvl-toggle{cursor:pointer;-webkit-tap-highlight-color:transparent;color:inherit;font-weight:bold;display:inline;touch-action:manipulation}
