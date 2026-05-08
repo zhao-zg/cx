@@ -1045,12 +1045,7 @@ class ImprovedParser:
         in_content = False  # 是否已进入正文内容
         in_outline_section = False  # 是否在纲目部分
         
-        line_num = 0
-        debug_log = []
-        debug_log.append(f"=== _parse_morning_revival_by_text started with {len(paragraphs)} paragraphs ===")
-        
         for text in paragraphs:
-            line_num += 1
             if not text:
                 continue
             
@@ -1063,7 +1058,6 @@ class ImprovedParser:
                     # 设置current_week=1,避免第二次遇到"第一周 • 纲目"时触发周切换
                     current_week = 1
                     current_section = 'week_outline'
-                    debug_log.append(f"Line {line_num}: First week outline marker detected, starting week 1")
                 continue
             
             # 检测新的周（第X周 • 纲目）
@@ -1074,7 +1068,6 @@ class ImprovedParser:
                 
                 # 只有当周号变化时才处理（避免重复的页眉）
                 if new_week != current_week:
-                    debug_log.append(f"Line {line_num}: Detected week change from {current_week} to {new_week}, day_outlines keys: {list(day_outlines.keys())}")
                     # 保存上一周的数据
                     if current_week > 0 and current_week <= len(chapters):
                         # 保存最后一天的晨兴内容
@@ -1087,14 +1080,12 @@ class ImprovedParser:
                                 elif current_section == 'ref_reading':
                                     current_revival.ref_reading = content_buffer.copy()
                             chapters[current_week - 1].morning_revivals.append(current_revival)
-                            debug_log.append(f"Line {line_num}: Saved last day revival at week switch")
                             current_revival = None
                             content_buffer = []
                         
                         # 保存最后一天的纲目
                         if current_day_outline and current_day_num > 0:
                             day_outlines[current_day_num] = current_day_outline.copy()
-                            debug_log.append(f"Line {line_num}: Saved last day {current_day_num} outline at week switch")
                         
                         # 保存诗歌信息
                         if hymn_buffer:
@@ -1104,7 +1095,6 @@ class ImprovedParser:
                         # 将每天的纲目保存到临时位置（稍后与晨兴内容合并）
                         if day_outlines:
                             chapters[current_week - 1]._day_outlines = day_outlines.copy()
-                            debug_log.append(f"Line {line_num}: Saved week {current_week} day_outlines: {list(day_outlines.keys())}")
                             day_outlines = {}
                     
                     current_week = new_week
@@ -1112,11 +1102,10 @@ class ImprovedParser:
                     in_outline_section = True
                     current_day_num = 0
                     current_day_outline = []
-                    debug_log.append(f"Line {line_num}: Starting new week {current_week}")
                 else:
                     # 遇到重复的周纲目标记(页眉),不做任何处理,继续收集纲目
                     # 注意:不要清空current_day_outline,因为后续内容属于同一天
-                    debug_log.append(f"Line {line_num}: Skip duplicate week outline marker for week {current_week}, continuing day {current_day_num}")
+                    pass
                 continue
             
             # 检测诗歌部分（第X周 • 诗歌）
@@ -1127,9 +1116,7 @@ class ImprovedParser:
                 # 保存最后一天的纲目
                 if current_day_outline and current_day_num > 0:
                     day_outlines[current_day_num] = current_day_outline.copy()
-                    debug_log.append(f"Line {line_num}: Saved outline for day {current_day_num} at hymn section, {len(current_day_outline)} lines")
                     current_day_outline = []
-                debug_log.append(f"Line {line_num}: At hymn section, day_outlines keys: {list(day_outlines.keys())}")
                 continue
             
             # 在纲目部分检测天标记(周一、周二等)
@@ -1140,15 +1127,13 @@ class ImprovedParser:
                     # 保存前一天的纲目
                     if current_day_outline and current_day_num > 0:
                         day_outlines[current_day_num] = current_day_outline.copy()
-                        debug_log.append(f"Line {line_num}: Saved outline for day {current_day_num}, {len(current_day_outline)} lines, day_outlines keys now: {list(day_outlines.keys())}")
                     elif current_day_num > 0:
-                        debug_log.append(f"Line {line_num}: NOT saving day {current_day_num} - outline is empty, current_day_outline length: {len(current_day_outline)}")
+                        pass
                     
                     # 开始新的一天
                     day_map = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6}
                     current_day_num = day_map.get(day_in_outline_match.group(1), 0)
                     current_day_outline = []
-                    debug_log.append(f"Line {line_num}: Start collecting outline for day {current_day_num}, text=[{text}]")
                     continue
             
             # 检测申言部分（第X周 • 申言）- 跳过不处理
@@ -1162,23 +1147,19 @@ class ImprovedParser:
             # 注意：这个标记既标志着纲目部分的结束，也标志着晨兴内容的开始
             day_match = re.match(r'第[一二三四五六七八九]周\s*[•·]\s*周\s*([一二三四五六七])', text)
             if day_match and current_week > 0:
-                debug_log.append(f"Line {line_num}: [Text: {text}], [in_outline: {in_outline_section}]")
                 # 检查是否重复（避免页眉重复创建）
                 day_key = f"{current_week}_{text}"
                 if day_key in seen_revival_days:
-                    debug_log.append(f"Line {line_num}: Skip duplicate day [{text}]")
                     continue
                 
                 seen_revival_days.add(day_key)
                 # 保存当前正在收集的纲目（如果还在纲目部分）
                 if in_outline_section and current_day_outline and current_day_num > 0:
                     day_outlines[current_day_num] = current_day_outline.copy()
-                    debug_log.append(f"Line {line_num}: Saved outline for day {current_day_num} before exiting outline section, {len(current_day_outline)} lines")
                     current_day_outline = []
                 
                 # 进入晨兴内容部分，退出纲目部分（无论之前in_outline_section是什么）
                 in_outline_section = False
-                debug_log.append(f"Line {line_num}: Found revival day [{text}], exiting outline section")
                 # 保存前一天的内容
                 if current_revival:
                     if content_buffer:
@@ -1239,8 +1220,6 @@ class ImprovedParser:
             elif in_outline_section and current_day_num > 0:
                 # 收集当天的纲目内容
                 current_day_outline.append(text)
-                if len(current_day_outline) <= 3:  # 只记录前3行避免日志过多
-                    debug_log.append(f"Line {line_num}: Collected outline for day {current_day_num}: {text[:50]}")
             elif current_revival and current_section in ['feeding', 'reading', 'ref_reading']:
                 # 处理跨页连接：如果当前内容和前一行内容需要连接
                 if content_buffer and self._should_merge_with_previous(content_buffer[-1], text):
@@ -1278,7 +1257,6 @@ class ImprovedParser:
         # 将每天的纲目分配到对应的MorningRevival对象
         for chapter_idx, chapter in enumerate(chapters, 1):
             if hasattr(chapter, '_day_outlines') and chapter._day_outlines:
-                debug_log.append(f"Chapter {chapter_idx} has _day_outlines: {list(chapter._day_outlines.keys())}, morning_revivals count: {len(chapter.morning_revivals)}")
                 
                 # 如果缺失开头的day,用第一个可用的纲目填充
                 # (处理第一周的周一周二在文档中缺失纲目标记的情况)
@@ -1288,7 +1266,6 @@ class ImprovedParser:
                     for day in range(1, first_available_day):
                         if day not in chapter._day_outlines:
                             chapter._day_outlines[day] = first_outline
-                            debug_log.append(f"Backfilled outline for Chapter {chapter_idx}, Day {day} using Day {first_available_day}'s outline")
                 
                 # 为每一天分配纲目,如果某天没有纲目则使用前一天的
                 last_outline_lines = None
@@ -1296,28 +1273,10 @@ class ImprovedParser:
                     if day_num in chapter._day_outlines:
                         outline_lines = chapter._day_outlines[day_num]
                         last_outline_lines = outline_lines  # 记录最后一次的纲目
-                        debug_log.append(f"Assigning outline to Chapter {chapter_idx}, Day {day_num}, {len(outline_lines)} lines")
-                        # 特别针对第一章第六天添加详细debug
-                        if chapter_idx == 1 and day_num == 6:
-                            debug_log.append(f"=== Special debug for Chapter 1, Day 6 ===")
-                            debug_log.append(f"Outline lines: {outline_lines}")
-                            for i, line in enumerate(outline_lines):
-                                debug_log.append(f"  Line {i}: [{line}]")
                         revival.outline = self._parse_outline_content(outline_lines)
                     elif last_outline_lines:
                         # 使用前一天的纲目
-                        debug_log.append(f"Using previous outline for Chapter {chapter_idx}, Day {day_num}, {len(last_outline_lines)} lines")
                         revival.outline = self._parse_outline_content(last_outline_lines)
-                    else:
-                        debug_log.append(f"No outline for Chapter {chapter_idx}, Day {day_num}")
-            else:
-                debug_log.append(f"Chapter {chapter_idx} has no _day_outlines or empty, morning_revivals count: {len(chapter.morning_revivals)}")
-        
-        # 写入调试日志
-        debug_log.append("=== Debug log end ===")  # 强制添加一些内容
-        if debug_log:
-            with open('debug_morning_revival.log', 'w', encoding='utf-8') as f:
-                f.write('\n'.join(debug_log))
     
     def _parse_morning_revival_by_styles(self, doc, chapters: List[Chapter]):
         """

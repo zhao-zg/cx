@@ -62,13 +62,6 @@ class Chapter:
     
     def to_dict(self):
         """转换为字典，便于模板渲染"""
-        
-        # Debug: 检查第一章的周六内容
-        if self.number == 1 and len(self.morning_revivals) >= 6:
-            saturday_revival = self.morning_revivals[5]  # 周六(index 5)
-            if saturday_revival.outline:
-                pass  # print(f"    First outline item: level={saturday_revival.outline[0].level}, children={len(saturday_revival.outline[0].children)}")
-        
         outline_sections = self._sections_to_dict(self.outline_sections)
         detail_sections = self._sections_to_dict(self.detail_sections)
 
@@ -92,7 +85,7 @@ class Chapter:
     
     def _build_morning_revival_dict(self, mr):
         """构建单天晨读字典。"""
-        outline = self._sections_to_dict_debug(mr.outline, f"MorningRevival {mr.day}")
+        outline = self._sections_to_dict(mr.outline)
         fs, mf = self._extract_feeding_scriptures(mr.morning_feeding)
         return {
             'day': mr.day,
@@ -164,19 +157,6 @@ class Chapter:
                 break
         
         return (scriptures, content)
-    
-    def _sections_to_dict_debug(self, contents: List[Content], context=""):
-        """递归转换内容节点为字典 - 调试版本"""
-        result = []
-        for i, content in enumerate(contents):
-            content_dict = {
-                'level': content.level,
-                'title': content.title,
-                'content': content.content,
-                'children': self._sections_to_dict_debug(content.children, f"{context} child {i}") if content.children else []
-            }
-            result.append(content_dict)
-        return result
     
     def _sections_to_dict(self, contents: List[Content]):
         """递归转换内容节点为字典"""

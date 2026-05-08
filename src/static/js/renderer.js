@@ -965,7 +965,6 @@
   function renderBatchIndex(batchPath) {
     showApp();
     rescueThemeBtn();
-    console.log('[Renderer] renderBatchIndex("' + batchPath + '") hash=' + win.location.hash);
     getApp().innerHTML = '<div class="home-status"><div class="home-status-icon">⏳</div>加载中...</div>';
 
     loadTraining(batchPath)
