@@ -44,6 +44,43 @@
     console.info  = _hook('info');
     console.debug = _hook('debug');
 
+    // ── 未捕获异常（浏览器 DevTools 红色报错）──────────────────────────
+    window.addEventListener('error', function(e) {
+        var src = e.filename ? (e.filename.replace(/^.*\//, '') + ':' + e.lineno + ':' + e.colno + ' ') : '';
+        var msg = src + (e.message || String(e));
+        if (e.error && e.error.stack) msg += '\n' + e.error.stack;
+        _origConsole.error('[uncaught]', msg);
+        var entry = { t: Date.now(), level: 'error', text: '[uncaught] ' + msg };
+        _devLogBuf.push(entry);
+        if (_devLogBuf.length > 500) _devLogBuf.shift();
+        var body = document.getElementById('cx-dev-console-body');
+        if (body) {
+            body.appendChild(_buildLogRow(entry));
+            while (body.childNodes.length > 500) body.removeChild(body.firstChild);
+            var el = document.getElementById('cx-dev-console');
+            if (el && el.classList.contains('expanded')) body.scrollTop = body.scrollHeight;
+        }
+    });
+
+    // ── 未处理的 Promise rejection ───────────────────────────────────────
+    window.addEventListener('unhandledrejection', function(e) {
+        var reason = e.reason;
+        var msg = reason instanceof Error
+            ? reason.message + (reason.stack ? '\n' + reason.stack : '')
+            : String(reason);
+        _origConsole.error('[unhandledrejection]', msg);
+        var entry = { t: Date.now(), level: 'error', text: '[unhandledrejection] ' + msg };
+        _devLogBuf.push(entry);
+        if (_devLogBuf.length > 500) _devLogBuf.shift();
+        var body = document.getElementById('cx-dev-console-body');
+        if (body) {
+            body.appendChild(_buildLogRow(entry));
+            while (body.childNodes.length > 500) body.removeChild(body.firstChild);
+            var el = document.getElementById('cx-dev-console');
+            if (el && el.classList.contains('expanded')) body.scrollTop = body.scrollHeight;
+        }
+    });
+
     function _buildLogRow(entry) {
         var d  = new Date(entry.t);
         var hh = String(d.getHours()).padStart(2, '0');
