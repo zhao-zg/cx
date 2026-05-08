@@ -528,7 +528,8 @@
         document.body.appendChild(panel);
 
         // 防滚动穿透：遮罩层外触摸不穿透，面板内触摸正常滚动
-        window.CX.lockOverlayScroll(overlay);
+        // 传入 toggleThemePanel 作为遮罩点击回调，保证移动端 touchend 也能关闭面板
+        window.CX.lockOverlayScroll(overlay, function() { window.toggleThemePanel(); });
 
         // 加载保存的主题
         const initialTheme = getPreferredTheme();

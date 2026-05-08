@@ -437,7 +437,7 @@
                 '</div>'
             ].join('');
             document.body.appendChild(mask);
-            if(window.CX&&window.CX.lockOverlayScroll)window.CX.lockOverlayScroll(mask);
+            if(window.CX&&window.CX.lockOverlayScroll)window.CX.lockOverlayScroll(mask,close);
 
             // 关闭
             function close(){if(mask.parentNode)mask.parentNode.removeChild(mask);if(window.CX&&window.CX.backStack)window.CX.backStack.pop();}
