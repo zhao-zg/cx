@@ -560,8 +560,8 @@
                     '<div style="font-size:13px;font-weight:500;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(label) + '</div>' +
                     '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">缓存已清除</div>' +
                   '</div>' +
-                  '<button class="cx-restore-initial action-btn" data-path="' + escAttr(path) + '" ' +
-                    'style="font-size:12px;padding:3px 8px">↺ 重新安装</button>';
+                  '<button class="cx-restore-initial action-btn icon" data-path="' + escAttr(path) + '" ' +
+                    'style="font-size:12px;padding:3px 10px;flex-shrink:0">↺ 重新安装</button>';
                 rowEl.querySelector('.cx-restore-initial').addEventListener('click', function () {
                   restoreInitialTraining(path, rowEl, function () {
                     tabLoaded['default'] = false; renderDefaultTab();
