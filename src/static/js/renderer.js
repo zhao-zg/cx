@@ -44,6 +44,7 @@
   // 滚动位置记忆
   var _scrollSaveTimer = null;
   var _scrollSaveHandler = null;
+  var _scrollPageKey = null;  // 当前听抄页的 per-page 滚动键（仅 viewType==='h' 时非 null）
 
   function loadTraining(batchPath) {
     if (_cache[batchPath]) return Promise.resolve(_cache[batchPath]);
@@ -788,9 +789,15 @@
       localStorage.setItem('cx_last_page_date', _today);
       localStorage.setItem('cx_last_page_view', viewType || '');
       localStorage.setItem('cx_last_scroll', '0'); // 重置，等待滚动事件更新
+      // 记录每篇的上次访问视图，供目录页恢复导航目标
+      if (batchPath && chapter && chapter.number) {
+        localStorage.setItem('cx_chapter_view:' + batchPath + '/' + chapter.number, viewType || '');
+      }
     } catch(e){}
 
     // 设置滚动位置保存监听
+    _scrollPageKey = (viewType === 'h' && batchPath && chapter && chapter.number)
+      ? ('cx_h_scroll:' + batchPath + '/' + chapter.number) : null;
     if (_scrollSaveHandler) {
       win.removeEventListener('scroll', _scrollSaveHandler);
       _scrollSaveHandler = null;
@@ -798,7 +805,11 @@
     _scrollSaveHandler = function() {
       if (_scrollSaveTimer) clearTimeout(_scrollSaveTimer);
       _scrollSaveTimer = setTimeout(function() {
-        try { localStorage.setItem('cx_last_scroll', String(win.scrollY || 0)); } catch(e){}
+        try {
+          var _sy = String(win.scrollY || 0);
+          localStorage.setItem('cx_last_scroll', _sy);
+          if (_scrollPageKey) localStorage.setItem(_scrollPageKey, _sy);
+        } catch(e){}
       }, 300);
     };
     win.addEventListener('scroll', _scrollSaveHandler, {passive: true});
@@ -814,6 +825,15 @@
         // 延迟确保 initDayPager 等异步初始化完成后再滚动
         setTimeout(function() { try { win.scrollTo(0, _savedScrollVal); } catch(e){} }, 200);
       }
+    }
+    // 听抄页：始终从 per-page 键恢复滚动（覆盖在App内切换视图/跨章节导航等场景）
+    if (viewType === 'h' && _scrollPageKey) {
+      try {
+        var _hScroll = parseInt(localStorage.getItem(_scrollPageKey) || '0', 10);
+        if (_hScroll > 0) {
+          setTimeout(function() { try { win.scrollTo(0, _hScroll); } catch(e){} }, 200);
+        }
+      } catch(e){}
     }
 
     if (win.CXSearch && win.CXSearch.handleSearchTargetSPA) {
@@ -987,7 +1007,9 @@
         navLinks += '<button type="button" id="cx-search-btn" class="nav-link" title="搜索">🔍</button>';
 
         var tocItems = (training.chapters || []).map(function(ch) {
-          var defView = (ch.morning_revivals && ch.morning_revivals.length > 0) ? 'cx' : 'cv';
+          var savedView = '';
+          try { savedView = localStorage.getItem('cx_chapter_view:' + batchPath + '/' + ch.number) || ''; } catch(e){}
+          var defView = savedView || ((ch.morning_revivals && ch.morning_revivals.length > 0) ? 'cx' : 'cv');
           return '<a href="javascript:void(0)" class="toc-item" onclick="CXRouter.navigate(\'' +
             escAttr(batchPath) + '/' + ch.number + '/' + defView + '\')" data-chapter="' + ch.number + '">' +
             '<span class="toc-num">第' + ch.number + '篇</span>' +
