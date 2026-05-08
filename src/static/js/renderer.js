@@ -798,6 +798,7 @@
     // 设置滚动位置保存监听
     _scrollPageKey = (viewType === 'h' && batchPath && chapter && chapter.number)
       ? ('cx_h_scroll:' + batchPath + '/' + chapter.number) : null;
+    if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
     if (_scrollSaveHandler) {
       win.removeEventListener('scroll', _scrollSaveHandler);
       _scrollSaveHandler = null;
@@ -983,6 +984,11 @@
   // ── 批次目录页 ──────────────────────────────────────────────────────────
 
   function renderBatchIndex(batchPath) {
+    // 离开听抄等章节页前，丢弃还未提交的 scroll 防抖 timer，避免 scrollTo(0,0) 触发的 scroll
+    // 事件在 300ms 后把 scrollY=0 写回 cx_h_scroll 键，覆盖用户的记忆位置
+    if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
+    if (_scrollSaveHandler) { win.removeEventListener('scroll', _scrollSaveHandler); _scrollSaveHandler = null; }
+    _scrollPageKey = null;
     showApp();
     rescueThemeBtn();
     getApp().innerHTML = '<div class="home-status"><div class="home-status-icon">⏳</div>加载中...</div>';
@@ -1047,6 +1053,9 @@
   }
 
   function renderMotto(batchPath) {
+    if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
+    if (_scrollSaveHandler) { win.removeEventListener('scroll', _scrollSaveHandler); _scrollSaveHandler = null; }
+    _scrollPageKey = null;
     showApp();
     rescueThemeBtn();
     loadTraining(batchPath).then(function(training) {
@@ -1103,6 +1112,9 @@
   }
 
   function renderMottoSong(batchPath) {
+    if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
+    if (_scrollSaveHandler) { win.removeEventListener('scroll', _scrollSaveHandler); _scrollSaveHandler = null; }
+    _scrollPageKey = null;
     showApp();
     rescueThemeBtn();
     var root = win.CX_ROOT || './';
@@ -1144,6 +1156,9 @@
   }
 
   function renderHome() {
+    if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
+    if (_scrollSaveHandler) { win.removeEventListener('scroll', _scrollSaveHandler); _scrollSaveHandler = null; }
+    _scrollPageKey = null;
     showHome();
     try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e) {}
     try { localStorage.setItem('cx_last_page', win.location.href); } catch(e) {}
