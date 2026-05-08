@@ -382,21 +382,26 @@
       while ((m2 = _INLINE_F5_RE.exec(seg)) !== null) {
         allMatches.push({ index: m2.index, text: m2[0] });
       }
-      // 收集《书全名...》上下文更新点（如《雅歌结晶读经》→ 上下文切换到歌）
-      var BOOK_TITLE_RE = /《([^》\n]{2,15})》/g;
-      BOOK_TITLE_RE.lastIndex = 0;
-      var bm;
-      while ((bm = BOOK_TITLE_RE.exec(seg)) !== null) {
-        var inner = bm[1];
-        for (var ki = 0; ki < _sortedFullNames.length; ki++) {
-          if (inner.indexOf(_sortedFullNames[ki]) === 0) {
-            allMatches.push({ index: bm.index, text: bm[0], ctxBook: FULL_BOOK_MAP[_sortedFullNames[ki]] });
-            break;
+      // 收集正文/书名中裸露书卷全名上下文更新点（后不接章节号，用于括号相对引用的上下文推断）
+      // 例：「以赛亚书（七14，八8）」→ book=赛；「《雅歌结晶读经》」→ 找到「雅歌」→ book=歌
+      for (var ki2 = 0; ki2 < _sortedFullNames.length; ki2++) {
+        var _fn = _sortedFullNames[ki2];
+        var _fi = seg.indexOf(_fn);
+        while (_fi >= 0) {
+          var _fe = _fi + _fn.length;
+          var _nc = _fe < seg.length ? seg[_fe] : '';
+          // 后不接章节号相关字符（否则 _INLINE_F5_RE 已捕获或会捕获）
+          if (!/[一二三四五六七八九十百\d章篇]/.test(_nc)) {
+            allMatches.push({ index: _fi, text: _fn, ctxBook: FULL_BOOK_MAP[_fn] });
           }
+          _fi = seg.indexOf(_fn, _fe);
         }
       }
-      // 按位置排序，去除重叠（保留先出现的）
-      allMatches.sort(function (a, b) { return a.index - b.index; });
+      // 按位置排序，去除重叠（同位置时较长匹配优先，防止短书名覆盖长内联引用）
+      allMatches.sort(function (a, b) {
+        if (a.index !== b.index) return a.index - b.index;
+        return b.text.length - a.text.length; // 同位置：长者优先
+      });
       var filtered = [], prevEnd = 0;
       for (var mi = 0; mi < allMatches.length; mi++) {
         if (allMatches[mi].index >= prevEnd) {
