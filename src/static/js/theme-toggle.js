@@ -710,6 +710,7 @@
 
 
         // ── 安卓离线 APK（Android 浏览器，非 Capacitor，所有页面可用）──
+        var apkBtn = document.getElementById('androidApkBtn');
         if (isAndroid && !isCapacitor) {
             if (apkBtn) {
                 apkBtn.style.display = 'inline-flex';
