@@ -166,7 +166,8 @@
   }
 
   // 恢复已删除的初始安装训练：从服务器重新下载 training.json 缓存到 cx-main
-  function restoreInitialTraining(trainingPath, rowEl) {
+  // onSuccess 回调由调用方（在对话框闭包内）提供，避免模块级函数访问闭包变量
+  function restoreInitialTraining(trainingPath, rowEl, onSuccess) {
     var url = win.location.origin + '/' + trainingPath + '/training.json';
     var btn = rowEl.querySelector('.cx-restore-initial');
     if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
@@ -177,7 +178,7 @@
       });
     }).then(function () {
       if (win.refreshHomeGrid) win.refreshHomeGrid();
-      tabLoaded['default'] = false; renderDefaultTab();
+      if (onSuccess) onSuccess();
     }).catch(function (err) {
       if (btn) { btn.disabled = false; btn.textContent = '↺ 重新安装'; }
       alert('恢复失败：' + (err && err.message ? err.message : '网络错误'));
@@ -315,7 +316,7 @@
           '<button id="cxTabBtnImport" style="' + _tabBtn + '">导入</button>' +
         '</div>' +
         // 多选工具栏（仅默认/导入 Tab 可见）
-        '<div id="cxCmSelBar" style="display:none;padding:6px 16px;background:var(--surface-alt);border-bottom:1px solid var(--border);align-items:center;justify-content:space-between">' +
+        '<div id="cxCmSelBar" style="display:none;padding:6px 16px;background:var(--surface-alt);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">' +
           '<label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);cursor:pointer">' +
             '<input type="checkbox" id="cxCmSelectAll" style="margin:0"> 全选' +
           '</label>' +
@@ -413,7 +414,7 @@
       var boxes   = getCheckboxes();
       var checked = boxes.filter(function (b) { return b.checked; });
       if (boxes.length) {
-        selBar.style.display = 'flex';
+        selBar.style.display = '';
         deleteSelBtn.textContent   = '删除选中(' + checked.length + ')';
         deleteSelBtn.disabled      = checked.length === 0;
         selectAllChk.indeterminate = checked.length > 0 && checked.length < boxes.length;
@@ -535,7 +536,7 @@
                 '</div>' +
                 '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">' + (tr.chapter_count || 0) + ' 篇</div>' +
               '</div>' +
-              '<button class="cx-cm-del-one action-btn danger icon" data-path="' + escAttr(tr.path) + '" data-src="default"' + (tr.isInitial ? ' data-initial="1"' : '') + '>🗑</button>' +
+              '<button class="cx-cm-del-one action-btn danger icon" data-path="' + escAttr(tr.path) + '" data-src="default"' + (tr.isInitial ? ' data-initial="1"' : '') + ' data-label="' + escAttr(_trainingLabel(tr.path, tr.year, tr.season, tr.title)) + '">🗑</button>' +
             '</div>';
         });
         content.innerHTML = html;
@@ -549,16 +550,22 @@
             var isInitial = btn.getAttribute('data-initial') === '1';
             if (!confirm('确认删除该训练的缓存？' + (isInitial ? '\n（已安装训练删除后可在此重新安装）' : ''))) return;
             var rowEl = btn.parentElement;
+            var label = btn.getAttribute('data-label') || path;
             deleteTraining(path, function () {
               if (win.refreshHomeGrid) win.refreshHomeGrid();
               if (isInitial && rowEl) {
-                // 转换行：显示"已删除 + 重新安装"；不刷新整个 Tab
+                // 转换行：保留训练标题，显示"已删除"状态 + 重新安装按钮
                 rowEl.innerHTML =
-                  '<div style="flex:1;min-width:0;font-size:13px;color:var(--text-secondary)">已删除</div>' +
+                  '<div style="flex:1;min-width:0;overflow:hidden">' +
+                    '<div style="font-size:13px;font-weight:500;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(label) + '</div>' +
+                    '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px">缓存已清除</div>' +
+                  '</div>' +
                   '<button class="cx-restore-initial action-btn" data-path="' + escAttr(path) + '" ' +
                     'style="font-size:12px;padding:3px 8px">↺ 重新安装</button>';
                 rowEl.querySelector('.cx-restore-initial').addEventListener('click', function () {
-                  restoreInitialTraining(path, rowEl);
+                  restoreInitialTraining(path, rowEl, function () {
+                    tabLoaded['default'] = false; renderDefaultTab();
+                  });
                 });
               } else {
                 tabLoaded['default'] = false; renderDefaultTab();
