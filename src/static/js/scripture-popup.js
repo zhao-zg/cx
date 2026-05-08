@@ -400,8 +400,8 @@
       if (e.target === overlay) { e.stopPropagation(); closeModal(); }
     });
 
-    /* 防滚动穿透 */
-    window.CX.lockOverlayScroll(overlay);
+    /* 防滚动穿透 + 触摸点遮罩关闭（mobile touchend → preventDefault 阻止穿透点击） */
+    window.CX.lockOverlayScroll(overlay, closeModal);
 
     return { overlay: overlay, title: title, body: body, backBtn: backBtn };
   }

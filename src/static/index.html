@@ -419,14 +419,6 @@
                     '    <button id="cxAdminUpdateBtn" class="action-btn feedback icon">检查</button>',
                     '  </div>',
                 ].join(''):'',
-                // 资源管理行
-                '  <div class="pref-row" style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:2px">',
-                '    <div class="pref-label-wrap">',
-                '      <span class="pref-title">资源管理</span>',
-                '      <span class="pref-desc">已缓存训练 · 历史资源包 · 本地导入</span>',
-                '    </div>',
-                '    <button id="cxAdminCacheMgrBtn" class="action-btn primary icon">📦 管理</button>',
-                '  </div>',
                 // 开发者模式行
                 '  <div class="pref-row" style="padding-top:8px">',
                 '    <div class="pref-label-wrap">',
@@ -469,21 +461,15 @@
                 });
             }
 
-            // 资源管理按钮（进入 showCachedDialog，内部可跳转下载弹层）
-            var _cmBtn=document.getElementById('cxAdminCacheMgrBtn');
-            if(_cmBtn){
-                _cmBtn.addEventListener('click',function(){
-                    close();
-                    if(window.CXResourcePack&&window.CXResourcePack.showCachedDialog)
-                        window.CXResourcePack.showCachedDialog();
-                });
-            }
             // 开发者模式开关
             document.getElementById('cxAdminDevToggle').addEventListener('change',function(){
                 var on=this.checked;
                 try{localStorage.setItem('cx_dev_mode',on?'1':'0');}catch(e){}
                 if(on&&window.CXDevConsole)window.CXDevConsole.init();
                 else if(!on&&window.CXDevConsole)window.CXDevConsole.destroy();
+                // 同步设置面板"资源管理"按钮可见性
+                var _rmBtn=document.getElementById('resourceMgrBtn');
+                if(_rmBtn)_rmBtn.style.display=on?'inline-flex':'none';
             });
         }
     })();

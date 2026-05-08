@@ -229,10 +229,13 @@
         }
     };
 
-    // ── CX.lockOverlayScroll：弹框遮罩层防滚动穿透（通用工具）──
-    // 绑定 touchstart/touchmove 到 overlay，自动识别内部可滚动子元素并处理边界。
-    // 返回 cleanup 函数，在弹框关闭时调用解绑（可选，DOM 移除后 GC 自动回收）。
-    window.CX.lockOverlayScroll = function(overlay) {
+    // ── CX.lockOverlayScroll：弹框遮罩层防滚动穿透 + 防点击穿透（通用工具）──
+    // 绑定 touchstart/touchmove/touchend 到 overlay：
+    //   • touchmove     — 防滚动穿透（自动识别内部可滚动子元素并处理边界）
+    //   • touchend      — 防点击穿透：直接点遮罩时调 preventDefault 阻止浏览器合成 click，
+    //                     同时触发可选的 onTapOverlay 回调（由调用方传入关闭逻辑）
+    // 返回 cleanup 函数（可选调用，DOM 移除后 GC 自动回收）。
+    window.CX.lockOverlayScroll = function(overlay, onTapOverlay) {
         var _tsY = 0;
         function _onTouchStart(e) {
             if (e.touches && e.touches.length) _tsY = e.touches[0].clientY;
@@ -258,11 +261,21 @@
                 e.preventDefault();
             }
         }
+        function _onTouchEnd(e) {
+            // 手指落在遮罩空白区（非内部元素）：阻止合成 click（防穿透），并通知调用方
+            if (e.target === overlay) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onTapOverlay) onTapOverlay();
+            }
+        }
         overlay.addEventListener('touchstart', _onTouchStart, { passive: true });
         overlay.addEventListener('touchmove',  _onTouchMove,  { passive: false });
+        overlay.addEventListener('touchend',   _onTouchEnd,   { passive: false });
         return function() {
             overlay.removeEventListener('touchstart', _onTouchStart);
             overlay.removeEventListener('touchmove',  _onTouchMove);
+            overlay.removeEventListener('touchend',   _onTouchEnd);
         };
     };
 
@@ -281,7 +294,6 @@
         mask.className = opts.className || 'cx-dialog-mask';
         mask.innerHTML = opts.html || '';
         document.body.appendChild(mask);
-        window.CX.lockOverlayScroll(mask);
         var _closed = false;
         function _destroy() {
             if (_closed) return; _closed = true;
@@ -292,7 +304,9 @@
         window.CX.backStack.push(function() { _destroy(); });
         // 主动关闭（按钮/遮罩点击）：移除 DOM + 消耗 history 记录
         function close() { _destroy(); window.CX.backStack.pop(); }
-        // 点遮罩空白区关闭，阻止冒泡避免误触设置面板
+        // lockOverlayScroll 统一处理防滚动穿透 + 防点击穿透（touchend → close）
+        window.CX.lockOverlayScroll(mask, close);
+        // 桌面/鼠标端：click 处理（移动端因 touchend 已 preventDefault，不会重复触发）
         mask.addEventListener('click', function(e) {
             if (e.target === mask) { e.stopPropagation(); close(); }
         });
@@ -490,6 +504,9 @@
                     <button class="action-btn feedback" id="feedbackBtn">
                         <span class="cache-icon">💬</span><span class="cache-text">问题反馈</span>
                     </button>
+                    <button class="action-btn" id="resourceMgrBtn" style="display:none">
+                        <span class="cache-icon">📦</span><span class="cache-text">资源管理</span>
+                    </button>
 
                 </div>
                 <div class="cache-status" id="actionStatus"></div>
@@ -615,6 +632,17 @@
             if (feedbackBtn) {
                 feedbackBtn.addEventListener('click', showFeedbackDialog);
             }
+        })();
+
+        // ── 资源管理（仅开发者模式可见）────────────────────────────────
+        (function() {
+            var resMgrBtn = document.getElementById('resourceMgrBtn');
+            if (!resMgrBtn) return;
+            try { if (localStorage.getItem('cx_dev_mode') === '1') resMgrBtn.style.display = 'inline-flex'; } catch(e) {}
+            resMgrBtn.addEventListener('click', function() {
+                if (window.CXResourcePack && window.CXResourcePack.showCachedDialog)
+                    window.CXResourcePack.showCachedDialog();
+            });
         })();
 
         // 环境检测
