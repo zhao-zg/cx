@@ -562,10 +562,10 @@
         var THEME = getTheme();
         var latestVersion = release.tag_name;
         var isVersionUnknown = (currentVersion === '未知');
-        
-        var html = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="apkUpdateDialog">';
-        html += '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto;">';
-        
+
+        // 内部 box（外层遮罩由 CX.openDialog 统一创建）
+        var html = '<div style="background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto;">';
+
         if (isVersionUnknown) {
             html += '<h3 style="color: ' + THEME.brand + '; margin-bottom: 15px; font-size: 20px;">📱 APK 下载</h3>';
         } else if (comparison > 0) {
@@ -575,14 +575,13 @@
         } else {
             html += '<h3 style="color: ' + THEME.brand + '; margin-bottom: 15px; font-size: 20px;">📱 版本信息</h3>';
         }
-        
+
         html += '<div style="color: #333; margin-bottom: 20px; font-size: 14px; line-height: 1.6;">';
         html += '<p style="margin-bottom: 10px;">';
         html += '<strong>当前版本：</strong>' + (isVersionUnknown ? '未知' : 'v' + currentVersion) + '<br>';
         html += '<strong>最新版本：</strong>' + latestVersion;
         html += '</p>';
-        
-        // 显示版本状态提示
+
         if (isVersionUnknown) {
             html += '<div style="background: #fff3cd; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; color: #856404; margin-bottom: 15px;">';
             html += '⚠️ 无法获取当前版本号<br>建议下载最新版本';
@@ -600,7 +599,7 @@
             html += '⚠️ 您的版本比最新版本还新（测试版）';
             html += '</div>';
         }
-        
+
         // 按钮
         var sizeText = apk ? ' (' + (apk.size / 1024 / 1024).toFixed(1) + ' MB)' : '';
         if (isVersionUnknown || comparison > 0) {
@@ -613,17 +612,14 @@
             html += '💾 重新下载' + sizeText;
             html += '</button>';
         }
-        
+
         html += '</div>';
-        html += '<button style="width: 100%; padding: 12px; background: #f0f0f0; color: #666; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="document.getElementById(\'apkUpdateDialog\').remove()">关闭</button>';
-        html += '</div></div>';
-        
-        document.body.insertAdjacentHTML('beforeend', html);
-        var _apkDlgEl = document.getElementById('apkUpdateDialog');
-        window.CX.lockOverlayScroll(_apkDlgEl, function() {
-            var dlg = document.getElementById('apkUpdateDialog');
-            if (dlg) dlg.remove();
-        });
+        html += '<button id="apkUpdateDialogCloseBtn" style="width: 100%; padding: 12px; background: #f0f0f0; color: #666; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">关闭</button>';
+        html += '</div>';
+
+        var dlg = window.CX.openDialog({ id: 'apkUpdateDialog', html: html });
+        if (!dlg) return;
+        document.getElementById('apkUpdateDialogCloseBtn').addEventListener('click', dlg.close);
     }
     
     // ==================== 公开接口 ====================
@@ -795,8 +791,8 @@
     function createUpdateDialog(dialogId, title, statusId, btnId) {
         var THEME = getTheme();
 
-        var html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;" id="' + dialogId + '">';
-        html += '<div style="background:white;border-radius:12px;max-width:400px;width:100%;max-height:88vh;overflow:hidden;">';
+        // 内部 box + 两面板（外层遮罩由 CX.openDialog 统一创建）
+        var html = '<div style="background:white;border-radius:12px;max-width:400px;width:100%;max-height:88vh;overflow:hidden;">';
 
         // ── 主面板 ──
         html += '<div id="' + dialogId + '-panel-main" style="display:block;">';
@@ -806,7 +802,6 @@
         html += '<div id="' + statusId + '" style="color:#666;font-size:14px;line-height:1.7;">正在检查...</div>';
         html += '<button id="' + btnId + '" style="display:none;width:100%;padding:10px;margin-top:10px;background:' + THEME.bg + ';color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">立即更新应用</button>';
         html += '</div>';
-        // 更新内容内联区（有新版本时自动显示，changelog 异步填充）
         html += '<div id="' + dialogId + '-cl-inline" style="display:none;background:#f6fff8;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:12px;overflow-y:auto;max-height:260px;font-size:13px;"></div>';
         html += '<button id="' + dialogId + '-hist-btn" style="display:none;width:100%;padding:9px 14px;margin-bottom:12px;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-align:left;">📖 历史版本 ›</button>';
         html += '<button id="' + dialogId + '-close" style="width:100%;padding:11px;background:#e2e8f0;color:#4a5568;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">关闭</button>';
@@ -821,10 +816,10 @@
         html += '<div id="' + dialogId + '-hist-content" style="padding:14px 16px;overflow-y:auto;max-height:calc(88vh - 50px);font-size:13px;"></div>';
         html += '</div>'; // end panel-hist
 
-        html += '</div></div>'; // end box + overlay
-        document.body.insertAdjacentHTML('beforeend', html);
+        html += '</div>'; // end box
 
-        var _overlayEl = document.getElementById(dialogId);
+        var dlg = window.CX.openDialog({ id: dialogId, html: html });
+        if (!dlg) return function() {};
 
         // ── 面板切换 ──
         var _panel = 'main';
@@ -843,21 +838,11 @@
             _show(name);
         }
 
-        // 关闭对话框（关闭按钮调用）：清理 DOM + 消耗 backStack 记录
+        // 关闭对话框：若在子面板先消耗子面板 backStack 记录，再调 openDialog 的 close
         function _close() {
-            _unlockScroll();
             if (_panel !== 'main') window.CX.backStack.pop();
-            window.CX.backStack.pop();
-            var dlg = document.getElementById(dialogId);
-            if (dlg) dlg.remove();
+            dlg.close();
         }
-
-        // 向 CX.backStack 注册对话框关闭回调（系统返回键触发）
-        window.CX.backStack.push(function() {
-            _unlockScroll();
-            var dlg = document.getElementById(dialogId);
-            if (dlg) dlg.remove();
-        });
 
         // 绑定按钮事件
         var el;
@@ -867,9 +852,6 @@
         if (el) el.onclick = function() { history.back(); };
         el = document.getElementById(dialogId + '-close');
         if (el) el.onclick = _close;
-
-        // 点遮罩关闭（_close 已定义后再注册 touchend 回调）；同时防滚动穿透
-        var _unlockScroll = _overlayEl ? window.CX.lockOverlayScroll(_overlayEl, _close) : function() {};
 
         return _close;
     }
