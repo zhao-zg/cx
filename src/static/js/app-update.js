@@ -619,7 +619,11 @@
         html += '</div></div>';
         
         document.body.insertAdjacentHTML('beforeend', html);
-        window.CX.lockOverlayScroll(document.getElementById('apkUpdateDialog'));
+        var _apkDlgEl = document.getElementById('apkUpdateDialog');
+        window.CX.lockOverlayScroll(_apkDlgEl, function() {
+            var dlg = document.getElementById('apkUpdateDialog');
+            if (dlg) dlg.remove();
+        });
     }
     
     // ==================== 公开接口 ====================
@@ -820,8 +824,7 @@
         html += '</div></div>'; // end box + overlay
         document.body.insertAdjacentHTML('beforeend', html);
 
-        // 防滚动穿透（使用全局统一工具）
-        var _unlockScroll = window.CX.lockOverlayScroll(document.getElementById(dialogId));
+        var _overlayEl = document.getElementById(dialogId);
 
         // ── 面板切换 ──
         var _panel = 'main';
@@ -864,6 +867,10 @@
         if (el) el.onclick = function() { history.back(); };
         el = document.getElementById(dialogId + '-close');
         if (el) el.onclick = _close;
+
+        // 点遮罩关闭（_close 已定义后再注册 touchend 回调）；同时防滚动穿透
+        var _unlockScroll = _overlayEl ? window.CX.lockOverlayScroll(_overlayEl, _close) : function() {};
+
         return _close;
     }
     
