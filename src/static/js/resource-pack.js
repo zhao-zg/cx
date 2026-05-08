@@ -315,7 +315,7 @@
           '<button id="cxTabBtnImport" style="' + _tabBtn + '">导入</button>' +
         '</div>' +
         // 多选工具栏（仅默认/导入 Tab 可见）
-        '<div id="cxCmSelBar" style="display:none;padding:6px 16px;background:var(--surface-alt);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">' +
+        '<div id="cxCmSelBar" style="display:none;padding:6px 16px;background:var(--surface-alt);border-bottom:1px solid var(--border);align-items:center;justify-content:space-between">' +
           '<label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);cursor:pointer">' +
             '<input type="checkbox" id="cxCmSelectAll" style="margin:0"> 全选' +
           '</label>' +
@@ -413,7 +413,7 @@
       var boxes   = getCheckboxes();
       var checked = boxes.filter(function (b) { return b.checked; });
       if (boxes.length) {
-        selBar.style.display = '';
+        selBar.style.display = 'flex';
         deleteSelBtn.textContent   = '删除选中(' + checked.length + ')';
         deleteSelBtn.disabled      = checked.length === 0;
         selectAllChk.indeterminate = checked.length > 0 && checked.length < boxes.length;

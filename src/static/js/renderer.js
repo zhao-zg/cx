@@ -209,7 +209,7 @@
     var html = '<div class="page-navigation">';
     html += '<a href="javascript:void(0)" class="nav-link" title="返回目录" onclick="CXRouter.navigate(\'' + escAttr(batchPath) + '\')">返回</a>';
     html += link('cv', '纲目');
-    if (chapter.message_content && chapter.message_content.length > 0) {
+    if ((chapter.message_content && chapter.message_content.length > 0) || chapter.has_listen_block) {
       html += link('h', '听抄');
     }
     if (chapter.morning_revivals && chapter.morning_revivals.length > 0) {
@@ -389,7 +389,11 @@
   // ── 视图: h（听抄）────────────────────────────────────────────────────
 
   function renderH(batchPath, chapter, training) {
-    if (!chapter.message_content || !chapter.message_content.length) {
+    // 无听抄内容时跳转 cv：
+    // TXT 导入路径用 has_listen_block 判断（即使 pre 为空、message_content=[]，detail_sections 仍可有正文）
+    // Python 路径直接依赖 message_content 非空
+    var hasContent = (chapter.message_content && chapter.message_content.length) || chapter.has_listen_block;
+    if (!hasContent) {
       if (win.CXRouter) win.CXRouter.navigateReplace(batchPath + '/' + chapter.number + '/cv');
       return;
     }

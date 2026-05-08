@@ -1764,24 +1764,6 @@ class ImprovedParser:
         Returns:
             Content对象列表
         """
-        # 添加调试信息
-        debug_msg = f"_parse_outline_content called with {len(content_lines)} lines"
-        if content_lines:
-            debug_msg += f", first line: {content_lines[0][:50]}..."
-        with open('debug_outline_parsing.log', 'a', encoding='utf-8') as f:
-            f.write(debug_msg + '\n')
-            for i, line in enumerate(content_lines):
-                f.write(f"  Line {i}: {line}\n")
-            
-            # 特别检查是否包含周六特征内容
-            is_saturday_content = any(keyword in ' '.join(content_lines) for keyword in ["贰", "四", "五"])
-            saturday_keywords = ["四　我们必须在新样里", "五　我们日日得更新", "六　我们调和的灵需要扩展"]
-            for keyword in saturday_keywords:
-                for line in content_lines:
-                    if keyword in line:
-                        f.write(f"*** FOUND SATURDAY KEYWORD: {keyword} in line: {line}\n")
-                        break
-        
         result = []
         current_level1 = None
         current_level2 = None

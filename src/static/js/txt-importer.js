@@ -567,6 +567,7 @@
       outline_sections: outlineSections,
       detail_sections: detailSections,
       message_content: messageContent,
+      has_listen_block: hasDetail,  // TXT 路径标记：是否真正解析到听抄块（无初始内容时 message_content 可能为空）
       ministry_excerpt: '',
       morning_revivals: morningRevivals
     };
@@ -721,7 +722,9 @@
       var raw = lines[i];
       var s = raw.trim();
       if (!s || /^TOP/.test(s) || isNavLine(s)) continue;
+      if (/^(读经|诗歌)/.test(s)) continue; // 与 scripture/hymn banner 去重，避免重复出现在正文
       if (s.indexOf('（本文为英文听抄') >= 0) continue;
+      if (s.indexOf('未经讲者审阅') >= 0) continue; // 过滤听抄免责声明行
 
       var result = detectOutlineLevelStrict(s);
       if (result) {
@@ -785,6 +788,18 @@
   var _DAY_LABEL_RE = /^周[\s\u3000]*([一二三四五六])$/;
   // 晨兴喂养经文行：以书卷缩写(1-2字)+章节/节号开头
   var _FEEDING_SCRIP_RE = /^[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提多门彼雅犹启壹贰叁前后来]{1,2}[一二三四五六七八九十\d]/;
+  // 经文续行：中文章号+数字节号（无书名，如 "二1　..." / "二34~35　..."）
+  var _FEEDING_SCRIP_RE_SHORT = /^[一二三四五六七八九十百]+\d/;
+  // 经文续行：纯阿拉伯节号（同章续行，如 "17　..." / "11~13　..."）
+  var _FEEDING_SCRIP_RE_VERSE = /^\d+([~～\-]\d+)?[\s\u3000\t]/;
+
+  /** 判断一行是否为喂养经文行（镜像 Python _extract_feeding_scriptures 三种 pattern）*/
+  function _isFeedingScripLine(s) {
+    if (_FEEDING_SCRIP_RE.test(s))       return true;
+    if (_FEEDING_SCRIP_RE_SHORT.test(s)) return true;
+    if (_FEEDING_SCRIP_RE_VERSE.test(s)) return true;
+    return false;
+  }
 
   var _ALL_DAY_CNS = ['一','二','三','四','五','六'];
   var _CN_WEEKDAY = {'一':'周一','二':'周二','三':'周三','四':'周四','五':'周五','六':'周六'};
@@ -943,8 +958,10 @@
       if (s === '信息选读') { mode = 'msgread'; continue; }
       if (/^参读/.test(s)) {
         mode = 'refread';
-        var rest = s.slice(2).replace(/^[：:]\s*/, '');
-        if (rest) refReading.push(rest);
+        // 保留完整文本含 "参读：" 前缀，与 Python _parse_morning_revival_by_text 一致
+        if (s !== '参读' && s !== '参读：' && s !== '参读:') {
+          refReading.push(s);
+        }
         continue;
       }
       if (isNavLine(s) || /^今日晨兴/.test(s) || /^TOP/.test(s)) continue;
@@ -962,7 +979,7 @@
 
   /**
    * 将 morning_feeding 行列表拆分为经文（feeding_scriptures）和正文（morning_feeding）。
-   * 经文行：以书卷缩写+章节开头（如 "结十四14    其中虽有挪亚..."）。
+   * 经文行：以书卷缩写+章节开头，或中文章号+数字节号，或纯阿拉伯节号续行。
    * 一旦遇到非经文行，后续全部归入正文。
    */
   function splitFeedingScriptures(lines) {
@@ -973,7 +990,8 @@
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i];
       if (reachedContent) { morning_feeding.push(line); continue; }
-      if (_FEEDING_SCRIP_RE.test(line.replace(/^[\s\u3000]+/, ''))) {
+      var s = line.replace(/^[\s\u3000]+/, '');
+      if (_isFeedingScripLine(s)) {
         feeding_scriptures.push(line);
       } else {
         reachedContent = true;
@@ -1369,6 +1387,8 @@
         // 异步化处理（避免阻塞 UI）
         setTimeout(function() {
           try {
+            // 全局规范化：与 Python generator._normalize_source_abbr 保持一致
+            text = text.replace(/李常受文集/g, 'CWWL').replace(/生命读经/g, 'L-S');
             var lines = text.split(/\r?\n/);
             var trainings = [];
             var isCombined = false;
