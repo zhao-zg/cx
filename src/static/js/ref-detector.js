@@ -100,13 +100,14 @@
     var CN_NO_BAI = '[一二三四五六七八九十〇]+';
     return new RegExp(
       '(?:(?:诗篇|诗)' + CN + '篇' + versePart
-      + '|' + bookPat + '的?第?' + CN + '(?:[至到]' + CN + ')?章' + versePart
+      + '|' + bookPat + '的?第?' + CN + '(?:(?:[至到]|、)' + CN + ')*章' + versePart
       + '|第?' + CN + '(?:节(?:[至到]' + CN + '节)?|(?:[至到]' + CN + ')?节)(?:[上下]半?)?'
       + '|(?:犹|门|俄|约贰|约叁)' + CN + '(?:节(?:[至到]' + CN + '节)?|(?:[至到]' + CN + ')?节)(?:[上下]半?)?'
       + '|' + bookReq + CN_NO_BAI + '\\d+[~～\\-]' + CN_NO_BAI + '\\d+'
       + '|' + bookReq + CN_NO_BAI + '(?!书)(?:[~～\\-]' + CN_NO_BAI + ')?(?:\\d+[上中下]?(?:[~～\\-]\\d+[上中下]?)?)?节?(?:[上下]半?)?'
-      + '|' + bookReq + '(?:' + CN_NO_BAI + '|[1-9]\\d*)标题'
-      + ')'
+      + '|' + bookReq + '(?:' + CN_NO_BAI + '|[1-9]\\d*)标题'      // 无书卷前缀的「中文章+阿拉伯节」相对引用（如「一4」「十四13」「二二17」）
+      // 须放在所有 bookReq 分支之后，避免遮蔽带书卷的完整引用
+      + '|' + CN_NO_BAI + '\\d+[上中下]?(?:[~～\\-]\\d+[上中下]?)?'      + ')'
       , 'g');
   }());
   function normalizeBookNames(text) {
@@ -192,6 +193,15 @@
       }
     }
 
+    // 顿号连接多章（「二、三章」「启二、三章」「一、二、三章」）→ 取首末构成范围（「二至三章」「启二至三章」「一至三章」）
+    // 必须在 split 之前预处理，否则 split(/、/) 会把「二」和「三章」分开
+    refText = refText.replace(
+      /([一二三四五六七八九十百〇]+)((?:、[一二三四五六七八九十百〇]+)+)([章篇])/g,
+      function(_, first, rest, zhang) {
+        var last = rest.replace(/^.*[、]/, '');
+        return first + '至' + last + zhang;
+      }
+    );
     var parts = refText.split(/[,，、；。]+/);
     // 诗歌/赞美诗「N首」上下文：含「N首」的括号内容是诗歌引用，第N节指诗歌节次，不是经文节号
     var _hymnCtx = /[一二三四五六七八九十百\d]+首/.test(refText);
@@ -479,8 +489,14 @@
           // 用原始末位（延伸前）计算 nextChar，避免续接节号延伸后误触 Rule1/2
           var _origEnd = fm.origEnd !== undefined ? fm.origEnd : fm.index + fm.text.length;
           var nextChar = _origEnd < seg.length ? seg[_origEnd] : '';
-          if ((isCJK.test(prevCharI) && isCJK.test(nextChar)) ||
-              /[个种们位只件份次些条样]/.test(nextChar)) {
+          // 含阿拉伯数字的短格式（如「一4」「十四13」）：阿拉伯数字在普通汉字词语中不会出现，
+          // 因而 Rule1（前后均汉字→跳过）不适用；仅保留 Rule2 并扩充量词表
+          var _hasDigit = /\d/.test(fm.text);
+          if (!_hasDigit && isCJK.test(prevCharI) && isCJK.test(nextChar)) {
+            result.push(escHtml(fm.text)); continue;
+          }
+          // Rule2：后接量词/时间词 → 跳过（含「封」防止「但七封」误识别，含「月日年」防止日期误识别）
+          if (/[个种们位只件份次些条样封月日年]/.test(nextChar)) {
             result.push(escHtml(fm.text)); continue;
           }
         }
@@ -503,7 +519,12 @@
         var irefs = expandCnRefs(fm.text, book, ch);  // 传入当前 book/ch，支持无书卷名的相对章引用
         if (irefs.length > 0) {
           var ilm = irefs[irefs.length - 1].match(/^([^\d:]+)(\d+):(\d+)/);
-          if (ilm) { book = ilm[1]; ch = parseInt(ilm[2], 10); }
+          if (ilm) {
+            book = ilm[1];
+            // 整章引用（节号为0，如「三章」→启3:0）：只更新书卷，不更新章号
+            // 避免散文中提及章名导致 ch 被意外重置，破坏后续括号的上下文
+            if (parseInt(ilm[3], 10) !== 0) ch = parseInt(ilm[2], 10);
+          }
           result.push(makeSpan(fm.text, irefs));
         } else {
           result.push(escHtml(fm.text));
@@ -527,10 +548,12 @@
       // 尝试展开括号内容
       var refs = expandCnRefs(m[1], book, ch);
       if (refs.length > 0) {
-        // 更新上下文（用最后一个 ref）
+        // 括号处理后只更新书卷，不更新章号
+        // 括号是独立的引用单元（内部已自行追踪 ch），其末 ref 不应覆盖外层 ch，
+        // 否则连续两个括号时第二个的纯节号续接会用错章（如注解中两段括号均从第2章开始）
         var lastRef = refs[refs.length - 1];
         var lm = lastRef.match(/^([^\d:]+)(\d+):(\d+)/);
-        if (lm) { book = lm[1]; ch = parseInt(lm[2], 10); }
+        if (lm) { book = lm[1]; }
         result.push(makeSpan(m[0], refs));
       } else {
         // 括号整体解析失败（如「在以弗所三章十六节，」含前置词），
