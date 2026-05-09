@@ -312,11 +312,12 @@
                 var g=document.getElementById('trainingsGrid');
                 if(!g)return;
 
-                function renderWithLocals(cachedList){
-                    // 读取历史合辑来源记录（cx_pack_sources），为历史包下载的训练打标
+                function renderWithLocals(cachedList,namedCacheSet){
+                    // 读取历史合辑来源记录（cx_pack_sources），仅对非初始数据的训练打标（初始数据优先级高于历史合辑）
+                    namedCacheSet=namedCacheSet||{};
                     var packSources={};
                     try{packSources=JSON.parse(localStorage.getItem('cx_pack_sources')||'{}');}catch(e){}
-                    cachedList.forEach(function(t){if(packSources[t.path])t.is_pack=true;});
+                    cachedList.forEach(function(t){if(!namedCacheSet[t.path]&&packSources[t.path])t.is_pack=true;});
                     if(window.CXLocalImport){
                         window.CXLocalImport.listImports().then(function(localItems){
                             // 本地导入优先：local-YYYY-NN 屏蔽同序号的网络缓存 YYYY-NN
@@ -347,8 +348,11 @@
                     var keySet={};keys.forEach(function(k){keySet[k]=true;});
                     var byKey=all.filter(function(t){return keySet['cx-'+t.path];});
                     var rest=all.filter(function(t){return!keySet['cx-'+t.path];});
+                    // 构建初始数据 path 集合（有命名缓存 cx-YYYY-NN），用于屏蔽错误的历史合辑标记
+                    var namedCacheSet={};
+                    byKey.forEach(function(t){namedCacheSet[t.path]=true;});
                     if(!rest.length){
-                        renderWithLocals(byKey.length?byKey:displayTrainings);
+                        renderWithLocals(byKey.length?byKey:displayTrainings,namedCacheSet);
                         return;
                     }
                     return Promise.all(rest.map(function(t){
@@ -357,7 +361,7 @@
                     })).then(function(flags){
                         var fromMatch=rest.filter(function(_,i){return flags[i];});
                         var cached=byKey.concat(fromMatch);
-                        renderWithLocals(cached.length?cached:displayTrainings);
+                        renderWithLocals(cached.length?cached:displayTrainings,namedCacheSet);
                     });
                 }).catch(function(){renderWithLocals(displayTrainings);});
             };

@@ -492,8 +492,7 @@
         allKeys
           .filter(function (k) { return /^cx-\d{4}-\d{2}$/.test(k); })
           .map(function (k) { return k.slice(3); })
-          .filter(function (tp) { return !sources[tp]; })
-          .forEach(function (tp) { namedSet[tp] = true; });
+          .forEach(function (tp) { namedSet[tp] = true; }); // 初始数据优先级高于历史合辑，无论是否在 packSources 都显示在「默认」Tab
 
         return caches.open(CACHE_NAME).then(function (cache) {
           return cache.keys().then(function (keys) {
