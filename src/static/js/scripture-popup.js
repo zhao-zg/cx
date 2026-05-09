@@ -206,6 +206,41 @@
     var nr = normalizeRef(ref);
     if (!nr) return [];
 
+    // 跨章范围：book c1:v1-c2:v2（如 启10:1-11:13）
+    // 展开为区间内所有已收录经节（含上/中/下半节键）
+    var mrCross = nr.match(new RegExp('^(' + REF_BOOK_RE + ')(\\d+):(\\d+)-(\\d+):(\\d+)$'));
+    if (mrCross) {
+      var bC = mrCross[1];
+      var c1C = parseInt(mrCross[2], 10), v1C = parseInt(mrCross[3], 10);
+      var c2C = parseInt(mrCross[4], 10), v2C = parseInt(mrCross[5], 10);
+      if (!isNaN(c1C) && !isNaN(v1C) && !isNaN(c2C) && !isNaN(v2C)
+          && (c2C > c1C || (c2C === c1C && v2C >= v1C))) {
+        var _rank = { '': 0, '上': 1, '中': 2, '下': 3 };
+        var arrC = Object.keys(bibleDict || {})
+          .filter(function (k) {
+            if (k.slice(-2) === ':0') return false;
+            var m = k.match(new RegExp('^' + bC + '(\\d+):(\\d+)([上中下]?)$'));
+            if (!m) return false;
+            var kc = parseInt(m[1], 10), kv = parseInt(m[2], 10);
+            if (kc < c1C || kc > c2C) return false;
+            if (kc === c1C && kv < v1C) return false;
+            if (kc === c2C && kv > v2C) return false;
+            return true;
+          })
+          .sort(function (a, b) {
+            var ma = a.match(new RegExp('^' + bC + '(\\d+):(\\d+)([上中下]?)$'));
+            var mb = b.match(new RegExp('^' + bC + '(\\d+):(\\d+)([上中下]?)$'));
+            var ca = parseInt(ma[1], 10), va = parseInt(ma[2], 10), sa = ma[3] || '';
+            var cb = parseInt(mb[1], 10), vb = parseInt(mb[2], 10), sb = mb[3] || '';
+            if (ca !== cb) return ca - cb;
+            if (va !== vb) return va - vb;
+            return (_rank[sa] || 0) - (_rank[sb] || 0);
+          });
+        if (arrC.length) return arrC;
+      }
+      return [bC + c1C + ':' + v1C, bC + c2C + ':' + v2C];
+    }
+
     /* 标题专属引用（:0T）：只显示标题文字，不展开整章 */
     if (nr.slice(-3) === ':0T') {
       return [nr];

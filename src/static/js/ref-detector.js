@@ -44,7 +44,7 @@
     '约翰一书':'约壹','约翰二书':'约贰','约翰三书':'约叁',
     '犹大书':'犹','启示录':'启','提多书':'多',
     // 省略「书/记/传」字的3字简称
-    '但以理':'但','以西结':'结','以赛亚':'赛','耶利米':'耶',
+    '但以理':'但','以西结':'结','以赛亚':'赛','耶利米':'耶','出埃及':'出',
     '何西阿':'何','阿摩司':'摩','俄巴底亚':'俄',
     '约拿':'拿','弥迦':'弥','那鸿':'鸿','哈巴谷':'哈',
     '西番雅':'番','哈该':'该','撒迦利亚':'亚','玛拉基':'玛',
@@ -230,10 +230,10 @@
         if (_di >= 0) p = p.slice(_di + 1).trim().replace(/[：:。，；,;)）」』】〗\]]+$/g, '');
       }
       if (!p) continue;
-      // 含「注N」或「与注N」尾缀（如「但一8注1」「诗一一九15与注1」）：剥离尾缀后继续展开经文
+      // 含「注N」尾缀（如「但一8注1」「诗一一九15与注1」「来十19~20与20注2」）：剥离尾缀后继续展开经文
       // 注意：不再 return []，避免破折号/括号引用因含 注N 而整体失效
-      if (/与?注\d+$/.test(p)) {
-        p = p.replace(/与?注\d+$/, '').trim();
+      if (/(?:与?注\d+|与\d+注\d+)$/.test(p)) {
+        p = p.replace(/(?:与?注\d+|与\d+注\d+)$/, '').trim();
         if (!p) continue;
       }
       // 标准化「v1节至/到v2节」→「v1至v2节」，以便 F5/F7 等格式正确解析
@@ -287,8 +287,7 @@
         var c2x = cnToInt(m[4]); var v2x = parseInt(m[5], 10);
         if (!bx || !c1x || !c2x || c1x > 150 || c2x > 150) continue;
         book = bx; ch = c2x;
-        refs.push(book + c1x + ':' + v1x);
-        if (c2x !== c1x || v2x !== v1x) refs.push(book + c2x + ':' + v2x);
+        refs.push(book + c1x + ':' + v1x + '-' + c2x + ':' + v2x);
         continue;
       }
       // F1: book + cn_chapter + arabic_verse
@@ -319,8 +318,7 @@
       if (F_vc && (m = F_vc.exec(p))) {
         var v1vc = parseInt(m[1], 10); var c2vc = cnToInt(m[2]); var v2vc = parseInt(m[3], 10);
         if (v1vc && c2vc && c2vc <= 150) {
-          refs.push(book + ch + ':' + v1vc);
-          if (c2vc !== ch || v2vc !== v1vc) refs.push(book + c2vc + ':' + v2vc);
+          refs.push(book + ch + ':' + v1vc + '-' + c2vc + ':' + v2vc);
           ch = c2vc;
           continue;
         }
@@ -365,8 +363,7 @@
       if (book && ch && (m = F12.exec(p))) {
         var v1_12 = parseInt(m[1], 10), c2_12 = cnToInt(m[3]), v2_12 = parseInt(m[4], 10);
         if (v1_12 >= 1 && c2_12 >= 1 && c2_12 <= 150 && v2_12 >= 1 && v2_12 <= 176) {
-          refs.push(book + ch + ':' + v1_12 + (m[2]||''));
-          refs.push(book + c2_12 + ':' + v2_12 + (m[5]||''));
+          refs.push(book + ch + ':' + v1_12 + '-' + c2_12 + ':' + v2_12);
           ch = c2_12;
         }
         continue;
@@ -568,7 +565,12 @@
             book = ilm[1];
             // 整章引用（节号为0，如「三章」→启3:0）：只更新书卷，不更新章号
             // 避免散文中提及章名导致 ch 被意外重置，破坏后续括号的上下文
-            if (parseInt(ilm[3], 10) !== 0) ch = parseInt(ilm[2], 10);
+            if (parseInt(ilm[3], 10) !== 0) {
+              ch = parseInt(ilm[2], 10);
+            } else if (!ch) {
+              // 仅在当前章号缺失时，用整章引用补齐章号（如「以赛亚六章…（1）」）
+              ch = parseInt(ilm[2], 10);
+            }
           }
           result.push(makeSpan(fm.text, irefs));
         } else {
@@ -607,12 +609,22 @@
       // 尝试展开括号内容
       var refs = expandCnRefs(m[1], book, ch);
       if (refs.length > 0) {
-        // 括号处理后只更新书卷，不更新章号
-        // 括号是独立的引用单元（内部已自行追踪 ch），其末 ref 不应覆盖外层 ch，
-        // 否则连续两个括号时第二个的纯节号续接会用错章（如注解中两段括号均从第2章开始）
+        // 括号处理后的上下文更新：
+        // 1) 允许在外层 ch 缺失时从括号内补齐章号（如「…（一26）…（28）」中的 28）
+        // 2) 避免无条件覆盖外层 ch，防止连续括号把纯节续接到错误章
         var lastRef = refs[refs.length - 1];
         var lm = lastRef.match(/^([^\d:]+)(\d+):(\d+)/);
-        if (lm && !_lockBook) { book = lm[1]; }
+        if (lm && !_lockBook) {
+          var _newBook = lm[1];
+          var _newCh = parseInt(lm[2], 10);
+          // 书卷变化时同步章号；同书卷仅在外层无章号时补齐
+          if (_newBook !== book) {
+            book = _newBook;
+            ch = _newCh;
+          } else if (!ch) {
+            ch = _newCh;
+          }
+        }
         result.push(makeSpan(m[0], refs));
       } else {
         // 括号整体解析失败（如「在以弗所三章十六节，」含前置词），
