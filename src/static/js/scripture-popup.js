@@ -589,7 +589,7 @@
   /* 渲染注解文字（内嵌经文引用变为可点击，verseKey 提供书卷上下文） */
   function renderNoteText(text, verseKey) {
     if (window.CXRef && window.CXRef.wrapRefs) {
-      return window.CXRef.wrapRefs(text, verseKey || '')
+      return window.CXRef.wrapRefs(text, verseKey || '', { lockBook: true })
         .replace(/\n/g, '<br>');
     }
     return esc(text)

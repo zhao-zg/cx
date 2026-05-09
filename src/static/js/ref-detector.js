@@ -228,6 +228,8 @@
       }
       // 标准化「v1节至/到v2节」→「v1至v2节」，以便 F5/F7 等格式正确解析
       p = p.replace(/([一二三四五六七八九十百]+)节([至到])([一二三四五六七八九十百]+)节/g, '$1$2$3节');
+      // 列表序号保护：单字中文数字（一～九）无「节」字无「第」前缀 → 通常是列表标记(一)(二)(三)，非节号
+      if (/^[一二三四五六七八九]([上中下]半?)?$/.test(p)) continue;
       var m;
       // F4: arabic chapter:verse
       if ((m = F4.exec(p))) {
@@ -379,10 +381,12 @@
   // ── 主函数：将文本中的经文引用包裹为 <span> ────────────────────────────
   // ctxStr: 初始上下文字符串，如"弗4:17"（来自 section.ctx_scripture）
   // 处理：括号引用（弗四23）、破折号末尾引用 —腓四5
-  function wrapRefs(text, ctxStr) {
+  function wrapRefs(text, ctxStr, opts) {
     if (!text) return '';
     var ctx = parseCtx(ctxStr);
     var book = ctx.book, ch = ctx.chapter;
+    var _lockBook = !!(opts && opts.lockBook);
+    var _origBook = book, _origCh = ch;
 
     // 找末尾破折号引用位置（括号外的最后一个 —）
     // 要求破折号后紧接合法经文引用格式，避免 "—耶稣基督…" 中"耶"（耶利米缩写）被误识别：
@@ -485,8 +489,10 @@
         // 《书名》：更新上下文，原文直接输出
         // 书卷未变时保留章号（如注解正文含"但以理"，ch 仍应是当前章，而非重置为 0）
         if (fm.ctxBook !== undefined) {
-          if (fm.ctxBook !== book) ch = 0;
-          book = fm.ctxBook;
+          if (!_lockBook) {
+            if (fm.ctxBook !== book) ch = 0;
+            book = fm.ctxBook;
+          }
           result.push(escHtml(fm.text));
           continue;
         }
@@ -497,7 +503,7 @@
           var _fnRefs = expandCnRefs(_fnText, book, ch);
           if (_fnRefs.length === 1) {
             var _fnLm = _fnRefs[0].match(/^([^\d:]+)(\d+):(\d+)/);
-            if (_fnLm) { book = _fnLm[1]; ch = parseInt(_fnLm[2], 10); }
+            if (_fnLm && !_lockBook) { book = _fnLm[1]; ch = parseInt(_fnLm[2], 10); }
             result.push('<span class="scripture-ref fn-ref" data-vkey="' + escHtml(_fnRefs[0]) + '" data-fn="' + escHtml(fm.fnNum) + '">' + escHtml(fm.text) + '</span>');
           } else {
             result.push(escHtml(fm.text));
@@ -544,7 +550,7 @@
         var irefs = expandCnRefs(fm.text, book, ch);  // 传入当前 book/ch，支持无书卷名的相对章引用
         if (irefs.length > 0) {
           var ilm = irefs[irefs.length - 1].match(/^([^\d:]+)(\d+):(\d+)/);
-          if (ilm) {
+          if (ilm && !_lockBook) {
             book = ilm[1];
             // 整章引用（节号为0，如「三章」→启3:0）：只更新书卷，不更新章号
             // 避免散文中提及章名导致 ch 被意外重置，破坏后续括号的上下文
@@ -578,7 +584,7 @@
         // 否则连续两个括号时第二个的纯节号续接会用错章（如注解中两段括号均从第2章开始）
         var lastRef = refs[refs.length - 1];
         var lm = lastRef.match(/^([^\d:]+)(\d+):(\d+)/);
-        if (lm) { book = lm[1]; }
+        if (lm && !_lockBook) { book = lm[1]; }
         result.push(makeSpan(m[0], refs));
       } else {
         // 括号整体解析失败（如「在以弗所三章十六节，」含前置词），
