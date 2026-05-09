@@ -206,8 +206,12 @@
         if (_di >= 0) p = p.slice(_di + 1).trim().replace(/[：:。，；,;)）」』】〗\]]+$/g, '');
       }
       if (!p) continue;
-      // 含「注N」的部分（如「但一8注1」）无法作常规经文展开，返回空触发 pushPlain 回退
-      if (/注\d+/.test(p)) return [];
+      // 含「注N」或「与注N」尾缀（如「但一8注1」「诗一一九15与注1」）：剥离尾缀后继续展开经文
+      // 注意：不再 return []，避免破折号/括号引用因含 注N 而整体失效
+      if (/与?注\d+$/.test(p)) {
+        p = p.replace(/与?注\d+$/, '').trim();
+        if (!p) continue;
+      }
       // 标准化「v1节至/到v2节」→「v1至v2节」，以便 F5/F7 等格式正确解析
       p = p.replace(/([一二三四五六七八九十百]+)节([至到])([一二三四五六七八九十百]+)节/g, '$1$2$3节');
       var m;
@@ -431,8 +435,8 @@
           fmEi.text = fmEi.text + contM[0];
           posEi = consumed;
         }
-        // 延伸：吸收紧随其后的「注N」→ 标记为注脚引用（fn-ref）
-        var _fnMatch = /^注(\d+)/.exec(seg.slice(posEi));
+        // 延伸：吸收紧随其后的「注N」或「与注N」→ 标记为注脚引用（fn-ref）
+        var _fnMatch = /^与?注(\d+)/.exec(seg.slice(posEi));
         if (_fnMatch && !(nextFmEi && posEi + _fnMatch[0].length > nextFmEi.index)) {
           fmEi.text = fmEi.text + _fnMatch[0];
           fmEi.fnNum = _fnMatch[1];
@@ -454,7 +458,7 @@
         // 注脚引用（「经文引用注N」格式）：直接发射 fn-ref span，跳过规则过滤
         // 例：「但一8注1」→ <span class="scripture-ref fn-ref" data-vkey="但1:8" data-fn="1">
         if (fm.fnNum) {
-          var _fnText = fm.text.replace(/注\d+$/, '');
+          var _fnText = fm.text.replace(/与?注\d+$/, '');
           var _fnRefs = expandCnRefs(_fnText, book, ch);
           if (_fnRefs.length === 1) {
             var _fnLm = _fnRefs[0].match(/^([^\d:]+)(\d+):(\d+)/);
