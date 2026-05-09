@@ -377,7 +377,7 @@
     var dashText = splitPos >= 0 ? text.slice(splitPos) : '';
 
     // 扫描括号引用
-    var PAREN_RE = /[（(〔]([^）)〕\n]{1,60})[）)〕]/g;
+    var PAREN_RE = /[（(〔]([^）)〕\n]{1,100})[）)〕]/g;
     var result = [], last = 0, m;
 
     // 对纯文本段扫描行内章节式引用，同时处理《书名》上下文更新
