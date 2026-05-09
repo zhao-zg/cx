@@ -301,20 +301,23 @@
   // ── 听抄递归（h 视图）— 与 message.html macro 一致 ─────────────────
 
   function renderMessageSection(sec, depth, ctx) {
-    ctx = ctx || '';
+    var box = toCtxBox(ctx);
     var html = '<div class="section">';
-    html += '<div class="section-level' + depth + '">' + wrapRefs(sec.level + '\u3000' + sec.title, ctx) + '</div>';
+    var titleKey = sec.level + '\u3000' + sec.title;
+    html += '<div class="section-level' + depth + '">' + wrapRefs(titleKey, box.val) + '</div>';
+    scanCtxBox(titleKey, box);
     if (sec.content && sec.content.length) {
       html += '<div class="section-content">';
       for (var i = 0; i < sec.content.length; i++) {
-        html += '<p class="content-text">' + wrapRefs(sec.content[i], ctx) + '</p>';
+        html += '<p class="content-text">' + wrapRefs(sec.content[i], box.val) + '</p>';
+        scanCtxBox(sec.content[i], box);
       }
       html += '</div>';
     }
     if (sec.children && sec.children.length) {
       html += '<div class="subsections">';
       for (var ci = 0; ci < sec.children.length; ci++) {
-        html += renderMessageSection(sec.children[ci], depth + 1, ctx);
+        html += renderMessageSection(sec.children[ci], depth + 1, box);
       }
       html += '</div>';
     }

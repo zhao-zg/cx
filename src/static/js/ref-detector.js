@@ -72,7 +72,7 @@
     }
     // 缩写三字：一一九=119
     if (s.length === 3) {
-      var ZERO = {'○':0, '零':0};
+      var ZERO = {'○':0, '零':0, '〇':0};
       var h3 = UNITS[s[0]], t3 = ZERO.hasOwnProperty(s[1])?0:UNITS[s[1]],
           u3 = ZERO.hasOwnProperty(s[2])?0:UNITS[s[2]];
       if (h3 !== undefined && t3 !== undefined && u3 !== undefined) {
@@ -88,7 +88,7 @@
   // 行内章节式引用匹配（嵌在句子中、不在括号/破折号内）
   // 例：马可十一章二十三至二十四节、诗篇一百一十九篇、二十五章十四至三十节、三十七节
   var _INLINE_F5_RE = (function () {
-    var CN = '[一二三四五六七八九十百]+';
+    var CN = '[一二三四五六七八九十百〇]+';
     var abbr = '[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启](?:前|后|上|下|壹|贰|叁)?';
     var bookPat = '(?:(?:' + _sortedFullNames.join('|') + '|' + abbr + '))?';
     var bookReq = '(?:' + _sortedFullNames.join('|') + '|' + abbr + ')';
@@ -97,7 +97,7 @@
     // 「篇」是诗篇专属，须有显式「诗」/「诗篇」前缀；其他书卷用「章」
     // 快捷章节格式（bookReq+CN，无「章」字，如「弗四」「启二一」）：
     // 限制为不含「百」，因除诗篇外无书卷超过 66 章；诗篇已由「篇」分支覆盖
-    var CN_NO_BAI = '[一二三四五六七八九十]+';
+    var CN_NO_BAI = '[一二三四五六七八九十〇]+';
     return new RegExp(
       '(?:(?:诗篇|诗)' + CN + '篇' + versePart
       + '|' + bookPat + '的?第?' + CN + '(?:[至到]' + CN + ')?章' + versePart
@@ -153,7 +153,7 @@
     // 两字后缀书卷（林前/林后/撒上/撒下 等）
     var TWO_SUFFIX = '(?:前|后|上|下|壹|贰|叁)';
     var BOOK_PAT = '(?:[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启]' + TWO_SUFFIX + '?|[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启])';
-    var CN_N = '[一二三四五六七八九十百]+';
+    var CN_N = '[一二三四五六七八九十百〇]+';
     // Format1: book + 中文章 + 阿拉伯节  e.g. 腓四5 / 腓四5~9 / 腓四5上~9
     var F1 = new RegExp('^(' + BOOK_PAT + ')(' + CN_N + ')(\\d+)([上中下]?)(?:[~～\\-](\\d+)([上中下]?))?$');
     // Format2: 中文章 + 阿拉伯节 (relative)  e.g. 四5 / 四5~9上
@@ -193,6 +193,8 @@
     }
 
     var parts = refText.split(/[,，、；。]+/);
+    // 诗歌/赞美诗「N首」上下文：含「N首」的括号内容是诗歌引用，第N节指诗歌节次，不是经文节号
+    var _hymnCtx = /[一二三四五六七八九十百\d]+首/.test(refText);
     for (var pi = 0; pi < parts.length; pi++) {
       var p = parts[pi].trim().replace(/^参[看阅]?\s*/, '').replace(/^[—─]+\s*/, '').replace(/[：:。，；,;)）」』】〗\]]+$/g, '');
       // 预处理：若 part 不以合法经文引用字符开头，且含破折号，则取破折号后部分
@@ -204,6 +206,8 @@
         if (_di >= 0) p = p.slice(_di + 1).trim().replace(/[：:。，；,;)）」』】〗\]]+$/g, '');
       }
       if (!p) continue;
+      // 含「注N」的部分（如「但一8注1」）无法作常规经文展开，返回空触发 pushPlain 回退
+      if (/注\d+/.test(p)) return [];
       // 标准化「v1节至/到v2节」→「v1至v2节」，以便 F5/F7 等格式正确解析
       p = p.replace(/([一二三四五六七八九十百]+)节([至到])([一二三四五六七八九十百]+)节/g, '$1$2$3节');
       var m;
@@ -292,7 +296,7 @@
         }
       }
       // F7: 纯中文节号续（同书卷+同章）e.g. 三十七节 / 三十六至三十七节
-      if (book && ch && (m = F7.exec(p))) {
+      if (!_hymnCtx && book && ch && (m = F7.exec(p))) {
         var v1_7 = cnToInt(m[1]), v2_7 = m[3] ? cnToInt(m[3]) : v1_7;
         var mod1_7 = m[2] ? m[2][0] : '', mod2_7 = m[4] ? m[4][0] : '';
         // 节号>176（诗119:176 为圣经最大节数）→ 可能是页码等非经文编号，跳过
@@ -427,6 +431,12 @@
           fmEi.text = fmEi.text + contM[0];
           posEi = consumed;
         }
+        // 延伸：吸收紧随其后的「注N」→ 标记为注脚引用（fn-ref）
+        var _fnMatch = /^注(\d+)/.exec(seg.slice(posEi));
+        if (_fnMatch && !(nextFmEi && posEi + _fnMatch[0].length > nextFmEi.index)) {
+          fmEi.text = fmEi.text + _fnMatch[0];
+          fmEi.fnNum = _fnMatch[1];
+        }
       }
       var last2 = 0;
       for (var fi = 0; fi < filtered.length; fi++) {
@@ -437,6 +447,20 @@
         if (fm.ctxBook !== undefined) {
           book = fm.ctxBook; ch = 0;
           result.push(escHtml(fm.text));
+          continue;
+        }
+        // 注脚引用（「经文引用注N」格式）：直接发射 fn-ref span，跳过规则过滤
+        // 例：「但一8注1」→ <span class="scripture-ref fn-ref" data-vkey="但1:8" data-fn="1">
+        if (fm.fnNum) {
+          var _fnText = fm.text.replace(/注\d+$/, '');
+          var _fnRefs = expandCnRefs(_fnText, book, ch);
+          if (_fnRefs.length === 1) {
+            var _fnLm = _fnRefs[0].match(/^([^\d:]+)(\d+):(\d+)/);
+            if (_fnLm) { book = _fnLm[1]; ch = parseInt(_fnLm[2], 10); }
+            result.push('<span class="scripture-ref fn-ref" data-vkey="' + escHtml(_fnRefs[0]) + '" data-fn="' + escHtml(fm.fnNum) + '">' + escHtml(fm.text) + '</span>');
+          } else {
+            result.push(escHtml(fm.text));
+          }
           continue;
         }
         // 行内经文引用：应用规则 1-4 过滤
@@ -466,7 +490,8 @@
         // 对应 Python _no_pre = '(?<![哪那这有前后没无每外的此同某上下])'
         // 例：「这一节」「在这一节」「在此一节」「下一节」→ 不识别
         var _isPureVerse = !/[章篇]/.test(fm.text) && !_isBookAbbr;
-        if (_isPureVerse && prevCharI && '哪那这有前后没无每外的此同某上下'.indexOf(prevCharI) >= 0) {
+        // '首'：诗歌N首后紧接的「第N节」是诗歌节次而非经文节号
+        if (_isPureVerse && prevCharI && '哪那这有前后没无每外的此同某上下首'.indexOf(prevCharI) >= 0) {
           result.push(escHtml(fm.text)); continue;
         }
         var irefs = expandCnRefs(fm.text, book, ch);  // 传入当前 book/ch，支持无书卷名的相对章引用
