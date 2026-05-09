@@ -763,6 +763,21 @@
     showApp();
     var app = getApp();
     rescueThemeBtn(); // 防止按钮随 innerHTML 替换被销毁
+
+    // 听抄页：提前读取记忆滚动位置，在 innerHTML 设置前隐藏 app，
+    // 避免"先渲染顶部 → 再跳到记忆位置"的视觉闪屏
+    var _preHScroll = 0;
+    if (viewType === 'h' && batchPath && chapter && chapter.number) {
+      try {
+        var _preKey = 'cx_h_scroll:' + batchPath + '/' + chapter.number;
+        _preHScroll = parseInt(localStorage.getItem(_preKey) || '0', 10) || 0;
+      } catch(e){}
+      if (_preHScroll > 0) {
+        app.style.opacity = '0';
+        app.style.transition = '';
+      }
+    }
+
     app.innerHTML = html;
 
     try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e) {}
@@ -835,9 +850,26 @@
       try {
         var _hScroll = parseInt(localStorage.getItem(_scrollPageKey) || '0', 10);
         if (_hScroll > 0) {
-          setTimeout(function() { try { win.scrollTo(0, _hScroll); } catch(e){} }, 200);
+          // 用双 RAF 代替固定延迟：保证 layout 完成、下次 paint 前完成滚动，
+          // 配合入口处的 opacity=0 实现"先定位再淡入"效果，彻底消除闪屏
+          requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+              try { win.scrollTo(0, _hScroll); } catch(e){}
+              var _app = getApp();
+              _app.style.transition = 'opacity 0.15s ease';
+              _app.style.opacity = '';
+              setTimeout(function() { try { _app.style.transition = ''; } catch(e){} }, 200);
+            });
+          });
+        } else {
+          // 无记忆位置：确保 opacity 已还原（防御性清理）
+          app.style.opacity = '';
+          app.style.transition = '';
         }
-      } catch(e){}
+      } catch(e){
+        app.style.opacity = '';
+        app.style.transition = '';
+      }
     }
 
     if (win.CXSearch && win.CXSearch.handleSearchTargetSPA) {
