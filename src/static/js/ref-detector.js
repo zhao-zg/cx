@@ -415,7 +415,10 @@
       else if ((c === '—' || c === '─') && depth === 0) {
         var after = text.slice(i+1).trim();
         // 若破折号后方文本含换行，说明该破折号是句中注释而非末尾引用，跳过
-        if (after.indexOf('\n') < 0 && DASH_REF_START.test(after)) {
+        // 若句号/分号等后仍有正文（如「—18节。ˍ因此...」），也不是尾注引用，跳过
+        if (after.indexOf('\n') < 0
+            && !/[。；;!?！？]\s*\S/.test(after)
+            && DASH_REF_START.test(after)) {
           splitPos = i;
           break;
         }
@@ -579,6 +582,20 @@
     while ((m = PAREN_RE.exec(mainText)) !== null) {
       // 括号前的文字：先扫描行内引用再转义
       pushPlain(mainText.slice(last, m.index));
+      // 括号内「见18注2 / 见十八注2」：识别为注解链接（fn-ref）
+      // 语义是「当前上下文书卷+章」的第18节注2
+      var _inner = (m[1] || '').trim();
+      var _fnOnly = /^[见参]?\s*(?:第)?(\d{1,3}|[一二三四五六七八九十百〇]+)(?:节)?\s*注(\d+)\s*$/.exec(_inner);
+      if (_fnOnly && book && ch) {
+        var _vRaw = _fnOnly[1];
+        var _vNum = /^\d+$/.test(_vRaw) ? parseInt(_vRaw, 10) : cnToInt(_vRaw);
+        if (_vNum && _vNum >= 1 && _vNum <= 176) {
+          var _vKey = book + ch + ':' + _vNum;
+          result.push('<span class="scripture-ref fn-ref" data-vkey="' + escHtml(_vKey) + '" data-fn="' + escHtml(_fnOnly[2]) + '">' + escHtml(m[0]) + '</span>');
+          last = m.index + m[0].length;
+          continue;
+        }
+      }
       // 含"页"字的括号是页码/书页引用，非经文，直接回退渲染（如"创世记L-S，四五五页"）
       if (m[1].indexOf('页') >= 0) {
         result.push(escHtml(m[0][0]));
