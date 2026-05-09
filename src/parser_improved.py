@@ -803,7 +803,12 @@ class ImprovedParser:
                             and self.current_level1.title[-1] not in '。！？；：）""…'):
                         self.current_level1.title = self.current_level1.title + title
                     else:
-                        self.current_level1.add_content(title)
+                        # 前一 level1 已有内容/子节或已完整 → 新建无标记的 level1 节
+                        self.current_level1 = Content(level='', title=title)
+                        self.current_chapter.add_detail_section(self.current_level1)
+                        self.current_level2 = None
+                        self.current_level3 = None
+                        self.current_level4 = None
                 else:
                     self.current_level1 = Content(level=level, title=title)
                     self.current_chapter.add_detail_section(self.current_level1)
@@ -821,7 +826,11 @@ class ImprovedParser:
                             and self.current_level2.title[-1] not in '。！？；：）""…'):
                         self.current_level2.title = self.current_level2.title + title
                     else:
-                        self.current_level2.add_content(title)
+                        # 前一 level2 已有内容/子节或已完整 → 新建无标记的 level2 节
+                        self.current_level2 = Content(level='', title=title)
+                        self.current_level1.add_child(self.current_level2)
+                        self.current_level3 = None
+                        self.current_level4 = None
                 else:
                     self.current_level2 = Content(level=level, title=title)
                     self.current_level1.add_child(self.current_level2)
@@ -838,7 +847,9 @@ class ImprovedParser:
                             and self.current_level3.title[-1] not in '。！？；：）""…'):
                         self.current_level3.title = self.current_level3.title + title
                     else:
-                        self.current_level3.add_content(title)
+                        # 前一 level3 已有内容/子节或已完整 → 新建无标记的 level3 节
+                        self.current_level3 = Content(level='', title=title)
+                        self.current_level2.add_child(self.current_level3)
                 else:
                     self.current_level3 = Content(level=level, title=title)
                     self.current_level2.add_child(self.current_level3)
@@ -847,35 +858,16 @@ class ImprovedParser:
                 # 添加正文内容到对应的层级
                 # 跳过"读经："行：章节读经已由 parse_message_doc / chapter.scripture 存储，
                 # 模板会独立渲染，无需再放入 message_content，否则会在页面上重复显示。
+                # 注：content 样式段在听抄中始终是正文；跨页标题续接由 section_level* 分支处理。
                 if text.startswith('读经：') or text.startswith('读经:'):
                     pass
                 elif self.current_level3:
-                    # 跨页续接：节标题长度>10且末尾无终结标点，且尚无子内容/子节 → 并入标题
-                    if (not self.current_level3.content and not self.current_level3.children
-                            and self.current_level3.title and len(self.current_level3.title) > 10
-                            and self.current_level3.title[-1] not in '。！？；：）""…'
-                            and not re.match(r'^[壹贰叁肆伍陆柒捌玖拾一二三四五六七八九十\d]+[、\s]', text)):
-                        self.current_level3.title = self.current_level3.title + text
-                    else:
-                        self.current_level3.add_content(text)
+                    self.current_level3.add_content(text)
                 elif self.current_level2:
-                    if (not self.current_level2.content and not self.current_level2.children
-                            and self.current_level2.title and len(self.current_level2.title) > 10
-                            and self.current_level2.title[-1] not in '。！？；：）""…'
-                            and not re.match(r'^[壹贰叁肆伍陆柒捌玖拾一二三四五六七八九十\d]+[、\s]', text)):
-                        self.current_level2.title = self.current_level2.title + text
-                    else:
-                        self.current_level2.add_content(text)
+                    self.current_level2.add_content(text)
                 elif self.current_level1:
-                    if (not self.current_level1.content and not self.current_level1.children
-                            and self.current_level1.title and len(self.current_level1.title) > 10
-                            and self.current_level1.title[-1] not in '。！？；：）""…'
-                            and not re.match(r'^[壹贰叁肆伍陆柒捌玖拾一二三四五六七八九十\d]+[、\s]', text)):
-                        self.current_level1.title = self.current_level1.title + text
-                    else:
-                        self.current_level1.add_content(text)
+                    self.current_level1.add_content(text)
                 elif self.current_chapter:
-                    # 职事信息内容（在所有大点之外的内容）
                     self.current_chapter.message_content.append(text)
     
     def _detect_level_type(self, text: str) -> str:
