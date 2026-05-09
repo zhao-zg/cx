@@ -444,8 +444,10 @@
         result.push(escHtml(seg.slice(last2, fm.index)));
         last2 = fm.index + fm.text.length;
         // 《书名》：更新上下文，原文直接输出
+        // 书卷未变时保留章号（如注解正文含"但以理"，ch 仍应是当前章，而非重置为 0）
         if (fm.ctxBook !== undefined) {
-          book = fm.ctxBook; ch = 0;
+          if (fm.ctxBook !== book) ch = 0;
+          book = fm.ctxBook;
           result.push(escHtml(fm.text));
           continue;
         }
