@@ -551,6 +551,10 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .hymn-image img:hover{transform:scale(1.02);box-shadow:var(--card-shadow-hover)}
 .hymn-image img:active{transform:scale(0.98)}
 .click-hint{margin-top:8px;font-size:12px;color:var(--text-muted);text-align:center}
+/* 诗歌多图上下堆叠 */
+.hymn-images-stack{margin-top:15px}
+.hymn-images-stack .hymn-image{margin-bottom:12px}
+.hymn-images-stack .hymn-image:last-of-type{margin-bottom:0}
 .hymn-note{margin:20px 0;padding:15px;background:var(--callout-bg);border-left:4px solid var(--callout-border);border-radius:4px}
 .hymn-note p{margin:0;color:var(--callout-text);font-size:14px;line-height:1.8}
 @media(min-width:768px){
@@ -767,6 +771,12 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .image-viewer-share-btn{position:fixed;top:12px;left:16px;width:36px;height:36px;background:var(--viewer-control-bg);border:none;border-radius:50%;color:var(--viewer-control-text);font-size:18px;line-height:1;text-align:center;cursor:pointer;z-index:10000;display:flex;align-items:center;justify-content:center}
 .image-viewer-share-btn:active,.image-viewer-close:active{background:var(--viewer-control-bg-active)}
 .image-viewer-hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);color:var(--viewer-hint);font-size:12px;pointer-events:none}
+/* 多图导航按钮和页码指示 */
+.image-viewer-nav{position:fixed;top:50%;transform:translateY(-50%);width:44px;height:56px;background:rgba(0,0,0,.35);border:none;border-radius:8px;color:#fff;font-size:32px;line-height:1;text-align:center;cursor:pointer;z-index:10000;display:flex;align-items:center;justify-content:center;padding:0;user-select:none}
+.image-viewer-prev{left:6px}
+.image-viewer-next{right:6px}
+.image-viewer-nav:active{background:rgba(0,0,0,.6)}
+.image-viewer-indicator{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.45);color:#fff;font-size:13px;padding:3px 10px;border-radius:12px;z-index:10000;pointer-events:none}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 /* 竖版图片：滚动模式 */
 .image-viewer-overlay.portrait{overflow-y:auto;overflow-x:hidden;touch-action:pan-y;align-items:flex-start}

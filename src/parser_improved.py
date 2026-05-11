@@ -1877,6 +1877,9 @@ class ImprovedParser:
     def _extract_hymn_images(self, doc_or_docx, chapters: List[Chapter], doc_identifier: str = ""):
         """
         从Word文档中提取诗歌图片并保存（跨平台方法）
+
+        使用临近度分组算法：相邻段落（≤20段）的多张图片属于同一篇，
+        可正确处理一篇信息含多张诗歌图片的情形。
         
         Args:
             doc_or_docx: docx文件路径
@@ -1884,116 +1887,130 @@ class ImprovedParser:
             doc_identifier: 文档标识符（用于区分多文档时的图片来源）
         """
         import os
-        import zipfile
+        import re
         from io import BytesIO
-        
+
         try:
             from PIL import Image
             from docx import Document as DocxDocument
-            
+
             # 创建图片输出目录
             output_dir = os.path.join(self.output_dir, 'images')
             os.makedirs(output_dir, exist_ok=True)
-            
+
             docx_path = doc_or_docx
             if not os.path.exists(docx_path):
                 print(f"    ⚠ 文件不存在: {docx_path}")
                 return
-            
-            # 先读取文档,识别其中包含的周数
-            try:
-                doc = DocxDocument(docx_path)
-                week_numbers = []
-                for para in doc.paragraphs:
-                    text = para.text.strip()
-                    # 匹配"第X周"或"第XX周"的模式
-                    import re
-                    match = re.search(r'第([一二三四五六七八九十百]+)周', text)
-                    if match:
-                        week_cn = match.group(1)
-                        # 转换中文数字为阿拉伯数字
-                        week_num = self._chinese_to_number(week_cn)
-                        if week_num and week_num not in week_numbers:
-                            week_numbers.append(week_num)
-                    # 也支持"第31周"这样的阿拉伯数字
-                    match = re.search(r'第(\d+)周', text)
-                    if match:
-                        week_num = int(match.group(1))
-                        if week_num not in week_numbers:
-                            week_numbers.append(week_num)
-                
-                week_numbers = sorted(week_numbers)
-                if week_numbers:
-                    # print(f"    文档包含周数: {week_numbers}")
-                    # 如果是第一个晨兴文档,记录起始周数
-                    if self.first_week_number is None:
-                        self.first_week_number = min(week_numbers)
-                        # print(f"    记录起始周数: {self.first_week_number}")
-                    # 计算周数到章节的映射偏移量
-                    week_offset = self.first_week_number - 1
-                    # print(f"    周数映射: 第{min(week_numbers)}周 对应 第{min(week_numbers) - week_offset}篇")
-                else:
-                    week_offset = 0
-            except Exception as e:
-                print(f"    ⚠ 识别周数失败,使用顺序编号: {e}")
-                week_numbers = []
-                week_offset = 0
-            
-            # 从docx的zip结构中提取图片
-            with zipfile.ZipFile(docx_path, 'r') as docx_zip:
-                # 列出所有图片文件
-                image_files = sorted([f for f in docx_zip.namelist() 
-                                    if f.startswith('word/media/') and not f.endswith('/')])
-                
-                # print(f"    找到 {len(image_files)} 个图片文件 {f'({doc_identifier})' if doc_identifier else ''}")
-                
-                for idx, img_file in enumerate(image_files):
-                    # 使用识别到的周数,如果有的话
-                    if week_numbers and idx < len(week_numbers):
-                        actual_week_num = week_numbers[idx]
-                        # 映射到章节索引：实际周数 - 偏移量 = 章节号
-                        chapter_num = actual_week_num - week_offset
-                    else:
-                        actual_week_num = idx + 1 + week_offset  # 回退到顺序编号
-                        chapter_num = idx + 1
-                    
-                    if chapter_num > len(chapters) or chapter_num < 1:
-                        # print(f"    ⚠ 第{actual_week_num}周对应第{chapter_num}篇超出范围(1-{len(chapters)}),跳过")
-                        continue
-                    
-                    # 添加文档标识符以避免覆盖
-                    suffix = f"_{doc_identifier}" if doc_identifier else ""
-                    # 使用章节号命名图片文件
-                    image_path = os.path.join(output_dir, f'hymn_{chapter_num}{suffix}.png')
-                    
-                    # 如果图片文件已存在，跳过提取（避免重复提取）
-                    if os.path.exists(image_path):
-                        pass  # print(f"    跳过第{actual_week_num}周图片（文件已存在）")
-                        # 但仍然需要记录路径到chapter
-                        if not chapters[chapter_num - 1].hymn_image:
-                            chapters[chapter_num - 1].hymn_image = f'images/hymn_{chapter_num}{suffix}.png'
-                        continue
-                    
+
+            doc = DocxDocument(docx_path)
+
+            # ── 1. 检测周数，计算章节偏移 ─────────────────────────────────
+            week_numbers = []
+            for para in doc.paragraphs:
+                text = para.text.strip()
+                match = re.search(r'第([一二三四五六七八九十百]+)周', text)
+                if match:
+                    week_num = self._chinese_to_number(match.group(1))
+                    if week_num and week_num not in week_numbers:
+                        week_numbers.append(week_num)
+                match = re.search(r'第(\d+)周', text)
+                if match:
+                    n = int(match.group(1))
+                    if n not in week_numbers:
+                        week_numbers.append(n)
+
+            week_numbers.sort()
+            if week_numbers and self.first_week_number is None:
+                self.first_week_number = min(week_numbers)
+            week_offset = (self.first_week_number or 1) - 1
+
+            # ── 2. 建立 rId → blob 映射（通过关系表直接读取图片数据）──────
+            W_P    = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p'
+            A_BLIP = '{http://schemas.openxmlformats.org/drawingml/2006/main}blip'
+            R_EMBED = '{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed'
+
+            img_blobs = {}  # rId -> bytes
+            for rId, rel in doc.part.rels.items():
+                if 'image' in rel.reltype:
                     try:
-                        # 读取图片数据
-                        img_data = docx_zip.read(img_file)
-                        img = Image.open(BytesIO(img_data))
-                        
-                        # 转换为PNG并保存
-                        img.save(image_path, 'PNG')
-                        # print(f"    ✓ 第{actual_week_num}周 -> 第{chapter_num}篇诗歌图片{suffix}")
-                        
-                        # 记录图片路径到对应章节
-                        chapters[chapter_num - 1].hymn_image = f'images/hymn_{chapter_num}{suffix}.png'
-                    except Exception as e:
-                        print(f"    ⚠ 保存第{actual_week_num}周图片失败: {e}")
-            
-        except ImportError as e:
+                        img_blobs[rId] = rel.target_part.blob
+                    except Exception:
+                        pass
+
+            if not img_blobs:
+                return
+
+            # ── 3. 按段落顺序收集所有图片引用及其段落绝对索引 ────────────
+            all_image_positions = []  # [(abs_para_idx, rId), ...]
+            abs_idx = 0
+            for elem in doc.element.body.iter():
+                if elem.tag == W_P:
+                    for child in elem.iter():
+                        if child.tag == A_BLIP:
+                            rId = child.get(R_EMBED)
+                            if rId and rId in img_blobs:
+                                all_image_positions.append((abs_idx, rId))
+                    abs_idx += 1
+
+            if not all_image_positions:
+                return
+
+            # ── 4. 临近度分组：相邻图片段落距离 ≤ 20 则属于同一篇 ─────────
+            PROXIMITY_THRESHOLD = 20
+            groups = []          # [[rId, ...], ...]
+            current_group = [all_image_positions[0][1]]
+            last_pos = all_image_positions[0][0]
+
+            for pos, rId in all_image_positions[1:]:
+                if pos - last_pos <= PROXIMITY_THRESHOLD:
+                    current_group.append(rId)
+                else:
+                    groups.append(current_group)
+                    current_group = [rId]
+                last_pos = pos
+            groups.append(current_group)
+
+            # ── 5. 将每组映射到章节并保存图片 ────────────────────────────
+            suffix = f"_{doc_identifier}" if doc_identifier else ""
+
+            for group_idx, rIds in enumerate(groups):
+                if week_numbers and group_idx < len(week_numbers):
+                    actual_week_num = week_numbers[group_idx]
+                    chapter_num = actual_week_num - week_offset
+                else:
+                    chapter_num = group_idx + 1
+
+                if chapter_num < 1 or chapter_num > len(chapters):
+                    continue
+
+                chapter = chapters[chapter_num - 1]
+
+                for img_idx, rId in enumerate(rIds):
+                    # 第1张沿用旧命名（向后兼容），额外图片加 _2/_3 后缀
+                    extra = f"_{img_idx + 1}" if img_idx > 0 else ""
+                    image_filename = f'hymn_{chapter_num}{suffix}{extra}.png'
+                    image_path = os.path.join(output_dir, image_filename)
+
+                    if not os.path.exists(image_path):
+                        try:
+                            img = Image.open(BytesIO(img_blobs[rId]))
+                            img.save(image_path, 'PNG')
+                        except Exception as e:
+                            print(f"    ⚠ 保存第{chapter_num}篇第{img_idx + 1}张图片失败: {e}")
+                            continue
+
+                    rel_path = f'images/{image_filename}'
+                    if rel_path not in chapter.hymn_images:
+                        chapter.hymn_images.append(rel_path)
+                    if not chapter.hymn_image:
+                        chapter.hymn_image = rel_path  # 向后兼容
+
+        except ImportError:
             print(f"    ⚠ 缺少PIL库，无法提取图片: pip install pillow")
         except Exception as e:
             print(f"    ⚠ 图片提取异常: {e}")
-            pass
-            
+
     def _should_merge_with_previous(self, prev_text: str, current_text: str) -> bool:
         """判断当前文本是否应该与前一行文本合并（跨页连接）
         

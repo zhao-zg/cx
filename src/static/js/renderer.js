@@ -474,8 +474,27 @@
       inner = '<div class="hymn-info">' +
         '<h3>诗歌</h3>' +
         '<p class="hymn-number-display">' + escText(chapter.hymn_number) + '</p>';
-      if (chapter.hymn_image) {
-        var imgUrl = root + escAttr(batchPath) + '/' + escAttr(chapter.hymn_image);
+
+      // 支持多图（hymn_images 优先，向后兼容 hymn_image）
+      var images = (chapter.hymn_images && chapter.hymn_images.length)
+        ? chapter.hymn_images
+        : (chapter.hymn_image ? [chapter.hymn_image] : []);
+
+      if (images.length > 1) {
+        // 多图：直接上下堆叠显示
+        inner += '<div class="hymn-images-stack">';
+        for (var i = 0; i < images.length; i++) {
+          var imgUrl = root + escAttr(batchPath) + '/' + escAttr(images[i]);
+          var allUrls = images.map(function(p) { return JSON.stringify(root + batchPath + '/' + p); }).join(',');
+          inner += '<div class="hymn-image">' +
+            '<img src="' + imgUrl + '" alt="诗歌第' + (i + 1) + '页" class="hymn-img-clickable"' +
+            ' onclick="window.openImageViewer&&openImageViewer(this.src,[' + allUrls + '],' + i + ')">' +
+            '</div>';
+        }
+        inner += '<p class="click-hint">👆 点击图片放大查看</p>';
+        inner += '</div>';
+      } else if (images.length === 1) {
+        var imgUrl = root + escAttr(batchPath) + '/' + escAttr(images[0]);
         inner += '<div class="hymn-image">' +
           '<img src="' + imgUrl + '" alt="诗歌内容" class="hymn-img-clickable" onclick="window.openImageViewer&&openImageViewer(this.src)">' +
           '<p class="click-hint">👆 点击图片放大查看</p>' +
