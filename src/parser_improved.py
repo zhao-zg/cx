@@ -2588,23 +2588,30 @@ def parse_training_docs_improved(outline_path: str, listen_path: str,
     while parser.mottos and parser.mottos[-1] == '###PARAGRAPH_SEPARATOR###':
         parser.mottos.pop()
     
-    # 检测标语诗歌图片
+    # 检测标语诗歌图片（支持多张：标语诗歌.png / 标语诗歌2.png / 标语诗歌.jpg ...）
     motto_song_image = ""
-    import os
+    motto_song_images = []
+    import os, glob
     resource_dir = os.path.dirname(outline_path)
-    song_image_path = os.path.join(resource_dir, "标语诗歌.png")
-    if os.path.exists(song_image_path):
-        # 复制图片到output目录
+    # 收集所有以"标语诗歌"开头的图片文件，按文件名排序
+    pattern = os.path.join(resource_dir, "标语诗歌*")
+    song_files = sorted([
+        f for f in glob.glob(pattern)
+        if os.path.splitext(f)[1].lower() in ('.png', '.jpg', '.jpeg', '.webp', '.gif')
+    ])
+    if song_files:
         import shutil
         os.makedirs(output_dir, exist_ok=True)
-        dest_path = os.path.join(output_dir, "images", "标语诗歌.png")
-        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-        shutil.copy2(song_image_path, dest_path)
-        motto_song_image = "images/标语诗歌.png"
-        print(f"  ✓ 找到标语诗歌图片")
-        shutil.copy2(song_image_path, dest_path)
-        motto_song_image = "images/标语诗歌.png"
-        print(f"  ✓ 找到标语诗歌图片")
+        dest_images_dir = os.path.join(output_dir, "images")
+        os.makedirs(dest_images_dir, exist_ok=True)
+        for src_file in song_files:
+            fname = os.path.basename(src_file)
+            dest_path = os.path.join(dest_images_dir, fname)
+            shutil.copy2(src_file, dest_path)
+            rel_path = f"images/{fname}"
+            motto_song_images.append(rel_path)
+        motto_song_image = motto_song_images[0]
+        print(f"  ✓ 找到标语诗歌图片 ({len(song_files)} 张)")
     
     # 5. 创建训练数据对象
     training_data = TrainingData(
@@ -2614,7 +2621,8 @@ def parse_training_docs_improved(outline_path: str, listen_path: str,
         season=season,
         app_version=app_version,
         mottos=parser.mottos,  # 添加标语
-        motto_song_image=motto_song_image  # 添加标语诗歌图片
+        motto_song_image=motto_song_image,  # 添加标语诗歌图片（向后兼容）
+        motto_song_images=motto_song_images  # 全部标语诗歌图片列表
     )
     
     for chapter in chapters:

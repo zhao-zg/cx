@@ -202,7 +202,8 @@ class TrainingData:
     season: str  # 季节
     app_version: str = ""  # 应用版本号
     mottos: List[str] = field(default_factory=list)  # 标语列表
-    motto_song_image: str = ""  # 标语诗歌图片路径
+    motto_song_image: str = ""  # 标语诗歌图片路径（向后兼容，保留第一张）
+    motto_song_images: List[str] = field(default_factory=list)  # 标语诗歌图片列表（支持多张）
     chapters: List[Chapter] = field(default_factory=list)  # 篇章列表
     
     def add_chapter(self, chapter: Chapter):
@@ -225,5 +226,6 @@ class TrainingData:
             'season': self.season,
             'mottos': self.mottos,
             'motto_song_image': self.motto_song_image,
+            'motto_song_images': self.motto_song_images if self.motto_song_images else ([self.motto_song_image] if self.motto_song_image else []),
             'chapters': [ch.to_dict() for ch in self.chapters]
         }
