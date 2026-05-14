@@ -79,7 +79,7 @@
               training: trainingTitle, season_label: seasonLabel,
               chapter: num, type: 'h', type_label: '听抄',
               chapter_title: chTitle, pi: hpi,
-              selector: 'content-text', text: para.slice(0, 200) });
+              selector: 'content-text', text: para });
           }
         }
         // detail_sections 的 content 段落（renderMessageSection 深度优先顺序）
@@ -96,7 +96,7 @@
                   training: trainingTitle, season_label: seasonLabel,
                   chapter: num, type: 'h', type_label: '听抄',
                   chapter_title: chTitle, pi: hpiRef.val,
-                  selector: 'content-text', text: dpara.slice(0, 200) });
+                  selector: 'content-text', text: dpara });
               }
               hpiRef.val++;
             }
@@ -113,7 +113,7 @@
               training: trainingTitle, season_label: seasonLabel,
               chapter: num, type: 'cv', type_label: '纲目',
               chapter_title: chTitle, pi: pi2,
-              selector: 'outline-item', text: cvBuf[pi2].slice(0, 200) });
+              selector: 'outline-item', text: cvBuf[pi2] });
           }
         }
 
@@ -129,7 +129,7 @@
                 training: trainingTitle, season_label: seasonLabel,
                 chapter: num, type: 'cx', type_label: '晨兴喂养',
                 chapter_title: chTitle, pi: mfi, day_index: dayIdx,
-                selector: 'content-text', text: mfp.slice(0, 200) });
+                selector: 'content-text', text: mfp });
             }
           }
           var mfLen = mf.length;
@@ -141,7 +141,7 @@
                 training: trainingTitle, season_label: seasonLabel,
                 chapter: num, type: 'cx', type_label: '信息选读',
                 chapter_title: chTitle, pi: mfLen + mri, day_index: dayIdx,
-                selector: 'content-text', text: mrp.slice(0, 200) });
+                selector: 'content-text', text: mrp });
             }
           }
         }
@@ -153,7 +153,7 @@
             training: trainingTitle, season_label: seasonLabel,
             chapter: num, type: 'zs', type_label: '职事摘录',
             chapter_title: chTitle, pi: 0,
-            selector: 'content-text', text: zs.slice(0, 200) });
+            selector: 'content-text', text: zs });
         }
       }
       return entries;
