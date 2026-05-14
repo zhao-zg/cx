@@ -765,7 +765,7 @@
   }
 
   /* ═══════════════════════════ 自动渲染 scripture-block ═══════════════════════════ */
-  /* .scripture-block[data-refs] 行内经文块（晨读喂养等），带注脚和串珠上标 */
+  /* .scripture-block[data-refs] 行内经文块（晨兴喂养等），带注脚和串珠上标 */
   function renderScriptureBlocks() {
     var blocks = document.querySelectorAll('.scripture-block[data-refs]');
     if (!blocks.length) return;

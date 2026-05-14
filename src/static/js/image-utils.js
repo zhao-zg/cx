@@ -58,7 +58,7 @@
     // ── 2. 图片查看器 ────────────────────────────────────────────────────────
     CX.ImageViewer = (function () {
         var _ready = false;
-        var overlay, img, closeBtn;
+        var overlay, img;
         var _scale = 1, _tx = 0, _ty = 0;
         var _pinchStartDist = 0, _pinchStartScale = 1;
         var _panStartX = 0, _panStartY = 0, _panStartTx = 0, _panStartTy = 0;
@@ -143,25 +143,31 @@
             wrap.innerHTML = [
                 '<div id="imageViewer" class="image-viewer-overlay">',
                 '  <button class="image-viewer-share-btn" id="viewerShare" title="分享/保存">🔗</button>',
-                '  <button class="image-viewer-close" id="viewerClose">✕</button>',
                 '  <div class="image-viewer-content" id="viewerContent">',
                 '    <img id="viewerImage" src="" alt="查看图片">',
                 '  </div>',
-                '  <span class="image-viewer-hint">双指缩放 · 双击还原 · 点击关闭</span>',
+                '  <span class="image-viewer-hint">双指缩放 · 双击还原 · 点击图片关闭</span>',
                 '</div>'
             ].join('');
             while (wrap.firstChild) document.body.appendChild(wrap.firstChild);
 
             overlay  = document.getElementById('imageViewer');
             img      = document.getElementById('viewerImage');
-            closeBtn = document.getElementById('viewerClose');
 
-            // 双击还原
+            // 点击图片：单击关闭，双击还原
             img.addEventListener('touchend', function (e) {
                 if (e.changedTouches.length !== 1 || e.touches.length > 0) return;
+                if (_gestured) return;
                 var now = Date.now();
                 if (now - _lastTap < 300) { resetTransform(); _lastTap = 0; return; }
                 _lastTap = now;
+                setTimeout(function () {
+                    if (_lastTap === now) { close(); }
+                }, 310);
+            });
+            img.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (!_gestured) close();
             });
 
             img.addEventListener('touchstart', function (e) {
@@ -206,9 +212,6 @@
             overlay.addEventListener('click', function (e) {
                 if (e.target === overlay) close();
             });
-
-            closeBtn.addEventListener('click', close);
-            closeBtn.addEventListener('touchend', function (e) { e.preventDefault(); close(); });
 
             var shareBtn = document.getElementById('viewerShare');
             if (shareBtn) {

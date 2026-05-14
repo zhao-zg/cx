@@ -571,7 +571,7 @@
       var hasFeeding = (rev.feeding_scriptures && rev.feeding_scriptures.length) || (rev.morning_feeding && rev.morning_feeding.length);
       var hasReading = rev.message_reading && rev.message_reading.length;
       if (hasFeeding) {
-        feedingHtml = '<div class="feeding-section"><h4>晨读喂养</h4>';
+        feedingHtml = '<div class="feeding-section"><h4>晨兴喂养</h4>';
         var fs = rev.feeding_scriptures || [];
         for (var fi = 0; fi < fs.length; fi++) {
           var frefs = feedingRefs[fi] || '';
@@ -920,7 +920,7 @@
           active.querySelectorAll('.outline-item').forEach(function(el){
             var t = getCleanText(el); if (t) text += t + '。';
           });
-          // 晨读喂养经文（scripture-block-static 由 speech.js 包装层已展开书名）
+          // 晨兴喂养经文（scripture-block-static 由 speech.js 包装层已展开书名）
           var feedingSec = active.querySelector('.feeding-section');
           if (feedingSec) {
             feedingSec.querySelectorAll('.scripture-block-static').forEach(function(block){

@@ -69,18 +69,40 @@
         var num = chapter.number || (cidx + 1);
         var chTitle = '第' + num + '篇 ' + (chapter.title || '');
 
-        // h: 听抄
+        // h: 听抄（message_content + detail_sections，与 renderMessageSection DFS 顺序一致）
         var mc = chapter.message_content || [];
-        for (var pi = 0; pi < mc.length; pi++) {
-          var para = mc[pi] || '';
+        var hpi = 0;
+        for (var mci = 0; mci < mc.length; mci++, hpi++) {
+          var para = mc[mci] || '';
           if (para.length >= 10) {
             entries.push({ url: path + '/' + num + '/h',
               training: trainingTitle, season_label: seasonLabel,
               chapter: num, type: 'h', type_label: '听抄',
-              chapter_title: chTitle, pi: pi,
+              chapter_title: chTitle, pi: hpi,
               selector: 'content-text', text: para.slice(0, 200) });
           }
         }
+        // detail_sections 的 content 段落（renderMessageSection 深度优先顺序）
+        var hpiRef = { val: hpi };
+        (function flattenDetailH(secs) {
+          if (!secs) return;
+          for (var dsi = 0; dsi < secs.length; dsi++) {
+            var dsec = secs[dsi];
+            var dcont = dsec.content || [];
+            for (var dci = 0; dci < dcont.length; dci++) {
+              var dpara = dcont[dci] || '';
+              if (dpara.length >= 10) {
+                entries.push({ url: path + '/' + num + '/h',
+                  training: trainingTitle, season_label: seasonLabel,
+                  chapter: num, type: 'h', type_label: '听抄',
+                  chapter_title: chTitle, pi: hpiRef.val,
+                  selector: 'content-text', text: dpara.slice(0, 200) });
+              }
+              hpiRef.val++;
+            }
+            flattenDetailH(dsec.children);
+          }
+        })(chapter.detail_sections);
 
         // cv: 纲目
         var cvBuf = [];
@@ -105,7 +127,7 @@
             if (mfp.length >= 10) {
               entries.push({ url: path + '/' + num + '/cx',
                 training: trainingTitle, season_label: seasonLabel,
-                chapter: num, type: 'cx', type_label: '晨读喂养',
+                chapter: num, type: 'cx', type_label: '晨兴喂养',
                 chapter_title: chTitle, pi: mfi, day_index: dayIdx,
                 selector: 'content-text', text: mfp.slice(0, 200) });
             }

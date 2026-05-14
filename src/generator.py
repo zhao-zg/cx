@@ -509,7 +509,7 @@ def generate_search_index_from_json(output_root: str, trainings: list) -> None:
                     if len(para) >= 10:
                         entries.append({'url': f"{path}/{num}/cx", 'training': title,
                                         'season_label': season_label, 'chapter': num,
-                                        'type': 'cx', 'type_label': '晨读喂养',
+                                        'type': 'cx', 'type_label': '晨兴喂养',
                                         'chapter_title': ch_title, 'pi': pi,
                                         'day_index': day_idx,
                                         'selector': 'content-text', 'text': para[:200]})

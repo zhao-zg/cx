@@ -30,8 +30,8 @@ class MorningRevival:
     """晨读内容（按天）"""
     day: str  # 周一、周二...
     outline: List[Content] = field(default_factory=list)  # 大纲部分
-    feeding_scriptures: List[str] = field(default_factory=list)  # 晨读喂养的经文部分
-    morning_feeding: List[str] = field(default_factory=list)  # 晨读喂养
+    feeding_scriptures: List[str] = field(default_factory=list)  # 晨兴喂养的经文部分
+    morning_feeding: List[str] = field(default_factory=list)  # 晨兴喂养
     message_reading: List[str] = field(default_factory=list)  # 信息选读
     ref_reading: List[str] = field(default_factory=list)  # 参读
 
@@ -98,7 +98,7 @@ class Chapter:
 
     def _extract_feeding_scriptures(self, paragraphs: List[str]) -> tuple:
         """
-        从晨读喂养段落中分离经文
+        从晨兴喂养段落中分离经文
         
         Returns:
             (scriptures, content) 元组
