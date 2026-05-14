@@ -385,16 +385,17 @@ def download_motto_image(session: requests.Session, motto_page: Dict[str, str], 
     
     if not images:
         return False
-    
-    # 选择最小的图片
-    smallest = min(images, key=lambda x: x['size'])
+
     folder_path = Path('resource') / folder_name
     folder_path.mkdir(parents=True, exist_ok=True)
-    image_path = folder_path / f"标语诗歌{smallest['ext']}"
-    
-    image_path.write_bytes(smallest['data'])
-    size_kb = smallest['size'] / 1024
-    print(f"  [OK] {folder_name}/标语诗歌{smallest['ext']}: {size_kb:.2f} KB")
+
+    # 保存所有图片：第1张命名为"标语诗歌.ext"，后续命名为"标语诗歌2.ext"、"标语诗歌3.ext"...
+    for idx, img in enumerate(images):
+        suffix = '' if idx == 0 else str(idx + 1)
+        image_path = folder_path / f"标语诗歌{suffix}{img['ext']}"
+        image_path.write_bytes(img['data'])
+        size_kb = img['size'] / 1024
+        print(f"  [OK] {folder_name}/标语诗歌{suffix}{img['ext']}: {size_kb:.2f} KB")
     return True
 
 

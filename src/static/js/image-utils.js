@@ -56,9 +56,11 @@
     };
 
     // ── 2. 图片查看器 ────────────────────────────────────────────────────────
+    // 单图模式：居中显示，支持双指缩放、双击还原
+    // 多图模式：全屏竖向滚动容器，所有图片上下排列，自然滚动查看
     CX.ImageViewer = (function () {
         var _ready = false;
-        var overlay, img;
+        var overlay, singleContent, singleImg, scrollEl, closeBtn;
         var _scale = 1, _tx = 0, _ty = 0;
         var _pinchStartDist = 0, _pinchStartScale = 1;
         var _panStartX = 0, _panStartY = 0, _panStartTx = 0, _panStartTy = 0;
@@ -66,14 +68,14 @@
         var _lastTap = 0;
 
         function applyTransform() {
-            img.style.transform = 'translate(' + _tx + 'px,' + _ty + 'px) scale(' + _scale + ')';
+            singleImg.style.transform = 'translate(' + _tx + 'px,' + _ty + 'px) scale(' + _scale + ')';
         }
 
         function resetTransform() {
             _scale = 1; _tx = 0; _ty = 0;
-            img.style.transition = 'transform .25s ease';
+            singleImg.style.transition = 'transform .25s ease';
             applyTransform();
-            setTimeout(function () { img.style.transition = ''; }, 260);
+            setTimeout(function () { singleImg.style.transition = ''; }, 260);
         }
 
         function dist(t) {
@@ -84,13 +86,14 @@
         function isPortrait() { return overlay.classList.contains('portrait'); }
 
         function close() {
-            overlay.classList.remove('show', 'portrait');
+            overlay.classList.remove('show', 'portrait', 'multi');
             document.body.style.overflow = '';
             resetTransform();
+            scrollEl.innerHTML = '';
         }
 
         async function shareImage() {
-            var src = img.src;
+            var src = singleImg.src;
             if (!src) return;
             try {
                 var resp = await fetch(src);
@@ -138,7 +141,6 @@
             if (_ready) return;
             _ready = true;
 
-            // 注入查看器 HTML
             var wrap = document.createElement('div');
             wrap.innerHTML = [
                 '<div id="imageViewer" class="image-viewer-overlay">',
@@ -146,16 +148,20 @@
                 '  <div class="image-viewer-content" id="viewerContent">',
                 '    <img id="viewerImage" src="" alt="查看图片">',
                 '  </div>',
-                '  <span class="image-viewer-hint">双指缩放 · 双击还原 · 点击图片关闭</span>',
+                '  <div class="image-viewer-scroll" id="viewerScroll"></div>',
+                '  <span class="image-viewer-hint" id="viewerHint"></span>',
                 '</div>'
             ].join('');
             while (wrap.firstChild) document.body.appendChild(wrap.firstChild);
 
-            overlay  = document.getElementById('imageViewer');
-            img      = document.getElementById('viewerImage');
+            overlay       = document.getElementById('imageViewer');
+            singleContent = document.getElementById('viewerContent');
+            singleImg     = document.getElementById('viewerImage');
+            scrollEl      = document.getElementById('viewerScroll');
+            closeBtn      = document.getElementById('viewerClose');
 
-            // 点击图片：单击关闭，双击还原
-            img.addEventListener('touchend', function (e) {
+            // ── 单图模式：双击还原 ───────────────────────────────────────
+            singleImg.addEventListener('touchend', function (e) {
                 if (e.changedTouches.length !== 1 || e.touches.length > 0) return;
                 if (_gestured) return;
                 var now = Date.now();
@@ -165,12 +171,13 @@
                     if (_lastTap === now) { close(); }
                 }, 310);
             });
-            img.addEventListener('click', function (e) {
+            singleImg.addEventListener('click', function (e) {
                 e.stopPropagation();
                 if (!_gestured) close();
             });
 
-            img.addEventListener('touchstart', function (e) {
+            // ── 单图模式：双指缩放、单指平移 ────────────────────────────
+            singleImg.addEventListener('touchstart', function (e) {
                 _gestured = false;
                 if (e.touches.length === 2) {
                     e.preventDefault();
@@ -178,14 +185,14 @@
                     _pinchStartScale = _scale;
                 } else if (e.touches.length === 1) {
                     if (!isPortrait() || _scale > 1) e.preventDefault();
-                    _panStartX  = e.touches[0].clientX;
-                    _panStartY  = e.touches[0].clientY;
+                    _panStartX = e.touches[0].clientX;
+                    _panStartY = e.touches[0].clientY;
                     _panStartTx = _tx;
                     _panStartTy = _ty;
                 }
             }, { passive: false });
 
-            img.addEventListener('touchmove', function (e) {
+            singleImg.addEventListener('touchmove', function (e) {
                 _gestured = true;
                 if (e.touches.length === 2) {
                     e.preventDefault();
@@ -201,11 +208,16 @@
                 }
             }, { passive: false });
 
-            img.addEventListener('touchend', function () {
+            singleImg.addEventListener('touchend', function () {
                 if (_scale <= 1) { _tx = 0; _ty = 0; applyTransform(); }
             });
 
-            // 背景点击关闭
+            // ── 多图模式：点击空白区域关闭 ──────────────────────────────
+            scrollEl.addEventListener('click', function (e) {
+                if (e.target === scrollEl) close();
+            });
+
+            // ── 背景点击关闭（单图模式）──────────────────────────────────
             overlay.addEventListener('touchend', function (e) {
                 if (!_gestured && e.target === overlay) close();
             });
@@ -224,30 +236,68 @@
             });
         }
 
-        function open(src) {
+        // open(src)              — 单图，向后兼容
+        // open(src, images, idx) — 多图，images 为 URL 数组，idx 为起始索引（滚动定位）
+        function open(src, images, idx) {
             init();
-            img.src = src;
-            overlay.classList.remove('portrait');
+            var hint = document.getElementById('viewerHint');
+            overlay.classList.remove('portrait', 'multi');
             overlay.classList.add('show');
             document.body.style.overflow = 'hidden';
-            _scale = 1; _tx = 0; _ty = 0;
-            img.style.transition = '';
-            applyTransform();
-            function fitWidth() {
-                var vw = overlay.clientWidth, vh = overlay.clientHeight;
-                var nw = img.naturalWidth,    nh = img.naturalHeight;
-                if (!nw || !nh) return;
-                if (Math.min(vw, vh * nw / nh) < vw - 1) overlay.classList.add('portrait');
+
+            if (Array.isArray(images) && images.length > 1) {
+                // ── 多图模式：全屏竖向滚动 ──────────────────────────────
+                overlay.classList.add('multi');
+                singleContent.style.display = 'none';
+                var shareBtn = document.getElementById('viewerShare');
+                if (shareBtn) shareBtn.style.display = 'none';
+                if (hint) hint.textContent = '上下滑动查看 · 点击空白关闭';
+
+                scrollEl.innerHTML = '';
+                for (var i = 0; i < images.length; i++) {
+                    var imgEl = document.createElement('img');
+                    imgEl.src = images[i];
+                    imgEl.alt = '图片 ' + (i + 1);
+                    scrollEl.appendChild(imgEl);
+                }
+
+                // 滚动到被点击的图片
+                var startIdx = (typeof idx === 'number' && idx > 0) ? idx : 0;
+                if (startIdx > 0) {
+                    setTimeout(function () {
+                        var imgs = scrollEl.querySelectorAll('img');
+                        if (imgs[startIdx]) imgs[startIdx].scrollIntoView({ behavior: 'instant' });
+                    }, 30);
+                }
+            } else {
+                // ── 单图模式 ─────────────────────────────────────────────
+                singleContent.style.display = '';
+                var shareBtn = document.getElementById('viewerShare');
+                if (shareBtn) shareBtn.style.display = '';
+                if (hint) hint.textContent = '双指缩放 · 双击还原 · 点击关闭';
+                scrollEl.innerHTML = '';
+
+                _scale = 1; _tx = 0; _ty = 0;
+                singleImg.style.transition = '';
+                applyTransform();
+                singleImg.src = src;
+                overlay.classList.remove('portrait');
+                function fitWidth() {
+                    var vw = overlay.clientWidth, vh = overlay.clientHeight;
+                    var nw = singleImg.naturalWidth, nh = singleImg.naturalHeight;
+                    if (!nw || !nh) return;
+                    if (Math.min(vw, vh * nw / nh) < vw - 1) overlay.classList.add('portrait');
+                }
+                if (singleImg.complete && singleImg.naturalWidth) { fitWidth(); }
+                else { singleImg.onload = fitWidth; }
             }
-            if (img.complete && img.naturalWidth) { fitWidth(); }
-            else { img.onload = fitWidth; }
         }
 
         return { open: open, close: close };
     })();
 
     // 全局接口（兼容模板中的 onclick="openImageViewer(src)"）
-    window.openImageViewer  = function (src) { CX.ImageViewer.open(src); };
-    window.closeImageViewer = function ()    { CX.ImageViewer.close(); };
+    window.openImageViewer  = function (src, images, idx) { CX.ImageViewer.open(src, images, idx); };
+    window.closeImageViewer = function ()                  { CX.ImageViewer.close(); };
 
 })();

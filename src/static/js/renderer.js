@@ -474,8 +474,27 @@
       inner = '<div class="hymn-info">' +
         '<h3>诗歌</h3>' +
         '<p class="hymn-number-display">' + escText(chapter.hymn_number) + '</p>';
-      if (chapter.hymn_image) {
-        var imgUrl = root + escAttr(batchPath) + '/' + escAttr(chapter.hymn_image);
+
+      // 支持多图（hymn_images 优先，向后兼容 hymn_image）
+      var images = (chapter.hymn_images && chapter.hymn_images.length)
+        ? chapter.hymn_images
+        : (chapter.hymn_image ? [chapter.hymn_image] : []);
+
+      if (images.length > 1) {
+        // 多图：直接上下堆叠显示
+        inner += '<div class="hymn-images-stack">';
+        for (var i = 0; i < images.length; i++) {
+          var imgUrl = root + escAttr(batchPath) + '/' + escAttr(images[i]);
+          var allUrls = images.map(function(p) { return escAttr(JSON.stringify(root + batchPath + '/' + p)); }).join(',');
+          inner += '<div class="hymn-image">' +
+            '<img src="' + imgUrl + '" alt="诗歌第' + (i + 1) + '页" class="hymn-img-clickable"' +
+            ' onclick="window.openImageViewer&&openImageViewer(this.src,[' + allUrls + '],' + i + ')">' +
+            '</div>';
+        }
+        inner += '<p class="click-hint">👆 点击图片放大查看</p>';
+        inner += '</div>';
+      } else if (images.length === 1) {
+        var imgUrl = root + escAttr(batchPath) + '/' + escAttr(images[0]);
         inner += '<div class="hymn-image">' +
           '<img src="' + imgUrl + '" alt="诗歌内容" class="hymn-img-clickable" onclick="window.openImageViewer&&openImageViewer(this.src)">' +
           '<p class="click-hint">👆 点击图片放大查看</p>' +
@@ -1164,13 +1183,34 @@
 
       var subtitleLine = '<div class="subtitle">' + escText(training.year + '-' + training.season) + '</div>';
       var h1Text = training.subtitle || training.title;
-      var imgUrl = root + escAttr(batchPath) + '/' + escAttr(training.motto_song_image || '');
+
+      // 支持多图（motto_song_images 优先，向后兼容 motto_song_image）
+      var songImages = (training.motto_song_images && training.motto_song_images.length)
+        ? training.motto_song_images
+        : (training.motto_song_image ? [training.motto_song_image] : []);
+
+      var imagesHtml = '';
+      if (songImages.length > 1) {
+        var allUrls = songImages.map(function(p) { return escAttr(JSON.stringify(root + batchPath + '/' + p)); }).join(',');
+        for (var i = 0; i < songImages.length; i++) {
+          var iUrl = root + escAttr(batchPath) + '/' + escAttr(songImages[i]);
+          imagesHtml += '<div class="song-image-wrapper">' +
+            '<img src="' + iUrl + '" alt="标语诗歌第' + (i + 1) + '页" class="song-image"' +
+            ' onclick="window.openImageViewer&&openImageViewer(this.src,[' + allUrls + '],' + i + ')">' +
+            '</div>';
+        }
+        imagesHtml += '<p class="click-hint">👆 点击图片放大查看</p>';
+      } else if (songImages.length === 1) {
+        var imgUrl = root + escAttr(batchPath) + '/' + escAttr(songImages[0]);
+        imagesHtml = '<div class="song-image-wrapper">' +
+          '<img src="' + imgUrl + '" alt="标语诗歌" class="song-image" onclick="window.openImageViewer&&openImageViewer(this.src)">' +
+          '<p class="click-hint">👆 点击图片放大查看</p>' +
+          '</div>';
+      }
+
       var html = '<div class="container"><div class="header"><h1>' + escText(h1Text) + '</h1>' + subtitleLine + '</div>' +
         '<div class="content"><div class="song-page">' + nav +
-        '<div class="song-container"><div class="song-image-wrapper">' +
-        '<img src="' + imgUrl + '" alt="标语诗歌" class="song-image" onclick="window.openImageViewer&&openImageViewer(this.src)">' +
-        '<p class="click-hint">👆 点击图片放大查看</p>' +
-        '</div></div></div></div>' +
+        '<div class="song-container">' + imagesHtml + '</div></div></div>' +
         buildFooter(training) +
         '</div>';
       rescueThemeBtn();

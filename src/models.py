@@ -44,7 +44,8 @@ class Chapter:
     outline_sections: List[Content] = field(default_factory=list)  # 纲目结构(仅标题,来自经文.docx)
     detail_sections: List[Content] = field(default_factory=list)  # 详细内容(带段落,来自听抄.docx)
     hymn_number: str = ""  # 诗歌编号（如：JL 诗歌：748）
-    hymn_image: str = ""  # 诗歌图片路径（相对于output目录）
+    hymn_image: str = ""  # 诗歌图片路径（相对于output目录，向后兼容保留第一张图）
+    hymn_images: List[str] = field(default_factory=list)  # 诗歌图片列表（支持多张）
     scripture: str = ""  # 经文引用（读经经文）
     scripture_verses: str = ""  # 经文内容（经文正文）
     message_content: List[str] = field(default_factory=list)  # 职事信息内容（来自听抄.docx末尾）
@@ -75,6 +76,7 @@ class Chapter:
             'title': self.title,
             'hymn_number': self.hymn_number,
             'hymn_image': self.hymn_image,
+            'hymn_images': self.hymn_images if self.hymn_images else ([self.hymn_image] if self.hymn_image else []),
             'scripture': self.scripture,
             'outline_sections': outline_sections,
             'detail_sections': detail_sections,
@@ -200,7 +202,8 @@ class TrainingData:
     season: str  # 季节
     app_version: str = ""  # 应用版本号
     mottos: List[str] = field(default_factory=list)  # 标语列表
-    motto_song_image: str = ""  # 标语诗歌图片路径
+    motto_song_image: str = ""  # 标语诗歌图片路径（向后兼容，保留第一张）
+    motto_song_images: List[str] = field(default_factory=list)  # 标语诗歌图片列表（支持多张）
     chapters: List[Chapter] = field(default_factory=list)  # 篇章列表
     
     def add_chapter(self, chapter: Chapter):
@@ -223,5 +226,6 @@ class TrainingData:
             'season': self.season,
             'mottos': self.mottos,
             'motto_song_image': self.motto_song_image,
+            'motto_song_images': self.motto_song_images if self.motto_song_images else ([self.motto_song_image] if self.motto_song_image else []),
             'chapters': [ch.to_dict() for ch in self.chapters]
         }
