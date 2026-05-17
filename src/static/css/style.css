@@ -764,6 +764,14 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 
 /* ── 二十四、图片查看器（hymn / motto_song 共用）──────────── */
 .image-viewer-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--viewer-overlay-bg);z-index:9999;overflow:hidden;touch-action:none}
+
+/* ── 二十五、浮动导航栏（内容页空白处点击唤出）──────────── */
+.cx-float-nav{position:fixed;top:0;left:0;right:0;z-index:990;background:var(--card-bg);box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;transform:translateY(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);pointer-events:none;padding:0 2px}
+.cx-float-nav.show{transform:translateY(0);pointer-events:auto}
+.cx-float-nav .page-navigation{flex:1;margin:0;padding:4px 2px;border-radius:0;background:transparent;box-shadow:none}
+.cx-float-nav-settings{flex-shrink:0;width:38px;height:38px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-primary);border-radius:50%;padding:0;margin-right:2px;-webkit-tap-highlight-color:transparent}
+.cx-float-nav-settings:hover{background:var(--interactive-soft-hover)}
+.cx-float-nav-settings:active{transform:scale(.92);background:var(--interactive-soft-hover)}
 .image-viewer-overlay.show{display:flex;align-items:center;justify-content:center}
 .image-viewer-content{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative}
 .image-viewer-content img{max-width:100%;max-height:100vh;display:block;transform-origin:center center;transition:none;touch-action:none;user-select:none;-webkit-user-drag:none}

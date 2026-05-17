@@ -1010,6 +1010,17 @@
                     var sel = window.getSelection();
                     if (sel && sel.toString().trim().length > 0) return;
                     e.stopPropagation();
+                    // 若点击的是经文链接，等弹框关闭后再显示标记菜单，避免两者同时弹出
+                    var isRefLink = !!(e.target.closest && (
+                        e.target.closest('.scripture-ref') ||
+                        e.target.closest('.fn-ref') ||
+                        e.target.closest('.xref-ref') ||
+                        e.target.closest('.verse-ref')
+                    ));
+                    if (isRefLink) {
+                        self._showAnnotationMenuAfterPopupClose(hl.dataset.highlightId, hl);
+                        return;
+                    }
                     self.showAnnotationMenu(hl.dataset.highlightId, hl);
                     return;
                 }
@@ -1023,6 +1034,31 @@
 
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') self.hideAllMenus();
+            });
+        },
+
+        // 等待经文弹框关闭后再显示标记菜单
+        _showAnnotationMenuAfterPopupClose: function (highlightId, targetEl) {
+            var self = this;
+            // 等一帧，确保经文弹框已打开
+            requestAnimationFrame(function () {
+                var overlay = document.getElementById('scripture-popup-overlay');
+                // 弹框未打开（经文数据未加载等情况），直接显示标记菜单
+                if (!overlay || !overlay.classList.contains('scripture-popup-overlay--open')) {
+                    self.showAnnotationMenu(highlightId, targetEl);
+                    return;
+                }
+                var observer = new MutationObserver(function () {
+                    if (!overlay.classList.contains('scripture-popup-overlay--open')) {
+                        observer.disconnect();
+                        requestAnimationFrame(function () {
+                            self.showAnnotationMenu(highlightId, targetEl);
+                        });
+                    }
+                });
+                observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
+                // 安全超时：60秒后自动断开，防止内存泄漏
+                setTimeout(function () { observer.disconnect(); }, 60000);
             });
         },
 

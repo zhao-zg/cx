@@ -1,5 +1,45 @@
 # Copilot Instructions
 
+## 项目概述
+
+**晨读信息合集**：从 Word 文档（`.docx`）批量生成静态 HTML 网站，并打包为 Android PWA/APK。
+
+- **技术栈**：Python 3 生成器 + Jinja2 模板 + Capacitor 6（Android 壳）
+- **构建命令**：`python main.py`（重新生成 `output/` 全部静态文件）
+- **发布**：运行 `.\release.bat` → 推送 git tag → GitHub Actions 自动构建签名 APK
+  见 [.github/RELEASE_PROCESS.md](.github/RELEASE_PROCESS.md)
+
+## 项目架构
+
+```
+resource/             # Word 源文档（按批次子目录，如 2025-秋季/）
+src/
+  parser_improved.py  # docx 解析器（双格式自动检测）
+  generator.py        # HTML 生成器（调用 Jinja2 模板）
+  models.py           # 数据模型
+  templates/          # Jinja2 模板
+  static/
+    css/style.css     # 全局样式（source，main.py 复制到 output/）
+    js/               # 前端运行时（source，main.py 复制到 output/）
+    index.html        # PWA 首页 source
+output/               # 生成产物（勿手动编辑），deploy 到 Cloudflare Pages
+android/              # Capacitor Android 项目
+config.yaml           # 批次/路径/远程服务器配置
+```
+
+## 关键前端文件（src/static/js/）
+
+| 文件 | 职责 |
+|---|---|
+| `theme-toggle.js` | 主题切换、设置面板、`CX.openDialog` 工厂、`CX.backStack` |
+| `speech.js` | TTS 朗读（Web Speech API + Capacitor NativeTTS），状态机 `idle/playing/paused` |
+| `router.js` | SPA 路由 |
+| `nav-stack.js` | 页面翻页 & 返回栈（PWA/Capacitor） |
+| `scripture-popup.js` | 经文弹框，中文书卷/章节引用解析 |
+| `app-update.js` | APK 自动更新（GitHub Releases + 镜像回退） |
+| `resource-pack.js` | 资源包管理对话框 |
+| `renderer.js` | 各页面类型渲染逻辑 |
+
 ## 代码修改规范
 
 - **禁止使用 PowerShell 命令修改代码文件**（包括 `Set-Content`、`Out-File`、`Add-Content`、重定向 `>`、`>>`、`$lines[...] | Set-Content` 等方式）。
