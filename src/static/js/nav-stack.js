@@ -290,6 +290,11 @@
         return true;
     }
 
+    /* 是否是内容页（hash 格式：#/{batchPath}/{num}/{view}，中间段为数字） */
+    function isContentPage() {
+        return /^#\/[^\/]+\/\d+\//.test(window.location.hash);
+    }
+
     /* 全局点击监听 */
     document.addEventListener('click', function(e) {
         // 浮动栏已显示 → 浮动栏外任意点击收起（浮动栏内部点击已被 stopPropagation，不会到达这里）
@@ -297,8 +302,8 @@
             hide();
             return;
         }
-        // 浮动栏未显示 → 满足条件时弹出
-        if (!isPageNavVisible() && isEmptyAreaClick(e)) {
+        // 浮动栏未显示 → 仅内容页且 tab 栏不可见且空白处点击时弹出
+        if (isContentPage() && !isPageNavVisible() && isEmptyAreaClick(e)) {
             show();
         }
     }, false);
