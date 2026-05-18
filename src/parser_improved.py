@@ -288,6 +288,7 @@ class ImprovedParser:
         self.current_level2 = None
         self.current_level3 = None
         self.current_level4 = None
+        self.current_level5 = None
         self.verse_cache = {}  # 缓存已出现的经文范围内容
     
     def _chinese_to_number(self, chinese_str: str) -> Optional[int]:
@@ -773,6 +774,10 @@ class ImprovedParser:
                     style_type = 'section_level2'
                 elif re.match(r'^\d+[、\s]', text):
                     style_type = 'section_level3'
+                elif re.match(r'^[a-z][、\s]', text):
+                    style_type = 'section_level4'
+                elif re.match(r'^[\u3220-\u3229㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩]', text):
+                    style_type = 'section_level5'
                 else:
                     style_type = 'content'
             
@@ -791,6 +796,7 @@ class ImprovedParser:
                 self.current_level2 = None
                 self.current_level3 = None
                 self.current_level4 = None
+                self.current_level5 = None
                 
             elif style_type == 'section_level1' and self.current_chapter:
                 # 创建新的大点节点(带内容的)
@@ -809,12 +815,14 @@ class ImprovedParser:
                         self.current_level2 = None
                         self.current_level3 = None
                         self.current_level4 = None
+                        self.current_level5 = None
                 else:
                     self.current_level1 = Content(level=level, title=title)
                     self.current_chapter.add_detail_section(self.current_level1)
                     self.current_level2 = None
                     self.current_level3 = None
                     self.current_level4 = None
+                    self.current_level5 = None
                     
             elif style_type == 'section_level2' and self.current_level1:
                 level = self._extract_level_marker(text)
@@ -831,11 +839,13 @@ class ImprovedParser:
                         self.current_level1.add_child(self.current_level2)
                         self.current_level3 = None
                         self.current_level4 = None
+                        self.current_level5 = None
                 else:
                     self.current_level2 = Content(level=level, title=title)
                     self.current_level1.add_child(self.current_level2)
                     self.current_level3 = None
                     self.current_level4 = None
+                    self.current_level5 = None
                     
             elif style_type == 'section_level3' and self.current_level2:
                 level = self._extract_level_marker(text)
@@ -850,9 +860,26 @@ class ImprovedParser:
                         # 前一 level3 已有内容/子节或已完整 → 新建无标记的 level3 节
                         self.current_level3 = Content(level='', title=title)
                         self.current_level2.add_child(self.current_level3)
+                        self.current_level4 = None
+                        self.current_level5 = None
                 else:
                     self.current_level3 = Content(level=level, title=title)
                     self.current_level2.add_child(self.current_level3)
+                    self.current_level4 = None
+                    self.current_level5 = None
+
+            elif style_type == 'section_level4' and self.current_level3:
+                level = self._extract_level_marker(text)
+                title = self._clean_title(text)
+                self.current_level4 = Content(level=level, title=title)
+                self.current_level3.add_child(self.current_level4)
+                self.current_level5 = None
+
+            elif style_type == 'section_level5' and self.current_level4:
+                level = self._extract_level_marker(text)
+                title = self._clean_title(text)
+                self.current_level5 = Content(level=level, title=title)
+                self.current_level4.add_child(self.current_level5)
                     
             elif style_type == 'content':
                 # 添加正文内容到对应的层级
@@ -861,6 +888,10 @@ class ImprovedParser:
                 # 注：content 样式段在听抄中始终是正文；跨页标题续接由 section_level* 分支处理。
                 if text.startswith('读经：') or text.startswith('读经:'):
                     pass
+                elif self.current_level5:
+                    self.current_level5.add_content(text)
+                elif self.current_level4:
+                    self.current_level4.add_content(text)
                 elif self.current_level3:
                     self.current_level3.add_content(text)
                 elif self.current_level2:
