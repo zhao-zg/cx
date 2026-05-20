@@ -522,6 +522,12 @@ def generate_main_index(config, batch_results):
         shutil.copy2(headers_src, os.path.join(output_dir, '_headers'))
         print(f"✓ _headers 文件已复制")
 
+    # ── _redirects（Cloudflare Pages 重定向）─────────────────────────────
+    redirects_src = os.path.join(template_dir, '_redirects')
+    if os.path.exists(redirects_src):
+        shutil.copy2(redirects_src, os.path.join(output_dir, '_redirects'))
+        print(f"✓ _redirects 文件已复制")
+
     # ── changelog.json ────────────────────────────────────────────────────
     if os.path.exists('changelog.json'):
         shutil.copy2('changelog.json', os.path.join(output_dir, 'changelog.json'))
