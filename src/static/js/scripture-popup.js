@@ -184,6 +184,10 @@
     var lastChapter = '';   // 上一个成功解析的章号（十进制字符串）
     var out = [];
     tokens.forEach(function (token) {
+      // 节范围标签前缀剥离：「31-35:出三六35」→「出三六35」
+      // 形如「数字(范围):经文引用」，冒号前是段落/节次标签，非经文章节引用
+      var _lm = /^\d+(?:[~～\-]\d+)?:([^\d:].*)$/.exec(token);
+      if (_lm) token = _lm[1].trim();
       // 纯节号续接（如 8~9、19~24）：仅含数字+范围符，无书卷前缀
       // 此时继承 lastBook + lastChapter，拼成完整引用再解析
       var bareVerse = token.replace(/[～~—\-]/g, '-').match(/^(\d+)(-\d+)?([上中下]?)$/);
@@ -430,13 +434,13 @@
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
-    /* 点遮罩关闭 */
+    /* 点遮罩空白：优先走 history.back()，让 backStack 决定行为（回退 navStack 层或关闭弹框） */
     overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) { e.stopPropagation(); closeModal(); }
+      if (e.target === overlay) { e.stopPropagation(); try { history.back(); } catch(e) {} }
     });
 
-    /* 防滚动穿透 + 触摸点遮罩关闭（mobile touchend → preventDefault 阻止穿透点击） */
-    window.CX.lockOverlayScroll(overlay, closeModal);
+    /* 防滚动穿透 + 触摸点遮罩关闭（mobile touchend → history.back） */
+    window.CX.lockOverlayScroll(overlay, function() { try { history.back(); } catch(e) {} });
 
     return { overlay: overlay, title: title, body: body, backBtn: backBtn };
   }

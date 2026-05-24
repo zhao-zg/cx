@@ -564,14 +564,9 @@
           var ilm = irefs[irefs.length - 1].match(/^([^\d:]+)(\d+):(\d+)/);
           if (ilm && !_lockBook) {
             book = ilm[1];
-            // 整章引用（节号为0，如「三章」→启3:0）：只更新书卷，不更新章号
-            // 避免散文中提及章名导致 ch 被意外重置，破坏后续括号的上下文
-            if (parseInt(ilm[3], 10) !== 0) {
-              ch = parseInt(ilm[2], 10);
-            } else if (!ch) {
-              // 仅在当前章号缺失时，用整章引用补齐章号（如「以赛亚六章…（1）」）
-              ch = parseInt(ilm[2], 10);
-            }
+            // 整章引用（节号为0）与具体节引用均更新章号，
+            // 使行内明确提及的章（如「以西结一章说，」）能传递给后续括号引用
+            ch = parseInt(ilm[2], 10);
           }
           result.push(makeSpan(fm.text, irefs));
         } else {

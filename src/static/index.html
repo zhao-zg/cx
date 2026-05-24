@@ -471,9 +471,6 @@
                 try{localStorage.setItem('cx_dev_mode',on?'1':'0');}catch(e){}
                 if(on&&window.CXDevConsole)window.CXDevConsole.init();
                 else if(!on&&window.CXDevConsole)window.CXDevConsole.destroy();
-                // 同步设置面板"资源管理"按钮可见性
-                var _rmBtn=document.getElementById('resourceMgrBtn');
-                if(_rmBtn)_rmBtn.style.display=on?'inline-flex':'none';
             });
         }
     })();

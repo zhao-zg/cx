@@ -304,11 +304,12 @@
         window.CX.backStack.push(function() { _destroy(); });
         // 主动关闭（按钮/遮罩点击）：移除 DOM + 消耗 history 记录
         function close() { _destroy(); window.CX.backStack.pop(); }
-        // lockOverlayScroll 统一处理防滚动穿透 + 防点击穿透（touchend → close）
-        window.CX.lockOverlayScroll(mask, close);
+        // lockOverlayScroll 统一处理防滚动穿透 + 防点击穿透（touchend → history.back）
+        // 点遮罩空白：优先走 history.back()，让 backStack 决定行为（回退历史层或关闭弹框）
+        window.CX.lockOverlayScroll(mask, function() { try { history.back(); } catch(e) {} });
         // 桌面/鼠标端：click 处理（移动端因 touchend 已 preventDefault，不会重复触发）
         mask.addEventListener('click', function(e) {
-            if (e.target === mask) { e.stopPropagation(); close(); }
+            if (e.target === mask) { e.stopPropagation(); try { history.back(); } catch(e) {} }
         });
         return { mask: mask, close: close };
     };
@@ -504,7 +505,7 @@
                     <button class="action-btn feedback" id="feedbackBtn">
                         <span class="cache-icon">💬</span><span class="cache-text">问题反馈</span>
                     </button>
-                    <button class="action-btn" id="resourceMgrBtn" style="display:none">
+                    <button class="action-btn" id="resourceMgrBtn">
                         <span class="cache-icon">📦</span><span class="cache-text">资源管理</span>
                     </button>
 
@@ -635,11 +636,10 @@
             }
         })();
 
-        // ── 资源管理（仅开发者模式可见）────────────────────────────────
+        // ── 资源管理（所有用户可见）────────────────────────────────
         (function() {
             var resMgrBtn = document.getElementById('resourceMgrBtn');
             if (!resMgrBtn) return;
-            try { if (localStorage.getItem('cx_dev_mode') === '1') resMgrBtn.style.display = 'inline-flex'; } catch(e) {}
             resMgrBtn.addEventListener('click', function() {
                 if (window.CXResourcePack && window.CXResourcePack.showCachedDialog)
                     window.CXResourcePack.showCachedDialog();
