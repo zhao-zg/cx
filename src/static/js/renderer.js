@@ -44,7 +44,7 @@
   // 滚动位置记忆
   var _scrollSaveTimer = null;
   var _scrollSaveHandler = null;
-  var _scrollPageKey = null;  // 当前听抄页的 per-page 滚动键（仅 viewType==='h' 时非 null）
+  var _scrollPageKey = null;  // 当前页面的 per-page 滚动键（cx 分页器视图除外均有）
 
   function loadTraining(batchPath) {
     if (_cache[batchPath]) return Promise.resolve(_cache[batchPath]);
@@ -786,18 +786,27 @@
     var app = getApp();
     rescueThemeBtn(); // 防止按钮随 innerHTML 替换被销毁
 
-    // 听抄页：提前读取记忆滚动位置，在 innerHTML 设置前隐藏 app，
-    // 避免"先渲染顶部 → 再跳到记忆位置"的视觉闪屏
-    var _preHScroll = 0;
-    if (viewType === 'h' && batchPath && chapter && chapter.number) {
+    // 提前读取 per-page 记忆滚动位置，在 innerHTML 设置前隐藏 app，
+    // 避免"先渲染顶部 → 再跳到记忆位置"的视觉闪屏（cx 视图为分页器，无需记忆窗口滚动）
+    var _preScroll = 0;
+    if (viewType !== 'cx' && batchPath && chapter && chapter.number) {
       try {
-        var _preKey = 'cx_h_scroll:' + batchPath + '/' + chapter.number;
-        _preHScroll = parseInt(localStorage.getItem(_preKey) || '0', 10) || 0;
+        _preScroll = parseInt(localStorage.getItem('cx_scroll:' + batchPath + '/' + chapter.number + '/' + viewType) || '0', 10) || 0;
+        // 向后兼容：听抄页兼容旧 cx_h_scroll key
+        if (_preScroll === 0 && viewType === 'h') {
+          _preScroll = parseInt(localStorage.getItem('cx_h_scroll:' + batchPath + '/' + chapter.number) || '0', 10) || 0;
+        }
       } catch(e){}
-      if (_preHScroll > 0) {
-        app.style.opacity = '0';
-        app.style.transition = '';
-      }
+    }
+    // 冷启动兜底：若 per-page 键无记录，读取全局上次滚动位置
+    var _restoreScroll = sessionStorage.getItem('cx_restore_scroll');
+    var _savedScrollVal = _restoreScroll ? parseInt(localStorage.getItem('cx_last_scroll') || '0', 10) : 0;
+    if (_preScroll === 0 && viewType !== 'cx' && _restoreScroll && _savedScrollVal > 0) {
+      _preScroll = _savedScrollVal;
+    }
+    if (_preScroll > 0) {
+      app.style.opacity = '0';
+      app.style.transition = '';
     }
 
     app.innerHTML = html;
@@ -818,10 +827,8 @@
     relocateThemeBtn();
     initSpeechForView(viewType, chapter);
 
-    // 先读取上次保存的滚动位置（在覆盖之前），用于本次恢复
-    var _restoreScroll = sessionStorage.getItem('cx_restore_scroll');
-    var _savedScrollVal = _restoreScroll ? parseInt(localStorage.getItem('cx_last_scroll') || '0', 10) : 0;
-    var _savedDateVal = _restoreScroll ? (localStorage.getItem('cx_last_page_date') || '') : '';
+    // 消费冷启动恢复标记
+    if (_restoreScroll) sessionStorage.removeItem('cx_restore_scroll');
 
     try {
       var _today = new Date().toISOString().slice(0, 10);
@@ -835,9 +842,9 @@
       }
     } catch(e){}
 
-    // 设置滚动位置保存监听
-    _scrollPageKey = (viewType === 'h' && batchPath && chapter && chapter.number)
-      ? ('cx_h_scroll:' + batchPath + '/' + chapter.number) : null;
+    // 设置 per-page 滚动保存监听（cx 视图为分页器，不记忆窗口滚动）
+    _scrollPageKey = (viewType !== 'cx' && batchPath && chapter && chapter.number)
+      ? ('cx_scroll:' + batchPath + '/' + chapter.number + '/' + viewType) : null;
     if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
     if (_scrollSaveHandler) {
       win.removeEventListener('scroll', _scrollSaveHandler);
@@ -855,40 +862,22 @@
     };
     win.addEventListener('scroll', _scrollSaveHandler, {passive: true});
 
-    // 恢复滚动位置
-    if (_restoreScroll) {
-      sessionStorage.removeItem('cx_restore_scroll');
-      var _todayStr = new Date().toISOString().slice(0, 10);
-      var _isCx = (viewType === 'cx');
-      // 晨读页：仅同天恢复滚动；其他页面始终恢复
-      var _shouldRestore = _savedScrollVal > 0 && (!_isCx || _savedDateVal === _todayStr);
-      if (_shouldRestore) {
-        // 延迟确保 initDayPager 等异步初始化完成后再滚动
-        setTimeout(function() { try { win.scrollTo(0, _savedScrollVal); } catch(e){} }, 200);
-      }
-    }
-    // 听抄页：始终从 per-page 键恢复滚动（覆盖在App内切换视图/跨章节导航等场景）
-    if (viewType === 'h' && _scrollPageKey) {
-      try {
-        var _hScroll = parseInt(localStorage.getItem(_scrollPageKey) || '0', 10);
-        if (_hScroll > 0) {
-          // 用双 RAF 代替固定延迟：保证 layout 完成、下次 paint 前完成滚动，
-          // 配合入口处的 opacity=0 实现"先定位再淡入"效果，彻底消除闪屏
+    // 恢复滚动位置（除 cx 分页器外，所有视图从 per-page 键恢复；返回导航+冷启动均生效）
+    if (viewType !== 'cx') {
+      if (_preScroll > 0) {
+        // 用双 RAF 代替固定延迟：保证 layout 完成后滚动，
+        // 配合入口处的 opacity=0 实现"先定位再淡入"效果，彻底消除闪屏
+        requestAnimationFrame(function() {
           requestAnimationFrame(function() {
-            requestAnimationFrame(function() {
-              try { win.scrollTo(0, _hScroll); } catch(e){}
-              var _app = getApp();
-              _app.style.transition = 'opacity 0.15s ease';
-              _app.style.opacity = '';
-              setTimeout(function() { try { _app.style.transition = ''; } catch(e){} }, 200);
-            });
+            try { win.scrollTo(0, _preScroll); } catch(e){}
+            var _app = getApp();
+            _app.style.transition = 'opacity 0.15s ease';
+            _app.style.opacity = '';
+            setTimeout(function() { try { _app.style.transition = ''; } catch(e){} }, 200);
           });
-        } else {
-          // 无记忆位置：确保 opacity 已还原（防御性清理）
-          app.style.opacity = '';
-          app.style.transition = '';
-        }
-      } catch(e){
+        });
+      } else {
+        // 无记忆位置：确保 opacity 已还原（防御性清理）
         app.style.opacity = '';
         app.style.transition = '';
       }
@@ -1041,8 +1030,8 @@
   // ── 批次目录页 ──────────────────────────────────────────────────────────
 
   function renderBatchIndex(batchPath) {
-    // 离开听抄等章节页前，丢弃还未提交的 scroll 防抖 timer，避免 scrollTo(0,0) 触发的 scroll
-    // 事件在 300ms 后把 scrollY=0 写回 cx_h_scroll 键，覆盖用户的记忆位置
+    // 离开章节页前，丢弃还未提交的 scroll 防抖 timer，避免 scrollTo(0,0) 触发的 scroll
+    // 事件在 300ms 后把 scrollY=0 写回 per-page 键，覆盖用户的记忆位置
     if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
     if (_scrollSaveHandler) { win.removeEventListener('scroll', _scrollSaveHandler); _scrollSaveHandler = null; }
     _scrollPageKey = null;
@@ -1098,6 +1087,24 @@
         initSearchBtn();
         relocateThemeBtn();
         try { localStorage.setItem('cx_last_page', win.location.href); } catch(e){}
+        // 设置 per-page 滚动保存监听
+        _scrollPageKey = 'cx_scroll:idx:' + batchPath;
+        _scrollSaveHandler = function() {
+          if (_scrollSaveTimer) clearTimeout(_scrollSaveTimer);
+          _scrollSaveTimer = setTimeout(function() {
+            try { if (_scrollPageKey) localStorage.setItem(_scrollPageKey, String(win.scrollY || 0)); } catch(e){}
+          }, 300);
+        };
+        win.addEventListener('scroll', _scrollSaveHandler, {passive: true});
+        // 恢复滚动位置
+        try {
+          var _idxScroll = parseInt(localStorage.getItem('cx_scroll:idx:' + batchPath) || '0', 10);
+          if (_idxScroll > 0) {
+            requestAnimationFrame(function() { requestAnimationFrame(function() {
+              try { win.scrollTo(0, _idxScroll); } catch(e){}
+            }); });
+          }
+        } catch(e){}
       })
       .catch(function(err) {
         var isCapacitor = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
@@ -1158,6 +1165,23 @@
       setMeta(training);
       initSearchBtn();
       relocateThemeBtn();
+      // 设置 per-page 滚动保存监听
+      _scrollPageKey = 'cx_scroll:motto:' + batchPath;
+      _scrollSaveHandler = function() {
+        if (_scrollSaveTimer) clearTimeout(_scrollSaveTimer);
+        _scrollSaveTimer = setTimeout(function() {
+          try { if (_scrollPageKey) localStorage.setItem(_scrollPageKey, String(win.scrollY || 0)); } catch(e){}
+        }, 300);
+      };
+      win.addEventListener('scroll', _scrollSaveHandler, {passive: true});
+      try {
+        var _mottoScroll = parseInt(localStorage.getItem('cx_scroll:motto:' + batchPath) || '0', 10);
+        if (_mottoScroll > 0) {
+          requestAnimationFrame(function() { requestAnimationFrame(function() {
+            try { win.scrollTo(0, _mottoScroll); } catch(e){}
+          }); });
+        }
+      } catch(e){}
     }).catch(function(err){
       var isCapacitor = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
       var packHint = isCapacitor
@@ -1223,6 +1247,23 @@
       setMeta(training);
       initSearchBtn();
       relocateThemeBtn();
+      // 设置 per-page 滚动保存监听
+      _scrollPageKey = 'cx_scroll:motto_song:' + batchPath;
+      _scrollSaveHandler = function() {
+        if (_scrollSaveTimer) clearTimeout(_scrollSaveTimer);
+        _scrollSaveTimer = setTimeout(function() {
+          try { if (_scrollPageKey) localStorage.setItem(_scrollPageKey, String(win.scrollY || 0)); } catch(e){}
+        }, 300);
+      };
+      win.addEventListener('scroll', _scrollSaveHandler, {passive: true});
+      try {
+        var _songScroll = parseInt(localStorage.getItem('cx_scroll:motto_song:' + batchPath) || '0', 10);
+        if (_songScroll > 0) {
+          requestAnimationFrame(function() { requestAnimationFrame(function() {
+            try { win.scrollTo(0, _songScroll); } catch(e){}
+          }); });
+        }
+      } catch(e){}
     }).catch(function(err){
       var isCapacitor = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
       var packHint = isCapacitor
@@ -1236,10 +1277,27 @@
   function renderHome() {
     if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
     if (_scrollSaveHandler) { win.removeEventListener('scroll', _scrollSaveHandler); _scrollSaveHandler = null; }
-    _scrollPageKey = null;
+    _scrollPageKey = 'cx_scroll:home';
     showHome();
     try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e) {}
     try { localStorage.setItem('cx_last_page', win.location.href); } catch(e) {}
+    // 设置主页滚动保存监听
+    _scrollSaveHandler = function() {
+      if (_scrollSaveTimer) clearTimeout(_scrollSaveTimer);
+      _scrollSaveTimer = setTimeout(function() {
+        try { localStorage.setItem('cx_scroll:home', String(win.scrollY || 0)); } catch(e){}
+      }, 300);
+    };
+    win.addEventListener('scroll', _scrollSaveHandler, {passive: true});
+    // 恢复主页滚动位置（双 RAF 覆盖 showHome 内的 scrollTo(0,0)）
+    try {
+      var _homeScroll = parseInt(localStorage.getItem('cx_scroll:home') || '0', 10);
+      if (_homeScroll > 0) {
+        requestAnimationFrame(function() { requestAnimationFrame(function() {
+          try { win.scrollTo(0, _homeScroll); } catch(e){}
+        }); });
+      }
+    } catch(e){}
     relocateThemeBtn();
   }
 

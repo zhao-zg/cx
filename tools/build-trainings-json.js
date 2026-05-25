@@ -152,8 +152,8 @@ function splitMultiTrainingSegments(lines) {
       var nxt = lines[j].trim();
       if (!nxt) continue;
       if (YEAR_HEADER_RE.test(nxt)) {
-        segments.push(lines.slice(currentStart, i)); // 当前段到 TOP 行前结束
-        currentStart = j;                             // 下一段从年份标题开始
+        segments.push(lines.slice(currentStart, i)); // 当前段截止 TOP 之前
+        currentStart = j; // 下一段从年份标题开始
       }
       break;
     }

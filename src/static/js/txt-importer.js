@@ -1003,10 +1003,22 @@
 
   function getShortTitle(header) {
     if (!header) return '';
-    var idx = header.indexOf('年');
-    var short = idx >= 0 ? header.slice(idx + 1).trim() : header.trim();
-    // 去掉合辑标题中 "、B年XXX" 后缀，如 "夏冬季、二〇一四年夏季训练" → "夏冬季"
-    short = short.replace(/、[一二三四五六七八九○〇零]{4}年.+$/, '').trim();
+    var short;
+    // 跨年范围标题，只剥离开头4字年份（及紧跟的「年」），保留范围描述
+    // 覆盖两种格式：
+    //   1. "二○一○秋季至二○一二年..."（含「至」）
+    //   2. "二〇〇七年至二〇〇八年..."（「年」+「至」）
+    //   3. "二〇〇九年秋季二〇一〇年春季..."（两个年份无「至」拼接）
+    var isCrossYear = /至[一二三四五六七八九○〇零]{4}年/.test(header) ||
+                      /[一二三四五六七八九○〇零]{4}年[^、]{0,15}[一二三四五六七八九○〇零]{4}年/.test(header);
+    if (isCrossYear) {
+      short = header.replace(/^[一二三四五六七八九○〇零]{4}年?/, '').trim();
+    } else {
+      var idx = header.indexOf('年');
+      short = idx >= 0 ? header.slice(idx + 1).trim() : header.trim();
+      // 去掉合辑标题中 "、B年XXX" 后缀，如 "夏冬季、二〇一四年夏季训练" → "夏冬季"
+      short = short.replace(/、[一二三四五六七八九○〇零]{4}年.+$/, '').trim();
+    }
     return short;
   }
 
