@@ -221,6 +221,13 @@ public class TTSForegroundService extends Service {
                 // Guard against stale callbacks from a previous speak() call
                 int gen = parseGen(utteranceId);
                 if (gen != speakGen || isStopped || isPaused) return;
+                // Guard against duplicate onDone for the same utterance:
+                // Some Huawei/OEM TTS engines re-fire onDone when setSpeechRate()
+                // is called between chunks, causing chunkIndex to advance twice.
+                // The uid encodes the chunk index; if it no longer matches the
+                // current chunkIndex the callback has already been processed.
+                int chunkOfUid = parseChunk(utteranceId);
+                if (chunkOfUid >= 0 && chunkOfUid != chunkIndex) return;
 
                 chunkIndex++;
 
@@ -249,6 +256,8 @@ public class TTSForegroundService extends Service {
             public void onError(String utteranceId) {
                 int gen = parseGen(utteranceId);
                 if (gen != speakGen || isStopped) return;
+                int chunkOfUid = parseChunk(utteranceId);
+                if (chunkOfUid >= 0 && chunkOfUid != chunkIndex) return;
                 chunkIndex++;
                 final int capturedGen = gen;
                 ttsHandler.post(() -> {
@@ -554,6 +563,13 @@ public class TTSForegroundService extends Service {
         }
         String text = chunks.get(chunkIndex);
         String uid  = "g" + speakGen + "_c" + chunkIndex;
+        // 每块播放前重设语速（部分引擎如华为在 chunk 切换后会把语速归 1.0）。
+        // setSpeechRate() 在某些引擎（如讯飞）上会触发内部状态重置并换声；
+        // 紧接着重新 setVoice() 可恢复锁定的声音，无需引擎特判。
+        t.setSpeechRate(playRate);
+        if (pinnedVoice != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try { t.setVoice(pinnedVoice); } catch (Exception ignored) {}
+        }
         int ret = doSpeak(t, text, uid);
         if (ret == TextToSpeech.ERROR && pinnedVoice != null) {
             // setVoice() 被引擎拒绝（常见于 Samsung/讯飞 stop() 后）。
@@ -619,6 +635,15 @@ public class TTSForegroundService extends Service {
         catch (NumberFormatException e) { return -1; }
     }
 
+    /** Extract chunk index from utteranceId "g<gen>_c<chunk>" */
+    private static int parseChunk(String uid) {
+        if (uid == null) return -1;
+        int ci = uid.indexOf("_c");
+        if (ci < 0) return -1;
+        try { return Integer.parseInt(uid.substring(ci + 2)); }
+        catch (NumberFormatException e) { return -1; }
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // Notification
     // ═══════════════════════════════════════════════════════════════════════
@@ -680,9 +705,14 @@ public class TTSForegroundService extends Service {
         for (int i = 0; i < chunkIndex && i < chunks.size(); i++) {
             cumChars += chunks.get(i).length();
         }
-        long sliceMs = getTotalDurationMs(); // 切片自身时长
-        if (totalTextLength <= 0 || sliceMs <= 0) return sliceStartPositionMs;
-        return sliceStartPositionMs + (long)((float) cumChars / totalTextLength * sliceMs);
+        // 必须与 startPositionBroadcast 报告给 JS 的 totalMs 使用同一基准：
+        // totalMs = fullTotalDurationMs（JS 按原始全文估算的总时长）。
+        // 若用 getTotalDurationMs()（按 safeText 长度），会比 fullTotalDurationMs 小，
+        // 导致 posMs/totalMs 偏低，JS 暂停时保存的 _resumePercent 偏小，
+        // 恢复时 Java targetChar 往前偏移，产生"往前跳好几分钟"的 bug。
+        long totalMs = fullTotalDurationMs > 0 ? fullTotalDurationMs : getTotalDurationMs();
+        if (totalTextLength <= 0 || totalMs <= 0) return sliceStartPositionMs;
+        return sliceStartPositionMs + (long)((float) cumChars / totalTextLength * totalMs);
     }
 
     @SuppressWarnings("deprecation")
