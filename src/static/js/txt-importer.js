@@ -1295,7 +1295,14 @@
         motto_song_text: indexInfo.mottoSongText || '',
         motto_song_image: '',
         chapters: chapters,
-        version: getNowVersion()
+        version: getNowVersion(),
+        // 原始行范围（供构建脚本提取原文用，浏览器端忽略）
+        rawRange: {
+          idxStart: b.idxStart,
+          idxEnd: b.idxEnd || n,
+          detailStart: (md && md.dStart != null) ? md.dStart : null,
+          detailEnd:   (md && md.detailEnd != null) ? md.detailEnd : null
+        }
       };
       results.push(td);
       if (onProgress) onProgress(i + 1, total);
