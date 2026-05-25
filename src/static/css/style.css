@@ -311,10 +311,9 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .outline-item.level-1.cx-search-target,.outline-item.level-2.cx-search-target{padding-left:calc(1.1em + 5px)}
 .outline-item.level-3.cx-search-target,.outline-item.level-4.cx-search-target,.outline-item.level-5.cx-search-target{padding-left:calc(1em + 5px)}
 @keyframes cx-target-pulse{0%,100%{background-color:transparent}50%{background-color:rgba(255,179,71,0.25)}}
-/* 朗读当前段落高亮：左侧蓝色竖线 + 淡蓝背景，持续显示直到朗读结束 */
-.cx-tts-active{box-shadow:inset 3px 0 0 var(--brand,#4f7ddb);background-color:rgba(79,125,219,0.08);transition:background-color 0.4s,box-shadow 0.4s;scroll-margin-top:80px}
-.outline-item.level-1.cx-tts-active,.outline-item.level-2.cx-tts-active{padding-left:calc(1.1em + 5px)}
-.outline-item.level-3.cx-tts-active,.outline-item.level-4.cx-tts-active,.outline-item.level-5.cx-tts-active{padding-left:calc(1em + 5px)}
+/* 朗读句子高亮：纯背景色，逐句跟随 */
+mark.cx-tts-sent{background-color:transparent;border-radius:2px}
+.cx-tts-active{background-color:rgba(79,125,219,0.18);border-radius:2px;transition:background-color 0.25s}
 .cx-note-icon{font-size:.75em;cursor:pointer;vertical-align:super;line-height:1;margin-left:1px;-webkit-user-select:none;user-select:none}
 .hl-menu{display:none;flex-direction:column;gap:5px;padding:8px;background:var(--surface);border-radius:12px;box-shadow:var(--menu-shadow);border:1px solid var(--border);z-index:9999;min-width:min(220px,calc(100vw - 24px));max-width:min(340px,calc(100vw - 24px));-webkit-user-select:none;user-select:none;transition:opacity .15s ease}
 .hl-menu-row{display:flex;gap:6px;flex-wrap:nowrap;align-items:center;width:100%}
@@ -402,8 +401,6 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
     .section-level5,.outline-item.level-5{margin:8px 0 6px;font-size:1.01em;margin-left:66px;padding-left:1.5em;text-indent:-1.5em}
     .outline-item.level-1.cx-search-target,.outline-item.level-2.cx-search-target{padding-left:calc(1.75em + 5px)}
     .outline-item.level-3.cx-search-target,.outline-item.level-4.cx-search-target,.outline-item.level-5.cx-search-target{padding-left:calc(1.5em + 5px)}
-    .outline-item.level-1.cx-tts-active,.outline-item.level-2.cx-tts-active{padding-left:calc(1.75em + 5px)}
-    .outline-item.level-3.cx-tts-active,.outline-item.level-4.cx-tts-active,.outline-item.level-5.cx-tts-active{padding-left:calc(1.5em + 5px)}
 }
 .outline-item{display:block}
 .outline-lvl-toggle{cursor:pointer;-webkit-tap-highlight-color:transparent;color:inherit;font-weight:bold;display:inline;touch-action:manipulation}

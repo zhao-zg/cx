@@ -285,11 +285,11 @@
       var _nativePositionHandle = null;
       var textChunks   = [];
       var currentChunk = 0;
-      // -- TTS 段落高亮追踪 ---------------------------------------------------
-      var _segmentMap  = [];   // [{el, start, end}] 每段在 fullText 中的字符偏移区间
-      var _prevTTSEl   = null; // 当前高亮的 DOM 元素
-      var _ttsStartChar = 0;   // 本次播放在 fullText 中的起始字符位置
-      var _ttsChunkChar = 0;   // Web Speech 已播放 chunks 的累积字符数
+      // -- TTS 句子级高亮追踪 -------------------------------------------------
+      var _segmentMap       = [];   // [{el:<mark|block>, start, end}] 句子级字符偏移
+      var _sentenceMarkData = [];   // [{el, origChildren}] 已注入 mark 的元素，供复原
+      var _prevTTSEl        = null; // 当前高亮的 <mark> 元素
+      var _ttsMarkOffset    = 0;    // _segmentMap 中对应 currentChunk=0 的句子索引
 
       // -- State machine helpers ----------------------------------------------
 
@@ -310,26 +310,119 @@
         loopBtn.title = isLooping ? '循环播放（已开启）' : '循环播放';
       }
 
-      // -- TTS 段落高亮 --------------------------------------------------------
+      // -- TTS 句子级高亮 --------------------------------------------------------
 
+      // 将元素内容按句子（。！？；）拆分，注入 <mark class="cx-tts-sent"> span。
+      // 返回 {marks:[], origChildren:[], el} 或 null（无内容时）。
+      function injectSentenceMarks(el) {
+        var origChildren = Array.prototype.slice.call(el.childNodes);
+        if (!origChildren.length) return null;
+        var marks = [];
+        var frag  = document.createDocumentFragment();
+        var cur   = document.createElement('mark');
+        cur.className = 'cx-tts-sent';
+        var hasContent = false;
+
+        function flushCur() {
+          if (!hasContent) return;
+          frag.appendChild(cur);
+          marks.push(cur);
+          cur = document.createElement('mark');
+          cur.className = 'cx-tts-sent';
+          hasContent = false;
+        }
+
+        origChildren.forEach(function(node) {
+          if (node.nodeType === 3) { // 文本节点：按句子终止符拆分
+            var text = node.nodeValue;
+            var re = /[。！？；]/g;
+            var m, last = 0;
+            while ((m = re.exec(text)) !== null) {
+              cur.appendChild(document.createTextNode(text.slice(last, m.index + 1)));
+              hasContent = true;
+              last = m.index + 1;
+              flushCur();
+            }
+            if (last < text.length) {
+              cur.appendChild(document.createTextNode(text.slice(last)));
+              hasContent = true;
+            }
+          } else {
+            // 内联元素：整体移入当前句子 mark（移动节点，保留原有事件绑定）
+            cur.appendChild(node);
+            hasContent = true;
+            if (/[。！？；]$/.test(node.textContent)) flushCur();
+          }
+        });
+        flushCur(); // 冲刷末尾未终止的句子
+
+        if (!marks.length) return null;
+
+        // 用注入了 mark 的 frag 替换原始内容
+        // 原始文本节点已被 while 清除（inline 元素已移入 cur，已不在 el 中）
+        while (el.firstChild) el.removeChild(el.firstChild);
+        el.appendChild(frag);
+        return {marks: marks, origChildren: origChildren, el: el};
+      }
+
+      function restoreElement(injected) {
+        var el = injected.el;
+        try { if (!el.parentNode && typeof el.closest === 'function' && !el.closest('body')) return; } catch(e) { return; }
+        while (el.firstChild) el.removeChild(el.firstChild);
+        injected.origChildren.forEach(function(n) { el.appendChild(n); });
+      }
+
+      function clearSentenceMarks() {
+        _sentenceMarkData.forEach(function(inj) { try { restoreElement(inj); } catch(e) {} });
+        _sentenceMarkData = [];
+      }
+
+      // 构建句子级 _segmentMap，向 DOM 注入 <mark class="cx-tts-sent"> span
       function buildSegmentMap() {
+        clearSentenceMarks();
         _segmentMap = [];
         if (!getElements) return;
         var segs = getElements();
         var pos = 0;
+
         segs.forEach(function(seg) {
-          var end = pos + seg.textLen;
-          _segmentMap.push({el: seg.el, start: pos, end: end});
-          pos = end;
+          var el = seg.el;
+          // scripture-block-static 结构复杂，整块作为一个分段，不注入句子 mark
+          if (el.classList.contains('scripture-block-static')) {
+            _segmentMap.push({el: el, start: pos, end: pos + seg.textLen});
+            pos += seg.textLen;
+            return;
+          }
+          var injected = injectSentenceMarks(el);
+          if (!injected) {
+            _segmentMap.push({el: el, start: pos, end: pos + seg.textLen});
+            pos += seg.textLen;
+            return;
+          }
+          _sentenceMarkData.push(injected);
+          injected.marks.forEach(function(mark) {
+            // 估算该句子在 fullText 中的字符数（近似，误差 <5%）
+            var sentLen = mark.textContent
+              .replace(/（[^）]*）/g, '').replace(/\([^)]*\)/g, '')
+              .replace(/\s+/g, ' ').replace(/[\r\n\t]/g, '')
+              .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '')
+              .trim().length || 1;
+            _segmentMap.push({el: mark, start: pos, end: pos + sentLen});
+            pos += sentLen;
+          });
         });
       }
 
-      function findSegmentAt(charPos) {
-        var map = _segmentMap;
-        for (var i = 0; i < map.length; i++) {
-          if (charPos < map[i].end) return map[i].el;
+      function findSegmentIndex(charPos) {
+        for (var i = 0; i < _segmentMap.length; i++) {
+          if (charPos < _segmentMap[i].end) return i;
         }
-        return map.length > 0 ? map[map.length - 1].el : null;
+        return Math.max(0, _segmentMap.length - 1);
+      }
+
+      function findSegmentAt(charPos) {
+        var idx = findSegmentIndex(charPos);
+        return _segmentMap[idx] ? _segmentMap[idx].el : null;
       }
 
       function setTTSHighlight(el) {
@@ -344,6 +437,7 @@
 
       function clearTTSHighlight() {
         if (_prevTTSEl) { _prevTTSEl.classList.remove('cx-tts-active'); _prevTTSEl = null; }
+        clearSentenceMarks();
         _segmentMap = [];
       }
 
@@ -504,15 +598,21 @@
       // Web Speech API path
       // ======================================================================
 
-      function splitIntoChunks(text, maxLen) {
-        var result = []; var sentences = text.split(/([。！？；])/); var cur = '';
-        for (var i = 0; i < sentences.length; i++) {
-          var s = sentences[i];
-          if (cur.length + s.length <= maxLen) { cur += s; }
-          else { if (cur) result.push(cur); cur = s; }
+      function splitBySentence(text) {
+        // 每个句子终止符（。！？；）处切分，每句作为独立 utterance
+        var result = [];
+        var re = /[^。！？；]*[。！？；]/g;
+        var m, last = 0;
+        while ((m = re.exec(text)) !== null) {
+          var s = m[0];
+          if (s.trim()) result.push(s);
+          last = re.lastIndex;
         }
-        if (cur) result.push(cur);
-        return result;
+        if (last < text.length) {
+          var tail = text.slice(last).trim();
+          if (tail) result.push(text.slice(last));
+        }
+        return result.length > 0 ? result : [text];
       }
 
       function wsPlayNextChunk() {
@@ -529,13 +629,13 @@
           if (gen !== speakGeneration || state !== 'playing') return;
           startTime = Date.now();
           startProgressUpdate();
-          // 更新段落高亮
-          setTTSHighlight(findSegmentAt(_ttsStartChar + _ttsChunkChar));
+          // 按句子索引更新高亮（_ttsMarkOffset 对应本次播放的起始句子）
+          var markIdx = _ttsMarkOffset + currentChunk;
+          setTTSHighlight(_segmentMap[markIdx] ? _segmentMap[markIdx].el : null);
         };
         utt.onend = function () {
           if (consumed || gen !== speakGeneration || state !== 'playing') return;
           consumed = true;
-          _ttsChunkChar += (textChunks[currentChunk] || '').length;
           currentChunk++;
           wsPlayNextChunk();
         };
@@ -580,10 +680,9 @@
         progressBar.value = String(p);
         speechTime.textContent = formatTime(targetSecs) + ' / ' + formatTime(totalDuration);
 
-        // 初始化高亮到当前起始段落
-        _ttsStartChar = charIndex;
-        _ttsChunkChar = 0;
-        setTTSHighlight(findSegmentAt(charIndex));
+        // 初始化高亮到当前起始句子
+        _ttsMarkOffset = findSegmentIndex(charIndex);
+        setTTSHighlight(_segmentMap[_ttsMarkOffset] ? _segmentMap[_ttsMarkOffset].el : null);
 
         if (useNativeTTS) {
           // nativeSpeak does its own ++speakGeneration
@@ -593,7 +692,7 @@
           var gen = speakGeneration;
           try { window.speechSynthesis.cancel(); } catch (e) {}
           stopProgressUpdate();
-          textChunks   = splitIntoChunks(segText, 200);
+          textChunks   = splitBySentence(segText);
           currentChunk = 0;
           elapsedOffset = targetSecs; startTime = Date.now();
           setState('playing');
