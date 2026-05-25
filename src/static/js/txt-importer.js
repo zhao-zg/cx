@@ -93,7 +93,9 @@
 
   /** 从标题行（如"二〇二六年国际华语特会"）提取年份 */
   function cnYearToInt(header) {
-    var m = header.match(/([一二三四五六七八九○〇零]{4})年/);
+    // 优先匹配标题开头的4字年份（可能没有「年」后缀，如跨年范围 "二○一○秋季至..."）
+    var mHead = header.match(/^([一二三四五六七八九○〇零]{4})/);
+    var m = mHead || header.match(/([一二三四五六七八九○〇零]{4})年/);
     if (!m) return null;
     var s = m[1].split('').map(function(c){ return CN_DIGIT_MAP[c] || '?'; }).join('');
     if (s.indexOf('?') >= 0) return null;

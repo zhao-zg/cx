@@ -1030,8 +1030,8 @@
   // ── 批次目录页 ──────────────────────────────────────────────────────────
 
   function renderBatchIndex(batchPath) {
-    // 离开章节页前，丢弃还未提交的 scroll 防抖 timer，避免 scrollTo(0,0) 触发的 scroll
-    // 事件在 300ms 后把 scrollY=0 写回 per-page 键，覆盖用户的记忆位置
+    // 离开听抄等章节页前，丢弃还未提交的 scroll 防抖 timer，避免 scrollTo(0,0) 触发的 scroll
+    // 事件在 300ms 后把 scrollY=0 写回 cx_h_scroll 键，覆盖用户的记忆位置
     if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
     if (_scrollSaveHandler) { win.removeEventListener('scroll', _scrollSaveHandler); _scrollSaveHandler = null; }
     _scrollPageKey = null;
@@ -1289,13 +1289,33 @@
       }, 300);
     };
     win.addEventListener('scroll', _scrollSaveHandler, {passive: true});
-    // 恢复主页滚动位置（双 RAF 覆盖 showHome 内的 scrollTo(0,0)）
+    // 恢复主页滚动位置
+    // 注意：trainingsGrid 内容由异步 refreshHomeGrid() 填充，需在内容更新后再恢复；
+    // 用 MutationObserver 监听 grid 子节点变化（内容加载完成时触发），同时保留 double RAF
+    // 作为返回导航场景的立即兜底（grid 已预填充、高度充足时直接生效）。
     try {
       var _homeScroll = parseInt(localStorage.getItem('cx_scroll:home') || '0', 10);
       if (_homeScroll > 0) {
-        requestAnimationFrame(function() { requestAnimationFrame(function() {
+        var _homeObsActive = false;
+        var _homeObs = null;
+        var _doHomeScroll = function() {
           try { win.scrollTo(0, _homeScroll); } catch(e){}
-        }); });
+        };
+        // 立即尝试（返回导航场景：grid 已预填充，高度足够）
+        requestAnimationFrame(function() { requestAnimationFrame(function() { _doHomeScroll(); }); });
+        // MutationObserver：grid 内容更新后再次恢复（冷启动场景：grid 异步加载后修正位置）
+        var _gridEl = document.getElementById('trainingsGrid');
+        if (_gridEl && typeof MutationObserver !== 'undefined') {
+          _homeObs = new MutationObserver(function() {
+            if (_homeObs) { try { _homeObs.disconnect(); } catch(e){} _homeObs = null; }
+            _doHomeScroll();
+          });
+          _homeObs.observe(_gridEl, { childList: true });
+          // 2s 后若 grid 未触发变化则清理 observer（防止悬挂）
+          setTimeout(function() {
+            if (_homeObs) { try { _homeObs.disconnect(); } catch(e){} _homeObs = null; }
+          }, 2000);
+        }
       }
     } catch(e){}
     relocateThemeBtn();
@@ -1346,6 +1366,22 @@
     extractRefs: extractRefs,
     outlineLevelClass: outlineLevelClass
   };
+
+  // ── 退出/后台时立即保存滚动位置（跳过防抖，防止 300ms 内退出导致位置丢失）──────
+  function flushScrollSave() {
+    if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
+    if (!_scrollPageKey) return;
+    try {
+      var _sy = String(win.scrollY || 0);
+      localStorage.setItem(_scrollPageKey, _sy);
+      localStorage.setItem('cx_last_scroll', _sy);
+    } catch(e) {}
+  }
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) flushScrollSave();
+  });
+  win.addEventListener('pagehide', flushScrollSave);   // iOS Safari / Capacitor
+  win.addEventListener('beforeunload', flushScrollSave);
 
   // ── search.js 兼容补丁 ────────────────────────────────────────────────
   function patchSearch() {

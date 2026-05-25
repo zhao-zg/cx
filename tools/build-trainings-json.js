@@ -115,6 +115,10 @@ var yearMaxSeq = 0;
 var extraSeqCounter = 0;
 
 // ── 5. 写出 training.json ─────────────────────────────────────────────────────
+function normalizeSourceAbbr(text) {
+  return text.replace(/李常受文集/g, 'CWWL').replace(/生命读经/g, 'L-S');
+}
+
 function writeTraining(td, year, seq) {
   if (yearFilter && year !== yearFilter) return false;
   var seqStr = seq < 10 ? '0' + seq : '' + seq;
@@ -123,7 +127,7 @@ function writeTraining(td, year, seq) {
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(
     path.join(outDir, 'training.json'),
-    JSON.stringify(td, null, 2),
+    normalizeSourceAbbr(JSON.stringify(td, null, 2)),
     'utf8'
   );
   return true;
@@ -227,7 +231,7 @@ function processFile(filePath, inYearSubdir) {
         console.warn('  [解析失败] ' + filename + (seqOffset ? ' 段' + (seqOffset + 1) : '') + ': ' + e.message);
         return;
       }
-      if (!td.year) td.year = ys.year;
+      td.year = ys.year; // 年份子目录文件始终使用文件名中的年份
       // 同年重复检测：若前3章标题组合已被同年更早的文件注册，则跳过
       var dupSig = td.chapters.slice(0, 3).map(function(c) { return c.title; }).join('|');
       var dupKey = ys.year + '|' + dupSig;
