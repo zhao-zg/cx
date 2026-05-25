@@ -104,6 +104,10 @@ function writeScriptures(verseDict, year, seq) {
 // ── 4. 富化函数（由 training-enricher.js 提供）─────────────────────────────────
 // enrichChapter = _enr.enrichChapter（已在上方赋局部变量）
 
+// ── 4b. 同年重复检测（同年第一章相同则为合辑总览文件，跳过）────────────────────
+// key: "YYYY|ch0title"，在 main() 按年分批重置，避免跨年误判
+var seenFirstChapters = {};
+
 // ── 5. 写出 training.json ─────────────────────────────────────────────────────
 function writeTraining(td, year, seq) {
   if (yearFilter && year !== yearFilter) return false;
@@ -158,6 +162,21 @@ function processFile(filePath, inYearSubdir) {
       return 0;
     }
     if (!td.year) td.year = ys.year;
+    // 同年重复检测：若前3章标题组合已被同年更早的文件注册，则跳过（合辑总览文件）
+    var dupSig = td.chapters.slice(0, 3).map(function(c) { return c.title; }).join('|');
+    var dupKey = ys.year + '|' + dupSig;
+    if (dupSig && seenFirstChapters[dupKey]) {
+      console.warn('  [跳过重复] ' + filename + '（前3章与已有训练重复）');
+      // 删除可能残留的旧输出目录
+      var seqStr0 = ys.seq < 10 ? '0' + ys.seq : '' + ys.seq;
+      var oldDir = path.join(OUTPUT_DIR, ys.year + '-' + seqStr0);
+      if (fs.existsSync(oldDir)) {
+        fs.rmSync(oldDir, { recursive: true, force: true });
+        console.warn('  [删除旧目录] ' + ys.year + '-' + seqStr0);
+      }
+      return 0;
+    }
+    if (dupSig) seenFirstChapters[dupKey] = true;
     // 单训练文件：扫描全部行提取内联经文（2024+ 格式）
     if (enrichAndWrite(td, ys.year, ys.seq)) {
       writeScriptures(collectInlineVerses(lines), ys.year, ys.seq);
@@ -284,6 +303,8 @@ function main() {
     .sort();
 
   years.forEach(function(yr) {
+    // 每年重置第一章去重表（避免跨年误判）
+    seenFirstChapters = {};
     var yearDir = path.join(RESOURCE_DIR, yr);
     var txts = fs.readdirSync(yearDir)
       .filter(function(f) { return f.toLowerCase().endsWith('.txt'); })

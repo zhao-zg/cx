@@ -1004,7 +1004,10 @@
   function getShortTitle(header) {
     if (!header) return '';
     var idx = header.indexOf('年');
-    return idx >= 0 ? header.slice(idx + 1).trim() : header.trim();
+    var short = idx >= 0 ? header.slice(idx + 1).trim() : header.trim();
+    // 去掉合辑标题中 "、B年XXX" 后缀，如 "夏冬季、二〇一四年夏季训练" → "夏冬季"
+    short = short.replace(/、[一二三四五六七八九○〇零]{4}年.+$/, '').trim();
+    return short;
   }
 
   function getNowVersion() {
@@ -1030,16 +1033,16 @@
     for (var i = 0; i < n; i++) {
       var s = lines[i].trim();
       if (!/^[一二三四五六七八九○〇零两]{4}年/.test(s)) continue;
-      // 向下5行内验证
+      // 向下8行内验证（跳过空行与副标题行，找到总题/标语/第01篇则认定有效）
       var valid = false;
-      for (var j = i + 1; j < Math.min(i + 6, n); j++) {
+      for (var j = i + 1; j < Math.min(i + 9, n); j++) {
         var nxt = lines[j].trim();
-        if (nxt) {
-          if (/^总题/.test(nxt) || /^标[\u3000\s]*语/.test(nxt) || /^第0?1篇/.test(nxt)) {
-            valid = true;
-          }
-          break;
+        if (!nxt) continue;
+        if (/^总题/.test(nxt) || /^标[\u3000\s]*语/.test(nxt) || /^第0?1篇/.test(nxt)) {
+          valid = true; break;
         }
+        // 遇到导航行或另一训练年份标题则停止
+        if (isNavLine(nxt) || /^[一二三四五六七八九○〇零两]{4}年/.test(nxt)) break;
       }
       if (!valid) continue;
       var year = cnYearToInt(s);
