@@ -21,7 +21,6 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
-import android.speech.tts.Voice;
 import android.media.MediaMetadata;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
@@ -29,7 +28,6 @@ import android.media.session.PlaybackState;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 /**
  * TTSForegroundService — Android Foreground Service for background-safe TTS.
@@ -91,7 +89,6 @@ public class TTSForegroundService extends Service {
     private long                chunkStartTimeMs     = 0; // 当前 chunk 开始时的系统时钟（ms）
     private long                sliceStartPositionMs  = 0; // seek 点偏移，从 JS 传入的 startSecs * 1000
     private long                fullTotalDurationMs   = 0; // 全文稿总时长，从 JS 的 totalSecs * 1000
-    private Voice               pinnedVoice          = null; // 锁定声音，避免 chunk 间换声
     private String              playTitle            = "";  // 锁屏/通知栏标题（篇章）
     private String              playArtist           = "";  // 锁屏/通知栏副标题（训练名）
     private Bitmap              appIconBitmap        = null; // APP 图标，缓存避免重复解码
@@ -174,8 +171,6 @@ public class TTSForegroundService extends Service {
                 ttsInitRetries = 0;
                 ttsReady = true;
                 ttsInitFailed = false;
-                // 初始化完成后立即枚举 voices，避免首次 speak 时再走 setLanguage() 随机选声音
-                pinnedVoice = pickBestVoice(playLang);
                 // 仅在确认初始化成功后才设置 UtteranceProgressListener，
                 // 避免在 retry 过程中对已作废的 tts 实例设置监听器。
                 TextToSpeech ready = tts;
@@ -365,7 +360,6 @@ public class TTSForegroundService extends Service {
         chunkIndex   = 0;
         chunkStartPositionMs = 0;
         chunkStartTimeMs     = 0;
-        pinnedVoice          = pickBestVoice(playLang); // 枚举一次，后续 chunk 直接 setVoice()
         speakGen++;
         chunks.clear();
         chunks.addAll(splitText(text, CHUNK_SIZE));
@@ -513,43 +507,20 @@ public class TTSForegroundService extends Service {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void setTtsParams() {
-        if (pinnedVoice != null) {
-            // 使用预先枚举好的 voice，完全跳过 setLanguage()。
-            tts.setVoice(pinnedVoice);
-        } else {
-            // 兜底：pickBestVoice() 枚举失败（引擎未就绪或无离线包）时退回 setLanguage()
-            Locale locale;
-            try {
-                locale = Locale.forLanguageTag(playLang);
-            } catch (Exception e) {
-                locale = Locale.CHINA;
-            }
-            int r = tts.setLanguage(locale);
-            if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
-                tts.setLanguage(Locale.CHINA);
-            }
+        // 始终使用 setLanguage()，跟随系统设定的默认音色。
+        Locale locale;
+        try {
+            locale = Locale.forLanguageTag(playLang);
+        } catch (Exception e) {
+            locale = Locale.CHINA;
+        }
+        int r = tts.setLanguage(locale);
+        if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
+            tts.setLanguage(Locale.CHINA);
         }
         tts.setSpeechRate(playRate);
     }
 
-    /** 枚举 TTS voice 列表，返回匹配语言的最高质量离线 voice；失败返回 null。 */
-    private Voice pickBestVoice(String lang) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) return null;
-        Locale target;
-        try { target = Locale.forLanguageTag(lang); } catch (Exception e) { target = Locale.CHINA; }
-        String targetLang = target.getLanguage();
-        Voice best = null;
-        try {
-            Set<Voice> voices = tts.getVoices();
-            if (voices == null) return null;
-            for (Voice v : voices) {
-                if (v.isNetworkConnectionRequired()) continue;
-                if (!targetLang.equals(v.getLocale().getLanguage())) continue;
-                if (best == null || v.getQuality() > best.getQuality()) best = v;
-            }
-        } catch (Exception ignored) {}
-        return best;
-    }
 
     /** Speak current chunk (rate already set by handleSpeak; called from delayed callback or onDone). */
     private void playChunkOnly() {
@@ -563,22 +534,15 @@ public class TTSForegroundService extends Service {
         }
         String text = chunks.get(chunkIndex);
         String uid  = "g" + speakGen + "_c" + chunkIndex;
-        // 每块播放前重设语速（部分引擎如华为在 chunk 切换后会把语速归 1.0）。
-        // setSpeechRate() 在某些引擎（如讯飞）上会触发内部状态重置并换声；
-        // 紧接着重新 setVoice() 可恢复锁定的声音，无需引擎特判。
-        t.setSpeechRate(playRate);
-        if (pinnedVoice != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            try { t.setVoice(pinnedVoice); } catch (Exception ignored) {}
-        }
+        // 每块播放前重设语速 + 语言，确保速率和系统默认音色全程一致：
+        // - 语速：华为等引擎在 chunk 切换后会把语速归 1.0；
+        // - 语言/音色：讯飞等引擎在 setSpeechRate() 后会重置音色，
+        //   重新 setLanguage() 让引擎恢复系统设定的默认音色。
+        setTtsParams();
         int ret = doSpeak(t, text, uid);
-        if (ret == TextToSpeech.ERROR && pinnedVoice != null) {
-            // setVoice() 被引擎拒绝（常见于 Samsung/讯飞 stop() 后）。
-            // 清除 pinnedVoice，退回 setLanguage() 再试一次。
-            pinnedVoice = null;
-            setTtsParams(); // 内部走 setLanguage() 分支
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                try { pinnedVoice = tts.getVoice(); } catch (Exception ignored) {}
-            }
+        if (ret == TextToSpeech.ERROR) {
+            // 首次 speak 失败时重试一次（部分引擎在状态切换后偶发 ERROR）
+            setTtsParams();
             ret = doSpeak(t, text, uid);
         }
         if (ret == TextToSpeech.ERROR) {
