@@ -129,6 +129,7 @@
   function init(options) {
     var getText = options && typeof options.getText === 'function' ? options.getText : null;
     if (!getText) return;
+    var getElements = options && typeof options.getElements === 'function' ? options.getElements : null;
 
     // 包装 getText：朗读前将非括号的 .scripture-ref[data-refs] span 整体替换为
     // 展开后的纯文本节点，使 getCleanText（会移除 .scripture-ref）也能读到完整书名；
@@ -284,6 +285,11 @@
       var _nativePositionHandle = null;
       var textChunks   = [];
       var currentChunk = 0;
+      // -- TTS 段落高亮追踪 ---------------------------------------------------
+      var _segmentMap  = [];   // [{el, start, end}] 每段在 fullText 中的字符偏移区间
+      var _prevTTSEl   = null; // 当前高亮的 DOM 元素
+      var _ttsStartChar = 0;   // 本次播放在 fullText 中的起始字符位置
+      var _ttsChunkChar = 0;   // Web Speech 已播放 chunks 的累积字符数
 
       // -- State machine helpers ----------------------------------------------
 
@@ -302,6 +308,43 @@
         if (!loopBtn) return;
         loopBtn.classList.toggle('active', isLooping);
         loopBtn.title = isLooping ? '循环播放（已开启）' : '循环播放';
+      }
+
+      // -- TTS 段落高亮 --------------------------------------------------------
+
+      function buildSegmentMap() {
+        _segmentMap = [];
+        if (!getElements) return;
+        var segs = getElements();
+        var pos = 0;
+        segs.forEach(function(seg) {
+          var end = pos + seg.textLen;
+          _segmentMap.push({el: seg.el, start: pos, end: end});
+          pos = end;
+        });
+      }
+
+      function findSegmentAt(charPos) {
+        var map = _segmentMap;
+        for (var i = 0; i < map.length; i++) {
+          if (charPos < map[i].end) return map[i].el;
+        }
+        return map.length > 0 ? map[map.length - 1].el : null;
+      }
+
+      function setTTSHighlight(el) {
+        if (_prevTTSEl === el) return;
+        if (_prevTTSEl) _prevTTSEl.classList.remove('cx-tts-active');
+        _prevTTSEl = el;
+        if (el) {
+          el.classList.add('cx-tts-active');
+          try { el.scrollIntoView({behavior: 'smooth', block: 'nearest'}); } catch(e) {}
+        }
+      }
+
+      function clearTTSHighlight() {
+        if (_prevTTSEl) { _prevTTSEl.classList.remove('cx-tts-active'); _prevTTSEl = null; }
+        _segmentMap = [];
       }
 
       function onPlaybackNaturalEnd() {
@@ -352,6 +395,7 @@
       function resetState() {
         ++speakGeneration;
         stopProgressUpdate();
+        clearTTSHighlight();
         if (useNativeTTS) nativeStopService();
         else { try { window.speechSynthesis.cancel(); } catch (e) {} }
         fullText = '';
@@ -411,6 +455,11 @@
             elapsedOffset = data.posMs / 1000;
             if (data.totalMs > 0) totalDuration = data.totalMs / 1000;
             startTime = Date.now();
+            // 根据时间比例估算当前字符位置，更新段落高亮
+            if (_segmentMap.length && data.totalMs > 0) {
+              var approxChar = Math.floor((data.posMs / data.totalMs) * fullText.length);
+              setTTSHighlight(findSegmentAt(approxChar));
+            }
           });
           if (gen !== speakGeneration) { try { handle.remove(); } catch (e) {} }
           else { _nativePositionHandle = handle; }
@@ -480,10 +529,13 @@
           if (gen !== speakGeneration || state !== 'playing') return;
           startTime = Date.now();
           startProgressUpdate();
+          // 更新段落高亮
+          setTTSHighlight(findSegmentAt(_ttsStartChar + _ttsChunkChar));
         };
         utt.onend = function () {
           if (consumed || gen !== speakGeneration || state !== 'playing') return;
           consumed = true;
+          _ttsChunkChar += (textChunks[currentChunk] || '').length;
           currentChunk++;
           wsPlayNextChunk();
         };
@@ -527,6 +579,11 @@
 
         progressBar.value = String(p);
         speechTime.textContent = formatTime(targetSecs) + ' / ' + formatTime(totalDuration);
+
+        // 初始化高亮到当前起始段落
+        _ttsStartChar = charIndex;
+        _ttsChunkChar = 0;
+        setTTSHighlight(findSegmentAt(charIndex));
 
         if (useNativeTTS) {
           // nativeSpeak does its own ++speakGeneration
@@ -631,6 +688,7 @@
           }
           fullText = safeText(getText());
           if (!fullText) return;
+          buildSegmentMap();
           totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
           elapsedOffset = 0; progressBar.value = '0';
           speechTime.textContent = '00:00 / ' + formatTime(totalDuration);

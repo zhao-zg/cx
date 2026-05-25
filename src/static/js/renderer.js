@@ -896,7 +896,7 @@
       var bar = document.getElementById('bottomControlBar');
       var btn = document.getElementById('playPauseBtn');
       if (!bar || !btn) return true;
-      win.CXSpeech.init({ getText: buildGetText(viewType, chapter) });
+      win.CXSpeech.init({ getText: buildGetText(viewType, chapter), getElements: buildGetElements(viewType, chapter) });
       return true;
     }
     if (!tryInit()) {
@@ -979,6 +979,83 @@
         .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '')
         .trim();
       return text;
+    };
+  }
+
+  // 与 buildGetText 遍历顺序严格一致，返回 [{el, textLen}] 供 speech.js 做段落高亮映射
+  // textLen = 该元素在 fullText 中的估算字符数（含末尾的 '。'，误差 <5% 可接受）
+  function buildGetElements(viewType, chapter) {
+    return function() {
+      // 估算单个节点在 fullText 中的字符数，与 getCleanText + safeText + cleanup 一致
+      function elemLen(node) {
+        var clone = node.cloneNode(true);
+        clone.querySelectorAll('button, .scripture-content, .verse-line, .scripture-ref')
+             .forEach(function(el){ el.remove(); });
+        var t = clone.textContent.trim()
+          .replace(/（[^）]*）/g, '').replace(/\([^)]*\)/g, '')
+          .replace(/\s+/g, ' ').replace(/[\r\n\t]/g, '')
+          .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '')
+          .trim();
+        return t.length + 1; // +1 for '。'
+      }
+
+      var segs = [];
+      var titleEl = document.querySelector('.chapter-title');
+      if (titleEl && titleEl.textContent.trim()) segs.push({el: titleEl, textLen: elemLen(titleEl)});
+      var scrEl = document.querySelector('.scripture');
+      if (scrEl && scrEl.textContent.trim()) segs.push({el: scrEl, textLen: elemLen(scrEl)});
+
+      if (viewType === 'cv') {
+        document.querySelectorAll('.outline-item').forEach(function(el){
+          var len = elemLen(el); if (len > 1) segs.push({el: el, textLen: len});
+        });
+      } else if (viewType === 'cx') {
+        var active = document.querySelector('.day-page.is-active') || document.querySelector('.day-page');
+        if (active) {
+          active.querySelectorAll('.outline-item').forEach(function(el){
+            var len = elemLen(el); if (len > 1) segs.push({el: el, textLen: len});
+          });
+          var feedingSec = active.querySelector('.feeding-section');
+          if (feedingSec) {
+            feedingSec.querySelectorAll('.scripture-block-static').forEach(function(block){
+              var clone = block.cloneNode(true);
+              clone.querySelectorAll('sup').forEach(function(s){ s.remove(); });
+              var t = clone.textContent.trim();
+              if (t) segs.push({el: block, textLen: t.length + 1});
+            });
+            feedingSec.querySelectorAll('.feeding-scripture').forEach(function(s){
+              var t = s.textContent.trim();
+              if (t) segs.push({el: s, textLen: t.length + 1});
+            });
+          }
+          active.querySelectorAll('.content-text').forEach(function(el){
+            var len = elemLen(el); if (len > 1) segs.push({el: el, textLen: len});
+          });
+        }
+      } else if (viewType === 'h') {
+        var msg = document.querySelector('.message-content');
+        if (msg) {
+          msg.querySelectorAll(':scope > p.content-text').forEach(function(p){
+            var len = elemLen(p); if (len > 1) segs.push({el: p, textLen: len});
+          });
+        }
+        document.querySelectorAll('.section').forEach(function(sec){
+          var lvl = sec.querySelector('[class^="section-level"]');
+          if (lvl) { var len = elemLen(lvl); if (len > 1) segs.push({el: lvl, textLen: len}); }
+          var content = sec.querySelector('.section-content');
+          if (content) {
+            content.querySelectorAll('.content-text').forEach(function(p){
+              var len = elemLen(p); if (len > 1) segs.push({el: p, textLen: len});
+            });
+          }
+        });
+      } else if (viewType === 'ts' || viewType === 'zs') {
+        document.querySelectorAll('.content-text').forEach(function(p){
+          var len = elemLen(p); if (len > 1) segs.push({el: p, textLen: len});
+        });
+      }
+
+      return segs;
     };
   }
 

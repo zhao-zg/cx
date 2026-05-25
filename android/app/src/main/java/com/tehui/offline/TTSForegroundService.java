@@ -13,7 +13,10 @@ import android.graphics.BitmapFactory;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.media.PlaybackParams;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -25,6 +28,7 @@ import android.media.MediaMetadata;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -86,7 +90,6 @@ public class TTSForegroundService extends Service {
     private String              playLang   = "zh-CN";
     private int                 totalTextLength = 0; // set in handleSpeak; used for progress
     private long                chunkStartPositionMs = 0; // 当前 chunk 开始时的媒体位置（ms）
-    private long                chunkStartTimeMs     = 0; // 当前 chunk 开始时的系统时钟（ms）
     private long                sliceStartPositionMs  = 0; // seek 点偏移，从 JS 传入的 startSecs * 1000
     private long                fullTotalDurationMs   = 0; // 全文稿总时长，从 JS 的 totalSecs * 1000
     private String              playTitle            = "";  // 锁屏/通知栏标题（篇章）
@@ -97,6 +100,12 @@ public class TTSForegroundService extends Service {
     private volatile Runnable   positionRunnable     = null;
     // 自然播放结束后延迟销毁 Service 的 Runnable；循环播放时在宽限期内取消，避免 TTS 反复初始化
     private volatile Runnable   _pendingStop         = null;
+
+    // ── MediaPlayer（synthesizeToFile → MediaPlayer + PlaybackParams 变速）───────
+    private MediaPlayer         mediaPlayer          = null;
+    // N+1 预生成：播放 chunk N 期间提前合成 chunk N+1，消除 chunk 间停顿
+    private volatile File       nextTempFile         = null;  // 预合成完成的下一 chunk 文件
+    private volatile int        synthForChunk        = -1;    // 正在合成哪个 chunk（-1 = 无）
 
     // ── System Resources ──────────────────────────────────────────────────
     private AudioManager                          audioManager;
@@ -179,8 +188,7 @@ public class TTSForegroundService extends Service {
                 }
                 // If a speak request arrived before init completed, start now
                 if (!chunks.isEmpty() && !isStopped && !isPaused) {
-                    setTtsParams(); // first-time init: set language + rate before first chunk
-                    playChunkOnly();
+                    playChunkOnly(); // setTtsParams() 内嵌在 doSynthesizeChunk() 中
                 }
             } else {
                 // OxygenOS/MIUI 上 TTS 引擎首次初始化偶发 ERROR，稍后重试通常成功
@@ -208,40 +216,40 @@ public class TTSForegroundService extends Service {
         return new UtteranceProgressListener() {
             @Override
             public void onStart(String utteranceId) {
-                // Engine accepted and started synthesising — no action needed
+                // 合成已开始 — 无需操作
             }
 
             @Override
             public void onDone(String utteranceId) {
-                // Guard against stale callbacks from a previous speak() call
+                // 合成完成（文件已写入），此时 onDone 语义为"合成完成"而非"播放完成"。
+                // 播放完成由 MediaPlayer.OnCompletionListener 负责推进 chunkIndex。
                 int gen = parseGen(utteranceId);
-                if (gen != speakGen || isStopped || isPaused) return;
-                // Guard against duplicate onDone for the same utterance:
-                // Some Huawei/OEM TTS engines re-fire onDone when setSpeechRate()
-                // is called between chunks, causing chunkIndex to advance twice.
-                // The uid encodes the chunk index; if it no longer matches the
-                // current chunkIndex the callback has already been processed.
                 int chunkOfUid = parseChunk(utteranceId);
-                if (chunkOfUid >= 0 && chunkOfUid != chunkIndex) return;
+                File tempFile = new File(getCacheDir(), "tts_" + utteranceId + ".wav");
 
-                chunkIndex++;
-
-                // 上报字符进度，让 JS 侧用实际完成比例重新校准进度条（消除时间估算漂移）
-                if (totalTextLength > 0) {
-                    int charsDone = 0;
-                    for (int i = 0; i < chunkIndex; i++) charsDone += chunks.get(i).length();
-                    Listener cb = listener;
-                    if (cb != null) cb.onProgress(charsDone, totalTextLength);
+                if (gen != speakGen || isStopped || isPaused) {
+                    // 守卫触发：该合成结果已过期，直接删除临时文件。
+                    deleteTempFile(tempFile);
+                    return;
                 }
 
-                // 通过专用播放线程（ttsHandler）派发下一块。
                 final int capturedGen = gen;
-                ttsHandler.post(() -> {
-                    if (speakGen != capturedGen || isStopped || isPaused) return;
-                    if (chunkIndex < chunks.size()) {
-                        playChunkOnly();
+                final File capturedFile = tempFile;
+                mainHandler.post(() -> {
+                    if (speakGen != capturedGen || isStopped || isPaused) {
+                        deleteTempFile(capturedFile);
+                        return;
+                    }
+                    if (chunkOfUid == chunkIndex) {
+                        // 当前正等待合成的 chunk → 立即开始播放
+                        startMediaPlayer(capturedFile, capturedGen);
+                    } else if (chunkOfUid == chunkIndex + 1) {
+                        // N+1 预生成完成 → 存储，等当前 chunk 播完后零间隙衔接
+                        deleteTempFile(nextTempFile); // 清理上一轮可能残留的旧预生成文件
+                        nextTempFile = capturedFile;
                     } else {
-                        notifyFinished();
+                        // 意外的 uid（不应发生），清理文件
+                        deleteTempFile(capturedFile);
                     }
                 });
             }
@@ -250,18 +258,16 @@ public class TTSForegroundService extends Service {
             @SuppressWarnings("deprecation")
             public void onError(String utteranceId) {
                 int gen = parseGen(utteranceId);
-                if (gen != speakGen || isStopped) return;
                 int chunkOfUid = parseChunk(utteranceId);
-                if (chunkOfUid >= 0 && chunkOfUid != chunkIndex) return;
-                chunkIndex++;
+                File tempFile = new File(getCacheDir(), "tts_" + utteranceId + ".wav");
+                deleteTempFile(tempFile); // 合成失败，文件可能不完整
+                if (gen != speakGen || isStopped) return;
+                if (chunkOfUid != chunkIndex) return; // 只处理当前 chunk 的错误
+                // 合成失败：视同当前 chunk 播放完毕，跳过继续
                 final int capturedGen = gen;
-                ttsHandler.post(() -> {
+                mainHandler.post(() -> {
                     if (speakGen != capturedGen || isStopped) return;
-                    if (chunkIndex < chunks.size()) {
-                        playChunkOnly();
-                    } else {
-                        notifyFinished();
-                    }
+                    onChunkPlaybackComplete(capturedGen);
                 });
             }
         };
@@ -300,13 +306,16 @@ public class TTSForegroundService extends Service {
 
     @Override
     public void onDestroy() {
-        // 先设标志位（volatile），让后台 UtteranceProgressListener 回调看到后立即返回，
-        // 防止它在 tts.shutdown() 之后还调用 tts.speak() 引发 NPE / crash
         isStopped = true;
         ttsReady  = false;
         if (mainHandler != null) mainHandler.removeCallbacksAndMessages(null);
         if (ttsHandler  != null) ttsHandler.removeCallbacksAndMessages(null);
-        positionRunnable  = null; // removeCallbacksAndMessages 已移除所有 pending callbacks
+        positionRunnable  = null;
+        synthForChunk = -1;
+        releaseMediaPlayer();
+        deleteTempFile(nextTempFile);
+        nextTempFile = null;
+        cleanTempFiles();
         if (ttsHandlerThread != null) { ttsHandlerThread.quitSafely(); ttsHandlerThread = null; }
         releaseWakeLock();
         abandonAudioFocus();
@@ -316,7 +325,7 @@ public class TTSForegroundService extends Service {
             mediaSession = null;
         }
         TextToSpeech t = tts;
-        tts = null; // volatile: 后台线程再次访问时看到 null
+        tts = null;
         if (t != null) {
             t.stop();
             t.shutdown();
@@ -359,8 +368,13 @@ public class TTSForegroundService extends Service {
         pausedByUser = false;
         chunkIndex   = 0;
         chunkStartPositionMs = 0;
-        chunkStartTimeMs     = 0;
         speakGen++;
+        // 重置流水线状态：清理上次会话可能剩下的预生成文件
+        synthForChunk = -1;
+        releaseMediaPlayer();
+        deleteTempFile(nextTempFile);
+        nextTempFile = null;
+        cleanTempFiles();
         chunks.clear();
         chunks.addAll(splitText(text, CHUNK_SIZE));
         totalTextLength = text.length();
@@ -393,16 +407,13 @@ public class TTSForegroundService extends Service {
         updatePlaybackState(true);
 
         if (ttsReady) {
-            // 先显式 stop()，等引擎音频缓冲完全排空（200ms）再 speak()。
-            // tts.stop() 只停止引擎继续合成，但硬件缓冲区中已有的音频仍会播放约 100~200ms；
-            // 若延迟太短，旧音频与新音频重叠会产生「两个声音」效果。
+            // 先显式 stop() 确保引擎当前无正在进行的合成任务，延迟 200ms 等硬件缓冲区排空。
             TextToSpeech t = tts;
             if (t != null) t.stop();
             final int gen = speakGen;
             ttsHandler.postDelayed(() -> {
                 if (speakGen != gen || isStopped) return;
-                setTtsParams();  // 应用最新 playRate 和语言（引擎已空闲，不会触发 onError）
-                playChunkOnly();
+                playChunkOnly(); // setTtsParams() 已内嵌在 doSynthesizeChunk() 中
             }, 200);
         } else if (ttsInitFailed) {
             // 上次全部重试均失败，用户再次点播放时允许重新初始化。
@@ -412,34 +423,26 @@ public class TTSForegroundService extends Service {
             initTts();
             // chunks 已设置好，initTts 成功后的回调里会自动调用 playChunkOnly()
         }
-        // else: TTS 仍在初始化中，OnInitListener 成功时会自动调用 setTtsParams()+playChunkOnly
+        // else: TTS 仍在初始化中，OnInitListener 成功时会自动调用 playChunkOnly()
     }
 
     private void handleSetRate(Intent intent) {
         float newRate = intent.getFloatExtra("rate", playRate);
         playRate = newRate;
-        if (!ttsReady || tts == null) return;
-
-        if (isPaused) {
-            // 已暂停时引擎空闲，直接设倍率即可；恢复播放时自动使用新倍率
-            tts.setSpeechRate(playRate);
-            updatePlaybackState(false); // ★ 通知 MediaSession 采用新倍率（即使暂停也需更新）
-            return;
+        // 直接通过 MediaPlayer.setPlaybackParams() 更新倍率，无需重启合成/播放。
+        // API >= 23 才支持 PlaybackParams。
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && mediaPlayer != null) {
+            try {
+                PlaybackParams pp = new PlaybackParams();
+                pp.setSpeed(Math.max(0.1f, newRate));
+                pp.setPitch(1.0f);
+                mediaPlayer.setPlaybackParams(pp);
+            } catch (Exception e) {
+                android.util.Log.w("TTSFgSvc", "setPlaybackParams failed: " + e.getMessage());
+            }
         }
-        if (isStopped) return;
-
-        // 正在播放：先 stop()，等引擎完全空闲（150ms）再用新倍率重播当前 chunk。
-        // 若在引擎活跃时直接调 setSpeechRate()，三星/讯飞会触发隐式 stop → onError
-        // → chunkIndex 被意外递增，导致跳块或静音。
-        speakGen++;
-        final int gen = speakGen;
-        tts.stop();
-        updatePlaybackState(true); // ★ 立即刷新，锁屏进度条用新倍率推进（不等 150ms 延迟）
-        ttsHandler.postDelayed(() -> {
-            if (speakGen != gen || isStopped || isPaused) return;
-            setTtsParams();  // 引擎已空闲，setSpeechRate() 不会触发 onError
-            playChunkOnly(); // 从当前 chunkIndex 重播，立即听到新倍率
-        }, 150);
+        // 更新 MediaSession 锁屏进度条采用新倍率（暂停时也需更新）
+        updatePlaybackState(!isPaused && !isStopped);
     }
 
     private void handleStop() {
@@ -449,7 +452,12 @@ public class TTSForegroundService extends Service {
         speakGen++;
         cancelPendingStop();
         stopPositionBroadcast();
+        synthForChunk = -1;
+        releaseMediaPlayer();
         if (tts != null) tts.stop();
+        cleanTempFiles();
+        deleteTempFile(nextTempFile);
+        nextTempFile = null;
         releaseWakeLock();
         abandonAudioFocus();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -463,15 +471,27 @@ public class TTSForegroundService extends Service {
     private void handlePause() {
         if (isPaused || isStopped) return;
         cancelPendingStop();
-        pausedByUser = true; // 用户主动暂停（按钮/锁屏控件），焦点归还后不自动恢复
+        pausedByUser = true; // 用户主动暂停，焦点归还后不自动恢复
         isPaused = true;
-        speakGen++;       // invalidate in-flight onDone callbacks
+        speakGen++; // 使进行中的合成回调失效
+        synthForChunk = -1; // 合成已取消
         stopPositionBroadcast();
 
+        // 取消 TTS 引擎中正在进行的合成任务
         if (tts != null) tts.stop();
-        // 冻结进度位置：让锁屏进度条在暂停时显示正确位置
-        chunkStartPositionMs = getCurrentPositionMs();
-        chunkStartTimeMs     = 0;
+
+        // 暂停 MediaPlayer（保留位置，恢复时可继续）
+        if (mediaPlayer != null) {
+            try {
+                if (mediaPlayer.isPlaying()) mediaPlayer.pause();
+            } catch (Exception ignored) {}
+        }
+
+        // 删除预生成的 N+1 文件（暂停后状态重置，恢复时重新预生成）
+        deleteTempFile(nextTempFile);
+        nextTempFile = null;
+
+        // 冻结位置：暂停后 getCurrentPositionMs() 依赖 mediaPlayer.getCurrentPosition()（不变）
         updateNotification(false);
     }
 
@@ -482,23 +502,57 @@ public class TTSForegroundService extends Service {
         pausedByUser = false;
         speakGen++;
         updateNotification(true);
-        ttsHandler.post(this::playChunkOnly); // 用 ttsHandler，避免息屏时主线程节流
+
+        if (mediaPlayer != null) {
+            // MediaPlayer 处于暂停状态，直接恢复；同时应用最新倍率（暂停期间可能已更改）
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    PlaybackParams pp = new PlaybackParams();
+                    pp.setSpeed(Math.max(0.1f, playRate));
+                    pp.setPitch(1.0f);
+                    mediaPlayer.setPlaybackParams(pp);
+                }
+                mediaPlayer.start();
+                startPositionBroadcast();
+                // 补发 N+1 预生成（暂停时已取消）
+                final int prefetchIdx = chunkIndex + 1;
+                final int gen = speakGen;
+                ttsHandler.post(() -> {
+                    if (speakGen != gen || isStopped || isPaused) return;
+                    if (prefetchIdx < chunks.size() && synthForChunk != prefetchIdx) {
+                        doSynthesizeChunk(prefetchIdx);
+                    }
+                });
+            } catch (Exception e) {
+                android.util.Log.w("TTSFgSvc", "MediaPlayer resume failed, re-synthesizing");
+                releaseMediaPlayer();
+                ttsHandler.post(this::playChunkOnly);
+            }
+        } else {
+            // 合成被中断（暂停时 tts.stop() 取消了进行中的合成）→ 重新合成当前 chunk
+            ttsHandler.post(this::playChunkOnly);
+        }
     }
 
     /**
      * 系统失焦导致的自动暂停（如接电话、其他媒体 App 接管音频焦点）。
-     * 不设置 pausedByUser，焦点归还后（AUDIOFOCUS_GAIN）可自动恢复；
-     * 区别于 handlePause()（用户手动操作，焦点归还后不应自动恢复）。
+     * 不设置 pausedByUser，焦点归还后（AUDIOFOCUS_GAIN）可自动恢复。
      */
     private void handleFocusLossPause() {
-        if (isPaused || isStopped) return; // 已暂停（用户手动或其他原因），不覆盖状态
-        pausedByUser = false; // 系统自动暂停
+        if (isPaused || isStopped) return;
+        pausedByUser = false;
         isPaused = true;
         speakGen++;
+        synthForChunk = -1;
         stopPositionBroadcast();
         if (tts != null) tts.stop();
-        chunkStartPositionMs = getCurrentPositionMs();
-        chunkStartTimeMs     = 0;
+        if (mediaPlayer != null) {
+            try {
+                if (mediaPlayer.isPlaying()) mediaPlayer.pause();
+            } catch (Exception ignored) {}
+        }
+        deleteTempFile(nextTempFile);
+        nextTempFile = null;
         updateNotification(false);
     }
 
@@ -518,53 +572,62 @@ public class TTSForegroundService extends Service {
         if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
             tts.setLanguage(Locale.CHINA);
         }
-        tts.setSpeechRate(playRate);
+        // 合成始终用 1.0f：变速由 MediaPlayer.PlaybackParams 实现（时间拉伸，不变调）。
+        // 对于 API < 23 无法使用 PlaybackParams 的设备，播放速度固定为 1x。
+        tts.setSpeechRate(1.0f);
     }
 
 
-    /** Speak current chunk (rate already set by handleSpeak; called from delayed callback or onDone). */
+    /**
+     * 合成当前 chunkIndex 对应的 chunk 到临时文件（synthesizeToFile）。
+     * 每块播放前由 ttsHandler 调用；预生成 N+1 时也走此方法（传入 idx）。
+     * N+1 预生成：startMediaPlayer 播放开始后会再次调用 doSynthesizeChunk(chunkIndex+1)。
+     */
     private void playChunkOnly() {
+        // 若该 chunk 的合成已经由预生成发起，直接等待 onDone()，不重复提交。
+        if (synthForChunk == chunkIndex) return;
         if (!ttsReady || isStopped || isPaused) return;
-        acquireWakeLock(); // 确保息屏期间 WakeLock 始终持有（超时或释放后续自动续期）
-        TextToSpeech t = tts;
-        if (t == null) return; // onDestroy 已经把 tts 清空
         if (chunkIndex >= chunks.size()) {
             notifyFinished();
             return;
         }
-        String text = chunks.get(chunkIndex);
-        String uid  = "g" + speakGen + "_c" + chunkIndex;
-        // 每块播放前重设语速 + 语言，确保速率和系统默认音色全程一致：
-        // - 语速：华为等引擎在 chunk 切换后会把语速归 1.0；
-        // - 语言/音色：讯飞等引擎在 setSpeechRate() 后会重置音色，
-        //   重新 setLanguage() 让引擎恢复系统设定的默认音色。
-        setTtsParams();
-        int ret = doSpeak(t, text, uid);
-        if (ret == TextToSpeech.ERROR) {
-            // 首次 speak 失败时重试一次（部分引擎在状态切换后偶发 ERROR）
-            setTtsParams();
-            ret = doSpeak(t, text, uid);
-        }
-        if (ret == TextToSpeech.ERROR) {
-            // 引擎彻底拒绝，跳过该 chunk 继续播放
-            final int gen = speakGen;
-            ttsHandler.post(() -> {
-                if (speakGen != gen || isStopped) return;
-                chunkIndex++;
-                if (chunkIndex < chunks.size()) playChunkOnly();
-                else notifyFinished();
-            });
-            return;
-        }
+        acquireWakeLock();
+        doSynthesizeChunk(chunkIndex);
         chunkStartPositionMs = calculateChunkStartPositionMs();
-        chunkStartTimeMs = System.currentTimeMillis();
-        updatePlaybackState(true); // 刷新锁屏进度
-        startPositionBroadcast(); // 开始定期向 JS 推送位置
+        updatePlaybackState(true);
     }
 
-    /** 调用 tts.speak()。返回 TextToSpeech.SUCCESS 或 ERROR。 */
-    private int doSpeak(TextToSpeech t, String text, String uid) {
-        return t.speak(text, TextToSpeech.QUEUE_FLUSH, null, uid);
+    /**
+     * 向 TTS 引擎提交指定 chunk 的合成任务（写入临时 WAV 文件）。
+     * 合成结果通过 UtteranceProgressListener.onDone() 返回。
+     * uid 格式 "g<gen>_c<idx>" 与现有 parseGen/parseChunk 兼容。
+     */
+    private void doSynthesizeChunk(int idx) {
+        TextToSpeech t = tts;
+        if (t == null || !ttsReady || isStopped) return;
+        if (idx < 0 || idx >= chunks.size()) return;
+        String text = chunks.get(idx);
+        String uid  = "g" + speakGen + "_c" + idx;
+        File outFile = new File(getCacheDir(), "tts_" + uid + ".wav");
+        // 每块重设语言 + 1.0f 合成速率（华为/讯飞等引擎切换后可能重置语言或音色）
+        setTtsParams();
+        synthForChunk = idx;
+        int ret = t.synthesizeToFile(text, (Bundle) null, outFile, uid);
+        if (ret == TextToSpeech.ERROR) {
+            // 首次失败重试一次
+            setTtsParams();
+            synthForChunk = idx;
+            ret = t.synthesizeToFile(text, (Bundle) null, outFile, uid);
+        }
+        if (ret == TextToSpeech.ERROR) {
+            // 引擎彻底拒绝，视同该 chunk 播放完毕，跳过继续
+            synthForChunk = -1;
+            final int gen = speakGen;
+            mainHandler.post(() -> {
+                if (speakGen != gen || isStopped) return;
+                onChunkPlaybackComplete(gen);
+            });
+        }
     }
 
     /** 开始每 500ms 向 JS 推送一次实际播放位置。重入安全。 */
@@ -587,6 +650,167 @@ public class TTSForegroundService extends Service {
         if (positionRunnable != null) {
             mainHandler.removeCallbacks(positionRunnable);
             positionRunnable = null;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // MediaPlayer — 播放已合成的 WAV 文件，通过 PlaybackParams 实现变速不变调
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * 用 MediaPlayer 播放指定临时文件（synthesizeToFile 的输出）。
+     * 必须在 main thread 调用（MediaPlayer 回调默认投递到创建线程的 Looper）。
+     *
+     * N+1 预生成流水线：播放开始后立即在 ttsHandler 提交 chunk+1 的合成任务。
+     */
+    @SuppressWarnings("NewApi")
+    private void startMediaPlayer(File file, int gen) {
+        if (speakGen != gen || isStopped || isPaused) {
+            deleteTempFile(file);
+            return;
+        }
+        if (!file.exists() || file.length() == 0) {
+            // 文件不存在或为空（合成异常），跳过该 chunk
+            onChunkPlaybackComplete(gen);
+            return;
+        }
+
+        releaseMediaPlayer();
+        MediaPlayer mp = new MediaPlayer();
+        try {
+            AudioAttributes attrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build();
+            mp.setAudioAttributes(attrs);
+            mp.setDataSource(file.getAbsolutePath());
+            mp.prepare(); // 本地文件，同步 prepare() 快且安全
+
+            // PlaybackParams：变速不变调（时间拉伸）；API 23+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PlaybackParams pp = new PlaybackParams();
+                pp.setSpeed(Math.max(0.1f, playRate));
+                pp.setPitch(1.0f); // 固定音调，不随速度变化
+                mp.setPlaybackParams(pp);
+            }
+
+            final File capturedFile = file;
+            mp.setOnCompletionListener(completedMp -> {
+                deleteTempFile(capturedFile);
+                onChunkPlaybackComplete(gen);
+            });
+            mp.setOnErrorListener((errMp, what, extra) -> {
+                android.util.Log.e("TTSFgSvc", "MediaPlayer error " + what + "/" + extra);
+                deleteTempFile(capturedFile);
+                onChunkPlaybackComplete(gen);
+                return true;
+            });
+
+            mediaPlayer = mp;
+            mp.start();
+            acquireWakeLock();
+            updatePlaybackState(true);
+            startPositionBroadcast();
+
+            // N+1 预生成：播放期间提前合成下一 chunk，消除 chunk 间停顿
+            final int prefetchIdx = chunkIndex + 1;
+            ttsHandler.post(() -> {
+                if (speakGen != gen || isStopped || isPaused) return;
+                if (prefetchIdx < chunks.size() && synthForChunk != prefetchIdx) {
+                    doSynthesizeChunk(prefetchIdx);
+                }
+            });
+
+        } catch (Exception e) {
+            android.util.Log.e("TTSFgSvc", "MediaPlayer start failed", e);
+            mp.release();
+            mediaPlayer = null;
+            deleteTempFile(file);
+            onChunkPlaybackComplete(gen);
+        }
+    }
+
+    /**
+     * 当前 chunk 播放完毕（由 OnCompletionListener / OnErrorListener 触发，main thread）。
+     * 推进 chunkIndex，按预生成状态三路分发下一 chunk。
+     */
+    private void onChunkPlaybackComplete(int gen) {
+        releaseMediaPlayer();
+        if (speakGen != gen || isStopped || isPaused) {
+            deleteTempFile(nextTempFile);
+            nextTempFile = null;
+            return;
+        }
+
+        chunkIndex++;
+
+        // 上报字符进度（播放完成后，位置精确）
+        if (totalTextLength > 0) {
+            int charsDone = 0;
+            for (int i = 0; i < chunkIndex && i < chunks.size(); i++) charsDone += chunks.get(i).length();
+            Listener cb = listener;
+            if (cb != null) cb.onProgress(charsDone, totalTextLength);
+        }
+
+        if (chunkIndex >= chunks.size()) {
+            deleteTempFile(nextTempFile);
+            nextTempFile = null;
+            notifyFinished();
+            return;
+        }
+
+        // 更新 chunk 起始位置（用于进度跟踪）
+        chunkStartPositionMs = calculateChunkStartPositionMs();
+
+        // 三路分发：
+        File prefetched = nextTempFile;
+        nextTempFile = null;
+
+        if (prefetched != null && prefetched.exists() && prefetched.length() > 0) {
+            // ① 预生成文件已就绪 → 零间隙衔接播放
+            startMediaPlayer(prefetched, gen);
+        } else if (synthForChunk == chunkIndex) {
+            // ② 预生成合成进行中（onDone 尚未触发）→ 等待 onDone 触发 startMediaPlayer
+            deleteTempFile(prefetched); // 清理可能的空文件
+            // onDone 会检测 chunkOfUid == chunkIndex 并调用 startMediaPlayer
+        } else {
+            // ③ 合成未启动（如刚从暂停恢复后首 chunk）→ 立即发起合成
+            deleteTempFile(prefetched);
+            ttsHandler.post(this::playChunkOnly);
+        }
+    }
+
+    /** 安全释放 MediaPlayer（忽略所有异常）。 */
+    private void releaseMediaPlayer() {
+        MediaPlayer mp = mediaPlayer;
+        mediaPlayer = null;
+        if (mp != null) {
+            try {
+                if (mp.isPlaying()) mp.stop();
+                mp.reset();
+                mp.release();
+            } catch (Exception ignored) {}
+        }
+    }
+
+    /** 删除 cacheDir 下所有 tts_g*.wav 残留临时文件（stop/destroy 时调用）。 */
+    private void cleanTempFiles() {
+        try {
+            File cacheDir = getCacheDir();
+            File[] files = cacheDir.listFiles(
+                    (dir, name) -> name.startsWith("tts_g") && name.endsWith(".wav"));
+            if (files != null) {
+                for (File f : files) //noinspection ResultOfMethodCallIgnored
+                    f.delete();
+            }
+        } catch (Exception ignored) {}
+    }
+
+    /** 删除单个临时文件（null 安全）。 */
+    private static void deleteTempFile(File file) {
+        if (file != null && file.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            file.delete();
         }
     }
 
@@ -655,8 +879,19 @@ public class TTSForegroundService extends Service {
     }
 
     private long getCurrentPositionMs() {
-        if (chunkStartTimeMs == 0) return chunkStartPositionMs;
-        return chunkStartPositionMs + (System.currentTimeMillis() - chunkStartTimeMs);
+        if (mediaPlayer != null) {
+            try {
+                // MediaPlayer.getCurrentPosition() 返回音频内容位置（ms，以 1x 速率为基准）。
+                // 我们合成于 1.0f，再用 PlaybackParams 加速，所以内容位置 / 倍率 = 墙钟时间。
+                long audioPosMs = mediaPlayer.getCurrentPosition();
+                long wallPosMs = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                        ? (long)(audioPosMs / Math.max(0.1f, playRate))
+                        : audioPosMs; // API < 23 不支持 PlaybackParams，以 1x 播放
+                return chunkStartPositionMs + wallPosMs;
+            } catch (Exception ignored) {}
+        }
+        // 合成进行中（还没有 MediaPlayer）→ 返回 chunk 边界位置（静止）
+        return chunkStartPositionMs;
     }
 
     private long getTotalDurationMs() {
@@ -825,9 +1060,12 @@ public class TTSForegroundService extends Service {
         if (loopEnabled && !isStopped) {
             chunkIndex           = 0;
             chunkStartPositionMs = 0;
-            chunkStartTimeMs     = 0;
             sliceStartPositionMs = 0;
             speakGen++;
+            // 重置流水线状态（循环重头，上一轮的预生成文件不再有效）
+            synthForChunk = -1;
+            deleteTempFile(nextTempFile);
+            nextTempFile = null;
             updateNotification(true);
             final int gen = speakGen;
             ttsHandler.postDelayed(() -> {
