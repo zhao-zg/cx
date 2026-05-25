@@ -1004,7 +1004,7 @@
   function getShortTitle(header) {
     if (!header) return '';
     var short;
-    // 跨年范围标题，只剥离开头4字年份（及紧跟的「年」），保留范围描述
+    // 跨年范围标题，保留完整标题（年份是关键信息，不应剥离）
     // 覆盖两种格式：
     //   1. "二○一○秋季至二○一二年..."（含「至」）
     //   2. "二〇〇七年至二〇〇八年..."（「年」+「至」）
@@ -1012,7 +1012,7 @@
     var isCrossYear = /至[一二三四五六七八九○〇零]{4}年/.test(header) ||
                       /[一二三四五六七八九○〇零]{4}年[^、]{0,15}[一二三四五六七八九○〇零]{4}年/.test(header);
     if (isCrossYear) {
-      short = header.replace(/^[一二三四五六七八九○〇零]{4}年?/, '').trim();
+      short = header.trim();
     } else {
       var idx = header.indexOf('年');
       short = idx >= 0 ? header.slice(idx + 1).trim() : header.trim();
