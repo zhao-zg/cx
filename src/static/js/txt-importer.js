@@ -1046,7 +1046,7 @@
 
     for (var i = 0; i < n; i++) {
       var s = lines[i].trim();
-      if (!/^[一二三四五六七八九○〇零两]{4}年/.test(s)) continue;
+      if (!/^[一二三四五六七八九○〇零两]{4}[年秋春夏冬]/.test(s)) continue;
       // 向下8行内验证（跳过空行与副标题行，找到总题/标语/第01篇则认定有效）
       var valid = false;
       for (var j = i + 1; j < Math.min(i + 9, n); j++) {
