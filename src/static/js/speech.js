@@ -617,6 +617,8 @@
 
       function wsPlayNextChunk() {
         if (state !== 'playing') return;
+        // 跳过空白 chunk（segment 文本为空时产生）
+        while (currentChunk < textChunks.length && !textChunks[currentChunk]) { currentChunk++; }
         if (currentChunk >= textChunks.length) { onPlaybackNaturalEnd(); return; }
         var gen  = speakGeneration;
         var rate = Number(rateSelect.value) || 0.5;
@@ -627,9 +629,11 @@
 
         utt.onstart = function () {
           if (gen !== speakGeneration || state !== 'playing') return;
+          // 把上一句实际播完的时间存入 elapsedOffset，再重置时钟，防止进度条倒退
+          elapsedOffset = currentElapsedSeconds();
           startTime = Date.now();
           startProgressUpdate();
-          // 按句子索引更新高亮（_ttsMarkOffset 对应本次播放的起始句子）
+          // 按句子索引更新高亮（_ttsMarkOffset + currentChunk 与 textChunks 严格对应）
           var markIdx = _ttsMarkOffset + currentChunk;
           setTTSHighlight(_segmentMap[markIdx] ? _segmentMap[markIdx].el : null);
         };
@@ -693,7 +697,15 @@
           var gen = speakGeneration;
           try { window.speechSynthesis.cancel(); } catch (e) {}
           stopProgressUpdate();
-          textChunks   = splitBySentence(segText);
+          // 直接从 _segmentMap 提取每句文本，保证 textChunks[i] ↔ _segmentMap[_ttsMarkOffset+i]
+          // 避免 splitBySentence 跨元素合并导致索引与高亮不同步
+          if (_segmentMap.length > _ttsMarkOffset) {
+            textChunks = _segmentMap.slice(_ttsMarkOffset).map(function(seg) {
+              return safeText(seg.el.textContent || '').trim();
+            });
+          } else {
+            textChunks = splitBySentence(segText);
+          }
           currentChunk = 0;
           elapsedOffset = targetSecs; startTime = Date.now();
           setState('playing');
@@ -838,7 +850,10 @@
             try { NativeTTS.setRate({ rate: newRate }); } catch (e) {}
           }
         } else if (state === 'playing') {
-          startSpeakingFromPercent(newPct);
+          // 不重置 chunk 状态，只取消当前句子的 utterance；
+          // onerror(interrupted) 会把 currentChunk++ 并调用 wsPlayNextChunk，
+          // 后者每次都从 rateSelect.value 读取倍速，自动使用新倍速继续朗读。
+          try { window.speechSynthesis.cancel(); } catch (e) {}
         } else if (state === 'paused') {
           _resumePercent = newPct;
         }
