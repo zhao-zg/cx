@@ -93,9 +93,36 @@
         #cxOfflineBanner .cx-banner-dismiss{background:rgba(255,255,255,.25);border:none;color:#fff;padding:3px 10px;border-radius:4px;margin-left:8px;font-size:12px;cursor:pointer;vertical-align:middle;-webkit-tap-highlight-color:transparent}
         /* 章节/批次视图容器 */
         #app{min-height:100vh}
+        /* 启动加载页 */
+        #cxSplash{position:fixed;inset:0;z-index:9800;background:var(--surface,#fafbff);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;box-sizing:border-box;transition:opacity .45s ease;pointer-events:none}
+        #cxSplash.cx-splash-out{opacity:0}
+        .cx-splash-ref{font-size:14px;color:var(--brand,#007aff);margin-bottom:16px;letter-spacing:.02em;text-align:center}
+        .cx-splash-verse{font-size:16px;color:var(--text,#1a1a1a);text-align:center;line-height:2;font-weight:400}
     </style>
 </head>
 <body>
+    <!-- 启动加载页 -->
+    <div id="cxSplash">
+        <div class="cx-splash-ref">诗篇 119:148</div>
+        <div class="cx-splash-verse">我趁夜更未换，将眼睁开，<br>为要默想你的话语。</div>
+    </div>
+    <script>(function(){
+        var _splashStart=Date.now(),_splashDone=false;
+        function _dismissSplash(){
+            if(_splashDone)return;_splashDone=true;
+            var el=document.getElementById('cxSplash');
+            if(!el)return;
+            el.classList.add('cx-splash-out');
+            setTimeout(function(){if(el&&el.parentNode)el.parentNode.removeChild(el);},480);
+        }
+        function _trySplash(){
+            var wait=1200-(Date.now()-_splashStart);
+            if(wait<=0)_dismissSplash();else setTimeout(_dismissSplash,wait);
+        }
+        if(document.readyState==='complete')_trySplash();
+        else window.addEventListener('load',_trySplash);
+        setTimeout(_dismissSplash,4000);
+    })();</script>
     <!-- 阅读进度条 -->
     <div id="cxReadingProgress" class="cx-reading-progress"></div>
     <!-- 伪装维护页 -->

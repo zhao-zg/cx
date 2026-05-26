@@ -480,6 +480,37 @@ jobs:
         echo "✓ NativeTTS AndroidManifest 配置完成"
 
 
+    - name: 配置启动窗口背景色（与 HTML 加载页一致）
+      run: |
+        echo "=== 配置启动窗口背景色 ==="
+        styles_file="android/app/src/main/res/values/styles.xml"
+        if [ -f "$styles_file" ]; then
+          # 在 AppTheme 中注入 windowBackground，避免启动到 WebView 前闪白
+          python3 << 'PY'
+        import re
+        path = 'android/app/src/main/res/values/styles.xml'
+        with open(path, 'r') as f:
+            content = f.read()
+        item = '        <item name="android:windowBackground">#fafbff</item>\n'
+        if 'windowBackground' not in content:
+            # 插入到 AppTheme style 块内第一个 <item> 之前
+            content = re.sub(
+                r'(<style name="AppTheme"[^>]*>)',
+                r'\1\n' + item.rstrip('\n'),
+                content
+            )
+            with open(path, 'w') as f:
+                f.write(content)
+            print('✓ windowBackground 已注入')
+        else:
+            print('ℹ windowBackground 已存在，跳过')
+        PY
+          echo "✓ styles.xml 处理完成"
+          grep -A5 "AppTheme" "$styles_file" | head -8
+        else
+          echo "✗ styles.xml 不存在，跳过"
+        fi
+
     - name: 配置网络安全策略
       run: |
         echo "=== 配置网络安全策略 ==="
