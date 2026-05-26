@@ -129,6 +129,10 @@
   function init(options) {
     var getText = options && typeof options.getText === 'function' ? options.getText : null;
     if (!getText) return;
+    // 先停止上一个页面可能仍在运行的朗读（SPA 切换视图时 cancel 尚未被调用）
+    if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+      try { window.CXSpeech.cancel(); } catch(e) {}
+    }
     var getElements = options && typeof options.getElements === 'function' ? options.getElements : null;
 
     // 包装 getText：朗读前将非括号的 .scripture-ref[data-refs] span 整体替换为
@@ -283,6 +287,7 @@
       var _sentenceMarkData = [];   // [{el, origChildren}] 已注入 mark 的元素，供复原
       var _prevTTSEl        = null; // 当前高亮的 <mark> 元素
       var _ttsMarkOffset    = 0;    // _segmentMap 中对应 currentChunk=0 的句子索引
+      var _stopOnNav        = null; // hashchange 监听函数，移除时置 null
 
       // -- State machine helpers ----------------------------------------------
 
@@ -487,6 +492,7 @@
 
       function resetState() {
         ++speakGeneration;
+        if (_stopOnNav) { window.removeEventListener('hashchange', _stopOnNav); _stopOnNav = null; }
         stopProgressUpdate();
         clearTTSHighlight();
         if (useNativeTTS) nativeStopService();
@@ -865,6 +871,10 @@
         else { try { window.speechSynthesis.cancel(); } catch (e) {} }
       });
 
+      // -- Stop on SPA navigation (hashchange = 切换章节或返回目录) -------------------
+      _stopOnNav = function() { resetState(); };
+      window.addEventListener('hashchange', _stopOnNav);
+
       // -- Loop button --------------------------------------------------------
       updateLoopButton();
       if (loopBtn) {
@@ -884,26 +894,13 @@
       }
 
       // -- visibilitychange (Web Speech only) ---------------------------------
+      // Web Speech 不支持後台播放，切到后台时直接停止。
+      // NativeTTS 已由前台服务支持后台，不干预。
       if (useWebSpeech) {
         document.addEventListener('visibilitychange', function () {
-          if (document.visibilityState === 'hidden') {
-            if (state === 'playing') { elapsedOffset = currentElapsedSeconds(); startTime = 0; }
-            return;
+          if (document.visibilityState === 'hidden' && state !== 'idle') {
+            resetState();
           }
-          if (state !== 'playing') return;
-          try {
-            if (window.speechSynthesis.paused) {
-              startTime = Date.now();
-              window.speechSynthesis.resume();
-              startProgressUpdate();
-            } else if (!window.speechSynthesis.speaking) {
-              if (totalDuration > 0) {
-                startTime = Date.now();
-                var est = clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 99);
-                startSpeakingFromPercent(est);
-              }
-            }
-          } catch (e) {}
         });
       }
 
