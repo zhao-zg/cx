@@ -735,12 +735,13 @@
           '<div class="cx-dialog">' +
             '<div class="cx-dialog-title">允许后台朗读</div>' +
             '<div class="cx-dialog-desc">' +
-              '息屏或切换 App 时，Android 电池优化可能中断朗读。<br>' +
-              '建议在系统设置中将本 App 加入「不限制」名单，以保障连续播放。' +
+              '息屏或切换 App 时，电池优化可能中断朗读。<br>' +
+              '点击"立即开启"后，系统将弹出确认框，选择"允许"即可保障息屏连续播放。<br>' +
+              '<small style="color:var(--text-muted,#888)">（若系统弹框未出现，可在 App 详情页的电池选项中手动设置）</small>' +
             '</div>' +
             '<div class="cx-dialog-actions">' +
               '<button class="cx-dialog-cancel">稍后再说</button>' +
-              '<button class="cx-dialog-confirm" style="color:var(--brand,#4f7ddb)">去设置</button>' +
+              '<button class="cx-dialog-confirm" style="color:var(--brand,#4f7ddb)">立即开启</button>' +
             '</div>' +
           '</div>';
         document.body.appendChild(mask);
