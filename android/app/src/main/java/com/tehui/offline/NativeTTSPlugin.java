@@ -1,7 +1,10 @@
 package com.tehui.offline;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
@@ -11,6 +14,7 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import java.util.Locale;
 
 /**
  * NativeTTSPlugin — Capacitor plugin bridge for TTSForegroundService.
@@ -175,12 +179,7 @@ public class NativeTTSPlugin extends Plugin {
                     intent.setData(Uri.parse("package:" + getContext().getPackageName()));
                     getActivity().startActivity(intent);
                 } catch (Exception e) {
-                    // 部分 ROM 不支持该 Intent，回退到应用详情页，引导用户手动设置
-                    try {
-                        Intent fallbackIntent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                        fallbackIntent.setData(Uri.parse("package:" + getContext().getPackageName()));
-                        getActivity().startActivity(fallbackIntent);
-                    } catch (Exception ignored2) {}
+                    if (!openMiuiBatterySettings() && !openApplicationDetailsSettings()) {}
                 }
             }
         }
@@ -192,6 +191,63 @@ public class NativeTTSPlugin extends Plugin {
         Intent intent = new Intent(getContext(), TTSForegroundService.class);
         intent.setAction(action);
         getContext().startService(intent);
+    }
+
+    private boolean openMiuiBatterySettings() {
+        String manufacturer = Build.MANUFACTURER;
+        if (manufacturer == null) {
+            return false;
+        }
+        String vendor = manufacturer.toLowerCase(Locale.ROOT);
+        if (!vendor.contains("xiaomi") && !vendor.contains("redmi") && !vendor.contains("poco")) {
+            return false;
+        }
+
+        Intent hiddenAppsIntent = new Intent();
+        hiddenAppsIntent.setComponent(new ComponentName(
+            "com.miui.powerkeeper",
+            "com.miui.powerkeeper.ui.HiddenAppsConfigActivity"
+        ));
+        hiddenAppsIntent.putExtra("package_name", getContext().getPackageName());
+        hiddenAppsIntent.putExtra("package_label", getApplicationLabel());
+        if (tryStartActivity(hiddenAppsIntent)) {
+            return true;
+        }
+
+        Intent containerIntent = new Intent();
+        containerIntent.setComponent(new ComponentName(
+            "com.miui.powerkeeper",
+            "com.miui.powerkeeper.ui.HiddenAppsContainerManagementActivity"
+        ));
+        containerIntent.putExtra("package_name", getContext().getPackageName());
+        containerIntent.putExtra("package_label", getApplicationLabel());
+        return tryStartActivity(containerIntent);
+    }
+
+    private boolean openApplicationDetailsSettings() {
+        Intent fallbackIntent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        fallbackIntent.setData(Uri.parse("package:" + getContext().getPackageName()));
+        return tryStartActivity(fallbackIntent);
+    }
+
+    private boolean tryStartActivity(Intent intent) {
+        try {
+            getActivity().startActivity(intent);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private String getApplicationLabel() {
+        try {
+            PackageManager pm = getContext().getPackageManager();
+            ApplicationInfo appInfo = getContext().getApplicationInfo();
+            CharSequence label = pm.getApplicationLabel(appInfo);
+            return label != null ? label.toString() : getContext().getPackageName();
+        } catch (Exception ignored) {
+            return getContext().getPackageName();
+        }
     }
 
     private void cancelActiveCall(String status) {
