@@ -312,7 +312,8 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .outline-item.level-3.cx-search-target,.outline-item.level-4.cx-search-target,.outline-item.level-5.cx-search-target{padding-left:calc(1em + 5px)}
 @keyframes cx-target-pulse{0%,100%{background-color:transparent}50%{background-color:rgba(255,179,71,0.25)}}
 /* 朗读句子高亮：纯背景色，逐句跟随 */
-mark.cx-tts-sent{background-color:transparent;border-radius:2px}
+mark.cx-tts-sent{background-color:transparent;border-radius:2px;transition:background-color 0.25s}
+mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .cx-tts-active{background-color:rgba(79,125,219,0.18);border-radius:2px;transition:background-color 0.25s}
 .cx-note-icon{font-size:.75em;cursor:pointer;vertical-align:super;line-height:1;margin-left:1px;-webkit-user-select:none;user-select:none}
 .hl-menu{display:none;flex-direction:column;gap:5px;padding:8px;background:var(--surface);border-radius:12px;box-shadow:var(--menu-shadow);border:1px solid var(--border);z-index:9999;min-width:min(220px,calc(100vw - 24px));max-width:min(340px,calc(100vw - 24px));-webkit-user-select:none;user-select:none;transition:opacity .15s ease}
@@ -771,6 +772,8 @@ mark.cx-tts-sent{background-color:transparent;border-radius:2px}
 /* ── 二十五、浮动导航栏（内容页空白处点击唤出）──────────── */
 .cx-float-nav{position:fixed;top:0;left:0;right:0;z-index:990;background:var(--card-bg);box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;transform:translateY(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);pointer-events:none;padding:0 2px}
 .cx-float-nav.show{transform:translateY(0);pointer-events:auto}
+.cx-float-tts{position:fixed!important;bottom:0;left:0;right:0;z-index:989;background:var(--card-bg);box-shadow:0 -2px 10px rgba(0,0,0,.18);margin:0!important;border-radius:0!important;border-left:none!important;border-right:none!important;border-top:1px solid var(--border)!important;transform:translateY(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);padding:4px 8px max(4px,env(safe-area-inset-bottom)) 8px!important}
+.cx-float-tts.show{transform:translateY(0)}
 .cx-float-nav .page-navigation{flex:1;margin:0;padding:4px 2px;border-radius:0;background:transparent;box-shadow:none}
 .cx-float-nav-settings{flex-shrink:0;width:38px;height:38px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-primary);border-radius:50%;padding:0;margin-right:2px;-webkit-tap-highlight-color:transparent}
 .cx-float-nav-settings:hover{background:var(--interactive-soft-hover)}

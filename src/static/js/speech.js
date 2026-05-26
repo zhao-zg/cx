@@ -645,10 +645,11 @@
           if (err === 'interrupted' || err === 'cancelled') {
             if (consumed || state !== 'playing') return;
             consumed = true;
+            currentChunk++; // per-sentence 模式下不重读同一句，直接推进
             setTimeout(function () {
               if (gen !== speakGeneration || state !== 'playing') return;
               wsPlayNextChunk();
-            }, 150);
+            }, 80);
             return;
           }
           if (consumed) return;
