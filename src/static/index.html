@@ -109,7 +109,10 @@
     <script>(function(){
         // Capacitor APP 已有原生 SplashActivity 显示经文，此处直接跳过 HTML 加载页
         var _isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||window.location.hostname==='localhost';
-        if(_isCap){var _e=document.getElementById('cxSplash');if(_e&&_e.parentNode)_e.parentNode.removeChild(_e);return;}
+        if(_isCap){var _e=document.getElementById('cxSplash');if(_e&&_e.parentNode)_e.parentNode.removeChild(_e);
+        // 页面加载完成后通知 SplashActivity 退出（最少显示 600ms 由 Java 层控制）
+        function _nr(){if(window.SplashBridge)window.SplashBridge.onReady();}
+        if(document.readyState==='complete')_nr();else window.addEventListener('load',_nr);return;}
         var _splashDone=false;
         function _dismissSplash(){
             if(_splashDone)return;_splashDone=true;

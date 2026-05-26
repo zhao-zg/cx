@@ -17,9 +17,14 @@ import android.widget.TextView;
  */
 public class SplashActivity extends Activity {
 
-    private static final String VERSE_REF  = "诗篇 119:148";
-    private static final String VERSE_TEXT = "我趁夜更未换，将眼睁开，\n为要默想你的话语。";
-    private static final int    SPLASH_MS  = 1400;
+    private static final String VERSE_REF     = "诗篇 119:148";
+    private static final String VERSE_TEXT    = "我趁夜更未换，将眼睁开，\n为要默想你的话语。";
+    private static final int    MIN_SPLASH_MS = 500;   // 至少显示时长（ms）
+    private static final int    MAX_SPLASH_MS = 3000;  // 硬上限（ms）
+
+    /** MainActivity 通过 SplashBridge JS 接口置为 true */
+    public static volatile boolean webViewReady = false;
+    private boolean dismissed = false;
 
     private int dp(float v) {
         return Math.round(TypedValue.applyDimension(
@@ -65,17 +70,33 @@ public class SplashActivity extends Activity {
         root.addView(verse);
         setContentView(root);
 
-        new Handler().postDelayed(new Runnable() {
+        webViewReady = false;
+        final long startMs = System.currentTimeMillis();
+        final Handler h = new Handler();
+        final Runnable check = new Runnable() {
             @Override
             public void run() {
-                finish();
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                if (dismissed) return;
+                long elapsed = System.currentTimeMillis() - startMs;
+                if ((webViewReady && elapsed >= MIN_SPLASH_MS) || elapsed >= MAX_SPLASH_MS) {
+                    dismissSplash();
+                } else {
+                    h.postDelayed(this, 50);
+                }
             }
-        }, SPLASH_MS);
+        };
+        h.postDelayed(check, 50);
+    }
+
+    private void dismissSplash() {
+        if (dismissed) return;
+        dismissed = true;
+        finish();
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 
     @Override
     public void onBackPressed() {
-        finish();
+        dismissSplash();
     }
 }

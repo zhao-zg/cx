@@ -22,6 +22,14 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(CrashLogPlugin.class);
         super.onCreate(savedInstanceState);
 
+        // 注入 JS 接口：页面就绪后通知 SplashActivity 退出
+        getBridge().getWebView().addJavascriptInterface(new Object() {
+            @android.webkit.JavascriptInterface
+            public void onReady() {
+                SplashActivity.webViewReady = true;
+            }
+        }, "SplashBridge");
+
         // 首次启动：在 WebView 加载前展示经文加载页
         if (savedInstanceState == null) {
             startActivity(new Intent(this, SplashActivity.class));
