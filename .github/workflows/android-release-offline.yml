@@ -350,6 +350,9 @@ jobs:
           git checkout HEAD -- android/app/src/main/java/com/tehui/offline/$f
         done
         
+        # 恢复 AndroidManifest.xml，确保我们手动添加的省电优化权限等不会被 sync 覆盖
+        git checkout HEAD -- android/app/src/main/AndroidManifest.xml
+        
         # 验证插件文件
         for f in MainActivity.java ApkInstallerPlugin.java NativeTTSPlugin.java TTSForegroundService.java SplashActivity.java; do
           if [ ! -f "android/app/src/main/java/com/tehui/offline/$f" ]; then
