@@ -175,10 +175,11 @@ public class NativeTTSPlugin extends Plugin {
                     intent.setData(Uri.parse("package:" + getContext().getPackageName()));
                     getActivity().startActivity(intent);
                 } catch (Exception e) {
-                    // 部分 ROM 不支持该 Intent，回退到通用电池设置页
+                    // 部分 ROM 不支持该 Intent，回退到应用详情页，引导用户手动设置
                     try {
-                        getActivity().startActivity(
-                            new Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS));
+                        Intent fallbackIntent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        fallbackIntent.setData(Uri.parse("package:" + getContext().getPackageName()));
+                        getActivity().startActivity(fallbackIntent);
                     } catch (Exception ignored2) {}
                 }
             }
