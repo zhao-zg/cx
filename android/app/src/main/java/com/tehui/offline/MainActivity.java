@@ -1,5 +1,6 @@
 package com.tehui.offline;
 
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -20,7 +21,13 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NativeTTSPlugin.class);
         registerPlugin(CrashLogPlugin.class);
         super.onCreate(savedInstanceState);
-        
+
+        // 首次启动：在 WebView 加载前展示经文加载页
+        if (savedInstanceState == null) {
+            startActivity(new Intent(this, SplashActivity.class));
+            overridePendingTransition(0, 0);
+        }
+
         // 设置状态栏颜色
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Window window = getWindow();

@@ -1,7 +1,6 @@
 package com.tehui.offline;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -69,7 +68,6 @@ public class SplashActivity extends Activity {
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                startActivity(new Intent(SplashActivity.this, MainActivity.class));
                 finish();
                 overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
             }

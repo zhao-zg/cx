@@ -479,36 +479,25 @@ jobs:
         grep -E "FOREGROUND_SERVICE|WAKE_LOCK|TTSForegroundService" "$manifest_file" | head -6 || echo "警告: TTS 权限检查"
         echo "✓ NativeTTS AndroidManifest 配置完成"
 
-        # 配置 SplashActivity 为 LAUNCHER，MainActivity 去除 LAUNCHER
+        # 注册 SplashActivity（由 MainActivity.onCreate 启动，不作 LAUNCHER）
         cat > patch_splash_activity.py << 'SPLASH_EOF'
         import re
         manifest_file = 'android/app/src/main/AndroidManifest.xml'
         with open(manifest_file, 'r') as f:
             content = f.read()
 
-        # 1. 将 MainActivity 的 LAUNCHER category 注释掉（保留 MAIN action）
-        content = re.sub(
-            r'(<category\s+android:name="android\.intent\.category\.LAUNCHER"\s*/>)',
-            '<!-- LAUNCHER moved to SplashActivity -->',
-            content, count=1
-        )
-
-        # 2. 在 </application> 前插入 SplashActivity 声明（带 LAUNCHER）
+        # 仅声明 SplashActivity，不修改 LAUNCHER（保持 MainActivity 为 LAUNCHER，
+        # 避免更新安装后桌面图标丢失）
         splash_decl = (
             '        <activity\n'
             '            android:name="com.tehui.offline.SplashActivity"\n'
             '            android:theme="@style/AppTheme"\n'
             '            android:noHistory="true"\n'
-            '            android:exported="true">\n'
-            '            <intent-filter>\n'
-            '                <action android:name="android.intent.action.MAIN" />\n'
-            '                <category android:name="android.intent.category.LAUNCHER" />\n'
-            '            </intent-filter>\n'
-            '        </activity>\n'
+            '            android:exported="false" />\n'
         )
         if 'SplashActivity' not in content:
             content = content.replace('</application>', splash_decl + '    </application>')
-            print('✓ SplashActivity 已注册为 LAUNCHER')
+            print('✓ SplashActivity 已声明（由 MainActivity 启动）')
         else:
             print('ℹ SplashActivity 已存在，跳过')
 
