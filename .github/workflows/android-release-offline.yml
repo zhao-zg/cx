@@ -137,6 +137,10 @@ jobs:
         # 从 Git 恢复整个自定义插件目录（通配符方式，新增文件无需修改 workflow）
         git checkout -- android/app/src/main/java/com/tehui/offline/
         
+        # 恢复 AndroidManifest.xml（包含所有必要权限，已在 Git 中追踪）
+        git checkout -- android/app/src/main/AndroidManifest.xml
+        echo "✓ AndroidManifest.xml 已从 Git 恢复（含省电/前台服务/唤醒锁等权限）"
+        
         echo ""
         echo "=== 验证插件文件 ==="
         PLUGIN_DIR="android/app/src/main/java/com/tehui/offline"
@@ -355,157 +359,18 @@ jobs:
         done
         echo "✓ 所有自定义插件文件已恢复"
         
+        # AndroidManifest.xml 已在"恢复自定义插件文件"步骤中从 Git 恢复，
+        # 其中包含所有必要权限（FOREGROUND_SERVICE、WAKE_LOCK、
+        # REQUEST_IGNORE_BATTERY_OPTIMIZATIONS 等）和组件声明。
         manifest_file="android/app/src/main/AndroidManifest.xml"
-        
-        # 使用 Python 脚本修改 AndroidManifest.xml
-        cat > modify_manifest.py << 'PYTHON_EOF'
-        import re
-        
-        manifest_file = 'android/app/src/main/AndroidManifest.xml'
-        
-        with open(manifest_file, 'r') as f:
-            content = f.read()
-        
-        # 查找并替换 MainActivity 引用
-        patterns = [
-            (r'android:name="\.MainActivity"', 'android:name="com.tehui.offline.MainActivity"'),
-            (r'android:name="MainActivity"', 'android:name="com.tehui.offline.MainActivity"'),
-            (r'android:name="(?!com\.tehui\.offline\.MainActivity)[^"]*MainActivity"', 'android:name="com.tehui.offline.MainActivity"'),
-        ]
-        
-        modified = False
-        for pattern, replacement in patterns:
-            matches = re.findall(pattern, content)
-            if matches:
-                content = re.sub(pattern, replacement, content)
-                modified = True
-        
-        if not modified:
-            activity_match = re.search(r'<activity([^>]*)>', content)
-            if activity_match:
-                activity_tag = activity_match.group(0)
-                if 'android:name=' in activity_tag:
-                    new_tag = re.sub(r'android:name="[^"]*"', 'android:name="com.tehui.offline.MainActivity"', activity_tag)
-                    content = content.replace(activity_tag, new_tag)
-                    modified = True
-                else:
-                    new_tag = activity_tag.replace('<activity', '<activity android:name="com.tehui.offline.MainActivity"')
-                    content = content.replace(activity_tag, new_tag)
-                    modified = True
-        
-        with open(manifest_file, 'w') as f:
-            f.write(content)
-        
-        if modified:
-            print('✓ AndroidManifest.xml 已修改')
-        else:
-            print('✗ 无法修改 AndroidManifest.xml')
-            exit(1)
-        PYTHON_EOF
-        
-        python3 modify_manifest.py
-        
-        # 验证是否成功
-        if grep -q "com.tehui.offline.MainActivity" "$manifest_file"; then
-          echo "✓ AndroidManifest.xml MainActivity 配置完成"
+        if [ -f "$manifest_file" ]; then
+          echo "✓ AndroidManifest.xml 已就绪（来自 Git）"
+          grep -E "uses-permission|service|activity" "$manifest_file" | grep -v "^--$" || true
         else
-          echo "✗ 验证失败"
+          echo "✗ AndroidManifest.xml 不存在"
           exit 1
         fi
-        
-        # 添加 NativeTTS Foreground Service 所需权限和 service 声明
-        cat > patch_manifest_tts.py << 'TTS_EOF'
-        import re
-        
-        manifest_file = 'android/app/src/main/AndroidManifest.xml'
-        with open(manifest_file, 'r') as f:
-            content = f.read()
-        
-        # 添加 FOREGROUND_SERVICE 权限
-        if 'FOREGROUND_SERVICE"' not in content:
-            content = re.sub(
-                r'(<manifest[^>]*>)',
-                r'\1\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
-                content
-            )
-            print('✓ 添加 FOREGROUND_SERVICE 权限')
-        
-        # 添加 FOREGROUND_SERVICE_MEDIA_PLAYBACK（Android 14+）
-        if 'FOREGROUND_SERVICE_MEDIA_PLAYBACK' not in content:
-            content = re.sub(
-                r'(<manifest[^>]*>)',
-                r'\1\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />',
-                content
-            )
-            print('✓ 添加 FOREGROUND_SERVICE_MEDIA_PLAYBACK 权限')
-        
-        # 添加 WAKE_LOCK 权限
-        if 'WAKE_LOCK' not in content:
-            content = re.sub(
-                r'(<manifest[^>]*>)',
-                r'\1\n    <uses-permission android:name="android.permission.WAKE_LOCK" />',
-                content
-            )
-            print('✓ 添加 WAKE_LOCK 权限')
-        
-        # 添加 REQUEST_IGNORE_BATTERY_OPTIMIZATIONS（引导用户免除电池优化）
-        if 'REQUEST_IGNORE_BATTERY_OPTIMIZATIONS' not in content:
-            content = re.sub(
-                r'(<manifest[^>]*>)',
-                r'\1\n    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />',
-                content
-            )
-            print('✓ 添加 REQUEST_IGNORE_BATTERY_OPTIMIZATIONS 权限')
-        
-        # 添加 TTSForegroundService 声明（在 </application> 前）
-        if 'TTSForegroundService' not in content:
-            service_xml = (
-                '        <service\n'
-                '            android:name="com.tehui.offline.TTSForegroundService"\n'
-                '            android:foregroundServiceType="mediaPlayback"\n'
-                '            android:exported="false" />\n'
-            )
-            content = content.replace('</application>', service_xml + '    </application>')
-            print('✓ 添加 TTSForegroundService 声明')
-        
-        with open(manifest_file, 'w') as f:
-            f.write(content)
-        print('✓ NativeTTS Manifest 补丁完成')
-        TTS_EOF
-        
-        python3 patch_manifest_tts.py
-        
-        # 验证
-        grep -E "FOREGROUND_SERVICE|WAKE_LOCK|TTSForegroundService" "$manifest_file" | head -6 || echo "警告: TTS 权限检查"
-        echo "✓ NativeTTS AndroidManifest 配置完成"
-
-        # 注册 SplashActivity（由 MainActivity.onCreate 启动，不作 LAUNCHER）
-        cat > patch_splash_activity.py << 'SPLASH_EOF'
-        import re
-        manifest_file = 'android/app/src/main/AndroidManifest.xml'
-        with open(manifest_file, 'r') as f:
-            content = f.read()
-
-        # 仅声明 SplashActivity，不修改 LAUNCHER（保持 MainActivity 为 LAUNCHER，
-        # 避免更新安装后桌面图标丢失）
-        splash_decl = (
-            '        <activity\n'
-            '            android:name="com.tehui.offline.SplashActivity"\n'
-            '            android:theme="@style/AppTheme"\n'
-            '            android:noHistory="true"\n'
-            '            android:exported="false" />\n'
-        )
-        if 'SplashActivity' not in content:
-            content = content.replace('</application>', splash_decl + '    </application>')
-            print('✓ SplashActivity 已声明（由 MainActivity 启动）')
-        else:
-            print('ℹ SplashActivity 已存在，跳过')
-
-        with open(manifest_file, 'w') as f:
-            f.write(content)
-        SPLASH_EOF
-        python3 patch_splash_activity.py
-        echo "✓ SplashActivity Manifest 配置完成"
+        echo "✓ AndroidManifest 配置完成"
 
 
     - name: 配置启动窗口背景色（与 HTML 加载页一致）

@@ -46,7 +46,7 @@ public class SplashActivity extends Activity {
         // 经文引用
         TextView ref = new TextView(this);
         ref.setText(VERSE_REF);
-        ref.setTextColor(Color.parseColor("#007aff"));
+        ref.setTextColor(Color.parseColor("#0066ff"));
         ref.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         ref.setTypeface(Typeface.DEFAULT_BOLD);
         ref.setLetterSpacing(0.08f);
