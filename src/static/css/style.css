@@ -315,6 +315,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 mark.cx-tts-sent{background-color:transparent;color:inherit;font:inherit;border-radius:2px;transition:background-color 0.25s}
 mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .cx-tts-active{background-color:rgba(79,125,219,0.18);border-radius:2px;transition:background-color 0.25s}
+.scripture-block-static.cx-tts-active{background:rgba(79,125,219,0.22)}
 .cx-note-icon{font-size:.75em;cursor:pointer;vertical-align:super;line-height:1;margin-left:1px;-webkit-user-select:none;user-select:none}
 .hl-menu{display:none;flex-direction:column;gap:5px;padding:8px;background:var(--surface);border-radius:12px;box-shadow:var(--menu-shadow);border:1px solid var(--border);z-index:9999;min-width:min(220px,calc(100vw - 24px));max-width:min(340px,calc(100vw - 24px));-webkit-user-select:none;user-select:none;transition:opacity .15s ease}
 .hl-menu-row{display:flex;gap:6px;flex-wrap:nowrap;align-items:center;width:100%}
