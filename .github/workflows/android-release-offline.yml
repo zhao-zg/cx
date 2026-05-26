@@ -342,12 +342,12 @@ jobs:
         mkdir -p android/app/src/main/java/com/tehui/offline
         for f in MainActivity.java ApkInstallerPlugin.java ImageSaverPlugin.java \
                   NativeTTSPlugin.java TTSForegroundService.java \
-                  CrashReporter.java CrashLogPlugin.java; do
+                  CrashReporter.java CrashLogPlugin.java SplashActivity.java; do
           git checkout HEAD -- android/app/src/main/java/com/tehui/offline/$f
         done
         
         # 验证插件文件
-        for f in MainActivity.java ApkInstallerPlugin.java NativeTTSPlugin.java TTSForegroundService.java; do
+        for f in MainActivity.java ApkInstallerPlugin.java NativeTTSPlugin.java TTSForegroundService.java SplashActivity.java; do
           if [ ! -f "android/app/src/main/java/com/tehui/offline/$f" ]; then
             echo "✗ $f 恢复失败"
             exit 1
@@ -478,6 +478,45 @@ jobs:
         # 验证
         grep -E "FOREGROUND_SERVICE|WAKE_LOCK|TTSForegroundService" "$manifest_file" | head -6 || echo "警告: TTS 权限检查"
         echo "✓ NativeTTS AndroidManifest 配置完成"
+
+        # 配置 SplashActivity 为 LAUNCHER，MainActivity 去除 LAUNCHER
+        cat > patch_splash_activity.py << 'SPLASH_EOF'
+        import re
+        manifest_file = 'android/app/src/main/AndroidManifest.xml'
+        with open(manifest_file, 'r') as f:
+            content = f.read()
+
+        # 1. 将 MainActivity 的 LAUNCHER category 注释掉（保留 MAIN action）
+        content = re.sub(
+            r'(<category\s+android:name="android\.intent\.category\.LAUNCHER"\s*/>)',
+            '<!-- LAUNCHER moved to SplashActivity -->',
+            content, count=1
+        )
+
+        # 2. 在 </application> 前插入 SplashActivity 声明（带 LAUNCHER）
+        splash_decl = (
+            '        <activity\n'
+            '            android:name="com.tehui.offline.SplashActivity"\n'
+            '            android:theme="@style/AppTheme"\n'
+            '            android:noHistory="true"\n'
+            '            android:exported="true">\n'
+            '            <intent-filter>\n'
+            '                <action android:name="android.intent.action.MAIN" />\n'
+            '                <category android:name="android.intent.category.LAUNCHER" />\n'
+            '            </intent-filter>\n'
+            '        </activity>\n'
+        )
+        if 'SplashActivity' not in content:
+            content = content.replace('</application>', splash_decl + '    </application>')
+            print('✓ SplashActivity 已注册为 LAUNCHER')
+        else:
+            print('ℹ SplashActivity 已存在，跳过')
+
+        with open(manifest_file, 'w') as f:
+            f.write(content)
+        SPLASH_EOF
+        python3 patch_splash_activity.py
+        echo "✓ SplashActivity Manifest 配置完成"
 
 
     - name: 配置启动窗口背景色（与 HTML 加载页一致）

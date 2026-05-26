@@ -107,7 +107,10 @@
         <div class="cx-splash-verse">我趁夜更未换，将眼睁开，<br>为要默想你的话语。</div>
     </div>
     <script>(function(){
-        var _splashStart=Date.now(),_splashDone=false;
+        // Capacitor APP 已有原生 SplashActivity 显示经文，此处直接跳过 HTML 加载页
+        var _isCap=window.Capacitor!==undefined||window.location.protocol==='capacitor:'||window.location.hostname==='localhost';
+        if(_isCap){var _e=document.getElementById('cxSplash');if(_e&&_e.parentNode)_e.parentNode.removeChild(_e);return;}
+        var _splashDone=false;
         function _dismissSplash(){
             if(_splashDone)return;_splashDone=true;
             var el=document.getElementById('cxSplash');
@@ -115,12 +118,8 @@
             el.classList.add('cx-splash-out');
             setTimeout(function(){if(el&&el.parentNode)el.parentNode.removeChild(el);},480);
         }
-        function _trySplash(){
-            var wait=1200-(Date.now()-_splashStart);
-            if(wait<=0)_dismissSplash();else setTimeout(_dismissSplash,wait);
-        }
-        if(document.readyState==='complete')_trySplash();
-        else window.addEventListener('load',_trySplash);
+        if(document.readyState==='complete')_dismissSplash();
+        else window.addEventListener('load',_dismissSplash);
         setTimeout(_dismissSplash,4000);
     })();</script>
     <!-- 阅读进度条 -->
