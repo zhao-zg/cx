@@ -36,6 +36,7 @@ require(TXT_IMP);
 var _imp = global.window.CXLocalImport;
 var isOldCombinedFormat  = _imp.isOldCombinedFormat;
 var parseOldCombinedFile = _imp.parseOldCombinedFile;
+var filterRangeTrainings = _imp.filterRangeTrainings;
 
 // ── 2. 读取合辑文件 ───────────────────────────────────────────────────────────
 var RESOURCE_DIR = path.join(ROOT, 'resource', '历史合辑');
@@ -52,23 +53,15 @@ if (!isOldCombinedFormat(lines)) { console.error('不是旧合辑格式，退出
 
 // ── 3. 用 txt-importer.js 解析，获取含 rawRange 的训练列表 ──────────────────
 // parseOldCombinedFile 在每个训练对象里包含 rawRange:{idxStart,idxEnd,detailStart,detailEnd}
-var trainings = parseOldCombinedFile(lines, null);
-console.log('解析到 ' + trainings.length + ' 个训练\n');
+var allTrainings = parseOldCombinedFile(lines, null);
+var trainings = filterRangeTrainings(allTrainings, lines);
+console.log('解析到 ' + allTrainings.length + ' 个训练，过滤范围合辑后 ' + trainings.length + ' 个\n');
 
 var SEPARATOR = '────────────────────────────────────────────────────────────';
 
 // ── 4. 标题规范化 ─────────────────────────────────────────────────────────────
 function normTitle(s) {
   return (s || '').replace(/[─—–\-\s\u3000\uff08\uff09（）,，。．]/g, '').trim();
-}
-function titlesMatch(a, b) {
-  var na = normTitle(a), nb = normTitle(b);
-  if (!na || !nb) return false;
-  if (na === nb) return true;
-  if (na.length >= 4 && nb.indexOf(na) >= 0) return true;
-  if (nb.length >= 4 && na.indexOf(nb) >= 0) return true;
-  if (na.length >= 6 && nb.length >= 6 && na.slice(0, 6) === nb.slice(0, 6)) return true;
-  return false;
 }
 
 // ── 5. 用 rawRange 提取训练原文 ───────────────────────────────────────────────
@@ -116,104 +109,83 @@ function cleanName(t) {
   return (t || '').replace(/[\/\\:*?"<>|]/g, '').replace(/\s+/g, '').slice(0, 30);
 }
 
-// ── 7. 主逻辑 ────────────────────────────────────────────────────────────────
+// ── 7. 主逻辑（直接遍历合辑解析结果，无需 output/ 目录） ─────────────────────
 var created = 0, notFound = 0, duplicates = [];
+var seenByKey = {}; // "year-normTitle" → path，用于重复检测
 
-var byYear = {};
-fs.readdirSync(OUTPUT_DIR).forEach(function(d) {
-  var m = d.match(/^(\d{4})-(\d{2})$/);
-  if (!m) return;
-  var y = parseInt(m[1], 10), seq = parseInt(m[2], 10);
-  if (y < 1990 || y > 2030) return;
-  if (yearFilter && y !== yearFilter) return;
-  if (!byYear[y]) byYear[y] = [];
-  byYear[y].push({ dir: d, year: y, seq: seq });
+// 按年份+seq 排序
+trainings.sort(function(a, b) {
+  if (a.year !== b.year) return a.year - b.year;
+  var am = (a.path || '').match(/^local-\d+-(\d+)/);
+  var bm = (b.path || '').match(/^local-\d+-(\d+)/);
+  return (am ? parseInt(am[1], 10) : 0) - (bm ? parseInt(bm[1], 10) : 0);
 });
 
-Object.keys(byYear).sort().forEach(function(ys) {
-  var year    = parseInt(ys, 10);
+trainings.forEach(function(td) {
+  var year = td.year;
+  if (!year || year < 1990 || year > 2030) return;
+  if (yearFilter && year !== yearFilter) return;
+
+  var pm = (td.path || '').match(/^local-\d+-(\d+)/);
+  var seq = pm ? parseInt(pm[1], 10) : 0;
+  var seqStr = seq < 10 ? '0' + seq : '' + seq;
   var yearDir = path.join(RESOURCE_DIR, String(year));
-  var seenTitles = {};
+  var nt = normTitle(td.title);
 
-  byYear[year].sort(function(a, b) { return a.seq - b.seq; }).forEach(function(entry) {
-    var seqStr = entry.seq < 10 ? '0' + entry.seq : '' + entry.seq;
+  // 检查是否已有年份子目录 TXT（YYYY-NN-*.txt）
+  var hasTxt = false;
+  if (fs.existsSync(yearDir)) {
+    hasTxt = fs.readdirSync(yearDir).some(function(f) {
+      return f.startsWith(year + '-' + seqStr + '-') && f.endsWith('.txt');
+    });
+  }
+  // 检查根目录文件（如 2026-1-ICSC.txt）
+  if (!hasTxt) {
+    hasTxt = fs.readdirSync(RESOURCE_DIR).some(function(f) {
+      if (!f.endsWith('.txt') || f === path.basename(COMBINED)) return false;
+      return f.startsWith(year + '-' + seq + '-') ||
+             f.startsWith(year + '-' + seqStr + '-');
+    });
+  }
+  if (hasTxt) return;
 
-    // 读 training.json
-    var tjPath = path.join(OUTPUT_DIR, entry.dir, 'training.json');
-    if (!fs.existsSync(tjPath)) return;
-    var tj;
-    try { tj = JSON.parse(fs.readFileSync(tjPath, 'utf8')); } catch(e) { return; }
-    var nt = normTitle(tj.title);
+  // 重复检测
+  var dupKey = year + '-' + nt;
+  if (seenByKey[dupKey]) {
+    duplicates.push({ paths: [seenByKey[dupKey], td.path], title: td.title });
+    return;
+  }
+  seenByKey[dupKey] = td.path;
 
-    // 检查是否有年份子目录 TXT（YYYY-NN-*.txt）
-    var hasTxt = false;
-    if (fs.existsSync(yearDir)) {
-      hasTxt = fs.readdirSync(yearDir).some(function(f) {
-        return f.startsWith(year + '-' + seqStr + '-') && f.endsWith('.txt');
-      });
-    }
-    // 检查根目录文件（如 2026-1-ICSC.txt）
-    if (!hasTxt) {
-      hasTxt = fs.readdirSync(RESOURCE_DIR).some(function(f) {
-        if (!f.endsWith('.txt')) return false;
-        return f.startsWith(year + '-' + entry.seq + '-') ||
-               f.startsWith(year + '-' + seqStr + '-');
-      });
-    }
+  // 提取原文
+  var content = buildTxtContent(td);
+  if (!content) {
+    console.warn('  [无内容] ' + td.path + ' "' + td.title + '"');
+    notFound++; return;
+  }
 
-    // 登记标题（含有 txt 的条目也要登记，供重复检测）
-    if (!seenTitles[nt]) seenTitles[nt] = entry.dir;
+  var nextSeq = consumeNextSeq(year);
+  var ns      = nextSeq < 10 ? '0' + nextSeq : '' + nextSeq;
+  var fname   = year + '-' + ns + '-' + cleanName(td.title) + '.txt';
+  var fpath   = path.join(yearDir, fname);
+  var lineCount = content.split('\n').length;
 
-    if (hasTxt) return;
-
-    // 重复检测
-    if (seenTitles[nt] !== entry.dir) {
-      duplicates.push({ dirs: [seenTitles[nt], entry.dir], title: tj.title });
-      return;
-    }
-
-    // 在合辑解析结果中找匹配（txt-importer.js 已解析，含 rawRange）
-    var combined = null;
-    for (var i = 0; i < trainings.length; i++) {
-      var pm = (trainings[i].path || '').match(/^local-(\d+)/);
-      if (!pm || parseInt(pm[1], 10) !== year) continue;
-      if (titlesMatch(trainings[i].title, tj.title)) { combined = trainings[i]; break; }
-    }
-    if (!combined) {
-      console.warn('  [未找到] ' + entry.dir + ' "' + tj.title + '"');
-      notFound++; return;
-    }
-
-    // 直接用 rawRange 提取原文（无需重新计算边界）
-    var content = buildTxtContent(combined);
-    if (!content) {
-      console.warn('  [无内容] ' + combined.path + ' "' + combined.title + '"');
-      notFound++; return;
-    }
-
-    var nextSeq = consumeNextSeq(year);
-    var ns      = nextSeq < 10 ? '0' + nextSeq : '' + nextSeq;
-    var fname   = year + '-' + ns + '-' + cleanName(combined.title) + '.txt';
-    var fpath   = path.join(yearDir, fname);
-    var lineCount = content.split('\n').length;
-
-    if (dryRun) {
-      console.log('[预览] resource/历史合辑/' + year + '/' + fname);
-      console.log('       来自 output/' + entry.dir + '  ' + lineCount + ' 行  ' +
-                  (combined.rawRange.detailStart != null ? '含详细内容' : '仅INDEX'));
-    } else {
-      if (!fs.existsSync(yearDir)) fs.mkdirSync(yearDir, { recursive: true });
-      fs.writeFileSync(fpath, content, 'utf8');
-      console.log('[创建] resource/历史合辑/' + year + '/' + fname + '  (' + lineCount + '行)');
-    }
-    created++;
-  });
+  if (dryRun) {
+    console.log('[预览] resource/历史合辑/' + year + '/' + fname);
+    console.log('       来自 ' + td.path + '  ' + lineCount + ' 行  ' +
+                (td.rawRange.detailStart != null ? '含详细内容' : '仅INDEX'));
+  } else {
+    if (!fs.existsSync(yearDir)) fs.mkdirSync(yearDir, { recursive: true });
+    fs.writeFileSync(fpath, content, 'utf8');
+    console.log('[创建] resource/历史合辑/' + year + '/' + fname + '  (' + lineCount + '行)');
+  }
+  created++;
 });
 
 if (duplicates.length) {
-  console.log('\n⚠ 重复 output 目录（较大 seq 的可删除）:');
+  console.log('\n⚠ 重复训练（同年同标题）:');
   duplicates.forEach(function(d) {
-    console.log('  ' + d.dirs[0] + ' ↔ ' + d.dirs[1] + '  "' + d.title + '"');
+    console.log('  ' + d.paths[0] + ' ↔ ' + d.paths[1] + '  "' + d.title + '"');
   });
 }
 console.log('\n未找到匹配: ' + notFound);

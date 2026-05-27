@@ -208,6 +208,10 @@ function processFile(filePath, inYearSubdir) {
     var segments = splitMultiTrainingSegments(lines) || [lines];
 
     segments.forEach(function(segLines, seqOffset) {
+      // 年份子目录文件：每个训练均有专用独立文件，跳过合并文件中的额外段
+      // （避免跨年份合辑产生幽灵目录，如 2013-10 含2014年训练）
+      if (inYearSubdir && seqOffset > 0) return;
+
       // 第一段用文件名 seq；追加段用「本年最大 seq + 累计追加计数」
       var seqNum = seqOffset === 0 ? ys.seq : (yearMaxSeq + (++extraSeqCounter));
       var seqStr = seqNum < 10 ? '0' + seqNum : '' + seqNum;

@@ -1016,8 +1016,10 @@
     if (isCrossYear) {
       short = header.trim();
     } else {
-      var idx = header.indexOf('年');
-      short = idx >= 0 ? header.slice(idx + 1).trim() : header.trim();
+      // 找4字年份结束位置（年份末字 + 可选的"年"字），不用 indexOf('年') 避免
+      // 切到 "半年度" 中间的 "年"（如"二〇二一七月份半年度训练" → 应返回"七月份半年度训练"）
+      var yearM = header.match(/^[一二三四五六七八九○〇零两]{4}年?/);
+      short = yearM ? header.slice(yearM[0].length).trim() : header.trim();
       // 去掉合辑标题中 "、B年XXX" 后缀，如 "夏冬季、二〇一四年夏季训练" → "夏冬季"
       short = short.replace(/、[一二三四五六七八九○〇零]{4}年.+$/, '').trim();
     }
@@ -1046,8 +1048,11 @@
 
     for (var i = 0; i < n; i++) {
       var s = lines[i].trim();
-      if (!/^[一二三四五六七八九○〇零两]{4}[年秋春夏冬]/.test(s)) continue;
-      // 向下8行内验证（跳过空行与副标题行，找到总题/标语/第01篇则认定有效）
+      if (!/^[一二三四五六七八九○〇零两]{4}[年秋春夏冬一二三四五六七八九十]/.test(s)) continue;
+      // 排除正文句子：训练标题中不含句末/子句标点（逗号/句号等），有则说明是正文
+      // 注意：顿号（、）后无年份的枚举（如"夏季、冬季训练"）是合法标题，不排除
+      //       顿号后跟年份字符（如"冬季训练、二〇一七年..."）= 跨年合并标题，排除
+      if (/[，。；？！：]/.test(s)) continue;
       var valid = false;
       for (var j = i + 1; j < Math.min(i + 9, n); j++) {
         var nxt = lines[j].trim();
@@ -1214,6 +1219,58 @@
    *   4. 按训练顺序做标题匹配，将每个训练映射到其 detail 行范围
    *   5. 逐训练调用 parseDetailArea()，填充标题/副标题/标语元数据
    */
+
+  // ── 范围训练过滤（旧合辑专用）────────────────────────────────────────────────
+  // 匹配标题里「中文年+至+中文年」的范围训练，如「二〇一四年冬季至二〇一六年夏季训练」
+  var _RANGE_TITLE_RE = /[一二三四五六七八九○〇零]{4}[年秋春夏冬].{0,10}至([一二三四五六七八九○〇零两]{4})/;
+
+  function _getRangeEndYear(title) {
+    var m = (title || '').match(_RANGE_TITLE_RE);
+    if (!m) return null;
+    return cnYearToInt(m[1]);
+  }
+
+  /**
+   * 从范围训练 INDEX 区提取子季次标题行（用于与独立训练 subtitle 比对）。
+   * 过滤掉：篇目行、导航行、总题/标语行、年份头行、TOP/回页首。
+   */
+  function _extractSubSections(td, lines) {
+    var r = td.rawRange;
+    if (!r) return [];
+    var subs = [];
+    for (var i = r.idxStart + 1; i < r.idxEnd; i++) {
+      var l = lines[i].trim();
+      if (!l || l === 'TOP' || l === '回页首') continue;
+      if (/^总题|^标[\u3000\s]*语/.test(l)) continue;
+      if (/^第\d+篇/.test(l)) continue;
+      if ((l.indexOf('|') >= 0 || l.indexOf('＼') >= 0) && l.length < 80) continue;
+      if (/^[一二三四五六七八九○〇零]{4}[年秋春夏冬]/.test(l)) continue;
+      subs.push(l);
+    }
+    return subs;
+  }
+
+  /**
+   * 过滤掉旧合辑中被独立训练完全覆盖的范围训练。
+   * 判断依据：范围训练 INDEX 区的每个子季次标题都能在同批独立训练的 subtitle 中找到。
+   * 匹配不上的范围训练原样保留。
+   */
+  function filterRangeTrainings(trainings, lines) {
+    // 构建独立训练 subtitle 集合
+    var subtitleSet = {};
+    trainings.forEach(function(td) {
+      if (_getRangeEndYear(td.title) !== null) return;
+      if (td.subtitle) subtitleSet[td.subtitle.trim()] = true;
+    });
+    return trainings.filter(function(td) {
+      var endYear = _getRangeEndYear(td.title);
+      if (endYear === null || endYear <= (td.year || 0)) return true; // 非范围训练，保留
+      var subs = _extractSubSections(td, lines);
+      if (!subs.length) return true; // 提取不到子季次，保留
+      return !subs.every(function(s) { return subtitleSet[s]; }); // 有未覆盖子季次则保留
+    });
+  }
+
   function parseOldCombinedFile(lines, onProgress) {
     var n = lines.length;
 
@@ -1427,6 +1484,8 @@
               trainings = parseOldCombinedFile(lines, function(done, total) {
                 if (onProgress) onProgress(done, total, '正在解析第 ' + done + ' / ' + total + ' 个训练…');
               });
+              // 过滤掉已被独立训练完全覆盖的范围合辑条目
+              trainings = filterRangeTrainings(trainings, lines);
               isCombined = true;  // 旧合辑：历史内容不含内联经文，跳过2024+格式提取
             } else {
               boundaries = detectTrainingBoundaries(lines);
@@ -1574,6 +1633,8 @@
     detectDetailStart: detectDetailStart,
     extractYearSeqFromFilename: extractYearSeqFromFilename,
     detectTrainingBoundaries: detectTrainingBoundaries,
+    cnYearToInt: cnYearToInt,
+    filterRangeTrainings: filterRangeTrainings,
     // 经文提取工具（构建脚本复用）
     collectInlineVerses: collectInlineVerses
   };
