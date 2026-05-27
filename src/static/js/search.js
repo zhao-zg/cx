@@ -146,14 +146,27 @@
           }
         }
 
-        // zs: 职事摘录
-        var zs = chapter.ministry_excerpt || '';
-        if (zs.length >= 10) {
-          entries.push({ url: path + '/' + num + '/zs',
-            training: trainingTitle, season_label: seasonLabel,
-            chapter: num, type: 'zs', type_label: '职事摘录',
-            chapter_title: chTitle, pi: 0,
-            selector: 'content-text', text: zs });
+        // zs: 职事摘录（按 \n\n 拆段，与 renderZs 逻辑保持一致）
+        // 短标题行（< 30 字且无换行）渲染为 ministry-subtitle，不计入 content-text 的 pi
+        var zsExcerpt = chapter.ministry_excerpt || '';
+        if (zsExcerpt.length >= 10) {
+          var zsParagraphs = zsExcerpt.split(/\n\s*\n/);
+          var zsContentPI = 0;
+          for (var zspi = 0; zspi < zsParagraphs.length; zspi++) {
+            var zsPara = zsParagraphs[zspi].trim();
+            if (!zsPara) continue;
+            var zsIsSubtitle = zsPara.length < 30 && zsPara.indexOf('\n') < 0;
+            if (!zsIsSubtitle) {
+              if (zsPara.length >= 10) {
+                entries.push({ url: path + '/' + num + '/zs',
+                  training: trainingTitle, season_label: seasonLabel,
+                  chapter: num, type: 'zs', type_label: '职事摘录',
+                  chapter_title: chTitle, pi: zsContentPI,
+                  selector: 'content-text', text: zsPara });
+              }
+              zsContentPI++;
+            }
+          }
         }
       }
       return entries;
