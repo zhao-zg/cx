@@ -110,10 +110,14 @@
       win.__cxExiting = false;
       var newHash = '#/' + (hashPath || '');
       console.log('[Router] navigateReplace("' + hashPath + '") curHash="' + win.location.hash + '" → newHash="' + newHash + '"');
-      // 抑制 replaceState 可能产生的 hashchange（部分浏览器实现差异）
+      // 抑制 replaceState 可能产生的虚假 hashchange（部分浏览器实现差异）
       _skipNextDispatch = true;
       try { win.history.replaceState(null, '', win.location.pathname + newHash); } catch(e) {}
       dispatch(hashPath || '');
+      // 虚假 hashchange（若有）是宏任务，会在本 setTimeout 之前入队并被消费；
+      // setTimeout 之后将 flag 重置为 false，防止残留 _skipNextDispatch 吞掉
+      // 后续合法的 hashchange（如返回键 navigate() 触发的 hash 跳转）。
+      setTimeout(function() { _skipNextDispatch = false; }, 0);
     },
 
     // 让下一次 hashchange 不触发 dispatch（用于跳过 ghost replaceState 条目）
