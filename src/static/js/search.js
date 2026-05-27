@@ -426,8 +426,20 @@
         }));
       } catch (e) { /* storage 不可用时忽略 */ }
 
-      var root = (win.CX_ROOT !== undefined ? win.CX_ROOT : './');
-      win.location.href = root + entry.url;
+      if (win.CXRouter) {
+        // SPA 模式：用 discard() 丢弃搜索的 pushState 占位（不调 history.back() 不增 _skip），
+        // 再用 navigateReplace 把该 history 条目原地替换为目标章节（不新增历史条目）。
+        // 这样 backStack._stack 干净、_skip 为 0，弹框 history.back() 可正常消费。
+        if (this._modal) this._modal.classList.remove('active');
+        if (this._inBackStack && win.CX && win.CX.backStack) {
+          win.CX.backStack.discard();
+          this._inBackStack = false;
+        }
+        win.CXRouter.navigateReplace(entry.url);
+      } else {
+        var root = (win.CX_ROOT !== undefined ? win.CX_ROOT : './');
+        win.location.href = root + entry.url;
+      }
     },
 
     // ── 目标页加载后高亮定位 ──────────────────────────────────────────────

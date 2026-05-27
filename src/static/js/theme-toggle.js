@@ -226,6 +226,12 @@
         // _skip++ 确保该 pushState 占位条目触发的 popstate 被静默吸收。
         abandon: function() {
             if (_stack.length > 0) { _stack.pop(); _skip++; }
+        },
+        // 丢弃栈顶 entry，既不调 history.back() 也不增加 _skip。
+        // 用于弹框关闭后立即用 replaceState 替换对应 history 条目的场景（如搜索跳转），
+        // 此时 pushState 占位条目已被 replaceState 覆盖，无需额外的 _skip 吸收。
+        discard: function() {
+            if (_stack.length > 0) { _stack.pop(); }
         }
     };
 
