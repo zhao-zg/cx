@@ -1263,11 +1263,23 @@
       if (td.subtitle) subtitleSet[td.subtitle.trim()] = true;
     });
     return trainings.filter(function(td) {
+      // Case 1：标题含"至"的跨年范围合辑
+      // INDEX 区所有子季次标题均能在独立训练 subtitle 集合中找到
       var endYear = _getRangeEndYear(td.title);
-      if (endYear === null || endYear <= (td.year || 0)) return true; // 非范围训练，保留
-      var subs = _extractSubSections(td, lines);
-      if (!subs.length) return true; // 提取不到子季次，保留
-      return !subs.every(function(s) { return subtitleSet[s]; }); // 有未覆盖子季次则保留
+      if (endYear !== null && endYear > (td.year || 0)) {
+        var subs = _extractSubSections(td, lines);
+        if (subs.length > 0 && subs.every(function(s) { return subtitleSet[s]; })) {
+          return false;
+        }
+      }
+      // Case 2：subtitle 聚合（如"以西结书结晶读经" vs "以西结书结晶读经（一）"）
+      // 条件：① subtitle + "（一）" 在独立训练集合中  ② 首行含"、"（多季次标志）
+      if (td.subtitle && td.rawRange
+          && lines[td.rawRange.idxStart].indexOf('\u3001') >= 0
+          && subtitleSet[td.subtitle.trim() + '\uff08\u4e00\uff09']) {
+        return false;
+      }
+      return true;
     });
   }
 
