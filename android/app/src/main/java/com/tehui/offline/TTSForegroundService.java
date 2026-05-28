@@ -630,7 +630,7 @@ public class TTSForegroundService extends Service {
         }
     }
 
-    /** 开始每 500ms 向 JS 推送一次实际播放位置。重入安全。 */
+    /** 开始每 100ms 向 JS 推送一次实际播放位置。重入安全。 */
     private void startPositionBroadcast() {
         if (positionRunnable != null) return; // 已在运行
         positionRunnable = () -> {
@@ -641,9 +641,9 @@ public class TTSForegroundService extends Service {
                 long totalMs = fullTotalDurationMs > 0 ? fullTotalDurationMs : getTotalDurationMs();
                 cb.onPosition(posMs, totalMs);
             }
-            mainHandler.postDelayed(positionRunnable, 500);
+            mainHandler.postDelayed(positionRunnable, 100);
         };
-        mainHandler.postDelayed(positionRunnable, 500);
+        mainHandler.postDelayed(positionRunnable, 100);
     }
 
     private void stopPositionBroadcast() {
@@ -710,6 +710,14 @@ public class TTSForegroundService extends Service {
             mp.start();
             acquireWakeLock();
             updatePlaybackState(true);
+            // 立即推送一次 chunk 起始位置，使 JS 高亮在 chunk 切换时即时更新，
+            // 无需等待第一个定时器触发（尤其纲目短句场景下响应更及时）。
+            Listener immediateCb = listener;
+            if (immediateCb != null) {
+                long posMs   = chunkStartPositionMs;
+                long totalMs = fullTotalDurationMs > 0 ? fullTotalDurationMs : getTotalDurationMs();
+                immediateCb.onPosition(posMs, totalMs);
+            }
             startPositionBroadcast();
 
             // N+1 预生成：播放期间提前合成下一 chunk，消除 chunk 间停顿
