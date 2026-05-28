@@ -632,15 +632,18 @@
         // 防止同一 utterance 的 onend 和 onerror(interrupted) 都触发时双重推进
         var consumed = false;
 
+        // 提前更新高亮：在 speak() 前同步更新，避免部分 Android 设备上 onstart 不触发导致高亮只移动一次
+        elapsedOffset = currentElapsedSeconds();
+        startTime = Date.now();
+        startProgressUpdate();
+        var markIdx = _ttsMarkOffset + currentChunk;
+        setTTSHighlight(_segmentMap[markIdx] ? _segmentMap[markIdx].el : null);
+
         utt.onstart = function () {
           if (gen !== speakGeneration || state !== 'playing') return;
-          // 把上一句实际播完的时间存入 elapsedOffset，再重置时钟，防止进度条倒退
+          // 重置时钟，保证进度条从本句实际开始时间起算
           elapsedOffset = currentElapsedSeconds();
           startTime = Date.now();
-          startProgressUpdate();
-          // 按句子索引更新高亮（_ttsMarkOffset + currentChunk 与 textChunks 严格对应）
-          var markIdx = _ttsMarkOffset + currentChunk;
-          setTTSHighlight(_segmentMap[markIdx] ? _segmentMap[markIdx].el : null);
         };
         utt.onend = function () {
           if (consumed || gen !== speakGeneration || state !== 'playing') return;

@@ -451,8 +451,11 @@
     var withMr = chapters.filter(function(c) {
       return c.morning_revivals && c.morning_revivals.length > 0;
     });
+    // 允许计数差 ≤1：第一周无独立标题时其 MR 内容会被吸收进前一篇章节，
+    // 导致 withMr 比 noMr 多 1，用 Math.abs 容错。
     if (!noMr.length || !withMr.length ||
-        noMr.length !== withMr.length || noMr.length < 4) {
+        Math.abs(noMr.length - withMr.length) > 1 ||
+        Math.min(noMr.length, withMr.length) < 4) {
       return chapters;
     }
 
