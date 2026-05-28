@@ -827,12 +827,28 @@
         if (!win.CXLocalImport) { alert('导入模块未加载'); return; }
         var fi = document.createElement('input');
         fi.type = 'file';
+        fi.accept = '.txt,text/plain';
         fi.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px';
         document.body.appendChild(fi);
         fi.addEventListener('change', function () {
           var file = fi.files && fi.files[0];
           document.body.removeChild(fi);
           if (!file) return;
+          // 文件类型检查
+          var nameLower = file.name.toLowerCase();
+          if (!nameLower.endsWith('.txt') && file.type !== 'text/plain') {
+            alert('请选择 .txt 格式的训练文本文件');
+            return;
+          }
+          // 文件大小检查（单文件不超过 500 MB）
+          if (file.size > 500 * 1024 * 1024) {
+            alert('文件过大（超过 500 MB），请确认是否为正确的训练文本文件');
+            return;
+          }
+          if (file.size < 100) {
+            alert('文件内容过少，不是有效的训练文本文件');
+            return;
+          }
           var overlay = document.getElementById('cxCmImportOverlay');
           var msgEl   = document.getElementById('cxCmImportMsg');
           var barEl   = document.getElementById('cxCmImportBar');

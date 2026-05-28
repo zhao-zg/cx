@@ -1468,6 +1468,45 @@
     return getStore().getItem(SCRIPTURES_PREFIX + path);
   }
 
+  // ── 内容验证 ──────────────────────────────────────────────────────────────
+
+  /**
+   * 验证行列表是否像合法的训练 TXT 文件。
+   * 返回 null 表示通过；返回字符串表示错误原因。
+   */
+  function _validateTrainingContent(lines) {
+    // 1. 最小行数
+    var nonEmpty = 0;
+    for (var i = 0; i < lines.length; i++) { if (lines[i].trim()) nonEmpty++; }
+    if (nonEmpty < 5) return '文件内容过少，不是有效的训练文本';
+
+    // 2. 旧合辑格式直接通过
+    if (isOldCombinedFormat(lines)) return null;
+
+    // 3. 统计训练特征标记
+    var score = 0;
+    var scanEnd = Math.min(lines.length, 300);
+    for (var j = 0; j < scanEnd; j++) {
+      var s = lines[j].trim();
+      if (!s) continue;
+      if (/^第[一二三四五六七八九十百千]+[篇周]/.test(s))              { score++; continue; }
+      if (cnYearToInt(s) !== null)                                       { score++; continue; }
+      if (s === 'TOP' || s === 'TOP-目录')                               { score++; continue; }
+      if (/^总题[：:∶]?/.test(s))                                       { score++; continue; }
+      if (/^标[\u3000\s]?语/.test(s))                                   { score++; continue; }
+      if (/^读经[：:∶]?/.test(s))                                       { score++; continue; }
+      if (/^诗歌[：:∶]?/.test(s))                                       { score++; continue; }
+      if (/^─{20,}$/.test(s) && j + 1 < lines.length &&
+          lines[j + 1].indexOf('详细信息') >= 0)                        { score += 2; continue; }
+      if (score >= 3) break; // 够了，无需继续扫
+    }
+
+    if (score < 2) {
+      return '文件格式无法识别，请确认导入的是正确的训练 TXT 文件\n（需包含训练年份、章节标题、TOP 导航等标志性内容）';
+    }
+    return null;
+  }
+
   // ── 公开 API ──────────────────────────────────────────────────────────────
 
   /**
@@ -1486,6 +1525,11 @@
             // 全局规范化：与 Python generator._normalize_source_abbr 保持一致
             text = text.replace(/李常受文集/g, 'CWWL').replace(/生命读经/g, 'L-S');
             var lines = text.split(/\r?\n/);
+
+            // ── 内容验证：拒绝非训练 TXT 文件 ──────────────────────────────
+            var _vErr = _validateTrainingContent(lines);
+            if (_vErr) { reject(new Error(_vErr)); return; }
+
             var trainings = [];
             var isCombined = false;
 
