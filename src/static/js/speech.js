@@ -376,8 +376,9 @@
       }
 
       // 构建句子级 _segmentMap，向 DOM 注入 <mark class="cx-tts-sent"> span
-      // 在 withExpanded 内运行，使每个 mark 在注入时已是展开文本，
-      // 从而 speakText 包含完整书名/章节，括号引用被 safeText 过滤，破折号经文被 .scripture-ref 移除。
+      // injectSentenceMarks 在 withExpanded **外部**运行，使 origChildren 保存真实 span 节点；
+      // speakText 通过 clone 内展开引用来提取，不修改真实 DOM，从而 clearSentenceMarks
+      // 恢复时能正确还原 .scripture-ref span，保持经文识别功能完整。
       function buildSegmentMap() {
         clearSentenceMarks();
         _segmentMap = [];
@@ -385,34 +386,47 @@
         var segs = getElements();
         var pos = 0;
 
-        // 提取节点的朗读文本：移除残余 .scripture-ref（未展开的破折号/括号形式），应用 safeText
+        // 提取节点的朗读文本：在 clone 中展开 .scripture-ref（含完整书名），再移除残余元素
+        // 不修改真实 DOM，避免破坏经文识别用的 span。
         function getSpeakText(node) {
           var clone = node.cloneNode(true);
-          clone.querySelectorAll('.scripture-ref, button, sup').forEach(function(s) { s.remove(); });
+          clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(span) {
+            var expanded = expandDataRefs(span.getAttribute('data-refs'));
+            var tn = document.createTextNode(expanded || span.textContent || '');
+            if (span.parentNode) span.parentNode.replaceChild(tn, span);
+          });
+          clone.querySelectorAll('button, sup').forEach(function(s) { s.remove(); });
           return safeText(clone.textContent).trim();
         }
 
-        withExpanded(function() {
-          segs.forEach(function(seg) {
-            var el = seg.el;
-            if (el.classList.contains('scripture-block-static')) {
-              _segmentMap.push({el: el, start: pos, end: pos + seg.textLen, speakText: getSpeakText(el)});
-              pos += seg.textLen;
-              return;
-            }
-            var injected = injectSentenceMarks(el);
-            if (!injected) {
-              _segmentMap.push({el: el, start: pos, end: pos + seg.textLen, speakText: getSpeakText(el)});
-              pos += seg.textLen;
-              return;
-            }
-            _sentenceMarkData.push(injected);
-            injected.marks.forEach(function(mark) {
-              var speakText = getSpeakText(mark);
-              var sentLen = speakText.length || 1;
-              _segmentMap.push({el: mark, start: pos, end: pos + sentLen, speakText: speakText});
-              pos += sentLen;
-            });
+        segs.forEach(function(seg) {
+          var el = seg.el;
+          if (el.classList.contains('scripture-block-static')) {
+            // 静态经文块：朗读文本 = 展开的引用名 + 经文正文（tab 分隔后半部分）
+            var refs = el.getAttribute('data-refs');
+            var expanded = refs ? expandDataRefs(refs) : '';
+            var bClone = el.cloneNode(true);
+            bClone.querySelectorAll('sup').forEach(function(s) { s.remove(); });
+            var cleanText = bClone.textContent;
+            var tabIdx = cleanText.indexOf('\t');
+            var body = tabIdx !== -1 ? cleanText.slice(tabIdx + 1).trim() : cleanText.trim();
+            var speakText = safeText((expanded ? expanded + ' ' : '') + body);
+            _segmentMap.push({el: el, start: pos, end: pos + seg.textLen, speakText: speakText});
+            pos += seg.textLen;
+            return;
+          }
+          var injected = injectSentenceMarks(el);
+          if (!injected) {
+            _segmentMap.push({el: el, start: pos, end: pos + seg.textLen, speakText: getSpeakText(el)});
+            pos += seg.textLen;
+            return;
+          }
+          _sentenceMarkData.push(injected);
+          injected.marks.forEach(function(mark) {
+            var speakText = getSpeakText(mark);
+            var sentLen = speakText.length || 1;
+            _segmentMap.push({el: mark, start: pos, end: pos + sentLen, speakText: speakText});
+            pos += sentLen;
           });
         });
       }
@@ -705,7 +719,7 @@
           var gen = speakGeneration;
           try { window.speechSynthesis.cancel(); } catch (e) {}
           stopProgressUpdate();
-          // 直接用 _segmentMap 各项的 speakText（在 withExpanded 内提取，含完整书名、过滤括号/破折号引用）
+          // 直接用 _segmentMap 各项的 speakText（clone 内展开引用，含完整书名、过滤括号/破折号引用）
           // 保证 textChunks[i] ↔ _segmentMap[_ttsMarkOffset+i] 严格对应
           if (_segmentMap.length > _ttsMarkOffset) {
             textChunks = _segmentMap.slice(_ttsMarkOffset).map(function(seg) {
