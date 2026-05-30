@@ -285,8 +285,8 @@
             var grid=document.getElementById('trainingsGrid');
             if(!grid)return;
             var allTrainings=data.trainings||[];
-            // 只显示最新 7 个「转换训练」（排除合辑，合辑需下载后才显示）
-            var displayTrainings=allTrainings.filter(function(t){return!t.is_collection;}).slice(0,7);
+            // 只显示最新 N 个「转换训练」（排除合辑，合辑需下载后才显示）
+            var displayTrainings=allTrainings.filter(function(t){return!t.is_collection;}).slice(0,window.CX_MAX_LATEST_TRAININGS||5);
 
             function buildCard(t){
                 var yr=String(t.year||'');
