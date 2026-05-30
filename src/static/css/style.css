@@ -416,8 +416,8 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.83em}
 .scripture-content{background:var(--scripture-bg);border-left:3px solid var(--brand);padding:10px 12px 10px 1.3em;margin:6px 0 8px -1em;font-size:1.00em;color:var(--text);line-height:1.9;text-align:justify;text-indent:-1em;font-weight:500}
 .scripture-section{margin:8px 0;padding:6px 10px 6px 12px;background:var(--scripture-bg);border:1px solid var(--border);border-left:3px solid var(--brand);border-radius:var(--radius-md)}
-.scripture-ref{color:var(--text-muted);font-size:0.93em;margin-left:2px}
-.scripture-ref[data-refs]{cursor:pointer;color:var(--text-muted);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+.scripture-ref{color:var(--text-soft);font-size:0.93em;margin-left:2px}
+.scripture-ref[data-refs]{cursor:pointer;color:var(--text-soft);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
 .verse-line{margin-bottom:8px;font-size:1.00em;line-height:1.9;color:var(--text-soft);text-align:justify}
 .verse-line:last-child{margin-bottom:0}
 .no-content{color:var(--text-muted);text-align:center;padding:24px 16px;background:var(--muted);border:1px solid var(--border);border-radius:var(--radius-md)}
