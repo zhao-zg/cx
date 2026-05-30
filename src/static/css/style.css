@@ -766,6 +766,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .verse-ref{color:var(--brand);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .verse-ref:hover{color:var(--brand-dark,#0060c0)}
 .scripture-ref--inline{cursor:pointer;color:var(--text-soft);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;font-size:inherit;margin-left:0}
+.outline-item .scripture-ref--inline,.outline-content-text .scripture-ref--inline{color:var(--text-muted)}
 
 /* ── 二十四、图片查看器（hymn / motto_song 共用）──────────── */
 .image-viewer-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--viewer-overlay-bg);z-index:9999;overflow:hidden;touch-action:none}
