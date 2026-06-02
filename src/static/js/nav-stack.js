@@ -322,12 +322,13 @@
                 var cls = el.classList;
                 if (cls.contains('outline-lvl-toggle') || cls.contains('outline-title') ||
                     cls.contains('scripture-ref')       || cls.contains('verse-ref') ||
-                    cls.contains('xref-ref')            || cls.contains('speech-btn') ||
-                    cls.contains('play-btn')            || cls.contains('highlight-trigger') ||
-                    cls.contains('cx-dialog-mask')      || cls.contains('theme-panel') ||
-                    cls.contains('theme-toggle-btn')    || cls.contains('toc-item') ||
-                    cls.contains('scripture-popup')     || cls.contains('scripture-popup-overlay') ||
-                    cls.contains('scripture-popup-body')|| cls.contains('scripture-popup-header')) return false;
+                    cls.contains('fn-ref')              || cls.contains('xref-ref') ||
+                    cls.contains('speech-btn')          || cls.contains('play-btn') ||
+                    cls.contains('highlight-trigger')   || cls.contains('cx-dialog-mask') ||
+                    cls.contains('theme-panel')         || cls.contains('theme-toggle-btn') ||
+                    cls.contains('toc-item')            || cls.contains('scripture-popup') ||
+                    cls.contains('scripture-popup-overlay') || cls.contains('scripture-popup-body') ||
+                    cls.contains('scripture-popup-header')) return false;
             }
             el = el.parentElement;
         }
