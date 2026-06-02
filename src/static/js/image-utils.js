@@ -199,16 +199,18 @@
             scrollEl      = document.getElementById('viewerScroll');
             closeBtn      = document.getElementById('viewerClose');
 
-            // ── 单图模式：双击还原 ───────────────────────────────────────
+            // ── 单图模式：双击还原，单击关闭 ───────────────────────
             singleImg.addEventListener('touchend', function (e) {
                 if (e.changedTouches.length !== 1 || e.touches.length > 0) return;
                 if (_gestured) return;
                 var now = Date.now();
-                if (now - _lastTap < 300) { resetTransform(); _lastTap = 0; return; }
-                _lastTap = now;
-                setTimeout(function () {
-                    if (_lastTap === now) { close(); }
-                }, 310);
+                if (now - _lastTap < 300) {
+                    // 双击：还原缩放
+                    resetTransform();
+                    _lastTap = 0;
+                } else {
+                    _lastTap = now;
+                }
             });
             singleImg.addEventListener('click', function (e) {
                 e.stopPropagation();
