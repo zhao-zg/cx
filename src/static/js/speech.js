@@ -305,7 +305,15 @@
       function updateLoopButton() {
         if (!loopBtn) return;
         loopBtn.classList.toggle('active', isLooping);
-        loopBtn.title = isLooping ? '循环播放（已开启）' : '循环播放';
+        if (isLooping) {
+          loopBtn.innerHTML = '🔁';
+          loopBtn.title = '循环播放当前页面（已开启）';
+          loopBtn.setAttribute('aria-label', '循环播放当前页面（已开启）');
+        } else {
+          loopBtn.innerHTML = '🔂';
+          loopBtn.title = '只播放当前页面';
+          loopBtn.setAttribute('aria-label', '只播放当前页面');
+        }
       }
 
       // -- TTS 句子级高亮 --------------------------------------------------------

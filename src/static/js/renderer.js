@@ -183,7 +183,7 @@
           '<span class="play-icon">▶</span>' +
           '<span class="pause-icon" style="display:none;">⏸</span>' +
         '</button>' +
-        '<button class="control-btn loop-btn" id="loopBtn" title="循环播放" aria-label="循环播放">🔁</button>' +
+        '<button class="control-btn loop-btn" id="loopBtn" title="只播放当前页面" aria-label="只播放当前页面">🔂</button>' +
         '<div class="progress-section">' +
           '<div class="progress-column">' +
             '<input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" step="0.1">' +
