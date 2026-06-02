@@ -66,7 +66,7 @@
         var _panStartX = 0, _panStartY = 0, _panStartTx = 0, _panStartTy = 0;
         var _gestured = false;
         var _lastTap = 0;
-        var _backButtonHandler = null; // 系统返回按钮处理函数
+        var _inBackStack = false; // 是否已注册到 backStack
 
         function applyTransform() {
             singleImg.style.transform = 'translate(' + _tx + 'px,' + _ty + 'px) scale(' + _scale + ')';
@@ -87,18 +87,20 @@
         function isPortrait() { return overlay.classList.contains('portrait'); }
 
         function close() {
+            // 幂等检查：已关闭则直接返回，防止重复调用
+            if (!overlay || !overlay.classList.contains('show')) return;
+
             overlay.classList.remove('show', 'portrait', 'multi');
             document.body.style.overflow = '';
             resetTransform();
             scrollEl.innerHTML = '';
 
-            // 移除系统返回按钮监听器
-            if (_backButtonHandler) {
-                window.removeEventListener('popstate', _backButtonHandler);
-                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-                    window.Capacitor.Plugins.App.removeAllListeners('backButton');
+            // 消耗 backStack 条目（主动关闭时调用；系统返回键触发时已自动消耗）
+            if (_inBackStack) {
+                _inBackStack = false;
+                if (window.CX && window.CX.backStack) {
+                    window.CX.backStack.pop();
                 }
-                _backButtonHandler = null;
             }
         }
 
@@ -249,49 +251,17 @@
                 if (_scale <= 1) { _tx = 0; _ty = 0; applyTransform(); }
             });
 
-            // ── 多图模式：双击还原（滚动位置），单击关闭 ──────────────────────
+            // ── 多图模式：双击返回顶部 ────────────────────────────
             var _lastScrollTap = 0;
-            var _scrollStartY = 0;
-            var _scrollStartX = 0;
-            var _hasMoved = false;
-            var _tapTarget = null; // 记录触摸开始时的目标元素
-
-            scrollEl.addEventListener('touchstart', function (e) {
-                if (e.touches.length === 1) {
-                    _scrollStartY = e.touches[0].clientY;
-                    _scrollStartX = e.touches[0].clientX;
-                    _hasMoved = false;
-                    _tapTarget = e.target; // 记录触摸目标
-                }
-            }, { passive: true });
-
-            scrollEl.addEventListener('touchmove', function (e) {
-                if (e.touches.length === 1 && !_hasMoved) {
-                    var deltaX = Math.abs(e.touches[0].clientX - _scrollStartX);
-                    var deltaY = Math.abs(e.touches[0].clientY - _scrollStartY);
-                    // 任意方向移动超过5px视为滚动
-                    if (deltaX > 5 || deltaY > 5) {
-                        _hasMoved = true;
-                    }
-                }
-            }, { passive: true });
 
             scrollEl.addEventListener('touchend', function (e) {
                 if (e.changedTouches.length !== 1 || e.touches.length > 0) return;
-                
-                // 双击检测
                 var now = Date.now();
                 if (now - _lastScrollTap < 300) {
-                    // 双击：滚动到顶部
                     scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
                     _lastScrollTap = 0;
-                    return;
-                }
-                _lastScrollTap = now;
-
-                // 如果没有移动，且触摸目标是图片，视为点击，关闭查看器
-                if (!_hasMoved && _tapTarget && _tapTarget.tagName === 'IMG') {
-                    close();
+                } else {
+                    _lastScrollTap = now;
                 }
             });
 
@@ -313,21 +283,9 @@
                 if (e.key === 'Escape' && overlay.classList.contains('show')) close();
             });
 
-            // ── 系统返回按钮处理（Android 返回键 / 浏览器后退）──────────────
-            _backButtonHandler = function (e) {
-                if (overlay.classList.contains('show')) {
-                    if (e && e.preventDefault) e.preventDefault();
-                    close();
-                    return false;
-                }
-            };
-
-            // 监听 popstate 事件（浏览器后退按钮）
-            window.addEventListener('popstate', _backButtonHandler);
-
-            // Capacitor Android 返回键处理
-            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-                window.Capacitor.Plugins.App.addListener('backButton', _backButtonHandler);
+            // ── lockOverlayScroll：防滚动穿透 + 点击空白区关闭 ────────
+            if (window.CX && window.CX.lockOverlayScroll) {
+                window.CX.lockOverlayScroll(overlay, function () { close(); });
             }
         }
 
@@ -339,6 +297,15 @@
             overlay.classList.remove('portrait', 'multi');
             overlay.classList.add('show');
             document.body.style.overflow = 'hidden';
+
+            // 注册到 backStack，支持系统返回键关闭
+            if (window.CX && window.CX.backStack) {
+                _inBackStack = true;
+                window.CX.backStack.push(function () {
+                    _inBackStack = false;
+                    close();
+                });
+            }
 
             if (Array.isArray(images) && images.length > 1) {
                 // ── 多图模式：全屏竖向滚动 ──────────────────────────────
@@ -353,6 +320,33 @@
                     var imgEl = document.createElement('img');
                     imgEl.src = images[i];
                     imgEl.alt = '图片 ' + (i + 1);
+                    // 直接绑定触摸事件，WebView 中最可靠
+                    (function (img) {
+                        var _startY = 0, _startX = 0, _moved = false;
+                        img.addEventListener('touchstart', function (e) {
+                            if (e.touches.length === 1) {
+                                _startX = e.touches[0].clientX;
+                                _startY = e.touches[0].clientY;
+                                _moved = false;
+                            }
+                        }, { passive: true });
+                        img.addEventListener('touchmove', function (e) {
+                            if (e.touches.length === 1 && !_moved) {
+                                var dx = Math.abs(e.touches[0].clientX - _startX);
+                                var dy = Math.abs(e.touches[0].clientY - _startY);
+                                if (dx > 8 || dy > 8) _moved = true;
+                            }
+                        }, { passive: true });
+                        img.addEventListener('touchend', function (e) {
+                            if (!_moved && e.changedTouches.length === 1 && e.touches.length === 0) {
+                                close();
+                            }
+                        });
+                        img.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            close();
+                        });
+                    })(imgEl);
                     scrollEl.appendChild(imgEl);
                 }
 
