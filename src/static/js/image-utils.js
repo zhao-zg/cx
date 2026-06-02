@@ -320,31 +320,38 @@
                     var imgEl = document.createElement('img');
                     imgEl.src = images[i];
                     imgEl.alt = '图片 ' + (i + 1);
-                    // 直接绑定触摸事件，WebView 中最可靠
+                    // 直接绑定触摸和点击事件
                     (function (img) {
-                        var _startY = 0, _startX = 0, _moved = false;
+                        var _startY = 0, _startX = 0;
                         img.addEventListener('touchstart', function (e) {
                             if (e.touches.length === 1) {
                                 _startX = e.touches[0].clientX;
                                 _startY = e.touches[0].clientY;
-                                _moved = false;
+                                img._tapMoved = false;
                             }
                         }, { passive: true });
+                        // passive:false — 在滚动边界时调用 preventDefault，
+                        // 阻止 lockOverlayScroll 拦截 touchmove（它会阻止 click 合成）
                         img.addEventListener('touchmove', function (e) {
-                            if (e.touches.length === 1 && !_moved) {
+                            if (e.touches.length === 1 && !img._tapMoved) {
                                 var dx = Math.abs(e.touches[0].clientX - _startX);
                                 var dy = Math.abs(e.touches[0].clientY - _startY);
-                                if (dx > 8 || dy > 8) _moved = true;
+                                if (dx > 8 || dy > 8) {
+                                    img._tapMoved = true;
+                                } else {
+                                    // 检查是否在滚动边界
+                                    var dir = e.touches[0].clientY < _startY ? 'up' : 'down';
+                                    var atTop = scrollEl.scrollTop <= 0;
+                                    var atBot = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1;
+                                    if ((atTop && dir === 'up') || (atBot && dir === 'down')) {
+                                        e.preventDefault(); // 阻止 lockOverlayScroll 在边界拦截
+                                    }
+                                }
                             }
-                        }, { passive: true });
-                        img.addEventListener('touchend', function (e) {
-                            if (!_moved && e.changedTouches.length === 1 && e.touches.length === 0) {
-                                close();
-                            }
-                        });
+                        }, { passive: false });
                         img.addEventListener('click', function (e) {
                             e.stopPropagation();
-                            close();
+                            if (!img._tapMoved) close();
                         });
                     })(imgEl);
                     scrollEl.appendChild(imgEl);
