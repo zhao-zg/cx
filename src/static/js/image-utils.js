@@ -66,6 +66,7 @@
         var _panStartX = 0, _panStartY = 0, _panStartTx = 0, _panStartTy = 0;
         var _gestured = false;
         var _lastTap = 0;
+        var _backButtonHandler = null; // 系统返回按钮处理函数
 
         function applyTransform() {
             singleImg.style.transform = 'translate(' + _tx + 'px,' + _ty + 'px) scale(' + _scale + ')';
@@ -90,12 +91,21 @@
             document.body.style.overflow = '';
             resetTransform();
             scrollEl.innerHTML = '';
+
+            // 移除系统返回按钮监听器
+            if (_backButtonHandler) {
+                window.removeEventListener('popstate', _backButtonHandler);
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                    window.Capacitor.Plugins.App.removeAllListeners('backButton');
+                }
+                _backButtonHandler = null;
+            }
         }
 
         async function shareImage() {
-            var src = singleImg.src;
+            var src = '';
             // 多图模式：获取当前视口中心区域的图片
-            if (!src && scrollEl.children.length > 0) {
+            if (overlay.classList.contains('multi')) {
                 var imgs = scrollEl.querySelectorAll('img');
                 var viewportCenter = window.innerHeight / 2;
                 var bestImg = null;
@@ -118,6 +128,8 @@
                 } else if (imgs.length > 0) {
                     src = imgs[0].src;
                 }
+            } else {
+                src = singleImg.src;
             }
             if (!src) return;
             try {
@@ -300,6 +312,23 @@
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape' && overlay.classList.contains('show')) close();
             });
+
+            // ── 系统返回按钮处理（Android 返回键 / 浏览器后退）──────────────
+            _backButtonHandler = function (e) {
+                if (overlay.classList.contains('show')) {
+                    if (e && e.preventDefault) e.preventDefault();
+                    close();
+                    return false;
+                }
+            };
+
+            // 监听 popstate 事件（浏览器后退按钮）
+            window.addEventListener('popstate', _backButtonHandler);
+
+            // Capacitor Android 返回键处理
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                window.Capacitor.Plugins.App.addListener('backButton', _backButtonHandler);
+            }
         }
 
         // open(src)              — 单图，向后兼容
