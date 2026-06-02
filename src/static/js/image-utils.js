@@ -242,12 +242,14 @@
             var _scrollStartY = 0;
             var _scrollStartX = 0;
             var _hasMoved = false;
+            var _tapTarget = null; // 记录触摸开始时的目标元素
 
             scrollEl.addEventListener('touchstart', function (e) {
                 if (e.touches.length === 1) {
                     _scrollStartY = e.touches[0].clientY;
                     _scrollStartX = e.touches[0].clientX;
                     _hasMoved = false;
+                    _tapTarget = e.target; // 记录触摸目标
                 }
             }, { passive: true });
 
@@ -275,8 +277,8 @@
                 }
                 _lastScrollTap = now;
 
-                // 如果没有移动，视为点击，关闭查看器
-                if (!_hasMoved && e.target.tagName === 'IMG') {
+                // 如果没有移动，且触摸目标是图片，视为点击，关闭查看器
+                if (!_hasMoved && _tapTarget && _tapTarget.tagName === 'IMG') {
                     close();
                 }
             });
