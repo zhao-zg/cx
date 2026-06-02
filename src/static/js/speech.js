@@ -306,11 +306,11 @@
         if (!loopBtn) return;
         loopBtn.classList.toggle('active', isLooping);
         if (isLooping) {
-          loopBtn.innerHTML = '🔁';
+          loopBtn.innerHTML = '🔂';
           loopBtn.title = '循环播放当前页面（已开启）';
           loopBtn.setAttribute('aria-label', '循环播放当前页面（已开启）');
         } else {
-          loopBtn.innerHTML = '🔂';
+          loopBtn.innerHTML = '①';
           loopBtn.title = '只播放当前页面';
           loopBtn.setAttribute('aria-label', '只播放当前页面');
         }

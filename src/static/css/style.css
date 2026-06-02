@@ -106,7 +106,7 @@
     --bg:linear-gradient(135deg,#C9A878,#B8956A);
     --surface:#F8F2E8;
     --surface-alt:#F0E8D8;
-    --page-bg:#E8DDD0;
+    --page-bg:#F8F2E8;
     --header-bg:var(--bg);
     --nav-hover:#E0D5C5;
     --scripture-bg:#F5EDE0;
@@ -258,7 +258,7 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
 .theme-option.active{border-color:var(--brand);background:var(--interactive-soft-bg)}
 .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
 .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
-.theme-preview.warm{background:linear-gradient(to right,#F8F2E8,#E8DDD0)}
+.theme-preview.warm{background:linear-gradient(to right,#F8F2E8,#F0E8D8)}
 .theme-preview.cool{background:linear-gradient(to right,#ffffff,#f5f6fb)}
 .theme-preview.dark{background:linear-gradient(to right,#181b21,#2b3240)}
 .theme-option-content{display:flex;align-items:center;gap:6px}
@@ -428,7 +428,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .control-btn:active{transform:scale(.95)}
 .play-pause-btn{font-size:16px}
 .loop-btn{position:relative;overflow:visible;font-size:16px;transition:all .2s ease;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border)}
-.loop-btn.active{color:#fff;background:linear-gradient(135deg, #4a90e2 0%, #357abd 100%);border-color:#357abd;box-shadow:0 2px 8px rgba(74,144,226,0.3);transform:scale(1.05)}
+.loop-btn.active{color:#fff;background:linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);border-color:var(--brand-dark);box-shadow:0 2px 8px rgba(var(--brand-rgb),0.3);transform:scale(1.05)}
 .loop-btn:not(.active){opacity:0.85}
 .progress-section{flex:1 1 auto;min-width:0;display:flex;gap:8px;align-items:center}
 .progress-column{flex:1;display:flex;flex-direction:column;gap:3px}
