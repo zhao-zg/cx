@@ -94,18 +94,30 @@
 
         async function shareImage() {
             var src = singleImg.src;
-            // 多图模式：获取当前可见的第一张图片
+            // 多图模式：获取当前视口中心区域的图片
             if (!src && scrollEl.children.length > 0) {
-                var scrollTop = scrollEl.scrollTop;
                 var imgs = scrollEl.querySelectorAll('img');
+                var viewportCenter = window.innerHeight / 2;
+                var bestImg = null;
+                var minDistance = Infinity;
+
                 for (var i = 0; i < imgs.length; i++) {
                     var rect = imgs[i].getBoundingClientRect();
-                    if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
-                        src = imgs[i].src;
-                        break;
+                    var imgCenter = rect.top + rect.height / 2;
+                    var distance = Math.abs(imgCenter - viewportCenter);
+                    
+                    // 找到距离视口中心最近的图片
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        bestImg = imgs[i];
                     }
                 }
-                if (!src && imgs.length > 0) src = imgs[0].src;
+                
+                if (bestImg) {
+                    src = bestImg.src;
+                } else if (imgs.length > 0) {
+                    src = imgs[0].src;
+                }
             }
             if (!src) return;
             try {
@@ -228,20 +240,24 @@
             // ── 多图模式：双击还原（滚动位置），单击关闭 ──────────────────────
             var _lastScrollTap = 0;
             var _scrollStartY = 0;
-            var _isScrolling = false;
+            var _scrollStartX = 0;
+            var _hasMoved = false;
 
             scrollEl.addEventListener('touchstart', function (e) {
                 if (e.touches.length === 1) {
                     _scrollStartY = e.touches[0].clientY;
-                    _isScrolling = false;
+                    _scrollStartX = e.touches[0].clientX;
+                    _hasMoved = false;
                 }
             }, { passive: true });
 
             scrollEl.addEventListener('touchmove', function (e) {
-                if (e.touches.length === 1 && !_isScrolling) {
+                if (e.touches.length === 1 && !_hasMoved) {
+                    var deltaX = Math.abs(e.touches[0].clientX - _scrollStartX);
                     var deltaY = Math.abs(e.touches[0].clientY - _scrollStartY);
-                    if (deltaY > 10) {
-                        _isScrolling = true; // 超过10px视为滚动
+                    // 任意方向移动超过5px视为滚动
+                    if (deltaX > 5 || deltaY > 5) {
+                        _hasMoved = true;
                     }
                 }
             }, { passive: true });
@@ -259,8 +275,8 @@
                 }
                 _lastScrollTap = now;
 
-                // 如果没有滚动，视为点击，关闭查看器
-                if (!_isScrolling && e.target.tagName === 'IMG') {
+                // 如果没有移动，视为点击，关闭查看器
+                if (!_hasMoved && e.target.tagName === 'IMG') {
                     close();
                 }
             });
