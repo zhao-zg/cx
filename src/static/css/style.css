@@ -98,69 +98,69 @@
     --sponsor-wx-bg:rgba(7,193,96,.08);
     --sponsor-zfb-bg:rgba(22,119,255,.08);
 }
-/* 暖色模式 */
+/* 暖色模式 - 羊皮纸主题 */
 [data-theme="warm"]{
-    --brand:#7D6030;
-    --brand-dark:#6B5026;
-    --brand-rgb:125,96,48;
-    --bg:linear-gradient(135deg,#8C6D3F,#7A5A2E);
-    --surface:#fffaf4;
-    --surface-alt:#f7efe5;
-    --page-bg:#f4ede2;
+    --brand:#B8A078;
+    --brand-dark:#9A8560;
+    --brand-rgb:184,160,120;
+    --bg:linear-gradient(135deg,#D4C4A8,#B8A88C);
+    --surface:#FDF8F0;
+    --surface-alt:#F5EDE0;
+    --page-bg:#F0E8D8;
     --header-bg:var(--bg);
-    --nav-hover:#efe5d8;
-    --scripture-bg:#f8f1e7;
-    --muted:#f3ece3;
-    --border:#dfd3c4;
-    --text:#292524;
-    --text-soft:#62574d;
-    --text-muted:#87786a;
-    --heading:#1c1917;
-    --heading-strong:#0c0a09;
-    --heading-soft:#4f463f;
-    --heading-muted:#62574d;
-    --btn-secondary-bg:#fdf4e8;
-    --btn-secondary-border:rgba(140,109,63,.22);
-    --btn-secondary-hover-bg:#e8d5bc;
+    --nav-hover:#E8DDD0;
+    --scripture-bg:#FAF4E8;
+    --muted:#F2EBE0;
+    --border:#D8CDB8;
+    --text:#3A3329;
+    --text-soft:#6B5F50;
+    --text-muted:#8A7D6B;
+    --heading:#2A2420;
+    --heading-strong:#1A1614;
+    --heading-soft:#4A4238;
+    --heading-muted:#6B5F50;
+    --btn-secondary-bg:#FAF4E8;
+    --btn-secondary-border:rgba(184,160,120,.25);
+    --btn-secondary-hover-bg:#E8DDD0;
     --btn-secondary-active-bg:rgba(var(--brand-rgb),0.10);
-    --focus-ring:rgba(143,108,63,.26);
-    --selection-bg:rgba(196,157,99,.22);
-    --panel-overlay:rgba(41,37,36,.24);
-    --theme-color:#f3ede4;
-    --header-subtitle:rgba(255,255,255,.88);
-    --interactive-soft-bg:rgba(196,157,99,.12);
-    --interactive-soft-hover:rgba(196,157,99,.18);
-    --interactive-soft-border:rgba(179,141,92,.22);
-    --interactive-soft-shadow:0 2px 8px rgba(143,108,63,.12);
-    --button-hover-shadow:0 2px 6px rgba(41,37,36,.08);
-    --panel-shadow:0 6px 18px rgba(90,71,47,.12),0 18px 40px rgba(90,71,47,.08);
-    --menu-shadow:0 6px 20px rgba(90,71,47,.16);
-    --dialog-shadow:0 10px 32px rgba(90,71,47,.14);
-    --overlay-strong:rgba(41,37,36,.42);
-    --control-track-bg:rgba(196,157,99,.2);
-    --control-thumb-shadow:0 2px 6px rgba(143,108,63,.22);
-    --control-thumb-shadow-hover:0 3px 10px rgba(143,108,63,.28);
-    --note-preview-bg:#f4e8d8;
-    --section-divider:#dccdb9;
-    --group-divider-bg:#e4d8ca;
-    --toc-title-color:#473d35;
-    --card-bg:#fffdf9;
-    --card-shadow:0 2px 8px rgba(90,71,47,.08);
-    --card-shadow-hover:0 4px 12px rgba(90,71,47,.12);
-    --callout-bg:#fff3dc;
-    --callout-border:#d6a74b;
-    --callout-text:#7f5a1d;
-    --danger-border:#f2c9c9;
-    --danger-bg:#fff1ef;
-    --danger-bg-active:#ffe4e1;
-    --success-border:#bddfc9;
-    --sponsor-border:#f0c98f;
-    --sponsor-bg:#fff7eb;
-    --sponsor-bg-active:#feedd2;
+    --focus-ring:rgba(184,160,120,.30);
+    --selection-bg:rgba(184,160,120,.22);
+    --panel-overlay:rgba(58,51,41,.24);
+    --theme-color:#F5EDE0;
+    --header-subtitle:rgba(255,255,255,.90);
+    --interactive-soft-bg:rgba(184,160,120,.12);
+    --interactive-soft-hover:rgba(184,160,120,.18);
+    --interactive-soft-border:rgba(184,160,120,.22);
+    --interactive-soft-shadow:0 2px 8px rgba(184,160,120,.15);
+    --button-hover-shadow:0 2px 6px rgba(58,51,41,.08);
+    --panel-shadow:0 6px 18px rgba(90,75,55,.10),0 18px 40px rgba(90,75,55,.06);
+    --menu-shadow:0 6px 20px rgba(90,75,55,.14);
+    --dialog-shadow:0 10px 32px rgba(90,75,55,.12);
+    --overlay-strong:rgba(58,51,41,.40);
+    --control-track-bg:rgba(184,160,120,.20);
+    --control-thumb-shadow:0 2px 6px rgba(184,160,120,.25);
+    --control-thumb-shadow-hover:0 3px 10px rgba(184,160,120,.30);
+    --note-preview-bg:#F2E8D8;
+    --section-divider:#D8CDB8;
+    --group-divider-bg:#E0D5C5;
+    --toc-title-color:#4A4238;
+    --card-bg:#FFFBF5;
+    --card-shadow:0 2px 8px rgba(90,75,55,.06);
+    --card-shadow-hover:0 4px 12px rgba(90,75,55,.10);
+    --callout-bg:#FFF5DC;
+    --callout-border:#D4B878;
+    --callout-text:#7A6540;
+    --danger-border:#E8C8C0;
+    --danger-bg:#FFF3F0;
+    --danger-bg-active:#FFE5E0;
+    --success-border:#C8D8C0;
+    --sponsor-border:#E8D0A0;
+    --sponsor-bg:#FFF8ED;
+    --sponsor-bg-active:#FEF0D5;
     --sponsor-wx-bg:rgba(7,193,96,.09);
     --sponsor-zfb-bg:rgba(22,119,255,.09);
-    --footnote-ref:#b06b18;
-    --footnote-ref-hover:#cf7d10;
+    --footnote-ref:#A89060;
+    --footnote-ref-hover:#C4A882;
 }
 
 /* 夜间模式 */
@@ -258,7 +258,7 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
 .theme-option.active{border-color:var(--brand);background:var(--interactive-soft-bg)}
 .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
 .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
-.theme-preview.warm{background:linear-gradient(to right,#fffaf4,#f4ede2)}
+.theme-preview.warm{background:linear-gradient(to right,#FDF8F0,#F0E8D8)}
 .theme-preview.cool{background:linear-gradient(to right,#ffffff,#f5f6fb)}
 .theme-preview.dark{background:linear-gradient(to right,#181b21,#2b3240)}
 .theme-option-content{display:flex;align-items:center;gap:6px}
