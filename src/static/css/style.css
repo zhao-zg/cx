@@ -788,7 +788,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .image-viewer-hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);color:var(--viewer-hint);font-size:12px;pointer-events:none;white-space:nowrap}
 /* 多图全屏滚动容器 */
 .image-viewer-scroll{display:none;position:fixed;top:0;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;padding:56px 0 40px;box-sizing:border-box;z-index:9999}
-.image-viewer-scroll img{width:100%;display:block;border-radius:0;margin-bottom:4px}
+.image-viewer-scroll img{width:100%;display:block;border-radius:0;margin-bottom:4px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .image-viewer-scroll img:last-child{margin-bottom:0}
 .image-viewer-overlay.multi .image-viewer-scroll{display:block}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}

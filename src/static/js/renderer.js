@@ -690,9 +690,22 @@
       track.style.transform = 'translateX(' + pct + '%)';
     }
 
-    function updateHeight() {
+    function updateHeight(retry) {
       var active = pages[currentPage];
-      if (active) container.style.height = active.offsetHeight + 'px';
+      if (!active) return;
+      
+      var newHeight = active.offsetHeight;
+      var currentHeight = parseInt(container.style.height, 10) || 0;
+      
+      // 如果高度还没计算出来（为0）或者内容实际高度变化了，更新容器高度
+      if (newHeight > 0 && (currentHeight === 0 || Math.abs(newHeight - currentHeight) > 5)) {
+        container.style.height = newHeight + 'px';
+      } else if (!retry && newHeight === 0) {
+        // 如果高度为0，可能是内容还没渲染完，重试一次
+        requestAnimationFrame(function() {
+          updateHeight(true);
+        });
+      }
     }
 
     function showPage(idx, scroll) {
@@ -707,7 +720,11 @@
       if (prevBtn) prevBtn.disabled = currentPage === 0;
       if (nextBtn) nextBtn.disabled = currentPage === totalPages - 1;
       if (indicator) indicator.textContent = (currentPage+1) + ' / ' + totalPages;
-      setTimeout(updateHeight, 50);
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          updateHeight();
+        });
+      });
       if (scroll === true) win.scrollTo({top:0,behavior:'smooth'});
     }
 

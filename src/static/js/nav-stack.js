@@ -308,6 +308,12 @@
         while (el && el !== document.body) {
             // 浮动栏自身交由内部处理
             if (el.classList && el.classList.contains('cx-float-nav')) return false;
+            // 弹框内点击不触发目录栏显示
+            if (el.id === 'scripture-popup-overlay' || 
+                (el.parentElement && el.parentElement.id === 'scripture-popup-overlay') ||
+                el.closest('#scripture-popup-overlay')) return false;
+            // CX.openDialog 创建的弹框
+            if (el.classList && el.classList.contains('cx-dialog-mask')) return false;
             var tag = (el.tagName || '').toLowerCase();
             if (tag === 'a' || tag === 'button' || tag === 'input' ||
                 tag === 'select' || tag === 'textarea' || tag === 'label') return false;
@@ -319,7 +325,9 @@
                     cls.contains('xref-ref')            || cls.contains('speech-btn') ||
                     cls.contains('play-btn')            || cls.contains('highlight-trigger') ||
                     cls.contains('cx-dialog-mask')      || cls.contains('theme-panel') ||
-                    cls.contains('theme-toggle-btn')    || cls.contains('toc-item')) return false;
+                    cls.contains('theme-toggle-btn')    || cls.contains('toc-item') ||
+                    cls.contains('scripture-popup')     || cls.contains('scripture-popup-overlay') ||
+                    cls.contains('scripture-popup-body')|| cls.contains('scripture-popup-header')) return false;
             }
             el = el.parentElement;
         }
