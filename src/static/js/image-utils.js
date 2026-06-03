@@ -210,6 +210,9 @@
                     _lastTap = 0;
                 } else {
                     _lastTap = now;
+                    setTimeout(function () {
+                        if (_lastTap === now) { close(); }
+                    }, 310);
                 }
             });
             singleImg.addEventListener('click', function (e) {
