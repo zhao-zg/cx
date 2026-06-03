@@ -508,6 +508,9 @@
                     <button class="action-btn sponsor" id="sponsorBtn" style="display:none">
                         <span class="cache-icon">❤️</span><span class="cache-text">顾念微工</span>
                     </button>
+                    <button class="action-btn" id="guideBtn">
+                        <span class="cache-icon">📖</span><span class="cache-text">使用说明</span>
+                    </button>
                     <button class="action-btn feedback" id="feedbackBtn">
                         <span class="cache-icon">💬</span><span class="cache-text">问题反馈</span>
                     </button>
@@ -632,6 +635,14 @@
                     }
                 }
             } catch(e) {}
+        })();
+
+        // ── 使用说明（所有页面）──────────────────────────────────────
+        (function() {
+            var guideBtn = document.getElementById('guideBtn');
+            if (guideBtn) {
+                guideBtn.addEventListener('click', showGuideDialog);
+            }
         })();
 
         // ── 反馈问题（所有页面）──────────────────────────────────────
@@ -887,6 +898,103 @@
     window.CX.showClearDialog = showClearDialog;
 
     function defaultPromptClearData() { showClearDialog(); }
+
+    // 使用说明对话框
+    function showGuideDialog() {
+        var _guideSec = function(title, items) {
+            var rows = items.map(function(it) {
+                return '<div style="display:flex;gap:8px;padding:5px 0;align-items:flex-start">' +
+                    '<span style="flex-shrink:0;width:20px;text-align:center">' + it[0] + '</span>' +
+                    '<div style="flex:1;min-width:0"><span style="font-weight:500;color:var(--heading)">' + it[1] + '</span>' +
+                    (it[2] ? '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;line-height:1.5">' + it[2] + '</div>' : '') +
+                    '</div></div>';
+            }).join('');
+            return '<div style="margin-bottom:14px">' +
+                '<div style="font-size:14px;font-weight:600;color:var(--brand);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)">' + title + '</div>' +
+                rows + '</div>';
+        };
+
+        var html = '<div class="cx-dialog" style="max-width:420px;padding:0;position:relative;max-height:80vh;display:flex;flex-direction:column">' +
+            '<div style="padding:14px 16px 10px;font-size:16px;font-weight:600;color:var(--heading);flex-shrink:0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">' +
+                '<span>📖 使用说明</span>' +
+                '<button id="cxGuideClose" style="width:28px;height:28px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center" title="关闭">×</button>' +
+            '</div>' +
+            '<div style="flex:1;overflow-y:auto;padding:12px 16px 16px;line-height:1.6;font-size:13px;color:var(--text)">' +
+                _guideSec('🎨 阅读设置', [
+                    ['🌓', '主题切换', '暖色 / 冷色 / 夜间三种模式，未手动选择时跟随系统深浅色自动切换'],
+                    ['🔤', '字体大小', '拖动滑块调节正文字号（14px ~ 28px），设置自动保存，所有页面生效']
+                ]) +
+                _guideSec('📚 内容浏览', [
+                    ['📋', '纲目', '大纲结构视图，顶部有「大纲 / 大中纲 / 全部」按钮控制展开层级，点击每级前的符号可单独展开或收起'],
+                    ['📖', '听抄', '信息全文内容，多层级结构展示（大点、中点、小点等），适合深度阅读'],
+                    ['🌅', '晨读翻页', '顶部星期标签可快速跳转，左右滑动或点「上一天 / 下一天」按钮切换，打开时自动定位到当天星期'],
+                    ['🌄', '晨读内容', '每天含纲目、晨兴喂养（经文 + 短文）、信息选读、参读等板块'],
+                    ['🎵', '诗歌', '诗歌图片浏览，点击图片可全屏查看'],
+                    ['📝', '职事摘录', '职事信息摘录，按段落分段展示'],
+                    ['📜', '标语', '训练标语 / 口号浏览，从目录页顶部导航进入'],
+                    ['🖼️', '标语诗歌', '标语诗歌图片浏览，从目录页或标语页进入'],
+                    ['📑', '视图记忆', '每篇自动记住上次阅读的视图（纲目 / 听抄 / 晨读等），下次打开直接进入']
+                ]) +
+                _guideSec('🔊 朗读功能', [
+                    ['▶️', '播放控制', '底部控制栏：播放 / 暂停按钮、进度条拖动跳转、时间显示'],
+                    ['⏩', '变速朗读', '支持 0.5x / 0.75x / 1x / 1.25x / 1.5x / 2x 六档变速，朗读中也可随时切换'],
+                    ['🔄', '循环播放', '点击循环按钮开启循环模式，反复朗读当前页面内容'],
+                    ['💡', '朗读高亮', '朗读时自动高亮当前段落，跟随朗读进度移动，方便定位阅读'],
+                    ['📖', '经文朗读', '朗读时经文缩写（如「太五3」）自动展开为完整书名（「马太福音五章三节」）'],
+                    ['📱', '后台朗读', '安卓 APK 支持锁屏 / 后台朗读，通知栏显示标题、暂停 / 停止按钮'],
+                    ['🎧', '锁屏信息', '锁屏界面显示篇章标题和训练名称，支持系统媒体控制']
+                ]) +
+                _guideSec('📜 经文系统', [
+                    ['✝️', '经文弹框', '点击正文中的经文引用（如「太五3」），弹出窗口显示完整经文内容'],
+                    ['🔗', '串珠经文', '弹框内点击串珠编号，展开相关联的经文列表，可继续点击查看'],
+                    ['📌', '注脚查看', '弹框内点击注脚编号，展开对应注解内容'],
+                    ['🔍', '自动检测', '正文中的中文经文引用（如「罗马书五章十七节」）自动识别为可点击链接'],
+                    ['📖', '读经横幅', '每篇顶部的「读经」栏可点击，一次性查看所有引用经文']
+                ]) +
+                _guideSec('🔍 全文搜索', [
+                    ['🔎', '搜索入口', '主页搜索按钮、各页面顶部🔍按钮均可打开全屏搜索'],
+                    ['📝', '多词搜索', '输入多个关键词（空格分隔），匹配任意一个词即显示结果'],
+                    ['📂', '分组展示', '搜索结果按训练分组，显示篇号、类型（听抄 / 晨读 / 纲目等）和内容预览'],
+                    ['📍', '精准跳转', '点击搜索结果直接跳转到对应段落，搜索关键词自动高亮显示'],
+                    ['📦', '按需加载', '搜索索引按需加载已访问的训练数据，访问越多搜索范围越广']
+                ]) +
+                _guideSec('✏️ 划线笔记', [
+                    ['🖍️', '添加划线', '长按选择文字即可添加高亮、颜色标记或下划线'],
+                    ['🗑️', '删除标记', '点击已有划线，在弹出菜单中点击「删除」即可移除标记'],
+                    ['🎨', '修改标记', '点击已有划线，点击「修改 ▾」可更改高亮颜色或切换下划线样式'],
+                    ['📓', '添加笔记', '点击划线旁的 📝 笔记图标，或点击划线后选择「笔记」按钮，输入笔记内容'],
+                    ['📝', '编辑 / 删除笔记', '点击划线后选择「修改笔记」编辑内容，或点击笔记旁的「删除」移除'],
+                    ['👁️', '查看笔记', '有笔记的划线旁显示 📝 图标，点击可预览笔记全文，支持展开查看'],
+                    ['💾', '本地存储', '所有划线和笔记保存在本地 IndexedDB，清除浏览器数据前不会丢失']
+                ]) +
+                _guideSec('📦 资源与离线', [
+                    ['📦', '资源管理', '设置中的「资源管理」可管理训练资源包，包含三个标签页'],
+                    ['📋', '默认标签', '显示当前版本内置的训练，可删除或重新安装'],
+                    ['📚', '历史标签', '显示可下载的历史合辑训练包，支持单个或全部下载'],
+                    ['📥', '导入标签', '支持导入本地 TXT 格式训练文件（独立文件或历史合辑，使用电脑版 iSilo 将 PDB 转换成 TXT）'],
+                    ['📴', '离线使用', 'PWA / APK 支持完全离线阅读，已缓存的训练无需网络连接']
+                ]) +
+                _guideSec('⚙️ 其他功能', [
+                    ['🧭', '浮动导航栏', '向下滚动后从顶部滑入快捷导航栏，含视图切换和⚙设置按钮，5 秒无操作自动隐藏'],
+                    ['↩️', '返回导航', 'APK / PWA 中按系统返回键逐层回退：内容→目录→主页→退出；弹框打开时返回键关闭弹框'],
+                    ['📍', '位置记忆', '自动记住每个页面（含晨读每天）的滚动位置，下次打开自动恢复'],
+                    ['🖼️', '图片查看器', '单图：双指缩放、双击放大 / 还原、拖动平移；多图：上下滑动浏览全部图片'],
+                    ['🔄', '检查更新', 'APK 从 GitHub Releases 检查新版本并分块下载安装；PWA 通过 version.json 检查并提示更新'],
+                    ['📲', '安装桌面', 'PWA 可添加到手机桌面（Chrome / Safari「添加到主屏幕」），像原生 App 一样使用'],
+                    ['🧹', '清理数据', '设置中「清理数据」可选清除常规数据（缓存、进度、设置）或仅清除划线笔记']
+                ]) +
+            '</div>' +
+            '</div>';
+
+        var dlg = window.CX.openDialog({
+            id: 'cxGuideDialogMask',
+            html: html
+        });
+        if (!dlg) return;
+
+        var closeBtn = document.getElementById('cxGuideClose');
+        if (closeBtn) closeBtn.addEventListener('click', dlg.close);
+    }
 
     // 赞助对话框
     function showSponsorDialog() {
