@@ -499,6 +499,9 @@
                     <button class="action-btn" id="androidApkBtn" style="display:none">
                         <span class="cache-icon">📱</span><span class="cache-text">安卓APK</span>
                     </button>
+                    <button class="action-btn" id="bookmarkListBtn">
+                        <span class="cache-icon">📑</span><span class="cache-text">我的书签</span>
+                    </button>
                     <button class="action-btn danger" id="clearDataBtn" style="display:none">
                         <span class="cache-icon">🧹</span><span class="cache-text">清理数据</span>
                     </button>
@@ -661,6 +664,21 @@
                 if (window.CXResourcePack && window.CXResourcePack.showCachedDialog)
                     window.CXResourcePack.showCachedDialog();
             });
+        })();
+
+        // ── 我的书签（所有页面）────────────────────────────────────
+        (function() {
+            var bmListBtn = document.getElementById('bookmarkListBtn');
+            if (bmListBtn) {
+                bmListBtn.addEventListener('click', function() {
+                    // Close settings panel first
+                    if (typeof window.toggleThemePanel === 'function') window.toggleThemePanel();
+                    // Then open bookmark list
+                    setTimeout(function() {
+                        if (window.CXBookmark && window.CXBookmark.showList) window.CXBookmark.showList();
+                    }, 300);
+                });
+            }
         })();
 
         // 环境检测

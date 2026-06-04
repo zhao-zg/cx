@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: content_engine
+title: 圣经晨读内容引擎与静态站点生成器
+scope:
+    - src/
+source_files: []
+depends_on: []
+related_to:
+    - path: resource_data
+    - path: android_app
