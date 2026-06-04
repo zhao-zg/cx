@@ -609,9 +609,10 @@ class ImprovedParser:
                     chapter_title_buffer = ""
                     # 继续处理当前行
             
-            # 处理读经
+            # 处理读经（只取每篇第一个读经，避免篇内后续的读经引用覆盖章首读经）
             if self.current_chapter and text.startswith('读经：'):
-                self.current_chapter.scripture = text.replace('读经：', '').strip()
+                if not self.current_chapter.scripture:
+                    self.current_chapter.scripture = text.replace('读经：', '').strip()
                 continue
             
             # 处理诗歌编号（兼容全角/半角冒号和所有两字母大写前缀）
