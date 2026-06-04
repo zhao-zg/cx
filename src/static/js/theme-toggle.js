@@ -491,13 +491,10 @@
             </div>
 
             <div class="theme-section" id="settingsActionsSection" style="display:none">
-                <div class="theme-section-title">操作</div>
+                <div class="theme-section-title">内容与数据</div>
                 <div class="actions-grid">
-                    <button class="action-btn" id="installBtn" style="display:none">
-                        <span class="cache-icon">📲</span><span class="cache-text">发送桌面</span>
-                    </button>
-                    <button class="action-btn" id="androidApkBtn" style="display:none">
-                        <span class="cache-icon">📱</span><span class="cache-text">安卓APK</span>
+                    <button class="action-btn" id="resourceMgrBtn">
+                        <span class="cache-icon">📦</span><span class="cache-text">资源管理</span>
                     </button>
                     <button class="action-btn" id="bookmarkListBtn">
                         <span class="cache-icon">📑</span><span class="cache-text">我的书签</span>
@@ -505,11 +502,17 @@
                     <button class="action-btn danger" id="clearDataBtn" style="display:none">
                         <span class="cache-icon">🧹</span><span class="cache-text">清理数据</span>
                     </button>
+                </div>
+                <div class="theme-section-title" style="margin-top:14px">应用</div>
+                <div class="actions-grid">
+                    <button class="action-btn" id="installBtn" style="display:none">
+                        <span class="cache-icon">📲</span><span class="cache-text">发送桌面</span>
+                    </button>
+                    <button class="action-btn" id="androidApkBtn" style="display:none">
+                        <span class="cache-icon">📱</span><span class="cache-text">安卓APK</span>
+                    </button>
                     <button class="action-btn" id="checkUpdateBtn" style="display:none">
                         <span class="cache-icon">🔄</span><span class="cache-text">检查更新</span>
-                    </button>
-                    <button class="action-btn sponsor" id="sponsorBtn" style="display:none">
-                        <span class="cache-icon">❤️</span><span class="cache-text">顾念微工</span>
                     </button>
                     <button class="action-btn" id="guideBtn">
                         <span class="cache-icon">📖</span><span class="cache-text">使用说明</span>
@@ -517,10 +520,9 @@
                     <button class="action-btn feedback" id="feedbackBtn">
                         <span class="cache-icon">💬</span><span class="cache-text">问题反馈</span>
                     </button>
-                    <button class="action-btn" id="resourceMgrBtn">
-                        <span class="cache-icon">📦</span><span class="cache-text">资源管理</span>
+                    <button class="action-btn sponsor" id="sponsorBtn" style="display:none">
+                        <span class="cache-icon">❤️</span><span class="cache-text">顾念微工</span>
                     </button>
-
                 </div>
                 <div class="cache-status" id="actionStatus"></div>
             </div>
@@ -984,21 +986,22 @@
                     ['👁️', '查看笔记', '有笔记的划线旁显示 📝 图标，点击可预览全文'],
                     ['💾', '自动保存', '划线和笔记保存在本机，卸载应用前不会丢失']
                 ]) +
-                _guideSec('📦 资源与离线', [
-                    ['📦', '资源管理', '设置中的「资源管理」可管理训练包，包含三个标签页'],
+                _guideSec('📦 内容与数据', [
+                    ['📦', '资源管理', '设置「内容与数据」中的「资源管理」可管理训练包，包含三个标签页'],
                     ['📋', '默认标签', '当前内置的训练，可删除或重新安装'],
                     ['📚', '历史标签', '可下载的历史合辑训练包，支持单个或全部下载'],
                     ['📥', '导入标签', '导入本地 TXT 文件（使用电脑版 iSilo 将 PDB 转换成 TXT）'],
                     ['📴', '离线使用', '安装到桌面后可完全离线阅读，无需网络']
+                    ['📑', '我的书签', '设置「内容与数据」中的「我的书签」可查看和管理所有书签'],
+                    ['🧹', '清理数据', '设置「内容与数据」中的「清理数据」可选清除缓存和设置，或仅清除划线笔记']
                 ]) +
-                _guideSec('⚙️ 其他功能', [
+                _guideSec('⚙️ 应用', [
                     ['🧭', '浮动导航栏', '向下滚动后点击空白敌方顶部出现快捷导航，含视图切换和设置按钮，5 秒无操作自动收起'],
                     ['↩️', '返回导航', '按返回键逐层回退：内容→目录→主页→退出；弹框打开时返回键关闭弹框'],
                     ['📍', '位置记忆', '自动记住每个页面（含晨读每天）的阅读位置，下次打开自动恢复'],
                     ['🖼️', '图片查看器', '单图：双指缩放、双击放大 / 还原、拖动平移；多图：上下滑动浏览'],
-                    ['🔄', '检查更新', '设置中点击「检查更新」可查看是否有新版本'],
-                    ['📲', '安装桌面', '添加到手机桌面后像原生应用一样使用，支持离线打开'],
-                    ['🧹', '清理数据', '设置中「清理数据」可选清除缓存和设置，或仅清除划线笔记']
+                    ['🔄', '检查更新', '设置「应用」中的「检查更新」可查看是否有新版本'],
+                    ['📲', '安装桌面', '添加到手机桌面后像原生应用一样使用，支持离线打开']
                 ]) +
             '</div>' +
             '</div>';
