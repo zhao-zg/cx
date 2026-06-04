@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="特会信息合集 - 所有训练总览">
     <meta name="theme-color" content="#fafbff">
     <meta name="training-title" content="">
@@ -24,7 +24,7 @@
     <title>特会信息合集</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        body{padding-bottom:16px}
+        body{padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px));padding-top:env(safe-area-inset-top, 0px)}
         .container{padding:0;overflow:hidden}
         .header{color:var(--header-text);margin-bottom:20px}
         .content{padding:0}

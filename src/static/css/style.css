@@ -280,7 +280,7 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
 
 /* ── 四、基础布局（reset、body、container、header、nav）──────── */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:12px 12px 0;font-size:18px;-webkit-font-smoothing:antialiased;scrollbar-gutter:stable}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:calc(12px + env(safe-area-inset-top, 0px)) 12px env(safe-area-inset-bottom, 0px);font-size:18px;-webkit-font-smoothing:antialiased;scrollbar-gutter:stable}
 .container{position:relative;max-width:800px;margin:0 auto;background:var(--surface);padding:12px;box-shadow:var(--shadow-md);border-radius:12px;border:1px solid var(--border)}
 .header{position:relative;text-align:center;padding:16px 37px 16px;margin:0px -12px 0;background:var(--header-bg);border-radius:12px 12px 0 0;border-bottom:1px solid rgba(255,255,255,.15)}
 .header h1{font-size:1.17em;margin-bottom:8px;color:var(--header-text);line-height:1.8;font-weight:600}
@@ -447,7 +447,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
     .hl-ann-act-btn{min-height:40px;font-size:14px}
     .hl-note-expand-btn{min-height:40px;font-size:13px}
     .hl-color-dot{width:34px;height:34px}
-    body{padding:0}
+    body{padding:env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px)}
     .container{padding:12px 16px;border-radius:0;border-left:none;border-right:none}
     .nav{gap:6px}
     .page-navigation{gap:0}
@@ -459,7 +459,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
     .control-group{gap:4px}
 }
 @media(max-width:480px){
-    body{padding-bottom:0}
+    body{padding-bottom:env(safe-area-inset-bottom, 0px)}
     .bottom-control-bar{gap:5px;padding:4px 6px max(4px,env(safe-area-inset-bottom))}
     .control-btn,.bottom-control-bar .font-btn{min-width:36px;min-height:36px;padding:4px;font-size:13px}
     .play-pause-btn{font-size:15px}
@@ -689,7 +689,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .pref-toggle input:checked+.pref-toggle-slider{background:var(--brand)}
 .pref-toggle input:checked+.pref-toggle-slider::before{transform:translateX(18px)}
 /* 更新 toast 横幅 */
-.cx-update-toast{position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--brand);color:#fff;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.2);animation:cxToastIn .3s ease forwards}
+.cx-update-toast{position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;background:var(--brand);color:#fff;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.2);animation:cxToastIn .3s ease forwards}
 @keyframes cxToastIn{from{transform:translateY(-100%)}to{transform:translateY(0)}}
 .cx-update-toast-text{flex:1;font-weight:500;line-height:1.4}
 .cx-update-toast-action{background:rgba(255,255,255,.25);border:none;color:#fff;font-size:12px;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
@@ -757,7 +757,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .scripture-popup-overlay{background:transparent;opacity:1;pointer-events:none;transition:none;align-items:flex-end;padding:0}
 .scripture-popup-overlay--open{opacity:1;pointer-events:none}
 /* popup 用 position:fixed 直接锚底，绕过父级 flex 布局 */
-.scripture-popup{position:fixed;bottom:0;left:0;right:0;width:100%;pointer-events:auto;border-radius:16px 16px 0 0;max-width:100%;max-height:50vh;transform:translateY(100%);box-shadow:0 -4px 24px rgba(0,0,0,.15)}
+.scripture-popup{position:fixed;bottom:0;left:0;right:0;width:100%;pointer-events:auto;border-radius:16px 16px 0 0;max-width:100%;max-height:50vh;transform:translateY(100%);box-shadow:0 -4px 24px rgba(0,0,0,.15);padding-bottom:env(safe-area-inset-bottom, 0px)}
 .scripture-popup-overlay--open .scripture-popup{transform:translateY(0)}
 .scripture-popup::before{content:'';display:block;width:36px;height:4px;border-radius:2px;background:var(--border);margin:8px auto 0;flex-shrink:0}
 }
@@ -770,7 +770,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .image-viewer-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--viewer-overlay-bg);z-index:9999;overflow:hidden;touch-action:none}
 
 /* ── 二十五、浮动导航栏（内容页空白处点击唤出）──────────── */
-.cx-float-nav{position:fixed;top:0;left:0;right:0;z-index:990;background:var(--card-bg);box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;transform:translateY(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);pointer-events:none;padding:0 2px}
+.cx-float-nav{position:fixed;top:0;left:0;right:0;z-index:990;background:var(--card-bg);box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;transform:translateY(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);pointer-events:none;padding:env(safe-area-inset-top, 0px) 2px 0}
 .cx-float-nav.show{transform:translateY(0);pointer-events:auto}
 .cx-float-tts{position:fixed!important;bottom:0;left:0;right:0;z-index:989;background:var(--card-bg);box-shadow:0 -2px 10px rgba(0,0,0,.18);margin:0!important;border-radius:0!important;border-left:none!important;border-right:none!important;border-top:1px solid var(--border)!important;transform:translateY(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);padding:4px 8px max(4px,env(safe-area-inset-bottom)) 8px!important}
 .cx-float-tts.show{transform:translateY(0)}
