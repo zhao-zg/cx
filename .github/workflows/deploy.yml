@@ -28,6 +28,8 @@ on:
       - 'src/static/**'
       - 'main.py'
       - 'config.yaml'
+      - 'app_config.json'
+      - 'generate_version.py'
   workflow_dispatch:
 
 jobs:
