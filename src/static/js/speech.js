@@ -501,6 +501,14 @@
         var elapsed = currentElapsedSeconds();
         progressBar.value = String(clamp((elapsed / totalDuration) * 100, 0, 100));
         speechTime.textContent = formatTime(elapsed) + ' / ' + formatTime(totalDuration);
+        // NativeTTS：使用客户端插值同步更新高亮，解决位置报告间隔（~500ms）
+        // 在高倍速（如 2x）下跟不上朗读速度的问题
+        // Web Speech 的高亮由 wsPlayNextChunk 按句子边界更新，不在此处干预
+        if (useNativeTTS && _segmentMap.length && fullText) {
+          var ratio = clamp(elapsed / totalDuration, 0, 1);
+          var approxChar = Math.floor(ratio * fullText.length);
+          setTTSHighlight(findSegmentAt(approxChar));
+        }
       }
 
       function startProgressUpdate() {
@@ -576,11 +584,7 @@
             elapsedOffset = data.posMs / 1000;
             if (data.totalMs > 0) totalDuration = data.totalMs / 1000;
             startTime = Date.now();
-            // 根据时间比例估算当前字符位置，更新段落高亮
-            if (_segmentMap.length && data.totalMs > 0) {
-              var approxChar = Math.floor((data.posMs / data.totalMs) * fullText.length);
-              setTTSHighlight(findSegmentAt(approxChar));
-            }
+            // 高亮由 updateProgressUI 定时器（每 120ms）统一处理，此处仅更新时间锚点
           });
           if (gen !== speakGeneration) { try { handle.remove(); } catch (e) {} }
           else { _nativePositionHandle = handle; }
