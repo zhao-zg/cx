@@ -468,7 +468,6 @@
           modal.overlay.classList.remove('scripture-popup-overlay--open');
           modal.overlay.setAttribute('aria-hidden', 'true');
         }
-        if (window.innerWidth < 600) document.body.style.overflow = '';
       }
     };
   }
@@ -504,36 +503,61 @@
 
     if (frame.type === 'verses') {
       m.title.textContent = frame.label || (frame.refs || '').replace(/,/g, '、');
-      m.body.innerHTML = '<div class="scripture-popup-loading">加载中…</div>';
-      ensureBibleText(function () {
+      if (window.CX_BIBLE_TEXT_READY) {
+        /* 数据已缓存（预加载），直接渲染，避免 loading→内容 双重 innerHTML 导致闪屏 */
         m.body.innerHTML = renderVerseList(frame.refs, frame.verseKey || '');
         m.body.scrollTop = frame._scrollTop || 0;
-      });
+      } else {
+        m.body.innerHTML = '<div class="scripture-popup-loading">加载中…</div>';
+        ensureBibleText(function () {
+          m.body.innerHTML = renderVerseList(frame.refs, frame.verseKey || '');
+          m.body.scrollTop = frame._scrollTop || 0;
+        });
+      }
     } else if (frame.type === 'footnote') {
       m.title.textContent = frame.verseKey + ' 注' + frame.num;
-      m.body.innerHTML = '<div class="scripture-popup-loading">加载中…</div>';
-      ensureBibleNotes(function () {
+      if (window.CX_BIBLE_NOTES_READY) {
         var noteArr = (window.CX_BIBLE_NOTES || {})[frame.verseKey] || [];
         var text = noteArr[parseInt(frame.num, 10) - 1] || '（未找到注解）';
         m.body.innerHTML = '<div class="scripture-popup-fn-body">' + renderNoteText(text, frame.verseKey) + '</div>';
         m.body.scrollTop = frame._scrollTop || 0;
-      });
+      } else {
+        m.body.innerHTML = '<div class="scripture-popup-loading">加载中…</div>';
+        ensureBibleNotes(function () {
+          var noteArr2 = (window.CX_BIBLE_NOTES || {})[frame.verseKey] || [];
+          var text2 = noteArr2[parseInt(frame.num, 10) - 1] || '（未找到注解）';
+          m.body.innerHTML = '<div class="scripture-popup-fn-body">' + renderNoteText(text2, frame.verseKey) + '</div>';
+          m.body.scrollTop = frame._scrollTop || 0;
+        });
+      }
     } else if (frame.type === 'xrefs') {
       m.title.textContent = frame.verseKey + ' 串' + frame.letter;
-      m.body.innerHTML = '<div class="scripture-popup-loading">加载中…</div>';
-      ensureBibleXrefs(function () {
+      if (window.CX_BIBLE_XREFS_READY && window.CX_BIBLE_TEXT_READY) {
         var xrefMap = (window.CX_BIBLE_XREFS || {})[frame.verseKey] || {};
         var refs = xrefMap[frame.letter] || '';
         if (refs) {
-          ensureBibleText(function () {
-            m.body.innerHTML = renderVerseList(refs, frame.verseKey || '');
-            m.body.scrollTop = frame._scrollTop || 0;
-          });
+          m.body.innerHTML = renderVerseList(refs, frame.verseKey || '');
+          m.body.scrollTop = frame._scrollTop || 0;
         } else {
           m.body.innerHTML = '<div class="scripture-popup-empty">（未找到串珠）</div>';
           m.body.scrollTop = 0;
         }
-      });
+      } else {
+        m.body.innerHTML = '<div class="scripture-popup-loading">加载中…</div>';
+        ensureBibleXrefs(function () {
+          var xrefMap2 = (window.CX_BIBLE_XREFS || {})[frame.verseKey] || {};
+          var refs2 = xrefMap2[frame.letter] || '';
+          if (refs2) {
+            ensureBibleText(function () {
+              m.body.innerHTML = renderVerseList(refs2, frame.verseKey || '');
+              m.body.scrollTop = frame._scrollTop || 0;
+            });
+          } else {
+            m.body.innerHTML = '<div class="scripture-popup-empty">（未找到串珠）</div>';
+            m.body.scrollTop = 0;
+          }
+        });
+      }
     }
   }
 
@@ -647,7 +671,6 @@
       navStack = [];
       m.overlay.classList.add('scripture-popup-overlay--open');
       m.overlay.setAttribute('aria-hidden', 'false');
-      if (window.innerWidth < 600) document.body.style.overflow = 'hidden';
     }
   }
 
@@ -657,7 +680,6 @@
     navStack = [];
     m.overlay.classList.add('scripture-popup-overlay--open');
     m.overlay.setAttribute('aria-hidden', 'false');
-    if (window.innerWidth < 600) document.body.style.overflow = 'hidden';
     navPush({ type: 'verses', refs: refs, label: labelText || refs.replace(/,/g,'、') });
     /* navPush 内部已调用 backStack.push，无需再次 push */
   }
@@ -669,7 +691,6 @@
     navStack = [];
     modal.overlay.classList.remove('scripture-popup-overlay--open');
     modal.overlay.setAttribute('aria-hidden', 'true');
-    if (window.innerWidth < 600) document.body.style.overflow = '';
     for (var i = 0; i < n; i++) window.CX.backStack.pop();
   }
 

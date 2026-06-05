@@ -729,10 +729,10 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .cx-dev-log.debug{color:#aaa}
 
 /* ── 二十三、经文弹框（scripture-popup.js）──────────────────── */
-.scripture-popup-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--overlay-strong);z-index:1200;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s}
-.scripture-popup-overlay--open{opacity:1;pointer-events:auto}
-.scripture-popup{background:var(--surface);border-radius:14px;width:100%;max-width:560px;max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--dialog-shadow);transform:translateY(16px);transition:transform .2s;overflow:hidden}
-.scripture-popup-overlay--open .scripture-popup{transform:translateY(0)}
+.scripture-popup-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--overlay-strong);z-index:1200;display:flex;align-items:center;justify-content:center;padding:16px;visibility:hidden;pointer-events:none}
+.scripture-popup-overlay--open{visibility:visible;pointer-events:auto}
+.scripture-popup{background:var(--surface);border-radius:14px;width:100%;max-width:560px;max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--dialog-shadow);overflow:hidden}
+.scripture-popup-overlay--open .scripture-popup{transform:none}
 .scripture-popup-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
 .scripture-popup-title{font-size:0.9em;font-weight:600;color:var(--brand);flex:1;margin-right:8px;word-break:break-all;line-height:1.5}
 .scripture-popup-close{width:28px;height:28px;border:none;background:var(--surface-alt);border-radius:50%;cursor:pointer;font-size:14px;color:var(--text-muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent}
@@ -744,7 +744,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .scripture-popup-text{flex:1;font-size:0.95em;color:var(--text)}
 .scripture-popup-verse--missing .scripture-popup-text{color:var(--text-muted);font-style:italic}
 .scripture-popup-empty{color:var(--text-muted);text-align:center;padding:20px 0;font-size:0.9em}
-.scripture-popup-loading{color:var(--text-muted);text-align:center;padding:24px 0;font-size:0.88em}
+.scripture-popup-loading{color:var(--text-muted);text-align:center;padding:24px 0;font-size:0.88em;min-height:80px}
 .scripture-popup-fn-body{font-size:.9em;color:var(--text);line-height:1.9;text-align:justify}
 .scripture-popup-back{width:28px;height:28px;border:none;background:none;cursor:pointer;font-size:16px;color:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:4px;-webkit-tap-highlight-color:transparent;padding:0}
 .scripture-popup-back:active{background:var(--surface-alt);border-radius:50%}
@@ -754,17 +754,17 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 /* ── 平板（≥600px）底部扩展框覆盖 ─────────────────────────── */
 @media(min-width:600px){
 /* overlay 平板上仅做 z-index 占位，不参与动画，背景透明且不拦截点击 */
-.scripture-popup-overlay{background:transparent;opacity:1;pointer-events:none;transition:none;align-items:flex-end;padding:0}
-.scripture-popup-overlay--open{opacity:1;pointer-events:none}
+.scripture-popup-overlay{background:transparent;visibility:visible;pointer-events:none;transition:none;align-items:flex-end;padding:0}
+.scripture-popup-overlay--open{visibility:visible;pointer-events:none}
 /* popup 用 position:fixed 直接锚底，绕过父级 flex 布局 */
-.scripture-popup{position:fixed;bottom:0;left:0;right:0;width:100%;pointer-events:auto;border-radius:16px 16px 0 0;max-width:100%;max-height:50vh;transform:translateY(100%);box-shadow:0 -4px 24px rgba(0,0,0,.15);padding-bottom:env(safe-area-inset-bottom, 0px)}
+.scripture-popup{position:fixed;bottom:0;left:0;right:0;width:100%;pointer-events:auto;border-radius:16px 16px 0 0;max-width:100%;max-height:50vh;transform:translateY(100%);transition:transform .2s ease-out;box-shadow:0 -4px 24px rgba(0,0,0,.15);padding-bottom:env(safe-area-inset-bottom, 0px)}
 .scripture-popup-overlay--open .scripture-popup{transform:translateY(0)}
 .scripture-popup::before{content:'';display:block;width:36px;height:4px;border-radius:2px;background:var(--border);margin:8px auto 0;flex-shrink:0}
 }
 .xref-ref:hover,.xref-ref:active{color:var(--brand-dark,#0060c0)}
 .verse-ref{color:var(--brand);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .verse-ref:hover{color:var(--brand-dark,#0060c0)}
-.scripture-ref--inline{cursor:pointer;color:var(--text-soft);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;font-size:inherit;margin-left:0}
+.scripture-ref--inline{cursor:pointer;color:var(--text-soft);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;font-size:inherit;margin-left:0;-webkit-tap-highlight-color:transparent}
 
 /* ── 二十四、图片查看器（hymn / motto_song 共用）──────────── */
 .image-viewer-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--viewer-overlay-bg);z-index:9999;overflow:hidden;touch-action:none}
