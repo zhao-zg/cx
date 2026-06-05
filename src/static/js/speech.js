@@ -288,6 +288,9 @@
       var _prevTTSEl        = null; // 当前高亮的 <mark> 元素
       var _ttsMarkOffset    = 0;    // _segmentMap 中对应 currentChunk=0 的句子索引
       var _stopOnNav        = null; // hashchange 监听函数，移除时置 null
+      var _nativeCharsDone  = -1;   // ttsProgress 最近一次推送的 charsDone（-1=未收到）
+      var _nativeCharsDoneTime = 0; // _nativeCharsDone 更新时的 Date.now()
+      var _nativeProgressHandle = null; // ttsProgress 监听句柄
 
       // -- State machine helpers ----------------------------------------------
 
@@ -430,12 +433,21 @@
             return;
           }
           _sentenceMarkData.push(injected);
+          var marksStartPos = pos;
           injected.marks.forEach(function(mark) {
             var speakText = getSpeakText(mark);
             var sentLen = speakText.length || 1;
             _segmentMap.push({el: mark, start: pos, end: pos + sentLen, speakText: speakText});
             pos += sentLen;
           });
+          // 对齐 pos 与 seg.textLen：buildGetText() 在每个元素文本后附加 '。'，
+          // 但 mark 的 speakText 不含此分隔符，导致累积偏移漂移。
+          // 延展最后一条 mark 的 end 以覆盖间隙，使 findSegmentAt() 正确映射。
+          var alignedEnd = marksStartPos + seg.textLen;
+          if (_segmentMap.length > 0 && alignedEnd > pos) {
+            _segmentMap[_segmentMap.length - 1].end = alignedEnd;
+          }
+          pos = alignedEnd;
         });
       }
 
@@ -501,13 +513,21 @@
         var elapsed = currentElapsedSeconds();
         progressBar.value = String(clamp((elapsed / totalDuration) * 100, 0, 100));
         speechTime.textContent = formatTime(elapsed) + ' / ' + formatTime(totalDuration);
-        // NativeTTS：使用客户端插值同步更新高亮，解决位置报告间隔（~500ms）
+        // NativeTTS：优先使用 ttsProgress 字符级锚点插值，解决位置报告间隔（~500ms）
         // 在高倍速（如 2x）下跟不上朗读速度的问题
         // Web Speech 的高亮由 wsPlayNextChunk 按句子边界更新，不在此处干预
         if (useNativeTTS && _segmentMap.length && fullText) {
-          var ratio = clamp(elapsed / totalDuration, 0, 1);
-          var approxChar = Math.floor(ratio * fullText.length);
-          setTTSHighlight(findSegmentAt(approxChar));
+          var charPos;
+          if (_nativeCharsDone >= 0 && _nativeCharsDoneTime > 0 && totalDuration > 0) {
+            // 从最近 ttsProgress 锚点插值，比 elapsed/totalDuration 均匀假设更精确
+            var charsPerSec = fullText.length / totalDuration;
+            var dt = (Date.now() - _nativeCharsDoneTime) / 1000;
+            charPos = clamp(_nativeCharsDone + dt * charsPerSec, 0, fullText.length);
+          } else {
+            var ratio = clamp(elapsed / totalDuration, 0, 1);
+            charPos = Math.floor(ratio * fullText.length);
+          }
+          setTTSHighlight(findSegmentAt(charPos));
         }
       }
 
@@ -529,6 +549,7 @@
         else { try { window.speechSynthesis.cancel(); } catch (e) {} }
         fullText = '';
         elapsedOffset = 0; startTime = 0; totalDuration = 0;
+        _nativeCharsDone = -1; _nativeCharsDoneTime = 0;
         textChunks = []; currentChunk = 0;
         progressBar.value = '0';
         speechTime.textContent = '00:00 / 00:00';
@@ -577,6 +598,12 @@
           try { _nativePositionHandle.remove(); } catch (e) {}
           _nativePositionHandle = null;
         }
+        if (_nativeProgressHandle) {
+          try { _nativeProgressHandle.remove(); } catch (e) {}
+          _nativeProgressHandle = null;
+        }
+        _nativeCharsDone = -1;
+        _nativeCharsDoneTime = 0;
 
         if (typeof NativeTTS.addListener === 'function') {
           var handle = NativeTTS.addListener('ttsPosition', function (data) {
@@ -586,8 +613,23 @@
             startTime = Date.now();
             // 高亮由 updateProgressUI 定时器（每 120ms）统一处理，此处仅更新时间锚点
           });
-          if (gen !== speakGeneration) { try { handle.remove(); } catch (e) {} }
-          else { _nativePositionHandle = handle; }
+          // 监听 Java 端 onProgress 推送的字符级精确进度，用于句子高亮定位
+          var progressHandle = NativeTTS.addListener('ttsProgress', function (data) {
+            if (gen !== speakGeneration || !data || data.done == null) return;
+            _nativeCharsDone = data.done;
+            _nativeCharsDoneTime = Date.now();
+            // 直接用精确字符位置更新高亮
+            if (_segmentMap.length) {
+              setTTSHighlight(findSegmentAt(data.done));
+            }
+          });
+          if (gen !== speakGeneration) {
+            try { handle.remove(); } catch (e) {}
+            try { progressHandle.remove(); } catch (e) {}
+          } else {
+            _nativePositionHandle = handle;
+            _nativeProgressHandle = progressHandle;
+          }
         }
 
         NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
@@ -621,6 +663,12 @@
           try { _nativePositionHandle.remove(); } catch (e) {}
           _nativePositionHandle = null;
         }
+        if (_nativeProgressHandle) {
+          try { _nativeProgressHandle.remove(); } catch (e) {}
+          _nativeProgressHandle = null;
+        }
+        _nativeCharsDone = -1;
+        _nativeCharsDoneTime = 0;
         var NativeTTS = getNativeTTS();
         if (NativeTTS) try { NativeTTS.stop(); } catch (e) {}
       }
