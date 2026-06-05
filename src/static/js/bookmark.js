@@ -57,9 +57,20 @@
 
     function _load() {
         _initStore();
-        return _store.getItem(STORAGE_KEY).then(function (arr) {
+        var storePromise = _store.getItem(STORAGE_KEY).then(function (arr) {
             return Array.isArray(arr) ? arr : [];
-        }).catch(function () { return []; });
+        }).catch(function (e) {
+            console.warn('[书签] 读取失败:', e);
+            return [];
+        });
+        // 超时保护：部分 WebView 环境中 IndexedDB 初始化可能卡死
+        var timeoutPromise = new Promise(function (resolve) {
+            setTimeout(function () {
+                console.warn('[书签] 读取超时(3s)，降级为空列表');
+                resolve([]);
+            }, 3000);
+        });
+        return Promise.race([storePromise, timeoutPromise]);
     }
 
     function _save(arr) {
@@ -321,7 +332,9 @@
          * 显示书签列表弹框
          */
         showList: function () {
+            console.log('[书签] showList() 开始加载...');
             CXBookmark.getAll().then(function (arr) {
+                console.log('[书签] 加载完成，共 ' + arr.length + ' 条书签');
                 // 判断是否在内容页（可以添加书签）
                 var curPath = win.__cxCurrentPath || '';
                 var curParts = curPath.split('/').filter(Boolean);
@@ -373,7 +386,10 @@
                     html: dialogHtml
                 });
 
-                if (!dlg) return;
+                if (!dlg) {
+                    console.warn('[书签] openDialog 返回 null，弹框可能已存在');
+                    return;
+                }
 
                 var dialogEl = document.getElementById('cx-bookmark-list');
                 if (!dialogEl) return;

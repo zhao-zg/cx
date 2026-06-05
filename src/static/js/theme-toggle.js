@@ -673,11 +673,16 @@
             var bmListBtn = document.getElementById('bookmarkListBtn');
             if (bmListBtn) {
                 bmListBtn.addEventListener('click', function() {
+                    console.log('[书签] 按钮点击 CXBookmark=' + (typeof window.CXBookmark));
                     // Close settings panel first
                     if (typeof window.toggleThemePanel === 'function') window.toggleThemePanel();
                     // Then open bookmark list
                     setTimeout(function() {
-                        if (window.CXBookmark && window.CXBookmark.showList) window.CXBookmark.showList();
+                        if (window.CXBookmark && window.CXBookmark.showList) {
+                            window.CXBookmark.showList();
+                        } else {
+                            console.warn('[书签] CXBookmark 未就绪');
+                        }
                     }, 300);
                 });
             }
