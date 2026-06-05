@@ -106,7 +106,7 @@
             'font-size:14px;z-index:99999;display:flex;align-items:center;gap:12px;',
             'opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;',
             'box-shadow:0 4px 16px rgba(0,0,0,.18)}',
-            '.cx-bm-toast.cx-bm-toast-show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}',
+            '.cx-bm-toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}',
             '.cx-bm-toast-text{white-space:nowrap}',
             '.cx-bm-toast-undo{color:#90caf9;cursor:pointer;font-weight:500;white-space:nowrap}'
         ].join('\n');
@@ -141,7 +141,7 @@
 
         // trigger reflow then show
         void el.offsetWidth;
-        el.classList.add('cx-bm-toast-show');
+        el.classList.add('show');
 
         _toastTimer = setTimeout(function () {
             _hideToast();
@@ -150,7 +150,7 @@
 
     function _hideToast() {
         if (!_toastEl) return;
-        _toastEl.classList.remove('cx-bm-toast-show');
+        _toastEl.classList.remove('show');
         var ref = _toastEl;
         setTimeout(function () {
             ref.parentNode && ref.parentNode.removeChild(ref);
