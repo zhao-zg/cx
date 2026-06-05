@@ -454,7 +454,7 @@ def generate_main_index(config, batch_results):
         'app-update.js', 'nav-stack.js', 'dev-console.js', 'theme-toggle.js',
         'bible-dict.js', 'speech.js', 'highlight.js', 'outline.js',
         'scripture-popup.js', 'toc-redirect.js', 'font-control.js',
-        'search.js', 'image-utils.js',
+        'search.js', 'image-utils.js', 'bookmark.js',
         # SPA-specific
         'ref-detector.js', 'training-enricher.js', 'router.js', 'renderer.js',
         # 本地 TXT 导入
