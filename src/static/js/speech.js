@@ -162,8 +162,10 @@
         var expanded = expandDataRefs(span.getAttribute('data-refs'));
         if (!expanded) { tnMap.push(null); return; }
         var tn = document.createTextNode(expanded);
-        span.parentNode.replaceChild(tn, span);
-        tnMap.push(tn);
+        var parent = span.parentNode;
+        var next = span.nextSibling;
+        parent.replaceChild(tn, span);
+        tnMap.push({tn: tn, span: span, parent: parent, next: next});
       });
       var staticBlocks = Array.prototype.slice.call(document.querySelectorAll('.scripture-block-static[data-refs]'));
       var sbMap = [];
@@ -187,8 +189,10 @@
         var saved = sbMap[idx]; if (saved) { block.innerHTML = saved.origHTML; }
       });
       spans.forEach(function (span, idx) {
-        var tn = tnMap[idx];
-        if (tn && tn.parentNode) { tn.parentNode.replaceChild(span, tn); }
+        var item = tnMap[idx];
+        if (!item) return;
+        if (item.tn && item.tn.parentNode) item.tn.parentNode.removeChild(item.tn);
+        if (item.parent) item.parent.insertBefore(item.span, item.next);
       });
       // 还原临时移除的 span（按移除逆序，保证嵌套关系正确）
       for (var i = removedSpans.length - 1; i >= 0; i--) {
