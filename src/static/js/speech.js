@@ -418,9 +418,11 @@
               // title / scripture：直接取 textContent
               rawText = el.textContent;
             } else {
-              // 常规元素：移除 UI 控件和嵌入经文块（不移除 .scripture-ref，已展开为文本）
+              // 常规元素：移除 UI 控件和嵌入经文块
+              // .scripture-ref 也需移除：withExpanded 已将可展开的替换为文本节点，
+              // 剩余的是破折号前缀（纲目中不读的经文）或括号前缀的引用，不应朗读
               var clone = el.cloneNode(true);
-              clone.querySelectorAll('button, .scripture-content, .verse-line').forEach(function(s){ s.remove(); });
+              clone.querySelectorAll('button, .scripture-content, .verse-line, .scripture-ref').forEach(function(s){ s.remove(); });
               rawText = clone.textContent;
             }
 
