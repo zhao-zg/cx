@@ -4,7 +4,7 @@
    - Web Speech API                           -- browser / PWA fallback
 
    Exposes:
-     window.CXSpeech.init({ getText: () => string, lang?: string })
+     window.CXSpeech.init({ getElements: () => [{el}], lang?: string })
      window.CXSpeech.cancel()
 */
 (function () {
@@ -14,8 +14,14 @@
 
   function byId(id) { return document.getElementById(id); }
 
-  function safeText(text) {
-    return (text || '')
+  // 统一文本处理管道：全局字符过滤 + 括号移除。
+  // 所有文本（fullText、segmentMap、speakText）必须经过此函数，确保坐标系一致。
+  function processText(raw) {
+    return (raw || '')
+      .replace(/\s+/g, ' ')
+      .replace(/[\r\n\t]/g, '')
+      .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！\u201c\u201d\u2018\u2019（）《》\s]/g, '')
+      .trim()
       .replace(/（[^）]*）/g, '')
       .replace(/\([^)]*\)/g, '')
       .replace(/\s+/g, ' ')
@@ -127,21 +133,15 @@
   // -- Init -----------------------------------------------------------------
 
   function init(options) {
-    var getText = options && typeof options.getText === 'function' ? options.getText : null;
-    if (!getText) return;
+    var getElements = options && typeof options.getElements === 'function' ? options.getElements : null;
+    if (!getElements) return;
     // 先停止上一个页面可能仍在运行的朗读（SPA 切换视图时 cancel 尚未被调用）
     if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
       try { window.CXSpeech.cancel(); } catch(e) {}
     }
-    var getElements = options && typeof options.getElements === 'function' ? options.getElements : null;
 
-    // 包装 getText：朗读前将非括号的 .scripture-ref[data-refs] span 整体替换为
-    // 展开后的纯文本节点，使 getCleanText（会移除 .scripture-ref）也能读到完整书名；
-    // 读完后把文本节点换回原始 span，不影响页面显示。
-    var _origGetText = getText;
     // 将经文引用临时展开后执行回调，完成后还原 DOM。
-    // buildSegmentMap 在 withExpanded 内注入 mark 时，mark 里已是展开文本节点，
-    // 还原时通过 tn.parentNode（已移入 mark 内）可正确置回原始 span。
+    // buildAll 在 withExpanded 内运行，确保 fullText 和 segmentMap 都基于展开后的文本。
     function withExpanded(fn) {
       var spans = Array.prototype.slice.call(document.querySelectorAll('.scripture-ref[data-refs]'));
       var tnMap = [];
@@ -185,7 +185,6 @@
       });
       return result;
     }
-    getText = function () { return withExpanded(_origGetText); };
 
     var lang  = (options && options.lang)  || 'zh-CN';
     // 锁屏/通知栏：title = 篇章标题（大字），artist = 训练名（副标题小字）
@@ -375,11 +374,18 @@
         return {marks: marks, origChildren: origChildren, el: el};
       }
 
+      // 从 <mark> 中提取当前子节点放回元素，兼容 withExpanded 内注入的场景：
+      // injectSentenceMarks 在 withExpanded 内运行时，origChildren 是展开后的文本节点，
+      // withExpanded 结束后 span 已被还原（替换了 textNode），origChildren 已不在 DOM 中，
+      // 因此不能依赖 origChildren，而是从 mark 中取出当前实际子节点。
       function restoreElement(injected) {
         var el = injected.el;
-        try { if (!el.parentNode && typeof el.closest === 'function' && !el.closest('body')) return; } catch(e) { return; }
+        var children = [];
+        el.querySelectorAll('mark.cx-tts-sent').forEach(function(mark) {
+          Array.prototype.forEach.call(mark.childNodes, function(n) { children.push(n); });
+        });
         while (el.firstChild) el.removeChild(el.firstChild);
-        injected.origChildren.forEach(function(n) { el.appendChild(n); });
+        children.forEach(function(n) { el.appendChild(n); });
       }
 
       function clearSentenceMarks() {
@@ -387,115 +393,68 @@
         _sentenceMarkData = [];
       }
 
-      // 构建句子级 _segmentMap，向 DOM 注入 <mark class="cx-tts-sent"> span
-      // injectSentenceMarks 在 withExpanded **外部**运行，使 origChildren 保存真实 span 节点；
-      // speakText 通过 clone 内展开引用来提取，不修改真实 DOM，从而 clearSentenceMarks
-      // 恢复时能正确还原 .scripture-ref span，保持经文识别功能完整。
-      //
-      // 关键：位置偏移必须与 fullText（发送给 TTS 引擎的文本）的字符坐标严格对齐，
-      // 否则 ttsProgress 报告的 charsDone 会映射到错误的段落/句子。
-      // buildGetText 的文本处理：getCleanText（移除 button/.scripture-ref 等）+ 全局字符过滤；
-      // 此处用 getElemFilteredLen 复现同一管道，确保 seg 位置 = fullText 中的真实偏移。
-      function buildSegmentMap() {
-        clearSentenceMarks();
-        _segmentMap = [];
-        if (!getElements) return;
-        var segs = getElements();
-        var pos = 0;
+      // 单一遍历构建 fullText 和 _segmentMap（坐标同源）。
+      // 在 withExpanded 内执行：经文引用已被替换为展开文本节点，
+      // 文本提取无需再单独移除 .scripture-ref，fullText 与 segmentMap 位置严格对齐。
+      function buildAll() {
+        return withExpanded(function() {
+          clearSentenceMarks();
+          _segmentMap = [];
+          fullText = '';
+          if (!getElements) return;
+          var segs = getElements();
 
-        // 复现 buildGetText 中 getCleanText 的文本提取 + 全局字符过滤，
-        // 返回与 fullText 坐标系一致的元素文本长度。
-        // 注意：title/scripture 元素在 buildGetText 中不走 getCleanText，需单独处理。
-        function getElemFilteredLen(node, isRaw) {
-          var text;
-          if (isRaw) {
-            // title / scripture：直接取 textContent，不移除子元素
-            text = (node.textContent || '').trim();
-          } else {
-            // 与 buildGetText 的 getCleanText 一致：移除 button/.scripture-ref 等
-            var clone = node.cloneNode(true);
-            var ignored = clone.querySelectorAll('button, .scripture-content, .verse-line, .scripture-ref');
-            ignored.forEach(function(el){ el.remove(); });
-            text = clone.textContent.trim();
-          }
-          // 复现完整管道：buildGetText 全局过滤 + safeText 括号移除
-          // fullText = safeText(getText())，safeText 会移除（...）和(...)内容
-          return safeText(text
-            .replace(/\s+/g, ' ')
-            .replace(/[\r\n\t]/g, '')
-            .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！\u201c\u201d\u2018\u2019（）《》\s]/g, '')
-            .trim()).length;
-        }
+          segs.forEach(function(seg) {
+            var el = seg.el;
 
-        // getSpeakText 用于句子级拆分和 Web Speech 朗读：
-        // - 展开 .scripture-ref[data-refs] 为可读经文名（如 约3:16 → 约翰福音三章十六节）
-        // - 移除 button/sup（UI 控件和脚注）以及 .scripture-content/.verse-line（纲目中嵌入的经文块，
-        //   与 buildGetText 的 getCleanText 一致，避免 PWA 朗读多余的经文内容）
-        function getSpeakText(node) {
-          var clone = node.cloneNode(true);
-          clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(span) {
-            var expanded = expandDataRefs(span.getAttribute('data-refs'));
-            var tn = document.createTextNode(expanded || span.textContent || '');
-            if (span.parentNode) span.parentNode.replaceChild(tn, span);
+            // Step 1: 提取元素原始文本（withExpanded 内，引用已展开）
+            var rawText;
+            if (el.classList.contains('scripture-block-static')) {
+              // 经文块：withExpanded 已修改 block.textContent（含 expanded + '\t' + body）
+              var clone = el.cloneNode(true);
+              clone.querySelectorAll('sup').forEach(function(s){ s.remove(); });
+              rawText = clone.textContent;
+            } else if (el.classList.contains('chapter-title') || el.classList.contains('scripture')) {
+              // title / scripture：直接取 textContent
+              rawText = el.textContent;
+            } else {
+              // 常规元素：移除 UI 控件和嵌入经文块（不移除 .scripture-ref，已展开为文本）
+              var clone = el.cloneNode(true);
+              clone.querySelectorAll('button, .scripture-content, .verse-line').forEach(function(s){ s.remove(); });
+              rawText = clone.textContent;
+            }
+
+            // Step 2: 统一管道过滤
+            var filteredText = processText(rawText);
+            if (!filteredText) return;
+
+            // Step 3: 记录在 fullText 中的精确位置（智能分隔符：已有终止符则不重复追加）
+            var separator = '';
+            if (fullText) {
+              var lastChar = fullText[fullText.length - 1];
+              separator = /[。！？；]/.test(lastChar) ? '' : '。';
+            }
+            var start = fullText.length + separator.length;
+            fullText += separator + filteredText;
+            var end = fullText.length;
+
+            // Step 4: 注入句子 mark 或作为整体段落
+            // scripture-block-static 不拆分句子
+            var injected = el.classList.contains('scripture-block-static') ? null : injectSentenceMarks(el);
+            if (!injected) {
+              _segmentMap.push({el: el, start: start, end: end, speakText: filteredText});
+            } else {
+              _sentenceMarkData.push(injected);
+              var sentPos = start;
+              injected.marks.forEach(function(mark, i) {
+                var markFiltered = processText(mark.textContent);
+                // 最后一个句子对齐到父元素末尾，修正累积误差
+                var markEnd = (i === injected.marks.length - 1) ? end : sentPos + markFiltered.length;
+                _segmentMap.push({el: mark, start: sentPos, end: markEnd, speakText: markFiltered});
+                sentPos = markEnd;
+              });
+            }
           });
-          clone.querySelectorAll('button, sup, .scripture-content, .verse-line').forEach(function(s) { s.remove(); });
-          return safeText(clone.textContent).trim();
-        }
-
-        segs.forEach(function(seg) {
-          var el = seg.el;
-          if (el.classList.contains('scripture-block-static')) {
-            // 经文块：buildGetText 用 expandedRef + body（tab 被全局过滤移除），
-            // 复现同一逻辑计算 filteredLen。
-            var refs = el.getAttribute('data-refs');
-            var expanded = refs ? expandDataRefs(refs) : '';
-            var bClone = el.cloneNode(true);
-            bClone.querySelectorAll('sup').forEach(function(s){ s.remove(); });
-            var rawBody = bClone.textContent;
-            var tabIdx = rawBody.indexOf('\t');
-            var body = tabIdx !== -1 ? rawBody.slice(tabIdx + 1) : rawBody;
-            // 拼接方式与 withExpanded 一致：expandedRef + '\t' + body，过滤后 tab 被移除
-            var combined = (expanded ? expanded : '') + '\t' + body;
-            var filteredLen = safeText(combined
-              .replace(/\s+/g, ' ')
-              .replace(/[\r\n\t]/g, '')
-              .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！\u201c\u201d\u2018\u2019（）《》\s]/g, '')
-              .trim()).length;
-            // 经文块不拆分句子，整体作为一个段段落
-            var speakText = safeText((expanded ? expanded + ' ' : '') + (tabIdx !== -1 ? rawBody.slice(tabIdx + 1).trim() : rawBody.trim()));
-            _segmentMap.push({el: el, start: pos, end: pos + filteredLen, speakText: speakText});
-            pos += filteredLen;
-            return;
-          }
-          // title / scripture 元素在 buildGetText 中直接取 textContent（不走 getCleanText）
-          var isRaw = el.classList.contains('chapter-title') || el.classList.contains('scripture');
-          var elemLen = getElemFilteredLen(el, isRaw);
-          var injected = injectSentenceMarks(el);
-          if (!injected) {
-            _segmentMap.push({el: el, start: pos, end: pos + elemLen, speakText: getSpeakText(el)});
-            pos += elemLen;
-            return;
-          }
-          _sentenceMarkData.push(injected);
-          var marksStartPos = pos;
-          // 按各 mark 的 speakText 长度比例分配父元素的 filteredLen 范围，
-          // 使子句子位置与 fullText 坐标对齐。
-          var totalSpeakLen = 0;
-          injected.marks.forEach(function(mark) { totalSpeakLen += (getSpeakText(mark).length || 1); });
-          injected.marks.forEach(function(mark) {
-            var speakText = getSpeakText(mark);
-            var sentSpeakLen = speakText.length || 1;
-            // 按比例分配：该句子在父元素 filteredLen 中占的比重
-            var sentFilteredLen = Math.max(1, Math.round(elemLen * sentSpeakLen / totalSpeakLen));
-            _segmentMap.push({el: mark, start: pos, end: pos + sentFilteredLen, speakText: speakText});
-            pos += sentFilteredLen;
-          });
-          // 对齐到父元素的 filteredLen，修正四舍五入累积误差
-          var alignedEnd = marksStartPos + elemLen;
-          if (_segmentMap.length > 0 && alignedEnd > pos) {
-            _segmentMap[_segmentMap.length - 1].end = alignedEnd;
-          }
-          pos = alignedEnd;
         });
       }
 
@@ -812,9 +771,9 @@
         var p          = clamp(Number(percent) || 0, 0, 100);
         var targetSecs = totalDuration ? (p / 100) * totalDuration : 0;
         var charIndex  = clamp(Math.floor(fullText.length * (p / 100)), 0, Math.max(0, fullText.length - 1));
-        // NativeTTS: 始终传完整文本，由 Java 通过 startSecs/totalSecs 定位起始 chunk，
-        // 这样循环重置 chunkIndex=0 时从全文开头播放，而非熄屏时的截断位置。
-        var segText    = useNativeTTS ? safeText(fullText) : safeText(fullText.slice(charIndex));
+        // NativeTTS: 始终传完整文本（fullText 已由 buildAll 经 processText 处理），
+        // 由 Java 通过 startSecs/totalSecs 定位起始 chunk。
+        var segText    = useNativeTTS ? fullText : fullText.slice(charIndex);
         if (!segText) return;
 
         progressBar.value = String(p);
@@ -832,11 +791,11 @@
           var gen = speakGeneration;
           try { window.speechSynthesis.cancel(); } catch (e) {}
           stopProgressUpdate();
-          // 直接用 _segmentMap 各项的 speakText（clone 内展开引用，含完整书名、过滤括号/破折号引用）
+          // 直接用 _segmentMap 各项的 speakText（buildAll 中已由 processText 处理），
           // 保证 textChunks[i] ↔ _segmentMap[_ttsMarkOffset+i] 严格对应
           if (_segmentMap.length > _ttsMarkOffset) {
             textChunks = _segmentMap.slice(_ttsMarkOffset).map(function(seg) {
-              return seg.speakText || safeText(seg.el.textContent || '').trim();
+              return seg.speakText;
             });
           } else {
             textChunks = splitBySentence(segText);
@@ -934,9 +893,8 @@
               }).catch(function () {});
             }
           }
-          fullText = safeText(getText());
+          buildAll();
           if (!fullText) return;
-          buildSegmentMap();
           totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
           elapsedOffset = 0; progressBar.value = '0';
           speechTime.textContent = '00:00 / ' + formatTime(totalDuration);

@@ -913,7 +913,7 @@
       var bar = document.getElementById('bottomControlBar');
       var btn = document.getElementById('playPauseBtn');
       if (!bar || !btn) return true;
-      win.CXSpeech.init({ getText: buildGetText(viewType, chapter), getElements: buildGetElements(viewType, chapter) });
+      win.CXSpeech.init({ getElements: buildGetElements(viewType, chapter) });
       return true;
     }
     if (!tryInit()) {
@@ -922,153 +922,59 @@
     }
   }
 
-  function buildGetText(viewType, chapter) {
-    return function() {
-      function getCleanText(node) {
-        var clone = node.cloneNode(true);
-        var ignored = clone.querySelectorAll('button, .scripture-content, .verse-line, .scripture-ref');
-        ignored.forEach(function(el){ el.remove(); });
-        return clone.textContent.trim();
-      }
-
-      var text = '';
-      var titleEl = document.querySelector('.chapter-title');
-      if (titleEl) text += titleEl.textContent.trim() + '。';
-      var scrEl = document.querySelector('.scripture');
-      if (scrEl) text += scrEl.textContent.trim() + '。';
-
-      if (viewType === 'cv') {
-        document.querySelectorAll('.outline-item').forEach(function(el){
-          var t = getCleanText(el); if (t) text += t + '。';
-        });
-      } else if (viewType === 'cx') {
-        var active = document.querySelector('.day-page.is-active') || document.querySelector('.day-page');
-        if (active) {
-          // 纲目
-          active.querySelectorAll('.outline-item').forEach(function(el){
-            var t = getCleanText(el); if (t) text += t + '。';
-          });
-          // 晨兴喂养经文（scripture-block-static 由 speech.js 包装层已展开书名）
-          var feedingSec = active.querySelector('.feeding-section');
-          if (feedingSec) {
-            feedingSec.querySelectorAll('.scripture-block-static').forEach(function(block){
-              var clone = block.cloneNode(true);
-              clone.querySelectorAll('sup').forEach(function(s){ s.remove(); });
-              var t = clone.textContent.trim();
-              if (t) text += t + '。';
-            });
-            feedingSec.querySelectorAll('.feeding-scripture').forEach(function(s){
-              var t = s.textContent.trim();
-              if (t) text += t + '。';
-            });
-          }
-          // 喂养正文 + 信息选读（.content-text）
-          active.querySelectorAll('.content-text').forEach(function(el){
-            var t = getCleanText(el); if (t) text += t + '。';
-          });
-        }
-      } else if (viewType === 'h') {
-        var msg = document.querySelector('.message-content');
-        if (msg) {
-          msg.querySelectorAll(':scope > p.content-text').forEach(function(p){
-            var t = getCleanText(p); if (t) text += t + '。';
-          });
-        }
-        document.querySelectorAll('.section').forEach(function(sec){
-          var lvl = sec.querySelector('[class^="section-level"]');
-          if (lvl) { var t = getCleanText(lvl); if (t) text += t + '。'; }
-          var content = sec.querySelector('.section-content');
-          if (content) {
-            content.querySelectorAll('.content-text').forEach(function(p){
-              var t = getCleanText(p); if (t) text += t + '。';
-            });
-          }
-        });
-      } else if (viewType === 'ts' || viewType === 'zs') {
-        document.querySelectorAll('.content-text').forEach(function(p){
-          var t = getCleanText(p); if (t) text += t + '。';
-        });
-      }
-
-      text = text
-        .replace(/\s+/g, ' ')
-        .replace(/[\r\n\t]/g, '')
-        .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '')
-        .trim();
-      return text;
-    };
-  }
-
-  // 与 buildGetText 遍历顺序严格一致，返回 [{el, textLen}] 供 speech.js 做段落高亮映射
-  // textLen = 该元素在 fullText 中的估算字符数（含末尾的 '。'，误差 <5% 可接受）
+  // 返回 [{el}] 供 speech.js 做朗读和高亮映射。
+  // 遍历顺序决定朗读顺序，speech.js 的 buildAll 负责文本提取和坐标计算。
   function buildGetElements(viewType, chapter) {
     return function() {
-      // 估算单个节点在 fullText 中的字符数，与 getCleanText + safeText + cleanup 一致
-      function elemLen(node) {
-        var clone = node.cloneNode(true);
-        clone.querySelectorAll('button, .scripture-content, .verse-line, .scripture-ref')
-             .forEach(function(el){ el.remove(); });
-        var t = clone.textContent.trim()
-          .replace(/（[^）]*）/g, '').replace(/\([^)]*\)/g, '')
-          .replace(/\s+/g, ' ').replace(/[\r\n\t]/g, '')
-          .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！""''（）《》\s]/g, '')
-          .trim();
-        return t.length + 1; // +1 for '。'
-      }
-
       var segs = [];
       var titleEl = document.querySelector('.chapter-title');
-      if (titleEl && titleEl.textContent.trim()) segs.push({el: titleEl, textLen: elemLen(titleEl)});
+      if (titleEl && titleEl.textContent.trim()) segs.push({el: titleEl});
       var scrEl = document.querySelector('.scripture');
-      if (scrEl && scrEl.textContent.trim()) segs.push({el: scrEl, textLen: elemLen(scrEl)});
+      if (scrEl && scrEl.textContent.trim()) segs.push({el: scrEl});
 
       if (viewType === 'cv') {
         document.querySelectorAll('.outline-item').forEach(function(el){
-          var len = elemLen(el); if (len > 1) segs.push({el: el, textLen: len});
+          if (el.textContent.trim()) segs.push({el: el});
         });
       } else if (viewType === 'cx') {
         var active = document.querySelector('.day-page.is-active') || document.querySelector('.day-page');
         if (active) {
           active.querySelectorAll('.outline-item').forEach(function(el){
-            var len = elemLen(el); if (len > 1) segs.push({el: el, textLen: len});
+            if (el.textContent.trim()) segs.push({el: el});
           });
           var feedingSec = active.querySelector('.feeding-section');
           if (feedingSec) {
             feedingSec.querySelectorAll('.scripture-block-static').forEach(function(block){
-              var clone = block.cloneNode(true);
-              clone.querySelectorAll('sup').forEach(function(s){ s.remove(); });
-              var t = clone.textContent.trim();
-              if (t) segs.push({el: block, textLen: t.length + 1});
+              if (block.textContent.trim()) segs.push({el: block});
             });
             feedingSec.querySelectorAll('.feeding-scripture').forEach(function(s){
-              var t = s.textContent.trim();
-              if (t) segs.push({el: s, textLen: t.length + 1});
+              if (s.textContent.trim()) segs.push({el: s});
             });
           }
           active.querySelectorAll('.content-text').forEach(function(el){
-            var len = elemLen(el); if (len > 1) segs.push({el: el, textLen: len});
+            if (el.textContent.trim()) segs.push({el: el});
           });
         }
       } else if (viewType === 'h') {
         var msg = document.querySelector('.message-content');
         if (msg) {
           msg.querySelectorAll(':scope > p.content-text').forEach(function(p){
-            var len = elemLen(p); if (len > 1) segs.push({el: p, textLen: len});
+            if (p.textContent.trim()) segs.push({el: p});
           });
         }
         document.querySelectorAll('.section').forEach(function(sec){
           var lvl = sec.querySelector('[class^="section-level"]');
-          if (lvl) { var len = elemLen(lvl); if (len > 1) segs.push({el: lvl, textLen: len}); }
+          if (lvl && lvl.textContent.trim()) segs.push({el: lvl});
           var content = sec.querySelector('.section-content');
           if (content) {
             content.querySelectorAll('.content-text').forEach(function(p){
-              var len = elemLen(p); if (len > 1) segs.push({el: p, textLen: len});
+              if (p.textContent.trim()) segs.push({el: p});
             });
           }
         });
       } else if (viewType === 'ts' || viewType === 'zs') {
         document.querySelectorAll('.content-text').forEach(function(p){
-          var len = elemLen(p); if (len > 1) segs.push({el: p, textLen: len});
+          if (p.textContent.trim()) segs.push({el: p});
         });
       }
 
