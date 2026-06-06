@@ -390,18 +390,24 @@
         return {marks: marks, origChildren: origChildren, el: el};
       }
 
-      // 从 <mark> 中提取当前子节点放回元素，兼容 withExpanded 内注入的场景：
-      // injectSentenceMarks 在 withExpanded 内运行时，origChildren 是展开后的文本节点，
-      // withExpanded 结束后 span 已被还原（替换了 textNode），origChildren 已不在 DOM 中，
-      // 因此不能依赖 origChildren，而是从 mark 中取出当前实际子节点。
+      // 就地展开（unwrap）所有 <mark class="cx-tts-sent"> 标签：
+      // 将 mark 的子节点移到 mark 之前，再删除空 mark；最后 normalize() 合并相邻文本节点。
+      // 这样不会清空 el，避免误删已被 withExpanded 还原到 el 直接子级的经文 span，
+      // 同时保持 .scripture-ref 等内联元素在原位，结构完整恢复。
       function restoreElement(injected) {
         var el = injected.el;
-        var children = [];
-        el.querySelectorAll('mark.cx-tts-sent').forEach(function(mark) {
-          Array.prototype.forEach.call(mark.childNodes, function(n) { children.push(n); });
+        if (!el) return;
+        var marks = Array.prototype.slice.call(el.querySelectorAll('mark.cx-tts-sent'));
+        marks.forEach(function(mark) {
+          var parent = mark.parentNode;
+          if (!parent) return;
+          while (mark.firstChild) {
+            parent.insertBefore(mark.firstChild, mark);
+          }
+          parent.removeChild(mark);
         });
-        while (el.firstChild) el.removeChild(el.firstChild);
-        children.forEach(function(n) { el.appendChild(n); });
+        // 合并被句子边界拆分的相邻文本节点，恢复连续性
+        try { el.normalize(); } catch(e) {}
       }
 
       function clearSentenceMarks() {
