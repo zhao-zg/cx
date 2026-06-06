@@ -145,11 +145,18 @@
     function withExpanded(fn) {
       var spans = Array.prototype.slice.call(document.querySelectorAll('.scripture-ref[data-refs]'));
       var tnMap = [];
+      var removedSpans = []; // 不应朗读的 span（纲目破折号/括号前缀），临时从 DOM 移除
       spans.forEach(function (span) {
         var txt = (span.textContent || '').trim();
         if (!span.parentNode ||
             (/^[—\-]/.test(txt) && typeof span.closest === 'function' && span.closest('.outline-section')) ||
             /^[（(]/.test(txt)) {
+          // 纲目中破折号/括号前缀的经文引用不应朗读，从 DOM 临时移除
+          // 使 injectSentenceMarks 不会将其文本包裹进 <mark>，朗读时自然跳过
+          if (span.parentNode) {
+            removedSpans.push({ span: span, parent: span.parentNode, next: span.nextSibling });
+            span.parentNode.removeChild(span);
+          }
           tnMap.push(null); return;
         }
         var expanded = expandDataRefs(span.getAttribute('data-refs'));
@@ -183,6 +190,11 @@
         var tn = tnMap[idx];
         if (tn && tn.parentNode) { tn.parentNode.replaceChild(span, tn); }
       });
+      // 还原临时移除的 span（按移除逆序，保证嵌套关系正确）
+      for (var i = removedSpans.length - 1; i >= 0; i--) {
+        var item = removedSpans[i];
+        if (item.parent) item.parent.insertBefore(item.span, item.next);
+      }
       return result;
     }
 
