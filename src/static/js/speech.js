@@ -291,6 +291,7 @@
       var _nativeCharsDone  = -1;   // ttsProgress 最近一次推送的 charsDone（-1=未收到）
       var _nativeCharsDoneTime = 0; // _nativeCharsDone 更新时的 Date.now()
       var _nativeProgressHandle = null; // ttsProgress 监听句柄
+      var _lastPosMs        = -1;   // ttsPosition 最近一次接受的 posMs（-1=尚未接受）
 
       // -- State machine helpers ----------------------------------------------
 
@@ -596,7 +597,7 @@
         else { try { window.speechSynthesis.cancel(); } catch (e) {} }
         fullText = '';
         elapsedOffset = 0; startTime = 0; totalDuration = 0;
-        _nativeCharsDone = -1; _nativeCharsDoneTime = 0;
+        _nativeCharsDone = -1; _nativeCharsDoneTime = 0; _lastPosMs = -1;
         textChunks = []; currentChunk = 0;
         progressBar.value = '0';
         speechTime.textContent = '00:00 / 00:00';
@@ -651,10 +652,14 @@
         }
         _nativeCharsDone = -1;
         _nativeCharsDoneTime = 0;
+        _lastPosMs = -1;
 
         if (typeof NativeTTS.addListener === 'function') {
           var handle = NativeTTS.addListener('ttsPosition', function (data) {
             if (gen !== speakGeneration || !data || data.posMs == null) return;
+            // 忽略使进度倒退的位置报告（如 chunk 切换时的瞬态回退）
+            if (_lastPosMs >= 0 && data.posMs < _lastPosMs) return;
+            _lastPosMs = data.posMs;
             elapsedOffset = data.posMs / 1000;
             if (data.totalMs > 0) totalDuration = data.totalMs / 1000;
             startTime = Date.now();
@@ -699,8 +704,9 @@
             setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 4000);
           });
 
+        // startTime 保持 0：进度条在 Java 端真正开始播放（首个 ttsPosition 到达）前
+        // 停留在起始位置，避免合成延迟期间进度条先走再跳回的问题。
         elapsedOffset = targetSeconds || 0;
-        startTime = Date.now();
         setState('playing');
         startProgressUpdate();
       }
