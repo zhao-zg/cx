@@ -184,11 +184,17 @@
         }
         var expanded = expandDataRefs(span.getAttribute('data-refs'));
         if (!expanded) { tnMap.push(null); return; }
-        var tn = document.createTextNode(expanded);
+        // 用临时 wrapper span 而非裸文本节点：injectSentenceMarks 会把内联元素整体移入 <mark>，
+        // clearSentenceMarks 后 wrapper 仍是完整元素（parentNode 不为 null），可被正确移除。
+        // 裸文本节点会被 injectSentenceMarks 切碎成新文本节点，导致 tn.parentNode 变为 null，
+        // 还原时无法移除，展开的经文文本会残留在 DOM 中造成重复显示。
+        var wrapper = document.createElement('span');
+        wrapper.className = 'cx-tts-expand-tmp';
+        wrapper.textContent = expanded;
         var parent = span.parentNode;
         var next = span.nextSibling;
-        parent.replaceChild(tn, span);
-        tnMap.push({tn: tn, span: span, parent: parent, next: next});
+        parent.replaceChild(wrapper, span);
+        tnMap.push({tn: wrapper, span: span, parent: parent, next: next});
       });
       var staticBlocks = Array.prototype.slice.call(document.querySelectorAll('.scripture-block-static[data-refs]'));
       var sbMap = [];

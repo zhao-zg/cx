@@ -313,6 +313,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 @keyframes cx-target-pulse{0%,100%{background-color:transparent}50%{background-color:rgba(255,179,71,0.25)}}
 /* 朗读句子高亮：纯背景色，逐句跟随 */
 mark.cx-tts-sent{background-color:transparent;color:inherit;font:inherit;border-radius:2px;transition:background-color 0.25s}
+.cx-tts-expand-tmp{display:none}
 mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .cx-tts-active{background-color:rgba(79,125,219,0.18);border-radius:2px;transition:background-color 0.25s}
 .scripture-block-static.cx-tts-active{background:rgba(79,125,219,0.22)}
