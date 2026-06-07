@@ -185,6 +185,19 @@
 
       var result = fn();
 
+      // fn() 内 injectSentenceMarks 会将展开的文本节点拆分为 <mark> 包裹的句子，
+      // 必须先清除这些 mark（unwrap），否则后续还原 span 时 mark 残留会导致文本重复显示。
+      clearSentenceMarks();
+
+      // staticBlocks 通过 innerHTML 整体还原，其内部的 span 也随之还原，
+      // 因此 span 还原循环只需处理不在 staticBlock 内的 span。
+      var _insideStatic = function (node) {
+        for (var k = 0; k < staticBlocks.length; k++) {
+          if (staticBlocks[k].contains(node)) return true;
+        }
+        return false;
+      };
+
       staticBlocks.forEach(function (block, idx) {
         var saved = sbMap[idx]; if (saved) { block.innerHTML = saved.origHTML; }
       });
@@ -192,7 +205,7 @@
         var item = tnMap[idx];
         if (!item) return;
         if (item.tn && item.tn.parentNode) item.tn.parentNode.removeChild(item.tn);
-        if (item.parent) {
+        if (item.parent && !_insideStatic(item.parent)) {
           try {
             if (item.next && item.parent.contains(item.next)) {
               item.parent.insertBefore(item.span, item.next);
@@ -207,7 +220,7 @@
       // 还原临时移除的 span（按移除逆序，保证嵌套关系正确）
       for (var i = removedSpans.length - 1; i >= 0; i--) {
         var item = removedSpans[i];
-        if (item.parent) {
+        if (item.parent && !_insideStatic(item.parent)) {
           try {
             if (item.next && item.parent.contains(item.next)) {
               item.parent.insertBefore(item.span, item.next);
