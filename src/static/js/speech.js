@@ -214,12 +214,10 @@
 
       var result = fn();
 
-      // fn() 内 injectSentenceMarks 会将展开的文本节点拆分为 <mark> 包裹的句子，
-      // 必须先清除这些 mark（unwrap），否则后续还原 span 时 mark 残留会导致文本重复显示。
-      clearSentenceMarks();
+      // 不调用 clearSentenceMarks()，保留 <mark> 在 DOM 中供朗读高亮使用。
+      // wrapper span 被 injectSentenceMarks 整体移入某个 <mark>，
+      // 用 replaceChild 将 wrapper 原位替换为原始 .scripture-ref span，marks 保持完整。
 
-      // staticBlocks 通过 innerHTML 整体还原，其内部的 span 也随之还原，
-      // 因此 span 还原循环只需处理不在 staticBlock 内的 span。
       var _insideStatic = function (node) {
         for (var k = 0; k < staticBlocks.length; k++) {
           if (staticBlocks[k].contains(node)) return true;
@@ -227,32 +225,45 @@
         return false;
       };
 
+      // staticBlocks 通过 innerHTML 整体还原（同时自动移除其内的 wrapper）
       staticBlocks.forEach(function (block, idx) {
         var saved = sbMap[idx]; if (saved) { block.innerHTML = saved.origHTML; }
       });
       spans.forEach(function (span, idx) {
         var item = tnMap[idx];
         if (!item) return;
-        if (item.tn && item.tn.parentNode) item.tn.parentNode.removeChild(item.tn);
-        if (item.parent && !_insideStatic(item.parent)) {
+        // wrapper 在某个 <mark> 内，replaceChild 原位还原为原始 span，mark 保留
+        if (item.tn && item.tn.parentNode && !_insideStatic(item.tn.parentNode)) {
           try {
-            if (item.next && item.parent.contains(item.next)) {
-              item.parent.insertBefore(item.span, item.next);
-            } else {
-              item.parent.appendChild(item.span);
-            }
+            item.tn.parentNode.replaceChild(item.span, item.tn);
           } catch (e) {
-            try { item.parent.appendChild(item.span); } catch (e2) {}
+            if (item.tn.parentNode) item.tn.parentNode.removeChild(item.tn);
           }
+        } else if (item.tn && item.tn.parentNode) {
+          item.tn.parentNode.removeChild(item.tn);
         }
       });
       // 还原临时移除的 span（按移除逆序，保证嵌套关系正确）
+      // injectSentenceMarks 后 item.parent 直接子节点均为 <mark>，
+      // item.next 可能在某个 mark 内，需找到其直接子 mark 祖先再 insertBefore。
+      function _findDirectChild(parent, node) {
+        var n = node;
+        while (n && n.parentNode && n.parentNode !== parent) { n = n.parentNode; }
+        return (n && n.parentNode === parent) ? n : null;
+      }
       for (var i = removedSpans.length - 1; i >= 0; i--) {
         var item = removedSpans[i];
         if (item.parent && !_insideStatic(item.parent)) {
           try {
-            if (item.next && item.parent.contains(item.next)) {
-              item.parent.insertBefore(item.span, item.next);
+            if (item.next) {
+              var directRef = item.next.parentNode === item.parent
+                ? item.next
+                : _findDirectChild(item.parent, item.next);
+              if (directRef) {
+                item.parent.insertBefore(item.span, directRef);
+              } else {
+                item.parent.appendChild(item.span);
+              }
             } else {
               item.parent.appendChild(item.span);
             }

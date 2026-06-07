@@ -660,7 +660,11 @@
 
     setContent(html, 'cx', batchPath, chapter, training);
 
-    var initialPage = currentWeekdayIdx();
+    // 确定初始显示天：优先使用书签跳转写入的天索引（屏蔽当前星期设定），否则按当前星期
+    var bmDayKey = 'cx_bm_day:' + batchPath + '/' + chapter.number + '/cx';
+    var bmDayVal = -1;
+    try { bmDayVal = parseInt(localStorage.getItem(bmDayKey) || '-1', 10); localStorage.removeItem(bmDayKey); } catch(e){}
+    var initialPage = (bmDayVal >= 0) ? bmDayVal : currentWeekdayIdx();
     if (initialPage >= revivals.length) initialPage = 0;
     setTimeout(function(){ initDayPager(initialPage); }, 0);
   }

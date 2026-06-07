@@ -2,7 +2,7 @@
  * 书签功能模块
  * 支持添加/删除/查看书签，跳转到书签位置，列表弹框展示
  *
- * 数据模型：{id, path, scrollY, title, batchPath, chapterNum, viewType, note, timestamp}
+ * 数据模型：{id, path, scrollY, title, batchPath, chapterNum, viewType, dayIndex, note, timestamp}
  * 存储后端：localForage (IndexedDB)，单键 cx_bookmarks → Array
  */
 (function (win) {
@@ -177,7 +177,7 @@
 
         /**
          * 添加书签
-         * @param {Object} opts - {path, scrollY, title, batchPath, chapterNum, viewType, note}
+         * @param {Object} opts - {path, scrollY, title, batchPath, chapterNum, viewType, dayIndex, note}
          * @returns {Promise}
          */
         add: function (opts) {
@@ -188,6 +188,7 @@
             var batchPath = opts.batchPath || '';
             var chapterNum = opts.chapterNum || 0;
             var viewType = opts.viewType || '';
+            var dayIndex = (typeof opts.dayIndex === 'number' && opts.dayIndex >= 0) ? opts.dayIndex : -1;
             var note = opts.note || '';
 
             return _load().then(function (arr) {
@@ -207,6 +208,7 @@
                     bookmark = arr[existIdx];
                     bookmark.scrollY = scrollY;
                     bookmark.timestamp = Date.now();
+                    if (dayIndex >= 0) bookmark.dayIndex = dayIndex;
                     if (note) bookmark.note = note;
                     if (title) bookmark.title = title;
                     isUpdate = true;
@@ -222,6 +224,7 @@
                         batchPath: batchPath,
                         chapterNum: chapterNum,
                         viewType: viewType,
+                        dayIndex: dayIndex,
                         note: note,
                         timestamp: Date.now()
                     };
@@ -258,6 +261,18 @@
             var chapterNum = parseInt(parts[1], 10) || 0;
             var viewType = parts[2] || '';
 
+            // 晨读视图：记录当前所在天索引（星期几对应的分页），供书签跳转时还原
+            var dayIndex = -1;
+            if (viewType === 'cx') {
+                var activeDay = document.querySelector('.day-link.active');
+                if (activeDay) {
+                    var dayLinks = document.querySelectorAll('.day-link');
+                    for (var di = 0; di < dayLinks.length; di++) {
+                        if (dayLinks[di] === activeDay) { dayIndex = di; break; }
+                    }
+                }
+            }
+
             var titleParts = [];
             if (titleInfo.trainingTitle) {
                 titleParts.push(titleInfo.trainingTitle);
@@ -280,6 +295,7 @@
                 batchPath: batchPath,
                 chapterNum: chapterNum,
                 viewType: viewType,
+                dayIndex: dayIndex,
                 note: ''
             });
         },
@@ -498,6 +514,10 @@
                         if (target && target.path) {
                             var scrollKey = 'cx_scroll:' + target.path;
                             try { localStorage.setItem(scrollKey, String(target.scrollY || 0)); } catch(e) {}
+                            // 晨读书签：写入保存时的天索引，让 renderer 跳过"当前星期"定位
+                            if (target.viewType === 'cx' && typeof target.dayIndex === 'number' && target.dayIndex >= 0) {
+                                try { localStorage.setItem('cx_bm_day:' + target.path, String(target.dayIndex)); } catch(e) {}
+                            }
                             // 用 navigateReplace 替换当前历史条目（与搜索跳转同模式）
                             if (win.CXRouter && win.CXRouter.navigateReplace) {
                                 win.CXRouter.navigateReplace(target.path);
