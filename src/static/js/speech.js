@@ -192,12 +192,32 @@
         var item = tnMap[idx];
         if (!item) return;
         if (item.tn && item.tn.parentNode) item.tn.parentNode.removeChild(item.tn);
-        if (item.parent) item.parent.insertBefore(item.span, item.next);
+        if (item.parent) {
+          try {
+            if (item.next && item.parent.contains(item.next)) {
+              item.parent.insertBefore(item.span, item.next);
+            } else {
+              item.parent.appendChild(item.span);
+            }
+          } catch (e) {
+            try { item.parent.appendChild(item.span); } catch (e2) {}
+          }
+        }
       });
       // 还原临时移除的 span（按移除逆序，保证嵌套关系正确）
       for (var i = removedSpans.length - 1; i >= 0; i--) {
         var item = removedSpans[i];
-        if (item.parent) item.parent.insertBefore(item.span, item.next);
+        if (item.parent) {
+          try {
+            if (item.next && item.parent.contains(item.next)) {
+              item.parent.insertBefore(item.span, item.next);
+            } else {
+              item.parent.appendChild(item.span);
+            }
+          } catch (e) {
+            try { item.parent.appendChild(item.span); } catch (e2) {}
+          }
+        }
       }
       return result;
     }
