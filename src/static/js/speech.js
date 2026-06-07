@@ -140,6 +140,29 @@
       try { window.CXSpeech.cancel(); } catch(e) {}
     }
 
+    // TTS 句子级高亮复原数据（init 作用域，供 withExpanded 调用）
+    var _sentenceMarkData = [];
+
+    function restoreElement(injected) {
+      var el = injected.el;
+      if (!el) return;
+      var marks = Array.prototype.slice.call(el.querySelectorAll('mark.cx-tts-sent'));
+      marks.forEach(function(mark) {
+        var parent = mark.parentNode;
+        if (!parent) return;
+        while (mark.firstChild) {
+          parent.insertBefore(mark.firstChild, mark);
+        }
+        parent.removeChild(mark);
+      });
+      try { el.normalize(); } catch(e) {}
+    }
+
+    function clearSentenceMarks() {
+      _sentenceMarkData.forEach(function(inj) { try { restoreElement(inj); } catch(e) {} });
+      _sentenceMarkData = [];
+    }
+
     // 将经文引用临时展开后执行回调，完成后还原 DOM。
     // buildAll 在 withExpanded 内运行，确保 fullText 和 segmentMap 都基于展开后的文本。
     function withExpanded(fn) {
@@ -332,7 +355,7 @@
       var currentChunk = 0;
       // -- TTS 句子级高亮追踪 -------------------------------------------------
       var _segmentMap       = [];   // [{el:<mark|block>, start, end}] 句子级字符偏移
-      var _sentenceMarkData = [];   // [{el, origChildren}] 已注入 mark 的元素，供复原
+      // _sentenceMarkData 已在 init 作用域声明，此处不重复声明
       var _prevTTSEl        = null; // 当前高亮的 <mark> 元素
       var _ttsMarkOffset    = 0;    // _segmentMap 中对应 currentChunk=0 的句子索引
       var _stopOnNav        = null; // hashchange 监听函数，移除时置 null
@@ -423,30 +446,7 @@
         return {marks: marks, origChildren: origChildren, el: el};
       }
 
-      // 就地展开（unwrap）所有 <mark class="cx-tts-sent"> 标签：
-      // 将 mark 的子节点移到 mark 之前，再删除空 mark；最后 normalize() 合并相邻文本节点。
-      // 这样不会清空 el，避免误删已被 withExpanded 还原到 el 直接子级的经文 span，
-      // 同时保持 .scripture-ref 等内联元素在原位，结构完整恢复。
-      function restoreElement(injected) {
-        var el = injected.el;
-        if (!el) return;
-        var marks = Array.prototype.slice.call(el.querySelectorAll('mark.cx-tts-sent'));
-        marks.forEach(function(mark) {
-          var parent = mark.parentNode;
-          if (!parent) return;
-          while (mark.firstChild) {
-            parent.insertBefore(mark.firstChild, mark);
-          }
-          parent.removeChild(mark);
-        });
-        // 合并被句子边界拆分的相邻文本节点，恢复连续性
-        try { el.normalize(); } catch(e) {}
-      }
-
-      function clearSentenceMarks() {
-        _sentenceMarkData.forEach(function(inj) { try { restoreElement(inj); } catch(e) {} });
-        _sentenceMarkData = [];
-      }
+      // restoreElement / clearSentenceMarks 已在 init 作用域定义，此处直接使用。
 
       // 单一遍历构建 fullText 和 _segmentMap（坐标同源）。
       // 在 withExpanded 内执行：经文引用已被替换为展开文本节点，
