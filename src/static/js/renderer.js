@@ -530,6 +530,7 @@
     var content = '';
     var excerpt = chapter.ministry_excerpt || '';
     if (excerpt) {
+      var zsCtxBox = {val: chapter.scripture || ''};
       var paragraphs = excerpt.split(/\n\s*\n/);
       for (var i = 0; i < paragraphs.length; i++) {
         var p = paragraphs[i].trim();
@@ -537,7 +538,8 @@
         if (p.length < 30 && p.indexOf('\n') < 0) {
           content += '<h3 class="ministry-subtitle">' + escText(p) + '</h3>';
         } else {
-          content += '<p class="content-text">' + wrapRefs(p, chapter.scripture) + '</p>';
+          content += '<p class="content-text">' + wrapRefs(p, zsCtxBox.val) + '</p>';
+          scanCtxBox(p, zsCtxBox);
         }
       }
     } else {

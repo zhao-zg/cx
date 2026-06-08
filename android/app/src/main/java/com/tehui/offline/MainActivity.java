@@ -1,6 +1,5 @@
 package com.tehui.offline;
 
-import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -22,19 +21,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(CrashLogPlugin.class);
         super.onCreate(savedInstanceState);
 
-        // 注入 JS 接口：页面就绪后通知 SplashActivity 退出
-        getBridge().getWebView().addJavascriptInterface(new Object() {
-            @android.webkit.JavascriptInterface
-            public void onReady() {
-                SplashActivity.webViewReady = true;
-            }
-        }, "SplashBridge");
-
-        // 首次启动：在 WebView 加载前展示经文加载页
-        if (savedInstanceState == null) {
-            startActivity(new Intent(this, SplashActivity.class));
-            overridePendingTransition(0, 0);
-        }
+        // 启动加载页统一由 HTML #cxSplash 处理（APP / PWA 共用）
 
         // 设置状态栏颜色
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

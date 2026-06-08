@@ -41,13 +41,6 @@
             </intent-filter>
         </activity>
 
-        <!-- 启动加载页（由 MainActivity.onCreate 显示，不作 LAUNCHER） -->
-        <activity
-            android:name="com.tehui.offline.SplashActivity"
-            android:theme="@style/AppTheme"
-            android:noHistory="true"
-            android:exported="false" />
-
         <!-- NativeTTS 前台服务 -->
         <service
             android:name="com.tehui.offline.TTSForegroundService"

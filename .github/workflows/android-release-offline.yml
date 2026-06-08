@@ -346,15 +346,20 @@ jobs:
         mkdir -p android/app/src/main/java/com/tehui/offline
         for f in MainActivity.java ApkInstallerPlugin.java ImageSaverPlugin.java \
                   NativeTTSPlugin.java TTSForegroundService.java \
-                  CrashReporter.java CrashLogPlugin.java SplashActivity.java; do
+                  CrashReporter.java CrashLogPlugin.java; do
           git checkout HEAD -- android/app/src/main/java/com/tehui/offline/$f
         done
         
         # 恢复 AndroidManifest.xml，确保我们手动添加的省电优化权限等不会被 sync 覆盖
         git checkout HEAD -- android/app/src/main/AndroidManifest.xml
         
+        # 恢复自定义主题/颜色资源（防止 cap sync 覆盖）
+        mkdir -p android/app/src/main/res/values
+        git checkout HEAD -- android/app/src/main/res/values/styles.xml
+        git checkout HEAD -- android/app/src/main/res/values/colors.xml
+        
         # 验证插件文件
-        for f in MainActivity.java ApkInstallerPlugin.java NativeTTSPlugin.java TTSForegroundService.java SplashActivity.java; do
+        for f in MainActivity.java ApkInstallerPlugin.java NativeTTSPlugin.java TTSForegroundService.java; do
           if [ ! -f "android/app/src/main/java/com/tehui/offline/$f" ]; then
             echo "✗ $f 恢复失败"
             exit 1
