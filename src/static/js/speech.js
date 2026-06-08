@@ -144,6 +144,12 @@
     var _sentenceMarkData = [];
 
     function restoreElement(injected) {
+      // 先恢复被剥去括号内容的文本节点原始值
+      if (injected._savedParenTN) {
+        injected._savedParenTN.forEach(function(s) {
+          try { if (s.tn.parentNode) s.tn.nodeValue = s.orig; } catch(e) {}
+        });
+      }
       var el = injected.el;
       if (!el) return;
       var marks = Array.prototype.slice.call(el.querySelectorAll('mark.cx-tts-sent'));
@@ -519,6 +525,26 @@
               _segmentMap.push({el: el, start: start, end: end, speakText: filteredText});
             } else {
               _sentenceMarkData.push(injected);
+              // 消除 processText 移除括号内容导致的 DOM↔fullText 位置偏移：
+              // processText 会把 （...）和 (...) 从 fullText 中剥去，
+              // 但 injectSentenceMarks 在原始 DOM 上拆分句子，mark 内仍含括号文本。
+              // 此处从每个 mark 的文本节点中也剥去括号内容，使 mark.textContent 长度
+              // 与 processText(mark.textContent) 一致，保证高亮位置正确。
+              // 同时记录原始值，以便 clearSentenceMarks 还原 DOM 时恢复。
+              var _savedTN = [];
+              injected.marks.forEach(function(mark) {
+                var walker = document.createTreeWalker(mark, NodeFilter.SHOW_TEXT, null, false);
+                var n;
+                while ((n = walker.nextNode())) {
+                  var v = n.nodeValue;
+                  var stripped = v.replace(/（[^）]*）/g, '').replace(/\([^)]*\)/g, '');
+                  if (stripped !== v) {
+                    _savedTN.push({tn: n, orig: v});
+                    n.nodeValue = stripped;
+                  }
+                }
+              });
+              if (_savedTN.length) injected._savedParenTN = _savedTN;
               var sentPos = start;
               injected.marks.forEach(function(mark, i) {
                 var markFiltered = processText(mark.textContent);
