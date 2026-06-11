@@ -345,11 +345,8 @@
                     cachedList.forEach(function(t){if(!namedCacheSet[t.path]&&packSources[t.path])t.is_pack=true;});
                     if(window.CXLocalImport){
                         window.CXLocalImport.listImports().then(function(localItems){
-                            // 本地导入优先：local-YYYY-NN 屏蔽同序号的网络缓存 YYYY-NN
-                            var localKeys={};
-                            localItems.forEach(function(li){localKeys[li.path.replace(/^local-/,'')]=true;});
-                            var netFiltered=cachedList.filter(function(t){return !localKeys[t.path];});
-                            var combined=localItems.concat(netFiltered);
+                            // 本地导入与网络训练合并共存（冲突序号已在导入时自动重分配）
+                            var combined=localItems.concat(cachedList);
                             // 按 YYYY-NN 倒序（local- 前缀去掉后再比较）
                             combined.sort(function(a,b){
                                 var ka=a.path.replace(/^local-/,'');

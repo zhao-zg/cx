@@ -1507,6 +1507,73 @@
     return null;
   }
 
+  // ── 序号冲突检测与重分配 ────────────────────────────────────────────────────
+
+  /**
+   * 检测本地导入的 path 是否与网络训练或已有本地导入冲突（同 year-seq 但标题不同），
+   * 若有冲突则自动分配新序号（从该年已用最大序号 +1 开始）。
+   * 直接修改 trainings 数组中各对象的 path / season。
+   */
+  function resolveConflicts(trainings) {
+    return loadIndex().then(function(localIndex) {
+      // 收集所有已占用的路径（网络 + 本地）
+      var netTrainings = win.__cxTrainings || [];
+      var occupied = {}; // 'YYYY-NN' → title
+      netTrainings.forEach(function(t) { occupied[t.path] = t.title || t.season || ''; });
+      localIndex.forEach(function(item) { occupied[item.path.replace(/^local-/, '')] = item.title || ''; });
+
+      // 按年份分组，收集已用序号
+      var usedSeqsByYear = {};
+      Object.keys(occupied).forEach(function(p) {
+        var m = p.match(/^(\d{4})-(\d+)/);
+        if (m) {
+          var y = m[1], s = parseInt(m[2], 10);
+          if (!usedSeqsByYear[y]) usedSeqsByYear[y] = [];
+          if (usedSeqsByYear[y].indexOf(s) < 0) usedSeqsByYear[y].push(s);
+        }
+      });
+
+      var pathRemap = {}; // oldPath → newPath
+
+      trainings.forEach(function(td) {
+        if (!td.path) return;
+        var oldPath = td.path;
+        var barePath = td.path.replace(/^local-/, '');
+        var m = barePath.match(/^(\d{4})-(\d+)/);
+        if (!m) return;
+        var year = m[1];
+        var seq = parseInt(m[2], 10);
+        var existingTitle = occupied[barePath];
+
+        // 无冲突：该序号未被占用，或是覆盖自己（同标题）
+        if (!existingTitle) {
+          // 记录为已占用（防止同一批导入内重复）
+          occupied[barePath] = td.title || '';
+          if (!usedSeqsByYear[year]) usedSeqsByYear[year] = [];
+          if (usedSeqsByYear[year].indexOf(seq) < 0) usedSeqsByYear[year].push(seq);
+          return;
+        }
+        if (existingTitle === (td.title || '')) return; // 同标题 = 更新覆盖，允许
+
+        // 冲突：同序号不同标题 → 找下一个可用序号
+        if (!usedSeqsByYear[year]) usedSeqsByYear[year] = [];
+        var usedSeqs = usedSeqsByYear[year];
+        var newSeq = seq;
+        while (usedSeqs.indexOf(newSeq) >= 0) { newSeq++; }
+        usedSeqs.push(newSeq);
+
+        var newSeqStr = newSeq < 10 ? '0' + newSeq : '' + newSeq;
+        var shortTitle = td.title || (td.season || '').split(' ').slice(1).join(' ');
+        td.path = 'local-' + year + '-' + newSeqStr;
+        td.season = newSeqStr + ' ' + shortTitle;
+        occupied[year + '-' + newSeqStr] = td.title || '';
+        pathRemap[oldPath] = td.path;
+      });
+
+      return pathRemap;
+    });
+  }
+
   // ── 公开 API ──────────────────────────────────────────────────────────────
 
   /**
@@ -1605,6 +1672,18 @@
             // 富化晨兴 feeding_refs / context（依赖 ref-detector.js，浏览器导入时已加载）
             if (win.CXEnricher) win.CXEnricher.enrichTrainings(trainings);
 
+            // ── 序号冲突检测：本地导入不应顶掉已有的网络训练 ────────────────
+            resolveConflicts(trainings).then(function(pathRemap) {
+            // 同步更新 scripturesMap 的 key（冲突重分配可能改了 path）
+            if (pathRemap) {
+              Object.keys(pathRemap).forEach(function(oldPath) {
+                if (scripturesMap[oldPath]) {
+                  scripturesMap[pathRemap[oldPath]] = scripturesMap[oldPath];
+                  delete scripturesMap[oldPath];
+                }
+              });
+            }
+
             // 逐一保存到 LocalForage
             loadIndex().then(function(index) {
               var indexMap = {};
@@ -1644,6 +1723,7 @@
                 resolve({ count: trainings.length, paths: trainings.map(function(t){ return t.path; }) });
               });
             });
+            }).catch(function(e) { reject(e); });
           } catch(e) {
             reject(e);
           }
