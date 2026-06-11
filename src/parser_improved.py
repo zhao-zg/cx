@@ -377,6 +377,7 @@ class ImprovedParser:
         collecting_verses = False  # 是否正在收集绋文
         collecting_ministry = False  # 是否正在收集职事信息摘录
         ministry_buffer = []  # 职事信息摘录缓冲区
+        scripture_continuation = False  # 读经行跨行时，下一行是续接
         
         # 标语提取相关变量
         self.mottos = []  # 存储标语内容
@@ -609,10 +610,21 @@ class ImprovedParser:
                     chapter_title_buffer = ""
                     # 继续处理当前行
             
+            # 续接上一行末尾以逗号结束的读经内容
+            if scripture_continuation:
+                scripture_continuation = False
+                if self.current_chapter and text:
+                    self.current_chapter.scripture += text
+                continue
+
             # 处理读经（只取每篇第一个读经，避免篇内后续的读经引用覆盖章首读经）
             if self.current_chapter and text.startswith('读经：'):
                 if not self.current_chapter.scripture:
-                    self.current_chapter.scripture = text.replace('读经：', '').strip()
+                    scripture_text = text.replace('读经：', '').strip()
+                    self.current_chapter.scripture = scripture_text
+                    # 读经跨行时（末尾逗号），下一行为续接
+                    if scripture_text.endswith('，'):
+                        scripture_continuation = True
                 continue
             
             # 处理诗歌编号（兼容全角/半角冒号和所有两字母大写前缀）
