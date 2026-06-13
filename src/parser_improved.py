@@ -389,6 +389,8 @@ class ImprovedParser:
         subtitle_found = False
         for i, para in enumerate(doc.paragraphs[:60]):  # 扩大检查范围以包含标语
             text = para.text.strip()
+            # Normalize spaces in chapter markers
+            text = re.sub(r'^第\s+([一二三四五六七八九十百]+)\s+篇', r'第\1篇', text)
             
             # 如果在标语区域
             if motto_started:
@@ -434,6 +436,28 @@ class ImprovedParser:
                 
             # 识别副标题（"总题："后面的内容，支持多种格式）
             # 格式1: "总题：内容"（同行，可能只有部分，续行以"—"结尾）
+            # 格式3: "标题文本 总题：内容"（内联在标题行中）
+            _inline_zongti = re.search(r'[\s\u3000]+总[\u3000\s]*题[：:](.+)', text) if not text.startswith('总题') else None
+            if _inline_zongti and not subtitle_found:
+                # 内联格式："标题文本 总题：副标题内容"
+                title_part = text[:_inline_zongti.start()].strip()
+                inline_content = _inline_zongti.group(1).strip()
+                if title_part:
+                    title_parts.append(title_part)
+                parts = [inline_content] if inline_content else []
+                _stop_re = re.compile(r'目\s*录|^第[一二三四五六七八九十]+篇|^标[\u3000\s]*语|^\d+$')
+                for _j in range(i + 1, min(i + 6, len(doc.paragraphs))):
+                    _next = doc.paragraphs[_j].text.strip()
+                    if not _next:
+                        break
+                    if _stop_re.match(_next):
+                        break
+                    parts.append(_next)
+                self.training_subtitle = ''.join(parts)
+                if self.training_subtitle:
+                    print(f"  ✓ 识别副标题: {self.training_subtitle}")
+                    subtitle_found = True
+                continue
             # 格式2: "总　题"\n"内容第一行"\n"内容第二行"
             if re.match(r'^总[　\s]*题[：:]?$', text) or text.startswith("总题：") or text.startswith("总题:"):
                 inline_content = re.sub(r'^总[　\s]*题[：:]?', '', text).strip()
@@ -511,6 +535,8 @@ class ImprovedParser:
 
         for para in doc.paragraphs:
             text = para.text.strip()
+            # Normalize spaces in chapter markers
+            text = re.sub(r'^第\s+([一二三四五六七八九十百]+)\s+篇', r'第\1篇', text)
             
             # 如果是verses样式或经文格式，添加到当前节点的scripture
             is_verse_by_style = para.style and (para.style.name == 'verses' or para.style.name == '０c 經節')
@@ -770,6 +796,8 @@ class ImprovedParser:
         
         for para in doc.paragraphs:
             text = para.text.strip()
+            # Normalize spaces in chapter markers
+            text = re.sub(r'^第\s+([一二三四五六七八九十百]+)\s+篇', r'第\1篇', text)
             
             if not text:
                 continue
