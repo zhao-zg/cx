@@ -165,24 +165,62 @@ def process_resource_page(session: requests.Session, resource: Dict[str, str]) -
     documents = {'经文': [], '听抄': [], '晨兴': []}
     current_section = '经文'
 
+    # 所有已知的 heading 类型（h1-h6 的各种命名）
+    # Notion API: header(h1), sub_header(h2), sub_sub_header(h3) — legacy
+    # Notion API: header_1~header_6 — newer pages
+    # Notion DOM: notion-header_4-block → API type "header_4" (renders as h5)
+    HEADING_TYPES = {
+        'header', 'sub_header', 'sub_sub_header',
+        'sub_sub_sub_header',  # h4 (legacy)
+        'header_1', 'header_2', 'header_3',
+        'header_4', 'header_5', 'header_6',
+    }
+
+    # 可能包裹文件的容器类型
+    CONTAINER_TYPES = {'bulleted_list', 'numbered_list', 'toggle', 'toggle_heading'}
+
     for child_id in get_children(blocks, resource['id']):
         block = blocks.get(child_id)
         if not block:
             continue
-        block_type = block.get('value', {}).get('type')
-        if block_type in {'header', 'sub_header', 'sub_sub_header'}:
+        value = block.get('value', {})
+        block_type = value.get('type')
+
+        # 调试：打印每个 block 的类型和标题
+        block_title = get_block_title(block)
+        if block_type != 'text':
+            print(f"    [DEBUG] block type={block_type}, title={block_title[:60] if block_title else '(empty)'}")
+
+        if block_type in HEADING_TYPES:
             section_title = get_block_title(block)
-            current_section = classify_document_type(section_title)
+            new_section = classify_document_type(section_title)
+            if new_section != '经文' or any(kw in section_title for kw in ['经文', 'verses', '纲目附']):
+                current_section = new_section
+                print(f"    [DEBUG] 切换分区: {section_title} -> {current_section}")
             continue
-        if block_type == 'bulleted_list':
+
+        if block_type in CONTAINER_TYPES:
             section_title = get_block_title(block)
+            # 容器标题本身可能是分区名
             list_type = classify_document_type(section_title)
-            for item_id in block.get('value', {}).get('content', []):
+            if section_title:
+                print(f"    [DEBUG] 容器 block type={block_type}, title={section_title}, classified={list_type}")
+            # 遍历容器的子块
+            for item_id in value.get('content', []):
                 doc_block = blocks.get(item_id)
-                if not doc_block or doc_block.get('value', {}).get('type') != 'file':
+                if not doc_block:
                     continue
-                collect_file(doc_block, documents, list_type)
+                doc_type = doc_block.get('value', {}).get('type')
+                if doc_type == 'file':
+                    collect_file(doc_block, documents, list_type)
+                elif doc_type in CONTAINER_TYPES:
+                    # 嵌套容器，继续遍历
+                    for nested_id in doc_block.get('value', {}).get('content', []):
+                        nested_block = blocks.get(nested_id)
+                        if nested_block and nested_block.get('value', {}).get('type') == 'file':
+                            collect_file(nested_block, documents, list_type)
             continue
+
         if block_type == 'file':
             collect_file(block, documents, current_section)
 
@@ -192,6 +230,13 @@ def process_resource_page(session: requests.Session, resource: Dict[str, str]) -
         transcript_files = [d for d in tingchao if 'transcript' in d['filename'].lower()]
         if transcript_files:
             documents['听抄'] = transcript_files
+
+    # 打印汇总
+    for doc_type, doc_list in documents.items():
+        if doc_list:
+            print(f"    [{doc_type}] 找到 {len(doc_list)} 个文件: {[d['filename'] for d in doc_list]}")
+        else:
+            print(f"    [{doc_type}] 未找到文件")
 
     return documents
 
@@ -220,7 +265,7 @@ def classify_document_type(title: str) -> str:
     lower = title.lower()
     if '听抄' in title or 'transcript' in lower:
         return '听抄'
-    if '晨兴' in title or 'hwmr' in lower:
+    if '晨兴' in title or 'hwmr' in lower or 'morning' in lower:
         return '晨兴'
     return '经文'
 
