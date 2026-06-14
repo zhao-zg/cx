@@ -101,6 +101,59 @@ def find_document_in_folder(folder_path, filename):
     return None
 
 
+def find_txt_files_in_folder(folder_path):
+    """
+    在指定文件夹中查找 TXT 文件（不含子目录）。
+    
+    Returns:
+        TXT 文件路径列表，按文件名排序；无则返回空列表。
+    """
+    if not os.path.isdir(folder_path):
+        return []
+    txt_files = sorted([
+        os.path.join(folder_path, f)
+        for f in os.listdir(folder_path)
+        if f.lower().endswith('.txt') and os.path.isfile(os.path.join(folder_path, f))
+    ])
+    return txt_files
+
+
+def find_matching_txt_in_history(batch_folder_name, resource_dir='resource'):
+    """
+    从 resource/历史合辑/ 中查找与批次文件夹匹配的 TXT 文件。
+    
+    匹配规则：批次文件夹名 'YYYY-MM ...' → 历史合辑/YYYY/YYYY-M-*.txt
+    （MM 去掉前导零后与 TXT 文件名的序号部分比对）
+    
+    Args:
+        batch_folder_name: 批次文件夹名（如 '2026-01 国际华语特会'）
+        resource_dir: resource 目录路径
+    
+    Returns:
+        匹配的 TXT 文件路径，未找到返回 None。
+    """
+    m = re.match(r'^(\d{4})-(\d{2})', batch_folder_name)
+    if not m:
+        return None
+
+    year = m.group(1)          # '2026'
+    seq_with_pad = m.group(2)  # '01'
+    seq = str(int(seq_with_pad))  # '1'（去掉前导零，匹配 2026-1-*.txt 格式）
+
+    history_dir = os.path.join(resource_dir, '历史合辑', year)
+    if not os.path.isdir(history_dir):
+        return None
+
+    for f in sorted(os.listdir(history_dir)):
+        if not f.lower().endswith('.txt'):
+            continue
+        # 匹配 YYYY-M- 或 YYYY-MM-（兼容带零和不带零两种格式）
+        if re.match(rf'^{re.escape(year)}-0?{re.escape(seq)}-', f):
+            return os.path.join(history_dir, f)
+
+    return None
+
+
 def find_all_numbered_documents(folder_path, base_filename):
     """
     查找所有带编号的文档，如 晨兴.doc, 晨兴2.doc, 晨兴3.doc
@@ -202,9 +255,120 @@ def url_safe_name(name):
     return safe if safe else name
 
 
+def process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_file=None):
+    """
+    使用 TXT 文件（优先）生成 training.json，调用 Node.js 脚本。
+    标语诗歌图片始终从批次文件夹获取（不依赖 Word）。
+
+    Args:
+        txt_file: 指定 TXT 文件路径（如来自 历史合辑）；None 则自动在批次文件夹中查找。
+
+    Returns:
+        成功时返回批次信息 dict，失败返回 None。
+    """
+    batch_name = os.path.basename(batch_folder)
+    output_dir = os.path.join(config['output_dir'], safe_batch_name)
+
+    _build_txt = os.path.join(os.path.dirname(__file__), 'tools', 'build-batch-txt.js')
+    if not os.path.exists(_build_txt):
+        print(f"⚠ 未找到 TXT 构建脚本: {_build_txt}")
+        return None
+
+    cmd = [
+        'node', _build_txt,
+        '--folder', batch_folder,
+        '--output', output_dir,
+    ]
+    if txt_file:
+        cmd.extend(['--txt', txt_file])
+    if batch_config.get('year'):
+        cmd.extend(['--year', str(batch_config['year'])])
+    if batch_config.get('season'):
+        cmd.extend(['--season', str(batch_config['season'])])
+
+    print(f"  调用 Node.js 解析 TXT 文件...")
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+        )
+    except Exception as e:
+        print(f"✗ TXT 解析进程异常: {e}")
+        return None
+
+    # stderr 输出人类可读日志
+    if result.stderr:
+        for line in result.stderr.strip().split('\n'):
+            print(f"  {line}")
+
+    if result.returncode != 0:
+        print(f"✗ TXT 解析失败 (exit {result.returncode})")
+        if result.stdout:
+            print(f"  stdout: {result.stdout[:200]}")
+        return None
+
+    # stdout 是元数据 JSON
+    try:
+        meta = json.loads(result.stdout.strip())
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"✗ 无法解析 TXT 脚本输出: {e}")
+        return None
+
+    print(f"✓ TXT 解析完成: {meta.get('chapter_count', 0)} 篇章")
+
+    # ── 从晨兴 Word 文档补丁诗歌内容和图片 ────────────────────────────────
+    _patch_hymn = os.path.join(os.path.dirname(__file__), 'tools', 'patch-hymn-from-word.py')
+    if os.path.exists(_patch_hymn):
+        print(f"\n  📖 从晨兴 Word 文档提取诗歌内容...")
+        try:
+            hymn_result = subprocess.run(
+                [sys.executable, _patch_hymn,
+                 '--output-dir', output_dir,
+                 '--batch-folder', batch_folder],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                timeout=60,
+            )
+            if hymn_result.stderr:
+                for line in hymn_result.stderr.strip().split('\n'):
+                    print(f"  {line}")
+            if hymn_result.returncode == 0 and hymn_result.stdout.strip():
+                hymn_meta = json.loads(hymn_result.stdout.strip())
+                patched = hymn_meta.get('patched_chapters', 0)
+                if patched:
+                    print(f"  ✓ 诗歌数据已合并: {patched}/{hymn_meta.get('total_chapters', 0)} 篇")
+                else:
+                    print(f"  ⚠ 无诗歌数据需要合并")
+            elif hymn_result.returncode != 0:
+                print(f"  ⚠ 诗歌补丁失败 (exit {hymn_result.returncode})")
+        except subprocess.TimeoutExpired:
+            print(f"  ⚠ 诗歌补丁超时，跳过")
+        except Exception as e:
+            print(f"  ⚠ 诗歌补丁异常: {e}")
+    else:
+        print(f"  ⚠ 未找到诗歌补丁脚本: {_patch_hymn}")
+
+    return {
+        'name': batch_name,
+        'year': meta.get('year', batch_config.get('year', 2025)),
+        'season': meta.get('season', batch_config.get('season', '')),
+        'title': meta.get('title', ''),
+        'chapter_count': meta.get('chapter_count', 0),
+        'path': safe_batch_name,
+        'images': meta.get('images', []),
+        'version': meta.get('version', ''),
+    }
+
+
 def process_batch(batch_folder, config, bible_dict: BibleDict = None):
     """
     处理单个批次的文档，生成 training.json。
+
+    优先使用 TXT 文件（如存在）；无 TXT 时回退到 Word 文档解析。
+    标语诗歌图片始终从批次文件夹中的图片文件获取（不依赖 Word）。
 
     Returns:
         成功时返回批次信息 dict，失败返回 None。
@@ -239,6 +403,21 @@ def process_batch(batch_folder, config, bible_dict: BibleDict = None):
         batch_config['season'] = default_training.get('season', '秋季')
         print(f"⚠ 文件夹名格式不标准，使用默认配置: {batch_config['year']}年{batch_config['season']}")
 
+    # ── 优先检测 TXT 文件 ────────────────────────────────────────────────────
+    # 1. 批次文件夹内直接有 .txt（最高优先级）
+    txt_files = find_txt_files_in_folder(batch_folder)
+    if txt_files:
+        print(f"✓ 找到 TXT 文件（批次目录内，优先使用）: {os.path.basename(txt_files[0])}")
+        return process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_file=txt_files[0])
+
+    # 2. 从 resource/历史合辑/ 中按 YYYY-MM 查找匹配的 TXT
+    resource_dir = config.get('resource_dir', config.get('resource_base_dir', 'resource'))
+    matched_txt = find_matching_txt_in_history(batch_name, resource_dir)
+    if matched_txt:
+        print(f"✓ 找到匹配的 TXT（历史合辑，优先使用）: {os.path.relpath(matched_txt, resource_dir)}")
+        return process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_file=matched_txt)
+
+    # ── 回退到 Word 文档解析 ─────────────────────────────────────────────────
     listen_doc = find_document_in_folder(batch_folder, '听抄')
     scripture_doc = find_document_in_folder(batch_folder, '经文')
     morning_revival_docs = find_all_numbered_documents(batch_folder, '晨兴')

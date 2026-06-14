@@ -29,6 +29,8 @@ DOWNLOAD_HEADERS = {
 }
 BASE_URL = "https://mygoodland.notion.site/b1935b21f2874bc4a928cae9385f717d"
 TARGET_EXTENSIONS = ('.doc', '.docx')
+PDB_EXTENSIONS = ('.pdb',)
+ALL_EXTENSIONS = TARGET_EXTENSIONS + PDB_EXTENSIONS
 MIN_TRAINING_YEAR = 2025
 MIN_TRAINING_MONTH = 4
 NOTION_TOKEN = os.getenv('NOTION_TOKEN')
@@ -121,7 +123,7 @@ def find_year_links(session: requests.Session, page_id: str) -> List[Dict[str, s
     return year_links
 
 
-def find_training_links_in_year(session: requests.Session, year_info: Dict[str, str]) -> List[Dict[str, str]]:
+def find_training_links_in_year(session: requests.Session, year_info: Dict[str, str], include_all: bool = False) -> List[Dict[str, str]]:
     blocks = load_page_blocks(session, year_info['id'])
     trainings = []
     for child_id in get_children(blocks, year_info['id']):
@@ -129,7 +131,7 @@ def find_training_links_in_year(session: requests.Session, year_info: Dict[str, 
         if not block or block.get('value', {}).get('type') != 'page':
             continue
         title = get_block_title(block)
-        if training_in_range(title):
+        if include_all or training_in_range(title):
             trainings.append({'id': child_id, 'title': title})
     return trainings
 
@@ -162,7 +164,7 @@ def find_motto_pages(session: requests.Session, training: Dict[str, str]) -> Opt
 
 def process_resource_page(session: requests.Session, resource: Dict[str, str]) -> Dict[str, List[Dict[str, Any]]]:
     blocks = load_page_blocks(session, resource['id'])
-    documents = {'经文': [], '听抄': [], '晨兴': []}
+    documents = {'经文': [], '听抄': [], '晨兴': [], 'pdb': []}
     current_section = '经文'
 
     # 所有已知的 heading 类型（h1-h6 的各种命名）
@@ -244,14 +246,28 @@ def process_resource_page(session: requests.Session, resource: Dict[str, str]) -
 def collect_file(block: Dict[str, Any], documents: Dict[str, List[Dict[str, Any]]], section_type: str) -> None:
     value = block.get('value', {})
     filename = extract_filename(value)
-    if not filename or not filename.lower().endswith(TARGET_EXTENSIONS):
+    if not filename:
         return
-    if not is_simplified_chinese(filename) or (section_type == '经文' and not is_with_verses_s(filename)):
+    lower_name = filename.lower()
+    is_pdb = lower_name.endswith('.pdb')
+    is_word = lower_name.endswith(TARGET_EXTENSIONS)
+    if not is_pdb and not is_word:
         return
+    # PDB 文件: 只检查简体中文，不检查 with verses
+    if is_pdb:
+        if not is_simplified_chinese(filename):
+            return
+        doc_type = 'pdb'
+    else:
+        if not is_simplified_chinese(filename) or (section_type == '经文' and not is_with_verses_s(filename)):
+            return
+        doc_type = section_type if section_type in documents else '经文'
+    # PDB 分类可能不在 documents 中，初始化
+    if doc_type not in documents:
+        documents[doc_type] = []
     file_id = get_file_id(value)
     if not file_id:
         return
-    doc_type = section_type if section_type in documents else '经文'
     documents[doc_type].append({
         'filename': filename,
         'title': filename,
@@ -302,6 +318,11 @@ def build_attachment_url(file_id: str, block_id: str, filename: str) -> str:
 
 def is_simplified_chinese(filename: str) -> bool:
     lower = filename.lower()
+    # PDB 文件不检查 -s 后缀
+    if lower.endswith('.pdb'):
+        if '-t.' in lower or '-e.' in lower:
+            return False
+        return True
     if lower.endswith('-s.doc') or lower.endswith('-s.docx'):
         return True
     if '-t.' in lower or '-e.' in lower:
@@ -354,13 +375,17 @@ def download_documents(session: requests.Session, documents: Dict[str, List[Dict
         if not doc_list:
             continue
         for idx, doc in enumerate(doc_list, 1):
-            ext = '.docx' if doc['filename'].lower().endswith('.docx') else '.doc'
-            if len(doc_list) == 1:
-                new_name = f"{doc_type}{ext}"
+            if doc_type == 'pdb':
+                # PDB 文件保持原始文件名，存放到 pdb/ 子目录
+                new_name = doc['filename']
             else:
-                # 多文件命名: 晨兴.doc, 晨兴2.doc, 晨兴3.doc...
-                suffix = idx if idx == 1 else str(idx)
-                new_name = f"{doc_type}{suffix}{ext}" if idx > 1 else f"{doc_type}{ext}"
+                ext = '.docx' if doc['filename'].lower().endswith('.docx') else '.doc'
+                if len(doc_list) == 1:
+                    new_name = f"{doc_type}{ext}"
+                else:
+                    # 多文件命名: 晨兴.doc, 晨兴2.doc, 晨兴3.doc...
+                    suffix = idx if idx == 1 else str(idx)
+                    new_name = f"{doc_type}{suffix}{ext}" if idx > 1 else f"{doc_type}{ext}"
             
             all_docs.append({
                 'file_id': doc['file_id'],
@@ -373,7 +398,14 @@ def download_documents(session: requests.Session, documents: Dict[str, List[Dict
                 'block_id': doc.get('block_id')
             })
     
-    print(f"收集到 {len(all_docs)} 个文档，将使用 Playwright 下载...")
+    pdb_count = sum(1 for d in all_docs if d['doc_type'] == 'pdb')
+    word_count = len(all_docs) - pdb_count
+    parts = []
+    if word_count:
+        parts.append(f"{word_count} 个Word文档")
+    if pdb_count:
+        parts.append(f"{pdb_count} 个PDB文件")
+    print(f"收集到 {', '.join(parts)}，将使用 Playwright 下载...")
     return all_docs
 
 
@@ -444,7 +476,7 @@ def download_motto_image(session: requests.Session, motto_page: Dict[str, str], 
     return True
 
 
-def download_notion_documents(base_url: str, only_images: bool = False) -> List[Dict[str, Any]]:
+def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode: bool = False) -> List[Dict[str, Any]]:
     page_id = extract_page_id(base_url)
     if not page_id:
         print("无法解析页面 ID")
@@ -458,13 +490,17 @@ def download_notion_documents(base_url: str, only_images: bool = False) -> List[
     print(f"找到 {len(year_links)} 个年份页面: {[y['title'] for y in year_links]}")
     all_trainings = []
     for year in year_links:
-        trainings = find_training_links_in_year(session, year)
+        # PDB 模式: 包含所有年份的训练
+        trainings = find_training_links_in_year(session, year, include_all=pdb_mode)
         print(f"  {year['title']}: 找到 {len(trainings)} 个训练")
         for t in trainings:
             print(f"    - {t['title']}")
         all_trainings.extend(trainings)
     if not all_trainings:
-        print(f"未找到符合范围的训练（>= {MIN_TRAINING_YEAR}-{MIN_TRAINING_MONTH:02d}）")
+        if pdb_mode:
+            print("未找到任何训练")
+        else:
+            print(f"未找到符合范围的训练（>= {MIN_TRAINING_YEAR}-{MIN_TRAINING_MONTH:02d}）")
         return []
     print(f"\n共 {len(all_trainings)} 个训练待处理")
     all_docs: List[Dict[str, Any]] = []
@@ -472,15 +508,16 @@ def download_notion_documents(base_url: str, only_images: bool = False) -> List[
         folder_name = re.sub(r'[<>:\\"/|?*]', '_', training['title'])
         print(f"\n处理训练: {training['title']}")
         
-        # 下载标语诗歌图片
-        motto_page = find_motto_pages(session, training)
-        if motto_page:
-            print(f"  找到标语页面: {motto_page['title']}")
-            download_motto_image(session, motto_page, folder_name)
-        else:
-            print(f"  未找到标语页面")
+        # 下载标语诗歌图片 (PDB 模式跳过)
+        if not pdb_mode:
+            motto_page = find_motto_pages(session, training)
+            if motto_page:
+                print(f"  找到标语页面: {motto_page['title']}")
+                download_motto_image(session, motto_page, folder_name)
+            else:
+                print(f"  未找到标语页面")
         
-        # 如果只下载图片，跳过Word文档
+        # 如果只下载图片，跳过文档
         if only_images:
             time.sleep(1)
             continue
@@ -492,12 +529,18 @@ def download_notion_documents(base_url: str, only_images: bool = False) -> List[
         print(f"  找到 {len(resource_pages)} 个资源页面")
         
         for resource in resource_pages:
-            aggregated: Dict[str, List[Dict[str, Any]]] = {'经文': [], '听抄': [], '晨兴': []}
+            aggregated: Dict[str, List[Dict[str, Any]]] = {'经文': [], '听抄': [], '晨兴': [], 'pdb': []}
             docs = process_resource_page(session, resource)
             for key, value in docs.items():
-                aggregated[key].extend(value)
-            if any(aggregated.values()):
-                all_docs.extend(download_documents(session, aggregated, folder_name, training['id'], resource['id']))
+                if key in aggregated:
+                    aggregated[key].extend(value)
+            if pdb_mode:
+                # PDB 模式: 只收集 PDB 文件
+                if aggregated['pdb']:
+                    all_docs.extend(download_documents(session, {'pdb': aggregated['pdb']}, folder_name, training['id'], resource['id']))
+            else:
+                if any(aggregated.values()):
+                    all_docs.extend(download_documents(session, aggregated, folder_name, training['id'], resource['id']))
         time.sleep(1)
     return all_docs
 
@@ -649,8 +692,11 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                 if not temp_download_dir.exists():
                     temp_download_dir.mkdir(parents=True, exist_ok=True)
                 
-                # 最终目标路径
-                download_dir = Path('resource') / doc['folder']
+                # 最终目标路径: PDB 文件存放到 resource/pdb/{training}/ 子目录
+                if doc['doc_type'] == 'pdb':
+                    download_dir = Path('resource') / 'pdb' / doc['folder']
+                else:
+                    download_dir = Path('resource') / doc['folder']
                 if not download_dir.exists():
                     download_dir.mkdir(parents=True, exist_ok=True)
                 filename = doc['filename']
@@ -782,11 +828,15 @@ def main() -> None:
     parser = ArgumentParser(description="Notion 文档下载器（自动使用 Playwright 回退下载）")
     parser.add_argument('--url', default=BASE_URL, help='Notion 页面 URL')
     parser.add_argument('--only-images', action='store_true', help='只下载标语诗歌图片，跳过Word文档')
+    parser.add_argument('--pdb', action='store_true', help='只下载PDB文件（所有年份），保存到 resource/pdb/')
     args = parser.parse_args()
     print('=' * 80)
     print('Notion文档下载器启动')
     print('=' * 80)
-    if args.only_images:
+    if args.pdb:
+        print('目标: 下载所有年份的PDB文件')
+        print('保存位置: resource/pdb/{training}/')
+    elif args.only_images:
         print('目标: 下载标语诗歌图片')
     else:
         print('目标: 下载训练资源中的简体中文Word文档和标语诗歌图片')
@@ -795,7 +845,7 @@ def main() -> None:
     start_time = time.time()
     all_docs: List[Dict[str, Any]] = []
     try:
-        all_docs = download_notion_documents(args.url, args.only_images)
+        all_docs = download_notion_documents(args.url, args.only_images, args.pdb)
     except KeyboardInterrupt:
         print('\n\n用户中断下载')
     except Exception as error:

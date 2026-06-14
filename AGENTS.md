@@ -4,7 +4,7 @@
 **Branch:** main (zhao-zg/cx)
 
 ## OVERVIEW
-Word文档（.docx）→ 静态HTML网站生成器，兼安卓PWA/APK打包。Python 3 后端 + Jinja2 模板 + Capacitor 6 Android 壳，部署到 Cloudflare Pages。
+Word文档（.docx）/ TXT 文件 → 静态HTML网站生成器，兼安卓PWA/APK打包。Python 3 后端 + Jinja2 模板 + Capacitor 6 Android 壳，部署到 Cloudflare Pages。生成时优先使用 TXT 文件（先查批次目录，再按 YYYY-MM 匹配 `历史合辑/YYYY/YYYY-NN-*.txt`），无 TXT 时回退到 Word 文档解析；每篇的诗歌图片始终从晨兴 Word 文档提取（TXT 路径下由 `patch-hymn-from-word.py` 后处理）；标语诗歌图片从批次文件夹获取。
 
 ## STRUCTURE
 ```
@@ -22,6 +22,10 @@ cx/
 ├── .github/            # Workflows + 发布流程文档
 ├── config.yaml         # 批次/路径/远程服务器配置
 ├── main.py             # 主入口（批量生成）
+├── tools/
+│   ├── build-trainings-json.js  # 历史合辑 TXT → training.json
+│   ├── build-batch-txt.js       # 批次文件夹 TXT → training.json（优先路径）
+│   └── patch-hymn-from-word.py  # TXT 生成后，从晨兴 Word 补丁诗歌图片
 ├── encrypt_app_update.py  # CI 中加密 app-update.js（本地勿运行）
 └── release.bat         # 本地发布：更新版本 + 推送 tag → 触发 CI
 ```
