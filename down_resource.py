@@ -69,25 +69,37 @@ def extract_page_id(url: str) -> Optional[str]:
 
 
 def load_page_blocks(session: requests.Session, page_id: str) -> Dict[str, Any]:
-    payload = {
-        "pageId": page_id,
-        "chunkNumber": 0,
-        "limit": 100,
-        "cursor": {"stack": []},
-        "verticalColumns": False
-    }
-    response = session.post(NOTION_CHUNK_URL, json=payload, timeout=30)
-    response.raise_for_status()
-    raw_blocks = response.json().get('recordMap', {}).get('block', {})
-    # API wraps block data as {spaceId: ..., value: {value: {actual_data}}}
-    # Normalize to the expected {value: {actual_data}} flat structure
+    """加载页面的所有 blocks（支持分页，不限数量）。"""
     result: Dict[str, Any] = {}
-    for bid, b in raw_blocks.items():
-        inner = b.get('value', {})
-        if isinstance(inner, dict) and 'value' in inner:
-            result[bid] = {'value': inner['value']}
-        else:
-            result[bid] = b
+    cursor: Dict[str, Any] = {"stack": []}
+    chunk_num = 0
+    while True:
+        payload = {
+            "pageId": page_id,
+            "chunkNumber": chunk_num,
+            "limit": 100,
+            "cursor": cursor,
+            "verticalColumns": False
+        }
+        response = session.post(NOTION_CHUNK_URL, json=payload, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        raw_blocks = data.get('recordMap', {}).get('block', {})
+        # API wraps block data as {spaceId: ..., value: {value: {actual_data}}}
+        # Normalize to the expected {value: {actual_data}} flat structure
+        for bid, b in raw_blocks.items():
+            inner = b.get('value', {})
+            if isinstance(inner, dict) and 'value' in inner:
+                result[bid] = {'value': inner['value']}
+            else:
+                result[bid] = b
+        # Check if there are more chunks
+        cursor = data.get('cursor', {})
+        if not cursor or not cursor.get('stack'):
+            break
+        chunk_num += 1
+        if chunk_num > 50:  # Safety limit
+            break
     return result
 
 
@@ -149,6 +161,56 @@ def find_resource_pages(session: requests.Session, training: Dict[str, str]) -> 
     return resource_pages
 
 
+def find_all_child_pages(session: requests.Session, parent_id: str) -> List[Dict[str, str]]:
+    """查找父页面下的所有子页面（不限标题）。"""
+    blocks = load_page_blocks(session, parent_id)
+    pages = []
+    for child_id in get_children(blocks, parent_id):
+        block = blocks.get(child_id)
+        if not block or block.get('value', {}).get('type') != 'page':
+            continue
+        title = get_block_title(block)
+        pages.append({'id': child_id, 'title': title or '(untitled)'})
+    return pages
+
+
+def scan_page_for_pdb(session: requests.Session, page: Dict[str, str]) -> List[Dict[str, Any]]:
+    """扫描页面中的 PDB 文件（含递归遍历容器）。"""
+    blocks = load_page_blocks(session, page['id'])
+    documents = {'pdb': []}
+
+    # 扫描当前页面的 file blocks
+    for child_id in get_children(blocks, page['id']):
+        block = blocks.get(child_id)
+        if not block:
+            continue
+        value = block.get('value', {})
+        block_type = value.get('type')
+        if block_type == 'file':
+            collect_file(block, documents, 'pdb')
+        elif block_type in ('bulleted_list', 'numbered_list', 'toggle', 'toggle_heading'):
+            # 递归遍历容器
+            _scan_container_for_pdb(blocks, value, documents, depth=0)
+
+    return documents.get('pdb', [])
+
+
+def _scan_container_for_pdb(blocks, value, documents, depth=0):
+    """递归扫描容器中的 PDB 文件。"""
+    if depth > 10:
+        return
+    for item_id in value.get('content', []):
+        child_block = blocks.get(item_id)
+        if not child_block:
+            continue
+        child_val = child_block.get('value', {})
+        child_type = child_val.get('type')
+        if child_type == 'file':
+            collect_file(child_block, documents, 'pdb')
+        elif child_type in ('bulleted_list', 'numbered_list', 'toggle', 'toggle_heading'):
+            _scan_container_for_pdb(blocks, child_val, documents, depth + 1)
+
+
 def find_motto_pages(session: requests.Session, training: Dict[str, str]) -> Optional[Dict[str, str]]:
     """查找训练下的标语页面"""
     blocks = load_page_blocks(session, training['id'])
@@ -181,6 +243,24 @@ def process_resource_page(session: requests.Session, resource: Dict[str, str]) -
     # 可能包裹文件的容器类型
     CONTAINER_TYPES = {'bulleted_list', 'numbered_list', 'toggle', 'toggle_heading'}
 
+    def _collect_from_block(block, section, depth=0):
+        """递归遍历 block 及其嵌套容器，收集文件。"""
+        if not block or depth > 10:
+            return
+        val = block.get('value', {})
+        btype = val.get('type')
+        if btype == 'file':
+            collect_file(block, documents, section)
+        elif btype in CONTAINER_TYPES:
+            container_title = get_block_title(block)
+            container_section = classify_document_type(container_title) if container_title else section
+            if container_title and depth < 2:
+                print(f"    [DEBUG] {'  ' * depth}容器: {container_title}, classified={container_section}")
+            for child_id in val.get('content', []):
+                child_block = blocks.get(child_id)
+                if child_block:
+                    _collect_from_block(child_block, container_section, depth + 1)
+
     for child_id in get_children(blocks, resource['id']):
         block = blocks.get(child_id)
         if not block:
@@ -202,25 +282,7 @@ def process_resource_page(session: requests.Session, resource: Dict[str, str]) -
             continue
 
         if block_type in CONTAINER_TYPES:
-            section_title = get_block_title(block)
-            # 容器标题本身可能是分区名
-            list_type = classify_document_type(section_title)
-            if section_title:
-                print(f"    [DEBUG] 容器 block type={block_type}, title={section_title}, classified={list_type}")
-            # 遍历容器的子块
-            for item_id in value.get('content', []):
-                doc_block = blocks.get(item_id)
-                if not doc_block:
-                    continue
-                doc_type = doc_block.get('value', {}).get('type')
-                if doc_type == 'file':
-                    collect_file(doc_block, documents, list_type)
-                elif doc_type in CONTAINER_TYPES:
-                    # 嵌套容器，继续遍历
-                    for nested_id in doc_block.get('value', {}).get('content', []):
-                        nested_block = blocks.get(nested_id)
-                        if nested_block and nested_block.get('value', {}).get('type') == 'file':
-                            collect_file(nested_block, documents, list_type)
+            _collect_from_block(block, current_section)
             continue
 
         if block_type == 'file':
@@ -522,23 +584,50 @@ def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode
             time.sleep(1)
             continue
         
-        resource_pages = find_resource_pages(session, training)
-        if not resource_pages:
-            print(f"  未找到资源页面")
-            continue
-        print(f"  找到 {len(resource_pages)} 个资源页面")
-        
-        for resource in resource_pages:
-            aggregated: Dict[str, List[Dict[str, Any]]] = {'经文': [], '听抄': [], '晨兴': [], 'pdb': []}
-            docs = process_resource_page(session, resource)
-            for key, value in docs.items():
-                if key in aggregated:
-                    aggregated[key].extend(value)
-            if pdb_mode:
-                # PDB 模式: 只收集 PDB 文件
-                if aggregated['pdb']:
-                    all_docs.extend(download_documents(session, {'pdb': aggregated['pdb']}, folder_name, training['id'], resource['id']))
+        if pdb_mode:
+            # PDB 模式: 扫描训练页面本身 + 所有子页面，查找 PDB 文件
+            all_pdb: List[Dict[str, Any]] = []
+            # 1) 扫描训练页面本身
+            print(f"  扫描训练页面...")
+            training_pdb = scan_page_for_pdb(session, training)
+            if training_pdb:
+                print(f"  训练页面找到 {len(training_pdb)} 个PDB: {[d['filename'] for d in training_pdb]}")
+                all_pdb.extend(training_pdb)
+            # 2) 扫描所有子页面
+            child_pages = find_all_child_pages(session, training['id'])
+            print(f"  找到 {len(child_pages)} 个子页面: {[p['title'] for p in child_pages]}")
+            for page in child_pages:
+                print(f"  扫描子页面: {page['title']}")
+                page_pdb = scan_page_for_pdb(session, page)
+                if page_pdb:
+                    print(f"    找到 {len(page_pdb)} 个PDB: {[d['filename'] for d in page_pdb]}")
+                    all_pdb.extend(page_pdb)
+                # 递归扫描子页面的子页面 (资源页面下可能还有子页面)
+                sub_pages = find_all_child_pages(session, page['id'])
+                for sub in sub_pages:
+                    print(f"    扫描二级子页面: {sub['title']}")
+                    sub_pdb = scan_page_for_pdb(session, sub)
+                    if sub_pdb:
+                        print(f"      找到 {len(sub_pdb)} 个PDB: {[d['filename'] for d in sub_pdb]}")
+                        all_pdb.extend(sub_pdb)
+            if all_pdb:
+                all_docs.extend(download_documents(session, {'pdb': all_pdb}, folder_name, training['id'], training['id']))
             else:
+                print(f"  未找到PDB文件")
+        else:
+            # 正常模式: 只处理资源页面
+            resource_pages = find_resource_pages(session, training)
+            if not resource_pages:
+                print(f"  未找到资源页面")
+                continue
+            print(f"  找到 {len(resource_pages)} 个资源页面")
+            
+            for resource in resource_pages:
+                aggregated: Dict[str, List[Dict[str, Any]]] = {'经文': [], '听抄': [], '晨兴': [], 'pdb': []}
+                docs = process_resource_page(session, resource)
+                for key, value in docs.items():
+                    if key in aggregated:
+                        aggregated[key].extend(value)
                 if any(aggregated.values()):
                     all_docs.extend(download_documents(session, aggregated, folder_name, training['id'], resource['id']))
         time.sleep(1)
@@ -799,8 +888,26 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                             continue
                     
                     if not downloaded:
-                        print(f"  所有方法都失败，跳过")
-                        total_failed += 1
+                        # Playwright 点击全部失败，尝试签名 URL 兜底
+                        print(f"  Playwright 点击均失败，尝试签名URL...")
+                        signed_url = fetch_signed_url_from_request(context.request, doc['file_id'])
+                        if signed_url:
+                            try:
+                                response = context.request.get(signed_url)
+                                if response.status == 200:
+                                    new_content = response.body()
+                                    target_path.write_bytes(new_content)
+                                    size_kb = len(new_content) / 1024
+                                    print(f"  [OK] 签名URL下载成功: {target_path} ({size_kb:.1f} KB)")
+                                    total_success += 1
+                                    downloaded = True
+                                else:
+                                    print(f"  签名URL下载失败 ({response.status})")
+                            except Exception as e:
+                                print(f"  签名URL下载异常: {e}")
+                        if not downloaded:
+                            print(f"  所有方法都失败，跳过")
+                            total_failed += 1
                     
                 except Exception as e:
                     print(f"  下载失败 {filename}: {e}")
@@ -829,6 +936,7 @@ def main() -> None:
     parser.add_argument('--url', default=BASE_URL, help='Notion 页面 URL')
     parser.add_argument('--only-images', action='store_true', help='只下载标语诗歌图片，跳过Word文档')
     parser.add_argument('--pdb', action='store_true', help='只下载PDB文件（所有年份），保存到 resource/pdb/')
+    parser.add_argument('--dry-run', action='store_true', help='只扫描 Notion 页面，不实际下载（用于调试）')
     args = parser.parse_args()
     print('=' * 80)
     print('Notion文档下载器启动')
@@ -841,6 +949,8 @@ def main() -> None:
     else:
         print('目标: 下载训练资源中的简体中文Word文档和标语诗歌图片')
         print('类型: 经文、听抄、晨兴、标语诗歌')
+    if args.dry_run:
+        print('模式: DRY-RUN（只扫描，不下载）')
     print('=' * 80)
     start_time = time.time()
     all_docs: List[Dict[str, Any]] = []
@@ -850,14 +960,23 @@ def main() -> None:
         print('\n\n用户中断下载')
     except Exception as error:
         print(f"\n\n程序异常: {error}")
+        import traceback
+        traceback.print_exc()
     else:
         elapsed = time.time() - start_time
         print('=' * 80)
-        print(f"下载完成, 耗时: {elapsed:.1f} 秒")
+        print(f"扫描完成, 耗时: {elapsed:.1f} 秒")
         print('=' * 80)
     
     if all_docs and not args.only_images:
-        playwright_downloads(all_docs)
+        if args.dry_run:
+            print(f"\n[DRY-RUN] 共找到 {len(all_docs)} 个待下载文档:")
+            for doc in all_docs[:20]:
+                print(f"  [{doc['doc_type']}] {doc['folder']}/{doc['filename']}")
+            if len(all_docs) > 20:
+                print(f"  ... 还有 {len(all_docs) - 20} 个")
+        else:
+            playwright_downloads(all_docs)
 
 
 if __name__ == '__main__':

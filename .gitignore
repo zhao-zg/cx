@@ -51,6 +51,7 @@ output/
 
 # Temporary downloads
 tmp_downloads/
+resource/pdb/
 
 # Security build artifacts
 *.dev.backup
