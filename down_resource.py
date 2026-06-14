@@ -585,31 +585,18 @@ def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode
             continue
         
         if pdb_mode:
-            # PDB 模式: 扫描训练页面本身 + 所有子页面，查找 PDB 文件
+            # PDB 模式: 只扫描资源页面（不遍历子页面）
+            resource_pages = find_resource_pages(session, training)
+            if not resource_pages:
+                print(f"  未找到资源页面")
+                continue
             all_pdb: List[Dict[str, Any]] = []
-            # 1) 扫描训练页面本身
-            print(f"  扫描训练页面...")
-            training_pdb = scan_page_for_pdb(session, training)
-            if training_pdb:
-                print(f"  训练页面找到 {len(training_pdb)} 个PDB: {[d['filename'] for d in training_pdb]}")
-                all_pdb.extend(training_pdb)
-            # 2) 扫描所有子页面
-            child_pages = find_all_child_pages(session, training['id'])
-            print(f"  找到 {len(child_pages)} 个子页面: {[p['title'] for p in child_pages]}")
-            for page in child_pages:
-                print(f"  扫描子页面: {page['title']}")
-                page_pdb = scan_page_for_pdb(session, page)
+            for resource in resource_pages:
+                print(f"  扫描资源页面: {resource['title']}")
+                page_pdb = scan_page_for_pdb(session, resource)
                 if page_pdb:
                     print(f"    找到 {len(page_pdb)} 个PDB: {[d['filename'] for d in page_pdb]}")
                     all_pdb.extend(page_pdb)
-                # 递归扫描子页面的子页面 (资源页面下可能还有子页面)
-                sub_pages = find_all_child_pages(session, page['id'])
-                for sub in sub_pages:
-                    print(f"    扫描二级子页面: {sub['title']}")
-                    sub_pdb = scan_page_for_pdb(session, sub)
-                    if sub_pdb:
-                        print(f"      找到 {len(sub_pdb)} 个PDB: {[d['filename'] for d in sub_pdb]}")
-                        all_pdb.extend(sub_pdb)
             if all_pdb:
                 all_docs.extend(download_documents(session, {'pdb': all_pdb}, folder_name, training['id'], training['id']))
             else:
