@@ -856,7 +856,9 @@
       btn.textContent = '加载中…';
       var offset = this._queueOffset;
       var q = this._currentQuery;
-      this._loadUntilEnoughResults(offset, self.SEARCH_BATCH_SIZE, q).then(function (loaded) {
+      // 每次点击至少加载 3 个有结果的训练，避免只显示 1 个就消失
+      var MIN_GROUPS = 3;
+      this._loadUntilEnoughResults(offset, MIN_GROUPS, q).then(function (loaded) {
         self._queueOffset = loaded.newOffset;
         var terms = q.toLowerCase().split(/\s+/).filter(Boolean);
         var result = self.search(q, loaded.entries);

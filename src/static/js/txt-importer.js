@@ -300,6 +300,7 @@
   /** 检测 detail 区起始行（0-based），完全移植 Python detect_detail_start */
   function detectDetailStart(lines) {
     var n = lines.length;
+    var topLineIdx = -1; // 记录独立 TOP 行的位置
     for (var i = 0; i < n; i++) {
       var s = lines[i].trim();
       // ─{20,}\n详细信息\n─{20,}
@@ -311,6 +312,19 @@
       // TOP-目录
       if (s === 'TOP-目录') {
         return i + 1;
+      }
+      // 记录独立 TOP 行（无 TOP-目录 时的后备策略）
+      if (s === 'TOP' && topLineIdx < 0) {
+        topLineIdx = i;
+      }
+    }
+    // 后备：无 TOP-目录，但有独立 TOP 行 → 扫描其后的第一个中文数字章节标题
+    if (topLineIdx >= 0) {
+      var CN_NUM_HDR = /^第[一二三四五六七八九十百千]+[篇周]/;
+      for (var j = topLineIdx + 1; j < Math.min(topLineIdx + 30, n); j++) {
+        if (CN_NUM_HDR.test(lines[j].trim())) {
+          return j;
+        }
       }
     }
     return n; // 无 detail 区
@@ -358,8 +372,8 @@
       if (s === '标语诗歌' || s === '标语诗' || s === '标语歌') {
         inMotto = false; inSong = true; continue;
       }
-      // TOP 重置
-      if (s === 'TOP') { inMotto = false; inSong = false; continue; }
+      // TOP / TOP-目录 重置
+      if (/^TOP/.test(s)) { inMotto = false; inSong = false; continue; }
 
       // 导航行/篇目行
       if (isNavLine(s) || /^第\d+篇/.test(s)) {
@@ -493,14 +507,21 @@
     var scripture = '';
     var hymnNumber = '';
 
-    for (var i = 0; i < Math.min(20, msgLines.length); i++) {
+    // 扫描读经：通常在章节开头附近
+    for (var i = 0; i < Math.min(30, msgLines.length); i++) {
       var s = msgLines[i].trim();
       if (!scripture && /^读经/.test(s)) {
         var rest = s.slice(2).replace(/^[：:∶]\s*/, '');
         if (rest) scripture = rest;
       }
-      if (!hymnNumber && /^诗歌/.test(s)) {
-        hymnNumber = s.slice(2).replace(/^[：:∶]\s*/, '') || s;
+    }
+    // 扫描诗歌：可能在晨兴区（第N周标题之后），需扫描更大范围
+    // 只匹配行首的 "诗歌：" 格式，避免匹配正文中嵌入的诗歌引用
+    for (var h = 0; h < msgLines.length; h++) {
+      var hs = msgLines[h].trim();
+      if (/^诗歌[：:∶]/.test(hs)) {
+        hymnNumber = hs.slice(2).replace(/^[：:∶]\s*/, '') || hs;
+        break;
       }
     }
 
