@@ -32,6 +32,8 @@
     _searchCache: {},
     // 各训练版本号（来自 trainings.json）：path → version string
     _trainingVersions: {},
+    // trainings.json 中所有训练路径（首次加载后缓存，供重建队列用）
+    _allTrainingPaths: [],
     // 当前搜索队列（当前训练优先）
     _searchQueue: [],
     // 下一批起始偏移
@@ -183,11 +185,14 @@
       win.localforage.setItem('cx_search_' + path, { version: version, entries: entries });
     },
 
-    // ── 确保 trainings.json 已加载（建立版本表和搜索队列）──────────────────
+    // ── 确保 trainings.json 已加载（建立版本表）──────────────────────────
 
     _ensureTrainings: function () {
       var self = this;
-      if (Object.keys(this._trainingVersions).length > 0) return Promise.resolve();
+      if (Object.keys(this._trainingVersions).length > 0) {
+        // 版本表已加载，仅重建搜索队列（反映最新缓存状态，如新下载的资源包）
+        return self._rebuildSearchQueue();
+      }
       var root = (win.CX_ROOT !== undefined ? win.CX_ROOT : './');
       return fetch(root + 'trainings.json?_t=' + Date.now())
         .then(function (r) {
@@ -199,32 +204,43 @@
           trainings.forEach(function (t) {
             self._trainingVersions[t.path] = t.version || '';
           });
-          var paths = trainings.map(function (t) { return t.path; });
-          // 合并本地导入训练路径（始终可用，不依赖 SW 缓存）
-          var localPathsPromise = (win.CXLocalImport && win.CXLocalImport.listImports)
-            ? win.CXLocalImport.listImports().then(function (items) {
-                return (items || []).map(function (it) { return it.path; });
-              }).catch(function () { return []; })
-            : Promise.resolve([]);
-          return localPathsPromise.then(function (localPaths) {
-            paths = localPaths.concat(paths);
-            var ctx = self._currentContext();
-            if (ctx && ctx.trainingPath) {
-              var curPath = ctx.trainingPath;
-              paths = [curPath].concat(paths.filter(function (p) { return p !== curPath; }));
-            }
-            // 只保留已缓存的训练（有 cx-{path} 缓存键、cx-main 缓存、或已有本地搜索索引）
-            return self._filterCachedPaths(paths);
-          });
-        })
-        .then(function (filtered) {
-          self._searchQueue = filtered;
+          self._allTrainingPaths = trainings.map(function (t) { return t.path; });
+          return self._rebuildSearchQueue();
         })
         .catch(function () {
           if (!self._searchQueue.length) {
             self._searchQueue = Object.keys(self._searchCache);
           }
         });
+    },
+
+    // ── 重建搜索队列（每次打开搜索弹框时调用，确保新下载的训练可被搜索到）─────
+
+    _rebuildSearchQueue: function () {
+      var self = this;
+      var paths = (self._allTrainingPaths || []).slice();
+      // 合并本地导入训练路径（始终可用，不依赖 SW 缓存）
+      var localPathsPromise = (win.CXLocalImport && win.CXLocalImport.listImports)
+        ? win.CXLocalImport.listImports().then(function (items) {
+            return (items || []).map(function (it) { return it.path; });
+          }).catch(function () { return []; })
+        : Promise.resolve([]);
+      return localPathsPromise.then(function (localPaths) {
+        paths = localPaths.concat(paths);
+        var ctx = self._currentContext();
+        if (ctx && ctx.trainingPath) {
+          var curPath = ctx.trainingPath;
+          paths = [curPath].concat(paths.filter(function (p) { return p !== curPath; }));
+        }
+        // 只保留已缓存的训练（有 cx-{path} 缓存键、cx-main 缓存、或已有本地搜索索引）
+        return self._filterCachedPaths(paths);
+      }).then(function (filtered) {
+        self._searchQueue = filtered;
+      }).catch(function () {
+        if (!self._searchQueue.length) {
+          self._searchQueue = Object.keys(self._searchCache);
+        }
+      });
     },
 
     // 过滤出有 SW 缓存（cx-{path} 或 cx-main）或本地搜索索引的训练路径
