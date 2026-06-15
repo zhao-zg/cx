@@ -1,0 +1,1031 @@
+{
+  "version": "20260615074139",
+  "packs": [
+    {
+      "id": "pack-2017-2025",
+      "label": "2017–2025 年训练",
+      "year_start": 2017,
+      "year_end": 2025,
+      "training_count": 75,
+      "size_bytes": 17432030,
+      "path": "resource-packs/pack-2017-2025.zip",
+      "trainings": [
+        {
+          "path": "2025-09",
+          "chapter_count": 16
+        },
+        {
+          "path": "2025-08",
+          "chapter_count": 16
+        },
+        {
+          "path": "2025-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2025-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2025-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2025-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2025-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2024-09",
+          "chapter_count": 16
+        },
+        {
+          "path": "2024-08",
+          "chapter_count": 16
+        },
+        {
+          "path": "2024-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2024-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2024-05",
+          "chapter_count": 8
+        },
+        {
+          "path": "2024-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2024-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2024-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2024-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2023-09",
+          "chapter_count": 16
+        },
+        {
+          "path": "2023-08",
+          "chapter_count": 16
+        },
+        {
+          "path": "2023-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2023-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2023-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2023-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2023-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2023-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2023-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2022-09",
+          "chapter_count": 16
+        },
+        {
+          "path": "2022-08",
+          "chapter_count": 16
+        },
+        {
+          "path": "2022-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2022-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2022-05",
+          "chapter_count": 8
+        },
+        {
+          "path": "2022-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2022-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2022-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2022-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2021-08",
+          "chapter_count": 16
+        },
+        {
+          "path": "2021-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2021-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2021-05",
+          "chapter_count": 8
+        },
+        {
+          "path": "2021-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2021-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2021-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2021-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2020-06",
+          "chapter_count": 12
+        },
+        {
+          "path": "2020-05",
+          "chapter_count": 6
+        },
+        {
+          "path": "2020-04",
+          "chapter_count": 8
+        },
+        {
+          "path": "2020-03",
+          "chapter_count": 12
+        },
+        {
+          "path": "2020-02",
+          "chapter_count": 6
+        },
+        {
+          "path": "2020-01",
+          "chapter_count": 8
+        },
+        {
+          "path": "2019-09",
+          "chapter_count": 14
+        },
+        {
+          "path": "2019-08",
+          "chapter_count": 17
+        },
+        {
+          "path": "2019-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2019-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2019-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2019-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2019-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2019-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2019-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2018-09",
+          "chapter_count": 15
+        },
+        {
+          "path": "2018-08",
+          "chapter_count": 17
+        },
+        {
+          "path": "2018-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2018-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2018-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2018-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2018-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2018-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2018-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2017-09",
+          "chapter_count": 16
+        },
+        {
+          "path": "2017-08",
+          "chapter_count": 17
+        },
+        {
+          "path": "2017-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2017-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2017-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2017-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2017-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2017-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2017-01",
+          "chapter_count": 5
+        }
+      ]
+    },
+    {
+      "id": "pack-2007-2016",
+      "label": "2007–2016 年训练",
+      "year_start": 2007,
+      "year_end": 2016,
+      "training_count": 82,
+      "size_bytes": 19827303,
+      "path": "resource-packs/pack-2007-2016.zip",
+      "trainings": [
+        {
+          "path": "2016-09",
+          "chapter_count": 16
+        },
+        {
+          "path": "2016-08",
+          "chapter_count": 17
+        },
+        {
+          "path": "2016-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2016-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2016-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2016-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2016-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2016-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2016-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2015-09",
+          "chapter_count": 16
+        },
+        {
+          "path": "2015-08",
+          "chapter_count": 16
+        },
+        {
+          "path": "2015-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2015-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2015-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2015-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2015-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2015-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2015-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2014-09",
+          "chapter_count": 16
+        },
+        {
+          "path": "2014-08",
+          "chapter_count": 17
+        },
+        {
+          "path": "2014-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2014-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2014-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2014-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2014-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2014-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2014-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2013-09",
+          "chapter_count": 16
+        },
+        {
+          "path": "2013-08",
+          "chapter_count": 17
+        },
+        {
+          "path": "2013-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2013-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2013-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2013-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2013-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2013-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2013-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2012-08",
+          "chapter_count": 15
+        },
+        {
+          "path": "2012-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2012-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2012-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2012-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2012-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2012-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2012-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2011-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2011-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2011-04",
+          "chapter_count": 24
+        },
+        {
+          "path": "2011-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2011-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2011-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2010-07",
+          "chapter_count": 66
+        },
+        {
+          "path": "2010-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2010-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2010-04",
+          "chapter_count": 24
+        },
+        {
+          "path": "2010-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2010-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2010-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2009-09",
+          "chapter_count": 32
+        },
+        {
+          "path": "2009-08",
+          "chapter_count": 17
+        },
+        {
+          "path": "2009-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2009-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2009-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2009-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2009-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2009-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2009-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2008-08",
+          "chapter_count": 15
+        },
+        {
+          "path": "2008-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2008-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2008-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2008-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2008-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2008-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2008-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2007-08",
+          "chapter_count": 52
+        },
+        {
+          "path": "2007-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2007-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2007-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2007-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2007-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2007-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2007-01",
+          "chapter_count": 5
+        }
+      ]
+    },
+    {
+      "id": "pack-1997-2006",
+      "label": "1997–2006 年训练",
+      "year_start": 1997,
+      "year_end": 2006,
+      "training_count": 82,
+      "size_bytes": 13984300,
+      "path": "resource-packs/pack-1997-2006.zip",
+      "trainings": [
+        {
+          "path": "2006-09",
+          "chapter_count": 16
+        },
+        {
+          "path": "2006-08",
+          "chapter_count": 18
+        },
+        {
+          "path": "2006-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2006-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2006-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2006-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2006-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2006-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2006-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2005-09",
+          "chapter_count": 16
+        },
+        {
+          "path": "2005-08",
+          "chapter_count": 18
+        },
+        {
+          "path": "2005-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2005-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2005-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2005-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2005-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2005-02",
+          "chapter_count": 8
+        },
+        {
+          "path": "2005-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2004-09",
+          "chapter_count": 16
+        },
+        {
+          "path": "2004-08",
+          "chapter_count": 18
+        },
+        {
+          "path": "2004-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2004-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2004-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2004-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2004-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2004-02",
+          "chapter_count": 9
+        },
+        {
+          "path": "2004-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2003-08",
+          "chapter_count": 34
+        },
+        {
+          "path": "2003-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2003-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2003-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2003-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2003-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2003-02",
+          "chapter_count": 9
+        },
+        {
+          "path": "2003-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "2002-08",
+          "chapter_count": 35
+        },
+        {
+          "path": "2002-07",
+          "chapter_count": 12
+        },
+        {
+          "path": "2002-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2002-05",
+          "chapter_count": 9
+        },
+        {
+          "path": "2002-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2002-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2002-02",
+          "chapter_count": 6
+        },
+        {
+          "path": "2002-01",
+          "chapter_count": 4
+        },
+        {
+          "path": "2001-08",
+          "chapter_count": 17
+        },
+        {
+          "path": "2001-07",
+          "chapter_count": 18
+        },
+        {
+          "path": "2001-06",
+          "chapter_count": 12
+        },
+        {
+          "path": "2001-05",
+          "chapter_count": 6
+        },
+        {
+          "path": "2001-04",
+          "chapter_count": 6
+        },
+        {
+          "path": "2001-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2001-02",
+          "chapter_count": 6
+        },
+        {
+          "path": "2001-01",
+          "chapter_count": 4
+        },
+        {
+          "path": "2000-09",
+          "chapter_count": 17
+        },
+        {
+          "path": "2000-08",
+          "chapter_count": 18
+        },
+        {
+          "path": "2000-07",
+          "chapter_count": 24
+        },
+        {
+          "path": "2000-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "2000-05",
+          "chapter_count": 6
+        },
+        {
+          "path": "2000-04",
+          "chapter_count": 12
+        },
+        {
+          "path": "2000-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "2000-02",
+          "chapter_count": 3
+        },
+        {
+          "path": "2000-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "1999-07",
+          "chapter_count": 35
+        },
+        {
+          "path": "1999-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "1999-05",
+          "chapter_count": 6
+        },
+        {
+          "path": "1999-04",
+          "chapter_count": 24
+        },
+        {
+          "path": "1999-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "1999-02",
+          "chapter_count": 5
+        },
+        {
+          "path": "1999-01",
+          "chapter_count": 5
+        },
+        {
+          "path": "1998-08",
+          "chapter_count": 14
+        },
+        {
+          "path": "1998-07",
+          "chapter_count": 16
+        },
+        {
+          "path": "1998-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "1998-05",
+          "chapter_count": 12
+        },
+        {
+          "path": "1998-04",
+          "chapter_count": 24
+        },
+        {
+          "path": "1998-03",
+          "chapter_count": 6
+        },
+        {
+          "path": "1998-02",
+          "chapter_count": 6
+        },
+        {
+          "path": "1998-01",
+          "chapter_count": 4
+        },
+        {
+          "path": "1997-07",
+          "chapter_count": 15
+        },
+        {
+          "path": "1997-06",
+          "chapter_count": 6
+        },
+        {
+          "path": "1997-05",
+          "chapter_count": 6
+        },
+        {
+          "path": "1997-04",
+          "chapter_count": 6
+        },
+        {
+          "path": "1997-03",
+          "chapter_count": 12
+        },
+        {
+          "path": "1997-02",
+          "chapter_count": 6
+        },
+        {
+          "path": "1997-01",
+          "chapter_count": 6
+        }
+      ]
+    }
+  ],
+  "individuals": [
+    {
+      "path": "2026-03",
+      "title": "国殇节国际相调特会",
+      "season": "03 国殇节特会",
+      "year": 2026,
+      "chapter_count": 6
+    },
+    {
+      "path": "2026-02",
+      "title": "春季国际长老及负责弟兄训练",
+      "season": "02 春季长老及负责弟兄训练",
+      "year": 2026,
+      "chapter_count": 8
+    },
+    {
+      "path": "2026-01",
+      "title": "国际华语特会",
+      "season": "01 国际华语特会",
+      "year": 2026,
+      "chapter_count": 5
+    },
+    {
+      "path": "2025-07",
+      "title": "十二月半年度训练",
+      "season": "07 冬季训练",
+      "year": 2025,
+      "chapter_count": 12
+    },
+    {
+      "path": "2025-06",
+      "title": "感恩节相调特会",
+      "season": "06 感恩节相调特会",
+      "year": 2025,
+      "chapter_count": 6
+    }
+  ]
+}
