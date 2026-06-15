@@ -137,13 +137,14 @@ jobs:
             if [ -n "$ISILO_EXE" ] && [ -f "$ISILO_EXE" ]; then
               echo "✓ iSilo.exe 已就绪: $ISILO_EXE"
               echo "🔍 预检 iSilo.exe 是否可运行..."
-              WINEDEBUG=-all wine "$ISILO_EXE" 2>&1 | head -5 || true
+              timeout 10 bash -c 'WINEDEBUG=-all wine "$ISILO_EXE" 2>&1 | head -5' || true
+              WINEDEBUG=-all wineserver -k 2>/dev/null || true
               echo "---"
               echo "使用 Wine + iSilo 转换"
-              python convert_pdb.py --wine-isilo --overwrite
+              python -u convert_pdb.py --wine-isilo --overwrite
             else
               echo "⚠️ iSilo.exe 未就绪，仅转换 PalmDOC/iSilo2 格式"
-              python convert_pdb.py --overwrite
+              python -u convert_pdb.py --overwrite
             fi
             echo ""
             echo "📋 转换结果 (历史合辑中的新 TXT):"

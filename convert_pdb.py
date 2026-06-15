@@ -447,19 +447,32 @@ def convert_with_wine_isilo(pdb_path: Path, output_path: Path) -> bool:
     wine_in = r'C:\tmp\isilo_conv\input.pdb'
     wine_out = r'C:\tmp\isilo_conv\output.txt'
 
+    # 确保没有残留的 wineserver 干扰
+    try:
+        subprocess.run(['wineserver', '-k'], capture_output=True, timeout=5)
+    except Exception:
+        pass
+
+    cmd = ['wine', isilo_exe, '/e', wine_in, wine_out]
+    print(f"  [CMD] {' '.join(cmd)}", flush=True)
     try:
         result = subprocess.run(
-            ['wine', isilo_exe, '/e', wine_in, wine_out],
+            cmd,
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=120,
             env={**os.environ, 'WINEDEBUG': '-all'}
         )
     except FileNotFoundError:
         print("  [ERROR] Wine 未安装或不在 PATH 中")
         return False
     except subprocess.TimeoutExpired:
-        print("  [ERROR] Wine + iSilo 转换超时")
+        print("  [ERROR] Wine + iSilo 转换超时 (120s)")
+        # 强制杀死残留 Wine 进程
+        try:
+            subprocess.run(['wineserver', '-k'], capture_output=True, timeout=10)
+        except Exception:
+            pass
         return False
     except Exception as e:
         print(f"  [ERROR] Wine + iSilo 转换异常: {e}")
@@ -600,7 +613,7 @@ def main() -> None:
         print(f"\n未找到 PDB 文件: {input_dir}")
         return
 
-    print(f"\n找到 {len(pdb_files)} 个 PDB 文件:")
+    print(f"\n找到 {len(pdb_files)} 个 PDB 文件:", flush=True)
     for f in pdb_files:
         size_kb = f.stat().st_size / 1024
         print(f"  {f.relative_to(input_dir)} ({size_kb:.1f} KB)")
@@ -614,7 +627,7 @@ def main() -> None:
     failed = 0
 
     for pdb_path in pdb_files:
-        print(f"\n转换: {pdb_path.relative_to(input_dir)}")
+        print(f"\n转换: {pdb_path.relative_to(input_dir)}", flush=True)
 
         # .pdb.zip → 先解压为 .pdb
         if str(pdb_path).lower().endswith('.pdb.zip'):
