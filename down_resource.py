@@ -719,6 +719,11 @@ class NotionPlaywrightHelper:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=self.headless)
             context = browser.new_context()
+            if NOTION_TOKEN:
+                context.add_cookies([
+                    {'name': 'token_v2', 'value': NOTION_TOKEN, 'domain': '.notion.so', 'path': '/'},
+                    {'name': 'token_v2', 'value': NOTION_TOKEN, 'domain': 'mygoodland.notion.site', 'path': '/'},
+                ])
             page = context.new_page()
             page.goto(self.url, wait_until='domcontentloaded')
             time.sleep(2)  # 等待页面加载完成
@@ -813,6 +818,17 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context()
+        
+        # 注入 token_v2 认证 cookie（NOTION_TOKEN 环境变量）
+        if NOTION_TOKEN:
+            context.add_cookies([
+                {'name': 'token_v2', 'value': NOTION_TOKEN, 'domain': '.notion.so', 'path': '/'},
+                {'name': 'token_v2', 'value': NOTION_TOKEN, 'domain': 'mygoodland.notion.site', 'path': '/'},
+            ])
+            print("已注入 token_v2 认证 cookie")
+        else:
+            print("[WARN] 未设置 NOTION_TOKEN 环境变量，下载可能因未认证而失败")
+        
         page = context.new_page()
         
         # 对每个 resource 分组下载
@@ -952,8 +968,38 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                             continue
                     
                     if not downloaded:
-                        # Playwright 点击全部失败，尝试签名 URL 兜底
-                        print(f"  Playwright 点击均失败，尝试签名URL...")
+                        # 策略2: 通过 Notion 附件 URL 直接导航下载
+                        attachment_url = (
+                            f"https://www.notion.so/attachment/{doc['file_id']}/"
+                            f"{quote(original_filename)}?table=block&id={doc.get('block_id', '')}&cache=v2"
+                        )
+                        print(f"  尝试附件URL直接下载...")
+                        try:
+                            with page.expect_download(timeout=30000) as download_info:
+                                page.goto(attachment_url, wait_until='commit')
+                            dl = download_info.value
+                            dl.save_as(temp_path)
+                            shutil.move(str(temp_path), str(target_path))
+                            print(f"  [OK] 附件URL下载成功: {target_path}")
+                            if filename.lower().endswith('.pdb.zip'):
+                                unzip_pdb(target_path)
+                            total_success += 1
+                            downloaded = True
+                            # 回到资源页面
+                            page.goto(resource_url, wait_until='domcontentloaded')
+                            time.sleep(3)
+                        except Exception as e:
+                            print(f"  附件URL下载失败: {str(e)[:80]}")
+                            # 确保回到资源页面
+                            try:
+                                page.goto(resource_url, wait_until='domcontentloaded')
+                                time.sleep(2)
+                            except Exception:
+                                pass
+
+                    if not downloaded:
+                        # 策略3: 签名 URL 兜底
+                        print(f"  尝试签名URL...")
                         signed_url = fetch_signed_url_from_request(context.request, doc['file_id'])
                         if signed_url:
                             try:
@@ -963,7 +1009,6 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                                     target_path.write_bytes(new_content)
                                     size_kb = len(new_content) / 1024
                                     print(f"  [OK] 签名URL下载成功: {target_path} ({size_kb:.1f} KB)")
-                                    # .pdb.zip → 自动解压
                                     if filename.lower().endswith('.pdb.zip'):
                                         unzip_pdb(target_path)
                                     total_success += 1
@@ -972,9 +1017,35 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                                     print(f"  签名URL下载失败 ({response.status})")
                             except Exception as e:
                                 print(f"  签名URL下载异常: {e}")
-                        if not downloaded:
-                            print(f"  所有方法都失败，跳过")
-                            total_failed += 1
+
+                    if not downloaded:
+                        # 策略4: 提取浏览器 Cookie，用 requests 直接下载附件 URL
+                        print(f"  尝试提取Cookie用requests下载...")
+                        try:
+                            cookies = context.cookies()
+                            cookie_str = '; '.join(f"{c['name']}={c['value']}" for c in cookies)
+                            dl_session = requests.Session()
+                            dl_session.headers.update({
+                                'Cookie': cookie_str,
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                            })
+                            resp = dl_session.get(attachment_url, allow_redirects=True, timeout=60)
+                            if resp.status_code == 200 and len(resp.content) > 1024:
+                                target_path.write_bytes(resp.content)
+                                size_kb = len(resp.content) / 1024
+                                print(f"  [OK] Cookie+requests下载成功: {target_path} ({size_kb:.1f} KB)")
+                                if filename.lower().endswith('.pdb.zip'):
+                                    unzip_pdb(target_path)
+                                total_success += 1
+                                downloaded = True
+                            else:
+                                print(f"  Cookie+requests下载失败 (status={resp.status_code}, size={len(resp.content)})")
+                        except Exception as e:
+                            print(f"  Cookie+requests下载异常: {str(e)[:80]}")
+
+                    if not downloaded:
+                        print(f"  所有方法都失败，跳过")
+                        total_failed += 1
                     
                 except Exception as e:
                     print(f"  下载失败 {filename}: {e}")

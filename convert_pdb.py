@@ -34,6 +34,7 @@ PALMDOC_TYPES = {
     (b'READ', b'READ'),  # standard PalmDOC
     (b'ToGo', b'ToGo'),  # iSilo 2.x
     (b'SDoc', b'SSil'),  # iSilo 3.x
+    (b'SDoc', b'SilX'),  # iSilo 3.x (extended)
     (b'XDoc', b'XDoc'),  # XDoc
 }
 
@@ -172,8 +173,8 @@ def detect_pdb_format(data: bytes) -> str:
     pdb_type = data[60:64]
     pdb_creator = data[64:68]
 
-    # iSilo 3.x format
-    if pdb_type == b'SDoc' and pdb_creator == b'SSil':
+    # iSilo 3.x format (SDoc/SSil 或 SDoc/SilX)
+    if pdb_type == b'SDoc' and pdb_creator in (b'SSil', b'SilX'):
         return 'iSilo3'
     # iSilo 2.x / ToGo
     if pdb_type == b'ToGo' and pdb_creator == b'ToGo':
@@ -190,29 +191,36 @@ def detect_pdb_format(data: bytes) -> str:
 
 def unzip_pdb_file(zip_path: Path) -> Optional[Path]:
     """解压 .pdb.zip 文件，返回解压后的 .pdb 路径。解压成功后删除 zip。
-    支持 GBK 编码的中文文件名。
+    支持 UTF-8 / GBK 编码的中文文件名。
     """
     try:
         zf = zipfile.ZipFile(zip_path, 'r')
         try:
             pdb_member = None
+            decoded_name = None
             for info in zf.infolist():
                 name = info.filename
                 if not (info.flag_bits & 0x800):
+                    # ZIP 未标记 UTF-8，尝试多种解码方式
+                    # 优先尝试 UTF-8（很多现代压缩工具用 UTF-8 但不设标记位）
                     try:
-                        name = info.filename.encode('cp437').decode('gbk')
+                        name = info.filename.encode('cp437').decode('utf-8')
                     except (UnicodeDecodeError, UnicodeEncodeError):
-                        pass
+                        # 再尝试 GBK（Windows 中文环境常见编码）
+                        try:
+                            name = info.filename.encode('cp437').decode('gbk')
+                        except (UnicodeDecodeError, UnicodeEncodeError):
+                            pass
                 if name.lower().endswith('.pdb'):
                     pdb_member = info
-                    pdb_member._decoded_name = name
+                    decoded_name = name
                     break
 
             if pdb_member is None:
                 print(f"  [WARN] zip 内未找到 .pdb 文件: {zip_path.name}")
                 return None
 
-            pdb_name = Path(pdb_member._decoded_name).name
+            pdb_name = Path(decoded_name).name
             pdb_path = zip_path.parent / pdb_name
             with zf.open(pdb_member) as src, open(pdb_path, 'wb') as dst:
                 dst.write(src.read())
@@ -273,8 +281,9 @@ def convert_pdb_file(pdb_path: Path, output_path: Path, use_wine_isilo: bool = F
 
     # 对于 iSilo3 格式，提示用户使用 Wine + iSilo
     if fmt == 'iSilo3':
-        print(f"  [WARN] iSilo3 格式需要 Wine + iSilo 转换")
-        print(f"  [WARN] 使用 --wine-isilo 参数启用，或手动转换")
+        print(f"  [WARN] iSilo3 格式 (SDoc/SilX 或 SDoc/SSil) 使用专有二进制富文本编码")
+        print(f"  [WARN] Python 原生解析不支持此格式，需要 Wine + iSilo 转换")
+        print(f"  [WARN] 使用 --wine-isilo 参数启用，或手动用 iSilo 导出为 TXT")
         return False
 
     # 最后尝试: 将原始数据当作纯文本
