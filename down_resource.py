@@ -8,6 +8,7 @@ import re
 import shutil
 import sys
 import time
+import zipfile
 from argparse import ArgumentParser
 from json import dumps
 from pathlib import Path
@@ -29,7 +30,7 @@ DOWNLOAD_HEADERS = {
 }
 BASE_URL = "https://mygoodland.notion.site/b1935b21f2874bc4a928cae9385f717d"
 TARGET_EXTENSIONS = ('.doc', '.docx')
-PDB_EXTENSIONS = ('.pdb',)
+PDB_EXTENSIONS = ('.pdb', '.pdb.zip')
 ALL_EXTENSIONS = TARGET_EXTENSIONS + PDB_EXTENSIONS
 MIN_TRAINING_YEAR = 2025
 MIN_TRAINING_MONTH = 4
@@ -311,7 +312,7 @@ def collect_file(block: Dict[str, Any], documents: Dict[str, List[Dict[str, Any]
     if not filename:
         return
     lower_name = filename.lower()
-    is_pdb = lower_name.endswith('.pdb')
+    is_pdb = lower_name.endswith('.pdb') or lower_name.endswith('.pdb.zip')
     is_word = lower_name.endswith(TARGET_EXTENSIONS)
     if not is_pdb and not is_word:
         return
@@ -380,8 +381,8 @@ def build_attachment_url(file_id: str, block_id: str, filename: str) -> str:
 
 def is_simplified_chinese(filename: str) -> bool:
     lower = filename.lower()
-    # PDB 文件不检查 -s 后缀
-    if lower.endswith('.pdb'):
+    # PDB 文件（含 .pdb.zip）不检查 -s 后缀
+    if lower.endswith('.pdb') or lower.endswith('.pdb.zip'):
         if '-t.' in lower or '-e.' in lower:
             return False
         return True
@@ -408,6 +409,76 @@ def calculate_file_md5(file_path: Path) -> Optional[str]:
         return md5_hash.hexdigest()
     except Exception as e:
         print(f"  计算MD5失败 {file_path}: {e}")
+        return None
+
+
+def unzip_pdb(zip_path: Path) -> Optional[Path]:
+    """解压 .pdb.zip 文件，返回解压后的 .pdb 文件路径。
+
+    zip 内应恰好包含一个 .pdb 文件。解压成功后删除 zip 文件。
+    支持 GBK 编码的中文文件名（Windows 压缩工具常见格式）。
+    """
+    if not zip_path.exists():
+        return None
+    pdb_name = None
+    pdb_path = None
+    try:
+        zf = zipfile.ZipFile(zip_path, 'r')
+        try:
+            members = zf.infolist()
+            # 找到 zip 中的 .pdb 文件
+            pdb_member = None
+            for info in members:
+                # 修复 GBK 编码的文件名（Windows 压缩工具常见）
+                name = info.filename
+                if not (info.flag_bits & 0x800):
+                    # 非 UTF-8 标记：尝试 CP437 → GBK 重解码
+                    try:
+                        name = info.filename.encode('cp437').decode('gbk')
+                    except (UnicodeDecodeError, UnicodeEncodeError):
+                        pass
+                if name.lower().endswith('.pdb'):
+                    pdb_member = info
+                    pdb_member._decoded_name = name
+                    break
+
+            if pdb_member is None:
+                print(f"  [WARN] zip 内未找到 .pdb 文件: {zip_path.name}")
+                return None
+
+            pdb_name = Path(pdb_member._decoded_name).name
+            pdb_path = zip_path.parent / pdb_name
+
+            # 如果 pdb 文件已存在且大小非零，比较 MD5
+            if pdb_path.exists() and pdb_path.stat().st_size > 0:
+                existing_md5 = calculate_file_md5(pdb_path)
+                tmp_path = zip_path.parent / (pdb_name + '.tmp')
+                with zf.open(pdb_member) as src, open(tmp_path, 'wb') as dst:
+                    dst.write(src.read())
+                new_md5 = calculate_file_md5(tmp_path)
+                tmp_path.unlink()
+                if existing_md5 == new_md5:
+                    print(f"  [OK] PDB 已存在且 MD5 相同，跳过解压: {pdb_name}")
+                    zf.close()
+                    zip_path.unlink()
+                    return pdb_path
+
+            # 解压
+            with zf.open(pdb_member) as src, open(pdb_path, 'wb') as dst:
+                dst.write(src.read())
+            size_kb = pdb_path.stat().st_size / 1024
+            print(f"  [OK] 已解压: {pdb_name} ({size_kb:.1f} KB)")
+        finally:
+            zf.close()
+
+        # ZipFile 关闭后再删除 zip 文件（避免 Windows 文件锁）
+        zip_path.unlink()
+        return pdb_path
+    except zipfile.BadZipFile:
+        print(f"  [ERROR] 无效的 zip 文件: {zip_path.name}")
+        return None
+    except Exception as e:
+        print(f"  [ERROR] 解压 zip 失败: {zip_path.name}: {e}")
         return None
 
 
@@ -821,6 +892,9 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                                 print(f"  MD5不同，从临时目录移动到resource: {filename}")
                                 shutil.move(str(temp_path), str(target_path))
                                 print(f"  [OK] 已更新：{target_path}")
+                                # .pdb.zip → 自动解压
+                                if filename.lower().endswith('.pdb.zip'):
+                                    unzip_pdb(target_path)
                                 total_success += 1
                                 continue
                         else:
@@ -866,6 +940,9 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                             # 然后移动到最终目录
                             shutil.move(str(temp_path), str(target_path))
                             print(f"[OK] 已下载：{target_path}")
+                            # .pdb.zip → 自动解压
+                            if filename.lower().endswith('.pdb.zip'):
+                                unzip_pdb(target_path)
                             total_success += 1
                             downloaded = True
                             break
@@ -886,6 +963,9 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                                     target_path.write_bytes(new_content)
                                     size_kb = len(new_content) / 1024
                                     print(f"  [OK] 签名URL下载成功: {target_path} ({size_kb:.1f} KB)")
+                                    # .pdb.zip → 自动解压
+                                    if filename.lower().endswith('.pdb.zip'):
+                                        unzip_pdb(target_path)
                                     total_success += 1
                                     downloaded = True
                                 else:

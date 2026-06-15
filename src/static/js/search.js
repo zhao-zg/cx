@@ -199,13 +199,22 @@
             self._trainingVersions[t.path] = t.version || '';
           });
           var paths = trainings.map(function (t) { return t.path; });
-          var ctx = self._currentContext();
-          if (ctx && ctx.trainingPath) {
-            var curPath = ctx.trainingPath;
-            paths = [curPath].concat(paths.filter(function (p) { return p !== curPath; }));
-          }
-          // 只保留已缓存的训练（有 cx-{path} 缓存键，或已有本地搜索索引）
-          return self._filterCachedPaths(paths);
+          // 合并本地导入训练路径（始终可用，不依赖 SW 缓存）
+          var localPathsPromise = (win.CXLocalImport && win.CXLocalImport.listImports)
+            ? win.CXLocalImport.listImports().then(function (items) {
+                return (items || []).map(function (it) { return it.path; });
+              }).catch(function () { return []; })
+            : Promise.resolve([]);
+          return localPathsPromise.then(function (localPaths) {
+            paths = localPaths.concat(paths);
+            var ctx = self._currentContext();
+            if (ctx && ctx.trainingPath) {
+              var curPath = ctx.trainingPath;
+              paths = [curPath].concat(paths.filter(function (p) { return p !== curPath; }));
+            }
+            // 只保留已缓存的训练（有 cx-{path} 缓存键、cx-main 缓存、或已有本地搜索索引）
+            return self._filterCachedPaths(paths);
+          });
         })
         .then(function (filtered) {
           self._searchQueue = filtered;
@@ -217,7 +226,7 @@
         });
     },
 
-    // 过滤出有 SW 缓存（cx-{path}）或本地搜索索引的训练路径
+    // 过滤出有 SW 缓存（cx-{path} 或 cx-main）或本地搜索索引的训练路径
     _filterCachedPaths: function (paths) {
       var self = this;
       // Capacitor APK：文件全部打包在本地，直接放行所有路径
@@ -227,13 +236,29 @@
       if (isCap) return Promise.resolve(paths);
 
       if (!('caches' in win)) {
-        // 无 SW 且非 Capacitor：只保留已有本地搜索索引的训练
-        return Promise.resolve(paths.filter(function (p) { return !!self._searchCache[p]; }));
+        // 无 SW 且非 Capacitor：保留本地导入和已有内存搜索索引的训练
+        return Promise.resolve(paths.filter(function (p) {
+          return p.indexOf('local-') === 0 || !!self._searchCache[p];
+        }));
       }
-      return win.caches.keys().then(function (keys) {
+      return Promise.all([caches.keys(), caches.open('cx-main')]).then(function (results) {
+        var keys = results[0];
+        var mainCache = results[1];
         var cxSet = {};
         keys.forEach(function (k) { cxSet[k] = true; });
-        return paths.filter(function (p) { return cxSet['cx-' + p]; });
+        // 收集 cx-main 中已有的训练路径（资源包下载的训练存在于此）
+        return mainCache.keys().then(function (reqs) {
+          var mainPaths = {};
+          reqs.forEach(function (req) {
+            var m = new URL(req.url).pathname.match(/\/([0-9]{4}-[0-9]{2})\/training\.json$/);
+            if (m) mainPaths[m[1]] = true;
+          });
+          return paths.filter(function (p) {
+            // 本地导入训练始终可用（存储在 localforage），直接放行
+            if (p.indexOf('local-') === 0) return true;
+            return cxSet['cx-' + p] || mainPaths[p] || !!self._searchCache[p];
+          });
+        });
       }).catch(function () { return paths; });
     },
 

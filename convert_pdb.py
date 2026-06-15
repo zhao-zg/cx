@@ -17,6 +17,7 @@ import struct
 import shutil
 import subprocess
 import sys
+import zipfile
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import Optional, Tuple
@@ -187,6 +188,49 @@ def detect_pdb_format(data: bytes) -> str:
     return f'unknown({pdb_type!r}/{pdb_creator!r})'
 
 
+def unzip_pdb_file(zip_path: Path) -> Optional[Path]:
+    """解压 .pdb.zip 文件，返回解压后的 .pdb 路径。解压成功后删除 zip。
+    支持 GBK 编码的中文文件名。
+    """
+    try:
+        zf = zipfile.ZipFile(zip_path, 'r')
+        try:
+            pdb_member = None
+            for info in zf.infolist():
+                name = info.filename
+                if not (info.flag_bits & 0x800):
+                    try:
+                        name = info.filename.encode('cp437').decode('gbk')
+                    except (UnicodeDecodeError, UnicodeEncodeError):
+                        pass
+                if name.lower().endswith('.pdb'):
+                    pdb_member = info
+                    pdb_member._decoded_name = name
+                    break
+
+            if pdb_member is None:
+                print(f"  [WARN] zip 内未找到 .pdb 文件: {zip_path.name}")
+                return None
+
+            pdb_name = Path(pdb_member._decoded_name).name
+            pdb_path = zip_path.parent / pdb_name
+            with zf.open(pdb_member) as src, open(pdb_path, 'wb') as dst:
+                dst.write(src.read())
+            size_kb = pdb_path.stat().st_size / 1024
+            print(f"  [OK] 已解压: {pdb_name} ({size_kb:.1f} KB)")
+        finally:
+            zf.close()
+
+        zip_path.unlink()
+        return pdb_path
+    except zipfile.BadZipFile:
+        print(f"  [ERROR] 无效的 zip 文件: {zip_path.name}")
+        return None
+    except Exception as e:
+        print(f"  [ERROR] 解压 zip 失败: {zip_path.name}: {e}")
+        return None
+
+
 def convert_pdb_file(pdb_path: Path, output_path: Path, use_wine_isilo: bool = False) -> bool:
     """转换单个 PDB 文件为 TXT。
 
@@ -353,12 +397,20 @@ def find_output_path(pdb_path: Path, history_dir: Path) -> Optional[Path]:
 
 
 def scan_pdb_files(input_dir: Path) -> list:
-    """扫描目录下的所有 PDB 文件。"""
+    """扫描目录下的所有 PDB 文件（含 .pdb.zip）。"""
     if not input_dir.exists():
         print(f"目录不存在: {input_dir}")
         return []
     pdb_files = sorted(input_dir.rglob('*.pdb'))
-    return pdb_files
+    zip_files = sorted(input_dir.rglob('*.pdb.zip'))
+    # 合并去重（排除已解压的 zip：如果 foo.pdb 和 foo.pdb.zip 同时存在，只保留 foo.pdb）
+    pdb_stems = {f.with_suffix('') for f in pdb_files}  # foo.pdb → foo
+    for zf in zip_files:
+        # foo.pdb.zip → stem 是 foo.pdb → 再 .with_suffix('') → foo
+        pdb_stem = zf.with_suffix('').with_suffix('')
+        if pdb_stem not in pdb_stems:
+            pdb_files.append(zf)
+    return sorted(pdb_files)
 
 
 def main() -> None:
@@ -406,6 +458,16 @@ def main() -> None:
 
     for pdb_path in pdb_files:
         print(f"\n转换: {pdb_path.relative_to(input_dir)}")
+
+        # .pdb.zip → 先解压为 .pdb
+        if str(pdb_path).lower().endswith('.pdb.zip'):
+            unzipped = unzip_pdb_file(pdb_path)
+            if not unzipped:
+                print(f"  [FAIL] 解压失败，跳过")
+                failed += 1
+                continue
+            pdb_path = unzipped
+            print(f"  解压后: {pdb_path.relative_to(input_dir)}")
 
         output_path = find_output_path(pdb_path, output_dir)
         if not output_path:
