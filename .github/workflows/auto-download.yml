@@ -47,6 +47,10 @@ jobs:
           sudo apt-get install -y -qq winehq-stable p7zip-full --no-install-recommends
           echo "✓ Wine 已安装: $(wine --version)"
 
+          # 初始化 Wine prefix (确保 C: 驱动器映射正常)
+          echo "📦 初始化 Wine prefix..."
+          WINEDEBUG=-all wineboot --init 2>/dev/null || true
+
           echo "📦 下载并解压 iSilo..."
           ISILO_DIR="$HOME/.wine/drive_c/Program Files/iSilo"
           mkdir -p "$ISILO_DIR"
