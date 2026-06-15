@@ -352,7 +352,7 @@
       var terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
       var ctx = this._currentContext();   // { trainingPath, chapter } | null
 
-      // 按训练分组收集所有匹配（上限 500，避免超大索引卡顿）
+      // 按训练分组收集所有匹配
       var groupMap = {};   // season_label -> { all: [], trainingPath: '' }
       var groupOrder = []; // 保持训练出现顺序
       var totalAll = 0;
@@ -374,7 +374,6 @@
           groupOrder.push(gKey);
         }
         groupMap[gKey].all.push(e);
-        if (totalAll >= 500) break;
       }
 
       // ── 对 groupOrder 重排：本训练优先，其他保持原顺序 ──────────────
@@ -765,6 +764,8 @@
         if (remaining > 0) {
           self._resultsEl.appendChild(self._buildLoadMoreTrainingsBtn(remaining));
         }
+      }).catch(function () {
+        self._countEl.textContent = '搜索加载失败，请重试';
       });
     },
 
@@ -854,23 +855,48 @@
       var self = this;
       btn.disabled = true;
       btn.textContent = '加载中…';
-      var offset = this._queueOffset;
       var q = this._currentQuery;
-      // 每次点击至少加载 3 个有结果的训练，避免只显示 1 个就消失
-      var MIN_GROUPS = 3;
-      this._loadUntilEnoughResults(offset, MIN_GROUPS, q).then(function (loaded) {
-        self._queueOffset = loaded.newOffset;
-        var terms = q.toLowerCase().split(/\s+/).filter(Boolean);
-        var result = self.search(q, loaded.entries);
-        if (btn.parentNode) btn.parentNode.removeChild(btn);
-        if (result.groups.length > 0) {
-          self._appendGroupsToEl(result.groups, terms, q, self._resultsEl);
+      var off = this._queueOffset;
+      var totalGroups = 0;
+      var terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+      var MIN_GROUPS = 5;
+
+      function nextBatch() {
+        if (off >= self._searchQueue.length || totalGroups >= MIN_GROUPS) {
+          // 队列耗尽或已收集足够分组
+          self._queueOffset = off;
+          if (btn.parentNode) btn.parentNode.removeChild(btn);
+          if (totalGroups === 0) {
+            var tip = document.createElement('div');
+            tip.className = 'cx-search-more';
+            tip.textContent = '其余训练无匹配结果';
+            self._resultsEl.appendChild(tip);
+            setTimeout(function () { if (tip.parentNode) tip.parentNode.removeChild(tip); }, 2500);
+          } else {
+            var remaining = self._searchQueue.length - self._queueOffset;
+            if (remaining > 0) {
+              self._resultsEl.appendChild(self._buildLoadMoreTrainingsBtn(remaining));
+            }
+          }
+          return;
         }
-        var remaining = self._searchQueue.length - self._queueOffset;
-        if (remaining > 0) {
-          self._resultsEl.appendChild(self._buildLoadMoreTrainingsBtn(remaining));
-        }
-      });
+        self._loadBatch(off).then(function () {
+          var paths = self._searchQueue.slice(off, off + self.SEARCH_BATCH_SIZE);
+          var batchEntries = [];
+          paths.forEach(function (p) {
+            if (self._searchCache[p]) batchEntries = batchEntries.concat(self._searchCache[p]);
+          });
+          off = Math.min(off + self.SEARCH_BATCH_SIZE, self._searchQueue.length);
+          var result = self.search(q, batchEntries);
+          if (result.groups.length > 0) {
+            totalGroups += result.groups.length;
+            self._appendGroupsToEl(result.groups, terms, q, self._resultsEl);
+          }
+          nextBatch();
+        });
+      }
+
+      nextBatch();
     },
 
     // ── 构建「查看更多训练」按钮 ──────────────────────────────────────────
