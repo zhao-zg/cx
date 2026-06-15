@@ -38,19 +38,23 @@ jobs:
 
       - name: Install Wine + iSilo
         run: |
-          echo "📦 安装 Wine..."
+          echo "📦 安装 Wine + xvfb..."
           sudo dpkg --add-architecture i386
           sudo mkdir -pm755 /etc/apt/keyrings
           sudo wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
           sudo wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/$(lsb_release -cs)/winehq-$(lsb_release -cs).sources
           sudo apt-get update -qq
-          sudo apt-get install -y -qq winehq-stable --no-install-recommends
+          sudo apt-get install -y -qq winehq-stable p7zip-full xvfb --no-install-recommends
           echo "✓ Wine 已安装: $(wine --version)"
+
+          # 启动虚拟显示 (Wine 的 wineboot/msiexec/iSilo 都需要显示)
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          echo "DISPLAY=$DISPLAY" >> "$GITHUB_ENV"
 
           # 初始化 Wine prefix
           echo "📦 初始化 Wine prefix..."
           WINEDEBUG=-all wineboot --init 2>/dev/null || true
-          # 等待 Wine prefix 初始化完成
           WINEDEBUG=-all wineserver --wait 2>/dev/null || true
 
           echo "📦 安装 iSilo..."
@@ -68,21 +72,41 @@ jobs:
             fi
           fi
 
-          # 方案 2: 通过 Wine msiexec 正确安装 (推荐)
+          # 方案 2: 通过 Wine msiexec 完整安装 (需要虚拟显示)
           if [ -z "$ISILO_EXE" ]; then
             echo "下载 iSilo MSI 安装包..."
             wget -q "http://www.iSilo.com/download/dl/iSilo620W32Setup.msi" -O /tmp/iSilo.msi
             if [ -f /tmp/iSilo.msi ] && [ -s /tmp/iSilo.msi ]; then
               echo "通过 Wine msiexec 安装 iSilo..."
-              WINEDEBUG=-all wine msiexec /i "$(winepath -w /tmp/iSilo.msi)" /qn INSTALLDIR="C:\\Program Files\\iSilo" 2>/dev/null || true
+              WINEDEBUG=-all wine msiexec /i "$(winepath -w /tmp/iSilo.msi)" /qn 2>&1 | head -10 || true
               WINEDEBUG=-all wineserver --wait 2>/dev/null || true
 
-              # 搜索 Wine prefix 中安装的 iSilo.exe
               FOUND=$(find "$HOME/.wine" -iname "iSilo.exe" -type f 2>/dev/null | head -1)
               if [ -n "$FOUND" ] && [ -s "$FOUND" ]; then
                 ISILO_EXE="$FOUND"
                 echo "✓ iSilo.exe 已通过 msiexec 安装: $FOUND"
               fi
+            fi
+          fi
+
+          # 方案 3: 7z 提取 MSI 中的 exe (回退)
+          if [ -z "$ISILO_EXE" ] && [ -f /tmp/iSilo.msi ]; then
+            echo "msiexec 安装未成功，尝试 7z 提取..."
+            ISILO_DIR="$HOME/.wine/drive_c/Program Files/iSilo"
+            mkdir -p "$ISILO_DIR"
+            mkdir -p /tmp/isilo_msi
+            cd /tmp/isilo_msi && 7z x -y /tmp/iSilo.msi >/dev/null 2>&1
+            EXTRACTED=$(find /tmp/isilo_msi -iname "*.exe" -type f 2>/dev/null)
+            echo "MSI 中提取到的 exe 文件:"
+            echo "$EXTRACTED" | while read f; do echo "  $(basename "$f") ($(stat -c%s "$f") bytes)"; done
+            CANDIDATE=$(echo "$EXTRACTED" | grep -i "isilo" | head -1)
+            if [ -z "$CANDIDATE" ]; then
+              CANDIDATE=$(echo "$EXTRACTED" | head -1)
+            fi
+            if [ -n "$CANDIDATE" ]; then
+              cp "$CANDIDATE" "$ISILO_DIR/iSilo.exe"
+              ISILO_EXE="$ISILO_DIR/iSilo.exe"
+              echo "✓ iSilo.exe 已从 MSI 提取: $(basename "$CANDIDATE")"
             fi
           fi
 
