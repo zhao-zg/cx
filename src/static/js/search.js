@@ -306,11 +306,12 @@
       });
     },
 
-    // ── 加载一批训练的搜索数据（localforage 命中 → fetch 降级）──────────────
+    // ── 加载一批训练的搜索数据（localforage 命中 → fetch → Capacitor Cache Storage 兜底）──
 
     _loadBatch: function (offset) {
       var self = this;
       var root = (win.CX_ROOT !== undefined ? win.CX_ROOT : './');
+      var isNative = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
       var paths = this._searchQueue.slice(offset, offset + this.SEARCH_BATCH_SIZE);
       var promises = paths.map(function (path) {
         if (self._searchCache[path]) return Promise.resolve();
@@ -328,6 +329,19 @@
             .then(function (r) {
               if (!r.ok) throw new Error('HTTP ' + r.status);
               return r.json();
+            })
+            .catch(function (fetchErr) {
+              // Capacitor 原生 App 无 SW，历史合辑训练（资源包下载到 cx-main）需从 Cache Storage 兜底读取
+              if (isNative && 'caches' in win) {
+                var cacheUrl = (win.location.origin || '') + '/' + path + '/training.json';
+                return caches.match(cacheUrl).then(function (r1) {
+                  return r1 || caches.match(root + path + '/training.json');
+                }).then(function (cachedResp) {
+                  if (cachedResp && cachedResp.ok) return cachedResp.json();
+                  throw fetchErr;
+                });
+              }
+              throw fetchErr;
             })
             .then(function (data) {
               var entries = self._buildSearchEntries(path, data);
