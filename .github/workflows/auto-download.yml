@@ -36,115 +36,33 @@ jobs:
           playwright install chromium
           playwright install-deps chromium
 
-      - name: Install Wine + iSilo
-        run: |
-          echo "📦 安装 Wine + xvfb..."
-          sudo dpkg --add-architecture i386
-          sudo mkdir -pm755 /etc/apt/keyrings
-          sudo wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
-          sudo wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/$(lsb_release -cs)/winehq-$(lsb_release -cs).sources
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq winehq-stable p7zip-full xvfb --no-install-recommends
-          echo "✓ Wine 已安装: $(wine --version)"
-
-          # 启动虚拟显示 (Wine 的 wineboot/msiexec/iSilo 都需要显示)
-          Xvfb :99 -screen 0 1024x768x24 &
-          export DISPLAY=:99
-          echo "DISPLAY=$DISPLAY" >> "$GITHUB_ENV"
-
-          # 禁用不必要的 Wine 组件，防止 wineboot 卡住
-          export WINEDLLOVERRIDES="winemenubuilder.exe=d;mscoree=d;mshtml=d"
-          echo "WINEDLLOVERRIDES=$WINEDLLOVERRIDES" >> "$GITHUB_ENV"
-
-          # 初始化 Wine prefix (带超时防止卡死)
-          echo "📦 初始化 Wine prefix..."
-          timeout 120 bash -c 'WINEDEBUG=-all wineboot --init 2>/dev/null' || echo "wineboot 超时或失败，继续..."
-          WINEDEBUG=-all wineserver -k 2>/dev/null || true
-
-          echo "📦 安装 iSilo..."
-          ISILO_EXE=""
-
-          # 方案 1: 优先从 Secret URL 下载完整 exe
-          if [ -n "${{ secrets.ISILO_DOWNLOAD_URL }}" ]; then
-            echo "从 ISILO_DOWNLOAD_URL Secret 下载..."
-            ISILO_DIR="$HOME/.wine/drive_c/Program Files/iSilo"
-            mkdir -p "$ISILO_DIR"
-            wget -q "${{ secrets.ISILO_DOWNLOAD_URL }}" -O "$ISILO_DIR/iSilo.exe"
-            if [ -f "$ISILO_DIR/iSilo.exe" ] && [ -s "$ISILO_DIR/iSilo.exe" ]; then
-              ISILO_EXE="$ISILO_DIR/iSilo.exe"
-              echo "✓ iSilo.exe 已从 Secret URL 下载"
-            fi
-          fi
-
-          # 方案 2: 通过 Wine msiexec 完整安装 (需要虚拟显示)
-          if [ -z "$ISILO_EXE" ]; then
-            echo "下载 iSilo MSI 安装包..."
-            wget -q "http://www.iSilo.com/download/dl/iSilo620W32Setup.msi" -O /tmp/iSilo.msi
-            if [ -f /tmp/iSilo.msi ] && [ -s /tmp/iSilo.msi ]; then
-              echo "通过 Wine msiexec 安装 iSilo..."
-              WINEDEBUG=-all wine msiexec /i "$(winepath -w /tmp/iSilo.msi)" /qn 2>&1 | head -10 || true
-              timeout 30 bash -c 'WINEDEBUG=-all wineserver --wait 2>/dev/null' || true
-              WINEDEBUG=-all wineserver -k 2>/dev/null || true
-
-              FOUND=$(find "$HOME/.wine" -iname "iSilo.exe" -type f 2>/dev/null | head -1)
-              if [ -n "$FOUND" ] && [ -s "$FOUND" ]; then
-                ISILO_EXE="$FOUND"
-                echo "✓ iSilo.exe 已通过 msiexec 安装: $FOUND"
-              fi
-            fi
-          fi
-
-          # 方案 3: 7z 提取 MSI 中的 exe (回退)
-          if [ -z "$ISILO_EXE" ] && [ -f /tmp/iSilo.msi ]; then
-            echo "msiexec 安装未成功，尝试 7z 提取..."
-            ISILO_DIR="$HOME/.wine/drive_c/Program Files/iSilo"
-            mkdir -p "$ISILO_DIR"
-            mkdir -p /tmp/isilo_msi
-            cd /tmp/isilo_msi && 7z x -y /tmp/iSilo.msi >/dev/null 2>&1
-            EXTRACTED=$(find /tmp/isilo_msi -iname "*.exe" -type f 2>/dev/null)
-            echo "MSI 中提取到的 exe 文件:"
-            echo "$EXTRACTED" | while read f; do echo "  $(basename "$f") ($(stat -c%s "$f") bytes)"; done
-            CANDIDATE=$(echo "$EXTRACTED" | grep -i "isilo" | head -1)
-            if [ -z "$CANDIDATE" ]; then
-              CANDIDATE=$(echo "$EXTRACTED" | head -1)
-            fi
-            if [ -n "$CANDIDATE" ]; then
-              cp "$CANDIDATE" "$ISILO_DIR/iSilo.exe"
-              ISILO_EXE="$ISILO_DIR/iSilo.exe"
-              echo "✓ iSilo.exe 已从 MSI 提取: $(basename "$CANDIDATE")"
-            fi
-          fi
-
-          # 检查结果并导出路径
-          if [ -n "$ISILO_EXE" ] && [ -f "$ISILO_EXE" ]; then
-            echo "✓ iSilo.exe 已就绪: $(ls -la "$ISILO_EXE")"
-            echo "ISILO_EXE=$ISILO_EXE" >> "$GITHUB_ENV"
-          else
-            echo "⚠️ iSilo 安装失败，iSilo3 格式的 PDB 将无法转换"
-            echo "   请在仓库 Settings → Secrets 中添加 ISILO_DOWNLOAD_URL (iSilo.exe 直链)"
-          fi
-
       - name: Download resources (Word + PDB + images)
         run: |
           python down_resource.py
         continue-on-error: false
 
       - name: Convert PDB to TXT
+        id: convert_pdb
         run: |
           echo "🔄 转换 PDB → TXT..."
+          echo "isilo3_pending=" >> $GITHUB_OUTPUT
           if [ -d "resource/pdb" ]; then
             echo "resource/pdb 目录存在，开始转换..."
-            if [ -n "$ISILO_EXE" ] && [ -f "$ISILO_EXE" ]; then
-              echo "✓ iSilo.exe 已就绪: $ISILO_EXE"
-              echo "使用 Wine + iSilo 转换"
-              python -u convert_pdb.py --wine-isilo --overwrite
-            else
-              echo "⚠️ iSilo.exe 未就绪，仅转换 PalmDOC/iSilo2 格式"
-              python -u convert_pdb.py --overwrite
-            fi
+            echo "ℹ️ CI 环境仅转换 PalmDOC/iSilo2 格式 (iSilo3 需本地 Windows/Mac 转换)"
+            python -u convert_pdb.py --overwrite
             echo ""
             echo "📋 转换结果 (历史合辑中的新 TXT):"
             git status --short resource/历史合辑/ 2>/dev/null || true
+            # 检查未转换的 iSilo3 PDB 文件
+            PENDING=$(find resource/pdb -name '*.pdb' -o -name '*.pdb.zip' 2>/dev/null | head -20)
+            if [ -n "$PENDING" ]; then
+              echo ""
+              echo "⚠️ 以下 PDB 文件未转换 (iSilo3 格式，需本地转换):"
+              echo "$PENDING" | while read f; do echo "  - $f"; done
+              # 把待转换列表传给 Summary 步骤
+              LIST=$(echo "$PENDING" | tr '\n' ',' | sed 's/,$//')
+              echo "isilo3_pending=$LIST" >> $GITHUB_OUTPUT
+            fi
           else
             echo "ℹ️ resource/pdb 目录不存在，跳过转换"
           fi
@@ -184,4 +102,11 @@ jobs:
             echo "📱 APK 打包需手动运行 release.bat 打版本触发"
           else
             echo "ℹ️ 没有新资源需要更新"
+          fi
+          PENDING="${{ steps.convert_pdb.outputs.isilo3_pending }}"
+          if [ -n "$PENDING" ]; then
+            echo ""
+            echo "⚠️ 有待转换的 iSilo3 PDB 文件，请在本地运行:"
+            echo "   python convert_pdb.py --isilo-exe \"C:\\Program Files\\iSilo\\iSilo.exe\""
+            echo "$PENDING" | tr ',' '\n' | while read f; do [ -n "$f" ] && echo "   - $f"; done
           fi
