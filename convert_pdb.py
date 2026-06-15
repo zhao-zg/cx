@@ -422,9 +422,20 @@ def convert_with_wine_isilo(pdb_path: Path, output_path: Path) -> bool:
     # iSilo 命令行: iSilo.exe /e source.pdb output.txt
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # 转换路径为 Wine 格式
-    pdb_wine_path = str(pdb_path.resolve())
-    out_wine_path = str(output_path.resolve())
+    # 转换路径为 Wine 格式 (iSilo.exe 需要 Windows 路径)
+    try:
+        pdb_wine_path = subprocess.check_output(
+            ['winepath', '-w', str(pdb_path.resolve())],
+            text=True, stderr=subprocess.DEVNULL
+        ).strip()
+        out_wine_path = subprocess.check_output(
+            ['winepath', '-w', str(output_path.resolve())],
+            text=True, stderr=subprocess.DEVNULL
+        ).strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # winepath 不可用时，手动构造 Z: 驱动器路径
+        pdb_wine_path = 'Z:' + str(pdb_path.resolve()).replace('/', '\\')
+        out_wine_path = 'Z:' + str(output_path.resolve()).replace('/', '\\')
 
     try:
         result = subprocess.run(
@@ -439,7 +450,14 @@ def convert_with_wine_isilo(pdb_path: Path, output_path: Path) -> bool:
             print(f"  [OK] → {output_path}")
             return True
         else:
-            print(f"  [ERROR] Wine + iSilo 转换失败: {result.stderr[:200]}")
+            stderr = result.stderr[:200] if result.stderr else ''
+            stdout = result.stdout[:200] if result.stdout else ''
+            print(f"  [ERROR] Wine + iSilo 转换失败 (rc={result.returncode})")
+            if stderr:
+                print(f"    stderr: {stderr}")
+            if stdout:
+                print(f"    stdout: {stdout}")
+            print(f"    wine cmd: wine {isilo_exe} /e {pdb_wine_path} {out_wine_path}")
             return False
     except FileNotFoundError:
         print("  [ERROR] Wine 未安装或不在 PATH 中")
