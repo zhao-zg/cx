@@ -38,13 +38,13 @@ jobs:
 
       - name: Install Wine + iSilo
         run: |
-          echo "📦 安装 Wine..."
+          echo "📦 安装 Wine + p7zip..."
           sudo dpkg --add-architecture i386
           sudo mkdir -pm755 /etc/apt/keyrings
           sudo wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
           sudo wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/$(lsb_release -cs)/winehq-$(lsb_release -cs).sources
           sudo apt-get update -qq
-          sudo apt-get install -y -qq winehq-stable msitools --no-install-recommends
+          sudo apt-get install -y -qq winehq-stable p7zip-full --no-install-recommends
           echo "✓ Wine 已安装: $(wine --version)"
 
           echo "📦 下载并解压 iSilo..."
@@ -57,24 +57,41 @@ jobs:
             wget -q "${{ secrets.ISILO_DOWNLOAD_URL }}" -O "$ISILO_DIR/iSilo.exe"
           fi
 
-          # 尝试从官方 MSI 提取
+          # 从官方 MSI 用 7z 提取 (比 msiextract 更可靠)
           if [ ! -f "$ISILO_DIR/iSilo.exe" ]; then
-            echo "尝试从官方 MSI 提取..."
-            wget -q "http://www.iSilo.com/download/dl/iSilo620W32Setup.msi" -O /tmp/iSilo.msi || true
-            if [ -f /tmp/iSilo.msi ]; then
-              cd /tmp && msiextract -i /tmp/iSilo.msi 2>/dev/null || true
-              EXTRACTED=$(find /tmp -iname "iSilo.exe" -type f 2>/dev/null | head -1)
-              if [ -n "$EXTRACTED" ]; then
-                cp "$EXTRACTED" "$ISILO_DIR/iSilo.exe"
-                echo "✓ iSilo.exe 已从 MSI 提取"
+            echo "从官方 MSI 提取..."
+            wget -q "http://www.iSilo.com/download/dl/iSilo620W32Setup.msi" -O /tmp/iSilo.msi
+            mkdir -p /tmp/isilo_msi
+            cd /tmp/isilo_msi && 7z x -y /tmp/iSilo.msi >/dev/null 2>&1
+            # MSI 内嵌的 cab 或 exe 可能在子层，递归查找
+            EXTRACTED=$(find /tmp/isilo_msi -iname "iSilo.exe" -type f 2>/dev/null | head -1)
+            if [ -n "$EXTRACTED" ]; then
+              cp "$EXTRACTED" "$ISILO_DIR/iSilo.exe"
+              echo "✓ iSilo.exe 已从 MSI 提取"
+            else
+              # 7z 可能提取为 _iSilo.exe 等变体名，也搜索一下
+              EXTRACTED2=$(find /tmp/isilo_msi -iname "*isilo*exe*" -type f 2>/dev/null | head -1)
+              if [ -n "$EXTRACTED2" ]; then
+                cp "$EXTRACTED2" "$ISILO_DIR/iSilo.exe"
+                echo "✓ iSilo.exe 已从 MSI 提取 (变体名: $(basename "$EXTRACTED2"))"
               fi
             fi
+            # 列出提取目录内容便于调试
+            echo "MSI 提取内容:"
+            find /tmp/isilo_msi -type f | head -20
           fi
 
-          # 尝试 Wine 静默安装作为最后手段
+          # Wine 静默安装作为最后手段
           if [ ! -f "$ISILO_DIR/iSilo.exe" ] && [ -f /tmp/iSilo.msi ]; then
             echo "尝试 Wine 静默安装..."
-            WINEDEBUG=-all wine msiexec /i /tmp/iSilo.msi /qn 2>/dev/null || true
+            wineboot --init 2>/dev/null || true
+            WINEDEBUG=-all wine msiexec /i "$(winepath -w /tmp/iSilo.msi)" /qn 2>/dev/null || true
+            # 搜索 Wine 前缀下的 iSilo.exe
+            EXTRACTED3=$(find "$HOME/.wine" -iname "iSilo.exe" -type f 2>/dev/null | head -1)
+            if [ -n "$EXTRACTED3" ]; then
+              cp "$EXTRACTED3" "$ISILO_DIR/iSilo.exe"
+              echo "✓ iSilo.exe 已通过 Wine 安装提取"
+            fi
           fi
 
           # 检查结果
