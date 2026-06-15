@@ -30,6 +30,9 @@ from typing import Optional, Tuple
 
 # ─── PalmDOC 常量 ──────────────────────────────────────────────
 PDB_HEADER_SIZE = 78
+
+# Wine + iSilo 首次超时/失败后，跳过后续 iSilo3 文件，避免浪费时间
+_wine_isilo_disabled = False
 COMPRESSION_NONE = 1
 COMPRESSION_PALMDOC = 2
 COMPRESSION_APORTIS = 17480  # 'Huffcdic'
@@ -289,6 +292,9 @@ def convert_pdb_file(pdb_path: Path, output_path: Path,
         return convert_with_native_isilo(pdb_path, output_path, isilo_exe)
 
     if use_wine_isilo:
+        if _wine_isilo_disabled:
+            print("  [SKIP] Wine + iSilo 已在上次超时/失败，跳过后续 iSilo3 文件")
+            return False
         return convert_with_wine_isilo(pdb_path, output_path)
 
     # 对于 iSilo3 格式，提示用户安装 iSilo
@@ -453,26 +459,32 @@ def convert_with_wine_isilo(pdb_path: Path, output_path: Path) -> bool:
     except Exception:
         pass
 
-    cmd = ['wine', isilo_exe, '/e', wine_in, wine_out]
+    # 使用 shell timeout 替代 Python 内置 timeout
+    # timeout 会向整个进程组发信号，能一并杀死 Wine 的子进程 (wineserver 等)
+    # --kill-after=5: SIGTERM 后 5s 仍未退出则发 SIGKILL
+    wine_env = {**os.environ, 'WINEDEBUG': '-all'}
+    cmd = ['timeout', '--kill-after=5', '300',
+           'wine', isilo_exe, '/e', wine_in, wine_out]
     print(f"  [CMD] {' '.join(cmd)}", flush=True)
     try:
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=120,
-            env={**os.environ, 'WINEDEBUG': '-all'}
+            env=wine_env
         )
+        # timeout 退出码 124 表示超时
+        if result.returncode == 124:
+            print("  [ERROR] Wine + iSilo 转换超时 (300s)")
+            global _wine_isilo_disabled
+            _wine_isilo_disabled = True
+            try:
+                subprocess.run(['wineserver', '-k'], capture_output=True, timeout=10)
+            except Exception:
+                pass
+            return False
     except FileNotFoundError:
-        print("  [ERROR] Wine 未安装或不在 PATH 中")
-        return False
-    except subprocess.TimeoutExpired:
-        print("  [ERROR] Wine + iSilo 转换超时 (120s)")
-        # 强制杀死残留 Wine 进程
-        try:
-            subprocess.run(['wineserver', '-k'], capture_output=True, timeout=10)
-        except Exception:
-            pass
+        print("  [ERROR] Wine 或 timeout 未安装")
         return False
     except Exception as e:
         print(f"  [ERROR] Wine + iSilo 转换异常: {e}")

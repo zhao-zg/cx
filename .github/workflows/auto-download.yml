@@ -136,10 +136,6 @@ jobs:
             echo "resource/pdb 目录存在，开始转换..."
             if [ -n "$ISILO_EXE" ] && [ -f "$ISILO_EXE" ]; then
               echo "✓ iSilo.exe 已就绪: $ISILO_EXE"
-              echo "🔍 预检 iSilo.exe 是否可运行..."
-              timeout 10 bash -c 'WINEDEBUG=-all wine "$ISILO_EXE" 2>&1 | head -5' || true
-              WINEDEBUG=-all wineserver -k 2>/dev/null || true
-              echo "---"
               echo "使用 Wine + iSilo 转换"
               python -u convert_pdb.py --wine-isilo --overwrite
             else
