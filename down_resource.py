@@ -660,7 +660,11 @@ def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode
             continue
         
         if pdb_mode:
-            # PDB 模式: 只扫描资源页面（不遍历子页面）
+            # PDB 模式: 只补充扫描正常模式未覆盖的老训练（< 2025-04）
+            if training_in_range(training['title']):
+                print(f"  跳过（已由正常模式覆盖）")
+                time.sleep(0.5)
+                continue
             resource_pages = find_resource_pages(session, training)
             if not resource_pages:
                 print(f"  未找到资源页面")
@@ -1072,20 +1076,20 @@ def main() -> None:
     parser = ArgumentParser(description="Notion 文档下载器（自动使用 Playwright 回退下载）")
     parser.add_argument('--url', default=BASE_URL, help='Notion 页面 URL')
     parser.add_argument('--only-images', action='store_true', help='只下载标语诗歌图片，跳过Word文档')
-    parser.add_argument('--pdb', action='store_true', help='只下载PDB文件（所有年份），保存到 resource/pdb/')
+    parser.add_argument('--pdb', action='store_true', help='补充下载PDB文件（仅 < 2025-04 的老训练，正常模式已覆盖新训练）')
     parser.add_argument('--dry-run', action='store_true', help='只扫描 Notion 页面，不实际下载（用于调试）')
     args = parser.parse_args()
     print('=' * 80)
     print('Notion文档下载器启动')
     print('=' * 80)
     if args.pdb:
-        print('目标: 下载所有年份的PDB文件')
+        print('目标: 补充下载老训练（< 2025-04）的 PDB 文件')
         print('保存位置: resource/pdb/{training}/')
     elif args.only_images:
         print('目标: 下载标语诗歌图片')
     else:
-        print('目标: 下载训练资源中的简体中文Word文档和标语诗歌图片')
-        print('类型: 经文、听抄、晨兴、标语诗歌')
+        print('目标: 下载训练资源（Word文档 + PDB + 标语诗歌图片）')
+        print('类型: 经文、听抄、晨兴、PDB、标语诗歌')
     if args.dry_run:
         print('模式: DRY-RUN（只扫描，不下载）')
     print('=' * 80)

@@ -36,19 +36,10 @@ jobs:
           playwright install chromium
           playwright install-deps chromium
 
-      - name: Download resources
+      - name: Download resources (Word + PDB + images)
         run: |
           python down_resource.py
         continue-on-error: false
-
-      - name: Download PDB files
-        run: |
-          echo "📥 下载 PDB 文件 (所有年份)..."
-          python down_resource.py --pdb
-          echo ""
-          echo "📋 已下载的 PDB 文件:"
-          find resource/pdb -name "*.pdb" -type f 2>/dev/null || echo "(无)"
-        continue-on-error: true
 
       - name: Convert PDB to TXT
         run: |
