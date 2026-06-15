@@ -52,10 +52,14 @@ jobs:
           export DISPLAY=:99
           echo "DISPLAY=$DISPLAY" >> "$GITHUB_ENV"
 
-          # 初始化 Wine prefix
+          # 禁用不必要的 Wine 组件，防止 wineboot 卡住
+          export WINEDLLOVERRIDES="winemenubuilder.exe=d;mscoree=d;mshtml=d"
+          echo "WINEDLLOVERRIDES=$WINEDLLOVERRIDES" >> "$GITHUB_ENV"
+
+          # 初始化 Wine prefix (带超时防止卡死)
           echo "📦 初始化 Wine prefix..."
-          WINEDEBUG=-all wineboot --init 2>/dev/null || true
-          WINEDEBUG=-all wineserver --wait 2>/dev/null || true
+          timeout 120 bash -c 'WINEDEBUG=-all wineboot --init 2>/dev/null' || echo "wineboot 超时或失败，继续..."
+          WINEDEBUG=-all wineserver -k 2>/dev/null || true
 
           echo "📦 安装 iSilo..."
           ISILO_EXE=""
@@ -79,7 +83,8 @@ jobs:
             if [ -f /tmp/iSilo.msi ] && [ -s /tmp/iSilo.msi ]; then
               echo "通过 Wine msiexec 安装 iSilo..."
               WINEDEBUG=-all wine msiexec /i "$(winepath -w /tmp/iSilo.msi)" /qn 2>&1 | head -10 || true
-              WINEDEBUG=-all wineserver --wait 2>/dev/null || true
+              timeout 30 bash -c 'WINEDEBUG=-all wineserver --wait 2>/dev/null' || true
+              WINEDEBUG=-all wineserver -k 2>/dev/null || true
 
               FOUND=$(find "$HOME/.wine" -iname "iSilo.exe" -type f 2>/dev/null | head -1)
               if [ -n "$FOUND" ] && [ -s "$FOUND" ]; then
