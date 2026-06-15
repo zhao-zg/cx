@@ -24,6 +24,7 @@
     _countEl: null,
     _debounceTimer: null,
     _inBackStack: false,
+    _lockCleanup: null,
 
     // ── 搜索缓存与状态 ────────────────────────────────────────────────────────
 
@@ -468,6 +469,7 @@
         // 再用 navigateReplace 把该 history 条目原地替换为目标章节（不新增历史条目）。
         // 这样 backStack._stack 干净、_skip 为 0，弹框 history.back() 可正常消费。
         if (this._modal) this._modal.classList.remove('active');
+        if (this._lockCleanup) { this._lockCleanup(); this._lockCleanup = null; }
         if (this._inBackStack && win.CX && win.CX.backStack) {
           win.CX.backStack.discard();
           this._inBackStack = false;
@@ -707,14 +709,18 @@
       if (!this._modal) this._buildUI();
       this._modal.classList.add('active');
       var self = this;
+      // 防触摸滚动穿透到下层页面
+      if (win.CX && win.CX.lockOverlayScroll && !this._lockCleanup) {
+        this._lockCleanup = win.CX.lockOverlayScroll(this._modal, function () { self.close(); });
+      }
       // 等 DOM 渲染完再 focus（避免 iOS 键盘弹出时滚动问题）
       setTimeout(function () { self._input.focus(); }, 50);
-
+    
       if (!this._inBackStack && win.CX && win.CX.backStack) {
         win.CX.backStack.push(function () { self.close(); });
         this._inBackStack = true;
       }
-
+    
       // 确保 trainings.json 已加载（建立版本表和搜索队列）
       this._ensureTrainings().then(function () {
         if (self._input.value.trim()) self._doSearch(self._input.value);
@@ -724,6 +730,8 @@
     close: function () {
       if (!this._modal || !this._modal.classList.contains('active')) return;
       this._modal.classList.remove('active');
+      // 释放触摸滚动锁
+      if (this._lockCleanup) { this._lockCleanup(); this._lockCleanup = null; }
       if (this._inBackStack && win.CX && win.CX.backStack) {
         win.CX.backStack.pop();
         this._inBackStack = false;
@@ -920,14 +928,14 @@
         '#cx-search-modal{display:none;position:fixed;inset:0;z-index:2000;flex-direction:column;align-items:stretch;justify-content:flex-start}',
         '#cx-search-modal.active{display:flex}',
         '.cx-search-overlay{position:fixed;inset:0;background:var(--overlay-strong,rgba(0,0,0,.45));z-index:0}',
-        '.cx-search-panel{position:relative;z-index:1;background:var(--surface,#fff);display:flex;flex-direction:column;width:100%;border-radius:0 0 16px 16px;animation:cxSrSlide .22s ease;max-height:92vh}',
+        '.cx-search-panel{position:relative;z-index:1;background:var(--surface,#fff);display:flex;flex-direction:column;width:100%;border-radius:0 0 16px 16px;animation:cxSrSlide .22s ease;max-height:92vh;overscroll-behavior:contain}',
         '@keyframes cxSrSlide{from{transform:translateY(-100%)}to{transform:translateY(0)}}',
         '.cx-search-header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border,#e0e0e0)}',
         '#cx-search-input{flex:1;font:inherit;font-size:16px;background:var(--surface-alt,#f5f5f5);color:var(--text,inherit);border:1.5px solid var(--border,#ddd);border-radius:8px;padding:7px 11px;outline:none;-webkit-appearance:none}',
         '#cx-search-input:focus{border-color:var(--brand,#4a90d9)}',
         '.cx-search-close{background:none;border:none;font-size:20px;color:var(--text-muted,#999);cursor:pointer;padding:4px 8px;line-height:1;-webkit-tap-highlight-color:transparent}',
         '#cx-search-count{padding:5px 13px;font-size:12px;color:var(--text-muted,#999);min-height:22px}',
-        '#cx-search-results{overflow-y:auto;flex:1;min-height:80px;padding-bottom:24px}',
+        '#cx-search-results{overflow-y:auto;flex:1;min-height:80px;padding-bottom:24px;overscroll-behavior:contain}',
         '.cx-search-group{padding:7px 13px 4px;font-size:11px;font-weight:700;color:var(--brand,#4a90d9);border-bottom:1px solid var(--border,#e0e0e0);background:var(--surface-alt,#f9f9f9);margin-top:2px;text-transform:uppercase;letter-spacing:.03em}',
         '.cx-search-group--current{color:var(--heading,#222);background:var(--interactive-soft-bg,#eef4ff)}',
         '.cx-search-item{padding:10px 13px;border-bottom:1px solid var(--border,#f0f0f0);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .12s}',
@@ -995,6 +1003,23 @@
           self.close();
         }
       });
+
+      // 防鼠标/触控板滚动穿透：在 modal 内拦截 wheel，边界处阻止传播
+      modal.addEventListener('wheel', function (e) {
+        var resultsEl = self._resultsEl;
+        if (!resultsEl) return;
+        // 检查目标是否在可滚动结果区内
+        var el = e.target;
+        var inResults = false;
+        while (el && el !== modal) {
+          if (el === resultsEl) { inResults = true; break; }
+          el = el.parentElement;
+        }
+        if (!inResults) { e.preventDefault(); return; }
+        var atTop = resultsEl.scrollTop <= 0;
+        var atBot = resultsEl.scrollTop + resultsEl.clientHeight >= resultsEl.scrollHeight - 1;
+        if ((atTop && e.deltaY < 0) || (atBot && e.deltaY > 0)) e.preventDefault();
+      }, { passive: false });
     },
 
     // ── 初始化入口 ───────────────────────────────────────────────────────
