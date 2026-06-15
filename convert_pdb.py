@@ -5,13 +5,18 @@
 用法:
     python convert_pdb.py                          # 转换 resource/pdb/ 下所有 PDB 文件
     python convert_pdb.py --input-dir ./my_pdb     # 指定输入目录
-    python convert_pdb.py --wine-isilo             # 使用 Wine + iSilo 转换 (需提前安装)
+    python convert_pdb.py --isilo-exe "C:\\Program Files\\iSilo\\iSilo.exe"  # 指定 iSilo 路径 (Windows)
+    python convert_pdb.py --wine-isilo             # 使用 Wine + iSilo 转换 (Linux)
     python convert_pdb.py --dry-run                # 只扫描不转换
 
 转换后的 TXT 文件存放到 resource/历史合辑/{YYYY}/ 目录。
+
+iSilo3 格式 (SDoc/SilX) 使用专有二进制编码，Python 无法原生解析。
+需要安装 iSilo for Windows (https://www.isilox.com/download/) 进行转换。
 """
 
 import os
+import platform
 import re
 import struct
 import shutil
@@ -239,13 +244,16 @@ def unzip_pdb_file(zip_path: Path) -> Optional[Path]:
         return None
 
 
-def convert_pdb_file(pdb_path: Path, output_path: Path, use_wine_isilo: bool = False) -> bool:
+def convert_pdb_file(pdb_path: Path, output_path: Path,
+                     use_wine_isilo: bool = False,
+                     isilo_exe: str = '') -> bool:
     """转换单个 PDB 文件为 TXT。
 
     Args:
         pdb_path: PDB 文件路径
         output_path: 输出 TXT 文件路径
-        use_wine_isilo: 是否使用 Wine + iSilo
+        use_wine_isilo: 是否使用 Wine + iSilo (Linux)
+        isilo_exe: iSilo 可执行文件路径 (Windows 原生)
 
     Returns:
         True 如果转换成功
@@ -275,15 +283,24 @@ def convert_pdb_file(pdb_path: Path, output_path: Path, use_wine_isilo: bool = F
         except Exception as e:
             print(f"  [WARN] Python 原生转换失败: {e}")
 
-    # iSilo3 或 Python 转换失败时，尝试 Wine + iSilo
+    # iSilo3 或 Python 转换失败时，尝试 iSilo 转换
+    # 优先级: 1) Windows 原生 iSilo  2) Wine + iSilo (Linux)
+    if isilo_exe:
+        return convert_with_native_isilo(pdb_path, output_path, isilo_exe)
+
     if use_wine_isilo:
         return convert_with_wine_isilo(pdb_path, output_path)
 
-    # 对于 iSilo3 格式，提示用户使用 Wine + iSilo
+    # 对于 iSilo3 格式，提示用户安装 iSilo
     if fmt == 'iSilo3':
+        is_win = platform.system() == 'Windows'
         print(f"  [WARN] iSilo3 格式 (SDoc/SilX 或 SDoc/SSil) 使用专有二进制富文本编码")
-        print(f"  [WARN] Python 原生解析不支持此格式，需要 Wine + iSilo 转换")
-        print(f"  [WARN] 使用 --wine-isilo 参数启用，或手动用 iSilo 导出为 TXT")
+        print(f"  [WARN] Python 原生解析不支持此格式")
+        if is_win:
+            print(f"  [HINT] 请安装 iSilo for Windows: https://www.isilox.com/download/")
+            print(f"  [HINT] 然后运行: python convert_pdb.py --isilo-exe \"C:\\Program Files\\iSilo\\iSilo.exe\"")
+        else:
+            print(f"  [HINT] 使用 --wine-isilo 参数启用 Wine + iSilo 转换")
         return False
 
     # 最后尝试: 将原始数据当作纯文本
@@ -298,6 +315,82 @@ def convert_pdb_file(pdb_path: Path, output_path: Path, use_wine_isilo: bool = F
         return True
     except Exception as e:
         print(f"  [ERROR] 转换失败: {e}")
+        return False
+
+
+def find_isilo_exe() -> str:
+    """搜索 iSilo.exe 的安装路径。
+
+    按优先级搜索:
+    1. ISILO_EXE 环境变量
+    2. Windows 常见安装路径
+    3. Wine 安装路径 (Linux)
+    """
+    # 1. 环境变量
+    exe = os.environ.get('ISILO_EXE', '')
+    if exe and Path(exe).exists():
+        return exe
+
+    is_win = platform.system() == 'Windows'
+
+    # 2. Windows 常见路径
+    if is_win:
+        program_files = os.environ.get('ProgramFiles', r'C:\Program Files')
+        program_files_x86 = os.environ.get('ProgramFiles(x86)', r'C:\Program Files (x86)')
+        search_paths = [
+            Path(program_files) / 'iSilo' / 'iSilo.exe',
+            Path(program_files_x86) / 'iSilo' / 'iSilo.exe',
+        ]
+    else:
+        # 3. Wine 路径
+        search_paths = [
+            Path.home() / '.wine' / 'drive_c' / 'Program Files' / 'iSilo' / 'iSilo.exe',
+            Path.home() / '.wine' / 'drive_c' / 'Program Files (x86)' / 'iSilo' / 'iSilo.exe',
+            Path('/usr/local/share/isilo/iSilo.exe'),
+        ]
+
+    for p in search_paths:
+        if p.exists():
+            return str(p)
+
+    return ''
+
+
+def convert_with_native_isilo(pdb_path: Path, output_path: Path, isilo_exe: str) -> bool:
+    """使用 Windows 原生 iSilo 转换 PDB 文件。
+
+    iSilo 命令行: iSilo.exe /e source.pdb output.txt
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        result = subprocess.run(
+            [isilo_exe, '/e', str(pdb_path.resolve()), str(output_path.resolve())],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if output_path.exists() and output_path.stat().st_size > 0:
+            # 清理输出: 去除 BOM, 规范化换行符
+            text = output_path.read_text(encoding='utf-8', errors='replace')
+            text = text.lstrip('\ufeff')
+            text = text.replace('\r\n', '\n').replace('\r', '\n')
+            output_path.write_text(text, encoding='utf-8')
+            print(f"  [OK] iSilo 转换成功")
+            print(f"  [OK] → {output_path}")
+            return True
+        else:
+            stderr = result.stderr[:300] if result.stderr else ''
+            print(f"  [ERROR] iSilo 转换失败: {stderr}")
+            return False
+    except FileNotFoundError:
+        print(f"  [ERROR] iSilo.exe 未找到: {isilo_exe}")
+        return False
+    except subprocess.TimeoutExpired:
+        print(f"  [ERROR] iSilo 转换超时 (120s)")
+        return False
+    except Exception as e:
+        print(f"  [ERROR] iSilo 转换异常: {e}")
         return False
 
 
@@ -428,8 +521,10 @@ def main() -> None:
                         help='PDB 文件输入目录 (默认: resource/pdb)')
     parser.add_argument('--output-dir', default='resource/历史合辑',
                         help='TXT 文件输出目录 (默认: resource/历史合辑)')
+    parser.add_argument('--isilo-exe', default='',
+                        help='iSilo.exe 路径 (Windows 原生转换, 留空自动搜索)')
     parser.add_argument('--wine-isilo', action='store_true',
-                        help='使用 Wine + iSilo 转换 (需要预装)')
+                        help='使用 Wine + iSilo 转换 (Linux, 需要预装)')
     parser.add_argument('--dry-run', action='store_true',
                         help='只扫描不转换')
     parser.add_argument('--overwrite', action='store_true',
@@ -439,12 +534,26 @@ def main() -> None:
     input_dir = Path(args.input_dir)
     output_dir = Path(args.output_dir)
 
+    # 解析 iSilo 路径: 显式指定 > 自动搜索 > 无
+    isilo_exe = args.isilo_exe
+    if not isilo_exe and not args.wine_isilo:
+        # 自动搜索 (Windows 优先, Linux 搜索 Wine 路径)
+        isilo_exe = find_isilo_exe()
+
+    # 确定转换模式
+    if isilo_exe:
+        mode_desc = f'iSilo 原生 ({isilo_exe})'
+    elif args.wine_isilo:
+        mode_desc = 'Wine + iSilo'
+    else:
+        mode_desc = '仅 PalmDOC/iSilo2 (iSilo3 需要 iSilo)'
+
     print('=' * 80)
     print('PDB → TXT 转换工具')
     print('=' * 80)
     print(f'输入目录: {input_dir}')
     print(f'输出目录: {output_dir}')
-    print(f'Wine + iSilo: {"启用" if args.wine_isilo else "禁用"}')
+    print(f'转换模式: {mode_desc}')
     print('=' * 80)
 
     pdb_files = scan_pdb_files(input_dir)
@@ -490,7 +599,7 @@ def main() -> None:
             skipped += 1
             continue
 
-        if convert_pdb_file(pdb_path, output_path, args.wine_isilo):
+        if convert_pdb_file(pdb_path, output_path, args.wine_isilo, isilo_exe):
             success += 1
         else:
             failed += 1
@@ -498,6 +607,17 @@ def main() -> None:
     print('\n' + '=' * 80)
     print(f'转换完成: 成功 {success}, 跳过 {skipped}, 失败 {failed}')
     print('=' * 80)
+
+    # 如果全部失败且有 iSilo3 文件，给出安装指引
+    if failed > 0 and not isilo_exe and not args.wine_isilo:
+        is_win = platform.system() == 'Windows'
+        print(f"\n💡 iSilo3 格式需要 iSilo 工具转换:")
+        if is_win:
+            print(f"   1. 下载 iSilo for Windows: https://www.isilox.com/download/")
+            print(f"   2. 安装后运行:")
+            print(f'      python convert_pdb.py --isilo-exe "C:\\Program Files\\iSilo\\iSilo.exe"')
+        else:
+            print(f"   使用 --wine-isilo 参数启用 Wine + iSilo 转换 (需预装)")
 
 
 if __name__ == '__main__':

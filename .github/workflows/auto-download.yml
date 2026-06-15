@@ -36,6 +36,55 @@ jobs:
           playwright install chromium
           playwright install-deps chromium
 
+      - name: Install Wine + iSilo
+        run: |
+          echo "📦 安装 Wine..."
+          sudo dpkg --add-architecture i386
+          sudo mkdir -pm755 /etc/apt/keyrings
+          sudo wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
+          sudo wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/$(lsb_release -cs)/winehq-$(lsb_release -cs).sources
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq winehq-stable msitools --no-install-recommends
+          echo "✓ Wine 已安装: $(wine --version)"
+
+          echo "📦 下载并解压 iSilo..."
+          ISILO_DIR="$HOME/.wine/drive_c/Program Files/iSilo"
+          mkdir -p "$ISILO_DIR"
+
+          # 优先从 Secret URL 下载 (完整 exe)
+          if [ -n "${{ secrets.ISILO_DOWNLOAD_URL }}" ]; then
+            echo "从 ISILO_DOWNLOAD_URL Secret 下载..."
+            wget -q "${{ secrets.ISILO_DOWNLOAD_URL }}" -O "$ISILO_DIR/iSilo.exe"
+          fi
+
+          # 尝试从官方 MSI 提取
+          if [ ! -f "$ISILO_DIR/iSilo.exe" ]; then
+            echo "尝试从官方 MSI 提取..."
+            wget -q "http://www.iSilo.com/download/dl/iSilo620W32Setup.msi" -O /tmp/iSilo.msi || true
+            if [ -f /tmp/iSilo.msi ]; then
+              cd /tmp && msiextract -i /tmp/iSilo.msi 2>/dev/null || true
+              EXTRACTED=$(find /tmp -iname "iSilo.exe" -type f 2>/dev/null | head -1)
+              if [ -n "$EXTRACTED" ]; then
+                cp "$EXTRACTED" "$ISILO_DIR/iSilo.exe"
+                echo "✓ iSilo.exe 已从 MSI 提取"
+              fi
+            fi
+          fi
+
+          # 尝试 Wine 静默安装作为最后手段
+          if [ ! -f "$ISILO_DIR/iSilo.exe" ] && [ -f /tmp/iSilo.msi ]; then
+            echo "尝试 Wine 静默安装..."
+            WINEDEBUG=-all wine msiexec /i /tmp/iSilo.msi /qn 2>/dev/null || true
+          fi
+
+          # 检查结果
+          if [ -f "$ISILO_DIR/iSilo.exe" ]; then
+            echo "✓ iSilo.exe 已就绪: $(ls -la "$ISILO_DIR/iSilo.exe")"
+          else
+            echo "⚠️ iSilo 安装失败，iSilo3 格式的 PDB 将无法转换"
+            echo "   请在仓库 Settings → Secrets 中添加 ISILO_DOWNLOAD_URL (iSilo.exe 直链)"
+          fi
+
       - name: Download resources (Word + PDB + images)
         run: |
           python down_resource.py
@@ -43,10 +92,17 @@ jobs:
 
       - name: Convert PDB to TXT
         run: |
+          export ISILO_EXE="$HOME/.wine/drive_c/Program Files/iSilo/iSilo.exe"
           echo "🔄 转换 PDB → TXT..."
           if [ -d "resource/pdb" ]; then
             echo "resource/pdb 目录存在，开始转换..."
-            python convert_pdb.py --overwrite
+            if [ -f "$ISILO_EXE" ]; then
+              echo "✓ iSilo.exe 已就绪，使用 Wine + iSilo 转换"
+              python convert_pdb.py --wine-isilo --overwrite
+            else
+              echo "⚠️ iSilo.exe 未就绪，仅转换 PalmDOC/iSilo2 格式"
+              python convert_pdb.py --overwrite
+            fi
             echo ""
             echo "📋 转换结果 (历史合辑中的新 TXT):"
             git status --short resource/历史合辑/ 2>/dev/null || true
