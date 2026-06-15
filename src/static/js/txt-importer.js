@@ -490,12 +490,16 @@
     }
     if (matchCount < noMr.length * 0.8) return chapters;
 
-    // 合并：将 withMr 章节的 morning_revivals 复制到对应的 noMr 章节，删除 withMr 章节
+    // 合并：将 withMr 章节的 morning_revivals + hymn 复制到对应的 noMr 章节，删除 withMr 章节
     var toRemove = [];
     for (var i = 0; i < noMr.length; i++) {
       var src = titleToMrCh[noMrNorm[i]];
       if (src) {
         noMr[i].morning_revivals = src.morning_revivals;
+        // 半年度训练：诗歌信息在晨兴章节中，合并时一并带过
+        if (src.hymn_number && !noMr[i].hymn_number) {
+          noMr[i].hymn_number = src.hymn_number;
+        }
         toRemove.push(src);
       }
     }

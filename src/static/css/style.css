@@ -53,6 +53,8 @@
     --viewer-control-bg-active:rgba(0,0,0,.65);
     --viewer-control-text:#fff;
     --viewer-hint:rgba(255,255,255,.5);
+    --btn-active-bg:var(--bg);
+    --btn-active-text:#fff;
 }
 /* 冷色模式（默认） */
 :root,
@@ -98,69 +100,75 @@
     --sponsor-wx-bg:rgba(7,193,96,.08);
     --sponsor-zfb-bg:rgba(22,119,255,.08);
 }
-/* 暖色模式 */
+/* 暖色模式（纸张质感：奶油底色 + 深棕文字） */
 [data-theme="warm"]{
-    --brand:#7D6030;
-    --brand-dark:#6B5026;
-    --brand-rgb:125,96,48;
-    --bg:linear-gradient(135deg,#8C6D3F,#7A5A2E);
-    --surface:#fffaf4;
-    --surface-alt:#f7efe5;
-    --page-bg:#f4ede2;
+    --brand:#8B6B3A;
+    --brand-dark:#7A5A2E;
+    --brand-rgb:139,107,58;
+    --bg:linear-gradient(135deg,#9A7B4A,#8B6B3A);
+    --surface:#FAF6ED;
+    --surface-alt:#F3ECDD;
+    --page-bg:#F5EFE0;
     --header-bg:var(--bg);
-    --nav-hover:#efe5d8;
-    --scripture-bg:#f8f1e7;
-    --muted:#f3ece3;
-    --border:#dfd3c4;
-    --text:#292524;
-    --text-soft:#62574d;
-    --text-muted:#87786a;
-    --heading:#1c1917;
-    --heading-strong:#0c0a09;
-    --heading-soft:#4f463f;
-    --heading-muted:#62574d;
-    --btn-secondary-bg:#fdf4e8;
-    --btn-secondary-border:rgba(140,109,63,.22);
-    --btn-secondary-hover-bg:#e8d5bc;
+    --nav-hover:#EDE5D4;
+    --scripture-bg:#F6F0E3;
+    --muted:#F0E8D8;
+    --border:#E2D8C6;
+    --text:#3D2B1F;
+    --text-soft:#5C4033;
+    --text-muted:#8B7355;
+    --heading:#2C1810;
+    --heading-strong:#1A0E08;
+    --heading-soft:#4A3728;
+    --heading-muted:#6B5744;
+    --btn-secondary-bg:#F7F0E2;
+    --btn-secondary-border:rgba(139,107,58,.22);
+    --btn-secondary-hover-bg:#EDE2CE;
     --btn-secondary-active-bg:rgba(var(--brand-rgb),0.10);
-    --focus-ring:rgba(143,108,63,.26);
-    --selection-bg:rgba(196,157,99,.22);
-    --panel-overlay:rgba(41,37,36,.24);
-    --theme-color:#f3ede4;
+    --focus-ring:rgba(139,107,58,.28);
+    --selection-bg:rgba(180,145,85,.22);
+    --panel-overlay:rgba(44,24,16,.22);
+    --theme-color:#F5EFE0;
     --header-subtitle:rgba(255,255,255,.88);
-    --interactive-soft-bg:rgba(196,157,99,.12);
-    --interactive-soft-hover:rgba(196,157,99,.18);
-    --interactive-soft-border:rgba(179,141,92,.22);
-    --interactive-soft-shadow:0 2px 8px rgba(143,108,63,.12);
-    --button-hover-shadow:0 2px 6px rgba(41,37,36,.08);
-    --panel-shadow:0 6px 18px rgba(90,71,47,.12),0 18px 40px rgba(90,71,47,.08);
-    --menu-shadow:0 6px 20px rgba(90,71,47,.16);
-    --dialog-shadow:0 10px 32px rgba(90,71,47,.14);
-    --overlay-strong:rgba(41,37,36,.42);
-    --control-track-bg:rgba(196,157,99,.2);
-    --control-thumb-shadow:0 2px 6px rgba(143,108,63,.22);
-    --control-thumb-shadow-hover:0 3px 10px rgba(143,108,63,.28);
-    --note-preview-bg:#f4e8d8;
-    --section-divider:#dccdb9;
-    --group-divider-bg:#e4d8ca;
-    --toc-title-color:#473d35;
-    --card-bg:#fffdf9;
-    --card-shadow:0 2px 8px rgba(90,71,47,.08);
-    --card-shadow-hover:0 4px 12px rgba(90,71,47,.12);
-    --callout-bg:#fff3dc;
-    --callout-border:#d6a74b;
-    --callout-text:#7f5a1d;
-    --danger-border:#f2c9c9;
-    --danger-bg:#fff1ef;
-    --danger-bg-active:#ffe4e1;
-    --success-border:#bddfc9;
-    --sponsor-border:#f0c98f;
-    --sponsor-bg:#fff7eb;
-    --sponsor-bg-active:#feedd2;
+    --interactive-soft-bg:rgba(180,145,85,.12);
+    --interactive-soft-hover:rgba(180,145,85,.18);
+    --interactive-soft-border:rgba(160,125,75,.22);
+    --interactive-soft-shadow:0 2px 8px rgba(120,90,40,.12);
+    --button-hover-shadow:0 2px 6px rgba(44,24,16,.08);
+    --panel-shadow:0 6px 18px rgba(90,65,30,.12),0 18px 40px rgba(90,65,30,.08);
+    --menu-shadow:0 6px 20px rgba(90,65,30,.16);
+    --dialog-shadow:0 10px 32px rgba(90,65,30,.14);
+    --overlay-strong:rgba(44,24,16,.40);
+    --control-track-bg:rgba(180,145,85,.20);
+    --control-thumb-shadow:0 2px 6px rgba(120,90,40,.22);
+    --control-thumb-shadow-hover:0 3px 10px rgba(120,90,40,.28);
+    --note-preview-bg:#F0E4CE;
+    --section-divider:#D8CCBA;
+    --group-divider-bg:#E0D5C4;
+    --toc-title-color:#3D2B1F;
+    --card-bg:#FDF9F1;
+    --card-shadow:0 2px 8px rgba(90,65,30,.08);
+    --card-shadow-hover:0 4px 12px rgba(90,65,30,.12);
+    --callout-bg:#FFF3DC;
+    --callout-border:#C89B3C;
+    --callout-text:#6B4E15;
+    --danger-border:#EFCACA;
+    --danger-bg:#FFF1EF;
+    --danger-bg-active:#FFE4E1;
+    --success-border:#B8DFC4;
+    --sponsor-border:#E8C080;
+    --sponsor-bg:#FFF7EB;
+    --sponsor-bg-active:#FEEED2;
     --sponsor-wx-bg:rgba(7,193,96,.09);
     --sponsor-zfb-bg:rgba(22,119,255,.09);
-    --footnote-ref:#b06b18;
-    --footnote-ref-hover:#cf7d10;
+    --footnote-ref:#A06A3A;
+    --footnote-ref-hover:#BF7E48;
+    /* 暖色按钮：浅暖底色 + 品牌色文字，品牌色不做大面积背景填充 */
+    --btn-active-bg:var(--interactive-soft-bg);
+    --btn-active-text:var(--brand);
+    --btn-primary-bg:var(--surface-alt);
+    --btn-primary-text:var(--brand);
+    --btn-primary-border:var(--brand);
 }
 
 /* 夜间模式 */
@@ -258,7 +266,7 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
 .theme-option.active{border-color:var(--brand);background:var(--interactive-soft-bg)}
 .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
 .theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
-.theme-preview.warm{background:linear-gradient(to right,#fffaf4,#f4ede2)}
+.theme-preview.warm{background:linear-gradient(to right,#FAF6ED,#F5EFE0)}
 .theme-preview.cool{background:linear-gradient(to right,#ffffff,#f5f6fb)}
 .theme-preview.dark{background:linear-gradient(to right,#181b21,#2b3240)}
 .theme-option-content{display:flex;align-items:center;gap:6px}
@@ -366,7 +374,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .page-navigation .nav-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
 .page-navigation .nav-link:hover{background:var(--btn-secondary-hover-bg);box-shadow:var(--button-hover-shadow)}
 .page-navigation .nav-link:active{background:var(--btn-secondary-active-bg);border-color:var(--btn-secondary-border)}
-.page-navigation .nav-link.active{background:var(--bg);color:#fff;border-color:var(--brand);font-weight:700}
+.page-navigation .nav-link.active{background:var(--btn-active-bg);color:var(--btn-active-text);border-color:var(--brand);font-weight:700}
 ::selection{background:var(--selection-bg)}
 
 /* ── 七、章节标题、字体控件、经文 ─────────────────────────── */
@@ -480,7 +488,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 /* ── 十二、纲目页（outline.html）──────────────────────────── */
 .outline-level-controls{display:flex;justify-content:center;gap:8px;margin:15px 0;padding:10px;background:var(--surface-alt);border-radius:var(--radius-md)}
 .level-btn{min-width:60px;min-height:36px;padding:8px 14px;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);border-radius:var(--radius-sm);font-size:14px;font-weight:600;color:var(--btn-secondary-text);cursor:pointer;transition:all 0.2s ease;box-shadow:var(--shadow-sm)}
-.level-btn.active{background:var(--bg);border-color:var(--brand);color:#fff;box-shadow:var(--interactive-soft-shadow)}
+.level-btn.active{background:var(--btn-active-bg);border-color:var(--brand);color:var(--btn-active-text);box-shadow:var(--interactive-soft-shadow)}
 .level-btn:active{transform:scale(0.95)}
 .outline-page{padding:8px}
 .outline-page .page-navigation,.morning-revival-page .page-navigation,.details-page .page-navigation,.hymn-page .page-navigation,.message-page .page-navigation,.ministry-page .page-navigation{margin-top:2px}
@@ -494,7 +502,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .day-link + .day-link{border-left:1px solid var(--border)}
 .day-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
 .day-link:last-child{border-top-right-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm)}
-.day-link:active,.day-link.active{background:var(--bg);color:#fff;border-color:var(--brand)}
+.day-link:active,.day-link.active{background:var(--btn-active-bg);color:var(--btn-active-text);border-color:var(--brand)}
 .day-link.active{font-weight:700}
 .pages-container{position:relative;overflow:hidden;touch-action:pan-y;transition:height .2s ease}
 .pages-track{display:flex;align-items:flex-start;will-change:transform;transition:transform .3s cubic-bezier(.25,.46,.45,.94)}
@@ -504,7 +512,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .prev-btn:hover,.next-btn:hover{background:var(--btn-secondary-hover-bg)}
 .prev-btn:active,.next-btn:active{background:var(--btn-secondary-active-bg)}
 .prev-btn:disabled,.next-btn:disabled{opacity:.3;cursor:not-allowed}
-.prev-btn:active:not(:disabled),.next-btn:active:not(:disabled){background:var(--bg);color:#fff;border-color:var(--brand)}
+.prev-btn:active:not(:disabled),.next-btn:active:not(:disabled){background:var(--btn-active-bg);color:var(--btn-active-text);border-color:var(--brand)}
 .page-indicator{font-size:0.94em;color:var(--text-muted);font-weight:800}
 /* 晨读页纲目和内容样式 */
 .outline-section{margin:18px 0}
@@ -1039,3 +1047,8 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .cx-bm-confirm-ok:active {
     background: var(--surface-alt);
 }
+
+/* ── 暖色模式专属：进度条 & 滑块使用品牌纯色（不用渐变）────── */
+[data-theme="warm"] .progress-bar-fill{background:var(--brand)}
+[data-theme="warm"] .progress-bar::-webkit-slider-thumb{background:var(--brand)}
+[data-theme="warm"] .progress-bar::-moz-range-thumb{background:var(--brand)}

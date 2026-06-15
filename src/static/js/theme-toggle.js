@@ -332,7 +332,7 @@
     // 状态栏 / meta[name=theme-color] 统一用页面底色 → 沉浸式阅读
     const themeMetaColors = {
         cool: '#f0f3f9',
-        warm: '#f3ede4',
+        warm: '#F5EFE0',
         dark: '#101319'
     };
     let pageScrollLockCount = 0;
