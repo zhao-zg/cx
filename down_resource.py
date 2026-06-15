@@ -428,25 +428,29 @@ def unzip_pdb(zip_path: Path) -> Optional[Path]:
             members = zf.infolist()
             # 找到 zip 中的 .pdb 文件
             pdb_member = None
+            decoded_name = None
             for info in members:
-                # 修复 GBK 编码的文件名（Windows 压缩工具常见）
+                # 解码文件名：UTF-8 优先 → GBK → 保留原始 CP437
                 name = info.filename
                 if not (info.flag_bits & 0x800):
-                    # 非 UTF-8 标记：尝试 CP437 → GBK 重解码
+                    # 无 UTF-8 标记：先尝试 UTF-8，再 GBK
                     try:
-                        name = info.filename.encode('cp437').decode('gbk')
+                        name = info.filename.encode('cp437').decode('utf-8')
                     except (UnicodeDecodeError, UnicodeEncodeError):
-                        pass
+                        try:
+                            name = info.filename.encode('cp437').decode('gbk')
+                        except (UnicodeDecodeError, UnicodeEncodeError):
+                            pass
                 if name.lower().endswith('.pdb'):
                     pdb_member = info
-                    pdb_member._decoded_name = name
+                    decoded_name = name
                     break
 
             if pdb_member is None:
                 print(f"  [WARN] zip 内未找到 .pdb 文件: {zip_path.name}")
                 return None
 
-            pdb_name = Path(pdb_member._decoded_name).name
+            pdb_name = Path(decoded_name).name
             pdb_path = zip_path.parent / pdb_name
 
             # 如果 pdb 文件已存在且大小非零，比较 MD5
@@ -719,11 +723,6 @@ class NotionPlaywrightHelper:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=self.headless)
             context = browser.new_context()
-            if NOTION_TOKEN:
-                context.add_cookies([
-                    {'name': 'token_v2', 'value': NOTION_TOKEN, 'domain': '.notion.so', 'path': '/'},
-                    {'name': 'token_v2', 'value': NOTION_TOKEN, 'domain': 'mygoodland.notion.site', 'path': '/'},
-                ])
             page = context.new_page()
             page.goto(self.url, wait_until='domcontentloaded')
             time.sleep(2)  # 等待页面加载完成
@@ -817,24 +816,20 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
     
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context()
+        context = browser.new_context(accept_downloads=True)
         
-        # 注入 token_v2 认证 cookie（NOTION_TOKEN 环境变量）
+        # 注入 token_v2 认证 cookie — Notion 文件下载必须认证
+        # 公开页面可浏览但附件 URL 返回 404，getSignedUrls 也需要登录态
         if NOTION_TOKEN:
             context.add_cookies([
                 {'name': 'token_v2', 'value': NOTION_TOKEN, 'domain': '.notion.so', 'path': '/'},
-                {'name': 'token_v2', 'value': NOTION_TOKEN, 'domain': 'mygoodland.notion.site', 'path': '/'},
             ])
-            print("已注入 token_v2 认证 cookie")
-        else:
-            print("[WARN] 未设置 NOTION_TOKEN 环境变量，下载可能因未认证而失败")
-        
         page = context.new_page()
         
         # 对每个 resource 分组下载
         for resource_id, docs in docs_by_resource.items():
             # 访问该资源页面（包含附件的页面）
-            resource_url = f"https://www.notion.so/{resource_id.replace('-', '')}"
+            resource_url = f"https://mygoodland.notion.site/{resource_id.replace('-', '')}"
             print(f"\n访问资源页面: {resource_url}")
             try:
                 page.goto(resource_url, wait_until='load', timeout=30000)
@@ -874,10 +869,9 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                     try:
                         # 尝试下载到临时目录
                         selectors = [
+                            f"a:text-is('{original_filename}')",
                             f"text={original_filename}",
                             f"a:has-text('{original_filename}')",
-                            f"div:has-text('{original_filename}')",
-                            f"span:has-text('{original_filename}')",
                         ]
                         
                         temp_downloaded = False
@@ -886,7 +880,8 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                                 locator = page.locator(selector).first
                                 if locator.count() == 0:
                                     continue
-                                
+                                locator.scroll_into_view_if_needed()
+                                time.sleep(0.5)
                                 with page.expect_download(timeout=20000) as download_info:
                                     locator.click(timeout=5000, force=True)
                                 
@@ -926,76 +921,79 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                 
                 try:
                     print(f"  准备下载: {original_filename}")
-                    
-                    # 直接点击文件名触发下载
-                    # 尝试多种选择器方式
+                    downloaded = False
+
+                    # 策略1: 点击页面元素触发下载
+                    # 先滚动到元素可见区域
                     selectors = [
+                        f"a:text-is('{original_filename}')",
                         f"text={original_filename}",
                         f"a:has-text('{original_filename}')",
-                        f"div:has-text('{original_filename}')",
-                        f"span:has-text('{original_filename}')",
                     ]
-                    
-                    downloaded = False
                     for selector in selectors:
                         try:
-                            # 先检查元素是否存在
                             locator = page.locator(selector).first
                             if locator.count() == 0:
                                 continue
-                            
-                            print(f"  找到元素，尝试点击（选择器: {selector[:50]}...）")
-                            
-                            # 直接在 expect_download 里点击
+                            print(f"  找到元素（{selector[:50]}），滚动到可见并点击...")
+                            locator.scroll_into_view_if_needed()
+                            time.sleep(0.5)
                             with page.expect_download(timeout=20000) as download_info:
                                 locator.click(timeout=5000, force=True)
-                            
-                            download = download_info.value
-                            # 先下载到临时目录
-                            download.save_as(temp_path)
-                            # 然后移动到最终目录
+                            dl = download_info.value
+                            dl.save_as(temp_path)
                             shutil.move(str(temp_path), str(target_path))
-                            print(f"[OK] 已下载：{target_path}")
-                            # .pdb.zip → 自动解压
+                            print(f"  [OK] 点击下载成功：{target_path}")
                             if filename.lower().endswith('.pdb.zip'):
                                 unzip_pdb(target_path)
                             total_success += 1
                             downloaded = True
                             break
-                            
                         except Exception as e:
-                            print(f"  选择器 {selector[:30]}... 失败: {str(e)[:50]}")
+                            print(f"  选择器 {selector[:30]}... 失败: {str(e)[:60]}")
                             continue
-                    
+
                     if not downloaded:
-                        # 策略2: 通过 Notion 附件 URL 直接导航下载
+                        # 策略2: 通过 Notion 附件 URL 直接导航
                         attachment_url = (
                             f"https://www.notion.so/attachment/{doc['file_id']}/"
                             f"{quote(original_filename)}?table=block&id={doc.get('block_id', '')}&cache=v2"
                         )
-                        print(f"  尝试附件URL直接下载...")
+                        print(f"  尝试附件URL导航下载...")
                         try:
-                            with page.expect_download(timeout=30000) as download_info:
-                                page.goto(attachment_url, wait_until='commit')
-                            dl = download_info.value
-                            dl.save_as(temp_path)
-                            shutil.move(str(temp_path), str(target_path))
-                            print(f"  [OK] 附件URL下载成功: {target_path}")
-                            if filename.lower().endswith('.pdb.zip'):
-                                unzip_pdb(target_path)
-                            total_success += 1
-                            downloaded = True
-                            # 回到资源页面
-                            page.goto(resource_url, wait_until='domcontentloaded')
-                            time.sleep(3)
+                            resp = page.goto(attachment_url, wait_until='load', timeout=30000)
+                            if resp and resp.status == 200:
+                                # 如果返回了文件内容（非HTML页面），直接保存
+                                content_type = resp.headers.get('content-type', '')
+                                if 'html' not in content_type:
+                                    body = resp.body()
+                                    target_path.write_bytes(body)
+                                    size_kb = len(body) / 1024
+                                    print(f"  [OK] 附件URL响应成功: {target_path} ({size_kb:.1f} KB)")
+                                    if filename.lower().endswith('.pdb.zip'):
+                                        unzip_pdb(target_path)
+                                    total_success += 1
+                                    downloaded = True
+                                else:
+                                    print(f"  附件URL返回HTML页面 (非文件)")
+                            elif resp:
+                                print(f"  附件URL响应状态: {resp.status}")
                         except Exception as e:
-                            print(f"  附件URL下载失败: {str(e)[:80]}")
-                            # 确保回到资源页面
-                            try:
-                                page.goto(resource_url, wait_until='domcontentloaded')
-                                time.sleep(2)
-                            except Exception:
-                                pass
+                            print(f"  附件URL导航失败: {str(e)[:80]}")
+                        finally:
+                            # 回到资源页面
+                            if downloaded:
+                                try:
+                                    page.goto(resource_url, wait_until='domcontentloaded')
+                                    time.sleep(3)
+                                except Exception:
+                                    pass
+                            else:
+                                try:
+                                    page.goto(resource_url, wait_until='domcontentloaded')
+                                    time.sleep(2)
+                                except Exception:
+                                    pass
 
                     if not downloaded:
                         # 策略3: 签名 URL 兜底
@@ -1019,8 +1017,8 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                                 print(f"  签名URL下载异常: {e}")
 
                     if not downloaded:
-                        # 策略4: 提取浏览器 Cookie，用 requests 直接下载附件 URL
-                        print(f"  尝试提取Cookie用requests下载...")
+                        # 策略4: 提取浏览器 Cookie，用 requests 直接下载
+                        print(f"  尝试Cookie+requests下载...")
                         try:
                             cookies = context.cookies()
                             cookie_str = '; '.join(f"{c['name']}={c['value']}" for c in cookies)
@@ -1029,6 +1027,7 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                                 'Cookie': cookie_str,
                                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                             })
+                            # 尝试附件 URL
                             resp = dl_session.get(attachment_url, allow_redirects=True, timeout=60)
                             if resp.status_code == 200 and len(resp.content) > 1024:
                                 target_path.write_bytes(resp.content)
