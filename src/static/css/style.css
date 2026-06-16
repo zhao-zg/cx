@@ -1091,8 +1091,9 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 [data-theme="warm"] .progress-bar-fill{background:var(--brand)}
 [data-theme="warm"] .progress-bar::-webkit-slider-thumb{background:var(--brand)}
 [data-theme="warm"] .progress-bar::-moz-range-thumb{background:var(--brand)}
-/* ── 暖色模式专属：朗读循环按钮激活态（浅色底+品牌色，不用深色渐变）── */
-[data-theme="warm"] .loop-btn.active{color:var(--brand);background:var(--interactive-soft-bg);border-color:var(--brand);box-shadow:var(--interactive-soft-shadow)}
+/* ── 暖色/夜间模式：朗读循环按钮激活态（柔和底+品牌色，不用深色渐变）── */
+[data-theme="warm"] .loop-btn.active,
+[data-theme="dark"] .loop-btn.active{color:var(--brand);background:var(--interactive-soft-bg);border-color:var(--brand);box-shadow:var(--interactive-soft-shadow)}
 /* ── 暖色模式专属：弹框按钮（浅色底+品牌色文字，品牌色不做大面积填充）── */
 [data-theme="warm"] .hl-modal-save{background:var(--interactive-soft-bg);color:var(--brand);border-color:var(--brand)}
 [data-theme="warm"] .hl-underline-btn.active{background:var(--interactive-soft-bg);color:var(--brand);border-color:var(--brand)}
