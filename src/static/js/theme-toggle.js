@@ -454,21 +454,21 @@
                 <div class="theme-section-title">阅读模式</div>
                 <div class="theme-options">
                     <div class="theme-option" data-theme="warm" onclick="setTheme('warm')">
-                        <div class="theme-preview warm"></div>
+                        <div class="theme-preview warm"><div class="tp-bar"></div><div class="tp-body"><div class="tp-line"></div><div class="tp-line short"></div><div class="tp-line"></div></div></div>
                         <div class="theme-option-content">
                             <div class="theme-radio"></div>
                             <div class="theme-label">暖色</div>
                         </div>
                     </div>
                     <div class="theme-option" data-theme="cool" onclick="setTheme('cool')">
-                        <div class="theme-preview cool"></div>
+                        <div class="theme-preview cool"><div class="tp-bar"></div><div class="tp-body"><div class="tp-line"></div><div class="tp-line short"></div><div class="tp-line"></div></div></div>
                         <div class="theme-option-content">
                             <div class="theme-radio"></div>
                             <div class="theme-label">冷色</div>
                         </div>
                     </div>
                     <div class="theme-option" data-theme="dark" onclick="setTheme('dark')">
-                        <div class="theme-preview dark"></div>
+                        <div class="theme-preview dark"><div class="tp-bar"></div><div class="tp-body"><div class="tp-line"></div><div class="tp-line short"></div><div class="tp-line"></div></div></div>
                         <div class="theme-option-content">
                             <div class="theme-radio"></div>
                             <div class="theme-label">夜间</div>
@@ -1355,14 +1355,17 @@
         }
     };
     
-    // 设置主题
+    // 设置主题（添加过渡动画 class，切换完成后移除）
     window.setTheme = function(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
+        var root = document.documentElement;
+        root.classList.add('cx-theme-switching');
+        root.setAttribute('data-theme', theme);
         try {
             localStorage.setItem('readingTheme', theme);
         } catch (e) {}
         updateThemeUI(theme);
         syncThemeColor(theme);
+        setTimeout(function() { root.classList.remove('cx-theme-switching'); }, 400);
     };
     
     // 更新主题UI状态

@@ -21,6 +21,7 @@
     --btn-primary-text:#fff;
     --btn-primary-border:var(--brand);
     --btn-secondary-text:var(--brand);
+    --btn-active-text:#fff;
     --text-primary:var(--text);
     --text-secondary:var(--text-soft);
     --button-hover-shadow:0 2px 6px rgba(0,0,0,.08);
@@ -237,7 +238,16 @@
     --sponsor-zfb-bg:rgba(22,119,255,.16);
     --footnote-ref:#e0b85c;
     --footnote-ref-hover:#f0ca7d;
+    --btn-active-bg:var(--bg);
+    --btn-primary-bg:linear-gradient(135deg,#2a3a5c,#1e2d4a);
+    --btn-primary-text:#c8d3ec;
+    --btn-primary-border:#3a4d6e;
 }
+
+/* 夜间模式专属：进度条在深色背景上更协调 */
+[data-theme="dark"] .progress-bar-fill{background:var(--brand)}
+[data-theme="dark"] .progress-bar::-webkit-slider-thumb{background:var(--brand)}
+[data-theme="dark"] .progress-bar::-moz-range-thumb{background:var(--brand)}
 
 /* ── 二、主题切换按钮 & 设置面板 ────────────────────────────── */
 .theme-toggle-btn{position:absolute;top:6px;right:6px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
@@ -265,12 +275,26 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
 .theme-option:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:var(--interactive-soft-shadow)}
 .theme-option.active{border-color:var(--brand);background:var(--interactive-soft-bg)}
 .theme-option.active .theme-radio{border-color:var(--brand);background:var(--brand)}
-.theme-preview{width:100%;height:20px;border-radius:4px;border:1px solid var(--border)}
-.theme-preview.warm{background:linear-gradient(to right,#FAF6ED,#F5EFE0)}
-.theme-preview.cool{background:linear-gradient(to right,#ffffff,#f5f6fb)}
-.theme-preview.dark{background:linear-gradient(to right,#181b21,#2b3240)}
-.theme-option-content{display:flex;align-items:center;gap:6px}
-.theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s}
+.theme-option.active .theme-radio::after{content:'';position:absolute;top:2px;left:2px;width:6px;height:6px;background:#fff;border-radius:50%}
+/* 主题预览卡片：迷你阅读场景模拟
+   注：预览需始终展示各自主题的固定颜色，无法使用 var()（会随当前主题变化），
+   硬编码值以注释标注对应变量，确保与主题定义保持同步。 */
+.theme-preview{width:100%;height:36px;border-radius:6px;border:1px solid var(--border);overflow:hidden;position:relative}
+.theme-preview .tp-bar{height:7px;border-radius:6px 6px 0 0}
+.theme-preview .tp-body{padding:4px 5px;display:flex;flex-direction:column;gap:2px}
+.theme-preview .tp-line{height:2px;border-radius:1px;opacity:.45}
+.theme-preview .tp-line.short{width:40%;opacity:.3}
+.theme-preview.warm .tp-bar{background:linear-gradient(90deg,#9A7B4A,#8B6B3A)}/* --bg */
+.theme-preview.warm .tp-body{background:#FAF6ED}/* --surface */
+.theme-preview.warm .tp-line{background:#3D2B1F}/* --text */
+.theme-preview.cool .tp-bar{background:linear-gradient(90deg,#667eea,#5B67D4)}/* --bg */
+.theme-preview.cool .tp-body{background:#fafbff}/* --surface */
+.theme-preview.cool .tp-line{background:#1f2937}/* --text */
+.theme-preview.dark .tp-bar{background:#1a2236}/* --header-bg */
+.theme-preview.dark .tp-body{background:#181b21}/* --surface */
+.theme-preview.dark .tp-line{background:#8a94a6}/* --text-muted */
+.theme-option-content{display:flex;align-items:center;gap:6px;position:relative}
+.theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s;position:relative}
 .theme-label{font-size:13px;font-weight:500}
 
 /* ── 三、字体大小滑块 ───────────────────────────────────────── */
@@ -305,6 +329,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .nav a:active{background:var(--btn-secondary-active-bg);border-color:var(--btn-secondary-border)}
 .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:var(--interactive-soft-bg);border:1px solid var(--interactive-soft-border)}
 a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px;border-radius:10px}
+/* 主题切换平滑过渡：仅在切换主题时短暂生效，避免影响正常滚动性能 */
+html.cx-theme-switching,
+html.cx-theme-switching *,
+html.cx-theme-switching *::before,
+html.cx-theme-switching *::after{
+    transition:background-color .35s ease,color .35s ease,border-color .35s ease,box-shadow .35s ease !important;
+}
+@media(prefers-reduced-motion:reduce){
+    html.cx-theme-switching,
+    html.cx-theme-switching *,
+    html.cx-theme-switching *::before,
+    html.cx-theme-switching *::after{
+        transition:none !important;
+    }
+}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 .content{max-width:860px;margin:0 auto}
 
@@ -1060,3 +1099,5 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 [data-theme="warm"] .action-btn.primary{background:var(--interactive-soft-bg);color:var(--brand);border-color:var(--brand)}
 [data-theme="warm"] .cx-update-toast{background:var(--surface-alt);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.1)}
 [data-theme="warm"] .cx-update-toast-action{background:var(--brand);color:#fff}
+[data-theme="dark"] .cx-update-toast{background:var(--surface-alt);color:var(--text);border-bottom:1px solid var(--border);box-shadow:0 2px 12px rgba(0,0,0,.3)}
+[data-theme="dark"] .cx-update-toast-action{background:var(--brand);color:#fff}
