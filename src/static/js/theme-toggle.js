@@ -329,11 +329,11 @@
     const fontSizes = [14, 16, 18, 20, 22, 24, 26, 28];
     const defaultSizeIndex = 2; // 默认18px
     let currentSizeIndex = defaultSizeIndex;
-    // 状态栏 / meta[name=theme-color] 统一用页面底色 → 沉浸式阅读
+    // 状态栏 / meta[name=theme-color] 统一用容器背景色(--surface) → 沉浸式阅读
     const themeMetaColors = {
-        cool: '#f0f3f9',
-        warm: '#F5EFE0',
-        dark: '#101319'
+        cool: '#fafbff',
+        warm: '#FAF6ED',
+        dark: '#181b21'
     };
     let pageScrollLockCount = 0;
 

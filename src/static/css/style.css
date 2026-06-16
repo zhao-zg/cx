@@ -81,7 +81,7 @@
     --focus-ring:rgba(var(--brand-rgb),.35);
     --selection-bg:rgba(var(--brand-rgb),.22);
     --panel-overlay:rgba(15,23,42,.2);
-    --theme-color:#f7f8fc;
+    --theme-color:#fafbff;
     --interactive-soft-bg:rgba(var(--brand-rgb),.08);
     --interactive-soft-hover:rgba(var(--brand-rgb),.12);
     --interactive-soft-border:rgba(var(--brand-rgb),.16);
@@ -128,7 +128,7 @@
     --focus-ring:rgba(139,107,58,.28);
     --selection-bg:rgba(180,145,85,.22);
     --panel-overlay:rgba(44,24,16,.22);
-    --theme-color:#F5EFE0;
+    --theme-color:#FAF6ED;
     --header-subtitle:rgba(255,255,255,.88);
     --interactive-soft-bg:rgba(180,145,85,.12);
     --interactive-soft-hover:rgba(180,145,85,.18);
@@ -201,7 +201,7 @@
     --focus-ring: rgba(145,163,255,.38);
     --selection-bg: rgba(var(--brand-rgb),.28);
     --panel-overlay: rgba(0,0,0,.5);
-    --theme-color: #121214;
+    --theme-color: #181b21;
     --header-subtitle:rgba(238,242,255,.78);
     --interactive-soft-bg:rgba(145,163,255,.14);
     --interactive-soft-hover:rgba(145,163,255,.18);
