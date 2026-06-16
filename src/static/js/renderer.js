@@ -978,10 +978,21 @@
             });
           }
         });
-      } else if (viewType === 'ts' || viewType === 'zs') {
-        document.querySelectorAll('.content-text').forEach(function(p){
-          if (p.textContent.trim()) segs.push({el: p});
+      } else if (viewType === 'ts') {
+        document.querySelectorAll('.section').forEach(function(sec){
+          var lvl = sec.querySelector('[class^="section-level"]');
+          if (lvl && lvl.textContent.trim()) segs.push({el: lvl});
+          sec.querySelectorAll(':scope > .content-text').forEach(function(p){
+            if (p.textContent.trim()) segs.push({el: p});
+          });
         });
+      } else if (viewType === 'zs') {
+        var zsContainer = document.querySelector('.ministry-content');
+        if (zsContainer) {
+          zsContainer.querySelectorAll('.ministry-subtitle, .content-text').forEach(function(el){
+            if (el.textContent.trim()) segs.push({el: el});
+          });
+        }
       }
 
       return segs;

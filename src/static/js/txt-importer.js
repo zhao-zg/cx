@@ -163,7 +163,7 @@
       var s = lines[i].trim();
       if (!s) continue;
       // 停止标记
-      if (/^TOP/.test(s) || /详细信息/.test(s)) break;
+      if (/^TOP/.test(s) || /详细信息/.test(s) || /^职事信息摘录/.test(s)) break;
       // 导航行
       if (isNavLine(s)) continue;
       // 英文大纲块
@@ -585,6 +585,34 @@
       }
     }
 
+    // ── 提取职事信息摘录 ──────────────────────────────────────────────
+    // 扫描 msgLines，找到 "职事信息摘录：" 行，收集其后纯文本段落直到 TOP/导航行
+    var ministryExcerpt = '';
+    var ministryLines = [];
+    var inMinistry = false;
+    for (var mi = 0; mi < msgLines.length; mi++) {
+      var ms = msgLines[mi].trim();
+      if (!inMinistry) {
+        if (ms === '职事信息摘录：' || ms === '职事信息摘录' || /^职事信息摘录[：:]?\s*$/.test(ms)) {
+          inMinistry = true;
+        }
+        continue;
+      }
+      // 遇到 TOP 或导航行则结束收集
+      if (/^TOP/.test(ms) || isNavLine(ms)) break;
+      // 跳过空行（但保留作为段落间隔的标记）
+      if (!ms) continue;
+      // 过滤无效内容：纯下划线、过短无中文
+      if (/^_+$/.test(ms)) continue;
+      var underCount = (ms.match(/_/g) || []).length;
+      if (underCount > 0 && underCount / ms.length > 0.8) continue;
+      if (ms.length < 3 && !/[一-鿿]/.test(ms)) continue;
+      ministryLines.push(ms);
+    }
+    if (ministryLines.length) {
+      ministryExcerpt = ministryLines.join('\n\n');
+    }
+
     // 提取晨兴（与 Python 的 _extract_morning_revivals 等价）
     var morningRevivals = extractMorningRevivals(msgLines);
 
@@ -598,7 +626,7 @@
       detail_sections: detailSections,
       message_content: messageContent,
       has_listen_block: hasDetail,  // TXT 路径标记：是否真正解析到听抄块（无初始内容时 message_content 可能为空）
-      ministry_excerpt: '',
+      ministry_excerpt: ministryExcerpt,
       morning_revivals: morningRevivals
     };
   }
@@ -752,6 +780,7 @@
       var raw = lines[i];
       var s = raw.trim();
       if (!s || /^TOP/.test(s) || isNavLine(s)) continue;
+      if (/^职事信息摘录/.test(s)) break; // 职事信息摘录区开始，停止收集听抄内容
       if (/^(读经|诗歌)/.test(s)) continue; // 与 scripture/hymn banner 去重，避免重复出现在正文
       if (s.indexOf('（本文为英文听抄') >= 0) continue;
       if (s.indexOf('未经讲者审阅') >= 0) continue; // 过滤听抄免责声明行

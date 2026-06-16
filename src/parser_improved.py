@@ -4,6 +4,7 @@
 """
 import re
 import os
+import sys
 import shutil
 import subprocess
 from docx import Document
@@ -56,7 +57,7 @@ def load_document(doc_path: str):
                     break
             
             if soffice_path:
-                print(f"    ⏳ 正在转换 .doc 文件...")
+                print(f"    ⏳ 正在转换 .doc 文件...", file=sys.stderr)
                 # 使用LibreOffice转换
                 result = subprocess.run(
                     [soffice_path, '--headless', '--convert-to', 'docx', '--outdir', temp_dir, abs_path],
@@ -70,7 +71,7 @@ def load_document(doc_path: str):
                     temp_docx = os.path.join(temp_dir, docx_name)
                     
                     if os.path.exists(temp_docx):
-                        print(f"    ✓ 转换成功，继续处理...")
+                        print(f"    ✓ 转换成功，继续处理...", file=sys.stderr)
                         doc = Document(temp_docx)
                         # 清理临时文件
                         shutil.rmtree(temp_dir, ignore_errors=True)
@@ -80,21 +81,21 @@ def load_document(doc_path: str):
             shutil.rmtree(temp_dir, ignore_errors=True)
             
             # 提供友好的错误提示
-            print("\n" + "="*60)
-            print("⚠ 无法自动转换 .doc 文件")
-            print("="*60)
-            print("\n请选择以下解决方案之一：")
-            print("\n方案 1: 手动转换（最快）")
-            print(f"  1. 在 Word 中打开: {doc_path}")
-            print("  2. 另存为 .docx 格式")
-            print("  3. 重新运行此程序")
-            print("\n方案 2: 安装 LibreOffice（自动化）")
-            print("  运行转换工具: python convert_doc_to_docx.py")
-            print("  工具会自动检测系统并引导安装")
-            print("\n方案 3: 使用在线转换")
-            print("  https://www.online-convert.com/")
-            print("  https://www.zamzar.com/")
-            print("\n" + "="*60)
+            print("\n" + "="*60, file=sys.stderr)
+            print("⚠ 无法自动转换 .doc 文件", file=sys.stderr)
+            print("="*60, file=sys.stderr)
+            print("\n请选择以下解决方案之一：", file=sys.stderr)
+            print("\n方案 1: 手动转换（最快）", file=sys.stderr)
+            print(f"  1. 在 Word 中打开: {doc_path}", file=sys.stderr)
+            print("  2. 另存为 .docx 格式", file=sys.stderr)
+            print("  3. 重新运行此程序", file=sys.stderr)
+            print("\n方案 2: 安装 LibreOffice（自动化）", file=sys.stderr)
+            print("  运行转换工具: python convert_doc_to_docx.py", file=sys.stderr)
+            print("  工具会自动检测系统并引导安装", file=sys.stderr)
+            print("\n方案 3: 使用在线转换", file=sys.stderr)
+            print("  https://www.online-convert.com/", file=sys.stderr)
+            print("  https://www.zamzar.com/", file=sys.stderr)
+            print("\n" + "="*60, file=sys.stderr)
             
             raise ImportError(
                 f"无法转换 .doc 文件: {os.path.basename(doc_path)}\n"
@@ -1040,6 +1041,9 @@ class ImprovedParser:
                     result = subprocess.run(
                         [soffice_path, '--headless', '--convert-to', 'docx', '--outdir', temp_dir, abs_path],
                         capture_output=True,
+                        text=True,
+                        encoding='utf-8',
+                        errors='replace',
                         timeout=30
                     )
                     
@@ -1049,26 +1053,26 @@ class ImprovedParser:
                         
                         if os.path.exists(temp_docx_path):
                             # 从临时docx提取图片
-                            print("  提取诗歌图片...")
+                            print("  提取诗歌图片...", file=sys.stderr)
                             doc_id = os.path.basename(docx_path).replace('.doc', '').replace('.docx', '')
                             self._extract_hymn_images(temp_docx_path, chapters, doc_id)
                             temp_docx_path = temp_docx_path  # 保存路径供后续使用
                         else:
-                            print("    ⚠ LibreOffice转换失败，跳过图片提取")
+                            print("    ⚠ LibreOffice转换失败，跳过图片提取", file=sys.stderr)
                 else:
-                    print("    ⚠ 未找到LibreOffice，跳过图片提取")
-                    print("    提示: 安装LibreOffice或手动将.doc转换为.docx")
+                    print("    ⚠ 未找到LibreOffice，跳过图片提取", file=sys.stderr)
+                    print("    提示: 安装LibreOffice或手动将.doc转换为.docx", file=sys.stderr)
                 
             except subprocess.TimeoutExpired:
-                print("    ⚠ LibreOffice转换超时")
+                print("    ⚠ LibreOffice转换超时", file=sys.stderr)
             except Exception as e:
-                print(f"    ⚠ 提取诗歌图片失败: {e}")
+                print(f"    ⚠ 提取诗歌图片失败: {e}", file=sys.stderr)
             finally:
                 # 清理临时文件
                 shutil.rmtree(temp_dir, ignore_errors=True)
         else:
             # .docx文件可以直接提取图片
-            print("  提取诗歌图片...")
+            print("  提取诗歌图片...", file=sys.stderr)
             doc_id = os.path.basename(docx_path).replace('.doc', '').replace('.docx', '')
             self._extract_hymn_images(docx_path, chapters, doc_id)
         
@@ -1972,7 +1976,7 @@ class ImprovedParser:
 
             docx_path = doc_or_docx
             if not os.path.exists(docx_path):
-                print(f"    ⚠ 文件不存在: {docx_path}")
+                print(f"    ⚠ 文件不存在: {docx_path}", file=sys.stderr)
                 return
 
             doc = DocxDocument(docx_path)
@@ -2069,7 +2073,7 @@ class ImprovedParser:
                             img = Image.open(BytesIO(img_blobs[rId]))
                             img.save(image_path, 'PNG')
                         except Exception as e:
-                            print(f"    ⚠ 保存第{chapter_num}篇第{img_idx + 1}张图片失败: {e}")
+                            print(f"    ⚠ 保存第{chapter_num}篇第{img_idx + 1}张图片失败: {e}", file=sys.stderr)
                             continue
 
                     rel_path = f'images/{image_filename}'
@@ -2079,9 +2083,9 @@ class ImprovedParser:
                         chapter.hymn_image = rel_path  # 向后兼容
 
         except ImportError:
-            print(f"    ⚠ 缺少PIL库，无法提取图片: pip install pillow")
+            print(f"    ⚠ 缺少PIL库，无法提取图片: pip install pillow", file=sys.stderr)
         except Exception as e:
-            print(f"    ⚠ 图片提取异常: {e}")
+            print(f"    ⚠ 图片提取异常: {e}", file=sys.stderr)
 
     def _should_merge_with_previous(self, prev_text: str, current_text: str) -> bool:
         """判断当前文本是否应该与前一行文本合并（跨页连接）

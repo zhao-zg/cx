@@ -293,6 +293,7 @@ def process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_f
             capture_output=True,
             text=True,
             encoding='utf-8',
+            errors='replace',
         )
     except Exception as e:
         print(f"✗ TXT 解析进程异常: {e}")
@@ -323,6 +324,8 @@ def process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_f
     if os.path.exists(_patch_hymn):
         print(f"\n  📖 从晨兴 Word 文档提取诗歌内容...")
         try:
+            _child_env = os.environ.copy()
+            _child_env['PYTHONIOENCODING'] = 'utf-8'
             hymn_result = subprocess.run(
                 [sys.executable, _patch_hymn,
                  '--output-dir', output_dir,
@@ -330,18 +333,28 @@ def process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_f
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
+                errors='replace',
                 timeout=180,
+                env=_child_env,
             )
             if hymn_result.stderr:
                 for line in hymn_result.stderr.strip().split('\n'):
                     print(f"  {line}")
             if hymn_result.returncode == 0 and hymn_result.stdout.strip():
-                hymn_meta = json.loads(hymn_result.stdout.strip())
-                patched = hymn_meta.get('patched_chapters', 0)
-                if patched:
-                    print(f"  ✓ 诗歌数据已合并: {patched}/{hymn_meta.get('total_chapters', 0)} 篇")
+                # 从 stdout 中提取 JSON（首行 { 到末行 }），忽略混入的非 JSON 输出
+                _raw = hymn_result.stdout.strip()
+                _json_start = _raw.find('{')
+                _json_end = _raw.rfind('}')
+                if _json_start >= 0 and _json_end > _json_start:
+                    _json_str = _raw[_json_start:_json_end + 1]
+                    hymn_meta = json.loads(_json_str)
+                    patched = hymn_meta.get('patched_chapters', 0)
+                    if patched:
+                        print(f"  ✓ 诗歌数据已合并: {patched}/{hymn_meta.get('total_chapters', 0)} 篇")
+                    else:
+                        print(f"  ⚠ 无诗歌数据需要合并")
                 else:
-                    print(f"  ⚠ 无诗歌数据需要合并")
+                    print(f"  ⚠ 诗歌补丁输出无 JSON，跳过")
             elif hymn_result.returncode != 0:
                 print(f"  ⚠ 诗歌补丁失败 (exit {hymn_result.returncode})")
         except subprocess.TimeoutExpired:
