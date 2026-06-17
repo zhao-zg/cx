@@ -386,6 +386,7 @@
       var _nativeCharsDoneTime = 0; // _nativeCharsDone 更新时的 Date.now()
       var _nativeProgressHandle = null; // ttsProgress 监听句柄
       var _lastPosMs        = -1;   // ttsPosition 最近一次接受的 posMs（-1=尚未接受）
+      var _originalTotalDuration = 0; // 原始估算总时长（不受倍速覆盖，用于 charsPerSec 插值）
 
       // -- State machine helpers ----------------------------------------------
 
@@ -589,14 +590,17 @@
         var elapsed = currentElapsedSeconds();
         progressBar.value = String(clamp((elapsed / totalDuration) * 100, 0, 100));
         speechTime.textContent = formatTime(elapsed) + ' / ' + formatTime(totalDuration);
-        // NativeTTS：高亮主要由 ttsPosition 事件（每 100ms，携带 charsDone）直接驱动。
+        // NativeTTS：高亮主要由 ttsPosition 事件（每 50ms，携带 charsDone）直接驱动。
         // 此处作为备份：若 ttsPosition 未携带 done 字段，则从锚点插值补充。
-        // Web Speech 的高亮由 wsPlayNextChunk 按句子边界更新，不在此处干预
+        // Web Speech 的高亮由 wsPlayChunk 按句子边界更新，不在此处干预
         if (useNativeTTS && _segmentMap.length && fullText) {
           var charPos;
           if (_nativeCharsDone >= 0 && _nativeCharsDoneTime > 0 && totalDuration > 0) {
-            // 从最近 ttsProgress 锚点插值，比 elapsed/totalDuration 均匀假设更精确
-            var charsPerSec = fullText.length / totalDuration;
+            // charsPerSec 必须用原始估算时长（_originalTotalDuration），而非被 ttsPosition 覆写的倍速时长。
+            // totalDuration 在 ttsPosition 中被 data.totalMs 覆写为实际音频时长（2x 时为一半），
+            // 导致 charsPerSec 偏小、插值追不上朗读；_originalTotalDuration 始终保持 rate=1x 基准。
+            var baseDur = _originalTotalDuration > 0 ? _originalTotalDuration : totalDuration;
+            var charsPerSec = fullText.length / baseDur;
             var dt = (Date.now() - _nativeCharsDoneTime) / 1000;
             charPos = clamp(_nativeCharsDone + dt * charsPerSec, 0, fullText.length);
           } else {
@@ -609,7 +613,7 @@
 
       function startProgressUpdate() {
         if (progressInterval) return;
-        progressInterval = setInterval(function () { if (!isSeeking) updateProgressUI(); }, 120);
+        progressInterval = setInterval(function () { if (!isSeeking) updateProgressUI(); }, 80);
       }
 
       function stopProgressUpdate() {
@@ -624,7 +628,7 @@
         if (useNativeTTS) nativeStopService();
         else { try { window.speechSynthesis.cancel(); } catch (e) {} }
         fullText = '';
-        elapsedOffset = 0; startTime = 0; totalDuration = 0;
+        elapsedOffset = 0; startTime = 0; totalDuration = 0; _originalTotalDuration = 0;
         _nativeCharsDone = -1; _nativeCharsDoneTime = 0; _lastPosMs = -1;
         textChunks = []; currentChunk = 0;
         progressBar.value = '0';
@@ -701,7 +705,7 @@
             elapsedOffset = data.posMs / 1000;
             if (data.totalMs > 0) totalDuration = data.totalMs / 1000;
             startTime = Date.now();
-            // ttsPosition 每 100ms 推送，携带基于 MediaPlayer 实际位置的 charsDone，
+            // ttsPosition 每 50ms 推送，携带基于 MediaPlayer 实际位置的 charsDone，
             // 比 ttsProgress（仅 chunk 完成时触发）频率更高，实现逐句精准高亮
             if (data.done != null) {
               _nativeCharsDone = data.done;
@@ -712,7 +716,7 @@
             }
           });
           // 监听 Java 端 onProgress 推送的字符级精确进度，用于句子高亮定位
-          // 注：ttsPosition 每 100ms 推送实时 charsDone（主驱动），
+          // 注：ttsPosition 每 50ms 推送实时 charsDone（主驱动），
           // ttsProgress 仅在 chunk 完成时触发（备份锚点），两者互补
           var progressHandle = NativeTTS.addListener('ttsProgress', function (data) {
             if (gen !== speakGeneration || !data || data.done == null) return;
@@ -987,6 +991,7 @@
           buildAll();
           if (!fullText) return;
           totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
+          _originalTotalDuration = totalDuration; // 保存原始估算时长（rate=1x 基准），供 charsPerSec 插值使用
           elapsedOffset = 0; progressBar.value = '0';
           speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
           startSpeakingFromPercent(0);

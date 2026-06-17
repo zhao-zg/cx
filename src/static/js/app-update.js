@@ -18,146 +18,53 @@
         return null;
     }
     
-    // 使用 CapacitorHttp 下载文件（返回 Blob）
-    async function downloadWithCapacitorHttp(url, options) {
+    // 下载文件（返回 Blob）
+    async function downloadFile(url, onProgress, options) {
+        options = options || {};
         var CapacitorHttp = getCapacitorHttp();
-        if (!CapacitorHttp) throw new Error('CapacitorHttp 不可用');
-        
-        var httpResponse = await CapacitorHttp.get({
-            url: url,
-            responseType: 'blob',
-            connectTimeout: options.connectTimeout || 60000,
-            readTimeout: options.readTimeout || 120000,
-            headers: options.headers || {}
-        });
-        
-        if (httpResponse.status !== 200 && httpResponse.status !== 206) {
-            throw new Error('HTTP ' + httpResponse.status);
-        }
-        
-        if (httpResponse.data instanceof Blob) return httpResponse.data;
-        if (typeof httpResponse.data === 'string') {
-            var binaryString = atob(httpResponse.data);
-            var bytes = new Uint8Array(binaryString.length);
-            for (var i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            return new Blob([bytes], { type: options.mimeType || 'application/octet-stream' });
-        }
-        throw new Error('未知的响应数据类型');
-    }
-    
-    // 分块下载文件（公共函数）
-    async function downloadFileInChunks(downloadUrl, onProgress) {
-        var CapacitorHttp = getCapacitorHttp();
-        if (!CapacitorHttp) throw new Error('CapacitorHttp 不可用');
-        
-        // 获取文件大小
-        var contentLength = 0;
-        try {
-            var sizeResponse = await CapacitorHttp.get({
-                url: downloadUrl,
-                headers: { 'Range': 'bytes=0-0' },
-                connectTimeout: 10000,
-                readTimeout: 10000
+        var startTime = Date.now();
+        var blob;
+
+        if (CapacitorHttp) {
+            var httpResponse = await CapacitorHttp.get({
+                url: url,
+                responseType: 'blob',
+                connectTimeout: options.connectTimeout || 60000,
+                readTimeout: options.readTimeout || 300000,
+                headers: options.headers || {}
             });
-            var contentRange = sizeResponse.headers['content-range'] || sizeResponse.headers['Content-Range'];
-            if (contentRange) {
-                var match = contentRange.match(/\/(\d+)/);
-                if (match) {
-                    contentLength = parseInt(match[1]);
-                    console.log('[APK下载] 文件大小:', (contentLength / 1024 / 1024).toFixed(2), 'MB');
-                }
+
+            if (httpResponse.status !== 200 && httpResponse.status !== 206) {
+                throw new Error('HTTP ' + httpResponse.status);
             }
-        } catch (e) {
-            console.warn('[APK下载] 无法获取文件大小:', e.message);
-        }
-        
-        var chunkSize = 2 * 1024 * 1024; // 2MB
-        var downloadedBytes = 0;
-        
-        if (contentLength > 0 && contentLength > chunkSize) {
-            // 大文件分块下载（批次并发，每批 CONCURRENCY 块）
-            var CONCURRENCY = 3;
-            var numChunks = Math.ceil(contentLength / chunkSize);
-            var chunks = new Array(numChunks);
-            var lastUpdateTime = Date.now();
-            var lastDownloadedBytes = 0;
-            
-            console.log('[APK下载] 分', numChunks, '块，每批', CONCURRENCY, '块并发下载');
-            
-            // 将单块下载封装为函数（闭包捕获索引）
-            function fetchChunk(chunkIndex) {
-                var start = chunkIndex * chunkSize;
-                var end = Math.min(start + chunkSize - 1, contentLength - 1);
-                return CapacitorHttp.get({
-                    url: downloadUrl,
-                    headers: { 'Range': 'bytes=' + start + '-' + end },
-                    responseType: 'blob',
-                    connectTimeout: 30000,
-                    readTimeout: 60000
-                }).then(function(chunkResponse) {
-                    if (chunkResponse.status !== 200 && chunkResponse.status !== 206) {
-                        throw new Error('分块下载失败: HTTP ' + chunkResponse.status);
-                    }
-                    var chunkBlob;
-                    if (chunkResponse.data instanceof Blob) {
-                        chunkBlob = chunkResponse.data;
-                    } else if (typeof chunkResponse.data === 'string') {
-                        var binaryString = atob(chunkResponse.data);
-                        var bytes = new Uint8Array(binaryString.length);
-                        for (var j = 0; j < binaryString.length; j++) {
-                            bytes[j] = binaryString.charCodeAt(j);
-                        }
-                        chunkBlob = new Blob([bytes]);
-                    } else {
-                        throw new Error('未知的响应数据类型');
-                    }
-                    return { index: chunkIndex, blob: chunkBlob };
-                });
-            }
-            
-            for (var batchStart = 0; batchStart < numChunks; batchStart += CONCURRENCY) {
-                var batchEnd = Math.min(batchStart + CONCURRENCY, numChunks);
-                var batchPromises = [];
-                for (var i = batchStart; i < batchEnd; i++) {
-                    batchPromises.push(fetchChunk(i));
+
+            if (httpResponse.data instanceof Blob) {
+                blob = httpResponse.data;
+            } else if (typeof httpResponse.data === 'string') {
+                var binaryString = atob(httpResponse.data);
+                var bytes = new Uint8Array(binaryString.length);
+                for (var i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
                 }
-                
-                var batchResults = await Promise.all(batchPromises);
-                
-                batchResults.forEach(function(result) {
-                    chunks[result.index] = result.blob;
-                    downloadedBytes += result.blob.size;
-                });
-                
-                // 更新进度
-                if (onProgress) {
-                    var now = Date.now();
-                    var progress = 10 + Math.round((downloadedBytes / contentLength) * 70);
-                    var downloadedMB = (downloadedBytes / 1024 / 1024).toFixed(2);
-                    var totalMB = (contentLength / 1024 / 1024).toFixed(2);
-                    var timeDiff = (now - lastUpdateTime) / 1000;
-                    var bytesDiff = downloadedBytes - lastDownloadedBytes;
-                    var speed = timeDiff > 0 ? Math.round(bytesDiff / 1024 / timeDiff) : 0;
-                    
-                    onProgress('下载中: ' + downloadedMB + ' / ' + totalMB + ' MB', progress, speed, downloadedBytes);
-                    lastUpdateTime = now;
-                    lastDownloadedBytes = downloadedBytes;
-                }
+                blob = new Blob([bytes], { type: 'application/vnd.android.package-archive' });
+            } else {
+                throw new Error('未知的响应数据类型');
             }
-            
-            return { blob: new Blob(chunks, { type: 'application/vnd.android.package-archive' }), size: downloadedBytes };
         } else {
-            // 小文件直接下载
-            if (onProgress) onProgress('下载中...', 30, 0, 0);
-            var blob = await downloadWithCapacitorHttp(downloadUrl, {
-                connectTimeout: 60000,
-                readTimeout: 300000,
-                mimeType: 'application/vnd.android.package-archive'
-            });
-            return { blob: blob, size: blob.size };
+            // 降级：使用 fetch（镜像站）
+            var response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            blob = await response.blob();
         }
+
+        // 计算平均速率
+        var elapsed = (Date.now() - startTime) / 1000;
+        var avgSpeed = elapsed > 0 ? Math.round(blob.size / 1024 / elapsed) : 0;
+        if (onProgress) {
+            onProgress('下载完成: ' + (blob.size / 1024 / 1024).toFixed(2) + ' MB', 80, avgSpeed, blob.size);
+        }
+
+        return blob;
     }
     
     // Blob 转 base64
@@ -308,106 +215,86 @@
             try {
                 var blob, downloadUrl;
                 var startDownloadTime = Date.now();
-                var isGitHubUrl = url.indexOf('github.com') !== -1 || url.indexOf('githubusercontent.com') !== -1;
                 
-                if (CapacitorHttp) {
-                    if (isGitHubUrl) {
-                        // GitHub URL：测速选择最快线路
-                        console.log('[APK下载] GitHub URL，使用快速测速策略');
-                        if (onProgress) onProgress('正在选择最快线路...', 0, 0, 0);
-                        
-                        var downloadSources = [{ name: '线路 1', url: url }];
-                        this.config.mirrors.forEach(function(mirror, index) {
-                            downloadSources.push({ name: '线路 ' + (index + 2), url: mirror + url });
-                        });
-                        
-                        // 竞速测速
-                        var testPromises = downloadSources.map(function(source) {
-                            return new Promise(function(resolve) {
-                                var startTime = Date.now();
-                                var timeout = setTimeout(function() {
+                // 确定下载 URL（GitHub URL 测速选择最快线路）
+                var isGitHubUrl = url.indexOf('github.com') !== -1 || url.indexOf('githubusercontent.com') !== -1;
+                if (isGitHubUrl && CapacitorHttp) {
+                    console.log('[APK下载] GitHub URL，使用快速测速策略');
+                    if (onProgress) onProgress('正在选择最快线路...', 0, 0, 0);
+                    
+                    var downloadSources = [{ name: '线路 1', url: url }];
+                    this.config.mirrors.forEach(function(mirror, index) {
+                        downloadSources.push({ name: '线路 ' + (index + 2), url: mirror + url });
+                    });
+                    
+                    // 竞速测速
+                    var testPromises = downloadSources.map(function(source) {
+                        return new Promise(function(resolve) {
+                            var startTime = Date.now();
+                            var timeout = setTimeout(function() {
+                                resolve({ source: source, responseTime: Infinity, success: false });
+                            }, 5000);
+                            
+                            CapacitorHttp.get({
+                                url: source.url,
+                                headers: { 'Range': 'bytes=0-102399' },
+                                connectTimeout: 5000,
+                                readTimeout: 5000
+                            }).then(function(response) {
+                                clearTimeout(timeout);
+                                var responseTime = Date.now() - startTime;
+                                if (response.status === 200 || response.status === 206) {
+                                    console.log('[测速]', source.name, ':', responseTime, 'ms');
+                                    resolve({ source: source, responseTime: responseTime, success: true });
+                                } else {
                                     resolve({ source: source, responseTime: Infinity, success: false });
-                                }, 5000);
-                                
-                                CapacitorHttp.get({
-                                    url: source.url,
-                                    headers: { 'Range': 'bytes=0-102399' },
-                                    connectTimeout: 5000,
-                                    readTimeout: 5000
-                                }).then(function(response) {
-                                    clearTimeout(timeout);
-                                    var responseTime = Date.now() - startTime;
-                                    if (response.status === 200 || response.status === 206) {
-                                        console.log('[测速]', source.name, ':', responseTime, 'ms');
-                                        resolve({ source: source, responseTime: responseTime, success: true });
-                                    } else {
-                                        resolve({ source: source, responseTime: Infinity, success: false });
-                                    }
-                                }).catch(function() {
-                                    clearTimeout(timeout);
-                                    resolve({ source: source, responseTime: Infinity, success: false });
-                                });
-                            });
-                        });
-                        
-                        // 等待最快的源
-                        var fastestSource = null, fastestTime = Infinity;
-                        var racePromise = Promise.race(testPromises.map(function(p) {
-                            return p.then(function(r) { return r.success ? r : new Promise(function(){}); });
-                        }));
-                        
-                        var quickResult = await Promise.race([
-                            racePromise,
-                            new Promise(function(resolve) { setTimeout(function() { resolve(null); }, 2000); })
-                        ]);
-                        
-                        if (quickResult && quickResult.success) {
-                            fastestSource = quickResult.source;
-                            fastestTime = quickResult.responseTime;
-                        } else {
-                            var testResults = await Promise.all(testPromises);
-                            testResults.forEach(function(r) {
-                                if (r.success && r.responseTime < fastestTime) {
-                                    fastestTime = r.responseTime;
-                                    fastestSource = r.source;
                                 }
+                            }).catch(function() {
+                                clearTimeout(timeout);
+                                resolve({ source: source, responseTime: Infinity, success: false });
                             });
-                        }
-                        
-                        if (!fastestSource) throw new Error('所有下载线路都不可用');
-                        
-                        console.log('[APK下载] 选择:', fastestSource.name, '(', fastestTime, 'ms)');
-                        downloadUrl = fastestSource.url;
+                        });
+                    });
+                    
+                    // 等待最快的源
+                    var fastestSource = null, fastestTime = Infinity;
+                    var racePromise = Promise.race(testPromises.map(function(p) {
+                        return p.then(function(r) { return r.success ? r : new Promise(function(){}); });
+                    }));
+                    
+                    var quickResult = await Promise.race([
+                        racePromise,
+                        new Promise(function(resolve) { setTimeout(function() { resolve(null); }, 2000); })
+                    ]);
+                    
+                    if (quickResult && quickResult.success) {
+                        fastestSource = quickResult.source;
+                        fastestTime = quickResult.responseTime;
                     } else {
-                        // 非 GitHub URL（如 Cloudflare），直接下载
-                        console.log('[APK下载] 直接下载:', url);
-                        downloadUrl = url;
+                        var testResults = await Promise.all(testPromises);
+                        testResults.forEach(function(r) {
+                            if (r.success && r.responseTime < fastestTime) {
+                                fastestTime = r.responseTime;
+                                fastestSource = r.source;
+                            }
+                        });
                     }
                     
-                    if (onProgress) onProgress('正在下载...', 10, 0, 0);
-                    var result = await downloadFileInChunks(downloadUrl, onProgress);
-                    blob = result.blob;
+                    if (!fastestSource) throw new Error('所有下载线路都不可用');
                     
-                    var downloadTime = ((Date.now() - startDownloadTime) / 1000).toFixed(1);
-                    console.log('[APK下载] 下载完成:', (result.size / 1024 / 1024).toFixed(2), 'MB, 耗时:', downloadTime, 's');
-                    
+                    console.log('[APK下载] 选择:', fastestSource.name, '(', fastestTime, 'ms)');
+                    downloadUrl = fastestSource.url;
                 } else {
-                    // 降级到镜像站
-                    console.log('[APK下载] CapacitorHttp 不可用，使用备用线路');
-                    if (onProgress) onProgress('准备下载...', 0, 0, 0);
-                    
-                    for (var i = 0; i < this.config.mirrors.length; i++) {
-                        try {
-                            var mirrorUrl = this.config.mirrors[i] + url;
-                            var response = await fetch(mirrorUrl, { method: 'GET', cache: 'no-cache' });
-                            if (!response.ok) throw new Error('HTTP ' + response.status);
-                            blob = await response.blob();
-                            break;
-                        } catch (e) {
-                            if (i === this.config.mirrors.length - 1) throw new Error('所有下载线路都失败');
-                        }
-                    }
+                    downloadUrl = url;
                 }
+                
+                // 下载文件
+                console.log('[APK下载] 开始下载:', downloadUrl);
+                if (onProgress) onProgress('正在下载...', 10, 0, 0);
+                blob = await downloadFile(downloadUrl, onProgress);
+                
+                var downloadTime = ((Date.now() - startDownloadTime) / 1000).toFixed(1);
+                console.log('[APK下载] 下载完成:', (blob.size / 1024 / 1024).toFixed(2), 'MB, 耗时:', downloadTime, 's');
                 
                 if (onProgress) onProgress('下载完成，正在保存...', 80, 0, blob.size);
                 

@@ -91,6 +91,7 @@ public class TTSForegroundService extends Service {
     private String              playLang   = "zh-CN";
     private int                 totalTextLength = 0; // set in handleSpeak; used for progress
     private long                chunkStartPositionMs = 0; // 当前 chunk 开始时的媒体位置（ms）
+    private long                currentChunkActualDurationMs = 0; // 当前 chunk 音频实际时长（ms，来自 MediaPlayer.getDuration）
     private long                sliceStartPositionMs  = 0; // seek 点偏移，从 JS 传入的 startSecs * 1000
     private long                fullTotalDurationMs   = 0; // 全文稿总时长，从 JS 的 totalSecs * 1000
     private String              playTitle            = "";  // 锁屏/通知栏标题（篇章）
@@ -369,6 +370,7 @@ public class TTSForegroundService extends Service {
         pausedByUser = false;
         chunkIndex   = 0;
         chunkStartPositionMs = 0;
+        currentChunkActualDurationMs = 0;
         speakGen++;
         // 重置流水线状态：清理上次会话可能剩下的预生成文件
         synthForChunk = -1;
@@ -631,7 +633,7 @@ public class TTSForegroundService extends Service {
         }
     }
 
-    /** 开始每 100ms 向 JS 推送一次实际播放位置。重入安全。 */
+    /** 开始每 50ms 向 JS 推送一次实际播放位置。重入安全。 */
     private void startPositionBroadcast() {
         if (positionRunnable != null) return; // 已在运行
         positionRunnable = () -> {
@@ -643,9 +645,9 @@ public class TTSForegroundService extends Service {
                 int  charsDone = calculateCharsDone();
                 cb.onPosition(posMs, totalMs, charsDone);
             }
-            mainHandler.postDelayed(positionRunnable, 100);
+            mainHandler.postDelayed(positionRunnable, 50);
         };
-        mainHandler.postDelayed(positionRunnable, 100);
+        mainHandler.postDelayed(positionRunnable, 50);
     }
 
     private void stopPositionBroadcast() {
@@ -687,6 +689,9 @@ public class TTSForegroundService extends Service {
             mp.setAudioAttributes(attrs);
             mp.setDataSource(file.getAbsolutePath());
             mp.prepare(); // 本地文件，同步 prepare() 快且安全
+            // 缓存当前 chunk 的实际音频时长，供 calculateCharsDone() 精确插值
+            // 比估算值（chunkLen/totalTextLength*fullTotalDurationMs）更准确，消除 TTS 语音疏密不均导致的漂移
+            try { currentChunkActualDurationMs = mp.getDuration(); } catch (Exception e) { currentChunkActualDurationMs = 0; }
 
             // PlaybackParams：变速不变调（时间拉伸）；API 23+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -928,7 +933,7 @@ public class TTSForegroundService extends Service {
     /**
      * 基于 MediaPlayer 实际播放位置，计算当前已完成的字符数。
      * 已完成 chunk 的字符 + 当前 chunk 内按播放进度插值的字符。
-     * 由 startPositionBroadcast（每 100ms）调用，为 JS 高亮提供精确的实时字符进度。
+     * 由 startPositionBroadcast（每 50ms）调用，为 JS 高亮提供精确的实时字符进度。
      */
     private int calculateCharsDone() {
         if (totalTextLength <= 0) return 0;
@@ -941,7 +946,11 @@ public class TTSForegroundService extends Service {
             try {
                 int chunkLen = chunks.get(ci).length();
                 long audioPosMs = mediaPlayer.getCurrentPosition();
-                long chunkDurationMs = (long)(chunkLen / (float) totalTextLength * fullTotalDurationMs);
+                // 优先使用 MediaPlayer 实际时长（消除 TTS 语音疏密不均导致的线性插值漂移），
+                // 退而使用按字符比例估算的时长（currentChunkActualDurationMs 为 0 时的后备）
+                long chunkDurationMs = currentChunkActualDurationMs > 0
+                        ? currentChunkActualDurationMs
+                        : (long)(chunkLen / (float) totalTextLength * fullTotalDurationMs);
                 if (chunkDurationMs > 0) {
                     cumChars += (int)(audioPosMs / (float) chunkDurationMs * chunkLen);
                 }
@@ -1096,6 +1105,7 @@ public class TTSForegroundService extends Service {
         if (loopEnabled && !isStopped) {
             chunkIndex           = 0;
             chunkStartPositionMs = 0;
+            currentChunkActualDurationMs = 0;
             sliceStartPositionMs = 0;
             speakGen++;
             // 重置流水线状态（循环重头，上一轮的预生成文件不再有效）
