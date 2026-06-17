@@ -384,6 +384,7 @@
       var _stopOnNav        = null; // hashchange 监听函数，移除时置 null
       var _nativeCharsDone  = -1;   // ttsProgress 最近一次推送的 charsDone（-1=未收到）
       var _nativeCharsDoneTime = 0; // _nativeCharsDone 更新时的 Date.now()
+      var _nativeCharRate   = 0;    // 两次 ttsProgress 之间的局部字符速率（字符/秒）
       var _nativeProgressHandle = null; // ttsProgress 监听句柄
       var _lastPosMs        = -1;   // ttsPosition 最近一次接受的 posMs（-1=尚未接受）
 
@@ -626,8 +627,11 @@
         if (useNativeTTS && _segmentMap.length && fullText) {
           var charPos;
           if (_nativeCharsDone >= 0 && _nativeCharsDoneTime > 0 && totalDuration > 0) {
-            // 从最近 ttsProgress 锚点插值，比 elapsed/totalDuration 均匀假设更精确
-            var charsPerSec = fullText.length / totalDuration;
+            // 从最近 ttsProgress 锚点插值，优先使用局部实测速率，
+            // 无局部速率或速率异常时回退到全局均值
+            var globalRate = fullText.length / totalDuration;
+            var charsPerSec = (_nativeCharRate > globalRate * 0.2 && _nativeCharRate < globalRate * 5)
+              ? _nativeCharRate : globalRate;
             var dt = (Date.now() - _nativeCharsDoneTime) / 1000;
             charPos = clamp(_nativeCharsDone + dt * charsPerSec, 0, fullText.length);
           } else {
@@ -656,7 +660,7 @@
         else { try { window.speechSynthesis.cancel(); } catch (e) {} }
         fullText = '';
         elapsedOffset = 0; startTime = 0; totalDuration = 0;
-        _nativeCharsDone = -1; _nativeCharsDoneTime = 0; _lastPosMs = -1;
+        _nativeCharsDone = -1; _nativeCharsDoneTime = 0; _nativeCharRate = 0; _lastPosMs = -1;
         textChunks = []; currentChunk = 0;
         progressBar.value = '0';
         speechTime.textContent = '00:00 / 00:00';
@@ -711,6 +715,7 @@
         }
         _nativeCharsDone = -1;
         _nativeCharsDoneTime = 0;
+        _nativeCharRate = 0;
         _lastPosMs = -1;
 
         if (typeof NativeTTS.addListener === 'function') {
@@ -727,9 +732,15 @@
           // 监听 Java 端 onProgress 推送的字符级精确进度，用于句子高亮定位
           var progressHandle = NativeTTS.addListener('ttsProgress', function (data) {
             if (gen !== speakGeneration || !data || data.done == null) return;
+            var now = Date.now();
+            if (_nativeCharsDone >= 0 && _nativeCharsDoneTime > 0) {
+              var dtSec = (now - _nativeCharsDoneTime) / 1000;
+              if (dtSec > 0.05) {
+                _nativeCharRate = (data.done - _nativeCharsDone) / dtSec;
+              }
+            }
             _nativeCharsDone = data.done;
-            _nativeCharsDoneTime = Date.now();
-            // 直接用精确字符位置更新高亮
+            _nativeCharsDoneTime = now;
             if (_segmentMap.length) {
               setTTSHighlight(findSegmentAt(data.done));
             }
@@ -781,6 +792,7 @@
         }
         _nativeCharsDone = -1;
         _nativeCharsDoneTime = 0;
+        _nativeCharRate = 0;
         var NativeTTS = getNativeTTS();
         if (NativeTTS) try { NativeTTS.stop(); } catch (e) {}
       }
