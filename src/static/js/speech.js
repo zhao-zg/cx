@@ -562,6 +562,9 @@
           elapsedOffset = 0; startTime = 0;
           progressBar.value = '0';
           speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
+          // 清除视觉高亮，循环重新开始时从第一个元素重新标记（保留 _segmentMap 供下轮使用）
+          if (_prevTTSEl) { _prevTTSEl.classList.remove('cx-tts-active'); _prevTTSEl = null; }
+          clearSentenceMarks();
           setTimeout(function () {
             if (loopGen !== speakGeneration) return;  // 期间被手动取消/暂停则放弃
             startSpeakingFromPercent(0);
@@ -682,8 +685,18 @@
         if (typeof NativeTTS.addListener === 'function') {
           var handle = NativeTTS.addListener('ttsPosition', function (data) {
             if (gen !== speakGeneration || !data || data.posMs == null) return;
-            // 忽略使进度倒退的位置报告（如 chunk 切换时的瞬态回退）
-            if (_lastPosMs >= 0 && data.posMs < _lastPosMs) return;
+            // 循环播放时 MediaPlayer 回到起点导致 posMs 大幅倒退，视为循环重置
+            if (_lastPosMs >= 0 && data.posMs < _lastPosMs) {
+              if (isLooping && data.posMs < _lastPosMs * 0.5) {
+                // 循环重置：清除追踪状态，让进度条和高亮从头开始
+                _nativeCharsDone = -1;
+                _nativeCharsDoneTime = 0;
+                _lastPosMs = -1;
+                setTTSHighlight(null);
+              } else {
+                return;  // chunk 切换时的瞬态回退，忽略
+              }
+            }
             _lastPosMs = data.posMs;
             elapsedOffset = data.posMs / 1000;
             if (data.totalMs > 0) totalDuration = data.totalMs / 1000;
