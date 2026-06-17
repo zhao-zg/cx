@@ -115,13 +115,13 @@
     --scripture-bg:#F6F0E3;
     --muted:#F0E8D8;
     --border:#E2D8C6;
-    --text:#3D2B1F;
-    --text-soft:#5C4033;
+    --text:#4A3525;
+    --text-soft:#6A4E40;
     --text-muted:#8B7355;
-    --heading:#2C1810;
-    --heading-strong:#1A0E08;
-    --heading-soft:#4A3728;
-    --heading-muted:#5E4A38;
+    --heading:#3A2618;
+    --heading-strong:#2A1C12;
+    --heading-soft:#584535;
+    --heading-muted:#6C5846;
     --btn-secondary-bg:#F7F0E2;
     --btn-secondary-border:rgba(139,107,58,.22);
     --btn-secondary-hover-bg:#EDE2CE;
@@ -146,7 +146,7 @@
     --note-preview-bg:#F0E4CE;
     --section-divider:#D8CCBA;
     --group-divider-bg:#E0D5C4;
-    --toc-title-color:#3D2B1F;
+    --toc-title-color:#4A3525;
     --card-bg:#FDF9F1;
     --card-shadow:0 2px 8px rgba(90,65,30,.08);
     --card-shadow-hover:0 4px 12px rgba(90,65,30,.12);
@@ -286,7 +286,7 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
 .theme-preview .tp-line.short{width:40%;opacity:.3}
 .theme-preview.warm .tp-bar{background:linear-gradient(90deg,#9A7B4A,#8B6B3A)}/* --bg */
 .theme-preview.warm .tp-body{background:#FAF6ED}/* --surface */
-.theme-preview.warm .tp-line{background:#3D2B1F}/* --text */
+.theme-preview.warm .tp-line{background:#4A3525}/* --text */
 .theme-preview.cool .tp-bar{background:linear-gradient(90deg,#667eea,#5B67D4)}/* --bg */
 .theme-preview.cool .tp-body{background:#fafbff}/* --surface */
 .theme-preview.cool .tp-line{background:#1f2937}/* --text */
@@ -336,11 +336,17 @@ html.cx-theme-switching *::before,
 html.cx-theme-switching *::after{
     transition:background-color .35s ease,color .35s ease,border-color .35s ease,box-shadow .35s ease !important;
 }
+/* 渐变背景元素（linear-gradient 无法被 CSS transition 插值）改用 opacity 交叉淡入淡出 */
+html.cx-theme-switching *.cx-theme-gradient-bg{
+    transition:opacity .35s ease !important;
+    opacity:.82;
+}
 @media(prefers-reduced-motion:reduce){
     html.cx-theme-switching,
     html.cx-theme-switching *,
     html.cx-theme-switching *::before,
-    html.cx-theme-switching *::after{
+    html.cx-theme-switching *::after,
+    html.cx-theme-switching *.cx-theme-gradient-bg{
         transition:none !important;
     }
 }
@@ -433,9 +439,9 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 }
 
 /* ── 八、纲目层级与内容文字 ────────────────────────────────── */
-.section-level1,.outline-item.level-1{font-size:1.12em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:0px;text-align:justify;padding-left:1.1em;padding-right:0.3em;text-indent:-1.1em}
-.section-level2,.outline-item.level-2{font-size:1.08em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:8px;text-align:justify;padding-left:1.1em;padding-right:0.3em;text-indent:-1.1em}
-.section-level3,.outline-item.level-3{font-size:1.04em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
+.section-level1,.outline-item.level-1{font-size:1.06em;font-weight:650;margin:16px 0 10px;color:var(--heading);line-height:1.6;margin-left:0px;text-align:justify;padding-left:1.1em;padding-right:0.3em;text-indent:-1.1em}
+.section-level2,.outline-item.level-2{font-size:1.03em;font-weight:600;margin:13px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:8px;text-align:justify;padding-left:1.1em;padding-right:0.3em;text-indent:-1.1em}
+.section-level3,.outline-item.level-3{font-size:1.02em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
 .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:24px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
 .section-level5,.outline-item.level-5{font-size:.97em;font-weight:450;margin:7px 0 5px;color:var(--heading-muted);line-height:1.6;margin-left:32px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
 .outline-node-content .outline-content-text{font-size:.98em;font-weight:450;margin:7px 0 5px;color:var(--heading-muted);line-height:1.6;text-align:justify;padding-left:1.6em}

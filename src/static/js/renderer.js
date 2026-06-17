@@ -232,7 +232,7 @@
   }
 
   function buildChapterHeader(chapter) {
-    return '<div class="header header--chapter">' +
+    return '<div class="header header--chapter cx-theme-gradient-bg">' +
       '<h2 class="chapter-title">第' + chapter.number + '篇 ' + escText(chapter.title) + '</h2>' +
       '</div>';
   }
@@ -1090,7 +1090,7 @@
         }).join('');
 
         var html = '<div class="container">' +
-          '<div class="header">' +
+          '<div class="header cx-theme-gradient-bg">' +
           '<h1>' + escText(h1Text) + '</h1>' +
           subtitleLine +
           '</div>' +
@@ -1172,7 +1172,7 @@
 
       var subtitleLine = '<div class="subtitle">' + escText(training.year + '-' + training.season) + '</div>';
       var h1Text = training.subtitle || training.title;
-      var html = '<div class="container"><div class="header"><h1>' + escText(h1Text) + '</h1>' + subtitleLine + '</div>' +
+      var html = '<div class="container"><div class="header cx-theme-gradient-bg"><h1>' + escText(h1Text) + '</h1>' + subtitleLine + '</div>' +
         '<div class="content"><div class="motto-page">' + nav +
         '<div class="motto-container">' + (paragraphs || '<div class="no-motto">本次训练暂无标语</div>') + '</div>' +
         '</div></div>' +
@@ -1255,7 +1255,7 @@
           '</div>';
       }
 
-      var html = '<div class="container"><div class="header"><h1>' + escText(h1Text) + '</h1>' + subtitleLine + '</div>' +
+      var html = '<div class="container"><div class="header cx-theme-gradient-bg"><h1>' + escText(h1Text) + '</h1>' + subtitleLine + '</div>' +
         '<div class="content"><div class="song-page">' + nav +
         '<div class="song-container">' + imagesHtml + '</div></div></div>' +
         buildFooter(training) +
