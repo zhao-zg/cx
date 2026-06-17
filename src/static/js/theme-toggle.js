@@ -1355,22 +1355,14 @@
         }
     };
     
-    // 设置主题（两阶段淡入淡出：渐变背景元素先淡出→切换主题→淡回，避免 linear-gradient 闪跳）
+    // 设置主题（CSS 变量瞬间切换，不使用全局 transition 避免大规模重绘闪屏）
     window.setTheme = function(theme) {
-        var root = document.documentElement;
-        // 阶段 1：添加切换 class → .cx-theme-gradient-bg 元素开始 opacity 1→0.82 淡出
-        root.classList.add('cx-theme-switching');
-        // 阶段 2：下一帧再切换主题（确保 opacity 过渡已启动，渐变在低透明度时才跳变）
-        requestAnimationFrame(function() {
-            root.setAttribute('data-theme', theme);
-            try {
-                localStorage.setItem('readingTheme', theme);
-            } catch (e) {}
-            updateThemeUI(theme);
-            syncThemeColor(theme);
-            // 350ms 后淡出完成，移除切换 class → 渐变元素 opacity 0.82→1 淡回
-            setTimeout(function() { root.classList.remove('cx-theme-switching'); }, 380);
-        });
+        document.documentElement.setAttribute('data-theme', theme);
+        try {
+            localStorage.setItem('readingTheme', theme);
+        } catch (e) {}
+        updateThemeUI(theme);
+        syncThemeColor(theme);
     };
     
     // 更新主题UI状态

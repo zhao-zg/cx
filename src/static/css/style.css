@@ -329,27 +329,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 .nav a:active{background:var(--btn-secondary-active-bg);border-color:var(--btn-secondary-border)}
 .nav span{color:var(--text-muted);font-size:0.83em;padding:8px 12px;border-radius:20px;background:var(--interactive-soft-bg);border:1px solid var(--interactive-soft-border)}
 a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px;border-radius:10px}
-/* 主题切换平滑过渡：仅在切换主题时短暂生效，避免影响正常滚动性能 */
-html.cx-theme-switching,
-html.cx-theme-switching *,
-html.cx-theme-switching *::before,
-html.cx-theme-switching *::after{
-    transition:background-color .35s ease,color .35s ease,border-color .35s ease,box-shadow .35s ease !important;
-}
-/* 渐变背景元素（linear-gradient 无法被 CSS transition 插值）改用 opacity 交叉淡入淡出 */
-html.cx-theme-switching *.cx-theme-gradient-bg{
-    transition:opacity .35s ease !important;
-    opacity:.82;
-}
-@media(prefers-reduced-motion:reduce){
-    html.cx-theme-switching,
-    html.cx-theme-switching *,
-    html.cx-theme-switching *::before,
-    html.cx-theme-switching *::after,
-    html.cx-theme-switching *.cx-theme-gradient-bg{
-        transition:none !important;
-    }
-}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 .content{max-width:860px;margin:0 auto}
 
