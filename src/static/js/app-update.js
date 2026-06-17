@@ -387,6 +387,12 @@
         });
     }
     
+    // 格式化速率（KB/s 或 MB/s）
+    function formatSpeed(speedKB) {
+        if (speedKB >= 1024) return (speedKB / 1024).toFixed(1) + ' MB/s';
+        return speedKB + ' KB/s';
+    }
+    
     // APK 下载进度对话框
     function showApkDownloadProgress(message, progress, speed, downloaded) {
         var THEME = getTheme();
@@ -400,7 +406,7 @@
         html += '<p style="color: #666; margin-bottom: 10px; text-align: center; font-size: 14px;" id="apkProgressMessage">' + message + '</p>';
         
         html += '<p style="color: #999; margin-bottom: 15px; text-align: center; font-size: 12px;" id="apkProgressInfo">';
-        if (speed > 0) html += '速度: ' + speed + ' KB/s';
+        if (speed > 0) html += '速度: ' + formatSpeed(speed);
         if (downloaded > 0) {
             if (speed > 0) html += ' | ';
             html += '已下载: ' + (downloaded / 1024 / 1024).toFixed(2) + ' MB';
@@ -430,7 +436,7 @@
         
         if (infoEl) {
             var info = '';
-            if (speed > 0) info += '速度: ' + speed + ' KB/s';
+            if (speed > 0) info += '速度: ' + formatSpeed(speed);
             if (downloaded > 0) {
                 if (info) info += ' | ';
                 info += '已下载: ' + (downloaded / 1024 / 1024).toFixed(2) + ' MB';

@@ -377,7 +377,7 @@
       var textChunks   = [];
       var currentChunk = 0;
       // -- TTS 句子级高亮追踪 -------------------------------------------------
-      var _segmentMap       = [];   // [{el:<mark|block>, start, end}] 句子级字符偏移
+      var _segmentMap       = [];   // [{el:<mark|el>, start, end, speakText}] 句子级字符偏移
       // _sentenceMarkData 已在 init 作用域声明，此处不重复声明
       var _prevTTSEl        = null; // 当前高亮的 <mark> 元素
       var _ttsMarkOffset    = 0;    // _segmentMap 中对应 currentChunk=0 的句子索引
@@ -509,18 +509,57 @@
             var filteredText = processText(rawText);
             if (!filteredText) return;
 
-            // Step 3: 记录在 fullText 中的精确位置（智能分隔符：已有终止符则不重复追加）
-            var separator = '';
-            if (fullText) {
-              var lastChar = fullText[fullText.length - 1];
-              separator = /[。！？；]/.test(lastChar) ? '' : '。';
-            }
-            var start = fullText.length + separator.length;
-            fullText += separator + filteredText;
-            var end = fullText.length;
+            // Step 3: 注入句子级 <mark>，将高亮粒度从整段细化到单句
+            // fullText 和 _segmentMap 仅在此处构建，保证坐标同源
+            var injected = injectSentenceMarks(el);
+            if (injected && injected.marks && injected.marks.length > 0) {
+              _sentenceMarkData.push(injected);
+              injected.marks.forEach(function(mark) {
+                // 提取 mark 文本（与 Step 1 规则一致：static 去 sup，常规去按钮/经文控件/未展开引用）
+                var markRaw;
+                if (el.classList.contains('scripture-block-static')) {
+                  var mc = mark.cloneNode(true);
+                  mc.querySelectorAll('sup').forEach(function(s){ s.remove(); });
+                  markRaw = mc.textContent;
+                } else {
+                  var mc = mark.cloneNode(true);
+                  mc.querySelectorAll('button, .scripture-content, .verse-line, .scripture-ref').forEach(function(s){ s.remove(); });
+                  markRaw = mc.textContent;
+                }
+                var markFiltered = processText(markRaw);
+                if (!markFiltered) return; // 括号内容等非朗读文本，跳过高亮
 
-            // Step 4: 不注入句子 mark，保持显示内容不变，只做元素级高亮
-            _segmentMap.push({el: el, start: start, end: end, speakText: filteredText});
+                // 按句子终止符拆分（与 injectSentenceMarks 的 DOM 拆分对齐）
+                var sentRe = /[^。！？；]*[。！？；]|[^。！？；]+/g;
+                var m, sentences = [];
+                while ((m = sentRe.exec(markFiltered)) !== null) {
+                  if (m[0].trim()) sentences.push(m[0]);
+                }
+                if (!sentences.length) return;
+
+                // 逐句追加到 fullText 和 _segmentMap（坐标同源）
+                sentences.forEach(function(sent) {
+                  var sep = '';
+                  if (fullText) {
+                    var lc = fullText[fullText.length - 1];
+                    sep = /[。！？；]/.test(lc) ? '' : '。';
+                  }
+                  var sStart = fullText.length + sep.length;
+                  fullText += sep + sent;
+                  _segmentMap.push({el: mark, start: sStart, end: fullText.length, speakText: sent});
+                });
+              });
+            } else {
+              // 极短内容（标题等）无法拆分句子，整元素作为单一条目
+              var sep = '';
+              if (fullText) {
+                var lc = fullText[fullText.length - 1];
+                sep = /[。！？；]/.test(lc) ? '' : '。';
+              }
+              var start = fullText.length + sep.length;
+              fullText += sep + filteredText;
+              _segmentMap.push({el: el, start: start, end: fullText.length, speakText: filteredText});
+            }
           });
         });
       }
@@ -563,9 +602,9 @@
           elapsedOffset = 0; startTime = 0;
           progressBar.value = '0';
           speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
-          // 清除视觉高亮，循环重新开始时从第一个元素重新标记（保留 _segmentMap 供下轮使用）
+          // 仅移除高亮类，保留 <mark> 和 _segmentMap 供循环下轮使用
+          // （clearSentenceMarks 会销毁 mark，导致 _segmentMap 指向脱离 DOM 的节点）
           if (_prevTTSEl) { _prevTTSEl.classList.remove('cx-tts-active'); _prevTTSEl = null; }
-          clearSentenceMarks();
           setTimeout(function () {
             if (loopGen !== speakGeneration) return;  // 期间被手动取消/暂停则放弃
             startSpeakingFromPercent(0);
