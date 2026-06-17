@@ -178,7 +178,7 @@
       spans.forEach(function (span) {
         var txt = (span.textContent || '').trim();
         if (!span.parentNode ||
-            (/^[—\-]/.test(txt) && typeof span.closest === 'function' && span.closest('.outline-section')) ||
+            (/^[\u2014\u2500\-]/.test(txt) && typeof span.closest === 'function' && (span.closest('.outline-section') || span.closest('.outline-item'))) ||
             /^[（(]/.test(txt)) {
           // 纲目中破折号/括号前缀的经文引用不应朗读，从 DOM 临时移除
           // 使 injectSentenceMarks 不会将其文本包裹进 <mark>，朗读时自然跳过
@@ -518,42 +518,8 @@
             fullText += separator + filteredText;
             var end = fullText.length;
 
-            // Step 4: 注入句子 mark 或作为整体段落
-            // scripture-block-static 不拆分句子
-            var injected = el.classList.contains('scripture-block-static') ? null : injectSentenceMarks(el);
-            if (!injected) {
-              _segmentMap.push({el: el, start: start, end: end, speakText: filteredText});
-            } else {
-              _sentenceMarkData.push(injected);
-              // 消除 processText 移除括号内容导致的 DOM↔fullText 位置偏移：
-              // processText 会把 （...）和 (...) 从 fullText 中剥去，
-              // 但 injectSentenceMarks 在原始 DOM 上拆分句子，mark 内仍含括号文本。
-              // 此处从每个 mark 的文本节点中也剥去括号内容，使 mark.textContent 长度
-              // 与 processText(mark.textContent) 一致，保证高亮位置正确。
-              // 同时记录原始值，以便 clearSentenceMarks 还原 DOM 时恢复。
-              var _savedTN = [];
-              injected.marks.forEach(function(mark) {
-                var walker = document.createTreeWalker(mark, NodeFilter.SHOW_TEXT, null, false);
-                var n;
-                while ((n = walker.nextNode())) {
-                  var v = n.nodeValue;
-                  var stripped = v.replace(/（[^）]*）/g, '').replace(/\([^)]*\)/g, '');
-                  if (stripped !== v) {
-                    _savedTN.push({tn: n, orig: v});
-                    n.nodeValue = stripped;
-                  }
-                }
-              });
-              if (_savedTN.length) injected._savedParenTN = _savedTN;
-              var sentPos = start;
-              injected.marks.forEach(function(mark, i) {
-                var markFiltered = processText(mark.textContent);
-                // 最后一个句子对齐到父元素末尾，修正累积误差
-                var markEnd = (i === injected.marks.length - 1) ? end : sentPos + markFiltered.length;
-                _segmentMap.push({el: mark, start: sentPos, end: markEnd, speakText: markFiltered});
-                sentPos = markEnd;
-              });
-            }
+            // Step 4: 不注入句子 mark，保持显示内容不变，只做元素级高亮
+            _segmentMap.push({el: el, start: start, end: end, speakText: filteredText});
           });
         });
       }
@@ -620,8 +586,8 @@
         var elapsed = currentElapsedSeconds();
         progressBar.value = String(clamp((elapsed / totalDuration) * 100, 0, 100));
         speechTime.textContent = formatTime(elapsed) + ' / ' + formatTime(totalDuration);
-        // NativeTTS：优先使用 ttsProgress 字符级锚点插值，解决位置报告间隔（~500ms）
-        // 在高倍速（如 2x）下跟不上朗读速度的问题
+        // NativeTTS：高亮主要由 ttsPosition 事件（每 100ms，携带 charsDone）直接驱动。
+        // 此处作为备份：若 ttsPosition 未携带 done 字段，则从锚点插值补充。
         // Web Speech 的高亮由 wsPlayNextChunk 按句子边界更新，不在此处干预
         if (useNativeTTS && _segmentMap.length && fullText) {
           var charPos;
@@ -722,11 +688,23 @@
             elapsedOffset = data.posMs / 1000;
             if (data.totalMs > 0) totalDuration = data.totalMs / 1000;
             startTime = Date.now();
-            // 高亮由 updateProgressUI 定时器（每 120ms）统一处理，此处仅更新时间锚点
+            // ttsPosition 每 100ms 推送，携带基于 MediaPlayer 实际位置的 charsDone，
+            // 比 ttsProgress（仅 chunk 完成时触发）频率更高，实现逐句精准高亮
+            if (data.done != null) {
+              _nativeCharsDone = data.done;
+              _nativeCharsDoneTime = Date.now();
+              if (_segmentMap.length) {
+                setTTSHighlight(findSegmentAt(data.done));
+              }
+            }
           });
           // 监听 Java 端 onProgress 推送的字符级精确进度，用于句子高亮定位
+          // 注：ttsPosition 每 100ms 推送实时 charsDone（主驱动），
+          // ttsProgress 仅在 chunk 完成时触发（备份锚点），两者互补
           var progressHandle = NativeTTS.addListener('ttsProgress', function (data) {
             if (gen !== speakGeneration || !data || data.done == null) return;
+            // 单调递增保护：忽略倒退值（防止 chunk 切换时瞬态回跳）
+            if (data.done < _nativeCharsDone) return;
             _nativeCharsDone = data.done;
             _nativeCharsDoneTime = Date.now();
             // 直接用精确字符位置更新高亮

@@ -76,11 +76,12 @@ public class NativeTTSPlugin extends Plugin {
             }
 
             @Override
-            public void onPosition(long posMs, long totalMs) {
+            public void onPosition(long posMs, long totalMs, int charsDone) {
                 try {
                     JSObject data = new JSObject();
                     data.put("posMs",   posMs);
                     data.put("totalMs", totalMs);
+                    data.put("done",    charsDone);
                     notifyListeners("ttsPosition", data);
                 } catch (Exception ignored) {}
             }

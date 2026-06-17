@@ -751,6 +751,9 @@
 
     container.addEventListener('touchmove', function(e){
       if (!isDragging) return;
+      // 选中文字扩选时，浏览器会产生 touchmove；检测到有选区立即放弃翻页手势
+      var sel = win.getSelection();
+      if (sel && sel.toString().length > 0) { isDragging = false; setTrack(-currentPage * 100, true); return; }
       var dx = e.touches[0].clientX - touchStartX;
       var dy = e.touches[0].clientY - touchStartY;
       if (isHorizontal === null) {

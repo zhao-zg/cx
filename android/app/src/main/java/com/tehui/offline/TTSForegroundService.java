@@ -60,8 +60,9 @@ public class TTSForegroundService extends Service {
         void onError(String message);
         /** Called after each chunk completes; charsDone / totalChars gives accurate progress. */
         void onProgress(int charsDone, int totalChars);
-        /** Called every ~500 ms while playing; posMs/totalMs are absolute positions in full text. */
-        default void onPosition(long posMs, long totalMs) {}
+        /** Called every ~100 ms while playing; posMs/totalMs are absolute positions in full text,
+         *  charsDone is the real-time character progress based on MediaPlayer playback position. */
+        default void onPosition(long posMs, long totalMs, int charsDone) {}
     }
     public static volatile Listener listener = null;
 
@@ -639,7 +640,8 @@ public class TTSForegroundService extends Service {
             if (cb != null) {
                 long posMs   = getCurrentPositionMs();
                 long totalMs = fullTotalDurationMs > 0 ? fullTotalDurationMs : getTotalDurationMs();
-                cb.onPosition(posMs, totalMs);
+                int  charsDone = calculateCharsDone();
+                cb.onPosition(posMs, totalMs, charsDone);
             }
             mainHandler.postDelayed(positionRunnable, 100);
         };
@@ -716,7 +718,8 @@ public class TTSForegroundService extends Service {
             if (immediateCb != null) {
                 long posMs   = chunkStartPositionMs;
                 long totalMs = fullTotalDurationMs > 0 ? fullTotalDurationMs : getTotalDurationMs();
-                immediateCb.onPosition(posMs, totalMs);
+                int  charsDone = calculateCharsDone();
+                immediateCb.onPosition(posMs, totalMs, charsDone);
             }
             startPositionBroadcast();
 
@@ -920,6 +923,31 @@ public class TTSForegroundService extends Service {
         long totalMs = fullTotalDurationMs > 0 ? fullTotalDurationMs : getTotalDurationMs();
         if (totalTextLength <= 0 || totalMs <= 0) return sliceStartPositionMs;
         return sliceStartPositionMs + (long)((float) cumChars / totalTextLength * totalMs);
+    }
+
+    /**
+     * 基于 MediaPlayer 实际播放位置，计算当前已完成的字符数。
+     * 已完成 chunk 的字符 + 当前 chunk 内按播放进度插值的字符。
+     * 由 startPositionBroadcast（每 100ms）调用，为 JS 高亮提供精确的实时字符进度。
+     */
+    private int calculateCharsDone() {
+        if (totalTextLength <= 0) return 0;
+        int cumChars = 0;
+        int ci = chunkIndex;
+        for (int i = 0; i < ci && i < chunks.size(); i++) {
+            cumChars += chunks.get(i).length();
+        }
+        if (mediaPlayer != null && ci >= 0 && ci < chunks.size()) {
+            try {
+                int chunkLen = chunks.get(ci).length();
+                long audioPosMs = mediaPlayer.getCurrentPosition();
+                long chunkDurationMs = (long)(chunkLen / (float) totalTextLength * fullTotalDurationMs);
+                if (chunkDurationMs > 0) {
+                    cumChars += (int)(audioPosMs / (float) chunkDurationMs * chunkLen);
+                }
+            } catch (Exception ignored) {}
+        }
+        return Math.min(cumChars, totalTextLength);
     }
 
     @SuppressWarnings("deprecation")
