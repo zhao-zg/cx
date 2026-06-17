@@ -35,6 +35,7 @@ NativeTTS.resume()
 - Service → Plugin 回调通过 `static volatile Listener` 传递（线程安全）
 - **循环播放**：`loop=true` 时由 Java `notifyFinished()` 直接重置 `chunkIndex=0` 并调 `playChunkOnly()`，不经过 JS roundtrip，息屏下可靠
 - `startSecs` / `totalSecs` 传入时，Java 用 `startSecs/totalSecs` 比率计算起始 `chunkIndex`，`sliceStartPositionMs` 重置为 0（从整段文本头部朗读对应 chunk）
+- **双模式播放**：默认使用 `synthesizeToFile` + `MediaPlayer`（支持变速不变调）。若连续 `MAX_SYNTH_FAILURES(2)` 次 `synthesizeToFile` 返回 ERROR（华为/OPPO 等自研 TTS 引擎常见问题），自动降级为 `tts.speak()` 直接播放（变速通过 `setSpeechRate` 实现，音调会变，但保证有声音）。`useSpeakDirect` 标志控制模式，每次新 `handleSpeak()` 重置为 synthesize 模式
 
 ## TTS 状态机（speech.js）
 
