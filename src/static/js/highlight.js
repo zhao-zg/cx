@@ -685,24 +685,32 @@
             });
         },
 
-        // B. 点击已有高亮后的菜单
+        // B. 点击已有高亮后的菜单（预览气泡 + 操作栏）
         _createAnnotationMenu: function () {
             if (document.getElementById('hl-annotation-menu')) return;
             var self = this;
             var menu = document.createElement('div');
             menu.id        = 'hl-annotation-menu';
-            menu.className = 'hl-menu';
+            menu.className = 'hl-menu hl-ann-menu';
             menu.innerHTML =
-                '<div class="hl-note-preview" id="hl-ann-note-preview">' +
-                    '<div class="hl-note-text" id="hl-ann-note-text"></div>' +
-                    '<button class="hl-note-expand-btn" id="hl-ann-expand">展开 ▾</button>' +
+                '<div class="hl-ann-note-bubble" id="hl-ann-note-preview">' +
+                    '<div class="hl-ann-note-body" id="hl-ann-note-text"></div>' +
+                    '<button class="hl-ann-note-expand" id="hl-ann-expand">展开 ▾</button>' +
                 '</div>' +
-                '<div class="hl-ann-row" id="hl-ann-mark-row">' +
-                    '<button class="hl-ann-act-btn" id="hl-ann-modify-mark">标记 ▾</button>' +
-                    '<button class="hl-ann-act-btn hl-ann-danger" id="hl-ann-del-mark">删除</button>' +
-                    '<span class="hl-sel-sep"></span>' +
-                    '<button class="hl-ann-act-btn" id="hl-ann-edit-note">笔记</button>' +
-                    '<button class="hl-ann-act-btn hl-ann-danger" id="hl-ann-del-note">删除</button>' +
+                '<div class="hl-ann-toolbar" id="hl-ann-toolbar">' +
+                    '<button class="hl-ann-tool" id="hl-ann-edit-note" data-action="edit-note">' +
+                        '<span class="hl-ann-tool-icon">✏️</span><span class="hl-ann-tool-label" id="hl-ann-edit-note-label">笔记</span>' +
+                    '</button>' +
+                    '<button class="hl-ann-tool hl-ann-tool-danger" id="hl-ann-del-note" data-action="del-note">' +
+                        '<span class="hl-ann-tool-icon">🗑</span><span class="hl-ann-tool-label">删除</span>' +
+                    '</button>' +
+                    '<span class="hl-ann-tool-sep"></span>' +
+                    '<button class="hl-ann-tool" id="hl-ann-modify-mark" data-action="modify-mark">' +
+                        '<span class="hl-ann-tool-icon">🎨</span><span class="hl-ann-tool-label" id="hl-ann-mark-label">标记</span>' +
+                    '</button>' +
+                    '<button class="hl-ann-tool hl-ann-tool-danger" id="hl-ann-del-mark" data-action="del-mark">' +
+                        '<span class="hl-ann-tool-icon">✕</span><span class="hl-ann-tool-label">删除</span>' +
+                    '</button>' +
                 '</div>' +
                 self._colorPanelHTML();
 
@@ -879,25 +887,32 @@
             var h = this.highlights.find(function (x) { return x.id === highlightId; });
             if (!h) return;
 
-            var preview   = document.getElementById('hl-ann-note-preview');
-            var noteTextEl = document.getElementById('hl-ann-note-text');
+            // ── 笔记预览气泡 ──
+            var bubble     = document.getElementById('hl-ann-note-preview');
+            var noteBody   = document.getElementById('hl-ann-note-text');
             var expandBtn  = document.getElementById('hl-ann-expand');
             if (h.note) {
-                noteTextEl.textContent = h.note;
-                noteTextEl.classList.remove('expanded');
+                noteBody.textContent = h.note;
+                noteBody.classList.remove('expanded');
                 expandBtn.textContent = '展开 ▾';
-                preview.style.display = 'block';
+                bubble.style.display = 'block';
+                // 同步 reflow 后判断是否溢出，短笔记隐藏展开按钮
+                expandBtn.style.display = noteBody.scrollHeight > noteBody.clientHeight ? '' : 'none';
             } else {
-                noteTextEl.textContent = '';
-                preview.style.display = 'none';
+                noteBody.textContent = '';
+                expandBtn.style.display = 'none';
+                bubble.style.display = 'none';
             }
 
-            document.getElementById('hl-ann-edit-note').textContent = h.note ? '修改笔记' : '笔记';
+            // ── 操作栏按钮显隐 ──
+            var noteEditLabel = document.getElementById('hl-ann-edit-note-label');
+            if (noteEditLabel) noteEditLabel.textContent = h.note ? '编辑' : '笔记';
             document.getElementById('hl-ann-del-note').style.display = h.note ? '' : 'none';
 
-            // 有标记时：修改标记 ▾ + ✕；无标记时：仅显示 + 标记
+            // 有标记时：显示修改+删除；无标记时：仅显示标记按钮
             var hasVisibleMark = !!(h.color || h.underline);
-            document.getElementById('hl-ann-modify-mark').textContent = hasVisibleMark ? '修改 ▾' : '标记 ▾';
+            var markLabel = document.getElementById('hl-ann-mark-label');
+            if (markLabel) markLabel.textContent = hasVisibleMark ? '修改' : '标记';
             document.getElementById('hl-ann-del-mark').style.display = hasVisibleMark ? '' : 'none';
 
             var menu = document.getElementById('hl-annotation-menu');
