@@ -628,7 +628,7 @@
             }).join('');
             return '<div class="hl-color-panel">' +
                        dots +
-                       '<button class="hl-underline-btn" title="下划线">U_</button>' +
+                       '<button class="hl-underline-btn" title="下划线">U</button>' +
                    '</div>';
         },
 
@@ -650,7 +650,7 @@
             menu.innerHTML =
                 '<div class="hl-menu-row hl-sel-row">' +
                     colorDotsHTML +
-                    '<button class="hl-underline-btn" id="hl-sel-ul" title="下划线">U_</button>' +
+                    '<button class="hl-underline-btn" id="hl-sel-ul" title="下划线">U</button>' +
                     '<span class="hl-sel-sep"></span>' +
                     '<button class="hl-menu-btn hl-sel-note-btn" id="hl-sel-note">添加笔记</button>' +
                 '</div>';

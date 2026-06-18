@@ -381,8 +381,8 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .hl-color-dot{width:28px;height:28px;border:2px solid transparent;border-radius:50%;cursor:pointer;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.15);transition:transform .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .hl-color-dot:active{transform:scale(.9)}
 .hl-color-dot.selected{border-color:var(--text);transform:scale(1.15);box-shadow:0 0 0 1px var(--text)}
-.hl-underline-btn{min-width:36px;min-height:30px;padding:4px 8px;background:var(--surface-alt);border:1px solid var(--border);border-radius:6px;font-size:.8125em;font-weight:700;cursor:pointer;text-decoration:underline;text-decoration-color:#e53935;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.hl-underline-btn.active{background:var(--brand);color:#fff;border-color:var(--brand);text-decoration-color:#ffcdd2}
+.hl-underline-btn{min-width:36px;min-height:30px;padding:4px 8px 2px;background:var(--surface-alt);color:var(--text);border:1px solid var(--border);border-bottom:2px solid #e53935;border-radius:6px;font-size:.8125em;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.hl-underline-btn.active{background:var(--brand);color:#fff;border-color:var(--brand);border-bottom-color:#ffcdd2}
 .hl-modal-mask{display:none;position:fixed;inset:0;background:var(--overlay-strong);z-index:10100;align-items:center;justify-content:center;padding:16px}
 .hl-modal-card{background:var(--surface);border-radius:14px;padding:18px;width:100%;max-width:420px;box-sizing:border-box;box-shadow:var(--dialog-shadow);display:flex;flex-direction:column;gap:12px;overflow:hidden}
 .hl-modal-title{font-size:1em;font-weight:700;color:var(--text)}
@@ -1096,7 +1096,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 [data-theme="dark"] .loop-btn.active{color:var(--brand);background:var(--interactive-soft-bg);border-color:var(--brand);box-shadow:var(--interactive-soft-shadow)}
 /* ── 暖色模式专属：弹框按钮（浅色底+品牌色文字，品牌色不做大面积填充）── */
 [data-theme="warm"] .hl-modal-save{background:var(--interactive-soft-bg);color:var(--brand);border-color:var(--brand)}
-[data-theme="warm"] .hl-underline-btn.active{background:var(--interactive-soft-bg);color:var(--brand);border-color:var(--brand);text-decoration-color:#e53935}
+[data-theme="warm"] .hl-underline-btn.active{background:var(--interactive-soft-bg);color:var(--brand);border-color:var(--brand);border-bottom-color:#e53935}
 [data-theme="warm"] .action-btn.primary{background:var(--interactive-soft-bg);color:var(--brand);border-color:var(--brand)}
 [data-theme="warm"] .cx-update-toast{background:var(--surface-alt);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.1)}
 [data-theme="warm"] .cx-update-toast-action{background:var(--brand);color:#fff}
