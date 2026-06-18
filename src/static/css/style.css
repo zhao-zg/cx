@@ -248,6 +248,8 @@
 [data-theme="dark"] .progress-bar-fill{background:var(--brand)}
 [data-theme="dark"] .progress-bar::-webkit-slider-thumb{background:var(--brand)}
 [data-theme="dark"] .progress-bar::-moz-range-thumb{background:var(--brand)}
+/* 夜间模式：高亮区域强制深色文字，避免浅色文字+浅色背景对比度不足 */
+[data-theme="dark"] .cx-highlight{color:#2c2c2c !important}
 
 /* ── 二、主题切换按钮 & 设置面板 ────────────────────────────── */
 .theme-toggle-btn{position:absolute;top:6px;right:6px;width:40px;height:40px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;transition:all .2s;color:var(--text-primary);opacity:.85}
