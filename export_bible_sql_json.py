@@ -264,8 +264,36 @@ def normalize_xrefs(raw: str, token_map: Dict[str, str]) -> str:
                     out.append(f"{cur_book}{ch}:{vv}")
             continue
 
-        # 尝试 chapter+verse（如 约一1）
-        m = re.match(r"^([一二三四五六七八九十百零〇○\d]+)([一二三四五六七八九十百零〇○\d]+(?:-[一二三四五六七八九十百零〇○\d]+)?)$", p)
+        # 尝试 chapter+verse（如 约一1、太二十22）
+        # 串珠数据库惯例：中文章号 + 阿拉伯节号（如 "二十22" = 20章22节）
+        # 第一组限为纯中文数字，第二组限为纯阿拉伯数字，避免贪婪回溯歧义
+        # （旧写法两组同用 [中文+\d] 会把 "二十22" 错拆为 "二十2"+"2" → 202:2）
+        m = re.match(r"^([一二三四五六七八九十百零〇○]+)(\d+(?:-\d+)?[上中下]?)$", p)
+        if m and cur_book:
+            ch = cn_num_to_int(m.group(1))
+            if ch is not None:
+                cur_chapter = ch
+                vr = m.group(2)
+                # 剥除上/中/下修饰符，便于拆分数字
+                mod = ""
+                if vr and vr[-1] in "上中下":
+                    mod = vr[-1]
+                    vr = vr[:-1]
+                if "-" in vr:
+                    a, b = vr.split("-", 1)
+                    va = cn_num_to_int(a)
+                    vb = cn_num_to_int(b)
+                    if va is not None and vb is not None:
+                        out.append(f"{cur_book}{ch}:{va}-{vb}")
+                        continue
+                else:
+                    vv = cn_num_to_int(vr)
+                    if vv is not None:
+                        out.append(f"{cur_book}{ch}:{vv}{mod}")
+                        continue
+
+        # 尝试 阿拉伯章+中文节（如 "20二十二"）或 纯阿拉伯章+阿拉伯节（如 "2022"）
+        m = re.match(r"^(\d+)([一二三四五六七八九十百零〇○]+(?:-[一二三四五六七八九十百零〇○]+)?)$", p)
         if m and cur_book:
             ch = cn_num_to_int(m.group(1))
             if ch is not None:
