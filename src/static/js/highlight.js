@@ -739,12 +739,33 @@
                 if (id) self.removeMark(id);
             });
 
-            // "展开/折叠" 笔记预览
+            // "展开" 笔记预览 → 居中遮罩弹框（类似经文弹框）
             document.getElementById('hl-ann-expand').addEventListener('click', function (e) {
                 e.stopPropagation();
-                var noteTextEl = document.getElementById('hl-ann-note-text');
-                var isExpanded = noteTextEl.classList.toggle('expanded');
-                e.currentTarget.textContent = isExpanded ? '收起 ▴' : '展开 ▾';
+                var id = self._pendingHighlightId;
+                var h  = self.highlights.find(function (x) { return x.id === id; });
+                if (!h || !h.note) return;
+                self.hideAllMenus();
+                if (!window.CX || !window.CX.openDialog) return;
+                var dlg = window.CX.openDialog({
+                    id: 'cx-note-expanded',
+                    html:
+                        '<div class="cx-note-expanded-card">' +
+                            '<div class="cx-note-expanded-header">' +
+                                '<span class="cx-note-expanded-title">笔记</span>' +
+                                '<button class="cx-note-expanded-edit" id="cx-note-exp-edit">编辑</button>' +
+                            '</div>' +
+                            '<div class="cx-note-expanded-body"></div>' +
+                        '</div>'
+                });
+                if (!dlg) return;
+                var body = dlg.mask.querySelector('.cx-note-expanded-body');
+                body.textContent = h.note;
+                dlg.mask.querySelector('#cx-note-exp-edit').addEventListener('click', function (ev) {
+                    ev.stopPropagation();
+                    dlg.close();
+                    self.showNoteEditor(id);
+                });
             });
 
             // "添加/修改笔记"
@@ -786,14 +807,17 @@
 
             document.body.appendChild(modal);
 
-            document.getElementById('hl-note-cancel').addEventListener('click', function () {
+            // 关闭弹框共用逻辑：若无任何标记则删除高亮记录
+            function closeModal() {
                 var id = modal.dataset.highlightId;
                 modal.style.display = 'none';
                 if (id) {
                     var h = self.highlights.find(function (x) { return x.id === id; });
                     if (h && !h.note && !h.color && !h.underline) self.removeHighlight(id);
                 }
-            });
+            }
+
+            document.getElementById('hl-note-cancel').addEventListener('click', closeModal);
             document.getElementById('hl-note-save').addEventListener('click', function () {
                 var id   = modal.dataset.highlightId;
                 var text = document.getElementById('hl-note-textarea').value.trim();
@@ -801,8 +825,13 @@
                 if (id) self.saveNote(id, text);
             });
             modal.addEventListener('click', function (e) {
-                if (e.target === modal) modal.style.display = 'none';
+                if (e.target === modal) closeModal();
             });
+
+            // 防触摸滚动穿透 + 触摸遮罩空白区关闭（与 click 事件互补，不冲突）
+            if (window.CX && window.CX.lockOverlayScroll) {
+                window.CX.lockOverlayScroll(modal, closeModal);
+            }
         },
 
         // ─── 颜色子面板：绑定事件 ────────────────────────────────
@@ -893,11 +922,8 @@
             var expandBtn  = document.getElementById('hl-ann-expand');
             if (h.note) {
                 noteBody.textContent = h.note;
-                noteBody.classList.remove('expanded');
-                expandBtn.textContent = '展开 ▾';
+                expandBtn.style.display = 'none';   // 先隐藏，菜单可见后再判断
                 bubble.style.display = 'block';
-                // 同步 reflow 后判断是否溢出，短笔记隐藏展开按钮
-                expandBtn.style.display = noteBody.scrollHeight > noteBody.clientHeight ? '' : 'none';
             } else {
                 noteBody.textContent = '';
                 expandBtn.style.display = 'none';
@@ -961,6 +987,14 @@
 
                 menu.style.left    = left + 'px';
                 menu.style.top     = viewTop + 'px';
+                // 菜单已可见，检测笔记内容是否溢出，决定是否显示展开按钮
+                if (menu.id === 'hl-annotation-menu') {
+                    var nb = document.getElementById('hl-ann-note-text');
+                    var eb = document.getElementById('hl-ann-expand');
+                    if (nb && eb && nb.textContent) {
+                        eb.style.display = nb.scrollHeight > nb.clientHeight ? '' : 'none';
+                    }
+                }
                 menu.style.opacity = '1';
             });
         },

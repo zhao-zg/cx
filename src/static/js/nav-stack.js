@@ -328,7 +328,8 @@
                     cls.contains('theme-panel')         || cls.contains('theme-toggle-btn') ||
                     cls.contains('toc-item')            || cls.contains('scripture-popup') ||
                     cls.contains('scripture-popup-overlay') || cls.contains('scripture-popup-body') ||
-                    cls.contains('scripture-popup-header')) return false;
+                    cls.contains('scripture-popup-header') ||
+                    cls.contains('cx-highlight')        || cls.contains('cx-note-icon')) return false;
             }
             el = el.parentElement;
         }

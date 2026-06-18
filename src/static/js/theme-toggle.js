@@ -251,8 +251,11 @@
             var el = e.target;
             var scrollable = null;
             while (el && el !== overlay) {
-                var oy = window.getComputedStyle(el).overflowY;
-                if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) {
+                var tag = (el.tagName || '').toLowerCase();
+                var oy  = window.getComputedStyle(el).overflowY;
+                // textarea / select 等表单控件天然可滚动，部分 WebView 的 getComputedStyle 不返回 auto
+                if (((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) ||
+                    (tag === 'textarea' && el.scrollHeight > el.clientHeight)) {
                     scrollable = el;
                     break;
                 }
