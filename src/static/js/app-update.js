@@ -25,7 +25,61 @@
         var startTime = Date.now();
         var blob;
 
-        if (CapacitorHttp) {
+        // 优先使用 fetch + ReadableStream 实现实时进度和速率
+        var useStreamingFetch = typeof fetch === 'function';
+
+        if (useStreamingFetch) {
+            var response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+
+            var contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
+            var reader = response.body ? response.body.getReader() : null;
+
+            if (reader) {
+                // 流式读取：实时计算进度和速率
+                var chunks = [];
+                var receivedLength = 0;
+                var lastReportTime = 0;
+                var lastReportedBytes = 0;
+                var currentSpeed = 0;
+
+                while (true) {
+                    var result = await reader.read();
+                    if (result.done) break;
+
+                    chunks.push(result.value);
+                    receivedLength += result.value.length;
+
+                    var now = Date.now();
+                    // 每 500ms 报告一次进度
+                    if (onProgress && (now - lastReportTime >= 500 || receivedLength === result.value.length)) {
+                        var elapsed = (now - startTime) / 1000;
+                        currentSpeed = elapsed > 0 ? Math.round(receivedLength / 1024 / elapsed) : 0;
+                        var pct = contentLength > 0 ? Math.min(Math.round(receivedLength / contentLength * 70) + 10, 79) : 10;
+                        var downloadedMB = (receivedLength / 1024 / 1024).toFixed(2);
+                        var msg = contentLength > 0
+                            ? '正在下载... ' + downloadedMB + ' / ' + (contentLength / 1024 / 1024).toFixed(2) + ' MB'
+                            : '正在下载... ' + downloadedMB + ' MB';
+                        onProgress(msg, pct, currentSpeed, receivedLength);
+                        lastReportTime = now;
+                        lastReportedBytes = receivedLength;
+                    }
+                }
+
+                // 确保最后一次字节也被报告
+                if (onProgress && receivedLength > lastReportedBytes) {
+                    var finalElapsed = (Date.now() - startTime) / 1000;
+                    currentSpeed = finalElapsed > 0 ? Math.round(receivedLength / 1024 / finalElapsed) : 0;
+                    onProgress('正在下载... ' + (receivedLength / 1024 / 1024).toFixed(2) + ' MB', 79, currentSpeed, receivedLength);
+                }
+
+                blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+            } else {
+                // body 不可读，降级为整体读取
+                blob = await response.blob();
+            }
+        } else if (CapacitorHttp) {
+            // 无 fetch 环境，降级使用 CapacitorHttp（无实时进度）
             var httpResponse = await CapacitorHttp.get({
                 url: url,
                 responseType: 'blob',
@@ -51,17 +105,14 @@
                 throw new Error('未知的响应数据类型');
             }
         } else {
-            // 降级：使用 fetch（镜像站）
-            var response = await fetch(url, { method: 'GET', cache: 'no-cache' });
-            if (!response.ok) throw new Error('HTTP ' + response.status);
-            blob = await response.blob();
+            throw new Error('无可用下载方式');
         }
 
         // 计算平均速率
         var elapsed = (Date.now() - startTime) / 1000;
         var avgSpeed = elapsed > 0 ? Math.round(blob.size / 1024 / elapsed) : 0;
         if (onProgress) {
-            onProgress('下载完成: ' + (blob.size / 1024 / 1024).toFixed(2) + ' MB', 80, avgSpeed, blob.size);
+            onProgress('下载完成: ' + (blob.size / 1024 / 1024).toFixed(2) + ' MB (平均 ' + formatSpeed(avgSpeed) + ')', 80, avgSpeed, blob.size);
         }
 
         return blob;
