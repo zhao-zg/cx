@@ -287,7 +287,7 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
 .theme-preview .tp-line{height:2px;border-radius:1px;opacity:.45}
 .theme-preview .tp-line.short{width:40%;opacity:.3}
 .theme-preview.warm .tp-bar{background:linear-gradient(90deg,#9A7B4A,#8B6B3A)}/* --bg */
-.theme-preview.warm .tp-body{background:#FAF6ED}/* --surface */
+.theme-preview.warm .tp-body{background:#FBF7EF}/* --surface */
 .theme-preview.warm .tp-line{background:#4A3525}/* --text */
 .theme-preview.cool .tp-bar{background:linear-gradient(90deg,#667eea,#5B67D4)}/* --bg */
 .theme-preview.cool .tp-body{background:#fafbff}/* --surface */

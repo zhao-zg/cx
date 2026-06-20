@@ -335,7 +335,7 @@
     // 状态栏 / meta[name=theme-color] 统一用容器背景色(--surface) → 沉浸式阅读
     const themeMetaColors = {
         cool: '#fafbff',
-        warm: '#FAF6ED',
+        warm: '#FBF7EF',
         dark: '#181b21'
     };
     let pageScrollLockCount = 0;
