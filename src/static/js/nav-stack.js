@@ -164,7 +164,6 @@
     var _el = null;        // 浮动栏 DOM 元素
     var _timer = null;     // 5 秒自动隐藏定时器
     var HIDE_DELAY = 5000;
-    var _ttsSpacer = null;   // TTS 栏等高占位元素（防布局位移）
 
     /* 获取当前页面的 .page-navigation（章节 tab 栏） */
     function getPageNav() {
@@ -239,52 +238,18 @@
         return true;
     }
 
-    /* 获取并显示/隐藏浮动朗读栏 */
-    function getTtsBar() {
-        var bar = document.getElementById('bottomControlBar');
-        return (bar && bar.style.display !== 'none') ? bar : null;
-    }
-
     /* 显示浮动栏 */
     function show() {
         if (!syncContent()) return;
         ensureEl().classList.add('show');
         clearTimeout(_timer);
         _timer = setTimeout(hide, HIDE_DELAY);
-        var tts = getTtsBar();
-        if (tts) {
-            // 插入等高占位元素，防止 TTS 栏变 fixed 后引起布局位移
-            if (!_ttsSpacer) {
-                _ttsSpacer = document.createElement('div');
-                _ttsSpacer.setAttribute('aria-hidden', 'true');
-            }
-            _ttsSpacer.style.height = tts.offsetHeight + 'px';
-            if (tts.parentNode) {
-                if (tts.nextSibling) {
-                    tts.parentNode.insertBefore(_ttsSpacer, tts.nextSibling);
-                } else {
-                    tts.parentNode.appendChild(_ttsSpacer);
-                }
-            }
-            tts.classList.add('cx-float-tts');
-            requestAnimationFrame(function() { tts.classList.add('show'); });
-        }
     }
 
     /* 隐藏浮动栏 */
     function hide() {
         clearTimeout(_timer);
         if (_el) _el.classList.remove('show');
-        var tts = document.getElementById('bottomControlBar');
-        if (tts && tts.classList.contains('cx-float-tts')) {
-            tts.classList.remove('show');
-            setTimeout(function() {
-                tts.classList.remove('cx-float-tts');
-                if (_ttsSpacer && _ttsSpacer.parentNode) {
-                    _ttsSpacer.parentNode.removeChild(_ttsSpacer);
-                }
-            }, 280);
-        }
     }
 
     /* 上滑回到原始 tab 栏可见范围时自动隐藏浮动栏 */
@@ -299,7 +264,6 @@
         hide();
         if (_el && _el.parentNode) _el.parentNode.removeChild(_el);
         _el = null;
-        _ttsSpacer = null;
     });
 
     /* 判断点击是否落在"空白"区域（无交互意图） */

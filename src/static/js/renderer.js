@@ -731,6 +731,14 @@
           updateHeight();
         });
       });
+      // 翻页后延迟重算，防止异步渲染（经文引用包裹等）导致高度变化底部截断
+      setTimeout(function() {
+        var active = pages[currentPage];
+        if (!active) return;
+        var h = active.offsetHeight;
+        var cur = parseInt(container.style.height, 10) || 0;
+        if (h > 0 && Math.abs(h - cur) > 2) container.style.height = h + 'px';
+      }, 300);
       if (scroll === true) win.scrollTo({top:0,behavior:'smooth'});
     }
 
@@ -789,6 +797,21 @@
 
     showPage(initialPage || 0, false);
     win.addEventListener('resize', updateHeight);
+
+    // ── 字体加载及延迟渲染后重新计算高度，防止底部内容被 overflow:hidden 截断 ──
+    function _forceUpdateHeight() {
+      var active = pages[currentPage];
+      if (!active) return;
+      var newHeight = active.offsetHeight;
+      if (newHeight > 0) container.style.height = newHeight + 'px';
+    }
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function() {
+        requestAnimationFrame(_forceUpdateHeight);
+      });
+    }
+    setTimeout(_forceUpdateHeight, 400);
+    setTimeout(_forceUpdateHeight, 1500);
 
     // ── 防止浏览器在选中文字时隐式滚动 overflow:hidden 容器 ──────────────
     // setTrack/showPage 已在翻页时重置，但静止阅读时选中文字也会触发隐式滚动。
