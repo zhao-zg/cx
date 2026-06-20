@@ -822,8 +822,9 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 /* ── 二十五、浮动导航栏（内容页空白处点击唤出）──────────── */
 .cx-float-nav{position:fixed;top:0;left:0;right:0;z-index:990;background:var(--card-bg);box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;align-items:center;transform:translateY(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);pointer-events:none;padding:env(safe-area-inset-top, 0px) 2px 0}
 .cx-float-nav.show{transform:translateY(0);pointer-events:auto}
-.cx-float-tts{position:fixed!important;bottom:0;left:0;right:0;z-index:989;background:var(--card-bg);box-shadow:0 -2px 10px rgba(0,0,0,.18);margin:0!important;border-radius:0!important;border-left:none!important;border-right:none!important;border-top:1px solid var(--border)!important;transform:translateY(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);padding:4px 8px max(4px,env(safe-area-inset-bottom)) 8px!important}
-.cx-float-tts.show{transform:translateY(0)}
+.cx-float-tts-bar{position:fixed;bottom:0;left:0;right:0;z-index:989;transform:translateY(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);pointer-events:none}
+.cx-float-tts-bar.show{transform:translateY(0);pointer-events:auto}
+.cx-float-tts-bar .bottom-control-bar{margin:0;border-radius:0;border-left:none;border-right:none;border-top:1px solid var(--border);box-shadow:0 -2px 10px rgba(0,0,0,.18);padding:4px 8px max(4px,env(safe-area-inset-bottom)) 8px}
 .cx-float-nav .page-navigation{flex:1;margin:0;padding:4px 2px;border-radius:0;background:transparent;box-shadow:none}
 .cx-float-nav-settings{flex-shrink:0;width:38px;height:38px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-primary);border-radius:50%;padding:0;margin-right:2px;-webkit-tap-highlight-color:transparent}
 .cx-float-nav-settings:hover{background:var(--interactive-soft-hover)}

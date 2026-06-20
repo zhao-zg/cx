@@ -161,9 +161,11 @@
 (function() {
     'use strict';
 
-    var _el = null;        // 浮动栏 DOM 元素
+    var _el = null;        // 浮动导航栏 DOM 元素
+    var _ttsEl = null;     // 浮动朗读栏 DOM 元素（克隆）
     var _timer = null;     // 5 秒自动隐藏定时器
     var HIDE_DELAY = 5000;
+    var _ttsSyncCleanup = null;
 
     /* 获取当前页面的 .page-navigation（章节 tab 栏） */
     function getPageNav() {
@@ -238,18 +240,148 @@
         return true;
     }
 
+    // ——— 浮动朗读栏：克隆原始 bottomControlBar 为固定覆盖层 ———
+
+    function getTtsBar() {
+        var bar = document.getElementById('bottomControlBar');
+        return (bar && bar.style.display !== 'none') ? bar : null;
+    }
+
+    function ensureTtsEl() {
+        if (!_ttsEl) {
+            _ttsEl = document.createElement('div');
+            _ttsEl.className = 'cx-float-tts-bar';
+            _ttsEl.setAttribute('aria-label', '朗读控制');
+            document.body.appendChild(_ttsEl);
+            _ttsEl.addEventListener('click', function(e) { e.stopPropagation(); });
+        }
+        return _ttsEl;
+    }
+
+    function syncTtsContent() {
+        var orig = getTtsBar();
+        if (!orig) return false;
+        var el = ensureTtsEl();
+
+        // 克隆朗读栏，清除 id 防止重复
+        var cloned = orig.cloneNode(true);
+        var withId = cloned.querySelectorAll('[id]');
+        for (var i = 0; i < withId.length; i++) withId[i].removeAttribute('id');
+
+        // 清理旧的同步观察者
+        if (_ttsSyncCleanup) { _ttsSyncCleanup(); _ttsSyncCleanup = null; }
+
+        var origProgress  = document.getElementById('progressBar');
+        var origTime      = document.getElementById('speechTime');
+        var origRate      = document.getElementById('rateSelect');
+        var origPlayPause = document.getElementById('playPauseBtn');
+        var cloneProgress  = cloned.querySelector('.progress-bar');
+        var cloneTime      = cloned.querySelector('.speech-time');
+        var cloneRate      = cloned.querySelector('.control-select');
+        var cloneBtns      = cloned.querySelectorAll('.control-btn');
+        var isSeekingClone = false;
+
+        // ── 原始 → 克隆：镜像朗读状态变化 ──
+        var observers = [];
+        if (origProgress && cloneProgress) {
+            observers.push(new MutationObserver(function() {
+                if (!isSeekingClone) cloneProgress.value = origProgress.value;
+            }));
+            observers[observers.length - 1].observe(origProgress, { attributes: true, attributeFilter: ['value'] });
+        }
+        if (origTime && cloneTime) {
+            var timeIdx = observers.length;
+            observers.push(new MutationObserver(function() {
+                cloneTime.textContent = origTime.textContent;
+            }));
+            observers[timeIdx].observe(origTime, { childList: true, characterData: true, subtree: true });
+        }
+        if (origRate && cloneRate) {
+            var rateIdx = observers.length;
+            observers.push(new MutationObserver(function() {
+                cloneRate.value = origRate.value;
+            }));
+            observers[rateIdx].observe(origRate, { attributes: true, attributeFilter: ['value'] });
+        }
+        if (origPlayPause) {
+            var ppIdx = observers.length;
+            observers.push(new MutationObserver(function() {
+                var clonePP = cloned.querySelector('.play-pause-btn');
+                if (clonePP) clonePP.innerHTML = origPlayPause.innerHTML;
+            }));
+            observers[ppIdx].observe(origPlayPause, { childList: true, subtree: true });
+        }
+        _ttsSyncCleanup = function() {
+            for (var j = 0; j < observers.length; j++) observers[j].disconnect();
+        };
+
+        // ── 克隆 → 原始：转发交互事件 ──
+        if (cloneProgress && origProgress) {
+            cloneProgress.addEventListener('touchstart', function() {
+                isSeekingClone = true;
+                origProgress.dispatchEvent(new Event('touchstart'));
+            });
+            cloneProgress.addEventListener('mousedown', function() {
+                isSeekingClone = true;
+                origProgress.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            });
+            cloneProgress.addEventListener('input', function() {
+                origProgress.value = cloneProgress.value;
+                origProgress.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            cloneProgress.addEventListener('change', function() {
+                origProgress.value = cloneProgress.value;
+                origProgress.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+            cloneProgress.addEventListener('touchend', function() {
+                origProgress.dispatchEvent(new Event('touchend'));
+                isSeekingClone = false;
+            });
+            cloneProgress.addEventListener('mouseup', function() {
+                origProgress.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+                isSeekingClone = false;
+            });
+        }
+        if (cloneRate && origRate) {
+            cloneRate.addEventListener('change', function() {
+                origRate.value = cloneRate.value;
+                origRate.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        }
+        // 按钮点击转发（播放/暂停、循环）
+        for (var b = 0; b < cloneBtns.length; b++) {
+            (function(cloneBtn, idx) {
+                cloneBtn.addEventListener('click', function() {
+                    if (orig.querySelectorAll('.control-btn')[idx]) {
+                        orig.querySelectorAll('.control-btn')[idx].click();
+                    }
+                });
+            })(cloneBtns[b], b);
+        }
+
+        el.innerHTML = '';
+        el.appendChild(cloned);
+        return true;
+    }
+
     /* 显示浮动栏 */
     function show() {
         if (!syncContent()) return;
         ensureEl().classList.add('show');
         clearTimeout(_timer);
         _timer = setTimeout(hide, HIDE_DELAY);
+        syncTtsContent();
+        if (_ttsEl) {
+            _ttsEl.classList.add('show');
+        }
     }
 
     /* 隐藏浮动栏 */
     function hide() {
         clearTimeout(_timer);
         if (_el) _el.classList.remove('show');
+        if (_ttsEl) _ttsEl.classList.remove('show');
+        if (_ttsSyncCleanup) { _ttsSyncCleanup(); _ttsSyncCleanup = null; }
     }
 
     /* 上滑回到原始 tab 栏可见范围时自动隐藏浮动栏 */
@@ -264,6 +396,8 @@
         hide();
         if (_el && _el.parentNode) _el.parentNode.removeChild(_el);
         _el = null;
+        if (_ttsEl && _ttsEl.parentNode) _ttsEl.parentNode.removeChild(_ttsEl);
+        _ttsEl = null;
     });
 
     /* 判断点击是否落在"空白"区域（无交互意图） */
@@ -271,7 +405,7 @@
         var el = e.target;
         while (el && el !== document.body) {
             // 浮动栏自身交由内部处理
-            if (el.classList && el.classList.contains('cx-float-nav')) return false;
+            if (el.classList && (el.classList.contains('cx-float-nav') || el.classList.contains('cx-float-tts-bar'))) return false;
             // 弹框内点击不触发目录栏显示
             if (el.id === 'scripture-popup-overlay' || 
                 (el.parentElement && el.parentElement.id === 'scripture-popup-overlay') ||
