@@ -332,10 +332,10 @@
     const fontSizes = [14, 16, 18, 20, 22, 24, 26, 28];
     const defaultSizeIndex = 2; // 默认18px
     let currentSizeIndex = defaultSizeIndex;
-    // 状态栏 / meta[name=theme-color] 统一用容器背景色(--surface) → 沉浸式阅读
+    // 状态栏 / meta[name=theme-color]：cool/dark 用 --surface，warm 用 --page-bg（更暖，避免状态栏偏白）
     const themeMetaColors = {
         cool: '#fafbff',
-        warm: '#FBF7EF',
+        warm: '#F5F0E4',
         dark: '#181b21'
     };
     let pageScrollLockCount = 0;
