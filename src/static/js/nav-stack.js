@@ -170,6 +170,12 @@
         return document.querySelector('.page-navigation');
     }
 
+    /* 获取可见的朗读栏 */
+    function getTtsBar() {
+        var bar = document.getElementById('bottomControlBar');
+        return (bar && bar.style.display !== 'none') ? bar : null;
+    }
+
     /* .page-navigation 是否仍在视口内 */
     function isPageNavVisible() {
         var nav = getPageNav();
@@ -244,12 +250,24 @@
         ensureEl().classList.add('show');
         clearTimeout(_timer);
         _timer = setTimeout(hide, HIDE_DELAY);
+        var tts = getTtsBar();
+        if (tts) {
+            tts.classList.add('cx-float-tts');
+            requestAnimationFrame(function() { tts.classList.add('show'); });
+        }
     }
 
     /* 隐藏浮动栏 */
     function hide() {
         clearTimeout(_timer);
         if (_el) _el.classList.remove('show');
+        var tts = document.getElementById('bottomControlBar');
+        if (tts && tts.classList.contains('cx-float-tts')) {
+            tts.classList.remove('show');
+            setTimeout(function() {
+                tts.classList.remove('cx-float-tts');
+            }, 280);
+        }
     }
 
     /* 上滑回到原始 tab 栏可见范围时自动隐藏浮动栏 */
