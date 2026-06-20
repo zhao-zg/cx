@@ -107,13 +107,13 @@
     --brand-dark:#7A5A2E;
     --brand-rgb:139,107,58;
     --bg:linear-gradient(135deg,#9A7B4A,#8B6B3A);
-    --surface:#FAF6ED;
-    --surface-alt:#F7F1E5;
-    --page-bg:#F5EFE0;
+    --surface:#FBF7EF;
+    --surface-alt:#F7F2E8;
+    --page-bg:#F5F0E4;
     --header-bg:var(--bg);
-    --nav-hover:#F4ECE0;
-    --scripture-bg:#F6F0E3;
-    --muted:#F5EFE2;
+    --nav-hover:#F3ECE0;
+    --scripture-bg:#F8F2E9;
+    --muted:#F4EEE4;
     --border:#E2D8C6;
     --text:#4A3525;
     --text-soft:#6A4E40;
@@ -122,14 +122,14 @@
     --heading-strong:#2A1C12;
     --heading-soft:#584535;
     --heading-muted:#6C5846;
-    --btn-secondary-bg:#F7F0E2;
+    --btn-secondary-bg:#F8F3EA;
     --btn-secondary-border:rgba(139,107,58,.22);
-    --btn-secondary-hover-bg:#F3EADB;
+    --btn-secondary-hover-bg:#F1EBDD;
     --btn-secondary-active-bg:rgba(var(--brand-rgb),0.10);
     --focus-ring:rgba(139,107,58,.28);
     --selection-bg:rgba(180,145,85,.22);
     --panel-overlay:rgba(44,24,16,.22);
-    --theme-color:#FAF6ED;
+    --theme-color:#FBF7EF;
     --header-subtitle:rgba(255,255,255,.88);
     --interactive-soft-bg:rgba(180,145,85,.12);
     --interactive-soft-hover:rgba(180,145,85,.18);
@@ -143,14 +143,14 @@
     --control-track-bg:rgba(180,145,85,.20);
     --control-thumb-shadow:0 2px 6px rgba(120,90,40,.22);
     --control-thumb-shadow-hover:0 3px 10px rgba(120,90,40,.28);
-    --note-preview-bg:#F4ECDF;
+    --note-preview-bg:#F4EDE0;
     --section-divider:#D8CCBA;
-    --group-divider-bg:#E8DFD0;
+    --group-divider-bg:#E8E0D2;
     --toc-title-color:#4A3525;
-    --card-bg:#FDF9F1;
+    --card-bg:#FBF7EF;
     --card-shadow:0 2px 8px rgba(90,65,30,.08);
     --card-shadow-hover:0 4px 12px rgba(90,65,30,.12);
-    --callout-bg:#FFF3DC;
+    --callout-bg:#FBF5E8;
     --callout-border:#C89B3C;
     --callout-text:#6B4E15;
     --danger-border:#EFCACA;
@@ -158,8 +158,8 @@
     --danger-bg-active:#FFE4E1;
     --success-border:#B8DFC4;
     --sponsor-border:#E8C080;
-    --sponsor-bg:#FFF7EB;
-    --sponsor-bg-active:#FEEED2;
+    --sponsor-bg:#FAF5EA;
+    --sponsor-bg-active:#F5EDD8;
     --sponsor-wx-bg:rgba(7,193,96,.09);
     --sponsor-zfb-bg:rgba(22,119,255,.09);
     --footnote-ref:#A06A3A;
@@ -1106,4 +1106,4 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 [data-theme="dark"] .cx-update-toast-action{background:var(--brand);color:#fff}
 /* ── 暖色模式：晨兴经文块背景调浅，避免大面积铺色过深 ──────── */
 [data-theme="warm"] .feeding-scripture,
-[data-theme="warm"] .scripture-block-static{background:#F9F4E8}
+[data-theme="warm"] .scripture-block-static{background:#F7F2EA}
