@@ -117,9 +117,14 @@
     if (LEVEL1_CHARS.indexOf(c0) >= 0) {
       return { level: c0, title: s.slice(1).replace(/^[\u3000 \t]+/, '') };
     }
-    // Level 2: 一二三...（排除年份行）
+    // Level 2: 一二三...（排除年份行），支持多字符如 "十一"、"十 一"
     if (LEVEL2_CHARS.indexOf(c0) >= 0) {
       if (/^[一二三四五六七八九○〇零]{4}年/.test(s)) return null;
+      var m2 = s.match(/^([一二三四五六七八九十百](?:[\u3000 \t]*[一二三四五六七八九十百])*)[\u3000 \t]+(.*)/);
+      if (m2) {
+        var lvl = m2[1].replace(/[\u3000 \t]/g, '');
+        return { level: lvl, title: m2[2] };
+      }
       return { level: c0, title: s.slice(1).replace(/^[\u3000 \t]+/, '') };
     }
     // Level 3: 全角数字 １２３
@@ -147,6 +152,14 @@
     if (!levelStr) return 4;
     if (LEVEL1_CHARS.indexOf(levelStr) >= 0) return 1;
     if (LEVEL2_CHARS.indexOf(levelStr) >= 0) return 2;
+    // 多字符中点（如 "十一"、"十二"）
+    if (levelStr.length > 1) {
+      var allLv2 = true;
+      for (var k = 0; k < levelStr.length; k++) {
+        if (LEVEL2_CHARS.indexOf(levelStr.charAt(k)) < 0) { allLv2 = false; break; }
+      }
+      if (allLv2) return 2;
+    }
     if (LEVEL3_FW.indexOf(levelStr) >= 0) return 3;
     if (/^\d+$/.test(levelStr)) return 3;
     if (LEVEL5_CHARS.indexOf(levelStr) >= 0) return 5;

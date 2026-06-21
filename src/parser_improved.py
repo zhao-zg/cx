@@ -1803,9 +1803,10 @@ class ImprovedParser:
             
             # 检测各级纲目 - 使用更灵活的匹配方式
             # 壹、贰、叁等 (level1)，支持拾壹(11)、拾贰(12)等多字符大点
-            level1_match = re.match(r'^([壹贰叁肆伍陆柒捌玖拾]+)[\s　]+(.*)', text)
+            # 允许数字字符间有空格（如 "拾 壹" → "拾壹"）
+            level1_match = re.match(r'^([壹贰叁肆伍陆柒捌玖拾](?:[\s ]*[壹贰叁肆伍陆柒捌玖拾])*)[\s ]+(.*)', text)
             if level1_match:
-                level = level1_match.group(1)
+                level = level1_match.group(1).replace(' ', '').replace('\u3000', '')
                 title = level1_match.group(2)
                 current_level1 = Content(level=level, title=title)
                 result.append(current_level1)
@@ -1815,9 +1816,10 @@ class ImprovedParser:
                 continue
             
             # 一、二、三等 (level2)
-            level2_match = re.match(r'^([一二三四五六七八九十百]+)[\s　]+(.*)', text)
+            # 允许数字字符间有空格（如 "十 一" → "十一"）
+            level2_match = re.match(r'^([一二三四五六七八九十百](?:[\s ]*[一二三四五六七八九十百])*)[\s ]+(.*)', text)
             if level2_match:
-                level = level2_match.group(1)
+                level = level2_match.group(1).replace(' ', '').replace('\u3000', '')
                 title = level2_match.group(2)
                 current_level2 = Content(level=level, title=title)
                 if current_level1:
