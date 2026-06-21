@@ -1,10 +1,12 @@
 package com.tehui.offline;
 
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.WebView;
 import androidx.core.view.WindowCompat;
 import com.getcapacitor.BridgeActivity;
 
@@ -22,6 +24,17 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
 
         // 启动加载页统一由 HTML #cxSplash 处理（APP / PWA 共用）
+
+        // ── 修复后台切回黑屏 ──────────────────────────────────────────
+        // 1. WebView 背景色设为白色，防止渲染表面被回收后重建时出现黑屏
+        WebView webView = bridge != null ? bridge.getWebView() : null;
+        if (webView != null) {
+            webView.setBackgroundColor(Color.WHITE);
+            // 保持硬件加速层，避免后台回来时重新创建 GPU 表面
+            webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        }
+        // 2. 窗口 DecorView 也设白色背景，防止 Window 层面出现黑帧
+        getWindow().getDecorView().setBackgroundColor(Color.WHITE);
 
         // 设置状态栏颜色
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -43,5 +56,22 @@ public class MainActivity extends BridgeActivity {
                 decorView.setSystemUiVisibility(flags);
             }
         }
+    }
+
+    @Override
+    public void onResume() {
+        // 先恢复 WebView 定时器（BridgeActivity.onResume 内部也会调用，这里确保提前触发）
+        WebView webView = bridge != null ? bridge.getWebView() : null;
+        if (webView != null) {
+            webView.resumeTimers();
+        }
+        super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        // 仅调用 super.onPause()，不额外冻结 WebView
+        // BridgeActivity 内部会暂停定时器，但 WebView 渲染表面保持存活
+        super.onPause();
     }
 }
