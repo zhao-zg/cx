@@ -1162,9 +1162,8 @@
 
                 // 系统复制/选择菜单固定出现在选区上方约 50~80px 的区域内（含气泡、箭头和边距）
                 // 自定义菜单放在选区下方可完全避开；放在选区上方时需跳过该区域
-                var SYS_ZONE  = 80;           // 系统菜单在选区上方占用的高度（经验值）
                 var GAP_BELOW = 84;           // 放在选区下方时的间距（系统菜单在上方，不干扰）
-                var GAP_ABOVE = SYS_ZONE + 8; // 放在选区上方时跳过系统菜单区后的总间距
+                var GAP_ABOVE = 74; // 放在选区上方时跳过系统菜单区后的总间距
 
                 var belowAvail = vpH - rect.bottom - GAP_BELOW;
                 var aboveAvail = rect.top - GAP_ABOVE;
