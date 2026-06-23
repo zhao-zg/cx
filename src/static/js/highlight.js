@@ -1089,6 +1089,14 @@
         },
 
         showAnnotationMenu: function (highlightId, targetEl) {
+            // 等待系统菜单消失后再显示我们的菜单
+            var self = this;
+            this._waitForSystemMenuToDisappear(function () {
+                self._showAnnotationMenuNow(highlightId, targetEl);
+            });
+        },
+
+        _showAnnotationMenuNow: function (highlightId, targetEl) {
             this.hideAllMenus();
             this._pendingHighlightId = highlightId;
             var h = this.highlights.find(function (x) { return x.id === highlightId; });
@@ -1138,6 +1146,51 @@
             this._positionMenuByRect(menu, range.getBoundingClientRect());
         },
 
+        _hasSystemMenuVisible: function () {
+            // 系统菜单出现的必要条件：存在有效的文本选区
+            var sel = window.getSelection();
+            return sel && sel.toString && sel.toString().length > 0 && sel.rangeCount > 0;
+        },
+
+        _waitForSystemMenuToDisappear: function (callback) {
+            // 等待系统菜单消失（通过检测选区是否存在）
+            var self = this;
+            var startTime = Date.now();
+            var maxWait = 600;  // 最多等待 600ms
+            
+            var checkFn = function () {
+                // 如果选区已消失（系统菜单也会消失）或超时，执行回调
+                if (!self._hasSystemMenuVisible() || Date.now() - startTime > maxWait) {
+                    // 再等一小段时间让 UI 稳定
+                    setTimeout(callback, 100);
+                } else {
+                    requestAnimationFrame(checkFn);
+                }
+            };
+            checkFn();
+        },
+
+        _getDynamicGaps: function (rect) {
+            // 基于设备类型动态调整安全间距
+            var baseGapBelow = 74;  // 默认下方间距
+            var baseGapAbove = 64;  // 默认上方间距
+            
+            // 检测设备类型（Android/iOS）
+            var isMobile = /Android|iPhone|iPad|iPod/.test(navigator.userAgent);
+            if (isMobile) {
+                // 移动设备：系统菜单通常高度 44-50px，保守估计
+                var estimatedSystemMenuHeight = 50;
+                baseGapBelow = Math.max(baseGapBelow, estimatedSystemMenuHeight + 20);
+            }
+            
+            // 考虑小屏幕设备适配
+            var isSmallScreen = window.innerHeight < 600;
+            return {
+                below: isSmallScreen ? baseGapBelow * 0.8 : baseGapBelow,
+                above: isSmallScreen ? baseGapAbove * 0.9 : baseGapAbove
+            };
+        },
+
         _positionMenuByRect: function (menu, rect) {
             menu.style.position  = 'fixed';
             menu.style.transform = 'none';
@@ -1147,9 +1200,11 @@
             menu.style.left      = '-9999px';
             menu.style.display   = 'flex';
             menu.style.opacity   = '0';
+            var self = this;
             requestAnimationFrame(function () {
-                var GAP_BELOW = 84; // 菜单放在选区下方时的间距
-                var GAP_ABOVE = 64; // 菜单放在选区上方时的间距（需高于系统复制菜单，约 50px）
+                var gaps = self._getDynamicGaps(rect);
+                var GAP_BELOW = gaps.below;
+                var GAP_ABOVE = gaps.above;
                 var viewTop;
                 var belowAvail = window.innerHeight - rect.bottom - GAP_BELOW;
                 var aboveAvail = rect.top - GAP_ABOVE;
