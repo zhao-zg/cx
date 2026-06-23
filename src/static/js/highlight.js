@@ -683,13 +683,20 @@
 
             this.highlights.push(highlight);
             var self = this;
+            // 用时间戳标志位抑制高亮应用后的菜单重显，
+            // 不调用 removeAllRanges()：主动清除选区会触发 Android WebView ActionMode 的
+            // 「页面自行处理」标记，导致后续长按不再弹出系统复制菜单。
+            // clearAllMarks 重组 DOM 时会自然使选区失效，ActionMode 由浏览器优雅关闭。
+            this._pendingRange = null;
+            this._suppressSelMenuUntil = Date.now() + 800;
             this.saveHighlights().then(function () {
                 self._syncToPairedPage();
                 self.clearAllMarks();
                 self.restoreHighlights();
+                self._suppressSelMenuUntil = 0; // DOM 重建完成，解除抑制
+            }).catch(function () {
+                self._suppressSelMenuUntil = 0; // 存储失败也要解除，避免卡住
             });
-            window.getSelection().removeAllRanges();
-            this._pendingRange = null;
             return highlight.id;
         },
 
@@ -1302,6 +1309,8 @@
             // 若事件来自选择菜单内部（如点击 U_ 按钮），不重置菜单
             var selMenu = document.getElementById('hl-selection-menu');
             if (e && e.target && selMenu && selMenu.contains(e.target)) return;
+            // 应用高亮后短暂抑制，防止 DOM 重建期间菜单重显
+            if (this._suppressSelMenuUntil && Date.now() < this._suppressSelMenuUntil) return;
 
             var sel = window.getSelection();
             if (!sel || sel.toString().trim().length === 0) return;
