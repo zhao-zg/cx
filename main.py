@@ -684,6 +684,8 @@ def generate_main_index(config, batch_results):
         'txt-importer.js',
         # 历史资源包下载
         'resource-pack.js',
+        # 并发竞速工具（多个场景共用）
+        'race-fastest.js',
     ]
     for js_file in shared_js_files:
         src = os.path.join('src', 'static', 'js', js_file)

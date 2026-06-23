@@ -625,6 +625,28 @@
             .catch(function() { return null; });
     }
 
+    // 并发竞速拉取 changelog.json，首个成功者获胜（需 raceFastest 工具）
+    function fetchChangelogRace(serverUrls) {
+        if (!serverUrls || !serverUrls.length) return Promise.resolve(null);
+        if (!window.CX || !window.CX.raceFastest) {
+            // 工具未加载时降级为顺序取首个
+            var chain = Promise.resolve(null);
+            serverUrls.forEach(function(u) {
+                chain = chain.then(function(v) { return v || fetchChangelog(u); });
+            });
+            return chain;
+        }
+        var ts = Date.now();
+        var urls = serverUrls.map(function(u) { return u + 'changelog.json?t=' + ts; });
+        return window.CX.raceFastest(urls, {
+            fetchOptions: { cache: 'no-cache' },
+            timeout: 8000,
+            logPrefix: '[changelog]',
+            validate: function(r) { return r && r.ok; },
+            transform: function(r) { return r.json(); }
+        }).then(function(result) { return result.value; }).catch(function() { return null; });
+    }
+
     // 筛选 fromVer < v <= toVer 的版本列表，版本号倒序
     function getVersionsBetween(changelog, fromVer, toVer) {
         if (!changelog) return [];
@@ -852,48 +874,40 @@
         
         getCurrentApkVersion().then(function(currentVersion) {
             statusEl.innerHTML = '当前版本: ' + currentVersion + '<br>正在检查远程版本...';
-            
-            // 并发请求所有服务器，最快成功者获胜
+
+            // 并发竞速所有 CF 服务器，首个成功者获胜（raceFastest 工具）
             var ts = Date.now();
-            var serverPromises = CLOUDFLARE_SERVERS.map(function(serverUrl, idx) {
-                var versionUrl = serverUrl + 'version.json?t=' + ts;
-                console.log('[更新检查] 并发请求服务器 ' + (idx + 1) + ': ' + serverUrl);
-                return fetch(versionUrl, { cache: 'no-cache' })
-                    .then(function(response) {
-                        if (!response.ok) throw new Error('HTTP ' + response.status);
-                        return response.json();
-                    })
-                    .then(function(versionInfo) {
-                        console.log('[更新检查] 服务器 ' + (idx + 1) + ' 响应成功:', versionInfo);
-                        return { serverUrl: serverUrl, versionInfo: versionInfo };
-                    });
+            var urls = CLOUDFLARE_SERVERS.map(function(serverUrl) {
+                return serverUrl + 'version.json?t=' + ts;
             });
-            
-            // Promise.any 兼容写法：第一个成功者获胜
-            var racePromise = typeof Promise.any === 'function'
-                ? Promise.any(serverPromises)
-                : new Promise(function(resolve, reject) {
-                    var errors = [];
-                    serverPromises.forEach(function(p) {
-                        p.then(resolve).catch(function(e) {
-                            errors.push(e);
-                            if (errors.length === serverPromises.length) {
-                                reject(new Error('所有服务器均无法访问'));
-                            }
-                        });
-                    });
-                });
-            
-            return racePromise.then(function(result) {
+            console.log('[更新检查] 并发竞速 ' + urls.length + ' 个 CF 服务器');
+
+            if (!window.CX || !window.CX.raceFastest) {
+                statusEl.innerHTML = '❌ raceFastest 工具未加载';
+                return;
+            }
+
+            return window.CX.raceFastest(urls, {
+                fetchOptions: { cache: 'no-cache' },
+                timeout: 10000,
+                logPrefix: '[更新检查]',
+                validate: function(r) { return r && r.ok; },
+                transform: function(r) { return r.json(); }
+            }).then(function(result) {
+                var serverUrl = CLOUDFLARE_SERVERS[result.idx];
+                var versionInfo = result.value;
+                console.log('[更新检查] 命中: 镜像 #' + (result.idx + 1) + ' (' + serverUrl + ')');
+                return { serverUrl: serverUrl, versionInfo: versionInfo };
+            }).then(function(result) {
                 var serverUrl = result.serverUrl;
                 var versionInfo = result.versionInfo;
-                
+
                 var latestVersion = versionInfo.apk_version || versionInfo.version || '未知';
                 var apkFile = versionInfo.apk_file || ('TeHui-v' + latestVersion + '.apk');
                 var apkSize = versionInfo.apk_size;
                 var currentVersionClean = currentVersion.replace('v', '');
                 var latestVersionClean = latestVersion.replace('v', '');
-                
+
                 var downloadUrl = serverUrl + apkFile;
                 var comparison = AppUpdate.compareVersion(latestVersionClean, currentVersionClean);
                 var sizeText = apkSize ? ' (' + (apkSize / 1024 / 1024).toFixed(1) + ' MB)' : '';
@@ -909,8 +923,8 @@
                     }
                 }
 
-                // 并行获取 changelog，不阻塞主流程
-                fetchChangelog(serverUrl).then(function(changelog) {
+                // 并行获取 changelog（也使用竞速），不阻塞主流程
+                fetchChangelogRace(CLOUDFLARE_SERVERS).then(function(changelog) {
                     if (changelog) fillChangelogPanel('cloudflareUpdateDialog', changelog, currentVersion, latestVersion, comparison);
                 });
             }).catch(function(error) {
@@ -975,19 +989,9 @@
                         }
                     }
 
-                    // 从 Cloudflare 服务器获取 changelog（GitHub API 不提供）
+                    // 从 Cloudflare 服务器获取 changelog（GitHub API 不提供，使用 raceFastest 并发竞速）
                     var CL_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
-                    var clFetches = CL_SERVERS.map(function(u) {
-                        return fetchChangelog(u).then(function(d) { if (!d) throw new Error('null'); return d; });
-                    });
-                    var clRace = typeof Promise.any === 'function'
-                        ? Promise.any(clFetches)
-                        : new Promise(function(resolve) {
-                            var done = false;
-                            clFetches.forEach(function(p) { p.then(function(d) { if (!done) { done = true; resolve(d); } }).catch(function() {}); });
-                            setTimeout(function() { if (!done) { done = true; resolve(null); } }, 5000);
-                        });
-                    clRace.then(function(changelog) {
+                    fetchChangelogRace(CL_SERVERS).then(function(changelog) {
                         if (changelog) fillChangelogPanel('githubUpdateDialog', changelog, currentVersion, latestVersion, comparison);
                     }).catch(function() {});
                 });

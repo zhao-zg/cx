@@ -67,6 +67,7 @@ class HTMLGenerator:
                 'image-utils.js',
                 'dev-console.js',
                 'theme-toggle.js',
+                'race-fastest.js',
                 'app-update.js',
                 'font-control.js',
                 'search.js',
