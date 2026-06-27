@@ -130,6 +130,18 @@
 
   function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 
+  // Module-level safe getter: tries both plugin names for compatibility.
+  // Java @CapacitorPlugin(name="NativeTTS") → Capacitor.Plugins.NativeTTS
+  // Older builds may expose as TTSPlugin; try both.
+  function safeGetNativeTTS() {
+    try {
+      if (!window.Capacitor || !window.Capacitor.Plugins) return null;
+      var p = window.Capacitor.Plugins;
+      var tts = p.NativeTTS || p.TTSPlugin || null;
+      return (tts && typeof tts.speak === 'function') ? tts : null;
+    } catch (e) { return null; }
+  }
+
   // -- Init -----------------------------------------------------------------
 
   function init(options) {
@@ -302,12 +314,7 @@
     // -- Engine detection ---------------------------------------------------
 
     function getNativeTTS() {
-      return window.Capacitor &&
-             window.Capacitor.Plugins &&
-             window.Capacitor.Plugins.NativeTTS &&
-             typeof window.Capacitor.Plugins.NativeTTS.speak === 'function'
-        ? window.Capacitor.Plugins.NativeTTS
-        : null;
+      return safeGetNativeTTS();
     }
 
     function detectEngine() {
@@ -373,6 +380,7 @@
       var speakGeneration = 0;
       var isLooping     = localStorage.getItem('speechLoop') === '1';
       var _resumePercent = 0;   // % position to resume from after pause
+      var _resumeNextSegPercent = -1; // % position of next segment boundary (NativeTTS, -1=unset)
       var _nativePositionHandle = null;
       var textChunks   = [];
       var currentChunk = 0;
@@ -629,6 +637,7 @@
         fullText = '';
         elapsedOffset = 0; startTime = 0; totalDuration = 0; _originalTotalDuration = 0;
         _nativeCharsDone = -1; _nativeCharsDoneTime = 0; _lastPosMs = -1;
+        _resumeNextSegPercent = -1;
         textChunks = []; currentChunk = 0;
         progressBar.value = '0';
         speechTime.textContent = '00:00 / 00:00';
@@ -993,13 +1002,29 @@
           _originalTotalDuration = totalDuration; // 保存原始估算时长（rate=1x 基准），供 charsPerSec 插值使用
           elapsedOffset = 0; progressBar.value = '0';
           speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
+          _resumeNextSegPercent = -1;
           startSpeakingFromPercent(0);
           return;
         }
 
         // Resume from paused
         if (state === 'paused') {
-          startSpeakingFromPercent(_resumePercent);
+          if (useNativeTTS) {
+            // NativeTTS.resume() 从暂停位置继续 MediaPlayer，无需重新发送文本。
+            var NativeTTS = getNativeTTS();
+            if (NativeTTS) {
+              try { NativeTTS.resume(); } catch (e) {}
+            }
+            // 重置时间锚点，让 ttsPosition 事件从当前暂停位置继续驱动进度
+            startTime = Date.now();
+            startProgressUpdate();
+            setState('playing');
+          } else {
+            // Web Speech: stop+speak 方案（从 _resumePercent 位置重新开始）
+            var resumePct = (_resumeNextSegPercent >= 0) ? _resumeNextSegPercent : _resumePercent;
+            _resumeNextSegPercent = -1;
+            startSpeakingFromPercent(resumePct);
+          }
           return;
         }
 
@@ -1010,8 +1035,14 @@
         stopProgressUpdate();
         elapsedOffset = currentElapsedSeconds(); startTime = 0;
         _resumePercent = pct;
+        _resumeNextSegPercent = -1;
         if (useNativeTTS) {
-          nativeStopService();
+          // NativeTTS.pause() 是 @PluginMethod，暂停 MediaPlayer 但不销毁状态。
+          // 恢复时调用 resume() 可从暂停位置继续，无需重新发送文本。
+          var NativeTTS = getNativeTTS();
+          if (NativeTTS) {
+            try { NativeTTS.pause(); } catch (e) {}
+          }
           setState('paused');
         } else {
           ++speakGeneration;
