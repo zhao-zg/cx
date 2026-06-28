@@ -376,7 +376,7 @@
                 processed[hlId] = true;
 
                 var hlText = origMark.textContent;
-                if (!hlText || hlText.length < 2) continue;
+                if (!hlText) continue;
 
                 var origDayPage = origMark.closest('.day-page');
                 if (!origDayPage) continue;

@@ -462,6 +462,11 @@ public class TTSForegroundService extends Service {
         acquireWakeLock();
         updatePlaybackState(true);
 
+        android.util.Log.i("TTSFgSvc", "handleSpeak: ttsReady=" + ttsReady
+                + ", preSynthFile=" + (new File(getCacheDir(), "tts_g" + (speakGen - 1) + "_c0.wav").exists()
+                    || new File(getCacheDir(), "tts_g" + speakGen + "_c0.wav").exists())
+                + ", gen=" + speakGen);
+
         if (ttsReady) {
             // 先显式 stop() 确保引擎当前无正在进行的合成任务。
             // synthesizeToFile 内部使用 QUEUE_FLUSH 会再次清空队列，
@@ -493,12 +498,24 @@ public class TTSForegroundService extends Service {
         // 若已在播放或已有预合成任务在进行，跳过
         if (!isStopped || !chunks.isEmpty()) return;
 
-        String text = intent.getStringExtra("text");
-        if (text == null || text.trim().isEmpty()) return;
-
         String lang = intent.getStringExtra("lang");
         if (lang != null && !lang.isEmpty()) playLang = lang;
         playRate = intent.getFloatExtra("rate", 1.0f);
+
+        String text = intent.getStringExtra("text");
+        if (text == null || text.trim().isEmpty()) {
+            // 无文本（页面加载中）：仅触发 TTS 引擎初始化预热，
+            // 使引擎在用户稍后点击播放时已就绪，省去 2-3 秒初始化延迟。
+            if (!ttsReady && !ttsInitFailed) {
+                // initTts() 已在 onCreate() 调用，此处无需重复；
+                // 但若之前全部重试均失败，允许重新初始化。
+            } else if (ttsInitFailed) {
+                ttsInitRetries = 0;
+                ttsInitFailed = false;
+                initTts();
+            }
+            return;
+        }
 
         chunks.clear();
         chunks.addAll(splitText(text, CHUNK_SIZE));
@@ -558,14 +575,11 @@ public class TTSForegroundService extends Service {
         cleanTempFiles();
         deleteTempFile(nextTempFile);
         nextTempFile = null;
-        releaseWakeLock();
-        abandonAudioFocus();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            stopForeground(STOP_FOREGROUND_REMOVE);
-        } else {
-            stopForeground(true);
-        }
-        stopSelf();
+        // 不立即销毁 Service：保留 TTS 引擎实例，下次播放无需重新初始化（省 2-3 秒）。
+        // 使用与 finishPlayback() 相同的 2 秒宽限期；若期间收到新 speak()，
+        // cancelPendingStop() 会取消销毁并继续播放。
+        updateNotification(false);
+        schedulePendingStop();
     }
 
     private void handlePause() {
@@ -877,6 +891,9 @@ public class TTSForegroundService extends Service {
      * 用 MediaPlayer 播放指定临时文件（synthesizeToFile 的输出）。
      * 必须在 main thread 调用（MediaPlayer 回调默认投递到创建线程的 Looper）。
      *
+     * ★ 复用策略：chunk 切换时 reset() 现有 MediaPlayer 而非 release()+new()，
+     *   省去原生音频资源的释放与重新分配，显著缩短 chunk 间过渡时间。
+     *
      * N+1 预生成流水线：播放开始后立即在 ttsHandler 提交 chunk+1 的合成任务。
      */
     @SuppressWarnings("NewApi")
@@ -891,42 +908,58 @@ public class TTSForegroundService extends Service {
             return;
         }
 
-        releaseMediaPlayer();
-        MediaPlayer mp = new MediaPlayer();
+        // ★ 复用 MediaPlayer：reset() 回到 Idle 状态，避免 release()+new() 的原生资源开销
+        MediaPlayer mp = mediaPlayer;
+        if (mp != null) {
+            try {
+                mp.reset(); // Playing/Completed/Error → Idle，保留原生解码器和音频输出
+            } catch (Exception e) {
+                android.util.Log.w("TTSFgSvc", "MediaPlayer reset failed, creating new", e);
+                try { mp.release(); } catch (Exception ignored) {}
+                mp = null;
+            }
+        }
+        boolean reused = (mp != null);
+        if (mp == null) {
+            mp = new MediaPlayer();
+        }
+        final MediaPlayer finalMp = mp;
         try {
-            AudioAttributes attrs = new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build();
-            mp.setAudioAttributes(attrs);
-            mp.setDataSource(file.getAbsolutePath());
-            mp.prepare(); // 本地文件，同步 prepare() 快且安全
+            if (!reused) {
+                AudioAttributes attrs = new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build();
+                finalMp.setAudioAttributes(attrs);
+            }
+            finalMp.setDataSource(file.getAbsolutePath());
+            finalMp.prepare(); // 本地文件，同步 prepare() 快且安全
             // 缓存当前 chunk 的实际音频时长，供 calculateCharsDone() 精确插值
             // 比估算值（chunkLen/totalTextLength*fullTotalDurationMs）更准确，消除 TTS 语音疏密不均导致的漂移
-            try { currentChunkActualDurationMs = mp.getDuration(); } catch (Exception e) { currentChunkActualDurationMs = 0; }
+            try { currentChunkActualDurationMs = finalMp.getDuration(); } catch (Exception e) { currentChunkActualDurationMs = 0; }
 
             // PlaybackParams：变速不变调（时间拉伸）；API 23+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 PlaybackParams pp = new PlaybackParams();
                 pp.setSpeed(Math.max(0.1f, playRate));
                 pp.setPitch(1.0f); // 固定音调，不随速度变化
-                mp.setPlaybackParams(pp);
+                finalMp.setPlaybackParams(pp);
             }
 
             final File capturedFile = file;
-            mp.setOnCompletionListener(completedMp -> {
+            finalMp.setOnCompletionListener(completedMp -> {
                 deleteTempFile(capturedFile);
                 onChunkPlaybackComplete(gen);
             });
-            mp.setOnErrorListener((errMp, what, extra) -> {
+            finalMp.setOnErrorListener((errMp, what, extra) -> {
                 android.util.Log.e("TTSFgSvc", "MediaPlayer error " + what + "/" + extra);
                 deleteTempFile(capturedFile);
                 onChunkPlaybackComplete(gen);
                 return true;
             });
 
-            mediaPlayer = mp;
-            mp.start();
+            mediaPlayer = finalMp;
+            finalMp.start();
             acquireWakeLock();
             updatePlaybackState(true);
             // 立即推送一次 chunk 起始位置，使 JS 高亮在 chunk 切换时即时更新，
@@ -951,8 +984,8 @@ public class TTSForegroundService extends Service {
 
         } catch (Exception e) {
             android.util.Log.e("TTSFgSvc", "MediaPlayer start failed", e);
-            mp.release();
-            mediaPlayer = null;
+            try { finalMp.release(); } catch (Exception ignored) {}
+            if (mediaPlayer == finalMp) mediaPlayer = null;
             deleteTempFile(file);
             onChunkPlaybackComplete(gen);
         }
@@ -961,9 +994,10 @@ public class TTSForegroundService extends Service {
     /**
      * 当前 chunk 播放完毕（由 OnCompletionListener / OnErrorListener 触发，main thread）。
      * 推进 chunkIndex，按预生成状态三路分发下一 chunk。
+     * ★ 不在此处 releaseMediaPlayer()：MediaPlayer 由 startMediaPlayer() 复用（reset），
+     *   避免 release+new 的原生资源开销，缩短 chunk 间过渡时间。
      */
     private void onChunkPlaybackComplete(int gen) {
-        releaseMediaPlayer();
         if (speakGen != gen || isStopped || isPaused) {
             deleteTempFile(nextTempFile);
             nextTempFile = null;

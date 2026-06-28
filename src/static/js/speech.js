@@ -769,8 +769,13 @@
         _lastPosMs = -1;
 
         if (typeof NativeTTS.addListener === 'function') {
+          var _speakCallTime = Date.now(); // nativeSpeak 调用时刻
           var handle = NativeTTS.addListener('ttsPosition', function (data) {
             if (gen !== speakGeneration || !data || data.posMs == null) return;
+            // 首个 ttsPosition 事件 = 音频开始播放
+            if (_lastPosMs < 0) {
+              console.log('[CXSpeech] \u9996\u4e2a ttsPosition\uff0c\u51fa\u58f0\u5ef6\u8fdf ' + (Date.now() - _speakCallTime) + 'ms');
+            }
             // 循环播放时 MediaPlayer 回到起点导致 posMs 大幅倒退，视为循环重置
             if (_lastPosMs >= 0 && data.posMs < _lastPosMs) {
               if (isLooping && data.posMs < _lastPosMs * 0.5) {
@@ -883,6 +888,29 @@
         return result.length > 0 ? result : [text];
       }
 
+      /**
+       * 将短句合并为较长的 chunk，减少 Web Speech API 的 utterance 过渡次数。
+       * 每次 utterance 切换浏览器有 ~50-100ms 启动延迟，高倍速下尤其明显；
+       * 合并后每个 chunk 包含多个句子，过渡次数大幅减少。
+       * 上限 500 字符（3x 倍速下 ~6-7 秒音频），低于 Chrome ~15 秒截断阈值。
+       */
+      function groupSentences(sentences, maxChars) {
+        maxChars = maxChars || 500;
+        var result = [];
+        var buf = '';
+        for (var i = 0; i < sentences.length; i++) {
+          var s = sentences[i];
+          if (buf && buf.length + s.length > maxChars) {
+            result.push(buf);
+            buf = s;
+          } else {
+            buf += s;
+          }
+        }
+        if (buf) result.push(buf);
+        return result;
+      }
+
       function wsPlayNextChunk() {
         if (state !== 'playing') return;
         // 跳过空白 chunk（segment 文本为空时产生）
@@ -975,7 +1003,7 @@
               return seg.speakText;
             });
           } else {
-            textChunks = splitBySentence(segText);
+            textChunks = groupSentences(splitBySentence(segText));
           }
           currentChunk = 0;
           elapsedOffset = targetSecs; startTime = Date.now();
@@ -1058,6 +1086,7 @@
 
         // First press: load text and start from beginning
         if (state === 'idle') {
+          var _t0 = Date.now();
           if (useNativeTTS) {
             var NativeTTS = getNativeTTS();
             if (NativeTTS && typeof NativeTTS.isBatteryOptimizationIgnored === 'function') {
@@ -1076,16 +1105,20 @@
           if (_prebuiltFullText !== null && _prebuiltSegmentMap) {
             fullText = _prebuiltFullText;
             _segmentMap = _prebuiltSegmentMap;
+            console.log('[CXSpeech] \u7f13\u5b58\u547d\u4e2d\uff0c\u8df3\u8fc7 buildAll (' + (Date.now() - _t0) + 'ms)');
           } else {
             buildAll();
+            console.log('[CXSpeech] buildAll \u8017\u65f6 ' + (Date.now() - _t0) + 'ms\uff08\u672a\u547d\u4e2d\u7f13\u5b58\uff09');
           }
           if (!fullText) return;
           totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
-          _originalTotalDuration = totalDuration; // 保存原始估算时长（rate=1x 基准），供 charsPerSec 插值使用
+          _originalTotalDuration = totalDuration;
           elapsedOffset = 0; progressBar.value = '0';
           speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
           _resumeNextSegPercent = -1;
+          console.log('[CXSpeech] \u6587\u672c\u5c31\u7eea ' + (Date.now() - _t0) + 'ms\uff0c\u5f00\u59cb speak');
           startSpeakingFromPercent(0);
+          console.log('[CXSpeech] nativeSpeak \u8c03\u7528\u5b8c\u6210 ' + (Date.now() - _t0) + 'ms');
           return;
         }
 
