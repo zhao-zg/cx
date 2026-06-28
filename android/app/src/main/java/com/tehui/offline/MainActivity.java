@@ -23,6 +23,10 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(CrashLogPlugin.class);
         super.onCreate(savedInstanceState);
 
+        // ★ 在 Activity 创建时预热 TTS 引擎（用户交互上下文，不受后台启动限制）。
+        //   Service 启动时直接复用已就绪的实例，省去 2-3 秒初始化延迟。
+        TTSForegroundService.prewarmTts(this);
+
         // 启动加载页统一由 HTML #cxSplash 处理（APP / PWA 共用）
 
         // ── 修复后台切回黑屏 ──────────────────────────────────────────

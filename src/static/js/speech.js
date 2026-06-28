@@ -348,9 +348,6 @@
     var initAttempts = 0;
 
     function startInit() {
-      // 取消上一次 init 可能挂起的延迟预合成（路由双次 dispatch 场景）
-      if (window.__cxPreSynthTimer) { clearTimeout(window.__cxPreSynthTimer); }
-      window.__cxPreSynthSent = false;
       var engine = detectEngine();
       // On native Android: wait up to 1.5 s for NativeTTS plugin to become available.
       if (engine.isNative && !engine.useNativeTTS && initAttempts < 10) {
@@ -1272,52 +1269,15 @@
       speechTime.textContent = '00:00 / 00:00';
       if (useWebSpeech) setupMediaSession();
 
-      // -- 预合成首 chunk（NativeTTS only） ----------------------------------
-      // 页面加载后立即提取文本并发送给 Java 预合成第一个 chunk 的 WAV 文件。
-      // 用户稍后点击播放时，handleSpeak() 发现预合成已完成，可跳过合成等待，
-      // 将首次出声延迟从 ~500ms 压缩到 ~100ms。
-      // prebuildText() 不修改 DOM，不影响页面渲染。
-      if (useNativeTTS && !window.__cxPreSynthSent) {
-        window.__cxPreSynthSent = true; // 防止路由双次 dispatch 导致重复发送
+      // -- 预构建朗读文本缓存（NativeTTS only） --------------------------------
+      // prebuildText() 在页面加载时预提取文本和 segmentMap，
+      // 用户点播放时直接复用，跳过耗时的 buildAll()（DOM 遍历）。
+      // TTS 引擎预热已由 MainActivity.onCreate() 静态完成，无需 JS 侧触发。
+      if (useNativeTTS) {
         try {
           var _preT0 = Date.now();
           var prebuiltText = prebuildText();
           console.log('[CXSpeech] prebuildText: ' + prebuiltText.length + ' chars in ' + (Date.now() - _preT0) + 'ms');
-          if (prebuiltText.length > 0) {
-            var preNativeTTS = getNativeTTS();
-            if (preNativeTTS) {
-              console.log('[CXSpeech] warmup type=' + typeof preNativeTTS.warmup
-                + ', preSynth type=' + typeof preNativeTTS.preSynthesize);
-              // ★ 延迟 1 秒发送 warmup + preSynthesize：
-              //   1. 等页面渲染完成，app 回到前台（Android 12+ 后台启动限制会导致
-              //      startForegroundService 在页面加载期间被拒绝）
-              //   2. startInit 重复调用时 clearTimeout 取消上一次，确保只发一次
-              window.__cxPreSynthTimer = setTimeout(function() {
-                window.__cxPreSynthTimer = null;
-                var _delayT0 = Date.now();
-                console.log('[CXSpeech] 延迟预合成开始 (delay=' + (_delayT0 - _preT0) + 'ms)');
-                if (typeof preNativeTTS.warmup === 'function') {
-                  preNativeTTS.warmup({}).then(function() {
-                    console.log('[CXSpeech] warmup OK (' + (Date.now() - _delayT0) + 'ms)');
-                  }).catch(function(e) {
-                    console.log('[CXSpeech] warmup FAIL: ' + e);
-                  });
-                }
-                if (typeof preNativeTTS.preSynthesize === 'function') {
-                  preNativeTTS.preSynthesize({
-                    text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
-                    title: title, artist: artist
-                  }).then(function() {
-                    console.log('[CXSpeech] preSynthesize \u5df2\u53d1\u9001 (' + (Date.now() - _delayT0) + 'ms)');
-                  }).catch(function(e) {
-                    console.log('[CXSpeech] preSynthesize \u5931\u8d25: ' + e);
-                  });
-                }
-              }, 1000);
-            } else {
-              console.log('[CXSpeech] preSynthesize \u4e0d\u53ef\u7528: \u63d2\u4ef6\u672a\u5c31\u7eea');
-            }
-          }
         } catch(e) {
           console.log('[CXSpeech] prebuild \u5f02\u5e38: ' + e);
         }

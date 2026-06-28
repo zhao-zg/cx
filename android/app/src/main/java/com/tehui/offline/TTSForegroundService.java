@@ -89,6 +89,20 @@ public class TTSForegroundService extends Service {
     private static final long[]   TTS_RETRY_DELAYS = {500, 1000, 2000}; // 指数退避（ms）
     private volatile boolean      ttsInitFailed  = false; // 所有重试均失败后置 true
 
+    // ★ 静态预热 TTS：由 MainActivity.onCreate() 调用，在用户打开 App 时即绑定引擎，
+    //   Service 启动时直接复用已就绪的实例，省去 2-3 秒初始化延迟。
+    public static volatile TextToSpeech sStaticTts  = null;
+    public static volatile boolean      sStaticTtsReady = false;
+
+    public static void prewarmTts(android.content.Context context) {
+        if (sStaticTts != null) return;
+        sStaticTts = new TextToSpeech(context.getApplicationContext(), status -> {
+            sStaticTtsReady = (status == TextToSpeech.SUCCESS);
+            android.util.Log.i("TTSFgSvc", "prewarmTts: status=" + status
+                    + " ready=" + sStaticTtsReady);
+        });
+    }
+
     // ── Playback State ────────────────────────────────────────────────────
     private final List<String>  chunks     = new ArrayList<>();
     private volatile int        chunkIndex = 0;
@@ -195,6 +209,27 @@ public class TTSForegroundService extends Service {
     /** 初始化 TTS 引擎，失败时最多自动重试 MAX_TTS_RETRIES 次。 */
     private void initTts() {
         ttsInitFailed = false;
+
+        // ★ 优先复用 MainActivity.onCreate() 预热的静态 TTS 实例（已绑定引擎，省去 2-3s）
+        TextToSpeech staticTts = sStaticTts;
+        if (staticTts != null && sStaticTtsReady) {
+            tts = staticTts;
+            ttsReady = true;
+            ttsInitRetries = 0;
+            sStaticTts = null;       // 所有权转移，防止二次复用
+            sStaticTtsReady = false;
+            staticTts.setOnUtteranceProgressListener(buildUtteranceListener());
+            android.util.Log.i("TTSFgSvc", "initTts: adopted pre-warmed TTS, chunks=" + chunks.size()
+                    + ", isStopped=" + isStopped);
+            emitLog("initTts: adopted pre-warmed TTS");
+            if (!chunks.isEmpty() && !isStopped && !isPaused) {
+                playChunkOnly();
+            } else if (!chunks.isEmpty() && isStopped && chunkIndex == 0 && synthForChunk == -1) {
+                doSynthesizeChunk(0);
+            }
+            return;
+        }
+        // 静态实例尚未就绪或不存在，回退到正常初始化
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
                 ttsInitRetries = 0;
