@@ -25,7 +25,21 @@ public class MainActivity extends BridgeActivity {
 
         // ★ 在 Activity 创建时预热 TTS 引擎（用户交互上下文，不受后台启动限制）。
         //   Service 启动时直接复用已就绪的实例，省去 2-3 秒初始化延迟。
-        TTSForegroundService.prewarmTts(this);
+        try {
+            TTSForegroundService.prewarmTts(this);
+            android.util.Log.e("CX:Prewarm", "prewarmTts CALLED");
+        } catch (Exception e) {
+            android.util.Log.e("CX:Prewarm", "prewarmTts EXCEPTION: " + e);
+        }
+        // 通过 WebView 发送可见日志到 DevTools（延迟确保 WebView 已加载）
+        final WebView wvForLog = bridge != null ? bridge.getWebView() : null;
+        if (wvForLog != null) {
+            wvForLog.postDelayed(() -> {
+                wvForLog.evaluateJavascript(
+                    "console.log('[CXSpeech] MainActivity prewarmTts CALLED, sStaticTtsReady=' + "
+                    + TTSForegroundService.sStaticTtsReady + ")", null);
+            }, 3000);
+        }
 
         // 启动加载页统一由 HTML #cxSplash 处理（APP / PWA 共用）
 
