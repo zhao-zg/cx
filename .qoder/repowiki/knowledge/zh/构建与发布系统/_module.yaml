@@ -1,0 +1,17 @@
+schema_version: 1
+module_path: build_system
+title: 构建与发布系统
+scope: []
+source_files:
+    - build.sh
+    - package.json
+    - requirements.txt
+    - main.py
+    - capacitor.config.json
+    - .github/workflows/deploy.yml
+    - .github/workflows/android-release-offline.yml
+    - release.bat
+    - DEPLOYMENT.md
+    - .github/RELEASE_PROCESS.md
+depends_on: []
+related_to: []

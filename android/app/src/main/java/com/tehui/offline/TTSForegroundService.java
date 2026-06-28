@@ -209,6 +209,7 @@ public class TTSForegroundService extends Service {
     /** 初始化 TTS 引擎，失败时最多自动重试 MAX_TTS_RETRIES 次。 */
     private void initTts() {
         ttsInitFailed = false;
+        emitLog("initTts called: sStaticTts=" + (sStaticTts != null) + ", sStaticTtsReady=" + sStaticTtsReady);
 
         // ★ 复用 MainActivity.onCreate() 预热的静态 TTS 实例：
         //   即使 sStaticTtsReady=false（引擎仍在绑定中），也不创建第二个实例，
@@ -628,8 +629,16 @@ public class TTSForegroundService extends Service {
             ttsInitFailed = false;
             initTts();
             // chunks 已设置好，initTts 成功后的回调里会自动调用 playChunkOnly()
+        } else {
+            // ★ ttsReady=false 且 ttsInitFailed=false：
+            //   TTS 可能仍在初始化中（onCreate 触发），也可能回调已丢失（Service 重建后）。
+            //   无论如何，主动重新调用 initTts() 确保播放链不会断裂。
+            //   initTts() 会优先复用静态预热实例，不会创建多余实例。
+            android.util.Log.i("TTSFgSvc", "handleSpeak: ttsReady=false, re-calling initTts()");
+            emitLog("handleSpeak: ttsReady=false, re-init");
+            ttsInitRetries = 0;
+            initTts();
         }
-        // else: TTS 仍在初始化中，OnInitListener 成功时会自动调用 playChunkOnly()
     }
 
     /**

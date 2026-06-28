@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: dependency_management
+title: 多语言依赖管理与版本锁定策略
+scope: []
+source_files:
+    - requirements.txt
+    - package.json
+    - package-lock.json
+    - capacitor.config.json
+    - android/app/capacitor.build.gradle
+    - android/capacitor-cordova-android-plugins/build.gradle
+depends_on: []
+related_to: []

@@ -1,0 +1,14 @@
+schema_version: 1
+module_path: configuration_system
+title: 配置系统与多端运行时环境管理
+scope: []
+source_files:
+    - config.yaml
+    - app_config.json
+    - capacitor.config.json
+    - main.py
+    - src/static/js/app-update.js
+    - src/static/js/race-fastest.js
+    - src/static/js/resource-pack.js
+depends_on: []
+related_to: []
