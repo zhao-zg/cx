@@ -145,7 +145,13 @@
         // 复制
         document.getElementById('cx-dev-copy').addEventListener('click', function(e) {
             e.stopPropagation();
-            var txt = _devLogBuf.map(function(r) { return '[' + r.level + '] ' + r.text; }).join('\n');
+            var txt = _devLogBuf.map(function(r) {
+                var d  = new Date(r.t);
+                var hh = String(d.getHours()).padStart(2, '0');
+                var mm = String(d.getMinutes()).padStart(2, '0');
+                var ss = String(d.getSeconds()).padStart(2, '0');
+                return hh + ':' + mm + ':' + ss + ' [' + r.level + '] ' + r.text;
+            }).join('\n');
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(txt).catch(function() {});
             } else {
