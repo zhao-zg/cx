@@ -3,11 +3,11 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-06-28T14:19:32Z"
+exported_at: "2026-06-28T15:16:59Z"
 modules:
     "":
-        dir_name: 晨读跨平台离线内容分发系统
-        title: 晨读跨平台离线内容分发系统
+        dir_name: 晨读跨平台离线圣经训练系统
+        title: 晨读跨平台离线圣经训练系统
         scope: []
         source_files: []
         children:
@@ -17,8 +17,8 @@ modules:
         depends_on: []
         related_to: []
     android_client:
-        dir_name: 晨读 Android 混合应用原生桥接层
-        title: 晨读 Android 混合应用原生桥接层
+        dir_name: 晨读 Android 混合应用原生桥接与 TTS 引擎
+        title: 晨读 Android 混合应用原生桥接与 TTS 引擎
         scope:
             - android/
         source_files: []

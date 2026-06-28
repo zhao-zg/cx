@@ -210,26 +210,56 @@ public class TTSForegroundService extends Service {
     private void initTts() {
         ttsInitFailed = false;
 
-        // ★ 优先复用 MainActivity.onCreate() 预热的静态 TTS 实例（已绑定引擎，省去 2-3s）
+        // ★ 复用 MainActivity.onCreate() 预热的静态 TTS 实例：
+        //   即使 sStaticTtsReady=false（引擎仍在绑定中），也不创建第二个实例，
+        //   避免两个 TextToSpeech 同时竞争绑定系统 TTS 服务。
+        //   通过轮询 sStaticTtsReady 等待引擎就绪。
         TextToSpeech staticTts = sStaticTts;
-        if (staticTts != null && sStaticTtsReady) {
-            tts = staticTts;
-            ttsReady = true;
-            ttsInitRetries = 0;
-            sStaticTts = null;       // 所有权转移，防止二次复用
+        if (staticTts != null) {
+            sStaticTts = null;       // 所有权转移
             sStaticTtsReady = false;
-            staticTts.setOnUtteranceProgressListener(buildUtteranceListener());
-            android.util.Log.i("TTSFgSvc", "initTts: adopted pre-warmed TTS, chunks=" + chunks.size()
-                    + ", isStopped=" + isStopped);
-            emitLog("initTts: adopted pre-warmed TTS");
-            if (!chunks.isEmpty() && !isStopped && !isPaused) {
-                playChunkOnly();
-            } else if (!chunks.isEmpty() && isStopped && chunkIndex == 0 && synthForChunk == -1) {
-                doSynthesizeChunk(0);
-            }
+            tts = staticTts;
+            android.util.Log.i("TTSFgSvc", "initTts: adopted static TTS, polling for readiness...");
+            emitLog("initTts: adopted static TTS, waiting...");
+            final int gen = speakGen;
+            final long startTime = System.currentTimeMillis();
+            Runnable[] pollRef = new Runnable[1];
+            pollRef[0] = () -> {
+                if (speakGen != gen) return;
+                if (sStaticTtsReady) {
+                    // 引擎已就绪
+                    ttsReady = true;
+                    ttsInitRetries = 0;
+                    staticTts.setOnUtteranceProgressListener(buildUtteranceListener());
+                    long waited = System.currentTimeMillis() - startTime;
+                    android.util.Log.i("TTSFgSvc", "initTts: static TTS READY after " + waited + "ms"
+                            + ", chunks=" + chunks.size() + ", stopped=" + isStopped);
+                    emitLog("initTts: static TTS ready after " + waited + "ms");
+                    if (!chunks.isEmpty() && !isStopped && !isPaused) {
+                        playChunkOnly();
+                    } else if (!chunks.isEmpty() && isStopped && chunkIndex == 0 && synthForChunk == -1) {
+                        doSynthesizeChunk(0);
+                    }
+                } else if (System.currentTimeMillis() - startTime < 15000) {
+                    // 尚未就绪且未超时，继续轮询
+                    mainHandler.postDelayed(pollRef[0], 200);
+                } else {
+                    // 超时，回退到新建实例
+                    android.util.Log.w("TTSFgSvc", "initTts: static TTS timeout (15s), fallback");
+                    emitLog("initTts: static TTS timeout, fallback");
+                    tts = null;
+                    initTtsFresh();
+                }
+            };
+            mainHandler.post(pollRef[0]); // 立即检查第一次
             return;
         }
-        // 静态实例尚未就绪或不存在，回退到正常初始化
+        // 无静态实例，回退到正常初始化
+        initTtsFresh();
+    }
+
+    /** 创建新的 TextToSpeech 实例并等待初始化。 */
+    private void initTtsFresh() {
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
                 ttsInitRetries = 0;

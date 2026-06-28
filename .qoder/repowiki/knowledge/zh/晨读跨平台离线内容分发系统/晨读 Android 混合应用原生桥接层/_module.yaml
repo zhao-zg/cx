@@ -1,9 +1,0 @@
-schema_version: 1
-module_path: android_client
-title: 晨读 Android 混合应用原生桥接层
-scope:
-    - android/
-source_files: []
-depends_on: []
-related_to:
-    - path: static_site_generator
