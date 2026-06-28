@@ -95,12 +95,20 @@ public class TTSForegroundService extends Service {
     public static volatile boolean      sStaticTtsReady = false;
 
     public static void prewarmTts(android.content.Context context) {
-        if (sStaticTts != null) return;
-        sStaticTts = new TextToSpeech(context.getApplicationContext(), status -> {
-            sStaticTtsReady = (status == TextToSpeech.SUCCESS);
-            android.util.Log.i("TTSFgSvc", "prewarmTts: status=" + status
-                    + " ready=" + sStaticTtsReady);
-        });
+        if (sStaticTts != null) {
+            android.util.Log.i("TTSFgSvc", "prewarmTts: already set, skip");
+            return;
+        }
+        try {
+            sStaticTts = new TextToSpeech(context.getApplicationContext(), status -> {
+                sStaticTtsReady = (status == TextToSpeech.SUCCESS);
+                android.util.Log.i("TTSFgSvc", "prewarmTts callback: status=" + status
+                        + " ready=" + sStaticTtsReady);
+            });
+            android.util.Log.i("TTSFgSvc", "prewarmTts: TextToSpeech CREATED, sStaticTts=" + (sStaticTts != null));
+        } catch (Exception e) {
+            android.util.Log.e("TTSFgSvc", "prewarmTts EXCEPTION: " + e);
+        }
     }
 
     // ── Playback State ────────────────────────────────────────────────────

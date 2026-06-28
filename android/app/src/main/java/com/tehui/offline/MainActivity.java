@@ -35,9 +35,11 @@ public class MainActivity extends BridgeActivity {
         final WebView wvForLog = bridge != null ? bridge.getWebView() : null;
         if (wvForLog != null) {
             wvForLog.postDelayed(() -> {
+                String logMsg = "[CXSpeech] prewarm: sStaticTts="
+                        + (TTSForegroundService.sStaticTts != null)
+                        + ", sStaticTtsReady=" + TTSForegroundService.sStaticTtsReady;
                 wvForLog.evaluateJavascript(
-                    "console.log('[CXSpeech] MainActivity prewarmTts CALLED, sStaticTtsReady=' + "
-                    + TTSForegroundService.sStaticTtsReady + ")", null);
+                        "console.log('" + logMsg + "')", null);
             }, 3000);
         }
 

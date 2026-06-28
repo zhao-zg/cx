@@ -89,20 +89,46 @@
     return full + _numToCN(p.chapter) + chWord + _numToCN(p.verse) + '节' + (p.suffix || '');
   }
 
+  // 解析跨章引用 如 启1:9-2:1（由 expandCnRefs 的 F1x 格式产生）
+  function _parseCrossRef(ref) {
+    ref = (ref || '').trim();
+    var m = ref.match(/^([^\d:]{1,3})(\d+):(\d+)([上下]?)-(\d+):(\d+)([上下]?)$/);
+    if (!m) return null;
+    return {
+      book: m[1],
+      ch1: parseInt(m[2], 10), v1: parseInt(m[3], 10), s1: m[4],
+      ch2: parseInt(m[5], 10), v2: parseInt(m[6], 10), s2: m[7]
+    };
+  }
+
+  function _expandCrossRef(p) {
+    var full = _BN[p.book] || p.book;
+    var chWord = _PIAN[p.book] ? '篇' : '章';
+    var from = full + _numToCN(p.ch1) + chWord + _numToCN(p.v1) + '节' + (p.s1 || '');
+    var to = (p.ch1 !== p.ch2 ? _numToCN(p.ch2) + chWord : '') + _numToCN(p.v2) + '节' + (p.s2 || '');
+    return from + '至' + to;
+  }
+
   // 将逗号分隔的 data-refs 字符串展开为朗读文本
   // 同书同章连续节 → 用「至」压缩；其余逐条列出
+  // 支持跨章引用格式（如 启1:9-2:1 → 启示录一章九节至二章一节）
   function expandDataRefs(refs) {
     if (!refs) return '';
     var parts = (refs + '').split(',').map(function (r) { return r.trim(); }).filter(Boolean);
     if (!parts.length) return '';
     var result = [], i = 0;
     while (i < parts.length) {
+      // 跨章引用（如 启1:9-2:1）：单独展开，不参与同章合并
+      var cr = _parseCrossRef(parts[i]);
+      if (cr) { result.push(_expandCrossRef(cr)); i++; continue; }
       var p = _parseRef(parts[i]);
       if (!p) { result.push(parts[i]); i++; continue; }
       // 整章引用（verse=0）不参与范围合并，直接单条输出
       if (p.verse === 0) { result.push(_expandRef(p)); i++; continue; }
       var j = i + 1;
       while (j < parts.length) {
+        // 若下一个是跨章引用，停止合并
+        if (_parseCrossRef(parts[j])) break;
         var q = _parseRef(parts[j]);
         if (!q || q.book !== p.book || q.chapter !== p.chapter) break;
         j++;
@@ -565,8 +591,16 @@
             });
             clone.querySelectorAll('sup').forEach(function(s) { s.remove(); });
             rawText = clone.textContent;
-          } else if (el.classList.contains('chapter-title') || el.classList.contains('scripture')) {
+          } else if (el.classList.contains('chapter-title')) {
             rawText = el.textContent;
+          } else if (el.classList.contains('scripture')) {
+            // 读经横幅：在副本中展开经文引用（与 buildAll 的 withExpanded 等效）
+            var clone = el.cloneNode(true);
+            clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(ref) {
+              var expanded = expandDataRefs(ref.getAttribute('data-refs'));
+              if (expanded) ref.textContent = expanded;
+            });
+            rawText = clone.textContent;
           } else {
             var clone = el.cloneNode(true);
             // 在副本中展开可读的经文引用
