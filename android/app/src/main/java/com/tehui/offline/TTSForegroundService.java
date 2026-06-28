@@ -54,6 +54,7 @@ public class TTSForegroundService extends Service {
     public static final String ACTION_RESUME   = "com.tehui.tts.RESUME";
     public static final String ACTION_SET_RATE = "com.tehui.tts.SET_RATE"; // 仅更新倍率，不重启播放
     public static final String ACTION_PRE_SPEAK = "com.tehui.tts.PRE_SPEAK"; // 预合成首 chunk，加速首次播放
+    public static final String ACTION_WARMUP   = "com.tehui.tts.WARMUP";   // 仅启动 Service + 初始化 TTS 引擎
 
     // ── Callback interface (set by NativeTTSPlugin) ───────────────────────
     public interface Listener {
@@ -205,6 +206,9 @@ public class TTSForegroundService extends Service {
                 if (ready != null) {
                     ready.setOnUtteranceProgressListener(buildUtteranceListener());
                 }
+                android.util.Log.i("TTSFgSvc", "TTS init OK, chunks=" + chunks.size()
+                        + ", isStopped=" + isStopped + ", synthForChunk=" + synthForChunk);
+                emitLog("TTS init OK, chunks=" + chunks.size() + ", stopped=" + isStopped);
                 // If a speak/pre-speak request arrived before init completed, start now
                 if (!chunks.isEmpty() && !isStopped && !isPaused) {
                     playChunkOnly();
@@ -365,6 +369,12 @@ public class TTSForegroundService extends Service {
             case ACTION_RESUME:   handleResume();         break;
             case ACTION_SET_RATE: handleSetRate(intent);  break;
             case ACTION_PRE_SPEAK: handlePreSpeak(intent); break;
+            case ACTION_WARMUP:
+                // 仅启动 Service + 触发 initTts()（onCreate 中已调用）。
+                // 使 TTS 引擎在用户点击播放前就绑定就绪，省去 2-3 秒初始化延迟。
+                android.util.Log.i("TTSFgSvc", "warmup: ttsReady=" + ttsReady);
+                emitLog("warmup: ttsReady=" + ttsReady);
+                break;
         }
         return START_STICKY;
     }
@@ -521,7 +531,14 @@ public class TTSForegroundService extends Service {
             //   无预合成文件时 80ms 给引擎更多时间排空队列。
             long delay = _hasPreFile ? 20 : 80;
             ttsHandler.postDelayed(() -> {
-                if (speakGen != gen || isStopped) return;
+                // ★ 诊断日志：检查 postDelayed 回调时的状态
+                emitLog("postDelayed fired: speakGen=" + speakGen + "/" + gen
+                        + " isStopped=" + isStopped + " isPaused=" + isPaused);
+                if (speakGen != gen || isStopped) {
+                    emitLog("postDelayed GUARD: rejected! speakGen=" + speakGen
+                            + "/" + gen + " stopped=" + isStopped);
+                    return;
+                }
                 long _t3 = System.currentTimeMillis();
                 android.util.Log.i("TTSFgSvc", "playChunkOnly after " + (_t3 - _t2) + "ms wait (delay=" + delay + ")");
                 emitLog("playChunk delay=" + delay + "ms, actual=" + (_t3 - _t2) + "ms");
@@ -616,6 +633,7 @@ public class TTSForegroundService extends Service {
     }
 
     private void handleStop() {
+        emitLog("handleStop called: speakGen=" + speakGen + " chunks=" + chunks.size());
         isStopped    = true;
         isPaused     = false;
         pausedByUser = false;

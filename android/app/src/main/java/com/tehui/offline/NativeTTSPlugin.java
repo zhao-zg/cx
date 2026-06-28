@@ -141,6 +141,21 @@ public class NativeTTSPlugin extends Plugin {
         call.resolve();
     }
 
+    // ── warmup ────────────────────────────────────────────────────────────
+    // 页面加载时提前启动 Service 并初始化 TTS 引擎，使后续 preSynthesize/play 零延迟。
+
+    @PluginMethod
+    public void warmup(PluginCall call) {
+        call.resolve(); // fire-and-forget
+        Intent intent = new Intent(getContext(), TTSForegroundService.class);
+        intent.setAction(TTSForegroundService.ACTION_WARMUP);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            getContext().startForegroundService(intent);
+        } else {
+            getContext().startService(intent);
+        }
+    }
+
     // ── preSynthesize ─────────────────────────────────────────────────────
     // 页面加载时预合成首 chunk 的 WAV 文件，加速用户点击播放时的响应。
     // 不播放音频，不保持 PluginCall（fire-and-forget）。

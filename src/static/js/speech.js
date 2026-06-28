@@ -1281,18 +1281,25 @@
           console.log('[CXSpeech] prebuildText: ' + prebuiltText.length + ' chars in ' + (Date.now() - _preT0) + 'ms');
           if (prebuiltText.length > 0) {
             var preNativeTTS = getNativeTTS();
-            if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
-              preNativeTTS.preSynthesize({
-                text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
-                title: title, artist: artist
-              }).then(function() {
-                console.log('[CXSpeech] preSynthesize \u5df2\u53d1\u9001 (' + (Date.now() - _preT0) + 'ms)');
-              }).catch(function(e) {
-                console.log('[CXSpeech] preSynthesize \u5931\u8d25: ' + e);
-              });
+            if (preNativeTTS) {
+              // ★ 先预热 TTS 引擎（启动 Service + 初始化 TTS），再发预合成请求。
+              //   确保引擎在 preSynthesize 到达时已就绪或正在初始化，
+              //   避免合成请求因引擎未就绪而丢失。
+              if (typeof preNativeTTS.warmup === 'function') {
+                preNativeTTS.warmup({}).catch(function() {});
+              }
+              if (typeof preNativeTTS.preSynthesize === 'function') {
+                preNativeTTS.preSynthesize({
+                  text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
+                  title: title, artist: artist
+                }).then(function() {
+                  console.log('[CXSpeech] preSynthesize \u5df2\u53d1\u9001 (' + (Date.now() - _preT0) + 'ms)');
+                }).catch(function(e) {
+                  console.log('[CXSpeech] preSynthesize \u5931\u8d25: ' + e);
+                });
+              }
             } else {
-              console.log('[CXSpeech] preSynthesize \u4e0d\u53ef\u7528: ' +
-                (preNativeTTS ? '\u65b9\u6cd5\u4e0d\u5b58\u5728' : '\u63d2\u4ef6\u672a\u5c31\u7eea'));
+              console.log('[CXSpeech] preSynthesize \u4e0d\u53ef\u7528: \u63d2\u4ef6\u672a\u5c31\u7eea');
             }
           }
         } catch(e) {
