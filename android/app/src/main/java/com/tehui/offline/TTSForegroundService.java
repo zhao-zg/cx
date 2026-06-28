@@ -922,8 +922,16 @@ public class TTSForegroundService extends Service {
         String text = chunks.get(idx);
         String uid  = "g" + speakGen + "_c" + idx;
         File outFile = new File(getCacheDir(), "tts_" + uid + ".wav");
+        emitLog("synth chunk" + idx + ": " + text.length() + " chars");
+        android.util.Log.i("TTSFgSvc", "doSynthesizeChunk: idx=" + idx + ", len=" + text.length()
+                + ", totalChunks=" + chunks.size());
         // 每块重设语言 + 1.0f 合成速率（华为/讯飞等引擎切换后可能重置语言或音色）
+        long _beforeParams = System.currentTimeMillis();
         setTtsParams();
+        long _paramsMs = System.currentTimeMillis() - _beforeParams;
+        if (_paramsMs > 100) {
+            emitLog("setTtsParams SLOW: " + _paramsMs + "ms");
+        }
         synthForChunk = idx;
         synthStartTimeMs = System.currentTimeMillis();
         int ret = t.synthesizeToFile(text, (Bundle) null, outFile, uid);
