@@ -888,29 +888,6 @@
         return result.length > 0 ? result : [text];
       }
 
-      /**
-       * 将短句合并为较长的 chunk，减少 Web Speech API 的 utterance 过渡次数。
-       * 每次 utterance 切换浏览器有 ~50-100ms 启动延迟，高倍速下尤其明显；
-       * 合并后每个 chunk 包含多个句子，过渡次数大幅减少。
-       * 上限 500 字符（3x 倍速下 ~6-7 秒音频），低于 Chrome ~15 秒截断阈值。
-       */
-      function groupSentences(sentences, maxChars) {
-        maxChars = maxChars || 500;
-        var result = [];
-        var buf = '';
-        for (var i = 0; i < sentences.length; i++) {
-          var s = sentences[i];
-          if (buf && buf.length + s.length > maxChars) {
-            result.push(buf);
-            buf = s;
-          } else {
-            buf += s;
-          }
-        }
-        if (buf) result.push(buf);
-        return result;
-      }
-
       function wsPlayNextChunk() {
         if (state !== 'playing') return;
         // 跳过空白 chunk（segment 文本为空时产生）
@@ -1003,7 +980,7 @@
               return seg.speakText;
             });
           } else {
-            textChunks = groupSentences(splitBySentence(segText));
+            textChunks = splitBySentence(segText);
           }
           currentChunk = 0;
           elapsedOffset = targetSecs; startTime = Date.now();
