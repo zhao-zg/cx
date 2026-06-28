@@ -7,7 +7,7 @@ batch_processing:
   # specific_trainings: []  # 注释掉此行，默认生成所有可用训练
 
 # 赞助功能（关闭后不发布二维码图片，前端自动隐藏顾念微工入口）
-sponsor_enabled: true
+sponsor_enabled: false
 
 # 服务端访问时间段控制（北京时间 UTC+8）
 # 不在 allow_start ~ allow_end 时间段内，所有请求返回 403
