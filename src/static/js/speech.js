@@ -393,6 +393,7 @@
       var _nativeCharsDone  = -1;   // ttsProgress 最近一次推送的 charsDone（-1=未收到）
       var _nativeCharsDoneTime = 0; // _nativeCharsDone 更新时的 Date.now()
       var _nativeProgressHandle = null; // ttsProgress 监听句柄
+      var _nativeLogHandle     = null; // ttsLog 监听句柄（Java 诊断日志）
       var _lastPosMs        = -1;   // ttsPosition 最近一次接受的 posMs（-1=尚未接受）
       var _originalTotalDuration = 0; // 原始估算总时长（不受倍速覆盖，用于 charsPerSec 插值）
       // -- 预构建缓存 ----------------------------------------------------------
@@ -768,6 +769,10 @@
           try { _nativeProgressHandle.remove(); } catch (e) {}
           _nativeProgressHandle = null;
         }
+        if (_nativeLogHandle) {
+          try { _nativeLogHandle.remove(); } catch (e) {}
+          _nativeLogHandle = null;
+        }
         _nativeCharsDone = -1;
         _nativeCharsDoneTime = 0;
         _lastPosMs = -1;
@@ -820,12 +825,18 @@
               setTTSHighlight(findSegmentAt(data.done));
             }
           });
+          // ★ Java 端性能诊断日志，桥接到 DevTools console
+          var logHandle = NativeTTS.addListener('ttsLog', function (data) {
+            if (data && data.msg) console.log('[TTSFgSvc] ' + data.msg);
+          });
           if (gen !== speakGeneration) {
             try { handle.remove(); } catch (e) {}
             try { progressHandle.remove(); } catch (e) {}
+            try { logHandle.remove(); } catch (e) {}
           } else {
             _nativePositionHandle = handle;
             _nativeProgressHandle = progressHandle;
+            _nativeLogHandle = logHandle;
           }
         }
 
@@ -852,12 +863,29 @@
             setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 4000);
           });
 
-        // \u8d85\u65f6\u68c0\u6d4b\uff1a\u5982\u679c 8 \u79d2\u5185\u672a\u6536\u5230\u4efb\u4f55 ttsPosition \u4e8b\u4ef6\uff0c\u8bb0\u5f55\u8b66\u544a
+        // 超时检测：3 秒内未出声则记录警告，5 秒后自动重试一次
         setTimeout(function() {
           if (_lastPosMs < 0 && gen === speakGeneration && state === 'playing') {
-            console.log('[CXSpeech] \u8b66\u544a: 8\u79d2\u5185\u672a\u6536\u5230 ttsPosition\uff0cJava \u53ef\u80fd\u672a\u54cd\u5e94');
+            console.log('[CXSpeech] \u8b66\u544a: 3\u79d2\u672a\u51fa\u58f0\uff0c\u7b49\u5f85 Java \u54cd\u5e94...');
           }
-        }, 8000);
+        }, 3000);
+        setTimeout(function() {
+          if (_lastPosMs < 0 && gen === speakGeneration && state === 'playing') {
+            console.log('[CXSpeech] \u8d85\u65f6\u91cd\u8bd5: 5\u79d2\u672a\u51fa\u58f0\uff0c\u53d1\u9001 stop+speak \u91cd\u8bd5');
+            // 尝试 stop 再 speak，看能否恢复
+            try { NativeTTS.stop(); } catch(e) {}
+            setTimeout(function() {
+              if (_lastPosMs < 0 && gen === speakGeneration && state === 'playing') {
+                console.log('[CXSpeech] \u91cd\u8bd5 speak...');
+                try {
+                  NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
+                    startSecs: targetSeconds || 0, totalSecs: totalDuration || 0, loop: isLooping })
+                  .catch(function(e) { console.log('[CXSpeech] \u91cd\u8bd5\u5931\u8d25: ' + e); });
+                } catch(e) { console.log('[CXSpeech] \u91cd\u8bd5\u5f02\u5e38: ' + e); }
+              }
+            }, 200);
+          }
+        }, 5000);
 
         // startTime 保持 0：进度条在 Java 端真正开始播放（首个 ttsPosition 到达）前
         // 停留在起始位置，避免合成延迟期间进度条先走再跳回的问题。
@@ -874,6 +902,10 @@
         if (_nativeProgressHandle) {
           try { _nativeProgressHandle.remove(); } catch (e) {}
           _nativeProgressHandle = null;
+        }
+        if (_nativeLogHandle) {
+          try { _nativeLogHandle.remove(); } catch (e) {}
+          _nativeLogHandle = null;
         }
         _nativeCharsDone = -1;
         _nativeCharsDoneTime = 0;

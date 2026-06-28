@@ -64,8 +64,16 @@ public class TTSForegroundService extends Service {
         /** Called every ~100 ms while playing; posMs/totalMs are absolute positions in full text,
          *  charsDone is the real-time character progress based on MediaPlayer playback position. */
         default void onPosition(long posMs, long totalMs, int charsDone) {}
+        /** 性能诊断日志，桥接到 DevTools console.log */
+        default void onLog(String msg) {}
     }
     public static volatile Listener listener = null;
+
+    /** 发送诊断日志到 JS DevTools（通过 Listener.onLog） */
+    private static void emitLog(String msg) {
+        Listener cb = listener;
+        if (cb != null) cb.onLog(msg);
+    }
 
     // ── Constants ─────────────────────────────────────────────────────────
     private static final String CHANNEL_ID = "cx_tts_channel";
@@ -271,6 +279,7 @@ public class TTSForegroundService extends Service {
                     final File capturedFile = tempFile;
                     long _synthMs = System.currentTimeMillis() - synthStartTimeMs;
                     android.util.Log.i("TTSFgSvc", "onDone: synth chunk " + chunkOfUid + " took " + _synthMs + "ms");
+                    emitLog("synth chunk" + chunkOfUid + "=" + _synthMs + "ms");
                     mainHandler.post(() -> {
                         long _postMs = System.currentTimeMillis();
                         if (speakGen != capturedGen || (isStopped && !wasPreSynth) || isPaused) {
@@ -282,6 +291,7 @@ public class TTSForegroundService extends Service {
                             // 当前正等待合成的 chunk → 立即开始播放
                             android.util.Log.i("TTSFgSvc", "onDone→startMediaPlayer: synthMs=" + _synthMs
                                     + ", postWaitMs=" + (System.currentTimeMillis() - _postMs));
+                            emitLog("onDone→play: synth=" + _synthMs + "ms, postWait=" + (System.currentTimeMillis() - _postMs) + "ms");
                             startMediaPlayer(capturedFile, capturedGen);
                         } else if (chunkOfUid == chunkIndex + 1) {
                             // N+1 预生成完成 → 存储，等当前 chunk 播完后零间隙衔接
@@ -342,6 +352,11 @@ public class TTSForegroundService extends Service {
             stopSelf();
             return START_NOT_STICKY;
         }
+
+        // ★ 入口日志：确认 service 收到了哪个 action
+        emitLog("onStartCommand: " + intent.getAction()
+                + " isStopped=" + isStopped + " ttsReady=" + ttsReady
+                + " chunks=" + chunks.size());
 
         switch (intent.getAction()) {
             case ACTION_SPEAK:    handleSpeak(intent);   break;
@@ -492,6 +507,8 @@ public class TTSForegroundService extends Service {
                 + ", gen=" + speakGen
                 + ", setupMs=" + (_t1 - _t0)
                 + ", focusMs=" + (_t2 - _t1));
+        emitLog("handleSpeak: ttsReady=" + ttsReady + ", preSynth=" + _hasPreFile
+                + ", gen=" + speakGen + ", setup=" + (_t1 - _t0) + "ms, focus=" + (_t2 - _t1) + "ms");
 
         if (ttsReady) {
             // 先显式 stop() 确保引擎当前无正在进行的合成任务。
@@ -507,10 +524,13 @@ public class TTSForegroundService extends Service {
                 if (speakGen != gen || isStopped) return;
                 long _t3 = System.currentTimeMillis();
                 android.util.Log.i("TTSFgSvc", "playChunkOnly after " + (_t3 - _t2) + "ms wait (delay=" + delay + ")");
+                emitLog("playChunk delay=" + delay + "ms, actual=" + (_t3 - _t2) + "ms");
                 playChunkOnly();
                 // ★ 非关键更新延迟到播放启动后：锁屏标题和 MediaSession metadata
                 updateMediaMetadata();
-                android.util.Log.i("TTSFgSvc", "playChunkOnly done, total handleSpeak→play=" + (System.currentTimeMillis() - _t0) + "ms");
+                long _total = System.currentTimeMillis() - _t0;
+                android.util.Log.i("TTSFgSvc", "playChunkOnly done, total handleSpeak→play=" + _total + "ms");
+                emitLog("handleSpeak→play total=" + _total + "ms");
             }, delay);
         } else if (ttsInitFailed) {
             // 上次全部重试均失败，用户再次点播放时允许重新初始化。
@@ -768,9 +788,11 @@ public class TTSForegroundService extends Service {
         if (preFile.exists() && preFile.length() > 0) {
             synthForChunk = chunkIndex; // 标记已合成，防止重复提交
             android.util.Log.i("TTSFgSvc", "playChunkOnly: pre-synth file found (" + preFile.getName() + ", " + preFile.length() + "B)");
+            emitLog("playChunk: pre-synth OK " + preFile.getName() + " " + (preFile.length() / 1024) + "KB");
             startMediaPlayer(preFile, speakGen);
         } else {
             android.util.Log.i("TTSFgSvc", "playChunkOnly: no pre-synth, synthesizing chunk " + chunkIndex);
+            emitLog("playChunk: no pre-synth, synthesizing...");
             doSynthesizeChunk(chunkIndex);
         }
         chunkStartPositionMs = calculateChunkStartPositionMs();
@@ -1003,6 +1025,7 @@ public class TTSForegroundService extends Service {
             android.util.Log.i("TTSFgSvc", "MediaPlayer: reused=" + reused
                     + ", prepareMs=" + _prepMs
                     + ", postPrepMs=" + (System.currentTimeMillis() - _beforePrep - _prepMs));
+            emitLog("MediaPlayer: reused=" + reused + ", prepare=" + _prepMs + "ms");
             acquireWakeLock();
             updatePlaybackState(true);
             // 立即推送一次 chunk 起始位置，使 JS 高亮在 chunk 切换时即时更新，

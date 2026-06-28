@@ -85,6 +85,15 @@ public class NativeTTSPlugin extends Plugin {
                     notifyListeners("ttsPosition", data);
                 } catch (Exception ignored) {}
             }
+
+            @Override
+            public void onLog(String msg) {
+                try {
+                    JSObject data = new JSObject();
+                    data.put("msg", msg);
+                    notifyListeners("ttsLog", data);
+                } catch (Exception ignored) {}
+            }
         };
 
         // Start the Foreground Service
