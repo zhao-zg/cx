@@ -190,9 +190,9 @@
       spans.forEach(function (span) {
         var txt = (span.textContent || '').trim();
         if (!span.parentNode ||
-            (/^[\u2014\u2500\-]/.test(txt) && typeof span.closest === 'function' && (span.closest('.outline-section') || span.closest('.outline-item'))) ||
+            (/^[\u2014\u2500\-]/.test(txt) && typeof span.closest === 'function' && (span.closest('.outline-section') || span.closest('.outline-item') || span.closest('[class*="section-level"]'))) ||
             /^[（(]/.test(txt)) {
-          // 纲目中破折号/括号前缀的经文引用不应朗读，从 DOM 临时移除
+          // 纲目/听抄中破折号/括号前缀的经文引用不应朗读，从 DOM 临时移除
           // 使 injectSentenceMarks 不会将其文本包裹进 <mark>，朗读时自然跳过
           if (span.parentNode) {
             removedSpans.push({ span: span, parent: span.parentNode, next: span.nextSibling });
@@ -531,6 +531,66 @@
             _segmentMap.push({el: el, start: start, end: end, speakText: filteredText});
           });
         });
+      }
+
+      /**
+       * 预提取朗读文本（不修改 DOM）。
+       * 复制 buildAll() 的文本构建逻辑，但通过 cloneNode 在副本上操作，
+       * 不注入 <mark>，不展开经文引用的真实 DOM，保证页面渲染不受影响。
+       * 产出的 fullText 与 buildAll() 完全一致（同一 processText 管道）。
+       */
+      function prebuildText() {
+        if (!getElements) return '';
+        var segs = getElements();
+        var result = '';
+
+        segs.forEach(function(seg) {
+          var el = seg.el;
+          var rawText;
+
+          if (el.classList.contains('scripture-block-static')) {
+            var clone = el.cloneNode(true);
+            // 在副本中展开经文引用
+            clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(ref) {
+              var expanded = expandDataRefs(ref.getAttribute('data-refs'));
+              if (expanded) ref.textContent = expanded;
+            });
+            clone.querySelectorAll('sup').forEach(function(s) { s.remove(); });
+            rawText = clone.textContent;
+          } else if (el.classList.contains('chapter-title') || el.classList.contains('scripture')) {
+            rawText = el.textContent;
+          } else {
+            var clone = el.cloneNode(true);
+            // 在副本中展开可读的经文引用
+            clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(ref) {
+              var txt = (ref.textContent || '').trim();
+              // 与 withExpanded() 保持一致：
+              // 破折号前缀仅在纲目/听抄容器内移除，括号前缀无条件移除
+              if ((/^[\u2014\u2500\-]/.test(txt) && typeof ref.closest === 'function' &&
+                   (ref.closest('.outline-section') || ref.closest('.outline-item') || ref.closest('[class*="section-level"]'))) ||
+                  /^[\uff08(]/.test(txt)) {
+                ref.parentNode.removeChild(ref);
+                return;
+              }
+              var expanded = expandDataRefs(ref.getAttribute('data-refs'));
+              if (expanded) ref.textContent = expanded;
+            });
+            clone.querySelectorAll('button, .scripture-content, .verse-line').forEach(function(s) { s.remove(); });
+            rawText = clone.textContent;
+          }
+
+          var filteredText = processText(rawText);
+          if (!filteredText) return;
+
+          var separator = '';
+          if (result) {
+            var lastChar = result[result.length - 1];
+            separator = /[\u3002\uff01\uff1f\uff1b]/.test(lastChar) ? '' : '\u3002';
+          }
+          result += separator + filteredText;
+        });
+
+        return result;
       }
 
       function findSegmentIndex(charPos) {
@@ -1123,6 +1183,26 @@
       progressBar.value = '0';
       speechTime.textContent = '00:00 / 00:00';
       if (useWebSpeech) setupMediaSession();
+
+      // -- 预合成首 chunk（NativeTTS only） ----------------------------------
+      // 页面加载后立即提取文本并发送给 Java 预合成第一个 chunk 的 WAV 文件。
+      // 用户稍后点击播放时，handleSpeak() 发现预合成已完成，可跳过合成等待，
+      // 将首次出声延迟从 ~500ms 压缩到 ~100ms。
+      // prebuildText() 不修改 DOM，不影响页面渲染。
+      if (useNativeTTS) {
+        try {
+          var prebuiltText = prebuildText();
+          if (prebuiltText.length > 0) {
+            var preNativeTTS = getNativeTTS();
+            if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
+              preNativeTTS.preSynthesize({
+                text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
+                title: title, artist: artist
+              }).catch(function() {});
+            }
+          }
+        } catch(e) {}
+      }
     }
 
     startInit();

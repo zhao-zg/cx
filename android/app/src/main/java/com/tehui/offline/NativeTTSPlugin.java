@@ -132,6 +132,37 @@ public class NativeTTSPlugin extends Plugin {
         call.resolve();
     }
 
+    // ── preSynthesize ─────────────────────────────────────────────────────
+    // 页面加载时预合成首 chunk 的 WAV 文件，加速用户点击播放时的响应。
+    // 不播放音频，不保持 PluginCall（fire-and-forget）。
+
+    @PluginMethod
+    public void preSynthesize(PluginCall call) {
+        String text   = call.getString("text", "");
+        String lang   = call.getString("lang", "zh-CN");
+        float  rate   = call.getFloat("rate", 1.0f);
+        String title  = call.getString("title", "");
+        String artist = call.getString("artist", "");
+
+        call.resolve(); // 立即返回，不等待合成完成
+
+        if (text == null || text.trim().isEmpty()) return;
+
+        Intent intent = new Intent(getContext(), TTSForegroundService.class);
+        intent.setAction(TTSForegroundService.ACTION_PRE_SPEAK);
+        intent.putExtra("text",   text);
+        intent.putExtra("lang",   lang);
+        intent.putExtra("rate",   rate);
+        intent.putExtra("title",  title);
+        intent.putExtra("artist", artist);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            getContext().startForegroundService(intent);
+        } else {
+            getContext().startService(intent);
+        }
+    }
+
     // ── setRate ───────────────────────────────────────────────────────────
     // 仅更新 TTS 引擎倍率，不中断/重启播放。避免 stop()+speak() 竞态。
 
