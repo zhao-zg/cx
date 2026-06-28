@@ -348,7 +348,9 @@
     var initAttempts = 0;
 
     function startInit() {
-      window.__cxPreSynthSent = false; // 重置预合成标记，允许新页面发送预合成
+      // 取消上一次 init 可能挂起的延迟预合成（路由双次 dispatch 场景）
+      if (window.__cxPreSynthTimer) { clearTimeout(window.__cxPreSynthTimer); }
+      window.__cxPreSynthSent = false;
       var engine = detectEngine();
       // On native Android: wait up to 1.5 s for NativeTTS plugin to become available.
       if (engine.isNative && !engine.useNativeTTS && initAttempts < 10) {
@@ -1284,28 +1286,34 @@
           if (prebuiltText.length > 0) {
             var preNativeTTS = getNativeTTS();
             if (preNativeTTS) {
-              // ★ 先预热 TTS 引擎（启动 Service + 初始化 TTS），再发预合成请求。
               console.log('[CXSpeech] warmup type=' + typeof preNativeTTS.warmup
                 + ', preSynth type=' + typeof preNativeTTS.preSynthesize);
-              if (typeof preNativeTTS.warmup === 'function') {
-                preNativeTTS.warmup({}).then(function() {
-                  console.log('[CXSpeech] warmup OK (' + (Date.now() - _preT0) + 'ms)');
-                }).catch(function(e) {
-                  console.log('[CXSpeech] warmup FAIL: ' + e);
-                });
-              } else {
-                console.log('[CXSpeech] warmup 不可用（APK 可能未更新）');
-              }
-              if (typeof preNativeTTS.preSynthesize === 'function') {
-                preNativeTTS.preSynthesize({
-                  text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
-                  title: title, artist: artist
-                }).then(function() {
-                  console.log('[CXSpeech] preSynthesize \u5df2\u53d1\u9001 (' + (Date.now() - _preT0) + 'ms)');
-                }).catch(function(e) {
-                  console.log('[CXSpeech] preSynthesize \u5931\u8d25: ' + e);
-                });
-              }
+              // ★ 延迟 1 秒发送 warmup + preSynthesize：
+              //   1. 等页面渲染完成，app 回到前台（Android 12+ 后台启动限制会导致
+              //      startForegroundService 在页面加载期间被拒绝）
+              //   2. startInit 重复调用时 clearTimeout 取消上一次，确保只发一次
+              window.__cxPreSynthTimer = setTimeout(function() {
+                window.__cxPreSynthTimer = null;
+                var _delayT0 = Date.now();
+                console.log('[CXSpeech] 延迟预合成开始 (delay=' + (_delayT0 - _preT0) + 'ms)');
+                if (typeof preNativeTTS.warmup === 'function') {
+                  preNativeTTS.warmup({}).then(function() {
+                    console.log('[CXSpeech] warmup OK (' + (Date.now() - _delayT0) + 'ms)');
+                  }).catch(function(e) {
+                    console.log('[CXSpeech] warmup FAIL: ' + e);
+                  });
+                }
+                if (typeof preNativeTTS.preSynthesize === 'function') {
+                  preNativeTTS.preSynthesize({
+                    text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
+                    title: title, artist: artist
+                  }).then(function() {
+                    console.log('[CXSpeech] preSynthesize \u5df2\u53d1\u9001 (' + (Date.now() - _delayT0) + 'ms)');
+                  }).catch(function(e) {
+                    console.log('[CXSpeech] preSynthesize \u5931\u8d25: ' + e);
+                  });
+                }
+              }, 1000);
             } else {
               console.log('[CXSpeech] preSynthesize \u4e0d\u53ef\u7528: \u63d2\u4ef6\u672a\u5c31\u7eea');
             }
