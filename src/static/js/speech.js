@@ -348,6 +348,7 @@
     var initAttempts = 0;
 
     function startInit() {
+      window.__cxPreSynthSent = false; // 重置预合成标记，允许新页面发送预合成
       var engine = detectEngine();
       // On native Android: wait up to 1.5 s for NativeTTS plugin to become available.
       if (engine.isNative && !engine.useNativeTTS && initAttempts < 10) {
@@ -1274,7 +1275,8 @@
       // 用户稍后点击播放时，handleSpeak() 发现预合成已完成，可跳过合成等待，
       // 将首次出声延迟从 ~500ms 压缩到 ~100ms。
       // prebuildText() 不修改 DOM，不影响页面渲染。
-      if (useNativeTTS) {
+      if (useNativeTTS && !window.__cxPreSynthSent) {
+        window.__cxPreSynthSent = true; // 防止路由双次 dispatch 导致重复发送
         try {
           var _preT0 = Date.now();
           var prebuiltText = prebuildText();
@@ -1283,10 +1285,16 @@
             var preNativeTTS = getNativeTTS();
             if (preNativeTTS) {
               // ★ 先预热 TTS 引擎（启动 Service + 初始化 TTS），再发预合成请求。
-              //   确保引擎在 preSynthesize 到达时已就绪或正在初始化，
-              //   避免合成请求因引擎未就绪而丢失。
+              console.log('[CXSpeech] warmup type=' + typeof preNativeTTS.warmup
+                + ', preSynth type=' + typeof preNativeTTS.preSynthesize);
               if (typeof preNativeTTS.warmup === 'function') {
-                preNativeTTS.warmup({}).catch(function() {});
+                preNativeTTS.warmup({}).then(function() {
+                  console.log('[CXSpeech] warmup OK (' + (Date.now() - _preT0) + 'ms)');
+                }).catch(function(e) {
+                  console.log('[CXSpeech] warmup FAIL: ' + e);
+                });
+              } else {
+                console.log('[CXSpeech] warmup 不可用（APK 可能未更新）');
               }
               if (typeof preNativeTTS.preSynthesize === 'function') {
                 preNativeTTS.preSynthesize({

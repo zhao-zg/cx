@@ -262,7 +262,7 @@ public class TTSForegroundService extends Service {
                     if (gen != speakGen || isStopped || isPaused) return;
                     final int capturedGen = gen;
                     mainHandler.post(() -> {
-                        if (speakGen != capturedGen || isStopped) return;
+                        if (speakGen != capturedGen || isStopped || isPaused) return;
                         onDirectSpeakChunkDone(capturedGen);
                     });
                 } else {
@@ -531,13 +531,20 @@ public class TTSForegroundService extends Service {
             //   无预合成文件时 80ms 给引擎更多时间排空队列。
             long delay = _hasPreFile ? 20 : 80;
             ttsHandler.postDelayed(() -> {
-                // ★ 诊断日志：检查 postDelayed 回调时的状态
                 emitLog("postDelayed fired: speakGen=" + speakGen + "/" + gen
                         + " isStopped=" + isStopped + " isPaused=" + isPaused);
                 if (speakGen != gen || isStopped) {
                     emitLog("postDelayed GUARD: rejected! speakGen=" + speakGen
                             + "/" + gen + " stopped=" + isStopped);
                     return;
+                }
+                // ★ 覆盖 handleFocusLossPause 在等待期间可能设置的 isPaused=true。
+                //   handleSpeak() 明确启动新播放，音频焦点丢失不应阻断首次出声。
+                //   焦点归还时 handleResume() 会正常恢复。
+                if (isPaused) {
+                    emitLog("postDelayed: overriding isPaused (was set by focusLoss during wait)");
+                    isPaused = false;
+                    pausedByUser = false;
                 }
                 long _t3 = System.currentTimeMillis();
                 android.util.Log.i("TTSFgSvc", "playChunkOnly after " + (_t3 - _t2) + "ms wait (delay=" + delay + ")");

@@ -28,6 +28,7 @@
 - 增强部署流程说明以反映中间件自动生成机制
 - 新增访问时间控制的配置选项和使用方法
 - 更新故障排除指南以包含访问时间相关的常见问题
+- 新增weekly scheduling restrictions功能的详细说明
 
 ## 目录
 1. [简介](#简介)
@@ -44,7 +45,7 @@
 ## 简介
 本指南面向需要在Cloudflare Pages上部署CX项目Web前端的工程师与运维人员。内容涵盖从GitHub仓库连接到自动部署、构建命令与环境变量配置、静态资源生成与输出目录、自定义域名与回滚策略、预览部署、访问时间控制功能、常见问题排查以及部署后验证与监控建议。同时对项目中的build.sh脚本执行流程进行深入解析，帮助读者理解静态文件生成过程与输出目录的作用。
 
-**更新** 新增Cloudflare Pages Functions访问时间控制功能，通过config.yaml中的access_time配置实现时间段和星期的访问控制，增强部署基础设施的安全性和访问控制能力。
+**更新** 新增Cloudflare Pages Functions访问时间控制功能，通过config.yaml中的access_time配置实现时间段和星期的访问控制，增强部署基础设施的安全性和访问控制能力。该功能支持weekly scheduling restrictions，提供灵活的访问时间管理。
 
 ## 项目结构
 该项目采用多语言混合架构：前端静态资源由构建脚本生成；后端逻辑用于数据导出与资源准备；工具脚本负责版本管理、更新加密与发布流程。与Web部署直接相关的关键文件包括：
@@ -68,6 +69,7 @@ G["工具脚本<br/>generate_version.py, export_bible_sql_json.py, down_resource
 H["辅助服务<br/>worker-get/worker.js"] -.-> D
 I["访问控制中间件<br/>functions/_middleware.js"] -.-> D
 J["访问时间配置<br/>access_time"] --> I
+K["星期调度限制<br/>weekly scheduling"] --> I
 ```
 
 **图表来源**
@@ -257,6 +259,33 @@ Out --> End(["结束"])
 - [functions/_middleware.js](file://functions/_middleware.js)
 - [main.py](file://main.py)
 
+### Weekly Scheduling Restrictions 功能详解
+**新增** weekly scheduling restrictions是访问时间控制系统的高级功能，允许用户精确控制每周特定日期的访问权限。
+
+- 配置示例
+  ```yaml
+  access_time:
+    enabled: true
+    allow_start: 6
+    allow_end: 23
+    timezone_offset: 8
+    allow_days: [1, 2, 3, 4, 5]  # 仅工作日可访问（周一到周五）
+  ```
+- 功能特点
+  - 支持0-6的星期数组配置（0=周日，6=周六）
+  - 当allow_days未配置或为空时，默认每天均可访问
+  - 自动生成ALLOW_DAYS常量和星期检查逻辑
+  - 提供详细的错误响应信息，包括允许访问的具体星期
+- 错误响应机制
+  - 时间段不在允许范围内：返回403状态码，包含Retry-After头部
+  - 星期不在允许范围内：返回403状态码，包含X-Maintenance头部
+  - 响应消息包含具体的访问限制说明和允许访问的星期列表
+
+**章节来源**
+- [config.yaml](file://config.yaml)
+- [functions/_middleware.js](file://functions/_middleware.js)
+- [main.py](file://main.py)
+
 ## 依赖关系分析
 - 构建脚本依赖关系
   - build.sh依赖多个工具脚本与配置文件，形成一条清晰的执行链。
@@ -330,6 +359,9 @@ MW --> Out
 - **新增** 访问时间控制失效
   - 症状：访问控制中间件未生效或返回403错误。
   - 解决：检查config.yaml中access_time配置是否正确；确认functions/_middleware.js已生成；验证Cloudflare Pages Functions部署状态。
+- **新增** 星期调度限制错误
+  - 症状：allow_days配置无效或星期检查失败。
+  - 解决：确认allow_days数组格式正确（0-6的整数数组）；检查星期名称映射是否符合预期；验证中间件代码中的ALLOW_DAYS常量生成。
 
 **章节来源**
 - [DEPLOYMENT.md](file://DEPLOYMENT.md)
@@ -339,7 +371,7 @@ MW --> Out
 - [functions/_middleware.js](file://functions/_middleware.js)
 
 ## 结论
-通过规范化的Cloudflare Pages自动部署配置与build.sh脚本的统一执行，CX项目的Web前端可以稳定、高效地交付到全球边缘网络。新增的Cloudflare Pages Functions访问时间控制功能进一步增强了部署基础设施的安全性和访问控制能力。建议在团队内固化部署流程文档，明确环境变量与输出目录约定，并建立预览与回滚机制，以保障发布质量与应急响应能力。
+通过规范化的Cloudflare Pages自动部署配置与build.sh脚本的统一执行，CX项目的Web前端可以稳定、高效地交付到全球边缘网络。新增的Cloudflare Pages Functions访问时间控制功能进一步增强了部署基础设施的安全性和访问控制能力。该功能支持weekly scheduling restrictions，为用户提供灵活的时间管理选项。建议在团队内固化部署流程文档，明确环境变量与输出目录约定，并建立预览与回滚机制，以保障发布质量与应急响应能力。
 
 ## 附录
 
