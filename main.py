@@ -16,7 +16,7 @@ from src.generator import export_training_json, generate_search_index_from_json
 from src.bible_dict import BibleDict
 
 
-def generate_remote_config_js(remote_servers, output_dir):
+def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True):
     """从配置生成 remote-config.js（URL 以 base64 存储，运行时 atob() 解码）"""
     def b64(s):
         return base64.b64encode(s.encode()).decode()
@@ -29,6 +29,7 @@ def generate_remote_config_js(remote_servers, output_dir):
     mirrors  = remote_servers.get('github_mirrors', [])
     push     = remote_servers.get('push', [])
     ip_apis  = remote_servers.get('ip_apis', [])
+    sponsor_js = 'true' if sponsor_enabled else 'false'
 
     js = (
         "(function(){"
@@ -38,7 +39,8 @@ def generate_remote_config_js(remote_servers, output_dir):
         f"githubApi:_d('{b64(gh_api)}'),"
         f"githubMirrors:{arr(mirrors)},"
         f"push:{arr(push)},"
-        f"ipApis:{arr(ip_apis)}"
+        f"ipApis:{arr(ip_apis)},"
+        f"sponsorEnabled:{sponsor_js}"
         "};})();"
     )
 
@@ -649,15 +651,21 @@ def generate_main_index(config, batch_results):
             shutil.copy2(src, os.path.join(icons_dir, icon_fn))
 
     # ── 静态图片 → output/images/（赞助二维码等）───────────────────────
+    # 赞助二维码文件（仅在 sponsor_enabled 时发布）
+    sponsor_enabled = config.get('sponsor_enabled', True)
+    _SPONSOR_IMAGE_FILES = {'zanzhu-wx.png', 'zanzhu-zfb.jpg'}
     static_img_src = os.path.join('src', 'static', 'image')
     static_img_dst = os.path.join(output_dir, 'images')
     if os.path.exists(static_img_src):
         os.makedirs(static_img_dst, exist_ok=True)
         for fn in os.listdir(static_img_src):
+            # 赞助关闭时跳过二维码图片
+            if not sponsor_enabled and fn in _SPONSOR_IMAGE_FILES:
+                continue
             src_f = os.path.join(static_img_src, fn)
             if os.path.isfile(src_f):
                 shutil.copy2(src_f, os.path.join(static_img_dst, fn))
-        print(f"✓ 静态图片已复制到 images/")
+        print(f"✓ 静态图片已复制到 images/" + ('' if sponsor_enabled else '（赞助二维码已跳过）'))
 
     # ── vendor 目录（localforage 等第三方库）────────────────────────────
     vendor_src = os.path.join('src', 'static', 'js', 'vendor')
@@ -696,7 +704,7 @@ def generate_main_index(config, batch_results):
     # ── remote-config.js ──────────────────────────────────────────────────
     remote_servers = config.get('remote_servers', {})
     if remote_servers:
-        generate_remote_config_js(remote_servers, output_dir)
+        generate_remote_config_js(remote_servers, output_dir, sponsor_enabled)
 
     # ── 可选混淆 ──────────────────────────────────────────────────────────
     # 默认仅在 CI 环境（GitHub Actions）混淆；本地开发跳过以方便调试。

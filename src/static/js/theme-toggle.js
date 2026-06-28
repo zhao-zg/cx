@@ -630,9 +630,11 @@
             } catch(e) {}
         })();
 
-        // ── 顾念微工（使用超过 5 分钟后显示）────────────────────────
+        // ── 顾念微工（使用超过 5 分钟后显示，赞助关闭时不显示）────────────────
         (function() {
             try {
+                // 赞助关闭时直接隐藏，不显示顾念微工按钮
+                if (window.CX_SERVERS && window.CX_SERVERS.sponsorEnabled === false) return;
                 var firstUse = parseInt(localStorage.getItem('cx_first_use') || '0', 10);
                 var elapsed = firstUse ? (Date.now() - firstUse) : 0;
                 if (elapsed >= 5 * 60 * 1000) {
