@@ -16,6 +16,63 @@ from src.generator import export_training_json, generate_search_index_from_json
 from src.bible_dict import BibleDict
 
 
+def generate_pages_middleware(config, project_root='.'):
+    """根据 access_time 配置生成 Cloudflare Pages Functions _middleware.js
+    
+    生成的 functions/_middleware.js 会在 wrangler pages deploy 时自动被
+    Cloudflare Pages 识别，对所有请求执行时间段拦截。
+    """
+    access_time = config.get('access_time', {})
+    if not access_time or not access_time.get('enabled', False):
+        # 配置关闭时删除已有 middleware（避免残留）
+        mw_path = os.path.join(project_root, 'functions', '_middleware.js')
+        if os.path.exists(mw_path):
+            os.remove(mw_path)
+            print('✓ functions/_middleware.js 已删除（access_time 已关闭）')
+        return
+
+    start_hour = int(access_time.get('allow_start', 6))
+    end_hour   = int(access_time.get('allow_end', 23))
+    tz_offset  = int(access_time.get('timezone_offset', 8))
+
+    middleware_js = (
+        '// Cloudflare Pages Functions - 访问时间段控制\n'
+        '// 由 main.py 根据 config.yaml access_time 配置自动生成，请勿手动编辑\n'
+        f'const ALLOW_START = {start_hour};\n'
+        f'const ALLOW_END = {end_hour};\n'
+        f'const TZ_OFFSET = {tz_offset};\n'
+        '\n'
+        'export async function onRequest(context) {\n'
+        '  const now = new Date();\n'
+        '  // 计算本地时间（UTC + TZ_OFFSET）\n'
+        '  const local = new Date(now.getTime() + TZ_OFFSET * 3600000);\n'
+        '  const hour = local.getUTCHours();\n'
+        '\n'
+        '  if (hour < ALLOW_START || hour >= ALLOW_END) {\n'
+        f'    const msg = "服务暂不可用：当前不在允许访问时段（{start_hour}:00 - {end_hour}:00 北京时间）";\n'
+        '    return new Response(msg, {\n'
+        '      status: 403,\n'
+        '      headers: {\n'
+        '        "Content-Type": "text/plain; charset=utf-8",\n'
+        '        "X-Maintenance": "true",\n'
+        '        "Retry-After": String((ALLOW_START - hour + 24) % 24 * 3600),\n'
+        '      },\n'
+        '    });\n'
+        '  }\n'
+        '\n'
+        '  return context.next();\n'
+        '}\n'
+    )
+
+    functions_dir = os.path.join(project_root, 'functions')
+    os.makedirs(functions_dir, exist_ok=True)
+    mw_path = os.path.join(functions_dir, '_middleware.js')
+    with open(mw_path, 'w', encoding='utf-8') as f:
+        f.write(middleware_js)
+    print(f'✓ functions/_middleware.js 已生成（允许访问: {start_hour}:00 - {end_hour}:00 UTC+{tz_offset}）')
+    return mw_path
+
+
 def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True):
     """从配置生成 remote-config.js（URL 以 base64 存储，运行时 atob() 解码）"""
     def b64(s):
@@ -705,6 +762,9 @@ def generate_main_index(config, batch_results):
     remote_servers = config.get('remote_servers', {})
     if remote_servers:
         generate_remote_config_js(remote_servers, output_dir, sponsor_enabled)
+
+    # ── Cloudflare Pages Functions middleware（时间段访问控制）──────────────
+    generate_pages_middleware(config, project_root='.')
 
     # ── 可选混淆 ──────────────────────────────────────────────────────────
     # 默认仅在 CI 环境（GitHub Actions）混淆；本地开发跳过以方便调试。

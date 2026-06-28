@@ -751,7 +751,11 @@
 
       function nativeSpeak(segmentText, targetSeconds) {
         var NativeTTS = getNativeTTS();
-        if (!NativeTTS) return;
+        if (!NativeTTS) {
+          console.log('[CXSpeech] nativeSpeak: \u63d2\u4ef6\u4e0d\u53ef\u7528');
+          setState('idle'); // 恢复状态，允许用户重试
+          return;
+        }
         ++speakGeneration;
         var gen  = speakGeneration;
         var rate = Number(rateSelect.value) || 0.5;
@@ -1060,6 +1064,7 @@
 
       // -- Play / Pause button ------------------------------------------------
       playPauseBtn.addEventListener('click', function () {
+        console.log('[CXSpeech] \u70b9\u51fb\u64ad\u653e state=' + state + ' useNativeTTS=' + useNativeTTS);
 
         // First press: load text and start from beginning
         if (state === 'idle') {
@@ -1079,15 +1084,21 @@
           // 优先使用预构建缓存（页面加载时 prebuildText() 已提取），
           // 跳过耗时的 buildAll()（DOM 遍历 + withExpanded），
           // 将首次播放延迟从 3-5s 压缩到 ~1s（仅剩 Java 服务启动 + 80ms）。
-          if (_prebuiltFullText !== null && _prebuiltSegmentMap) {
+          if (_prebuiltFullText && _prebuiltSegmentMap) {
+            // 缓存命中且文本非空，跳过耗时的 buildAll()
             fullText = _prebuiltFullText;
             _segmentMap = _prebuiltSegmentMap;
             console.log('[CXSpeech] \u7f13\u5b58\u547d\u4e2d\uff0c\u8df3\u8fc7 buildAll (' + (Date.now() - _t0) + 'ms)');
           } else {
+            // 缓存未命中或缓存为空（prebuildText 可能在某些页面上返回空），回退到 buildAll
             buildAll();
-            console.log('[CXSpeech] buildAll \u8017\u65f6 ' + (Date.now() - _t0) + 'ms\uff08\u672a\u547d\u4e2d\u7f13\u5b58\uff09');
+            console.log('[CXSpeech] buildAll \u8017\u65f6 ' + (Date.now() - _t0) + 'ms'
+              + (_prebuiltFullText === '' ? '\uff08\u7f13\u5b58\u4e3a\u7a7a\uff0c\u56de\u9000\uff09' : '\uff08\u672a\u547d\u4e2d\u7f13\u5b58\uff09'));
           }
-          if (!fullText) return;
+          if (!fullText) {
+            console.log('[CXSpeech] fullText \u4e3a\u7a7a\uff0c\u65e0\u6cd5\u64ad\u653e');
+            return;
+          }
           totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
           _originalTotalDuration = totalDuration;
           elapsedOffset = 0; progressBar.value = '0';
@@ -1223,17 +1234,28 @@
       // prebuildText() 不修改 DOM，不影响页面渲染。
       if (useNativeTTS) {
         try {
+          var _preT0 = Date.now();
           var prebuiltText = prebuildText();
+          console.log('[CXSpeech] prebuildText: ' + prebuiltText.length + ' chars in ' + (Date.now() - _preT0) + 'ms');
           if (prebuiltText.length > 0) {
             var preNativeTTS = getNativeTTS();
             if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
               preNativeTTS.preSynthesize({
                 text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
                 title: title, artist: artist
-              }).catch(function() {});
+              }).then(function() {
+                console.log('[CXSpeech] preSynthesize \u5df2\u53d1\u9001 (' + (Date.now() - _preT0) + 'ms)');
+              }).catch(function(e) {
+                console.log('[CXSpeech] preSynthesize \u5931\u8d25: ' + e);
+              });
+            } else {
+              console.log('[CXSpeech] preSynthesize \u4e0d\u53ef\u7528: ' +
+                (preNativeTTS ? '\u65b9\u6cd5\u4e0d\u5b58\u5728' : '\u63d2\u4ef6\u672a\u5c31\u7eea'));
             }
           }
-        } catch(e) {}
+        } catch(e) {
+          console.log('[CXSpeech] prebuild \u5f02\u5e38: ' + e);
+        }
       }
     }
 

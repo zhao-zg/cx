@@ -49,6 +49,9 @@ resource/历史合辑/97-25-特会合辑.txt
 # Output
 output/
 
+# Cloudflare Pages Functions（由 main.py 自动生成）
+functions/
+
 # Temporary downloads
 tmp_downloads/
 resource/pdb/

@@ -9,6 +9,15 @@ batch_processing:
 # 赞助功能（关闭后不发布二维码图片，前端自动隐藏顾念微工入口）
 sponsor_enabled: true
 
+# 服务端访问时间段控制（北京时间 UTC+8）
+# 不在 allow_start ~ allow_end 时间段内，所有请求返回 403
+# 注释掉 enabled: true 或删除此节即可关闭限制
+access_time:
+  enabled: true
+  allow_start: 6    # 允许访问的开始时间（整点，0-23）
+  allow_end: 23     # 允许访问的结束时间（整点，0-23，不含该小时）
+  timezone_offset: 8 # UTC 偏移（北京时间 = +8）
+
 # 全局配置
 output_dir: "output"
 resource_base_dir: "resource"
