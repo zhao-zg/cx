@@ -829,25 +829,35 @@
           }
         }
 
+        console.log('[CXSpeech] speak() \u53d1\u9001\u7ed9 Java: text=' + segmentText.length + 'chars gen=' + gen);
         NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
                           startSecs: targetSeconds || 0, totalSecs: totalDuration || 0,
                           loop: isLooping })
           .then(function (result) {
-            if (gen !== speakGeneration) return;
             var status = result && result.status;
+            console.log('[CXSpeech] speak resolved: status=' + status + ' gen=' + gen + ' curGen=' + speakGeneration);
+            if (gen !== speakGeneration) return;
             if (status === 'cancelled' || status === 'stopped') return;
             // Java 已处理循环（loop=true 时永不触发 onFinished），到达此处说明非循环播放自然结束
             resetState();
           })
           .catch(function (err) {
+            console.log('[CXSpeech] speak rejected: ' + (err && (err.message || err)) + ' gen=' + gen + ' curGen=' + speakGeneration);
             if (gen !== speakGeneration) return;
             stopProgressUpdate();
             setState('idle');
-            var msg = (err && (err.message || err)) || '朗读失败';
+            var msg = (err && (err.message || err)) || '\u6717\u8bfb\u5931\u8d25';
             speechTime.textContent = msg;
             speechTime.style.color = '#e53e3e';
             setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 4000);
           });
+
+        // \u8d85\u65f6\u68c0\u6d4b\uff1a\u5982\u679c 8 \u79d2\u5185\u672a\u6536\u5230\u4efb\u4f55 ttsPosition \u4e8b\u4ef6\uff0c\u8bb0\u5f55\u8b66\u544a
+        setTimeout(function() {
+          if (_lastPosMs < 0 && gen === speakGeneration && state === 'playing') {
+            console.log('[CXSpeech] \u8b66\u544a: 8\u79d2\u5185\u672a\u6536\u5230 ttsPosition\uff0cJava \u53ef\u80fd\u672a\u54cd\u5e94');
+          }
+        }, 8000);
 
         // startTime 保持 0：进度条在 Java 端真正开始播放（首个 ttsPosition 到达）前
         // 停留在起始位置，避免合成延迟期间进度条先走再跳回的问题。

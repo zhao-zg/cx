@@ -20,7 +20,7 @@ def generate_pages_middleware(config, project_root='.'):
     """根据 access_time 配置生成 Cloudflare Pages Functions _middleware.js
     
     生成的 functions/_middleware.js 会在 wrangler pages deploy 时自动被
-    Cloudflare Pages 识别，对所有请求执行时间段拦截。
+    Cloudflare Pages 识别，对所有请求执行时间段/星期拦截。
     """
     access_time = config.get('access_time', {})
     if not access_time or not access_time.get('enabled', False):
@@ -34,13 +34,48 @@ def generate_pages_middleware(config, project_root='.'):
     start_hour = int(access_time.get('allow_start', 6))
     end_hour   = int(access_time.get('allow_end', 23))
     tz_offset  = int(access_time.get('timezone_offset', 8))
+    # allow_days: 可选列表 [0-6]，0=周日 1=周一 ... 6=周六；None/空 表示每天均可访问
+    allow_days = access_time.get('allow_days')
+    has_day_restrict = allow_days is not None and len(allow_days) > 0
+    _DAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+    # 构建 JS 数组和星期检查代码块
+    if has_day_restrict:
+        days_arr = ', '.join(str(int(d)) for d in allow_days)
+        day_check_js = (
+            f'const ALLOW_DAYS = [{days_arr}];\n'
+            '\n'
+        )
+        day_block_js = (
+            '  const day = local.getUTCDay();\n'
+            '  if (!ALLOW_DAYS.includes(day)) {\n'
+            '    return new Response(\n'
+            '      "服务暂不可用：今日不在允许访问日，" +\n'
+            '      "允许日：" + ALLOW_DAYS.map(d => ["周日","周一","周二","周三","周四","周五","周六"][d]).join("、"),\n'
+            '      {\n'
+            '        status: 403,\n'
+            '        headers: {\n'
+            '          "Content-Type": "text/plain; charset=utf-8",\n'
+            '          "X-Maintenance": "true",\n'
+            '        },\n'
+            '      }\n'
+            '    );\n'
+            '  }\n'
+            '\n'
+        )
+        day_desc = '，允许日: ' + '、'.join(_DAY_NAMES[int(d)] for d in allow_days)
+    else:
+        day_check_js = ''
+        day_block_js = ''
+        day_desc = '，每天均可访问'
 
     middleware_js = (
-        '// Cloudflare Pages Functions - 访问时间段控制\n'
+        '// Cloudflare Pages Functions - 访问时间/星期控制\n'
         '// 由 main.py 根据 config.yaml access_time 配置自动生成，请勿手动编辑\n'
         f'const ALLOW_START = {start_hour};\n'
         f'const ALLOW_END = {end_hour};\n'
         f'const TZ_OFFSET = {tz_offset};\n'
+        + day_check_js +
         '\n'
         'export async function onRequest(context) {\n'
         '  const now = new Date();\n'
@@ -60,6 +95,7 @@ def generate_pages_middleware(config, project_root='.'):
         '    });\n'
         '  }\n'
         '\n'
+        + day_block_js +
         '  return context.next();\n'
         '}\n'
     )
@@ -69,7 +105,7 @@ def generate_pages_middleware(config, project_root='.'):
     mw_path = os.path.join(functions_dir, '_middleware.js')
     with open(mw_path, 'w', encoding='utf-8') as f:
         f.write(middleware_js)
-    print(f'✓ functions/_middleware.js 已生成（允许访问: {start_hour}:00 - {end_hour}:00 UTC+{tz_offset}）')
+    print(f'✓ functions/_middleware.js 已生成（允许访问: {start_hour}:00 - {end_hour}:00 UTC+{tz_offset}{day_desc}）')
     return mw_path
 
 

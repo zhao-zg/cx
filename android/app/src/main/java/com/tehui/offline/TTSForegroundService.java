@@ -110,6 +110,7 @@ public class TTSForegroundService extends Service {
     // N+1 预生成：播放 chunk N 期间提前合成 chunk N+1，消除 chunk 间停顿
     private volatile File       nextTempFile         = null;  // 预合成完成的下一 chunk 文件
     private volatile int        synthForChunk        = -1;    // 正在合成哪个 chunk（-1 = 无）
+    private volatile long       synthStartTimeMs     = 0;     // 合成开始时间戳（用于日志计时）
 
     // ── Direct-speak mode (speak() fallback when synthesizeToFile fails) ──
     private volatile boolean    useSpeakDirect       = false;  // true = 使用 speak() 直接播放（降级模式）
@@ -268,7 +269,10 @@ public class TTSForegroundService extends Service {
 
                     final int capturedGen = gen;
                     final File capturedFile = tempFile;
+                    long _synthMs = System.currentTimeMillis() - synthStartTimeMs;
+                    android.util.Log.i("TTSFgSvc", "onDone: synth chunk " + chunkOfUid + " took " + _synthMs + "ms");
                     mainHandler.post(() -> {
+                        long _postMs = System.currentTimeMillis();
                         if (speakGen != capturedGen || (isStopped && !wasPreSynth) || isPaused) {
                             // 预合成模式下不删除文件，也不创建 MediaPlayer
                             if (!wasPreSynth) deleteTempFile(capturedFile);
@@ -276,6 +280,8 @@ public class TTSForegroundService extends Service {
                         }
                         if (chunkOfUid == chunkIndex) {
                             // 当前正等待合成的 chunk → 立即开始播放
+                            android.util.Log.i("TTSFgSvc", "onDone→startMediaPlayer: synthMs=" + _synthMs
+                                    + ", postWaitMs=" + (System.currentTimeMillis() - _postMs));
                             startMediaPlayer(capturedFile, capturedGen);
                         } else if (chunkOfUid == chunkIndex + 1) {
                             // N+1 预生成完成 → 存储，等当前 chunk 播完后零间隙衔接
@@ -385,6 +391,7 @@ public class TTSForegroundService extends Service {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void handleSpeak(Intent intent) {
+        long _t0 = System.currentTimeMillis(); // ★ 出声延迟计时起点
         // 取消宽限期内挂起的延迟停止，循环播放时复用现有 TTS 实例而无需重建 Service
         cancelPendingStop();
         String text   = intent.getStringExtra("text");
@@ -424,7 +431,15 @@ public class TTSForegroundService extends Service {
         directSpeakCharsDone = 0;
         // 重置流水线状态：清理上次会话可能剩下的预生成文件
         synthForChunk = -1;
-        releaseMediaPlayer();
+        // ★ 不释放 MediaPlayer 原生资源：startMediaPlayer() 会复用现有实例（reset），
+        //   避免 release()+new() 的开销（~30-50ms）。仅 stop 当前播放。
+        {
+            MediaPlayer mp = mediaPlayer;
+            if (mp != null) {
+                try { if (mp.isPlaying()) mp.stop(); } catch (Exception ignored) {}
+                try { mp.reset(); } catch (Exception ignored) {}
+            }
+        }
         deleteTempFile(nextTempFile);
         nextTempFile = null;
         // 清理旧 generation 的临时文件，但保留上一 gen 的文件（可能是预合成结果）。
@@ -434,6 +449,8 @@ public class TTSForegroundService extends Service {
         chunks.clear();
         chunks.addAll(splitText(text, CHUNK_SIZE));
         totalTextLength = text.length();
+
+        long _t1 = System.currentTimeMillis();
 
         // 根据 startSecs/totalSecs 比率跳到正确的起始 chunk（替代之前由 JS sliceText 实现的 seek）
         float seekSecs  = intent.getFloatExtra("startSecs", 0f);
@@ -450,8 +467,6 @@ public class TTSForegroundService extends Service {
             }
         }
 
-        updateMediaMetadata(); // 让锁屏/通知栏知道标题和总时长
-
         if (!requestAudioFocus()) {
             // 音频焦点申请被拒（OxygenOS/MIUI 省电策略等），降级继续播放。
             // TTS 引擎不强依赖焦点，绝大多数情况下仍可正常发声；
@@ -462,22 +477,41 @@ public class TTSForegroundService extends Service {
         acquireWakeLock();
         updatePlaybackState(true);
 
+        long _t2 = System.currentTimeMillis();
+
+        // 检查预合成文件
+        File _preCheck = new File(getCacheDir(), "tts_g" + speakGen + "_c0.wav");
+        boolean _hasPreFile = _preCheck.exists() && _preCheck.length() > 0;
+        if (!_hasPreFile) {
+            File _preCheck2 = new File(getCacheDir(), "tts_g" + (speakGen - 1) + "_c0.wav");
+            _hasPreFile = _preCheck2.exists() && _preCheck2.length() > 0;
+        }
+
         android.util.Log.i("TTSFgSvc", "handleSpeak: ttsReady=" + ttsReady
-                + ", preSynthFile=" + (new File(getCacheDir(), "tts_g" + (speakGen - 1) + "_c0.wav").exists()
-                    || new File(getCacheDir(), "tts_g" + speakGen + "_c0.wav").exists())
-                + ", gen=" + speakGen);
+                + ", preSynthFile=" + _hasPreFile
+                + ", gen=" + speakGen
+                + ", setupMs=" + (_t1 - _t0)
+                + ", focusMs=" + (_t2 - _t1));
 
         if (ttsReady) {
             // 先显式 stop() 确保引擎当前无正在进行的合成任务。
             // synthesizeToFile 内部使用 QUEUE_FLUSH 会再次清空队列，
-            // 因此只需短暂等待引擎响应 stop() 即可，无需长时间排空。
+            // 因此只需短暂等待引擎响应 stop() 即可。
             TextToSpeech t = tts;
             if (t != null) t.stop();
             final int gen = speakGen;
+            // ★ 有预合成文件时仅延迟 20ms（够 tts.stop() 响应即可），
+            //   无预合成文件时 80ms 给引擎更多时间排空队列。
+            long delay = _hasPreFile ? 20 : 80;
             ttsHandler.postDelayed(() -> {
                 if (speakGen != gen || isStopped) return;
-                playChunkOnly(); // setTtsParams() 已内嵌在 doSynthesizeChunk() 中
-            }, 80);
+                long _t3 = System.currentTimeMillis();
+                android.util.Log.i("TTSFgSvc", "playChunkOnly after " + (_t3 - _t2) + "ms wait (delay=" + delay + ")");
+                playChunkOnly();
+                // ★ 非关键更新延迟到播放启动后：锁屏标题和 MediaSession metadata
+                updateMediaMetadata();
+                android.util.Log.i("TTSFgSvc", "playChunkOnly done, total handleSpeak→play=" + (System.currentTimeMillis() - _t0) + "ms");
+            }, delay);
         } else if (ttsInitFailed) {
             // 上次全部重试均失败，用户再次点播放时允许重新初始化。
             android.util.Log.w("TTSFgSvc", "Re-attempting TTS init after previous failure");
@@ -733,8 +767,10 @@ public class TTSForegroundService extends Service {
         }
         if (preFile.exists() && preFile.length() > 0) {
             synthForChunk = chunkIndex; // 标记已合成，防止重复提交
+            android.util.Log.i("TTSFgSvc", "playChunkOnly: pre-synth file found (" + preFile.getName() + ", " + preFile.length() + "B)");
             startMediaPlayer(preFile, speakGen);
         } else {
+            android.util.Log.i("TTSFgSvc", "playChunkOnly: no pre-synth, synthesizing chunk " + chunkIndex);
             doSynthesizeChunk(chunkIndex);
         }
         chunkStartPositionMs = calculateChunkStartPositionMs();
@@ -756,6 +792,7 @@ public class TTSForegroundService extends Service {
         // 每块重设语言 + 1.0f 合成速率（华为/讯飞等引擎切换后可能重置语言或音色）
         setTtsParams();
         synthForChunk = idx;
+        synthStartTimeMs = System.currentTimeMillis();
         int ret = t.synthesizeToFile(text, (Bundle) null, outFile, uid);
         if (ret == TextToSpeech.ERROR) {
             // 首次失败重试一次
@@ -933,7 +970,9 @@ public class TTSForegroundService extends Service {
                 finalMp.setAudioAttributes(attrs);
             }
             finalMp.setDataSource(file.getAbsolutePath());
+            long _beforePrep = System.currentTimeMillis();
             finalMp.prepare(); // 本地文件，同步 prepare() 快且安全
+            long _prepMs = System.currentTimeMillis() - _beforePrep;
             // 缓存当前 chunk 的实际音频时长，供 calculateCharsDone() 精确插值
             // 比估算值（chunkLen/totalTextLength*fullTotalDurationMs）更准确，消除 TTS 语音疏密不均导致的漂移
             try { currentChunkActualDurationMs = finalMp.getDuration(); } catch (Exception e) { currentChunkActualDurationMs = 0; }
@@ -960,6 +999,10 @@ public class TTSForegroundService extends Service {
 
             mediaPlayer = finalMp;
             finalMp.start();
+
+            android.util.Log.i("TTSFgSvc", "MediaPlayer: reused=" + reused
+                    + ", prepareMs=" + _prepMs
+                    + ", postPrepMs=" + (System.currentTimeMillis() - _beforePrep - _prepMs));
             acquireWakeLock();
             updatePlaybackState(true);
             // 立即推送一次 chunk 起始位置，使 JS 高亮在 chunk 切换时即时更新，
