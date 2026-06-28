@@ -395,6 +395,11 @@
       var _nativeProgressHandle = null; // ttsProgress 监听句柄
       var _lastPosMs        = -1;   // ttsPosition 最近一次接受的 posMs（-1=尚未接受）
       var _originalTotalDuration = 0; // 原始估算总时长（不受倍速覆盖，用于 charsPerSec 插值）
+      // -- 预构建缓存 ----------------------------------------------------------
+      // prebuildText() 在页面加载时预提取文本和 segmentMap，
+      // 用户点播放时直接复用，跳过耗时的 buildAll()（DOM 遍历 + withExpanded）。
+      var _prebuiltFullText    = null;  // 预提取的 fullText（null=未预构建）
+      var _prebuiltSegmentMap  = null;  // 预提取的 _segmentMap
 
       // -- State machine helpers ----------------------------------------------
 
@@ -534,15 +539,17 @@
       }
 
       /**
-       * 预提取朗读文本（不修改 DOM）。
+       * 预提取朗读文本 + segmentMap（不修改 DOM）。
        * 复制 buildAll() 的文本构建逻辑，但通过 cloneNode 在副本上操作，
        * 不注入 <mark>，不展开经文引用的真实 DOM，保证页面渲染不受影响。
-       * 产出的 fullText 与 buildAll() 完全一致（同一 processText 管道）。
+       * 产出的 fullText 和 _segmentMap 与 buildAll() 完全一致（同一 processText 管道）。
+       * 结果缓存到 _prebuiltFullText / _prebuiltSegmentMap，供播放时直接复用。
        */
       function prebuildText() {
         if (!getElements) return '';
         var segs = getElements();
         var result = '';
+        var segMap = [];
 
         segs.forEach(function(seg) {
           var el = seg.el;
@@ -587,9 +594,16 @@
             var lastChar = result[result.length - 1];
             separator = /[\u3002\uff01\uff1f\uff1b]/.test(lastChar) ? '' : '\u3002';
           }
+          var start = result.length + separator.length;
           result += separator + filteredText;
+          var end = result.length;
+
+          segMap.push({el: el, start: start, end: end, speakText: filteredText});
         });
 
+        // 缓存结果，供播放时跳过 buildAll()
+        _prebuiltFullText   = result;
+        _prebuiltSegmentMap = segMap;
         return result;
       }
 
@@ -1056,7 +1070,15 @@
               }).catch(function () {});
             }
           }
-          buildAll();
+          // 优先使用预构建缓存（页面加载时 prebuildText() 已提取），
+          // 跳过耗时的 buildAll()（DOM 遍历 + withExpanded），
+          // 将首次播放延迟从 3-5s 压缩到 ~1s（仅剩 Java 服务启动 + 80ms）。
+          if (_prebuiltFullText !== null && _prebuiltSegmentMap) {
+            fullText = _prebuiltFullText;
+            _segmentMap = _prebuiltSegmentMap;
+          } else {
+            buildAll();
+          }
           if (!fullText) return;
           totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
           _originalTotalDuration = totalDuration; // 保存原始估算时长（rate=1x 基准），供 charsPerSec 插值使用

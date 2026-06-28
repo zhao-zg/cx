@@ -990,20 +990,33 @@
       } else if (viewType === 'h') {
         var msg = document.querySelector('.message-content');
         if (msg) {
-          msg.querySelectorAll(':scope > p.content-text').forEach(function(p){
-            if (p.textContent.trim()) segs.push({el: p});
-          });
-        }
-        document.querySelectorAll('.section').forEach(function(sec){
-          var lvl = sec.querySelector('[class^="section-level"]');
-          if (lvl && lvl.textContent.trim()) segs.push({el: lvl});
-          var content = sec.querySelector('.section-content');
-          if (content) {
-            content.querySelectorAll('.content-text').forEach(function(p){
-              if (p.textContent.trim()) segs.push({el: p});
-            });
+          // 按 DOM 文档顺序单次遍历，递归处理嵌套 subsections，保证朗读顺序与视觉顺序一致
+          var pushContent = function(el) {
+            if (el && el.textContent.trim()) segs.push({el: el});
+          };
+          var walkSection = function(sec) {
+            var lvl = sec.querySelector(':scope > [class^="section-level"]');
+            pushContent(lvl);
+            var content = sec.querySelector(':scope > .section-content');
+            if (content) {
+              content.querySelectorAll(':scope > .content-text').forEach(pushContent);
+            }
+            var subs = sec.querySelector(':scope > .subsections');
+            if (subs) {
+              subs.querySelectorAll(':scope > .section').forEach(function(child) {
+                walkSection(child);
+              });
+            }
+          };
+          for (var ci = 0; ci < msg.children.length; ci++) {
+            var child = msg.children[ci];
+            if (child.tagName === 'P' && child.classList.contains('content-text')) {
+              pushContent(child);
+            } else if (child.classList.contains('section')) {
+              walkSection(child);
+            }
           }
-        });
+        }
       } else if (viewType === 'ts') {
         document.querySelectorAll('.section').forEach(function(sec){
           var lvl = sec.querySelector('[class^="section-level"]');

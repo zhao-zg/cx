@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: android_client
-title: 离线特会信息阅读客户端
+title: 晨读离线应用 Android 客户端
 scope:
     - android/
 source_files: []

@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: resource_data
+title: 属灵资源与圣经数据仓储
+scope:
+    - resource/
+source_files: []
+depends_on: []
+related_to:
+    - path: static_site_generator/core_engine

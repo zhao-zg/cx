@@ -7,7 +7,7 @@ batch_processing:
   # specific_trainings: []  # 注释掉此行，默认生成所有可用训练
 
 # 赞助功能（关闭后不发布二维码图片，前端自动隐藏顾念微工入口）
-sponsor_enabled: false
+sponsor_enabled: true
 
 # 全局配置
 output_dir: "output"

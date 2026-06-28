@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: static_site_generator/core_engine
+title: 特会信息解析与前端渲染引擎
+scope:
+    - src/generator.py
+    - src/parser_improved.py
+    - src/models.py
+    - src/bible_dict.py
+source_files: []
+depends_on: []
+related_to:
+    - path: resource_data

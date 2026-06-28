@@ -433,13 +433,23 @@
                                     mark.style.textUnderlineOffset = '2px';
                                 }
                             } else {
-                                mark.style.backgroundColor = origMark.style.backgroundColor || 'transparent';
+                                // hlData 不可用时，直接从原始 mark 复制全部内联样式
+                                mark.style.cssText = origMark.style.cssText;
                             }
 
                             range.surroundContents(mark);
 
+                            // 直接创建笔记图标（不走 _insertNoteIcon 的全局去重，
+                            // 因为原始 mark 已有图标，全局 querySelector 会误判跳过）
                             if (hlData && hlData.note) {
-                                self._insertNoteIcon(mark, hlId);
+                                var nextSib = mark.nextSibling;
+                                if (!nextSib || !nextSib.classList || !nextSib.classList.contains('cx-note-icon')) {
+                                    var icon = document.createElement('span');
+                                    icon.className = 'cx-note-icon';
+                                    icon.textContent = '\uD83D\uDCDD';
+                                    icon.dataset.highlightId = hlId;
+                                    mark.parentNode.insertBefore(icon, mark.nextSibling);
+                                }
                             }
                         } catch (e) {
                             // surroundContents 失败时跳过（跨节点选区等复杂情况）
