@@ -1303,15 +1303,28 @@
       speechTime.textContent = '00:00 / 00:00';
       if (useWebSpeech) setupMediaSession();
 
-      // -- 预构建朗读文本缓存（NativeTTS only） --------------------------------
-      // prebuildText() 在页面加载时预提取文本和 segmentMap，
-      // 用户点播放时直接复用，跳过耗时的 buildAll()（DOM 遍历）。
-      // TTS 引擎预热已由 MainActivity.onCreate() 静态完成，无需 JS 侧触发。
+      // -- 预构建朗读文本 + 预合成首 chunk（NativeTTS only） --------------------
+      // 1. prebuildText() 预提取文本和 segmentMap
+      // 2. preSynthesize() 将首 chunk 提前合成为 WAV 文件
+      //    用户点播放时 handleSpeak() 发现预合成文件已存在，直接播放
       if (useNativeTTS) {
         try {
           var _preT0 = Date.now();
           var prebuiltText = prebuildText();
           console.log('[CXSpeech] prebuildText: ' + prebuiltText.length + ' chars in ' + (Date.now() - _preT0) + 'ms');
+          if (prebuiltText.length > 0) {
+            var preNativeTTS = getNativeTTS();
+            if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
+              preNativeTTS.preSynthesize({
+                text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
+                title: title, artist: artist
+              }).then(function() {
+                console.log('[CXSpeech] preSynthesize \u5df2\u53d1\u9001 (' + (Date.now() - _preT0) + 'ms)');
+              }).catch(function(e) {
+                console.log('[CXSpeech] preSynthesize \u5931\u8d25: ' + e);
+              });
+            }
+          }
         } catch(e) {
           console.log('[CXSpeech] prebuild \u5f02\u5e38: ' + e);
         }

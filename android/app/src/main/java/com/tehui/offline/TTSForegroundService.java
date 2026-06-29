@@ -90,9 +90,20 @@ public class TTSForegroundService extends Service {
     private volatile boolean      ttsInitFailed  = false; // 所有重试均失败后置 true
 
     // ★ 静态 TTS 实例：跨 Service 生命周期复用，避免重复绑定系统 TTS 服务（耗时 3-8s）。
-    //   首次播放时创建，后续播放直接复用，出声延迟压缩到仅剩合成时间。
+    //   由 MainActivity.onCreate() 提前创建，Service 启动时直接复用。
     public static volatile TextToSpeech sStaticTts  = null;
     public static volatile boolean      sStaticTtsReady = false;
+
+    /** 在 Activity 创建时调用，提前绑定 TTS 引擎。 */
+    public static void prewarmTts(android.content.Context context) {
+        if (sStaticTts != null) return;
+        sStaticTts = new TextToSpeech(context.getApplicationContext(), status -> {
+            sStaticTtsReady = (status == TextToSpeech.SUCCESS);
+            android.util.Log.i("TTSFgSvc", "prewarmTts callback: status=" + status
+                    + " ready=" + sStaticTtsReady);
+        });
+        android.util.Log.i("TTSFgSvc", "prewarmTts: TextToSpeech CREATED");
+    }
 
     // ── Playback State ────────────────────────────────────────────────────
     private final List<String>  chunks     = new ArrayList<>();
