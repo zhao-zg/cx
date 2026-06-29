@@ -351,14 +351,7 @@
 
     function getPreferredTheme() {
         const savedTheme = getStoredTheme();
-        if (savedTheme) {
-            return savedTheme;
-        }
-        try {
-            return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'cool';
-        } catch (e) {
-            return 'cool';
-        }
+        return savedTheme || 'cool';
     }
 
     function syncThemeColor(theme) {
@@ -597,21 +590,7 @@
         // 如已开启开发者模式，自动初始化控制台
         try { if (localStorage.getItem('cx_dev_mode') === '1') initDevConsole(); } catch(e) {}
 
-        if (window.matchMedia) {
-            var themeQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            var handleThemeQueryChange = function(event) {
-                if (getStoredTheme()) return;
-                var nextTheme = event.matches ? 'dark' : 'cool';
-                document.documentElement.setAttribute('data-theme', nextTheme);
-                updateThemeUI(nextTheme);
-                syncThemeColor(nextTheme);
-            };
-            if (typeof themeQuery.addEventListener === 'function') {
-                themeQuery.addEventListener('change', handleThemeQueryChange);
-            } else if (typeof themeQuery.addListener === 'function') {
-                themeQuery.addListener(handleThemeQueryChange);
-            }
-        }
+        // 不再跟随系统深浅色自动切换，默认始终为冷色
     }
 
     // 初始化设置面板操作区（唯一实现；页面通过 window.CX.xxx 注册钩子覆盖默认行为）

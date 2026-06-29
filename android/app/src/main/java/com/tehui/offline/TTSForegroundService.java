@@ -769,12 +769,13 @@ public class TTSForegroundService extends Service {
 
         if (ttsReady) {
             // ★ 与 handleSpeak 正常路径完全相同的模式：
-            //   主线程 tts.stop() → 80ms 延迟 → synthesizeToFile。
-            //   使用 mainHandler 而非 ttsHandler（确保回调执行，便于诊断）。
+            //   主线程 tts.stop() → ttsHandler.postDelayed(80ms) → synthesizeToFile(ttsHandler)。
+            //   synthesizeToFile 必须在 ttsHandler 线程调用（与 handleSpeak 一致），
+            //   在主线程调用会被引擎静默丢弃。
             TextToSpeech t = tts;
             if (t != null) t.stop();
             final int capturedGen = speakGen;
-            mainHandler.postDelayed(() -> {
+            ttsHandler.postDelayed(() -> {
                 if (speakGen != capturedGen) return;
                 if (synthForChunk != -1) return;
                 doSynthesizeChunk(0);
