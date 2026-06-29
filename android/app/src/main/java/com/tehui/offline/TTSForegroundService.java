@@ -678,8 +678,19 @@ public class TTSForegroundService extends Service {
      * 注意：此方法不创建 MediaPlayer、不播放音频、不更新通知栏。
      */
     private void handlePreSpeak(Intent intent) {
-        // 若已在播放或已有预合成任务在进行，跳过
-        if (!isStopped || !chunks.isEmpty()) return;
+        // 仅在正在播放时跳过（isStopped=false 表示活跃播放中）
+        // 注意：不检查 chunks.isEmpty()——handleStop() 不清 chunks，
+        // 若检查会导致 cancel()→handleStop()→schedulePendingStop() 后的
+        // preSynthesize 被错误跳过，且 2 秒后 Service 被销毁。
+        if (!isStopped) return;
+
+        // 取消 handleStop/finishPlayback 可能挂起的延迟销毁（2 秒宽限期），
+        // 使 Service 在预合成期间保持存活。
+        cancelPendingStop();
+
+        android.util.Log.i("TTSFgSvc", "handlePreSpeak: proceed, chunks=" + chunks.size()
+                + " ttsReady=" + ttsReady + " speakGen=" + speakGen);
+        emitLog("handlePreSpeak: proceed, chunks=" + chunks.size() + " ttsReady=" + ttsReady);
 
         String lang = intent.getStringExtra("lang");
         if (lang != null && !lang.isEmpty()) playLang = lang;
