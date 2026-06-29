@@ -775,7 +775,7 @@ public class TTSForegroundService extends Service {
                 if (speakGen != capturedGen) return;
                 if (synthForChunk != -1) return; // initTts 回调已启动合成
                 doSynthesizeChunk(0);
-            }, 50);
+            }, 100);
         }
         // TTS 尚未就绪时，initTts() 成功回调会检测 chunks 非空并启动预合成
     }
@@ -1027,6 +1027,13 @@ public class TTSForegroundService extends Service {
             synthFailureCount++;
             android.util.Log.w("TTSFgSvc", "synthesizeToFile failed for chunk " + idx
                     + " (" + synthFailureCount + "/" + MAX_SYNTH_FAILURES + ")");
+            if (isPreSynthesis) {
+                // ★ 预合成失败：保持 synthForChunk=0，让 handleSpeak 的 4s 超时触发重合成。
+                //   不重置为 -1（否则超时误判"已完成"而跳过）。
+                //   也不调 onChunkPlaybackComplete（isStopped=true 会直接返回）。
+                emitLog("pre-synth synthesizeToFile ERROR, will retry via 4s timeout");
+                return;
+            }
             if (synthFailureCount >= MAX_SYNTH_FAILURES) {
                 // 连续失败达阈值，切换到 speak() 直接播放模式
                 android.util.Log.w("TTSFgSvc", "synthesizeToFile consistently failing, switching to speak() direct mode");
