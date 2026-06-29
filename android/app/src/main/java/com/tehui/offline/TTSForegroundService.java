@@ -768,21 +768,20 @@ public class TTSForegroundService extends Service {
         synthForChunk = -1;
 
         if (ttsReady) {
-            // ★ 页面切换时 handleStop() 调过 tts.stop()，引擎可能处于异常状态。
-            //   在 ttsHandler 线程上重新 stop() + 等待 80ms（与 handleSpeak 正常路径
-            //   完全相同的模式），确保引擎干净后再 synthesizeToFile。
-            //   不能检查 isStopped（handlePreSpeak 设为 true），
-            //   speakGen 检查已足够防止过期回调。
+            // ★ 与 handleSpeak 正常路径完全相同的模式：
+            //   主线程 tts.stop() → ttsHandler.postDelayed(80ms) → synthesizeToFile。
+            //   关键：tts.stop() 必须在主线程调用（非 ttsHandler），
+            //   postDelayed 非阻塞（非 Thread.sleep），ttsHandler 保持空闲处理引擎回调。
+            //   之前的方案在 ttsHandler 上调 tts.stop + Thread.sleep(80)，
+            //   阻塞了 ttsHandler 导致引擎回调无法及时处理，synthesizeToFile 被静默丢弃。
+            TextToSpeech t = tts;
+            if (t != null) t.stop();
             final int capturedGen = speakGen;
             ttsHandler.postDelayed(() -> {
                 if (speakGen != capturedGen) return;
                 if (synthForChunk != -1) return; // initTts 回调已启动合成
-                // 重新 flush 引擎（handleStop 的 stop 可能未完全生效）
-                TextToSpeech t = tts;
-                if (t != null) t.stop();
-                try { Thread.sleep(80); } catch (InterruptedException ignored) {}
                 doSynthesizeChunk(0);
-            }, 100);
+            }, 80);
         }
         // TTS 尚未就绪时，initTts() 成功回调会检测 chunks 非空并启动预合成
     }
