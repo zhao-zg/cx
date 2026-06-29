@@ -110,7 +110,10 @@ public class TTSForegroundService extends Service {
     private volatile int        chunkIndex = 0;
     private volatile boolean    isPaused     = false;
     private volatile boolean    pausedByUser = false; // true=用户手动暂停，false=系统失焦自动暂停
-    private volatile boolean    isStopped  = false;
+    // ★ 默认 true：Service 新建时处于 idle 状态。
+    //   handlePreSpeak 守卫依赖此值判断是否可预合成（!isStopped 才跳过）。
+    //   若为 false，新建 Service 会误判为"正在播放"导致预合成被跳过。
+    private volatile boolean    isStopped  = true;
     private volatile boolean    isPreSynthesis = false; // true = 预合成模式（页面加载时预生成首 chunk，不播放）
     private volatile boolean    loopEnabled = false; // 循环播放开关，由 JS speak() 的 loop 参数控制
     private volatile int        speakGen   = 0;   // generation counter for stale-callback guard
@@ -370,9 +373,14 @@ public class TTSForegroundService extends Service {
                     emitLog("synth chunk" + chunkOfUid + "=" + _synthMs + "ms");
                     mainHandler.post(() -> {
                         long _postMs = System.currentTimeMillis();
-                        if (speakGen != capturedGen || (isStopped && !wasPreSynth) || isPaused) {
-                            // 预合成模式下不删除文件，也不创建 MediaPlayer
-                            if (!wasPreSynth) deleteTempFile(capturedFile);
+                        if (wasPreSynth) {
+                            // 预合成完成：文件已写入缓存目录，不启动播放，等待 handleSpeak 复用
+                            android.util.Log.i("TTSFgSvc", "pre-synth chunk " + chunkOfUid + " ready (" + _synthMs + "ms)");
+                            emitLog("pre-synth chunk" + chunkOfUid + " ready (" + _synthMs + "ms)");
+                            return;
+                        }
+                        if (speakGen != capturedGen || isStopped || isPaused) {
+                            deleteTempFile(capturedFile);
                             return;
                         }
                         if (chunkOfUid == chunkIndex) {
@@ -928,7 +936,8 @@ public class TTSForegroundService extends Service {
      */
     private void doSynthesizeChunk(int idx) {
         TextToSpeech t = tts;
-        if (t == null || !ttsReady || isStopped) return;
+        // 预合成模式下 isStopped=true 但允许合成（isPreSynthesis=true 时跳过 isStopped 检查）
+        if (t == null || !ttsReady || (isStopped && !isPreSynthesis)) return;
         if (idx < 0 || idx >= chunks.size()) return;
         String text = chunks.get(idx);
         String uid  = "g" + speakGen + "_c" + idx;

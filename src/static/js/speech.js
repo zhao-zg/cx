@@ -168,6 +168,9 @@
     } catch (e) { return null; }
   }
 
+  // -- 预合成防重复：Router 双重 dispatch 时避免重复发送 preSynthesize（500ms 去重窗口）
+  var _preSynthTime = 0;
+
   // -- Init -----------------------------------------------------------------
 
   function init(options) {
@@ -1307,7 +1310,8 @@
       // 1. prebuildText() 预提取文本和 segmentMap
       // 2. preSynthesize() 将首 chunk 提前合成为 WAV 文件
       //    用户点播放时 handleSpeak() 发现预合成文件已存在，直接播放
-      if (useNativeTTS) {
+      if (useNativeTTS && Date.now() - _preSynthTime > 500) {
+        _preSynthTime = Date.now();
         try {
           var _preT0 = Date.now();
           var prebuiltText = prebuildText();
