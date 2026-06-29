@@ -654,49 +654,61 @@ public class TTSForegroundService extends Service {
                 if (synthForChunk != 0) return; // onDone 已触发，合成已完成
                 emitLog("handleSpeak: pre-synth timeout (4s), re-synthesizing");
                 synthForChunk = -1;
-                TextToSpeech t = tts;
-                if (t != null) t.stop();
+                // ★ tts.stop() 必须在 ttsHandler 线程调用，主线程调用会导致
+                //   后续 synthesizeToFile 被引擎静默丢弃。
                 ttsHandler.postDelayed(() -> {
-                    if (speakGen != fallbackGen || isStopped) return;
-                    playChunkOnly();
-                }, 80);
+                    TextToSpeech t = tts;
+                    if (t != null) try { t.stop(); } catch (Exception e) {
+                        android.util.Log.w("TTSFgSvc", "handleSpeak timeout tts.stop() error: " + e.getMessage());
+                    }
+                    ttsHandler.postDelayed(() -> {
+                        if (speakGen != fallbackGen || isStopped) return;
+                        playChunkOnly();
+                    }, 80);
+                }, 0);
             }, 4000);
         } else if (ttsReady) {
-            // 先显式 stop() 确保引擎当前无正在进行的合成任务。
-            // synthesizeToFile 内部使用 QUEUE_FLUSH 会再次清空队列，
-            // 因此只需短暂等待引擎响应 stop() 即可。
-            TextToSpeech t = tts;
-            if (t != null) t.stop();
+            // ★ tts.stop() 必须在 ttsHandler 线程调用，主线程调用会导致
+            //   后续 synthesizeToFile 被引擎静默丢弃。
+            //   将 stop 投递到 ttsHandler，再延迟执行 playChunkOnly，
+            //   确保 stop 和合成在同一线程顺序执行。
             final int gen = speakGen;
             // ★ 有预合成文件时仅延迟 20ms（够 tts.stop() 响应即可），
             //   无预合成文件时 80ms 给引擎更多时间排空队列。
             long delay = _hasPreFile ? 20 : 80;
             ttsHandler.postDelayed(() -> {
-                emitLog("postDelayed fired: speakGen=" + speakGen + "/" + gen
-                        + " isStopped=" + isStopped + " isPaused=" + isPaused);
-                if (speakGen != gen || isStopped) {
-                    emitLog("postDelayed GUARD: rejected! speakGen=" + speakGen
-                            + "/" + gen + " stopped=" + isStopped);
-                    return;
+                // ★ 在 ttsHandler 线程上执行 tts.stop()，而非主线程
+                TextToSpeech t = tts;
+                if (t != null) try { t.stop(); } catch (Exception e) {
+                    android.util.Log.w("TTSFgSvc", "handleSpeak ttsReady ttsHandler tts.stop() error: " + e.getMessage());
                 }
-                // ★ 覆盖 handleFocusLossPause 在等待期间可能设置的 isPaused=true。
-                //   handleSpeak() 明确启动新播放，音频焦点丢失不应阻断首次出声。
-                //   焦点归还时 handleResume() 会正常恢复。
-                if (isPaused) {
-                    emitLog("postDelayed: overriding isPaused (was set by focusLoss during wait)");
-                    isPaused = false;
-                    pausedByUser = false;
-                }
-                long _t3 = System.currentTimeMillis();
-                android.util.Log.i("TTSFgSvc", "playChunkOnly after " + (_t3 - _t2) + "ms wait (delay=" + delay + ")");
-                emitLog("playChunk delay=" + delay + "ms, actual=" + (_t3 - _t2) + "ms");
-                playChunkOnly();
-                // ★ 非关键更新延迟到播放启动后：锁屏标题和 MediaSession metadata
-                updateMediaMetadata();
-                long _total = System.currentTimeMillis() - _t0;
-                android.util.Log.i("TTSFgSvc", "playChunkOnly done, total handleSpeak→play=" + _total + "ms");
-                emitLog("handleSpeak→play total=" + _total + "ms");
-            }, delay);
+                ttsHandler.postDelayed(() -> {
+                    emitLog("postDelayed fired: speakGen=" + speakGen + "/" + gen
+                            + " isStopped=" + isStopped + " isPaused=" + isPaused);
+                    if (speakGen != gen || isStopped) {
+                        emitLog("postDelayed GUARD: rejected! speakGen=" + speakGen
+                                + "/" + gen + " stopped=" + isStopped);
+                        return;
+                    }
+                    // ★ 覆盖 handleFocusLossPause 在等待期间可能设置的 isPaused=true。
+                    //   handleSpeak() 明确启动新播放，音频焦点丢失不应阻断首次出声。
+                    //   焦点归还时 handleResume() 会正常恢复。
+                    if (isPaused) {
+                        emitLog("postDelayed: overriding isPaused (was set by focusLoss during wait)");
+                        isPaused = false;
+                        pausedByUser = false;
+                    }
+                    long _t3 = System.currentTimeMillis();
+                    android.util.Log.i("TTSFgSvc", "playChunkOnly after " + (_t3 - _t2) + "ms wait (delay=" + delay + ")");
+                    emitLog("playChunk delay=" + delay + "ms, actual=" + (_t3 - _t2) + "ms");
+                    playChunkOnly();
+                    // ★ 非关键更新延迟到播放启动后：锁屏标题和 MediaSession metadata
+                    updateMediaMetadata();
+                    long _total = System.currentTimeMillis() - _t0;
+                    android.util.Log.i("TTSFgSvc", "playChunkOnly done, total handleSpeak→play=" + _total + "ms");
+                    emitLog("handleSpeak→play total=" + _total + "ms");
+                }, delay);
+            }, 0);
         } else if (ttsInitFailed) {
             // 上次全部重试均失败，用户再次点播放时允许重新初始化。
             android.util.Log.w("TTSFgSvc", "Re-attempting TTS init after previous failure");
@@ -768,20 +780,26 @@ public class TTSForegroundService extends Service {
         synthForChunk = -1;
 
         if (ttsReady) {
-            // ★ 与 handleSpeak 正常路径完全相同的模式：
-            //   主线程 tts.stop() → ttsHandler.postDelayed(200ms) → synthesizeToFile(ttsHandler)。
-            //   synthesizeToFile 必须在 ttsHandler 线程调用（与 handleSpeak 一致），
-            //   在主线程调用会被引擎静默丢弃。
+            // ★ tts.stop() 和 synthesizeToFile 都必须在 ttsHandler 线程调用，
+            //   主线程调用 stop() 会导致后续 synthesizeToFile 被引擎静默丢弃。
+            //   采用嵌套 postDelayed：先在 ttsHandler 上 stop，再延迟 200ms 合成，
+            //   确保 stop 和合成在同一线程顺序执行，无竞态。
             //   200ms 延迟：上一个页面的 handleStop 可能在 ttsHandler 上投递了 tts.stop()（50ms），
-            //   200ms 确保引擎已完全停止并重置内部状态，避免 synthesizeToFile 被静默丢弃。
-            TextToSpeech t = tts;
-            if (t != null) t.stop();
+            //   200ms 确保引擎已完全停止并重置内部状态。
             final int capturedGen = speakGen;
             ttsHandler.postDelayed(() -> {
                 if (speakGen != capturedGen) return;
                 if (synthForChunk != -1) return;
-                doSynthesizeChunk(0);
-            }, 200);
+                TextToSpeech t = tts;
+                if (t != null) try { t.stop(); } catch (Exception e) {
+                    android.util.Log.w("TTSFgSvc", "handlePreSpeak ttsHandler tts.stop() error: " + e.getMessage());
+                }
+                ttsHandler.postDelayed(() -> {
+                    if (speakGen != capturedGen) return;
+                    if (synthForChunk != -1) return;
+                    doSynthesizeChunk(0);
+                }, 200);
+            }, 0);
         }
         // TTS 尚未就绪时，initTts() 成功回调会检测 chunks 非空并启动预合成
     }
@@ -867,8 +885,18 @@ public class TTSForegroundService extends Service {
         synthForChunk = -1; // 合成已取消
         stopPositionBroadcast();
 
-        // 取消 TTS 引擎中正在进行的合成任务
-        if (tts != null) tts.stop();
+        // ★ tts.stop() 必须在 ttsHandler 线程调用，主线程调用会导致
+        //   后续 synthesizeToFile 被引擎静默丢弃。
+        {
+            final TextToSpeech t = tts;
+            if (t != null) {
+                ttsHandler.post(() -> {
+                    try { t.stop(); } catch (Exception e) {
+                        android.util.Log.w("TTSFgSvc", "handlePause ttsHandler tts.stop() error: " + e.getMessage());
+                    }
+                });
+            }
+        }
 
         // 暂停 MediaPlayer（保留位置，恢复时可继续）
         if (mediaPlayer != null) {
@@ -947,7 +975,18 @@ public class TTSForegroundService extends Service {
         // ★ 不再 speakGen++：同 handlePause，isPaused 守卫已足够
         synthForChunk = -1;
         stopPositionBroadcast();
-        if (tts != null) tts.stop();
+        // ★ tts.stop() 必须在 ttsHandler 线程调用，主线程调用会导致
+        //   后续 synthesizeToFile 被引擎静默丢弃。
+        {
+            final TextToSpeech t = tts;
+            if (t != null) {
+                ttsHandler.post(() -> {
+                    try { t.stop(); } catch (Exception e) {
+                        android.util.Log.w("TTSFgSvc", "handleFocusLossPause ttsHandler tts.stop() error: " + e.getMessage());
+                    }
+                });
+            }
+        }
         if (mediaPlayer != null) {
             try {
                 if (mediaPlayer.isPlaying()) mediaPlayer.pause();
