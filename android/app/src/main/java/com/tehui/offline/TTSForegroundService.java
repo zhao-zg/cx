@@ -375,6 +375,8 @@ public class TTSForegroundService extends Service {
                         long _postMs = System.currentTimeMillis();
                         if (wasPreSynth) {
                             // 预合成完成：文件已写入缓存目录，不启动播放，等待 handleSpeak 复用
+                            // ★ 重置 synthForChunk：使 handleSpeak 能区分"合成已完成"与"合成进行中"
+                            synthForChunk = -1;
                             android.util.Log.i("TTSFgSvc", "pre-synth chunk " + chunkOfUid + " ready (" + _synthMs + "ms)");
                             emitLog("pre-synth chunk" + chunkOfUid + " ready (" + _synthMs + "ms)");
                             return;
@@ -552,13 +554,11 @@ public class TTSForegroundService extends Service {
 
         // ★ 预合成正在进行时的快速路径：用户在预合成完成前点击播放。
         //   不取消合成、不递增 speakGen，待 onDone 自动启动播放。
+        //   synthForChunk==0 表示合成进行中；onDone 预合成路径会重置为 -1 表示已完成。
         float seekSecs  = intent.getFloatExtra("startSecs", 0f);
         float totalSecs = intent.getFloatExtra("totalSecs", 0f);
-        // 检查预合成文件是否已完成（>1KB = 完整 WAV）
-        File _preSynthCheck = new File(getCacheDir(), "tts_g" + speakGen + "_c0.wav");
         boolean preSynthInProgress = (synthForChunk == 0 && isPreSynthesis
-                && seekSecs <= 0f && ttsReady && !chunks.isEmpty()
-                && (!_preSynthCheck.exists() || _preSynthCheck.length() < 1024));
+                && seekSecs <= 0f && ttsReady && !chunks.isEmpty());
 
         // Reset state
         isStopped    = false;
@@ -644,22 +644,20 @@ public class TTSForegroundService extends Service {
             emitLog("handleSpeak: pre-synth in progress (gen=" + speakGen + "), waiting for onDone");
             // ★ 超时保底：如果 4 秒内 onDone 未触发（合成被引擎静默丢弃），
             //   取消并重新合成，避免无限等待。
+            //   检查 synthForChunk：onDone 触发后 N+1 预生成会将其改为 1，
+            //   仍为 0 说明 onDone 从未触发。
             final int fallbackGen = speakGen;
             ttsHandler.postDelayed(() -> {
                 if (speakGen != fallbackGen || isStopped || isPaused) return;
-                File preFile = new File(getCacheDir(), "tts_g" + fallbackGen + "_c0.wav");
-                // 完整的 WAV 文件应 >1KB（200字中文约数百KB）；
-                // <1KB 说明只有 WAV 头或为空（合成被静默丢弃）
-                if (!preFile.exists() || preFile.length() < 1024) {
-                    emitLog("handleSpeak: pre-synth timeout (4s), re-synthesizing");
-                    synthForChunk = -1;
-                    TextToSpeech t = tts;
-                    if (t != null) t.stop();
-                    ttsHandler.postDelayed(() -> {
-                        if (speakGen != fallbackGen || isStopped) return;
-                        playChunkOnly();
-                    }, 80);
-                }
+                if (synthForChunk != 0) return; // onDone 已触发，合成已完成
+                emitLog("handleSpeak: pre-synth timeout (4s), re-synthesizing");
+                synthForChunk = -1;
+                TextToSpeech t = tts;
+                if (t != null) t.stop();
+                ttsHandler.postDelayed(() -> {
+                    if (speakGen != fallbackGen || isStopped) return;
+                    playChunkOnly();
+                }, 80);
             }, 4000);
         } else if (ttsReady) {
             // 先显式 stop() 确保引擎当前无正在进行的合成任务。
