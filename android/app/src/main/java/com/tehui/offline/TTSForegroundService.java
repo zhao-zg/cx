@@ -770,9 +770,11 @@ public class TTSForegroundService extends Service {
         if (ttsReady) {
             // ★ 延迟 50ms 再合成：页面切换时 handleStop() 可能刚调过 tts.stop()，
             //   紧接着 synthesizeToFile 可能被引擎静默丢弃。
+            //   注意：不能检查 isStopped（handlePreSpeak 设为 true），
+            //   speakGen 检查已足够防止过期回调。
             final int capturedGen = speakGen;
             ttsHandler.postDelayed(() -> {
-                if (speakGen != capturedGen || isStopped) return;
+                if (speakGen != capturedGen) return;
                 if (synthForChunk != -1) return; // initTts 回调已启动合成
                 doSynthesizeChunk(0);
             }, 50);
