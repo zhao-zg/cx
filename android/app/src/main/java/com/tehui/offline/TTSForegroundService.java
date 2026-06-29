@@ -825,7 +825,9 @@ public class TTSForegroundService extends Service {
         //   关键：tts.stop() 会使引擎进入异常状态，导致后续 synthesizeToFile()
         //   被静默丢弃（页面切换后预合成失败的根因）。
         if (useSpeakDirect && tts != null) tts.stop();
-        cleanTempFiles();
+        // ★ 不调 cleanTempFiles()：引擎可能正在写 N+1 预合成文件，
+        //   删除正在写的文件会导致引擎进入异常状态，后续 synthesizeToFile 被静默丢弃。
+        //   旧文件由 handleSpeak() 的 cleanStaleTempFiles() 清理。
         deleteTempFile(nextTempFile);
         nextTempFile = null;
         // 不立即销毁 Service：保留 TTS 引擎实例，下次播放无需重新初始化（省 2-3 秒）。
