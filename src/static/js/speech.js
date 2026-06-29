@@ -744,7 +744,7 @@
         if (_stopOnNav) { window.removeEventListener('hashchange', _stopOnNav); _stopOnNav = null; }
         stopProgressUpdate();
         clearTTSHighlight();
-        if (useNativeTTS) nativeStopService();
+        if (useNativeTTS) nativeStopService(state !== 'idle');
         else { try { window.speechSynthesis.cancel(); } catch (e) {} }
         fullText = '';
         elapsedOffset = 0; startTime = 0; totalDuration = 0; _originalTotalDuration = 0;
@@ -931,7 +931,7 @@
         startProgressUpdate();
       }
 
-      function nativeStopService() {
+      function nativeStopService(sendStop) {
         if (_nativePositionHandle) {
           try { _nativePositionHandle.remove(); } catch (e) {}
           _nativePositionHandle = null;
@@ -946,8 +946,12 @@
         }
         _nativeCharsDone = -1;
         _nativeCharsDoneTime = 0;
-        var NativeTTS = getNativeTTS();
-        if (NativeTTS) try { NativeTTS.stop(); } catch (e) {}
+        // sendStop=false 时仅移除监听，不发 STOP（保护预合成：idle 状态下
+        // 无需停止 Service，发送 STOP 会取消进行中的预合成并删除 WAV 文件）
+        if (sendStop !== false) {
+          var NativeTTS = getNativeTTS();
+          if (NativeTTS) try { NativeTTS.stop(); } catch (e) {}
+        }
       }
 
       // ======================================================================
@@ -1264,7 +1268,7 @@
       // -- Page unload --------------------------------------------------------
       window.addEventListener('beforeunload', function () {
         ++speakGeneration;
-        if (useNativeTTS) nativeStopService();
+        if (useNativeTTS) nativeStopService(state !== 'idle');
         else { try { window.speechSynthesis.cancel(); } catch (e) {} }
       });
 

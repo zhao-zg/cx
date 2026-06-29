@@ -11,9 +11,9 @@
 - [android/app/src/main/assets/public/js/renderer.js](file://android/app/src/main/assets/public/js/renderer.js)
 - [android/app/src/main/assets/public/js/router.js](file://android/app/src/main/assets/public/js/router.js)
 - [android/app/src/main/assets/public/index.html](file://android/app/src/main/assets/public/index.html)
-- [android/app/src/main/java/com/books/app/MainActivity.java](file://android/app/src/main/java/com/books/app/MainActivity.java)
-- [android/app/src/main/java/com/books/app/NativeTTSPlugin.java](file://android/app/src/main/java/com/books/app/NativeTTSPlugin.java)
-- [android/app/src/main/java/com/books/app/TTSForegroundService.java](file://android/app/src/main/java/com/books/app/TTSForegroundService.java)
+- [android/app/src/main/java/com/tehui/offline/MainActivity.java](file://android/app/src/main/java/com/tehui/offline/MainActivity.java)
+- [android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java](file://android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java)
 - [src/static/js/speech.js](file://src/static/js/speech.js)
 - [app_config.json](file://app_config.json)
 - [requirements.txt](file://requirements.txt)
@@ -24,6 +24,8 @@
 - 优化了TTSForegroundService中isStopped标志的初始化逻辑，确保新服务实例正确识别为空闲状态
 - 改进了doSynthesizeChunk方法的预合成条件，允许在停止状态下进行预合成
 - 在speech.js中添加了500毫秒防重复机制，防止路由双重调度导致的重复预合成请求
+- 新增了setTtsParams执行时间监控和SLOW标记机制
+- 增强了性能监控系统，支持实时日志记录和DevTools集成
 
 ## 目录
 1. [项目概述](#项目概述)
@@ -78,9 +80,9 @@ end
 **图表来源**
 - [main.py:1-1230](file://main.py#L1-L1230)
 - [config.yaml:1-57](file://config.yaml#L1-L57)
-- [android/app/src/main/java/com/books/app/MainActivity.java:1-83](file://android/app/src/main/java/com/books/app/MainActivity.java#L1-L83)
-- [android/app/src/main/java/com/books/app/NativeTTSPlugin.java:1-291](file://android/app/src/main/java/com/books/app/NativeTTSPlugin.java#L1-L291)
-- [android/app/src/main/java/com/books/app/TTSForegroundService.java:1-1257](file://android/app/src/main/java/com/books/app/TTSForegroundService.java#L1-L1257)
+- [android/app/src/main/java/com/tehui/offline/MainActivity.java:1-83](file://android/app/src/main/java/com/tehui/offline/MainActivity.java#L1-L83)
+- [android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java:1-291](file://android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java#L1-L291)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:1-1698](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L1-L1698)
 
 **章节来源**
 - [main.py:1-1230](file://main.py#L1-L1230)
@@ -141,9 +143,9 @@ end
 - [src/models.py:1-232](file://src/models.py#L1-L232)
 - [src/parser_improved.py:1-800](file://src/parser_improved.py#L1-L800)
 - [src/generator.py:1-546](file://src/generator.py#L1-L546)
-- [android/app/src/main/java/com/books/app/TTSForegroundService.java:918-970](file://android/app/src/main/java/com/books/app/TTSForegroundService.java#L918-L970)
-- [src/static/js/speech.js:862-865](file://src/static/js/speech.js#L862-L865)
-- [android/app/src/main/java/com/books/app/MainActivity.java:25-27](file://android/app/src/main/java/com/books/app/MainActivity.java#L25-L27)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:948-1001](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L948-L1001)
+- [src/static/js/speech.js:1313](file://src/static/js/speech.js#L1313)
+- [android/app/src/main/java/com/tehui/offline/MainActivity.java:25-27](file://android/app/src/main/java/com/tehui/offline/MainActivity.java#L25-L27)
 
 ## 架构概览
 
@@ -223,9 +225,9 @@ JJ --> KK
 - [main.py:505-631](file://main.py#L505-L631)
 - [src/parser_improved.py:367-782](file://src/parser_improved.py#L367-L782)
 - [src/generator.py:383-425](file://src/generator.py#L383-L425)
-- [android/app/src/main/java/com/books/app/MainActivity.java:25-27](file://android/app/src/main/java/com/books/app/MainActivity.java#L25-L27)
-- [android/app/src/main/java/com/books/app/NativeTTSPlugin.java:163-188](file://android/app/src/main/java/com/books/app/NativeTTSPlugin.java#L163-L188)
-- [android/app/src/main/java/com/books/app/TTSForegroundService.java:97-106](file://android/app/src/main/java/com/books/app/TTSForegroundService.java#L97-L106)
+- [android/app/src/main/java/com/tehui/offline/MainActivity.java:25-27](file://android/app/src/main/java/com/tehui/offline/MainActivity.java#L25-L27)
+- [android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java:163-188](file://android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java#L163-L188)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:97-106](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L97-L106)
 - [src/static/js/speech.js:1310-1331](file://src/static/js/speech.js#L1310-L1331)
 
 ## 详细组件分析
@@ -348,8 +350,8 @@ J --> K[前端显示]
 ```
 
 **图表来源**
-- [android/app/src/main/java/com/books/app/TTSForegroundService.java:918-970](file://android/app/src/main/java/com/books/app/TTSForegroundService.java#L918-L970)
-- [src/static/js/speech.js:862-865](file://src/static/js/speech.js#L862-L865)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:948-1001](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L948-L1001)
+- [src/static/js/speech.js:866-868](file://src/static/js/speech.js#L866-L868)
 
 ### TTS预热机制架构
 
@@ -368,8 +370,8 @@ H --> I[显著减少启动时间]
 ```
 
 **图表来源**
-- [android/app/src/main/java/com/books/app/MainActivity.java:25-27](file://android/app/src/main/java/com/books/app/MainActivity.java#L25-L27)
-- [android/app/src/main/java/com/books/app/TTSForegroundService.java:97-106](file://android/app/src/main/java/com/books/app/TTSForegroundService.java#L97-L106)
+- [android/app/src/main/java/com/tehui/offline/MainActivity.java:25-27](file://android/app/src/main/java/com/tehui/offline/MainActivity.java#L25-L27)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:97-106](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L97-L106)
 
 ### JavaScript预合成优化架构
 
@@ -390,8 +392,8 @@ I --> J[零延迟响应]
 
 **图表来源**
 - [src/static/js/speech.js:1310-1331](file://src/static/js/speech.js#L1310-L1331)
-- [android/app/src/main/java/com/books/app/NativeTTSPlugin.java:163-188](file://android/app/src/main/java/com/books/app/NativeTTSPlugin.java#L163-L188)
-- [android/app/src/main/java/com/books/app/TTSForegroundService.java:675-720](file://android/app/src/main/java/com/books/app/TTSForegroundService.java#L675-L720)
+- [android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java:163-188](file://android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java#L163-L188)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:675-720](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L675-L720)
 
 ### 防重复机制架构
 
@@ -410,8 +412,8 @@ E --> I[等待下次窗口]
 ```
 
 **图表来源**
-- [src/static/js/speech.js:171](file://src/static/js/speech.js#L171)
-- [src/static/js/speech.js:1312-1313](file://src/static/js/speech.js#L1312-L1313)
+- [src/static/js/speech.js:170-171](file://src/static/js/speech.js#L170-L171)
+- [src/static/js/speech.js:1313](file://src/static/js/speech.js#L1313)
 
 **章节来源**
 - [main.py:19-109](file://main.py#L19-L109)
@@ -546,11 +548,11 @@ end
 - **稳定性增强**: 防止因重复预合成导致的系统不稳定
 
 **章节来源**
-- [android/app/src/main/java/com/books/app/TTSForegroundService.java:918-970](file://android/app/src/main/java/com/books/app/TTSForegroundService.java#L918-L970)
-- [src/static/js/speech.js:862-865](file://src/static/js/speech.js#L862-L865)
-- [android/app/src/main/java/com/books/app/MainActivity.java:25-27](file://android/app/src/main/java/com/books/app/MainActivity.java#L25-L27)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:948-1001](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L948-L1001)
+- [src/static/js/speech.js:866-868](file://src/static/js/speech.js#L866-L868)
+- [android/app/src/main/java/com/tehui/offline/MainActivity.java:25-27](file://android/app/src/main/java/com/tehui/offline/MainActivity.java#L25-L27)
 - [src/static/js/speech.js:1310-1331](file://src/static/js/speech.js#L1310-L1331)
-- [src/static/js/speech.js:171](file://src/static/js/speech.js#L171)
+- [src/static/js/speech.js:170-171](file://src/static/js/speech.js#L170-L171)
 
 ## 故障排除指南
 
@@ -618,9 +620,9 @@ end
 **章节来源**
 - [src/parser_improved.py:84-110](file://src/parser_improved.py#L84-L110)
 - [src/generator.py:334-373](file://src/generator.py#L334-L373)
-- [android/app/src/main/java/com/books/app/TTSForegroundService.java:918-970](file://android/app/src/main/java/com/books/app/TTSForegroundService.java#L918-L970)
-- [src/static/js/speech.js:862-865](file://src/static/js/speech.js#L862-L865)
-- [android/app/src/main/java/com/books/app/MainActivity.java:25-27](file://android/app/src/main/java/com/books/app/MainActivity.java#L25-L27)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:948-1001](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L948-L1001)
+- [src/static/js/speech.js:866-868](file://src/static/js/speech.js#L866-L868)
+- [android/app/src/main/java/com/tehui/offline/MainActivity.java:25-27](file://android/app/src/main/java/com/tehui/offline/MainActivity.java#L25-L27)
 - [src/static/js/speech.js:1310-1331](file://src/static/js/speech.js#L1310-L1331)
 
 ## 结论

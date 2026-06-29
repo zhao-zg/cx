@@ -172,6 +172,21 @@ public class NativeTTSPlugin extends Plugin {
 
         if (text == null || text.trim().isEmpty()) return;
 
+        // 设置诊断 listener：使 handlePreSpeak 的 emitLog 能转发到 JS 控制台。
+        // speak() 调用时会覆盖此 listener，不影响正常流程。
+        TTSForegroundService.listener = new TTSForegroundService.Listener() {
+            @Override public void onFinished() {}
+            @Override public void onError(String message) {}
+            @Override public void onProgress(int charsDone, int totalChars) {}
+            @Override public void onLog(String msg) {
+                try {
+                    JSObject data = new JSObject();
+                    data.put("msg", msg);
+                    notifyListeners("ttsLog", data);
+                } catch (Exception ignored) {}
+            }
+        };
+
         Intent intent = new Intent(getContext(), TTSForegroundService.class);
         intent.setAction(TTSForegroundService.ACTION_PRE_SPEAK);
         intent.putExtra("text",   text);
