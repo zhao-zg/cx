@@ -21,10 +21,13 @@
 
 ## 更新摘要
 **变更内容**
+- 完善了TTS前台服务的资源清理逻辑，优化了静态实例管理机制
+- 在onDestroy中保留sStaticTts实例供Service重建后复用，避免重新绑定系统TTS服务的开销
+- 在handlePreSpeak中增加80ms延迟确保引擎完全重置
+- 改进合成阻塞处理，增强对引擎静默丢弃或阻塞的检测和恢复机制
 - 重构了合成过程，使用mainHandler.postDelayed()替代ttsHandler.postDelayed()，消除了线程阻塞问题
 - 增强了日志记录能力，添加了emitLog()和标准Android日志输出
 - 改进了错误处理机制，提供更好的synthesizeToFile操作反馈
-- 优化了线程同步机制，明确了mainHandler和ttsHandler的职责分离
 
 ## 目录
 1. [项目概述](#项目概述)
@@ -81,7 +84,7 @@ end
 - [config.yaml:1-57](file://config.yaml#L1-L57)
 - [android/app/src/main/java/com/tehui/offline/MainActivity.java:1-83](file://android/app/src/main/java/com/tehui/offline/MainActivity.java#L1-L83)
 - [android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java:1-306](file://android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java#L1-L306)
-- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:1-1767](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L1-L1767)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:1-1768](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L1-L1768)
 
 **章节来源**
 - [main.py:1-1230](file://main.py#L1-L1230)

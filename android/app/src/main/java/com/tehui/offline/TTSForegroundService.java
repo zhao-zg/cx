@@ -769,9 +769,11 @@ public class TTSForegroundService extends Service {
 
         if (ttsReady) {
             // ★ 与 handleSpeak 正常路径完全相同的模式：
-            //   主线程 tts.stop() → ttsHandler.postDelayed(80ms) → synthesizeToFile(ttsHandler)。
+            //   主线程 tts.stop() → ttsHandler.postDelayed(200ms) → synthesizeToFile(ttsHandler)。
             //   synthesizeToFile 必须在 ttsHandler 线程调用（与 handleSpeak 一致），
             //   在主线程调用会被引擎静默丢弃。
+            //   200ms 延迟：上一个页面的 handleStop 可能在 ttsHandler 上投递了 tts.stop()（50ms），
+            //   200ms 确保引擎已完全停止并重置内部状态，避免 synthesizeToFile 被静默丢弃。
             TextToSpeech t = tts;
             if (t != null) t.stop();
             final int capturedGen = speakGen;
@@ -779,7 +781,7 @@ public class TTSForegroundService extends Service {
                 if (speakGen != capturedGen) return;
                 if (synthForChunk != -1) return;
                 doSynthesizeChunk(0);
-            }, 80);
+            }, 200);
         }
         // TTS 尚未就绪时，initTts() 成功回调会检测 chunks 非空并启动预合成
     }
@@ -815,17 +817,33 @@ public class TTSForegroundService extends Service {
         isPaused     = false;
         pausedByUser = false;
         isPreSynthesis = false;
-        speakGen++;
         cancelPendingStop();
         stopPositionBroadcast();
         synthForChunk = -1;
         releaseMediaPlayer();
-        // ★ 仅 useSpeakDirect 模式需要 tts.stop()（speak 模式音频由引擎直接播放）。
-        //   synthesizeToFile 模式下不调 tts.stop()：MediaPlayer 已停止，
-        //   N+1 预合成的结果会被 gen 不匹配自动丢弃。
-        //   关键：tts.stop() 会使引擎进入异常状态，导致后续 synthesizeToFile()
-        //   被静默丢弃（页面切换后预合成失败的根因）。
-        if (useSpeakDirect && tts != null) tts.stop();
+        if (useSpeakDirect) {
+            // speak 模式：音频由引擎直接播放，tts.stop() 立即停止。
+            if (tts != null) tts.stop();
+            speakGen++;
+        } else {
+            // ★ synthesizeToFile 模式：安全停止引擎。
+            //   在 ttsHandler 线程上投递 tts.stop()，而非主线程。
+            //   ttsHandler 是 synthesizeToFile 的执行线程，从此线程调用 stop()
+            //   不会导致引擎进入异常状态（主线程调用才会导致后续
+            //   synthesizeToFile 被静默丢弃）。
+            //   50ms 延迟给引擎一个完成当前合成的窗口，避免中途强制截断。
+            speakGen++;
+            TextToSpeech t = tts;
+            final int stopGen = speakGen;  // speakGen 已递增，捕获当前值
+            if (t != null) {
+                ttsHandler.postDelayed(() -> {
+                    if (speakGen != stopGen) return; // 新会话已开始，放弃旧 stop
+                    try { t.stop(); } catch (Exception e) {
+                        android.util.Log.w("TTSFgSvc", "handleStop tts.stop() error: " + e.getMessage());
+                    }
+                }, 50);
+            }
+        }
         // ★ 不调 cleanTempFiles()：引擎可能正在写 N+1 预合成文件，
         //   删除正在写的文件会导致引擎进入异常状态，后续 synthesizeToFile 被静默丢弃。
         //   旧文件由 handleSpeak() 的 cleanStaleTempFiles() 清理。

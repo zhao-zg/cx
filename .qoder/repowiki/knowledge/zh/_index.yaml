@@ -3,11 +3,11 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-06-29T10:07:41Z"
+exported_at: "2026-06-29T10:38:43Z"
 modules:
     "":
-        dir_name: 晨读离线圣经训练多端交付平台
-        title: 晨读离线圣经训练多端交付平台
+        dir_name: 离线圣经训练多端分发平台
+        title: 离线圣经训练多端分发平台
         scope: []
         source_files: []
         children:
@@ -17,8 +17,8 @@ modules:
         depends_on: []
         related_to: []
     android_client:
-        dir_name: 晨读 Android 混合应用与原生能力桥接
-        title: 晨读 Android 混合应用与原生能力桥接
+        dir_name: Android 混合应用原生桥接与后台服务
+        title: Android 混合应用原生桥接与后台服务
         scope:
             - android/
         source_files: []
@@ -124,8 +124,8 @@ modules:
         related_to:
             - path: static_site_generator/core_engine
     static_site_generator:
-        dir_name: 特会信息静态化与离线 SPA 引擎
-        title: 特会信息静态化与离线 SPA 引擎
+        dir_name: 圣经特会静态站点生成器
+        title: 圣经特会静态站点生成器
         scope:
             - src/
         source_files: []

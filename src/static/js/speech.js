@@ -171,6 +171,10 @@
   // -- 预合成防重复：Router 双重 dispatch 时避免重复发送 preSynthesize（500ms 去重窗口）
   var _preSynthTime = 0;
 
+  // -- 跨页面 generation 计数器：全局递增，不在 init() 中重置
+  // 确保页面切换后旧回调（超时守卫、ttsPosition 等）仍能正确失效
+  var _speakGeneration = 0;
+
   // -- Init -----------------------------------------------------------------
 
   function init(options) {
@@ -406,7 +410,6 @@
       var startTime     = 0;   // Date.now() when current playback segment started
       var progressInterval = null;
       var isSeeking     = false;
-      var speakGeneration = 0;
       var isLooping     = localStorage.getItem('speechLoop') === '1';
       var _resumePercent = 0;   // % position to resume from after pause
       var _resumeNextSegPercent = -1; // % position of next segment boundary (NativeTTS, -1=unset)
@@ -679,8 +682,8 @@
       function onPlaybackNaturalEnd() {
         if (isLooping && fullText) {
           // 立即递增 generation，使所有旧回调（ttsPosition listener、chunk onerror 等）失效
-          ++speakGeneration;
-          var loopGen = speakGeneration;
+          ++_speakGeneration;
+          var loopGen = _speakGeneration;
           // 先进入 idle，防止 visibilitychange 在延迟内误判为"playing 但未在说话"而重入
           setState('idle');
           elapsedOffset = 0; startTime = 0;
@@ -689,7 +692,7 @@
           // 清除高亮，循环重新开始时从第一个元素重新标记
           clearTTSHighlight();
           setTimeout(function () {
-            if (loopGen !== speakGeneration) return;  // 期间被手动取消/暂停则放弃
+            if (loopGen !== _speakGeneration) return;  // 期间被手动取消/暂停则放弃
             startSpeakingFromPercent(0);
           }, 50);
         } else {
@@ -743,7 +746,7 @@
       }
 
       function resetState() {
-        ++speakGeneration;
+        ++_speakGeneration;
         if (_stopOnNav) { window.removeEventListener('hashchange', _stopOnNav); _stopOnNav = null; }
         stopProgressUpdate();
         clearTTSHighlight();
@@ -797,8 +800,8 @@
           setState('idle'); // 恢复状态，允许用户重试
           return;
         }
-        ++speakGeneration;
-        var gen  = speakGeneration;
+        ++_speakGeneration;
+        var gen  = _speakGeneration;
         var rate = Number(rateSelect.value) || 0.5;
 
         if (_nativePositionHandle) {
@@ -820,7 +823,7 @@
         if (typeof NativeTTS.addListener === 'function') {
           var _speakCallTime = Date.now(); // nativeSpeak 调用时刻
           var handle = NativeTTS.addListener('ttsPosition', function (data) {
-            if (gen !== speakGeneration || !data || data.posMs == null) return;
+            if (gen !== _speakGeneration || !data || data.posMs == null) return;
             // 首个 ttsPosition 事件 = 音频开始播放
             if (_lastPosMs < 0) {
               console.log('[CXSpeech] \u9996\u4e2a ttsPosition\uff0c\u51fa\u58f0\u5ef6\u8fdf ' + (Date.now() - _speakCallTime) + 'ms');
@@ -855,7 +858,7 @@
           // 注：ttsPosition 每 50ms 推送实时 charsDone（主驱动），
           // ttsProgress 仅在 chunk 完成时触发（备份锚点），两者互补
           var progressHandle = NativeTTS.addListener('ttsProgress', function (data) {
-            if (gen !== speakGeneration || !data || data.done == null) return;
+            if (gen !== _speakGeneration || !data || data.done == null) return;
             // 单调递增保护：忽略倒退值（防止 chunk 切换时瞬态回跳）
             if (data.done < _nativeCharsDone) return;
             _nativeCharsDone = data.done;
@@ -869,7 +872,7 @@
           var logHandle = NativeTTS.addListener('ttsLog', function (data) {
             if (data && data.msg) console.log('[TTSFgSvc] ' + data.msg);
           });
-          if (gen !== speakGeneration) {
+          if (gen !== _speakGeneration) {
             try { handle.remove(); } catch (e) {}
             try { progressHandle.remove(); } catch (e) {}
             try { logHandle.remove(); } catch (e) {}
@@ -886,15 +889,15 @@
                           loop: isLooping })
           .then(function (result) {
             var status = result && result.status;
-            console.log('[CXSpeech] speak resolved: status=' + status + ' gen=' + gen + ' curGen=' + speakGeneration);
-            if (gen !== speakGeneration) return;
+            console.log('[CXSpeech] speak resolved: status=' + status + ' gen=' + gen + ' curGen=' + _speakGeneration);
+            if (gen !== _speakGeneration) return;
             if (status === 'cancelled' || status === 'stopped') return;
             // Java 已处理循环（loop=true 时永不触发 onFinished），到达此处说明非循环播放自然结束
             resetState();
           })
           .catch(function (err) {
-            console.log('[CXSpeech] speak rejected: ' + (err && (err.message || err)) + ' gen=' + gen + ' curGen=' + speakGeneration);
-            if (gen !== speakGeneration) return;
+            console.log('[CXSpeech] speak rejected: ' + (err && (err.message || err)) + ' gen=' + gen + ' curGen=' + _speakGeneration);
+            if (gen !== _speakGeneration) return;
             stopProgressUpdate();
             setState('idle');
             var msg = (err && (err.message || err)) || '\u6717\u8bfb\u5931\u8d25';
@@ -905,17 +908,17 @@
 
         // 超时检测：3 秒内未出声则记录警告，5 秒后自动重试一次
         setTimeout(function() {
-          if (_lastPosMs < 0 && gen === speakGeneration && state === 'playing') {
+          if (_lastPosMs < 0 && gen === _speakGeneration && state === 'playing') {
             console.log('[CXSpeech] \u8b66\u544a: 3\u79d2\u672a\u51fa\u58f0\uff0c\u7b49\u5f85 Java \u54cd\u5e94...');
           }
         }, 3000);
         setTimeout(function() {
-          if (_lastPosMs < 0 && gen === speakGeneration && state === 'playing') {
+          if (_lastPosMs < 0 && gen === _speakGeneration && state === 'playing') {
             console.log('[CXSpeech] \u8d85\u65f6\u91cd\u8bd5: 5\u79d2\u672a\u51fa\u58f0\uff0c\u53d1\u9001 stop+speak \u91cd\u8bd5');
             // 尝试 stop 再 speak，看能否恢复
             try { NativeTTS.stop(); } catch(e) {}
             setTimeout(function() {
-              if (_lastPosMs < 0 && gen === speakGeneration && state === 'playing') {
+              if (_lastPosMs < 0 && gen === _speakGeneration && state === 'playing') {
                 console.log('[CXSpeech] \u91cd\u8bd5 speak...');
                 try {
                   NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
@@ -983,7 +986,7 @@
         // 跳过空白 chunk（segment 文本为空时产生）
         while (currentChunk < textChunks.length && !textChunks[currentChunk]) { currentChunk++; }
         if (currentChunk >= textChunks.length) { onPlaybackNaturalEnd(); return; }
-        var gen  = speakGeneration;
+        var gen  = _speakGeneration;
         var rate = Number(rateSelect.value) || 0.5;
         var utt  = new SpeechSynthesisUtterance(textChunks[currentChunk]);
         utt.lang = lang; utt.rate = rate;
@@ -998,26 +1001,26 @@
         setTTSHighlight(_segmentMap[markIdx] ? _segmentMap[markIdx].el : null);
 
         utt.onstart = function () {
-          if (gen !== speakGeneration || state !== 'playing') return;
+          if (gen !== _speakGeneration || state !== 'playing') return;
           // 重置时钟，保证进度条从本句实际开始时间起算
           elapsedOffset = currentElapsedSeconds();
           startTime = Date.now();
         };
         utt.onend = function () {
-          if (consumed || gen !== speakGeneration || state !== 'playing') return;
+          if (consumed || gen !== _speakGeneration || state !== 'playing') return;
           consumed = true;
           currentChunk++;
           wsPlayNextChunk();
         };
         utt.onerror = function (event) {
-          if (gen !== speakGeneration) return;
+          if (gen !== _speakGeneration) return;
           var err = event && event.error;
           if (err === 'interrupted' || err === 'cancelled') {
             if (consumed || state !== 'playing') return;
             consumed = true;
             currentChunk++; // per-sentence 模式下不重读同一句，直接推进
             setTimeout(function () {
-              if (gen !== speakGeneration || state !== 'playing') return;
+              if (gen !== _speakGeneration || state !== 'playing') return;
               wsPlayNextChunk();
             }, 80);
             return;
@@ -1026,7 +1029,7 @@
           consumed = true;
           currentChunk++;
           if (currentChunk < textChunks.length) {
-            setTimeout(function () { if (gen !== speakGeneration) return; wsPlayNextChunk(); }, 100);
+            setTimeout(function () { if (gen !== _speakGeneration) return; wsPlayNextChunk(); }, 100);
           } else {
             stopProgressUpdate(); setState('idle');
           }
@@ -1056,11 +1059,11 @@
         setTTSHighlight(_segmentMap[_ttsMarkOffset] ? _segmentMap[_ttsMarkOffset].el : null);
 
         if (useNativeTTS) {
-          // nativeSpeak does its own ++speakGeneration
+          // nativeSpeak does its own ++_speakGeneration
           nativeSpeak(segText, targetSecs);
         } else {
-          ++speakGeneration;
-          var gen = speakGeneration;
+          ++_speakGeneration;
+          var gen = _speakGeneration;
           try { window.speechSynthesis.cancel(); } catch (e) {}
           stopProgressUpdate();
           // 直接用 _segmentMap 各项的 speakText（buildAll 中已由 processText 处理），
@@ -1076,7 +1079,7 @@
           elapsedOffset = targetSecs; startTime = Date.now();
           setState('playing');
           setTimeout(function () {
-            if (gen !== speakGeneration) return;
+            if (gen !== _speakGeneration) return;
             wsPlayNextChunk();
           }, 50);
         }
@@ -1127,7 +1130,7 @@
         var pct = clamp(Number(progressBar.value) || 0, 0, 100);
         // NativeTTS 正在播放时需先 stop，否则新 speak 指令会被忽略导致无声
         if (useNativeTTS && state === 'playing') {
-          ++speakGeneration;   // 使旧 promise 失效，防止触发 onPlaybackNaturalEnd
+          ++_speakGeneration;   // 使旧 promise 失效，防止触发 onPlaybackNaturalEnd
           nativeStopService();
           setTimeout(function () { startSpeakingFromPercent(pct); }, 80);
         } else {
@@ -1234,7 +1237,7 @@
           }
           setState('paused');
         } else {
-          ++speakGeneration;
+          ++_speakGeneration;
           try { window.speechSynthesis.cancel(); } catch (e) {}
           setState('paused');
         }
@@ -1270,7 +1273,7 @@
 
       // -- Page unload --------------------------------------------------------
       window.addEventListener('beforeunload', function () {
-        ++speakGeneration;
+        ++_speakGeneration;
         if (useNativeTTS) nativeStopService(state !== 'idle');
         else { try { window.speechSynthesis.cancel(); } catch (e) {} }
       });
@@ -1290,7 +1293,7 @@
           if (useNativeTTS && state === 'playing' && fullText) {
             var pct = totalDuration > 0
               ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100) : 0;
-            ++speakGeneration;
+            ++_speakGeneration;
             nativeStopService();
             setTimeout(function () { startSpeakingFromPercent(pct); }, 80);
           }
