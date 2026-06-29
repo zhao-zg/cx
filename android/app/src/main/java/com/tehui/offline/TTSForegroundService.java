@@ -769,17 +769,14 @@ public class TTSForegroundService extends Service {
 
         if (ttsReady) {
             // ★ 与 handleSpeak 正常路径完全相同的模式：
-            //   主线程 tts.stop() → ttsHandler.postDelayed(80ms) → synthesizeToFile。
-            //   关键：tts.stop() 必须在主线程调用（非 ttsHandler），
-            //   postDelayed 非阻塞（非 Thread.sleep），ttsHandler 保持空闲处理引擎回调。
-            //   之前的方案在 ttsHandler 上调 tts.stop + Thread.sleep(80)，
-            //   阻塞了 ttsHandler 导致引擎回调无法及时处理，synthesizeToFile 被静默丢弃。
+            //   主线程 tts.stop() → 80ms 延迟 → synthesizeToFile。
+            //   使用 mainHandler 而非 ttsHandler（确保回调执行，便于诊断）。
             TextToSpeech t = tts;
             if (t != null) t.stop();
             final int capturedGen = speakGen;
-            ttsHandler.postDelayed(() -> {
+            mainHandler.postDelayed(() -> {
                 if (speakGen != capturedGen) return;
-                if (synthForChunk != -1) return; // initTts 回调已启动合成
+                if (synthForChunk != -1) return;
                 doSynthesizeChunk(0);
             }, 80);
         }
@@ -1027,6 +1024,8 @@ public class TTSForegroundService extends Service {
         synthForChunk = idx;
         synthStartTimeMs = System.currentTimeMillis();
         int ret = t.synthesizeToFile(text, (Bundle) null, outFile, uid);
+        emitLog("synth chunk" + idx + " ret=" + (ret == TextToSpeech.SUCCESS ? "SUCCESS" : "ERROR(" + ret + ")"));
+        android.util.Log.i("TTSFgSvc", "synthesizeToFile ret=" + ret + " for chunk " + idx);
         if (ret == TextToSpeech.ERROR) {
             // 首次失败重试一次
             setTtsParams();

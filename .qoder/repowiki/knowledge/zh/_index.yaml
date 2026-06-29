@@ -3,7 +3,7 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-06-29T08:38:18Z"
+exported_at: "2026-06-29T09:09:42Z"
 modules:
     "":
         dir_name: 晨读离线圣经训练平台
