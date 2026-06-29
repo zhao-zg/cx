@@ -554,8 +554,11 @@ public class TTSForegroundService extends Service {
         //   不取消合成、不递增 speakGen，待 onDone 自动启动播放。
         float seekSecs  = intent.getFloatExtra("startSecs", 0f);
         float totalSecs = intent.getFloatExtra("totalSecs", 0f);
+        // 检查预合成文件是否已完成（>1KB = 完整 WAV）
+        File _preSynthCheck = new File(getCacheDir(), "tts_g" + speakGen + "_c0.wav");
         boolean preSynthInProgress = (synthForChunk == 0 && isPreSynthesis
-                && seekSecs <= 0f && ttsReady && !chunks.isEmpty());
+                && seekSecs <= 0f && ttsReady && !chunks.isEmpty()
+                && (!_preSynthCheck.exists() || _preSynthCheck.length() < 1024));
 
         // Reset state
         isStopped    = false;
@@ -639,6 +642,25 @@ public class TTSForegroundService extends Service {
             //   onDone 检测到 isPreSynthesis=false 后会自动 startMediaPlayer。
             updateMediaMetadata();
             emitLog("handleSpeak: pre-synth in progress (gen=" + speakGen + "), waiting for onDone");
+            // ★ 超时保底：如果 4 秒内 onDone 未触发（合成被引擎静默丢弃），
+            //   取消并重新合成，避免无限等待。
+            final int fallbackGen = speakGen;
+            ttsHandler.postDelayed(() -> {
+                if (speakGen != fallbackGen || isStopped || isPaused) return;
+                File preFile = new File(getCacheDir(), "tts_g" + fallbackGen + "_c0.wav");
+                // 完整的 WAV 文件应 >1KB（200字中文约数百KB）；
+                // <1KB 说明只有 WAV 头或为空（合成被静默丢弃）
+                if (!preFile.exists() || preFile.length() < 1024) {
+                    emitLog("handleSpeak: pre-synth timeout (4s), re-synthesizing");
+                    synthForChunk = -1;
+                    TextToSpeech t = tts;
+                    if (t != null) t.stop();
+                    ttsHandler.postDelayed(() -> {
+                        if (speakGen != fallbackGen || isStopped) return;
+                        playChunkOnly();
+                    }, 80);
+                }
+            }, 4000);
         } else if (ttsReady) {
             // 先显式 stop() 确保引擎当前无正在进行的合成任务。
             // synthesizeToFile 内部使用 QUEUE_FLUSH 会再次清空队列，
@@ -746,8 +768,14 @@ public class TTSForegroundService extends Service {
         synthForChunk = -1;
 
         if (ttsReady) {
-            // 引擎就绪，立即预合成首 chunk
-            doSynthesizeChunk(0);
+            // ★ 延迟 50ms 再合成：页面切换时 handleStop() 可能刚调过 tts.stop()，
+            //   紧接着 synthesizeToFile 可能被引擎静默丢弃。
+            final int capturedGen = speakGen;
+            ttsHandler.postDelayed(() -> {
+                if (speakGen != capturedGen || isStopped) return;
+                if (synthForChunk != -1) return; // initTts 回调已启动合成
+                doSynthesizeChunk(0);
+            }, 50);
         }
         // TTS 尚未就绪时，initTts() 成功回调会检测 chunks 非空并启动预合成
     }
