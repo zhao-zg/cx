@@ -823,7 +823,12 @@ public class TTSForegroundService extends Service {
         stopPositionBroadcast();
         synthForChunk = -1;
         releaseMediaPlayer();
-        if (tts != null) tts.stop();
+        // ★ 仅 useSpeakDirect 模式需要 tts.stop()（speak 模式音频由引擎直接播放）。
+        //   synthesizeToFile 模式下不调 tts.stop()：MediaPlayer 已停止，
+        //   N+1 预合成的结果会被 gen 不匹配自动丢弃。
+        //   关键：tts.stop() 会使引擎进入异常状态，导致后续 synthesizeToFile()
+        //   被静默丢弃（页面切换后预合成失败的根因）。
+        if (useSpeakDirect && tts != null) tts.stop();
         cleanTempFiles();
         deleteTempFile(nextTempFile);
         nextTempFile = null;
