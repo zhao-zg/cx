@@ -436,11 +436,14 @@
       function setState(s) {
         state = s;
         var playing = (s === 'playing');
+        var paused  = (s === 'paused');
         if (playIcon && pauseIcon) {
           playIcon.style.display  = playing ? 'none'   : 'inline';
           pauseIcon.style.display = playing ? 'inline' : 'none';
         }
-        playPauseBtn.setAttribute('aria-label', playing ? '暂停' : '播放');
+        // paused 状态添加视觉提示：让用户知道点播放会从暂停位置继续而非从头开始
+        playPauseBtn.classList.toggle('cx-paused', paused);
+        playPauseBtn.setAttribute('aria-label', playing ? '暂停' : (paused ? '继续' : '播放'));
         updateMediaSessionState(playing);
       }
 

@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: android_client
-title: 晨读 Android 混合应用原生桥接层
+title: 晨读 Android 混合应用与原生能力桥接
 scope:
     - android/
 source_files: []

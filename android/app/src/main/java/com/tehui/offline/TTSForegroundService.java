@@ -508,6 +508,18 @@ public class TTSForegroundService extends Service {
         super.onDestroy();
     }
 
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        emitLog("onTaskRemoved: stopping playback and service");
+        // 用户从最近任务列表划掉应用 → 完全停止朗读，不暂停不恢复
+        handleStop();
+        // handleStop() 内部 schedulePendingStop() 延迟 2 秒销毁 Service（宽限期），
+        // 但杀进程场景应立即停止，取消延迟并直接销毁
+        cancelPendingStop();
+        stopSelf();
+        super.onTaskRemoved(rootIntent);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // Action handlers
     // ═══════════════════════════════════════════════════════════════════════
@@ -538,6 +550,13 @@ public class TTSForegroundService extends Service {
             return;
         }
 
+        // ★ 预合成正在进行时的快速路径：用户在预合成完成前点击播放。
+        //   不取消合成、不递增 speakGen，待 onDone 自动启动播放。
+        float seekSecs  = intent.getFloatExtra("startSecs", 0f);
+        float totalSecs = intent.getFloatExtra("totalSecs", 0f);
+        boolean preSynthInProgress = (synthForChunk == 0 && isPreSynthesis
+                && seekSecs <= 0f && ttsReady && !chunks.isEmpty());
+
         // Reset state
         isStopped    = false;
         isPaused     = false;
@@ -545,14 +564,14 @@ public class TTSForegroundService extends Service {
         chunkIndex   = 0;
         chunkStartPositionMs = 0;
         currentChunkActualDurationMs = 0;
-        speakGen++;
+        if (!preSynthInProgress) speakGen++;
         isPreSynthesis = false; // 正式播放，退出预合成模式
         // 重置播放模式和失败计数（每次新 speak 从 synthesizeToFile 开始尝试）
         useSpeakDirect = false;
         synthFailureCount = 0;
         directSpeakCharsDone = 0;
         // 重置流水线状态：清理上次会话可能剩下的预生成文件
-        synthForChunk = -1;
+        if (!preSynthInProgress) synthForChunk = -1;
         // ★ 不释放 MediaPlayer 原生资源：startMediaPlayer() 会复用现有实例（reset），
         //   避免 release()+new() 的开销（~30-50ms）。仅 stop 当前播放。
         {
@@ -575,8 +594,6 @@ public class TTSForegroundService extends Service {
         long _t1 = System.currentTimeMillis();
 
         // 根据 startSecs/totalSecs 比率跳到正确的起始 chunk（替代之前由 JS sliceText 实现的 seek）
-        float seekSecs  = intent.getFloatExtra("startSecs", 0f);
-        float totalSecs = intent.getFloatExtra("totalSecs", 0f);
         if (seekSecs > 0f && totalSecs > 0f && totalTextLength > 0) {
             int targetChar = (int)(totalTextLength * (seekSecs / totalSecs));
             int cumLen = 0;
@@ -617,7 +634,12 @@ public class TTSForegroundService extends Service {
         emitLog("handleSpeak: ttsReady=" + ttsReady + ", preSynth=" + _hasPreFile
                 + ", gen=" + speakGen + ", setup=" + (_t1 - _t0) + "ms, focus=" + (_t2 - _t1) + "ms");
 
-        if (ttsReady) {
+        if (preSynthInProgress) {
+            // ★ 预合成正在进行：不取消 tts.stop()，不调 playChunkOnly()。
+            //   onDone 检测到 isPreSynthesis=false 后会自动 startMediaPlayer。
+            updateMediaMetadata();
+            emitLog("handleSpeak: pre-synth in progress (gen=" + speakGen + "), waiting for onDone");
+        } else if (ttsReady) {
             // 先显式 stop() 确保引擎当前无正在进行的合成任务。
             // synthesizeToFile 内部使用 QUEUE_FLUSH 会再次清空队列，
             // 因此只需短暂等待引擎响应 stop() 即可。

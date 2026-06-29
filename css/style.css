@@ -477,6 +477,8 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .control-btn{min-width:40px;min-height:40px;padding:6px;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border);border-radius:var(--radius-sm);font-size:14px;color:var(--btn-primary-text);cursor:pointer;flex-shrink:0;box-shadow:var(--shadow-sm);font-weight:600}
 .control-btn:active{transform:scale(.95)}
 .play-pause-btn{font-size:16px}
+.play-pause-btn.cx-paused{background:rgba(255,165,0,0.12);border-color:rgba(255,165,0,0.5);animation:cx-pulse 2s ease-in-out infinite}
+@keyframes cx-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,165,0,0.3)}50%{box-shadow:0 0 0 4px rgba(255,165,0,0)}}
 .loop-btn{position:relative;overflow:visible;font-size:16px;transition:all .2s ease;background:var(--btn-primary-bg);border:1px solid var(--btn-primary-border)}
 .loop-btn.active{color:#fff;background:linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);border-color:var(--brand-dark);box-shadow:0 2px 8px rgba(var(--brand-rgb),0.3);transform:scale(1.05)}
 .progress-section{flex:1 1 auto;min-width:0;display:flex;gap:8px;align-items:center}
