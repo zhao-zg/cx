@@ -11,9 +11,17 @@
 - [android/app/src/main/assets/public/js/renderer.js](file://android/app/src/main/assets/public/js/renderer.js)
 - [android/app/src/main/assets/public/js/router.js](file://android/app/src/main/assets/public/js/router.js)
 - [android/app/src/main/assets/public/index.html](file://android/app/src/main/assets/public/index.html)
+- [android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java](file://android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java)
 - [app_config.json](file://app_config.json)
 - [requirements.txt](file://requirements.txt)
 </cite>
+
+## 更新摘要
+**变更内容**
+- 新增TTS参数设置过程的性能监控机制
+- 在doSynthesizeChunk方法中添加合成块字符数量日志记录
+- 增强TTS系统的诊断能力和性能监控水平
 
 ## 目录
 1. [项目概述](#项目概述)
@@ -30,7 +38,7 @@
 
 TTS静态实例管理系统是一个基于Python的静态网站生成器，专门用于处理和展示特会训练内容。该系统能够从Word文档中提取信息，生成静态HTML页面，并提供TTS（文本转语音）功能。
 
-系统采用前后端分离的架构设计，后端使用Python处理文档解析和静态页面生成，前端使用JavaScript实现SPA（单页应用）界面和TTS功能。
+系统采用前后端分离的架构设计，后端使用Python处理文档解析和静态页面生成，前端使用JavaScript实现SPA（单页应用）界面和TTS功能。**更新** 系统现已集成增强的性能监控机制，能够实时监测TTS参数设置过程的执行时间和合成块处理效率。
 
 ## 项目结构
 
@@ -54,6 +62,9 @@ F --> H[js/]
 F --> I[css/]
 F --> J[icons/]
 end
+subgraph "Android原生TTS"
+K[NativeTTSPlugin.java] --> L[TTSForegroundService.java]
+end
 subgraph "配置文件"
 B1[config.yaml] --> B2[app_config.json]
 B1 --> B3[requirements.txt]
@@ -63,6 +74,8 @@ end
 **图表来源**
 - [main.py:1-1230](file://main.py#L1-L1230)
 - [config.yaml:1-57](file://config.yaml#L1-L57)
+- [android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java:1-291](file://android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java#L1-L291)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:1-1667](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L1-L1667)
 
 **章节来源**
 - [main.py:1-1230](file://main.py#L1-L1230)
@@ -106,10 +119,19 @@ end
 - 访问时间控制
 - 赞助功能开关
 
+### TTS性能监控系统
+
+**更新** 系统现已集成增强的TTS性能监控机制：
+
+- **setTtsParams执行时间监控**: 在doSynthesizeChunk方法中新增对TTS参数设置过程的执行时间测量
+- **合成块字符数量日志**: 记录每个合成块的字符数量，便于性能分析和优化
+- **SLOW标记机制**: 当setTtsParams执行时间超过100ms时自动标记为SLOW，便于性能诊断
+
 **章节来源**
 - [src/models.py:1-232](file://src/models.py#L1-L232)
 - [src/parser_improved.py:1-800](file://src/parser_improved.py#L1-L800)
 - [src/generator.py:1-546](file://src/generator.py#L1-L546)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:918-970](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L918-L970)
 
 ## 架构概览
 
@@ -134,6 +156,12 @@ K --> P[renderer.js]
 P --> Q[router.js]
 Q --> R[index.html]
 end
+subgraph "TTS性能监控层"
+S[NativeTTSPlugin] --> T[TTSForegroundService]
+T --> U[性能监控机制]
+U --> V[SLOW标记]
+U --> W[字符数量日志]
+end
 A --> D
 B --> D
 C --> D
@@ -148,12 +176,16 @@ N --> O
 K --> P
 P --> Q
 Q --> R
+S --> T
+T --> U
 ```
 
 **图表来源**
 - [main.py:505-631](file://main.py#L505-L631)
 - [src/parser_improved.py:367-782](file://src/parser_improved.py#L367-L782)
 - [src/generator.py:383-425](file://src/generator.py#L383-L425)
+- [android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java:1-291](file://android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java#L1-L291)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:1-1667](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L1-L1667)
 
 ## 详细组件分析
 
@@ -255,6 +287,25 @@ Chapter --> Content : "包含"
 - [android/app/src/main/assets/public/js/router.js:1-130](file://android/app/src/main/assets/public/js/router.js#L1-L130)
 - [src/models.py:196-232](file://src/models.py#L196-L232)
 
+### TTS性能监控架构
+
+**更新** 新增的TTS性能监控机制：
+
+```mermaid
+flowchart TD
+A[doSynthesizeChunk] --> B[setTtsParams执行]
+B --> C{执行时间测量}
+C --> |超过100ms| D[标记为SLOW]
+C --> |≤100ms| E[正常执行]
+D --> F[emitLog记录]
+E --> F
+F --> G[字符数量日志]
+G --> H[性能诊断]
+```
+
+**图表来源**
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:918-970](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L918-L970)
+
 **章节来源**
 - [main.py:19-109](file://main.py#L19-L109)
 - [main.py:112-146](file://main.py#L112-L146)
@@ -283,6 +334,11 @@ subgraph "前端依赖"
 W[localforage] --> X[离线存储]
 Y[jszip] --> Z[压缩处理]
 end
+subgraph "Android原生依赖"
+AA[TextToSpeech] --> AB[TTS引擎]
+AC[MediaPlayer] --> AD[音频播放]
+AE[MediaSession] --> AF[媒体控制]
+end
 ```
 
 **图表来源**
@@ -305,6 +361,28 @@ end
 3. **增量更新**: 支持部分文件的增量重新生成
 4. **压缩优化**: 对输出文件进行gzip压缩
 
+### **更新** 性能监控增强
+
+**新增的性能监控机制**：
+
+#### setTtsParams执行时间监控
+- **监控范围**: 在doSynthesizeChunk方法中对setTtsParams执行时间进行测量
+- **阈值设置**: 超过100ms标记为SLOW，便于性能诊断
+- **日志记录**: 通过emitLog方法记录执行时间，便于开发者调试
+
+#### 合成块字符数量日志
+- **记录内容**: 每个合成块的字符数量统计
+- **用途**: 分析TTS处理效率，识别超大文本块的性能瓶颈
+- **实时性**: 在合成过程中实时记录，不影响整体性能
+
+#### 性能诊断功能
+- **慢速检测**: 自动识别执行时间过长的操作
+- **字符统计**: 提供详细的字符分布信息
+- **实时反馈**: 通过日志系统提供实时性能反馈
+
+**章节来源**
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:918-970](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L918-L970)
+
 ## 故障排除指南
 
 ### 常见问题及解决方案
@@ -324,19 +402,39 @@ end
 - 验证JavaScript文件加载状态
 - 确认路由配置正确性
 
+**4. TTS性能问题**
+- **SLOW标记**: 查看日志中setTtsParams执行时间超过100ms的情况
+- **字符数量异常**: 检查超大文本块的处理效率
+- **合成失败**: 关注连续合成失败的设备和场景
+
+**5. 性能监控问题**
+- **日志缺失**: 确认emitLog方法正常工作
+- **性能数据不准确**: 检查时间戳计算逻辑
+- **监控覆盖不足**: 确认所有关键路径都包含监控代码
+
 **章节来源**
 - [src/parser_improved.py:84-110](file://src/parser_improved.py#L84-L110)
 - [src/generator.py:334-373](file://src/generator.py#L334-L373)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:918-970](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L918-L970)
 
 ## 结论
 
 TTS静态实例管理系统是一个功能完整、架构清晰的静态网站生成器。系统通过合理的分层设计和模块化组织，实现了从文档解析到静态页面生成的完整流程。
 
-主要特点包括：
+**更新** 系统现已集成增强的性能监控机制，显著提升了TTS系统的诊断能力和性能监控水平：
+
+### 主要特点
 - 支持多种文档格式输入
 - 提供丰富的配置选项
 - 生成SPA兼容的静态内容
 - 内置TTS和搜索功能
 - 良好的性能和可扩展性
+- **新增** 实时性能监控和诊断能力
 
-该系统适用于需要处理大量训练材料并提供高质量阅读体验的应用场景。
+### 性能监控优势
+- **setTtsParams执行时间监控**: 自动检测慢速操作
+- **合成块字符统计**: 提供详细的处理效率数据
+- **实时日志记录**: 便于开发调试和性能分析
+- **SLOW标记机制**: 快速识别性能瓶颈
+
+该系统适用于需要处理大量训练材料并提供高质量阅读体验的应用场景，新增的性能监控功能进一步增强了系统的可靠性和可维护性。

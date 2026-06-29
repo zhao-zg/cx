@@ -760,6 +760,14 @@ def generate_main_index(config, batch_results):
                 shutil.copy2(src_f, os.path.join(static_img_dst, fn))
         print(f"✓ 静态图片已复制到 images/" + ('' if sponsor_enabled else '（赞助二维码已跳过）'))
 
+    # 赞助关闭时，删除 output/images/ 中可能残留的旧二维码图片
+    if not sponsor_enabled and os.path.isdir(static_img_dst):
+        for fn in _SPONSOR_IMAGE_FILES:
+            old = os.path.join(static_img_dst, fn)
+            if os.path.isfile(old):
+                os.remove(old)
+                print(f"  ✗ 已删除旧赞助图片 images/{fn}")
+
     # ── vendor 目录（localforage 等第三方库）────────────────────────────
     vendor_src = os.path.join('src', 'static', 'js', 'vendor')
     vendor_dst = os.path.join(output_dir, 'vendor')
