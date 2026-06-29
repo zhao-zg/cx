@@ -642,12 +642,14 @@ public class TTSForegroundService extends Service {
             //   onDone 检测到 isPreSynthesis=false 后会自动 startMediaPlayer。
             updateMediaMetadata();
             emitLog("handleSpeak: pre-synth in progress (gen=" + speakGen + "), waiting for onDone");
-            // ★ 超时保底：如果 4 秒内 onDone 未触发（合成被引擎静默丢弃），
+            // ★ 超时保底：如果 4 秒内 onDone 未触发（合成被引擎静默丢弃或阻塞），
             //   取消并重新合成，避免无限等待。
             //   检查 synthForChunk：onDone 触发后 N+1 预生成会将其改为 1，
             //   仍为 0 说明 onDone 从未触发。
+            //   ★ 必须用 mainHandler 而非 ttsHandler：synthesizeToFile 可能阻塞
+            //   ttsHandler 线程，导致同线程的超时永远无法执行。
             final int fallbackGen = speakGen;
-            ttsHandler.postDelayed(() -> {
+            mainHandler.postDelayed(() -> {
                 if (speakGen != fallbackGen || isStopped || isPaused) return;
                 if (synthForChunk != 0) return; // onDone 已触发，合成已完成
                 emitLog("handleSpeak: pre-synth timeout (4s), re-synthesizing");
@@ -766,14 +768,19 @@ public class TTSForegroundService extends Service {
         synthForChunk = -1;
 
         if (ttsReady) {
-            // ★ 延迟 50ms 再合成：页面切换时 handleStop() 可能刚调过 tts.stop()，
-            //   紧接着 synthesizeToFile 可能被引擎静默丢弃。
-            //   注意：不能检查 isStopped（handlePreSpeak 设为 true），
+            // ★ 页面切换时 handleStop() 调过 tts.stop()，引擎可能处于异常状态。
+            //   在 ttsHandler 线程上重新 stop() + 等待 80ms（与 handleSpeak 正常路径
+            //   完全相同的模式），确保引擎干净后再 synthesizeToFile。
+            //   不能检查 isStopped（handlePreSpeak 设为 true），
             //   speakGen 检查已足够防止过期回调。
             final int capturedGen = speakGen;
             ttsHandler.postDelayed(() -> {
                 if (speakGen != capturedGen) return;
                 if (synthForChunk != -1) return; // initTts 回调已启动合成
+                // 重新 flush 引擎（handleStop 的 stop 可能未完全生效）
+                TextToSpeech t = tts;
+                if (t != null) t.stop();
+                try { Thread.sleep(80); } catch (InterruptedException ignored) {}
                 doSynthesizeChunk(0);
             }, 100);
         }
