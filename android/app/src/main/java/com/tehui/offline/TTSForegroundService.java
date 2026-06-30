@@ -115,6 +115,10 @@ public class TTSForegroundService extends Service {
     //   若为 false，新建 Service 会误判为"正在播放"导致预合成被跳过。
     private volatile boolean    isStopped  = true;
     private volatile boolean    isPreSynthesis = false; // true = 预合成模式（页面加载时预生成首 chunk，不播放）
+    /** 预合成已请求但 doSynthesizeChunk 尚未在 ttsHandler 上开始。
+     *  handlePreSpeak 设置 true，doSynthesizeChunk 开头清 false。
+     *  handleSpeak 检测到此标志时不递增 speakGen，避免取消正在排队的预合成。 */
+    private volatile boolean    preSpeakPending = false;
     private volatile boolean    loopEnabled = false; // 循环播放开关，由 JS speak() 的 loop 参数控制
     private volatile int        speakGen   = 0;   // generation counter for stale-callback guard
     private float               playRate   = 1.0f;
@@ -557,8 +561,8 @@ public class TTSForegroundService extends Service {
         //   synthForChunk==0 表示合成进行中；onDone 预合成路径会重置为 -1 表示已完成。
         float seekSecs  = intent.getFloatExtra("startSecs", 0f);
         float totalSecs = intent.getFloatExtra("totalSecs", 0f);
-        boolean preSynthInProgress = (synthForChunk == 0 && isPreSynthesis
-                && seekSecs <= 0f && ttsReady && !chunks.isEmpty());
+        boolean preSynthInProgress = (preSpeakPending || (synthForChunk == 0 && isPreSynthesis))
+                && seekSecs <= 0f && ttsReady && !chunks.isEmpty();
 
         // Reset state
         isStopped    = false;
@@ -772,6 +776,7 @@ public class TTSForegroundService extends Service {
         totalTextLength = text.length();
         chunkIndex = 0;
         speakGen++;
+        preSpeakPending = true; // 标志预合成已排队，doSynthesizeChunk 执行时清除
         isStopped = true;  // 保持 stopped：onDone/onError 中不会触发播放
         isPreSynthesis = true; // 预合成模式：onDone 保留文件而不删除
         isPaused = false;
@@ -836,6 +841,7 @@ public class TTSForegroundService extends Service {
 
     private void handleStop() {
         emitLog("handleStop called: speakGen=" + speakGen + " chunks=" + chunks.size());
+        preSpeakPending = false; // 清除预合成排队标志，避免残留到新会话
         isStopped    = true;
         isPaused     = false;
         pausedByUser = false;
@@ -1077,6 +1083,7 @@ public class TTSForegroundService extends Service {
         // 预合成模式下 isStopped=true 但允许合成（isPreSynthesis=true 时跳过 isStopped 检查）
         if (t == null || !ttsReady || (isStopped && !isPreSynthesis)) return;
         if (idx < 0 || idx >= chunks.size()) return;
+        preSpeakPending = false; // 预合成已实际开始，清除排队标志
         String text = chunks.get(idx);
         String uid  = "g" + speakGen + "_c" + idx;
         File outFile = new File(getCacheDir(), "tts_" + uid + ".wav");
