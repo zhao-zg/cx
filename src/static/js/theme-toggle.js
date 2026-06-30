@@ -677,38 +677,7 @@
             } catch(e) {}
         })();
 
-        // ── 顾念微工（使用超过 5 分钟 + 服务器可达 + 远程图片可达时显示）────
-        (function() {
-            try {
-                var firstUse = parseInt(localStorage.getItem('cx_first_use') || '0', 10);
-                var elapsed = firstUse ? (Date.now() - firstUse) : 0;
-                if (elapsed < 5 * 60 * 1000) return;
-
-                var sponsorBtn = document.getElementById('sponsorBtn');
-                if (!sponsorBtn) return;
-
-                // 服务器不可达时直接隐藏，等可达性检查完成后再决定是否探测
-                if (window.CX_SERVERS_REACHABLE === false) return;
-
-                // 探测远程图片是否存在，任一服务器可达即显示按钮
-                var servers = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
-                var probeFile = 'images/zanzhu-wx.png';
-                var tried = 0;
-
-                function tryNext() {
-                    if (tried >= servers.length) return; // 全部失败，按钮保持隐藏
-                    var url = servers[tried++] + probeFile;
-                    var img = new Image();
-                    img.onload = function() {
-                        sponsorBtn.style.display = 'inline-flex';
-                        sponsorBtn.addEventListener('click', showSponsorDialog);
-                    };
-                    img.onerror = tryNext;
-                    img.src = url;
-                }
-                tryNext();
-            } catch(e) {}
-        })();
+        // ── 顾念微工：默认隐藏，等可达性检查完成后在 then 回调中决定是否探测 ──
 
         // ── 使用说明（所有页面）──────────────────────────────────────
         (function() {
@@ -831,7 +800,7 @@
         // ── 触发服务器可达性检查，完成后更新按钮可见性 ──────────────────
         checkServerReachability().then(function(reachable) {
             updateServerDependentButtons(reachable);
-            // 服务器可达时，额外探测赞助图片（若初始化时因可达性未知而跳过）
+            // 服务器可达时，探测赞助图片是否可获取，成功才显示按钮
             if (reachable) {
                 var sponsorBtn = document.getElementById('sponsorBtn');
                 if (sponsorBtn && sponsorBtn.style.display === 'none' && !sponsorBtn.dataset.probed) {
@@ -843,15 +812,25 @@
                             var servers = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
                             var probeFile = 'images/zanzhu-wx.png';
                             var tried = 0;
+                            var PROBE_TIMEOUT = 6000;
                             (function tryNext() {
                                 if (tried >= servers.length) return;
-                                var url = servers[tried++] + probeFile;
+                                var url = servers[tried++] + probeFile + '?t=' + Date.now();
                                 var img = new Image();
+                                var timer = setTimeout(function() {
+                                    img.onload = img.onerror = null;
+                                    img.src = '';
+                                    tryNext();
+                                }, PROBE_TIMEOUT);
                                 img.onload = function() {
+                                    clearTimeout(timer);
                                     sponsorBtn.style.display = 'inline-flex';
                                     sponsorBtn.addEventListener('click', showSponsorDialog);
                                 };
-                                img.onerror = tryNext;
+                                img.onerror = function() {
+                                    clearTimeout(timer);
+                                    tryNext();
+                                };
                                 img.src = url;
                             })();
                         }
@@ -1181,6 +1160,11 @@
                         img.addEventListener('click', function() {
                             if (window.openImageViewer) window.openImageViewer(img.src);
                         });
+                    },
+                    onError: function() {
+                        // 所有服务器图片均加载失败，隐藏按钮避免再次点击
+                        var sponsorBtn = document.getElementById('sponsorBtn');
+                        if (sponsorBtn) sponsorBtn.style.display = 'none';
                     }
                 }
             );

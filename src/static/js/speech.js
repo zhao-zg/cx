@@ -757,7 +757,8 @@
         if (_stopOnNav) { window.removeEventListener('hashchange', _stopOnNav); _stopOnNav = null; }
         stopProgressUpdate();
         clearTTSHighlight();
-        if (useNativeTTS) nativeStopService(state !== 'idle');
+        var sendStop = (state !== 'idle');
+        if (useNativeTTS) nativeStopService(sendStop);
         else { try { window.speechSynthesis.cancel(); } catch (e) {} }
         fullText = '';
         elapsedOffset = 0; startTime = 0; totalDuration = 0; _originalTotalDuration = 0;
@@ -767,10 +768,11 @@
         progressBar.value = '0';
         speechTime.textContent = '00:00 / 00:00';
         speechTime.style.color = '';
-        // 通知新页面 waitForStop：本次 resetState 已发送 NativeTTS.stop()，
-        // Java handleStop 完成后会触发 ttsStopped 事件。
-        // 旧页面的 listener 已在 nativeStopService 中移除。
-        _waitStopDone = true;
+        // ★ 仅在真正发送了 NativeTTS.stop() 时才等待 ttsStopped 事件。
+        //   App 启动时 Router 双重 dispatch 导致第二次 init() 的 cancel() 调用 resetState，
+        //   此时 state='idle'，sendStop=false，Java 不会发送 ttsStopped 事件。
+        //   若无条件设 _waitStopDone=true，会导致 preSynthesize 等待 5s 超时才发出。
+        _waitStopDone = sendStop;
         _waitStopGen = _speakGeneration;
         // 清除旧的 ttsStopped 监听（若有），等新页面 init 重新注册
         if (_ttsStoppedHandle) { try { _ttsStoppedHandle.remove(); } catch(e) {} _ttsStoppedHandle = null; }
