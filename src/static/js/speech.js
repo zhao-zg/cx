@@ -170,6 +170,10 @@
 
   // -- 预合成防重复：Router 双重 dispatch 时避免重复发送 preSynthesize（500ms 去重窗口）
   var _preSynthTime = 0;
+  // 跟踪正在进行的 preSynthesize Promise，供播放按钮等待预合成完成
+  var _preSynthPromise = null;
+  // 标记播放按钮正在等待预合成（防止重复点击），完成后清除
+  var _preparing = false;
 
   // -- 跨页面 generation 计数器：全局递增，不在 init() 中重置
   // 确保页面切换后旧回调（超时守卫、ttsPosition 等）仍能正确失效
@@ -759,6 +763,8 @@
         textChunks = []; currentChunk = 0;
         progressBar.value = '0';
         speechTime.textContent = '00:00 / 00:00';
+        speechTime.style.color = '';
+        _preparing = false;
         setState('idle');
       }
 
@@ -1157,6 +1163,11 @@
 
         // First press: load text and start from beginning
         if (state === 'idle') {
+          // 防止等待预合成期间重复点击
+          if (_preSynthPromise && _preparing) {
+            console.log('[CXSpeech] 预合成等待中，忽略重复点击');
+            return;
+          }
           var _t0 = Date.now();
           if (useNativeTTS) {
             var NativeTTS = getNativeTTS();
@@ -1194,8 +1205,41 @@
           speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
           _resumeNextSegPercent = -1;
           console.log('[CXSpeech] \u6587\u672c\u5c31\u7eea ' + (Date.now() - _t0) + 'ms\uff0c\u5f00\u59cb speak');
-          startSpeakingFromPercent(0);
-          console.log('[CXSpeech] nativeSpeak \u8c03\u7528\u5b8c\u6210 ' + (Date.now() - _t0) + 'ms');
+
+          // 若 preSynthesize 仍在进行中（页面切换后立即点播放），等待预合成完成再发送 speak()，
+          // 避免 Java 端因 WAV 未就绪而回退到全量合成（耗时 5-7s）导致 ttsPosition 超时。
+          if (useNativeTTS && _preSynthPromise) {
+            _preparing = true;
+            var _waitSynthT0 = Date.now();
+            // 捕获当前 generation，等待期间若发生页面切换（generation 递增），放弃发送
+            var _waitGen = _speakGeneration;
+            console.log('[CXSpeech] 等待 preSynthesize 完成 (gen=' + _waitGen + ')...');
+            speechTime.textContent = '准备中...';
+            speechTime.style.color = 'var(--text-muted, #888)';
+            _preSynthPromise.then(function() {
+              _preparing = false;
+              if (_waitGen !== _speakGeneration) {
+                console.log('[CXSpeech] preSynthesize 完成但页面已切换 (gen ' + _waitGen + '→' + _speakGeneration + ')，放弃');
+                return;
+              }
+              console.log('[CXSpeech] preSynthesize 完成，延迟 ' + (Date.now() - _waitSynthT0) + 'ms，发送 speak');
+              speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
+              speechTime.style.color = '';
+              startSpeakingFromPercent(0);
+              console.log('[CXSpeech] speak 发送完成 (总耗时 ' + (Date.now() - _t0) + 'ms)');
+            }).catch(function() {
+              _preparing = false;
+              if (_waitGen !== _speakGeneration) return;
+              console.log('[CXSpeech] preSynthesize 失败，仍发送 speak');
+              speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
+              speechTime.style.color = '';
+              startSpeakingFromPercent(0);
+              console.log('[CXSpeech] speak 发送完成 (总耗时 ' + (Date.now() - _t0) + 'ms)');
+            });
+          } else {
+            startSpeakingFromPercent(0);
+            console.log('[CXSpeech] speak 发送完成 ' + (Date.now() - _t0) + 'ms');
+          }
           return;
         }
 
@@ -1320,6 +1364,7 @@
       // 1. prebuildText() 预提取文本和 segmentMap
       // 2. preSynthesize() 将首 chunk 提前合成为 WAV 文件
       //    用户点播放时 handleSpeak() 发现预合成文件已存在，直接播放
+      //    若预合成尚未完成，播放按钮会等待 _preSynthPromise 完成再发送 speak()
       if (useNativeTTS && Date.now() - _preSynthTime > 500) {
         _preSynthTime = Date.now();
         try {
@@ -1329,18 +1374,22 @@
           if (prebuiltText.length > 0) {
             var preNativeTTS = getNativeTTS();
             if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
-              preNativeTTS.preSynthesize({
+              var _synthPromise = preNativeTTS.preSynthesize({
                 text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
                 title: title, artist: artist
-              }).then(function() {
-                console.log('[CXSpeech] preSynthesize \u5df2\u53d1\u9001 (' + (Date.now() - _preT0) + 'ms)');
+              });
+              _preSynthPromise = _synthPromise;
+              _synthPromise.then(function() {
+                console.log('[CXSpeech] preSynthesize 已完成 (' + (Date.now() - _preT0) + 'ms)');
+                if (_preSynthPromise === _synthPromise) _preSynthPromise = null;
               }).catch(function(e) {
-                console.log('[CXSpeech] preSynthesize \u5931\u8d25: ' + e);
+                console.log('[CXSpeech] preSynthesize 失败: ' + e);
+                if (_preSynthPromise === _synthPromise) _preSynthPromise = null;
               });
             }
           }
         } catch(e) {
-          console.log('[CXSpeech] prebuild \u5f02\u5e38: ' + e);
+          console.log('[CXSpeech] prebuild 异常: ' + e);
         }
       }
     }
