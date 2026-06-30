@@ -70,6 +70,13 @@ public class TTSForegroundService extends Service {
     }
     public static volatile Listener listener = null;
 
+    /**
+     * STOP 完成回调（独立于 speak listener）。
+     * handleStop() 完成引擎清理后，在主线程调用此 Runnable 通知 Plugin。
+     * Plugin 通过此回调发送 ttsStopped 事件到 JS，JS 收到后再安全启动 preSynthesize。
+     */
+    public static volatile Runnable onServiceStopped = null;
+
     /** 发送诊断日志到 JS DevTools（通过 Listener.onLog） */
     private static void emitLog(String msg) {
         Listener cb = listener;
@@ -887,6 +894,14 @@ public class TTSForegroundService extends Service {
         // cancelPendingStop() 会取消销毁并继续播放。
         updateNotification(false);
         schedulePendingStop();
+        // ★ 通知 JS：STOP 已处理完毕（speakGen+1 已使旧操作失效、tts.stop() 已投递），
+        //    JS 收到 ttsStopped 事件后可安全启动 preSynthesize，无需硬编码 3s 延迟。
+        //    synthesizeToFile 模式下 tts.stop() 已投递 50ms 延迟，再留 50ms 余量确保完成。
+        Runnable r = onServiceStopped;
+        onServiceStopped = null;
+        if (r != null) {
+            mainHandler.postDelayed(r, 100);
+        }
     }
 
     private void handlePause() {

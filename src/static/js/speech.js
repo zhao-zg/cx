@@ -170,8 +170,13 @@
 
   // -- 预合成防重复：Router 双重 dispatch 时避免重复发送 preSynthesize（500ms 去重窗口）
   var _preSynthTime = 0;
-  // 延迟预合成定时器（resetState 后延迟 preSynthesize，等 Java 处理完 STOP）
-  var _preSynthRetryTimer = null;
+  // stop → ttsStopped 事件驱动等待标记。
+  // resetState 发送 NativeTTS.stop() 后置 true，Java handleStop 完成后
+  // 触发 ttsStopped 事件，JS 收到后清除此标记并发送 preSynthesize。
+  // 替代之前的盲等 3s 定时器方案。
+  var _waitStopDone = false;
+  var _waitStopGen = 0;
+  var _ttsStoppedHandle = null;   // Capacitor addListener handle
 
   // -- 跨页面 generation 计数器：全局递增，不在 init() 中重置
   // 确保页面切换后旧回调（超时守卫、ttsPosition 等）仍能正确失效
@@ -762,11 +767,13 @@
         progressBar.value = '0';
         speechTime.textContent = '00:00 / 00:00';
         speechTime.style.color = '';
-        // 阻止新页面立即发送 preSynthesize：Java 端 STOP 可能仍在处理中，
-        // 此时启动 preSynthesize 会导致 onDone 回调丢失 → 播放时永久等待超时。
-        // startInit() 检测到此阻止后，会延迟 3s 再重试，确保 STOP 处理完毕。
-        _preSynthTime = Date.now();
-        if (_preSynthRetryTimer) { clearTimeout(_preSynthRetryTimer); _preSynthRetryTimer = null; }
+        // 通知新页面 waitForStop：本次 resetState 已发送 NativeTTS.stop()，
+        // Java handleStop 完成后会触发 ttsStopped 事件。
+        // 旧页面的 listener 已在 nativeStopService 中移除。
+        _waitStopDone = true;
+        _waitStopGen = _speakGeneration;
+        // 清除旧的 ttsStopped 监听（若有），等新页面 init 重新注册
+        if (_ttsStoppedHandle) { try { _ttsStoppedHandle.remove(); } catch(e) {} _ttsStoppedHandle = null; }
         setState('idle');
       }
 
@@ -1325,52 +1332,85 @@
       if (useWebSpeech) setupMediaSession();
 
       // -- 预构建朗读文本 + 预合成首 chunk（NativeTTS only） --------------------
-      // 1. prebuildText() 预提取文本和 segmentMap
-      // 2. preSynthesize() 将首 chunk 提前合成为 WAV 文件
+      // 1. prebuildText() 预提取文本和 segmentMap（始终立即执行，轻量 DOM 克隆）
+      // 2. 若刚发送过 NativeTTS.stop()（_waitStopDone=true），等待 Java 的
+      //    ttsStopped 事件后再发 preSynthesize；否则直接发送。
       //    播放按钮直接发 speak()，Java 端检测到预合成文件就绪则立即播放，
       //    未就绪则等待 onDone 或回退全量合成。
-      if (useNativeTTS && Date.now() - _preSynthTime > 500) {
-        _preSynthTime = Date.now();
+      if (useNativeTTS) {
+        // 预构建文本始终立即执行（轻量，不修改 DOM）
         try {
-          var _preT0 = Date.now();
-          var prebuiltText = prebuildText();
-          console.log('[CXSpeech] prebuildText: ' + prebuiltText.length + ' chars in ' + (Date.now() - _preT0) + 'ms');
-          if (prebuiltText.length > 0) {
-            var preNativeTTS = getNativeTTS();
-            if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
-              preNativeTTS.preSynthesize({
-                text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
-                title: title, artist: artist
-              }).catch(function(e) {
-                console.log('[CXSpeech] preSynthesize 失败: ' + e);
-              });
-            }
-          }
+          prebuildText();
         } catch(e) {
           console.log('[CXSpeech] prebuild 异常: ' + e);
         }
-      } else if (useNativeTTS) {
-        // preSynthesize 被阻止（刚发生 resetState，Java 正在处理 STOP）。
-        // 延迟 3s 重试，确保 Java 端 STOP 处理完毕、TTS 引擎回到稳定状态后，
-        // 再启动预合成，避免 onDone 回调丢失。
-        if (_preSynthRetryTimer) clearTimeout(_preSynthRetryTimer);
-        _preSynthRetryTimer = setTimeout(function() {
-          _preSynthRetryTimer = null;
-          _preSynthTime = 0;  // 清除阻止标记
-          var prebuiltText = prebuildText();
-          console.log('[CXSpeech] preSynthesize retry (3s delay): ' + prebuiltText.length + ' chars');
-          if (prebuiltText.length > 0) {
+
+        if (_waitStopDone) {
+          // 刚发过 STOP，等待 Java handleStop 完成后再发 preSynthesize
+          var _stopGen = _waitStopGen;
+          console.log('[CXSpeech] 等待 ttsStopped 事件 (gen=' + _stopGen + ')...');
+          // 清除旧监听（resetState 中已清除过，此处双保险）
+          if (_ttsStoppedHandle) { try { _ttsStoppedHandle.remove(); } catch(e) {} }
+          var NativeTTS = getNativeTTS();
+          if (NativeTTS && typeof NativeTTS.addListener === 'function') {
+            _ttsStoppedHandle = NativeTTS.addListener('ttsStopped', function() {
+              if (_stopGen !== _waitStopGen) return;
+              console.log('[CXSpeech] ttsStopped 事件到达，发送 preSynthesize');
+              _waitStopDone = false;
+              if (_ttsStoppedHandle) { try { _ttsStoppedHandle.remove(); } catch(e) {} _ttsStoppedHandle = null; }
+              _preSynthTime = Date.now();  // 防 Router 双重 dispatch
+              var preNativeTTS = getNativeTTS();
+              if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
+                var prebuiltText = prebuildText();
+                if (prebuiltText.length > 0) {
+                  preNativeTTS.preSynthesize({
+                    text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
+                    title: title, artist: artist
+                  }).catch(function(e) {
+                    console.log('[CXSpeech] preSynthesize 失败: ' + e);
+                  });
+                }
+              }
+            });
+          }
+          // 安全兜底：5s 后若 ttsStopped 仍未到达，强制发送 preSynthesize
+          setTimeout(function() {
+            if (_stopGen !== _waitStopGen || !_waitStopDone) return;
+            console.log('[CXSpeech] ttsStopped 超时 (5s)，强制发送 preSynthesize');
+            _waitStopDone = false;
+            if (_ttsStoppedHandle) { try { _ttsStoppedHandle.remove(); } catch(e) {} _ttsStoppedHandle = null; }
+            _preSynthTime = Date.now();
             var preNativeTTS = getNativeTTS();
             if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
-              preNativeTTS.preSynthesize({
-                text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
-                title: title, artist: artist
-              }).catch(function(e) {
-                console.log('[CXSpeech] preSynthesize retry 失败: ' + e);
-              });
+              var prebuiltText = prebuildText();
+              if (prebuiltText.length > 0) {
+                preNativeTTS.preSynthesize({
+                  text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
+                  title: title, artist: artist
+                }).catch(function(e) {
+                  console.log('[CXSpeech] preSynthesize 兜底失败: ' + e);
+                });
+              }
+            }
+          }, 5000);
+        } else {
+          // 首次加载或 Router 双重 dispatch：直接发送 preSynthesize
+          if (Date.now() - _preSynthTime > 500) {
+            _preSynthTime = Date.now();
+            var preNativeTTS = getNativeTTS();
+            if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
+              var prebuiltText = prebuildText();
+              if (prebuiltText.length > 0) {
+                preNativeTTS.preSynthesize({
+                  text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
+                  title: title, artist: artist
+                }).catch(function(e) {
+                  console.log('[CXSpeech] preSynthesize 失败: ' + e);
+                });
+              }
             }
           }
-        }, 1000);
+        }
       }
     }
 

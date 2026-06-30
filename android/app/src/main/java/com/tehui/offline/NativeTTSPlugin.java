@@ -120,7 +120,16 @@ public class NativeTTSPlugin extends Plugin {
     @PluginMethod
     public void stop(PluginCall call) {
         cancelActiveCall("stopped");
-        TTSForegroundService.listener = null;
+        // ★ 不立即置 null listener：旧 listener 的 onFinished 可能被
+        //    handleStop 触发，但 resolveActiveCall 会 null-check activeCall，
+        //    双调 resolve 安全（Capacitor 忽略已 resolved 的 call）。
+        //    preSynthesize 随后会覆盖此 listener，handleStop 不依赖它。
+        // ★ 设置 onServiceStopped 回调：handleStop 完成引擎清理后，
+        //    会通知 JS "ttsStopped" 事件，JS 收到后再安全启动 preSynthesize。
+        TTSForegroundService.onServiceStopped = () -> {
+            JSObject data = new JSObject();
+            notifyListeners("ttsStopped", data);
+        };
         sendServiceAction(TTSForegroundService.ACTION_STOP);
         call.resolve();
     }
