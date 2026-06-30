@@ -3,7 +3,7 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-06-29T16:38:25Z"
+exported_at: "2026-06-29T23:50:14Z"
 modules:
     "":
         dir_name: 离线圣经训练多端交付平台
@@ -17,8 +17,8 @@ modules:
         depends_on: []
         related_to: []
     android_client:
-        dir_name: Android 混合应用原生桥接与后台服务
-        title: Android 混合应用原生桥接与后台服务
+        dir_name: Android 原生桥接与后台服务
+        title: Android 原生桥接与后台服务
         scope:
             - android/
         source_files: []

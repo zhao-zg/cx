@@ -780,26 +780,31 @@ public class TTSForegroundService extends Service {
         synthForChunk = -1;
 
         if (ttsReady) {
-            // ★ tts.stop() 和 synthesizeToFile 都必须在 ttsHandler 线程调用，
-            //   主线程调用 stop() 会导致后续 synthesizeToFile 被引擎静默丢弃。
-            //   采用嵌套 postDelayed：先在 ttsHandler 上 stop，再延迟 200ms 合成，
-            //   确保 stop 和合成在同一线程顺序执行，无竞态。
-            //   200ms 延迟：上一个页面的 handleStop 可能在 ttsHandler 上投递了 tts.stop()（50ms），
-            //   200ms 确保引擎已完全停止并重置内部状态。
+            // ★ stop 和 synthesize 必须在 ttsHandler 线程上顺序执行：
+            //   1) 主线程调用 tts.stop() 会导致引擎内部状态异常，后续
+            //      synthesizeToFile 被静默丢弃——因此 stop 也必须在 ttsHandler 上。
+            //   2) 同一线程顺序执行保证 stop 完成后引擎已完全重置，
+            //      200ms 延迟后 synthesizeToFile 在干净的引擎上执行。
+            //   3) Router 双重 dispatch 会产生两次 handlePreSpeak，第二次
+            //      的 stop 会取消第一次正在进行的合成（speakGen 守卫），
+            //      然后 200ms 后第二次合成在干净引擎上执行，不会竞态。
+            //   4) handleStop 的 50ms stop 已无条件执行（无 speakGen 守卫），
+            //      此处的 post() 在 ttsHandler 队列中排在 handleStop 的 stop 之后，
+            //      200ms 延迟从 stop 完成后开始计算，时间充裕。
             final int capturedGen = speakGen;
-            ttsHandler.postDelayed(() -> {
-                if (speakGen != capturedGen) return;
-                if (synthForChunk != -1) return;
+            ttsHandler.post(() -> {
+                // 第一步：在 ttsHandler 线程上停止引擎（非主线程！）
                 TextToSpeech t = tts;
                 if (t != null) try { t.stop(); } catch (Exception e) {
                     android.util.Log.w("TTSFgSvc", "handlePreSpeak ttsHandler tts.stop() error: " + e.getMessage());
                 }
+                // 第二步：延迟 200ms 后合成（给引擎充足的重置时间）
                 ttsHandler.postDelayed(() -> {
                     if (speakGen != capturedGen) return;
                     if (synthForChunk != -1) return;
                     doSynthesizeChunk(0);
                 }, 200);
-            }, 0);
+            });
         }
         // TTS 尚未就绪时，initTts() 成功回调会检测 chunks 非空并启动预合成
     }
@@ -852,12 +857,16 @@ public class TTSForegroundService extends Service {
             //   50ms 延迟给引擎一个完成当前合成的窗口，避免中途强制截断。
             speakGen++;
             TextToSpeech t = tts;
-            final int stopGen = speakGen;  // speakGen 已递增，捕获当前值
             if (t != null) {
                 ttsHandler.postDelayed(() -> {
-                    if (speakGen != stopGen) return; // 新会话已开始，放弃旧 stop
+                    // ★ 无 speakGen 守卫：handleStop 的 tts.stop() 必须始终执行。
+                    //   handlePreSpeak 递增 speakGen 不应阻止这个必要的引擎停止——
+                    //   事实上 handlePreSpeak 依赖此 stop 清理引擎残留合成，
+                    //   否则后续 synthesizeToFile 会被引擎静默丢弃。
+                    //   handleStop 的 50ms stop 始终在 handlePreSpeak 的 200ms
+                    //   synthesis 之前完成，时序安全。
                     try { t.stop(); } catch (Exception e) {
-                        android.util.Log.w("TTSFgSvc", "handleStop tts.stop() error: " + e.getMessage());
+                        android.util.Log.w("TTSFgSvc", "handleStop delayed tts.stop() error: " + e.getMessage());
                     }
                 }, 50);
             }
