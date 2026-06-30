@@ -723,6 +723,11 @@
       pages.forEach(function(p) { p.scrollTop = 0; p.scrollLeft = 0; });
       pages.forEach(function(p, i){ p.classList.toggle('is-active', i === currentPage); });
       dayLinks.forEach(function(l, i){ l.classList.toggle('active', i === currentPage); });
+      // 翻页时清除可能残留的跨天选区，确保不会带到新页面
+      try {
+        var sel = win.getSelection();
+        if (sel) sel.removeAllRanges();
+      } catch(e) {}
       if (prevBtn) prevBtn.disabled = currentPage === 0;
       if (nextBtn) nextBtn.disabled = currentPage === totalPages - 1;
       if (indicator) indicator.textContent = (currentPage+1) + ' / ' + totalPages;
@@ -826,6 +831,74 @@
     }
     _lockScroll(container);
     pages.forEach(function (p) { _lockScroll(p); });
+
+    // ── 复制隔离：确保复制操作只包含当前活跃天的内容 ──────────────────
+    // 防止浏览器 select-all（Ctrl+A / 长按全选）将非活跃天的内容一并复制。
+    // 1) selectstart 防护：阻止选区从非活跃天开始
+    pages.forEach(function (p, i) {
+      p.addEventListener('selectstart', function (e) {
+        if (i !== currentPage) {
+          e.preventDefault();
+        }
+      });
+    });
+
+    // 2) copy 事件拦截：如果选区跨越了多个 day-page，用当前天的完整文本替换剪贴板
+    document.addEventListener('copy', function (e) {
+      // 仅当晨读页存在时处理
+      var activePage = pages[currentPage];
+      if (!activePage) return;
+      var sel = win.getSelection();
+      if (!sel || sel.isCollapsed) return;
+
+      // 检查选区是否包含非活跃天的内容
+      var range = sel.getRangeAt(0);
+      var commonAncestor = range.commonAncestorContainer;
+      // 向上查找是否跨越了 pages-track 或更高层级
+      var node = commonAncestor;
+      var spansMultipleDays = false;
+      while (node && node !== document.body) {
+        if (node.classList && node.classList.contains('pages-track')) {
+          spansMultipleDays = true;
+          break;
+        }
+        // 如果 common ancestor 是 document 或 morning-revival-page 等高层容器，也视为跨天
+        if (node.classList && (node.classList.contains('morning-revival-page') || node.classList.contains('container'))) {
+          spansMultipleDays = true;
+          break;
+        }
+        node = node.parentNode;
+      }
+
+      if (!spansMultipleDays) return; // 选区在单天内，正常复制
+
+      // 阻止默认复制，用当前天内容替换
+      e.preventDefault();
+      var plainText = activePage.innerText || activePage.textContent || '';
+      // 同时构建简易 HTML（保留段落换行），用于富文本粘贴
+      var htmlContent = '';
+      var children = activePage.children;
+      for (var ci = 0; ci < children.length; ci++) {
+        htmlContent += children[ci].innerHTML || '';
+      }
+      try {
+        if (e.clipboardData) {
+          e.clipboardData.setData('text/plain', plainText);
+          if (htmlContent) e.clipboardData.setData('text/html', htmlContent);
+        }
+      } catch (ex) {
+        // 回退：用 execCommand
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = plainText;
+          ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        } catch (ex2) {}
+      }
+    });
   }
 
   // ── 设置内容并初始化全部功能 ─────────────────────────────────────────
