@@ -563,29 +563,30 @@ public class TTSForegroundService extends Service {
             return;
         }
 
-        // ★ 预合成正在进行时的快速路径：用户在预合成完成前点击播放。
-        //   不取消合成、不递增 speakGen，待 onDone 自动启动播放。
-        //   synthForChunk==0 表示合成进行中；onDone 预合成路径会重置为 -1 表示已完成。
         float seekSecs  = intent.getFloatExtra("startSecs", 0f);
         float totalSecs = intent.getFloatExtra("totalSecs", 0f);
-        boolean preSynthInProgress = (preSpeakPending || (synthForChunk == 0 && isPreSynthesis))
-                && seekSecs <= 0f && ttsReady && !chunks.isEmpty();
 
         // Reset state
+        // ★ 始终取消进行中的预合成并递增 speakGen：
+        //   预合成可能来自上一个页面的文本（用户导航后 ttsStopped 事件触发），
+        //   等待旧预合成完成会导致 5-8 秒延迟（pre-synth 合成 200 字符需 3-5 秒，
+        //   加上 JS 5s 超时重试的叠加）。
+        //   如果预合成文件已存在，下方 _hasPreFile 检查会捕获并使用（20ms 快速路径）；
+        //   如果文件尚未生成，取消旧合成并走正常路径更安全。
         isStopped    = false;
         isPaused     = false;
         pausedByUser = false;
         chunkIndex   = 0;
         chunkStartPositionMs = 0;
         currentChunkActualDurationMs = 0;
-        if (!preSynthInProgress) speakGen++;
+        preSpeakPending = false;
+        speakGen++;
         isPreSynthesis = false; // 正式播放，退出预合成模式
         // 重置播放模式和失败计数（每次新 speak 从 synthesizeToFile 开始尝试）
         useSpeakDirect = false;
         synthFailureCount = 0;
         directSpeakCharsDone = 0;
-        // 重置流水线状态：清理上次会话可能剩下的预生成文件
-        if (!preSynthInProgress) synthForChunk = -1;
+        synthForChunk = -1;
         // ★ 不释放 MediaPlayer 原生资源：startMediaPlayer() 会复用现有实例（reset），
         //   避免 release()+new() 的开销（~30-50ms）。仅 stop 当前播放。
         {
@@ -648,37 +649,7 @@ public class TTSForegroundService extends Service {
         emitLog("handleSpeak: ttsReady=" + ttsReady + ", preSynth=" + _hasPreFile
                 + ", gen=" + speakGen + ", setup=" + (_t1 - _t0) + "ms, focus=" + (_t2 - _t1) + "ms");
 
-        if (preSynthInProgress) {
-            // ★ 预合成正在进行：不取消 tts.stop()，不调 playChunkOnly()。
-            //   onDone 检测到 isPreSynthesis=false 后会自动 startMediaPlayer。
-            updateMediaMetadata();
-            emitLog("handleSpeak: pre-synth in progress (gen=" + speakGen + "), waiting for onDone");
-            // ★ 超时保底：如果 4 秒内 onDone 未触发（合成被引擎静默丢弃或阻塞），
-            //   取消并重新合成，避免无限等待。
-            //   检查 synthForChunk：onDone 触发后 N+1 预生成会将其改为 1，
-            //   仍为 0 说明 onDone 从未触发。
-            //   ★ 必须用 mainHandler 而非 ttsHandler：synthesizeToFile 可能阻塞
-            //   ttsHandler 线程，导致同线程的超时永远无法执行。
-            final int fallbackGen = speakGen;
-            mainHandler.postDelayed(() -> {
-                if (speakGen != fallbackGen || isStopped || isPaused) return;
-                if (synthForChunk != 0) return; // onDone 已触发，合成已完成
-                emitLog("handleSpeak: pre-synth timeout (4s), re-synthesizing");
-                synthForChunk = -1;
-                // ★ tts.stop() 必须在 ttsHandler 线程调用，主线程调用会导致
-                //   后续 synthesizeToFile 被引擎静默丢弃。
-                ttsHandler.postDelayed(() -> {
-                    TextToSpeech t = tts;
-                    if (t != null) try { t.stop(); } catch (Exception e) {
-                        android.util.Log.w("TTSFgSvc", "handleSpeak timeout tts.stop() error: " + e.getMessage());
-                    }
-                    ttsHandler.postDelayed(() -> {
-                        if (speakGen != fallbackGen || isStopped) return;
-                        playChunkOnly();
-                    }, 80);
-                }, 0);
-            }, 4000);
-        } else if (ttsReady) {
+        if (ttsReady) {
             // ★ tts.stop() 必须在 ttsHandler 线程调用，主线程调用会导致
             //   后续 synthesizeToFile 被引擎静默丢弃。
             //   将 stop 投递到 ttsHandler，再延迟执行 playChunkOnly，

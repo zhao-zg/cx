@@ -340,6 +340,74 @@
     };
     let pageScrollLockCount = 0;
 
+    // ── 服务器可达性检查（应用启动时执行）──────────────────────────────
+    // 检查远程服务器是否可达，结果存入 window.CX_SERVERS_REACHABLE
+    // 不可达时隐藏：检查更新、问题反馈、顾念微工
+    function checkServerReachability() {
+        var servers = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
+        if (!servers.length) {
+            window.CX_SERVERS_REACHABLE = false;
+            return Promise.resolve(false);
+        }
+        var TIMEOUT = 5000;
+        var promises = servers.map(function(serverUrl) {
+            return new Promise(function(resolve) {
+                var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                var timer = setTimeout(function() {
+                    if (ctrl) try { ctrl.abort(); } catch(e) {}
+                    resolve(false);
+                }, TIMEOUT);
+                var opts = { method: 'HEAD', cache: 'no-cache' };
+                if (ctrl) opts.signal = ctrl.signal;
+                fetch(serverUrl, opts)
+                    .then(function(r) { clearTimeout(timer); resolve(r.ok); })
+                    .catch(function() { clearTimeout(timer); resolve(false); });
+            });
+        });
+        return Promise.all(promises).then(function(results) {
+            var reachable = results.some(function(r) { return r === true; });
+            window.CX_SERVERS_REACHABLE = reachable;
+            console.log('[连通性] 服务器' + (reachable ? '可达' : '不可达'));
+            return reachable;
+        });
+    }
+
+    // 根据服务器可达性更新依赖网络的 UI 元素
+    function updateServerDependentButtons(reachable) {
+        var updateBtn = document.getElementById('checkUpdateBtn');
+        var feedbackBtn = document.getElementById('feedbackBtn');
+        var autoCheckSection = document.getElementById('autoCheckSection');
+
+        if (!reachable) {
+            if (updateBtn) updateBtn.style.display = 'none';
+            if (feedbackBtn) feedbackBtn.style.display = 'none';
+            if (autoCheckSection) autoCheckSection.style.display = 'none';
+        } else {
+            // 恢复检查更新按钮（仅对应环境）
+            if (updateBtn) {
+                var _isCap = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
+                                 window.Capacitor.isNativePlatform());
+                var _isSA  = (window.navigator.standalone === true) ||
+                             window.matchMedia('(display-mode: standalone)').matches;
+                if (_isCap || (_isSA && ('caches' in window))) {
+                    updateBtn.style.display = 'inline-flex';
+                }
+            }
+            // 恢复问题反馈按钮
+            if (feedbackBtn) feedbackBtn.style.display = 'inline-flex';
+            // 恢复自动检查更新偏好设置
+            if (autoCheckSection) {
+                var _isCap2 = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
+                                  window.Capacitor.isNativePlatform());
+                var _isSA2  = (window.navigator.standalone === true) ||
+                              window.matchMedia('(display-mode: standalone)').matches;
+                if (_isCap2 || (_isSA2 && ('caches' in window))) {
+                    autoCheckSection.style.display = '';
+                }
+            }
+        }
+    }
+
     function getStoredTheme() {
         try {
             const theme = localStorage.getItem('readingTheme');
@@ -609,7 +677,7 @@
             } catch(e) {}
         })();
 
-        // ── 顾念微工（使用超过 5 分钟 + 远程图片可达时显示）────────────────
+        // ── 顾念微工（使用超过 5 分钟 + 服务器可达 + 远程图片可达时显示）────
         (function() {
             try {
                 var firstUse = parseInt(localStorage.getItem('cx_first_use') || '0', 10);
@@ -618,6 +686,9 @@
 
                 var sponsorBtn = document.getElementById('sponsorBtn');
                 if (!sponsorBtn) return;
+
+                // 服务器不可达时直接隐藏，等可达性检查完成后再决定是否探测
+                if (window.CX_SERVERS_REACHABLE === false) return;
 
                 // 探测远程图片是否存在，任一服务器可达即显示按钮
                 var servers = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
@@ -647,12 +718,17 @@
             }
         })();
 
-        // ── 反馈问题（所有页面）──────────────────────────────────────
+        // ── 反馈问题（服务器可达时显示）────────────────────────────
         (function() {
             var feedbackBtn = document.getElementById('feedbackBtn');
-            if (feedbackBtn) {
-                feedbackBtn.addEventListener('click', showFeedbackDialog);
+            if (!feedbackBtn) return;
+            // 服务器不可达时隐藏（可达性检查完成后由 updateServerDependentButtons 恢复）
+            if (window.CX_SERVERS_REACHABLE === false) {
+                feedbackBtn.style.display = 'none';
+            } else {
+                feedbackBtn.style.display = 'inline-flex';
             }
+            feedbackBtn.addEventListener('click', showFeedbackDialog);
         })();
 
         // ── 资源管理（所有用户可见）────────────────────────────────
@@ -704,11 +780,12 @@
             });
         }
 
-        // ── 检查更新（Capacitor APK / PWA standalone）──────────────────
+        // ── 检查更新（Capacitor APK / PWA standalone，服务器可达时显示）─────
         var updateBtn = document.getElementById('checkUpdateBtn');
+        var updateBtnEnvMatch = false;
         if (isCapacitor) {
+            updateBtnEnvMatch = true;
             if (updateBtn) {
-                updateBtn.style.display = 'inline-flex';
                 updateBtn.addEventListener('click', function() {
                     if (window.AppUpdate && window.AppUpdate.showCloudflareUpdateDialog) {
                         window.AppUpdate.showCloudflareUpdateDialog();
@@ -716,8 +793,8 @@
                 });
             }
         } else if (isStandalone && ('caches' in window)) {
+            updateBtnEnvMatch = true;
             if (updateBtn) {
-                updateBtn.style.display = 'inline-flex';
                 updateBtn.addEventListener('click', function() {
                     var root = window.CX_ROOT || './';
                     if (window.AppUpdate && window.AppUpdate.showPwaUpdateDialog) {
@@ -726,12 +803,17 @@
                 });
             }
         }
+        // 根据可达性决定是否显示（检查未完成时先不显示，检查完成后由回调处理）
+        if (updateBtn) {
+            updateBtn.style.display = (updateBtnEnvMatch && window.CX_SERVERS_REACHABLE !== false) ? 'inline-flex' : 'none';
+        }
 
-        // ── 自动检查更新偏好设置（Capacitor APK / PWA standalone）──────
-        if (isCapacitor || (isStandalone && ('caches' in window))) {
+        // ── 自动检查更新偏好设置（Capacitor APK / PWA standalone，服务器可达时显示）──
+        var autoCheckEnvMatch = isCapacitor || (isStandalone && ('caches' in window));
+        if (autoCheckEnvMatch) {
             var autoCheckSection = document.getElementById('autoCheckSection');
             var autoCheckToggle  = document.getElementById('autoCheckUpdateToggle');
-            if (autoCheckSection) autoCheckSection.style.display = '';
+            if (autoCheckSection) autoCheckSection.style.display = (window.CX_SERVERS_REACHABLE !== false) ? '' : 'none';
             if (autoCheckToggle) {
                 try { autoCheckToggle.checked = localStorage.getItem('cx_auto_check_update') === '1'; } catch(e) {}
                 autoCheckToggle.addEventListener('change', function() {
@@ -745,6 +827,38 @@
                 });
             }
         }
+
+        // ── 触发服务器可达性检查，完成后更新按钮可见性 ──────────────────
+        checkServerReachability().then(function(reachable) {
+            updateServerDependentButtons(reachable);
+            // 服务器可达时，额外探测赞助图片（若初始化时因可达性未知而跳过）
+            if (reachable) {
+                var sponsorBtn = document.getElementById('sponsorBtn');
+                if (sponsorBtn && sponsorBtn.style.display === 'none' && !sponsorBtn.dataset.probed) {
+                    try {
+                        var firstUse = parseInt(localStorage.getItem('cx_first_use') || '0', 10);
+                        var elapsed = firstUse ? (Date.now() - firstUse) : 0;
+                        if (elapsed >= 5 * 60 * 1000) {
+                            sponsorBtn.dataset.probed = '1';
+                            var servers = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
+                            var probeFile = 'images/zanzhu-wx.png';
+                            var tried = 0;
+                            (function tryNext() {
+                                if (tried >= servers.length) return;
+                                var url = servers[tried++] + probeFile;
+                                var img = new Image();
+                                img.onload = function() {
+                                    sponsorBtn.style.display = 'inline-flex';
+                                    sponsorBtn.addEventListener('click', showSponsorDialog);
+                                };
+                                img.onerror = tryNext;
+                                img.src = url;
+                            })();
+                        }
+                    } catch(e) {}
+                }
+            }
+        });
 
 
 
