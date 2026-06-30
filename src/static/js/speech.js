@@ -170,10 +170,8 @@
 
   // -- 预合成防重复：Router 双重 dispatch 时避免重复发送 preSynthesize（500ms 去重窗口）
   var _preSynthTime = 0;
-  // 跟踪正在进行的 preSynthesize Promise，供播放按钮等待预合成完成
-  var _preSynthPromise = null;
-  // 标记播放按钮正在等待预合成（防止重复点击），完成后清除
-  var _preparing = false;
+  // 延迟预合成定时器（resetState 后延迟 preSynthesize，等 Java 处理完 STOP）
+  var _preSynthRetryTimer = null;
 
   // -- 跨页面 generation 计数器：全局递增，不在 init() 中重置
   // 确保页面切换后旧回调（超时守卫、ttsPosition 等）仍能正确失效
@@ -764,7 +762,11 @@
         progressBar.value = '0';
         speechTime.textContent = '00:00 / 00:00';
         speechTime.style.color = '';
-        _preparing = false;
+        // 阻止新页面立即发送 preSynthesize：Java 端 STOP 可能仍在处理中，
+        // 此时启动 preSynthesize 会导致 onDone 回调丢失 → 播放时永久等待超时。
+        // startInit() 检测到此阻止后，会延迟 3s 再重试，确保 STOP 处理完毕。
+        _preSynthTime = Date.now();
+        if (_preSynthRetryTimer) { clearTimeout(_preSynthRetryTimer); _preSynthRetryTimer = null; }
         setState('idle');
       }
 
@@ -1163,11 +1165,6 @@
 
         // First press: load text and start from beginning
         if (state === 'idle') {
-          // 防止等待预合成期间重复点击
-          if (_preSynthPromise && _preparing) {
-            console.log('[CXSpeech] 预合成等待中，忽略重复点击');
-            return;
-          }
           var _t0 = Date.now();
           if (useNativeTTS) {
             var NativeTTS = getNativeTTS();
@@ -1182,15 +1179,12 @@
             }
           }
           // 优先使用预构建缓存（页面加载时 prebuildText() 已提取），
-          // 跳过耗时的 buildAll()（DOM 遍历 + withExpanded），
-          // 将首次播放延迟从 3-5s 压缩到 ~1s（仅剩 Java 服务启动 + 80ms）。
+          // 跳过耗时的 buildAll()（DOM 遍历 + withExpanded）。
           if (_prebuiltFullText && _prebuiltSegmentMap) {
-            // 缓存命中且文本非空，跳过耗时的 buildAll()
             fullText = _prebuiltFullText;
             _segmentMap = _prebuiltSegmentMap;
             console.log('[CXSpeech] \u7f13\u5b58\u547d\u4e2d\uff0c\u8df3\u8fc7 buildAll (' + (Date.now() - _t0) + 'ms)');
           } else {
-            // 缓存未命中或缓存为空（prebuildText 可能在某些页面上返回空），回退到 buildAll
             buildAll();
             console.log('[CXSpeech] buildAll \u8017\u65f6 ' + (Date.now() - _t0) + 'ms'
               + (_prebuiltFullText === '' ? '\uff08\u7f13\u5b58\u4e3a\u7a7a\uff0c\u56de\u9000\uff09' : '\uff08\u672a\u547d\u4e2d\u7f13\u5b58\uff09'));
@@ -1204,42 +1198,12 @@
           elapsedOffset = 0; progressBar.value = '0';
           speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
           _resumeNextSegPercent = -1;
-          console.log('[CXSpeech] \u6587\u672c\u5c31\u7eea ' + (Date.now() - _t0) + 'ms\uff0c\u5f00\u59cb speak');
 
-          // 若 preSynthesize 仍在进行中（页面切换后立即点播放），等待预合成完成再发送 speak()，
-          // 避免 Java 端因 WAV 未就绪而回退到全量合成（耗时 5-7s）导致 ttsPosition 超时。
-          if (useNativeTTS && _preSynthPromise) {
-            _preparing = true;
-            var _waitSynthT0 = Date.now();
-            // 捕获当前 generation，等待期间若发生页面切换（generation 递增），放弃发送
-            var _waitGen = _speakGeneration;
-            console.log('[CXSpeech] 等待 preSynthesize 完成 (gen=' + _waitGen + ')...');
-            speechTime.textContent = '准备中...';
-            speechTime.style.color = 'var(--text-muted, #888)';
-            _preSynthPromise.then(function() {
-              _preparing = false;
-              if (_waitGen !== _speakGeneration) {
-                console.log('[CXSpeech] preSynthesize 完成但页面已切换 (gen ' + _waitGen + '→' + _speakGeneration + ')，放弃');
-                return;
-              }
-              console.log('[CXSpeech] preSynthesize 完成，延迟 ' + (Date.now() - _waitSynthT0) + 'ms，发送 speak');
-              speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
-              speechTime.style.color = '';
-              startSpeakingFromPercent(0);
-              console.log('[CXSpeech] speak 发送完成 (总耗时 ' + (Date.now() - _t0) + 'ms)');
-            }).catch(function() {
-              _preparing = false;
-              if (_waitGen !== _speakGeneration) return;
-              console.log('[CXSpeech] preSynthesize 失败，仍发送 speak');
-              speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
-              speechTime.style.color = '';
-              startSpeakingFromPercent(0);
-              console.log('[CXSpeech] speak 发送完成 (总耗时 ' + (Date.now() - _t0) + 'ms)');
-            });
-          } else {
-            startSpeakingFromPercent(0);
-            console.log('[CXSpeech] speak 发送完成 ' + (Date.now() - _t0) + 'ms');
-          }
+          // resetState 已确保 preSynthesize 在 STOP 处理干净后（3s delay）才发出，
+          // onDone 回调不会丢失。直接发送 speak()，Java 端会正确等待预合成完成或回退全量合成。
+          console.log('[CXSpeech] \u6587\u672c\u5c31\u7eea ' + (Date.now() - _t0) + 'ms\uff0c\u53d1\u9001 speak');
+          startSpeakingFromPercent(0);
+          console.log('[CXSpeech] speak \u53d1\u9001\u5b8c\u6210 ' + (Date.now() - _t0) + 'ms');
           return;
         }
 
@@ -1363,8 +1327,8 @@
       // -- 预构建朗读文本 + 预合成首 chunk（NativeTTS only） --------------------
       // 1. prebuildText() 预提取文本和 segmentMap
       // 2. preSynthesize() 将首 chunk 提前合成为 WAV 文件
-      //    用户点播放时 handleSpeak() 发现预合成文件已存在，直接播放
-      //    若预合成尚未完成，播放按钮会等待 _preSynthPromise 完成再发送 speak()
+      //    播放按钮直接发 speak()，Java 端检测到预合成文件就绪则立即播放，
+      //    未就绪则等待 onDone 或回退全量合成。
       if (useNativeTTS && Date.now() - _preSynthTime > 500) {
         _preSynthTime = Date.now();
         try {
@@ -1374,23 +1338,39 @@
           if (prebuiltText.length > 0) {
             var preNativeTTS = getNativeTTS();
             if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
-              var _synthPromise = preNativeTTS.preSynthesize({
+              preNativeTTS.preSynthesize({
                 text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
                 title: title, artist: artist
-              });
-              _preSynthPromise = _synthPromise;
-              _synthPromise.then(function() {
-                console.log('[CXSpeech] preSynthesize 已完成 (' + (Date.now() - _preT0) + 'ms)');
-                if (_preSynthPromise === _synthPromise) _preSynthPromise = null;
               }).catch(function(e) {
                 console.log('[CXSpeech] preSynthesize 失败: ' + e);
-                if (_preSynthPromise === _synthPromise) _preSynthPromise = null;
               });
             }
           }
         } catch(e) {
           console.log('[CXSpeech] prebuild 异常: ' + e);
         }
+      } else if (useNativeTTS) {
+        // preSynthesize 被阻止（刚发生 resetState，Java 正在处理 STOP）。
+        // 延迟 3s 重试，确保 Java 端 STOP 处理完毕、TTS 引擎回到稳定状态后，
+        // 再启动预合成，避免 onDone 回调丢失。
+        if (_preSynthRetryTimer) clearTimeout(_preSynthRetryTimer);
+        _preSynthRetryTimer = setTimeout(function() {
+          _preSynthRetryTimer = null;
+          _preSynthTime = 0;  // 清除阻止标记
+          var prebuiltText = prebuildText();
+          console.log('[CXSpeech] preSynthesize retry (3s delay): ' + prebuiltText.length + ' chars');
+          if (prebuiltText.length > 0) {
+            var preNativeTTS = getNativeTTS();
+            if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
+              preNativeTTS.preSynthesize({
+                text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
+                title: title, artist: artist
+              }).catch(function(e) {
+                console.log('[CXSpeech] preSynthesize retry 失败: ' + e);
+              });
+            }
+          }
+        }, 1000);
       }
     }
 

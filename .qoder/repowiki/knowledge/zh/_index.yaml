@@ -3,7 +3,7 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-06-30T02:53:36Z"
+exported_at: "2026-06-30T03:16:06Z"
 modules:
     "":
         dir_name: 晨读离线版全栈构建与分发平台
@@ -124,8 +124,8 @@ modules:
         related_to:
             - path: static_site_generator/core_engine
     static_site_generator:
-        dir_name: 圣经训练资料静态站点生成器
-        title: 圣经训练资料静态站点生成器
+        dir_name: 特会信息静态站点生成与离线 SPA 引擎
+        title: 特会信息静态站点生成与离线 SPA 引擎
         scope:
             - src/
         source_files: []
