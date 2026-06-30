@@ -371,9 +371,18 @@ public class TTSForegroundService extends Service {
 
                     final boolean wasPreSynth = isPreSynthesis; // 捕获当前值，防止跨线程竞态
                     if (gen != speakGen || (isStopped && !wasPreSynth) || isPaused) {
-                        // 守卫触发：该合成结果已过期，直接删除临时文件。
-                        // 注：预合成模式下 isStopped=true 但文件应保留，供后续 handleSpeak 复用。
-                        deleteTempFile(tempFile);
+                        // 守卫触发：该合成结果已过期。
+                        // ★ 不删除可能是有效预合成的文件：
+                        //   handleSpeak 可能在 onDone 之前运行，设 isPreSynthesis=false，
+                        //   但文件仍是 handleSpeak 的 playChunkOnly 需要的有效预合成文件。
+                        //   预合成文件的 gen 始终 == speakGen - 1（handlePreSpeak 在 handleSpeak 前一级）。
+                        //   旧文件由 handleSpeak 的 cleanStaleTempFiles 统一清理。
+                        if (chunkOfUid == 0 && gen == speakGen - 1) {
+                            android.util.Log.i("TTSFgSvc", "onDone: keeping pre-synth file " + tempFile.getName());
+                            emitLog("onDone: keeping pre-synth " + tempFile.getName());
+                        } else {
+                            deleteTempFile(tempFile);
+                        }
                         return;
                     }
 
@@ -1030,14 +1039,17 @@ public class TTSForegroundService extends Service {
             playDirectSpeakChunk();
             return;
         }
-        // 若该 chunk 的合成已经由预生成发起，直接等待 onDone()，不重复提交。
-        if (synthForChunk == chunkIndex) return;
         if (!ttsReady || isStopped || isPaused) return;
         if (chunkIndex >= chunks.size()) {
             notifyFinished();
             return;
         }
         acquireWakeLock();
+        // ★ 先检查预合成文件，再检查 synthForChunk：
+        //   页面切换时旧的 doSynthesizeChunk 可能在 ttsHandler 上运行并设置 synthForChunk=0，
+        //   然后被 handleSpeak 的 tts.stop() 取消。如果先检查 synthForChunk==chunkIndex
+        //   会提前返回，等待永远不会到达的 onDone，导致 chunk0 被跳过。
+        //   先检查预合成文件可以避免此问题：文件存在则直接播放，忽略过期的 synthForChunk。
         // 检查是否有预合成文件（由 handlePreSpeak 在页面加载时生成）
         // handlePreSpeak 用 speakGen=N，handleSpeak 将其递增为 N+1，
         // 因此预合成文件名为 tts_gN_c0.wav，需同时检查 speakGen 和 speakGen-1。
@@ -1050,6 +1062,11 @@ public class TTSForegroundService extends Service {
             android.util.Log.i("TTSFgSvc", "playChunkOnly: pre-synth file found (" + preFile.getName() + ", " + preFile.length() + "B)");
             emitLog("playChunk: pre-synth OK " + preFile.getName() + " " + (preFile.length() / 1024) + "KB");
             startMediaPlayer(preFile, speakGen);
+        } else if (synthForChunk == chunkIndex) {
+            // ★ 无预合成文件且合成已在进行中：等待 onDone() 触发 startMediaPlayer。
+            //   仅在确认无预合成文件后才检查此条件，避免旧 synthForChunk 导致的误判。
+            android.util.Log.i("TTSFgSvc", "playChunkOnly: synth already in progress for chunk " + chunkIndex);
+            emitLog("playChunk: synth in progress, waiting for onDone");
         } else {
             android.util.Log.i("TTSFgSvc", "playChunkOnly: no pre-synth, synthesizing chunk " + chunkIndex);
             emitLog("playChunk: no pre-synth, synthesizing...");
@@ -1089,43 +1106,64 @@ public class TTSForegroundService extends Service {
         emitLog("synth chunk" + idx + " ret=" + (ret == TextToSpeech.SUCCESS ? "SUCCESS" : "ERROR(" + ret + ")"));
         android.util.Log.i("TTSFgSvc", "synthesizeToFile ret=" + ret + " for chunk " + idx);
         if (ret == TextToSpeech.ERROR) {
-            // 首次失败重试一次
+            // 首次失败：重设参数后立即重试一次
             setTtsParams();
             synthForChunk = idx;
             ret = t.synthesizeToFile(text, (Bundle) null, outFile, uid);
         }
         if (ret == TextToSpeech.ERROR) {
-            // 引擎彻底拒绝
-            synthFailureCount++;
-            android.util.Log.w("TTSFgSvc", "synthesizeToFile failed for chunk " + idx
-                    + " (" + synthFailureCount + "/" + MAX_SYNTH_FAILURES + ")");
-            if (isPreSynthesis) {
-                // ★ 预合成失败：保持 synthForChunk=0，让 handleSpeak 的 4s 超时触发重合成。
-                //   不重置为 -1（否则超时误判"已完成"而跳过）。
-                //   也不调 onChunkPlaybackComplete（isStopped=true 会直接返回）。
-                emitLog("pre-synth synthesizeToFile ERROR, will retry via 4s timeout");
-                return;
-            }
-            if (synthFailureCount >= MAX_SYNTH_FAILURES) {
-                // 连续失败达阈值，切换到 speak() 直接播放模式
-                android.util.Log.w("TTSFgSvc", "synthesizeToFile consistently failing, switching to speak() direct mode");
-                useSpeakDirect = true;
-                synthFailureCount = 0;
-                synthForChunk = -1;
-                final int gen = speakGen;
-                ttsHandler.post(() -> {
-                    if (speakGen != gen || isStopped || isPaused) return;
-                    playDirectSpeakChunk();
-                });
-                return;
-            }
-            // 未达阈值，视同该 chunk 播放完毕，跳过继续
-            synthForChunk = -1;
-            final int gen = speakGen;
-            mainHandler.post(() -> {
-                if (speakGen != gen || isStopped) return;
-                onChunkPlaybackComplete(gen);
-            });
+            // ★ 第二次失败：延迟 100ms 后第三次重试。
+            //   tts.stop() 后引擎内部状态可能未完全恢复（尤其页面快速切换时），
+            //   短暂等待后重试成功率显著提高。
+            android.util.Log.w("TTSFgSvc", "synthesizeToFile attempt 2 failed for chunk " + idx + ", retrying after 100ms");
+            emitLog("synth chunk" + idx + " retry#3 after 100ms");
+            synthForChunk = idx;
+            final int retryIdx = idx;
+            final int retryGen = speakGen;
+            ttsHandler.postDelayed(() -> {
+                if (speakGen != retryGen || isStopped || isPaused) {
+                    synthForChunk = -1;
+                    return;
+                }
+                TextToSpeech t2 = tts;
+                if (t2 == null || !ttsReady) {
+                    synthForChunk = -1;
+                    return;
+                }
+                setTtsParams();
+                synthForChunk = retryIdx;
+                int r = t2.synthesizeToFile(chunks.get(retryIdx), (Bundle) null,
+                        new File(getCacheDir(), "tts_g" + speakGen + "_c" + retryIdx + ".wav"),
+                        "g" + speakGen + "_c" + retryIdx);
+                if (r == TextToSpeech.ERROR) {
+                    // 三次尝试均失败
+                    synthFailureCount++;
+                    android.util.Log.w("TTSFgSvc", "synthesizeToFile all 3 attempts failed for chunk " + retryIdx
+                            + " (" + synthFailureCount + "/" + MAX_SYNTH_FAILURES + ")");
+                    if (isPreSynthesis) {
+                        emitLog("pre-synth all retries ERROR");
+                        return;
+                    }
+                    if (synthFailureCount >= MAX_SYNTH_FAILURES) {
+                        useSpeakDirect = true;
+                        synthFailureCount = 0;
+                        synthForChunk = -1;
+                        final int g = speakGen;
+                        ttsHandler.post(() -> {
+                            if (speakGen != g || isStopped || isPaused) return;
+                            playDirectSpeakChunk();
+                        });
+                        return;
+                    }
+                    synthForChunk = -1;
+                    final int g = speakGen;
+                    mainHandler.post(() -> {
+                        if (speakGen != g || isStopped) return;
+                        onChunkPlaybackComplete(g);
+                    });
+                }
+            }, 100);
+            return;
         }
     }
 
@@ -1241,8 +1279,17 @@ public class TTSForegroundService extends Service {
             return;
         }
         if (!file.exists() || file.length() == 0) {
-            // 文件不存在或为空（合成异常），跳过该 chunk
-            onChunkPlaybackComplete(gen);
+            // ★ 文件不存在或为空：可能是被取消的预合成残留。
+            //   不直接跳过 chunk，而是在 ttsHandler 上延迟重合成一次。
+            android.util.Log.w("TTSFgSvc", "startMediaPlayer: file missing/empty for chunk " + chunkIndex + ", retrying synth");
+            emitLog("MediaPlayer: file missing/empty, retry synth");
+            final int retryGen = gen;
+            final int retryIdx = chunkIndex;
+            synthForChunk = -1; // 允许 playChunkOnly / doSynthesizeChunk 重新合成
+            ttsHandler.postDelayed(() -> {
+                if (speakGen != retryGen || isStopped || isPaused) return;
+                doSynthesizeChunk(retryIdx);
+            }, 50);
             return;
         }
 
@@ -1332,7 +1379,16 @@ public class TTSForegroundService extends Service {
             try { finalMp.release(); } catch (Exception ignored) {}
             if (mediaPlayer == finalMp) mediaPlayer = null;
             deleteTempFile(file);
-            onChunkPlaybackComplete(gen);
+            // ★ MediaPlayer 启动失败（可能是预合成文件损坏）：
+            //   不直接跳过 chunk，而是在 ttsHandler 上延迟重合成一次。
+            final int retryGen = gen;
+            final int retryIdx = chunkIndex;
+            synthForChunk = -1;
+            ttsHandler.postDelayed(() -> {
+                if (speakGen != retryGen || isStopped || isPaused) return;
+                android.util.Log.i("TTSFgSvc", "retrying synth for chunk " + retryIdx + " after MediaPlayer failure");
+                doSynthesizeChunk(retryIdx);
+            }, 100);
         }
     }
 

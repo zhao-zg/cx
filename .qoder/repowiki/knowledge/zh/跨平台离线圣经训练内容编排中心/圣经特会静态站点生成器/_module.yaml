@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: static_site_generator
-title: 圣经特会信息静态化与离线 SPA 引擎
+title: 圣经特会静态站点生成器
 scope:
     - src/
 source_files: []
