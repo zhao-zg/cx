@@ -193,16 +193,18 @@ public class TTSForegroundService extends Service {
             wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "CX:TTSWakeLock");
         }
 
-        // MediaSession: 创建但不激活，避免预合成/预热阶段就出现锁屏媒体控件。
-        // 实际播放开始时（handleSpeak/handleResume）再 setActive(true)。
-        // startForeground() 已在上方保护服务不被 OEM 查杀，无需 MediaSession 额外保活。
+        // MediaSession: 向系统声明这是媒体播放器。
+        // 国产 ROM（MIUI/EMUI/ColorOS）看到 MediaSession 处于 active 状态，
+        // 就不会将其当作普通后台服务杀掉。
         // 使用框架内置 API（API 21+），无需额外依赖。
+        // ★ 保活由 FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK 保障（onStartCommand 顶部），
+        //   MediaSession 仅在播放时激活，避免锁屏显示无效媒体控件。
         mediaSession = new MediaSession(this, "CXTTSSession");
         mediaSession.setFlags(
             MediaSession.FLAG_HANDLES_MEDIA_BUTTONS |
             MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
-        // ★ 不在 onCreate 激活：preSynthesize/warmup 启动服务时不应显示锁屏控件
-        // mediaSession.setActive(true) 延迟至 handleSpeak() 调用
+        // ★ 延迟激活：不在 onCreate 立即 setActive(true)，避免 warmup/pre-synthesis
+        //   阶段在锁屏显示无效的媒体控件。激活时机移至 handleSpeak/handleResume。
 
         // ★ 最早调用 startForeground()：在 onCreate() 阶段就满足要求。
         // OnePlus/ColorOS 等 ROM 会激进延迟服务调度，导致 5 秒计时器在
@@ -567,8 +569,6 @@ public class TTSForegroundService extends Service {
 
         // startForeground() 已在 onStartCommand() 最顶部统一调用，此处更新通知为播放状态。
         updateNotification(true);
-        // ★ 实际播放开始，激活 MediaSession，此时才显示锁屏媒体控件
-        if (mediaSession != null) mediaSession.setActive(true);
 
         if (text == null || text.trim().isEmpty()) {
             notifyError("文本为空");
@@ -594,6 +594,8 @@ public class TTSForegroundService extends Service {
         preSpeakPending = false;
         speakGen++;
         isPreSynthesis = false; // 正式播放，退出预合成模式
+        // ★ 激活 MediaSession：播放开始时才在锁屏/通知栏显示媒体控件
+        if (mediaSession != null) mediaSession.setActive(true);
         // 重置播放模式和失败计数（每次新 speak 从 synthesizeToFile 开始尝试）
         useSpeakDirect = false;
         synthFailureCount = 0;
@@ -832,12 +834,12 @@ public class TTSForegroundService extends Service {
     private void handleStop() {
         emitLog("handleStop called: speakGen=" + speakGen + " chunks=" + chunks.size());
         preSpeakPending = false; // 清除预合成排队标志，避免残留到新会话
-        // ★ 播放停止，取消 MediaSession 激活状态，移除锁屏媒体控件
-        if (mediaSession != null) mediaSession.setActive(false);
         isStopped    = true;
         isPaused     = false;
         pausedByUser = false;
         isPreSynthesis = false;
+        // ★ 取消 MediaSession 激活：停止播放后移除锁屏媒体控件
+        if (mediaSession != null) mediaSession.setActive(false);
         cancelPendingStop();
         stopPositionBroadcast();
         synthForChunk = -1;
@@ -929,6 +931,33 @@ public class TTSForegroundService extends Service {
     }
 
     private void handleResume() {
+        // ★ isStopped + 有预合成数据：锁屏/蓝牙等外部媒体控件触发的「首次播放」
+        //   场景：用户打开 APP 后切到后台（预合成完成但未点播放），锁屏出现媒体控件后点击播放。
+        if (isStopped && !chunks.isEmpty()) {
+            emitLog("handleResume: isStopped with chunks, starting playback from pre-synth");
+            isStopped = false;
+            isPaused  = false;
+            pausedByUser = false;
+            speakGen++;
+            isPreSynthesis = false;
+            synthForChunk = -1;
+            // ★ 激活 MediaSession：播放开始时才在锁屏显示媒体控件
+            if (mediaSession != null) mediaSession.setActive(true);
+            if (!requestAudioFocus()) {
+                android.util.Log.w("TTSFgSvc", "requestAudioFocus failed in handleResume, continuing");
+            }
+            acquireWakeLock();
+            updateNotification(true);
+            updatePlaybackState(true);
+            if (ttsReady) {
+                final int gen = speakGen;
+                ttsHandler.postDelayed(() -> {
+                    if (speakGen != gen || isStopped) return;
+                    playChunkOnly();
+                }, 80);
+            }
+            return;
+        }
         if (!isPaused || isStopped) return;
         cancelPendingStop();
         isPaused     = false;
@@ -937,8 +966,6 @@ public class TTSForegroundService extends Service {
         //   MediaPlayer 恢复路径不递增（保留 OnCompletionListener 的有效性）；
         //   speak 模式和重新合成路径递增（新 utterance / MediaPlayer 需要新的 gen）。
         updateNotification(true);
-        // ★ 恢复播放，重新激活 MediaSession，显示锁屏媒体控件
-        if (mediaSession != null) mediaSession.setActive(true);
 
         if (useSpeakDirect) {
             // speak 模式：没有 MediaPlayer，直接从当前 chunk 重新朗读
@@ -1686,19 +1713,20 @@ public class TTSForegroundService extends Service {
         if (appIconBitmap != null) {
             builder.setLargeIcon(appIconBitmap);
         }
-        builder
-               // 添加按钮：index 0=暂停/继续, index 1=停止
-               .addAction(toggleIcon, toggleLabel, togglePi)
-               .addAction(android.R.drawable.ic_delete, "停止", stopPi);
-
-        // MediaStyle: 让通知带上媒体播放器标识。
-        // setMediaSession(token) 是国产 ROM 识别媒体手机应用的关键依据。
-        Notification.MediaStyle style = new Notification.MediaStyle()
-                .setShowActionsInCompactView(0, 1); // 紧凑视图显示按钮 0(暂停/继续) 和 1(停止)
-        if (mediaSession != null) {
-            style.setMediaSession(mediaSession.getSessionToken());
+        // ★ MediaStyle 仅在实际播放或已暂停（曾播放过）时附加：
+        //   - 避免锁屏/通知栏在 warmup/pre-synthesis 阶段显示无效的媒体控件
+        //   - playing=true 时带 MediaSession token，国产 ROM 识别为媒体播放器
+        //   - playing=false 但 !isStopped 表示用户暂停，保留控件供恢复
+        if (playing || !isStopped) {
+            Notification.MediaStyle style = new Notification.MediaStyle()
+                    .setShowActionsInCompactView(0, 1);
+            if (mediaSession != null) {
+                style.setMediaSession(mediaSession.getSessionToken());
+            }
+            builder.setStyle(style);
+            builder.addAction(toggleIcon, toggleLabel, togglePi)
+                   .addAction(android.R.drawable.ic_delete, "停止", stopPi);
         }
-        builder.setStyle(style);
 
         return builder.build();
     }
@@ -1821,8 +1849,6 @@ public class TTSForegroundService extends Service {
         // handleStop() / onDestroy() 才真正释放两者。
         // 更新通知为暂停/结束状态（保持前台 Service，避免 OEM 在宽限期内杀进程）
         updateNotification(false);
-        // ★ 播放自然结束，取消 MediaSession 激活状态，移除锁屏媒体控件
-        if (mediaSession != null) mediaSession.setActive(false);
         // 不立即销毁 Service：延迟 2 秒宽限期，允许循环播放直接复用现有 TTS 实例。
         // 若 2 秒内收到新的 speak()，cancelPendingStop() 会取消销毁并继续播放。
         // 若无新请求（非循环场景），2 秒后真正停止。
