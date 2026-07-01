@@ -193,15 +193,16 @@ public class TTSForegroundService extends Service {
             wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "CX:TTSWakeLock");
         }
 
-        // MediaSession: 向系统声明这是媒体播放器。
-        // 国产 ROM（MIUI/EMUI/ColorOS）看到 MediaSession 处于 active 状态，
-        // 就不会将其当作普通后台服务杀掉。
+        // MediaSession: 创建但不激活，避免预合成/预热阶段就出现锁屏媒体控件。
+        // 实际播放开始时（handleSpeak/handleResume）再 setActive(true)。
+        // startForeground() 已在上方保护服务不被 OEM 查杀，无需 MediaSession 额外保活。
         // 使用框架内置 API（API 21+），无需额外依赖。
         mediaSession = new MediaSession(this, "CXTTSSession");
         mediaSession.setFlags(
             MediaSession.FLAG_HANDLES_MEDIA_BUTTONS |
             MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
-        mediaSession.setActive(true);
+        // ★ 不在 onCreate 激活：preSynthesize/warmup 启动服务时不应显示锁屏控件
+        // mediaSession.setActive(true) 延迟至 handleSpeak() 调用
 
         // ★ 最早调用 startForeground()：在 onCreate() 阶段就满足要求。
         // OnePlus/ColorOS 等 ROM 会激进延迟服务调度，导致 5 秒计时器在
@@ -566,6 +567,8 @@ public class TTSForegroundService extends Service {
 
         // startForeground() 已在 onStartCommand() 最顶部统一调用，此处更新通知为播放状态。
         updateNotification(true);
+        // ★ 实际播放开始，激活 MediaSession，此时才显示锁屏媒体控件
+        if (mediaSession != null) mediaSession.setActive(true);
 
         if (text == null || text.trim().isEmpty()) {
             notifyError("文本为空");
@@ -829,6 +832,8 @@ public class TTSForegroundService extends Service {
     private void handleStop() {
         emitLog("handleStop called: speakGen=" + speakGen + " chunks=" + chunks.size());
         preSpeakPending = false; // 清除预合成排队标志，避免残留到新会话
+        // ★ 播放停止，取消 MediaSession 激活状态，移除锁屏媒体控件
+        if (mediaSession != null) mediaSession.setActive(false);
         isStopped    = true;
         isPaused     = false;
         pausedByUser = false;
@@ -932,6 +937,8 @@ public class TTSForegroundService extends Service {
         //   MediaPlayer 恢复路径不递增（保留 OnCompletionListener 的有效性）；
         //   speak 模式和重新合成路径递增（新 utterance / MediaPlayer 需要新的 gen）。
         updateNotification(true);
+        // ★ 恢复播放，重新激活 MediaSession，显示锁屏媒体控件
+        if (mediaSession != null) mediaSession.setActive(true);
 
         if (useSpeakDirect) {
             // speak 模式：没有 MediaPlayer，直接从当前 chunk 重新朗读
@@ -1814,6 +1821,8 @@ public class TTSForegroundService extends Service {
         // handleStop() / onDestroy() 才真正释放两者。
         // 更新通知为暂停/结束状态（保持前台 Service，避免 OEM 在宽限期内杀进程）
         updateNotification(false);
+        // ★ 播放自然结束，取消 MediaSession 激活状态，移除锁屏媒体控件
+        if (mediaSession != null) mediaSession.setActive(false);
         // 不立即销毁 Service：延迟 2 秒宽限期，允许循环播放直接复用现有 TTS 实例。
         // 若 2 秒内收到新的 speak()，cancelPendingStop() 会取消销毁并继续播放。
         // 若无新请求（非循环场景），2 秒后真正停止。
