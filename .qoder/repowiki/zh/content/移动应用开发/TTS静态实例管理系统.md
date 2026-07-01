@@ -21,10 +21,12 @@
 
 ## 更新摘要
 **变更内容**
-- 改进了TTS前台服务的MediaSession激活策略，从onCreate阶段延迟到handleSpeak阶段激活，避免在预合成和预热阶段显示锁屏媒体控件
-- 优化了预合成状态跟踪机制，增强翻页后的缓存有效性检测
-- 更新了事件驱动停止机制，确保缓存状态的准确同步
-- 改进了静态实例管理，避免重复绑定系统TTS服务
+- 重大优化：TTS前台服务的MediaSession激活策略从onCreate阶段延迟到handleSpeak阶段激活，避免在预合成和预热阶段显示锁屏媒体控件
+- 新增：handleResume()中新增外部媒体控件触发播放的场景处理，支持锁屏/蓝牙等外部媒体控件的首次播放
+- 优化：通知系统仅在实际播放或已暂停时显示MediaStyle，避免在warmup/pre-synthesis阶段显示无效媒体控件
+- 增强：对不同Android ROM的兼容性优化，特别是MIUI、EMUI、ColorOS的保活机制
+- 改进：事件驱动停止机制，确保缓存状态的准确同步
+- 优化：预合成状态跟踪机制，增强翻页后的缓存有效性检测
 
 ## 目录
 1. [项目概述](#项目概述)
@@ -81,7 +83,7 @@ end
 - [config.yaml:1-57](file://config.yaml#L1-L57)
 - [android/app/src/main/java/com/tehui/offline/MainActivity.java:1-83](file://android/app/src/main/java/com/tehui/offline/MainActivity.java#L1-L83)
 - [android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java:1-315](file://android/app/src/main/java/com/tehui/offline/NativeTTSPlugin.java#L1-L315)
-- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:1-1892](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L1-L1892)
+- [android/app/src/main/java/com/tehui/offline/TTSForegroundService.java:1-1918](file://android/app/src/main/java/com/tehui/offline/TTSForegroundService.java#L1-L1918)
 
 **章节来源**
 - [main.py:1-1230](file://main.py#L1-L1230)

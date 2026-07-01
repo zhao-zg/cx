@@ -15,7 +15,7 @@ sponsor_enabled: false
 access_time:
   enabled: true
   allow_start: 0    # 允许访问的开始时间（整点，0-23）
-  allow_end: 24     # 允许访问的结束时间（整点，0-23，不含该小时）
+  allow_end: 11     # 允许访问的结束时间（整点，0-23，不含该小时）
   timezone_offset: 8 # UTC 偏移（北京时间 = +8）
   # 允许访问的星期（0=周日, 1=周一, 2=周二, 3=周三, 4=周四, 5=周五, 6=周六）
   # 注释掉或删除此行表示每天均可访问

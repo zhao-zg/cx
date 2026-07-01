@@ -3,11 +3,11 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-07-01T05:05:07Z"
+exported_at: "2026-07-01T06:36:00Z"
 modules:
     "":
-        dir_name: 属灵资源离线分发与多端协同平台
-        title: 属灵资源离线分发与多端协同平台
+        dir_name: 离线圣经训练多端分发平台
+        title: 离线圣经训练多端分发平台
         scope: []
         source_files: []
         children:
@@ -17,8 +17,8 @@ modules:
         depends_on: []
         related_to: []
     android_client:
-        dir_name: Android 原生能力桥接与后台服务
-        title: Android 原生能力桥接与后台服务
+        dir_name: Android 原生能力桥接与后台 TTS 服务
+        title: Android 原生能力桥接与后台 TTS 服务
         scope:
             - android/
         source_files: []
