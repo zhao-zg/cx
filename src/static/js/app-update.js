@@ -1103,6 +1103,12 @@
         // 同会话已弹过则跳过
         try { if (sessionStorage.getItem('cx_update_toast_shown')) return; } catch(e) {}
 
+        // 服务器不可达时跳过自动检查
+        if (window.CX_SERVERS_REACHABLE === false) {
+            console.log('[更新] 服务器不可达，跳过自动检查更新');
+            return;
+        }
+
         var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
         var isStandalone = (window.navigator.standalone === true) ||
                            (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
