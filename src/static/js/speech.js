@@ -441,6 +441,21 @@
       var _prebuiltFullText    = null;  // 预提取的 fullText（null=未预构建）
       var _prebuiltSegmentMap  = null;  // 预提取的 _segmentMap
 
+      // 检测预构建缓存是否与当前可见的 day-page 匹配。
+      // 晨读视图有多天分页（.day-page），prebuildText() 在页面加载时执行，
+      // 此时 initDayPager（setTimeout 0）尚未运行，无 is-active 标记，
+      // getElements() 回退到第一个 day-page（第一天）。
+      // 用户翻到其他天后点播放，若仍用第一天的缓存文本，声音与文字不匹配。
+      function _isPrebuiltCacheStale() {
+        var activePage = document.querySelector('.day-page.is-active');
+        if (!activePage) return false; // 非分页视图，缓存有效
+        if (!_prebuiltSegmentMap || !_prebuiltSegmentMap.length) return true;
+        for (var i = 0; i < _prebuiltSegmentMap.length; i++) {
+          if (activePage.contains(_prebuiltSegmentMap[i].el)) return false;
+        }
+        return true; // 缓存元素不在当前活动页内
+      }
+
       // -- State machine helpers ----------------------------------------------
 
       function setState(s) {
@@ -1189,11 +1204,14 @@
           }
           // 优先使用预构建缓存（页面加载时 prebuildText() 已提取），
           // 跳过耗时的 buildAll()（DOM 遍历 + withExpanded）。
-          if (_prebuiltFullText && _prebuiltSegmentMap) {
+          if (_prebuiltFullText && _prebuiltSegmentMap && !_isPrebuiltCacheStale()) {
             fullText = _prebuiltFullText;
             _segmentMap = _prebuiltSegmentMap;
             console.log('[CXSpeech] \u7f13\u5b58\u547d\u4e2d\uff0c\u8df3\u8fc7 buildAll (' + (Date.now() - _t0) + 'ms)');
           } else {
+            if (_prebuiltFullText && _isPrebuiltCacheStale()) {
+              console.log('[CXSpeech] \u9884\u6784\u5efa\u7f13\u5b58\u5df2\u8fc7\u671f\uff08\u7ffb\u9875\u540e\uff09\uff0c\u91cd\u65b0 buildAll');
+            }
             buildAll();
             console.log('[CXSpeech] buildAll \u8017\u65f6 ' + (Date.now() - _t0) + 'ms'
               + (_prebuiltFullText === '' ? '\uff08\u7f13\u5b58\u4e3a\u7a7a\uff0c\u56de\u9000\uff09' : '\uff08\u672a\u547d\u4e2d\u7f13\u5b58\uff09'));
@@ -1363,6 +1381,11 @@
               _preSynthTime = Date.now();  // 防 Router 双重 dispatch
               var preNativeTTS = getNativeTTS();
               if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
+                // 翻页后预构建缓存可能过期（指向非活动天），清除后重新 prebuildText
+                if (_isPrebuiltCacheStale()) {
+                  _prebuiltFullText = null;
+                  _prebuiltSegmentMap = null;
+                }
                 var prebuiltText = prebuildText();
                 if (prebuiltText.length > 0) {
                   preNativeTTS.preSynthesize({
@@ -1384,6 +1407,11 @@
             _preSynthTime = Date.now();
             var preNativeTTS = getNativeTTS();
             if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
+              // 翻页后预构建缓存可能过期（指向非活动天），清除后重新 prebuildText
+              if (_isPrebuiltCacheStale()) {
+                _prebuiltFullText = null;
+                _prebuiltSegmentMap = null;
+              }
               var prebuiltText = prebuildText();
               if (prebuiltText.length > 0) {
                 preNativeTTS.preSynthesize({
@@ -1401,6 +1429,11 @@
             _preSynthTime = Date.now();
             var preNativeTTS = getNativeTTS();
             if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
+              // 翻页后预构建缓存可能过期（指向非活动天），清除后重新 prebuildText
+              if (_isPrebuiltCacheStale()) {
+                _prebuiltFullText = null;
+                _prebuiltSegmentMap = null;
+              }
               var prebuiltText = prebuildText();
               if (prebuiltText.length > 0) {
                 preNativeTTS.preSynthesize({
