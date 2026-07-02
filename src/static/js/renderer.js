@@ -843,33 +843,13 @@
       });
     });
 
-    // 2) copy 事件拦截：如果选区跨越了多个 day-page，限制为实际选中内容
+    // 2) copy 事件拦截：始终只复制用户实际选中的文本，防止隐藏天的内容被带入
     document.addEventListener('copy', function (e) {
-      // 仅当晨读页存在时处理
       var activePage = pages[currentPage];
       if (!activePage) return;
       var sel = win.getSelection();
       if (!sel || sel.isCollapsed) return;
 
-      // 精确检查：选区的起点和终点是否都在当前活跃天内
-      var range = sel.getRangeAt(0);
-      var startNode = range.startContainer;
-      var endNode = range.endContainer;
-
-      function isInside(el, container) {
-        while (el && el !== document.body) {
-          if (el === container) return true;
-          el = el.parentNode;
-        }
-        return false;
-      }
-
-      var startInActive = isInside(startNode.nodeType === 1 ? startNode : startNode.parentNode, activePage);
-      var endInActive = isInside(endNode.nodeType === 1 ? endNode : endNode.parentNode, activePage);
-
-      if (startInActive && endInActive) return; // 选区在单天内，正常复制
-
-      // 跨天选区：阻止默认复制，只复制用户实际选中的文本
       e.preventDefault();
       var plainText = sel.toString();
       try {
