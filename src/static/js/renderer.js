@@ -843,7 +843,7 @@
       });
     });
 
-    // 2) copy 事件拦截：如果选区跨越了多个 day-page，用当前天的完整文本替换剪贴板
+    // 2) copy 事件拦截：如果选区跨越了多个 day-page，限制为实际选中内容
     document.addEventListener('copy', function (e) {
       // 仅当晨读页存在时处理
       var activePage = pages[currentPage];
@@ -851,43 +851,32 @@
       var sel = win.getSelection();
       if (!sel || sel.isCollapsed) return;
 
-      // 检查选区是否包含非活跃天的内容
+      // 精确检查：选区的起点和终点是否都在当前活跃天内
       var range = sel.getRangeAt(0);
-      var commonAncestor = range.commonAncestorContainer;
-      // 向上查找是否跨越了 pages-track 或更高层级
-      var node = commonAncestor;
-      var spansMultipleDays = false;
-      while (node && node !== document.body) {
-        if (node.classList && node.classList.contains('pages-track')) {
-          spansMultipleDays = true;
-          break;
+      var startNode = range.startContainer;
+      var endNode = range.endContainer;
+
+      function isInside(el, container) {
+        while (el && el !== document.body) {
+          if (el === container) return true;
+          el = el.parentNode;
         }
-        // 如果 common ancestor 是 document 或 morning-revival-page 等高层容器，也视为跨天
-        if (node.classList && (node.classList.contains('morning-revival-page') || node.classList.contains('container'))) {
-          spansMultipleDays = true;
-          break;
-        }
-        node = node.parentNode;
+        return false;
       }
 
-      if (!spansMultipleDays) return; // 选区在单天内，正常复制
+      var startInActive = isInside(startNode.nodeType === 1 ? startNode : startNode.parentNode, activePage);
+      var endInActive = isInside(endNode.nodeType === 1 ? endNode : endNode.parentNode, activePage);
 
-      // 阻止默认复制，用当前天内容替换
+      if (startInActive && endInActive) return; // 选区在单天内，正常复制
+
+      // 跨天选区：阻止默认复制，只复制用户实际选中的文本
       e.preventDefault();
-      var plainText = activePage.innerText || activePage.textContent || '';
-      // 同时构建简易 HTML（保留段落换行），用于富文本粘贴
-      var htmlContent = '';
-      var children = activePage.children;
-      for (var ci = 0; ci < children.length; ci++) {
-        htmlContent += children[ci].innerHTML || '';
-      }
+      var plainText = sel.toString();
       try {
         if (e.clipboardData) {
           e.clipboardData.setData('text/plain', plainText);
-          if (htmlContent) e.clipboardData.setData('text/html', htmlContent);
         }
       } catch (ex) {
-        // 回退：用 execCommand
         try {
           var ta = document.createElement('textarea');
           ta.value = plainText;

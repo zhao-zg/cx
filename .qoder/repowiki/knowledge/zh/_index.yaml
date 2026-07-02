@@ -3,11 +3,11 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-07-01T06:36:00Z"
+exported_at: "2026-07-01T13:35:25Z"
 modules:
     "":
-        dir_name: 离线圣经训练多端分发平台
-        title: 离线圣经训练多端分发平台
+        dir_name: 属灵训练多端离线应用平台
+        title: 属灵训练多端离线应用平台
         scope: []
         source_files: []
         children:
@@ -124,8 +124,8 @@ modules:
         related_to:
             - path: static_site_generator/core_engine
     static_site_generator:
-        dir_name: 圣经特会静态站点生成器
-        title: 圣经特会静态站点生成器
+        dir_name: 圣经特会离线 SPA 构建引擎
+        title: 圣经特会离线 SPA 构建引擎
         scope:
             - src/
         source_files: []
