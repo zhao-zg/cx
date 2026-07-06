@@ -182,6 +182,12 @@
   // 确保页面切换后旧回调（超时守卫、ttsPosition 等）仍能正确失效
   var _speakGeneration = 0;
 
+  // -- hashchange 监听器引用（模块级）：SPA 导航时停止朗读
+  // 模块级而非 init() 局部变量，使 resetState() 不会移除它，
+  // 确保翻页（day pager）后重新播放时 hashchange 仍能正确停止朗读。
+  // init() 重新执行时自动替换为新 init() 闭包内的 resetState。
+  var _hashStopNav = null;
+
   // -- Init -----------------------------------------------------------------
 
   function init(options) {
@@ -190,6 +196,16 @@
     // 先停止上一个页面可能仍在运行的朗读（SPA 切换视图时 cancel 尚未被调用）
     if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
       try { window.CXSpeech.cancel(); } catch(e) {}
+    }
+
+    // ★ 强制取消上一页的预合成（preSynthesize）：即使 state='idle' 也需要发送 STOP，
+    //    告诉 Java 清除正在进行中的预合成任务和已生成的 WAV 文件，
+    //    防止上一页的预合成音频在后台完成后意外开始播放。
+    //    详见 #ts-tts-loop-button-flag 翻页保持监听器。
+    if (safeGetNativeTTS()) {
+      try { safeGetNativeTTS().stop(); } catch(e) {}
+      _waitStopDone = true;
+      _waitStopGen = _speakGeneration;
     }
 
     // TTS 句子级高亮复原数据（init 作用域，供 withExpanded 调用）
@@ -428,7 +444,7 @@
       // _sentenceMarkData 已在 init 作用域声明，此处不重复声明
       var _prevTTSEl        = null; // 当前高亮的 <mark> 元素
       var _ttsMarkOffset    = 0;    // _segmentMap 中对应 currentChunk=0 的句子索引
-      var _stopOnNav        = null; // hashchange 监听函数，移除时置 null
+      var _stopOnNav        = null; // 已废弃（改用模块级 _hashStopNav），保留兼容引用
       var _nativeCharsDone  = -1;   // ttsProgress 最近一次推送的 charsDone（-1=未收到）
       var _nativeCharsDoneTime = 0; // _nativeCharsDone 更新时的 Date.now()
       var _nativeProgressHandle = null; // ttsProgress 监听句柄
@@ -769,7 +785,11 @@
 
       function resetState() {
         ++_speakGeneration;
-        if (_stopOnNav) { window.removeEventListener('hashchange', _stopOnNav); _stopOnNav = null; }
+        // 注意：不再移除 hashchange 监听器 _hashStopNav。
+        // 移除后，若翻页（day pager showPage）→ cancel → resetState 移除了监听器，
+        // 用户再次播放时 init() 未重新执行，hashchange 无法停止朗读，
+        // 导致导航时旧页面内容继续播放。
+        // 模块级 _hashStopNav 在 init() 重新执行时由 init() 自动替换。
         stopProgressUpdate();
         clearTTSHighlight();
         var sendStop = (state !== 'idle');
@@ -1074,6 +1094,12 @@
       // ======================================================================
 
       function startSpeakingFromPercent(percent) {
+        // 确保 hashchange 监听器已注册（翻页后 playback 重新开始，init 未重新执行）
+        // 参考 #ts-tts-loop-button-flag 翻页后保持监听器
+        if (!_hashStopNav) {
+          _hashStopNav = function() { resetState(); };
+          window.addEventListener('hashchange', _hashStopNav);
+        }
         if (!fullText) return;
         var p          = clamp(Number(percent) || 0, 0, 100);
         var targetSecs = totalDuration ? (p / 100) * totalDuration : 0;
@@ -1314,8 +1340,16 @@
       });
 
       // -- Stop on SPA navigation (hashchange = 切换章节或返回目录) -------------------
-      _stopOnNav = function() { resetState(); };
-      window.addEventListener('hashchange', _stopOnNav);
+      // 使用模块级 _hashStopNav 跨 resetState() 持久化，翻页后重新播放时仍有效。
+      // 如果 _hashStopNav 已被前一次 init() 注册且尚未被清理（正常情况下不会），
+      // 先移除旧监听器再注册新监听器，保证引用的是当前闭包的 resetState。
+      if (_hashStopNav) {
+        window.removeEventListener('hashchange', _hashStopNav);
+      }
+      _hashStopNav = function() { resetState(); };
+      window.addEventListener('hashchange', _hashStopNav);
+      // 保留局部 _stopOnNav 引用（只在 resetState 注释中用于移除，现仅用于兼容）
+      _stopOnNav = _hashStopNav;
 
       // -- Loop button --------------------------------------------------------
       updateLoopButton();
