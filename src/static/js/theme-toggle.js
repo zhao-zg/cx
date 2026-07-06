@@ -771,9 +771,10 @@
                 });
             }
         }
-        // 根据可达性决定是否显示（检查未完成时先不显示，检查完成后由回调处理）
+        // 默认隐藏（HTML 模板已设 display:none），仅确认服务器可达且环境匹配时才显示
+        // 可达性检查是异步的，检查完成后由 updateServerDependentButtons 恢复显示
         if (updateBtn) {
-            updateBtn.style.display = (updateBtnEnvMatch && window.CX_SERVERS_REACHABLE !== false) ? 'inline-flex' : 'none';
+            updateBtn.style.display = (updateBtnEnvMatch && window.CX_SERVERS_REACHABLE === true) ? 'inline-flex' : 'none';
         }
 
         // ── 自动检查更新偏好设置（Capacitor APK / PWA standalone，服务器可达时显示）──
@@ -781,7 +782,7 @@
         if (autoCheckEnvMatch) {
             var autoCheckSection = document.getElementById('autoCheckSection');
             var autoCheckToggle  = document.getElementById('autoCheckUpdateToggle');
-            if (autoCheckSection) autoCheckSection.style.display = (window.CX_SERVERS_REACHABLE !== false) ? '' : 'none';
+            if (autoCheckSection) autoCheckSection.style.display = (window.CX_SERVERS_REACHABLE === true) ? '' : 'none';
             if (autoCheckToggle) {
                 try { autoCheckToggle.checked = localStorage.getItem('cx_auto_check_update') === '1'; } catch(e) {}
                 autoCheckToggle.addEventListener('change', function() {
