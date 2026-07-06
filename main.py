@@ -21,6 +21,10 @@ def generate_pages_middleware(config, project_root='.'):
     
     生成的 functions/_middleware.js 会在 wrangler pages deploy 时自动被
     Cloudflare Pages 识别，对所有请求执行时间段/星期拦截。
+    
+    支持 daily_schedule 按天配置不同开放时间（优先级高于统一 allow_start/allow_end）。
+    支持 allow_days 限制可访问的星期。
+    内置管理员直通：前端管理面板密码验证后设 cx_admin_auth cookie → 免检。
     """
     access_time = config.get('access_time', {})
     if not access_time or not access_time.get('enabled', False):
@@ -34,78 +38,160 @@ def generate_pages_middleware(config, project_root='.'):
     start_hour = int(access_time.get('allow_start', 6))
     end_hour   = int(access_time.get('allow_end', 23))
     tz_offset  = int(access_time.get('timezone_offset', 8))
-    # allow_days: 可选列表 [0-6]，0=周日 1=周一 ... 6=周六；None/空 表示每天均可访问
+    # allow_days: 可选列表 [0-6]；None/空 表示每天均可访问
     allow_days = access_time.get('allow_days')
     has_day_restrict = allow_days is not None and len(allow_days) > 0
+    # daily_schedule: 可选 dict { day: {start, end} }
+    daily_schedule = access_time.get('daily_schedule')
+    has_daily_schedule = daily_schedule is not None and len(daily_schedule) > 0
     _DAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
-    # 构建 JS 数组和星期检查代码块
+    # ── 构建按天 schedule JS ────────────────────────────
+    schedule_js = ''
+    if has_daily_schedule:
+        pairs = []
+        for day in sorted(daily_schedule.keys(), key=lambda k: int(k)):
+            entry = daily_schedule[day]
+            s = int(entry.get('start', start_hour))
+            e = int(entry.get('end', end_hour))
+            pairs.append(f"  {int(day)}: [{s}, {e}]")
+        schedule_js = f'const SCHEDULE = {{\n' + ',\n'.join(pairs) + ',\n};\n'
+
+        # ── 通用 403 HTML（20 次点击解锁，不暴露任何时段信息） ──
+    BLOCKED_HTML = (
+        '<!DOCTYPE html><html><head>'
+        '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<style>body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;'
+        'background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#999;font-size:16px;'
+        'user-select:none;-webkit-user-select:none}</style></head><body>'
+        '<script>(function(){'
+        'var n=parseInt((document.cookie.match(/(?:^|; )cx_click_n=(\\d+)/)||[])[1]||\'0\',10)+1;'
+        'document.cookie=\'cx_click_n=\'+n+\';path=/;max-age=86400\';'
+        'if(n>=20){document.cookie=\'cx_unlock=1;path=/;max-age=2592000\';'
+        'document.cookie=\'cx_click_n=;path=/;max-age=0\';location.reload()})'
+        '</script></body></html>'
+    )
+
+    # ── 通用 blockedResponse() 函数 ──
+    blocked_func = (
+        'const BLOCKED_HTML = ' + json.dumps(BLOCKED_HTML) + ';\n'
+        '\n'
+        'function blockedResponse() {\n'
+        '  return new Response(BLOCKED_HTML, {\n'
+        '    status: 403,\n'
+        '    headers: {\n'
+        '      "Content-Type": "text/html; charset=utf-8",\n'
+        '      "X-Maintenance": "true",\n'
+        '    },\n'
+        '  });\n'
+        '}\n'
+    )
+
+    # ── 管理员直通 + 20 次点击解锁 cookie 检查 ──
+    bypass_code = (
+        '\n'
+        '  // ── 管理员直通（前端管理面板密码验证后设 cookie） ──\n'
+        '  const _cookies = (context.request.headers.get("Cookie") || "").split(";").map(c => c.trim());\n'
+        '  if (_cookies.some(c => c === "cx_admin_auth=1")) {\n'
+        '    return context.next();\n'
+        '  }\n'
+        '\n'
+        '  // ── 点击 20 次解锁（403 页面的 JS 累计点击后设 cookie） ──\n'
+        '  if (_cookies.some(c => c === "cx_unlock=1")) {\n'
+        '    return context.next();\n'
+        '  }\n'
+        '\n'
+    )
+
+    # ── 构建 JS 数组和星期检查代码块 ────────────────────
     if has_day_restrict:
         days_arr = ', '.join(str(int(d)) for d in allow_days)
-        day_check_js = (
+        day_code = (
             f'const ALLOW_DAYS = [{days_arr}];\n'
             '\n'
         )
         day_block_js = (
-            '  const day = local.getUTCDay();\n'
             '  if (!ALLOW_DAYS.includes(day)) {\n'
-            '    return new Response(\n'
-            '      "服务暂不可用：今日不在允许访问日，" +\n'
-            '      "允许日：" + ALLOW_DAYS.map(d => ["周日","周一","周二","周三","周四","周五","周六"][d]).join("、"),\n'
-            '      {\n'
-            '        status: 403,\n'
-            '        headers: {\n'
-            '          "Content-Type": "text/plain; charset=utf-8",\n'
-            '          "X-Maintenance": "true",\n'
-            '        },\n'
-            '      }\n'
-            '    );\n'
+            '    return blockedResponse();\n'
             '  }\n'
             '\n'
         )
         day_desc = '，允许日: ' + '、'.join(_DAY_NAMES[int(d)] for d in allow_days)
     else:
-        day_check_js = ''
+        day_code = ''
         day_block_js = ''
         day_desc = '，每天均可访问'
 
-    middleware_js = (
+    # ── 构建小时检查代码块 ──────────────────────────────
+    if has_daily_schedule:
+        hour_check_js = (
+            '  // 按天查询开放时间\n'
+            '  const _entry = SCHEDULE[day];\n'
+            '  const _start = _entry ? _entry[0] : GLOBAL_START;\n'
+            '  const _end = _entry ? _entry[1] : GLOBAL_END;\n'
+            '  const hour = local.getUTCHours();\n'
+            '\n'
+            '  if (hour < _start || hour >= _end) {\n'
+            '    return blockedResponse();\n'
+            '  }\n'
+        )
+    else:
+        hour_check_js = (
+            '  const hour = local.getUTCHours();\n'
+            '\n'
+            '  if (hour < ALLOW_START || hour >= ALLOW_END) {\n'
+            '    return blockedResponse();\n'
+            '  }\n'
+        )
+    # ── 组装完整 JS ────────────────────────────────────
+    middle_parts = [
         '// Cloudflare Pages Functions - 访问时间/星期控制\n'
         '// 由 main.py 根据 config.yaml access_time 配置自动生成，请勿手动编辑\n'
-        f'const ALLOW_START = {start_hour};\n'
-        f'const ALLOW_END = {end_hour};\n'
-        f'const TZ_OFFSET = {tz_offset};\n'
-        + day_check_js +
+    ]
+    if has_daily_schedule:
+        middle_parts.append(f'const GLOBAL_START = {start_hour};\n')
+        middle_parts.append(f'const GLOBAL_END = {end_hour};\n')
+        middle_parts.append(schedule_js)
+    else:
+        middle_parts.append(f'const ALLOW_START = {start_hour};\n')
+        middle_parts.append(f'const ALLOW_END = {end_hour};\n')
+    middle_parts.append(f'const TZ_OFFSET = {tz_offset};\n')
+    middle_parts.append(day_code)
+    middle_parts.append(blocked_func)
+    middle_parts.append(
         '\n'
         'export async function onRequest(context) {\n'
         '  const now = new Date();\n'
         '  // 计算本地时间（UTC + TZ_OFFSET）\n'
         '  const local = new Date(now.getTime() + TZ_OFFSET * 3600000);\n'
-        '  const hour = local.getUTCHours();\n'
+        '  const day = local.getUTCDay();\n'
         '\n'
-        '  if (hour < ALLOW_START || hour >= ALLOW_END) {\n'
-        f'    const msg = "服务暂不可用：当前不在允许访问时段（{start_hour}:00 - {end_hour}:00 北京时间）";\n'
-        '    return new Response(msg, {\n'
-        '      status: 403,\n'
-        '      headers: {\n'
-        '        "Content-Type": "text/plain; charset=utf-8",\n'
-        '        "X-Maintenance": "true",\n'
-        '        "Retry-After": String((ALLOW_START - hour + 24) % 24 * 3600),\n'
-        '      },\n'
-        '    });\n'
-        '  }\n'
+    )
+    middle_parts.append(bypass_code)
+    middle_parts.append(day_block_js)
+    middle_parts.append(hour_check_js)
+    middle_parts.append(
         '\n'
-        + day_block_js +
         '  return context.next();\n'
         '}\n'
     )
+    middleware_js = ''.join(middle_parts)
 
     functions_dir = os.path.join(project_root, 'functions')
     os.makedirs(functions_dir, exist_ok=True)
     mw_path = os.path.join(functions_dir, '_middleware.js')
     with open(mw_path, 'w', encoding='utf-8') as f:
         f.write(middleware_js)
-    print(f'✓ functions/_middleware.js 已生成（允许访问: {start_hour}:00 - {end_hour}:00 UTC+{tz_offset}{day_desc}）')
+
+    # ── 打印总结信息 ────────────────────────────────────
+    if has_daily_schedule:
+        sched_desc = '，按天配置: ' + ', '.join(
+            f'{_DAY_NAMES[int(k)]} {v["start"]}:00-{v["end"]}:00'
+            for k, v in sorted(daily_schedule.items(), key=lambda x: int(x[0]))
+        )
+        print(f'✓ functions/_middleware.js 已生成（按天开放时间{sched_desc}）')
+    else:
+        print(f'✓ functions/_middleware.js 已生成（允许访问: {start_hour}:00 - {end_hour}:00 UTC+{tz_offset}{day_desc}）')
     return mw_path
 
 

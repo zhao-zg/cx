@@ -56,6 +56,9 @@
   var LEVEL3_FW = '１２３４５６７８９０';
   var LEVEL5_CHARS = '㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩';
 
+  // 纲目内容中标记引用经文的尾缀（─引用经文）
+  var _REF_TAG_RE = /\u2500引用经文$/;
+
   // 中文数字映射
   var CN_DIGIT_MAP = {
     '一':'1','二':'2','三':'3','四':'4','五':'5',
@@ -184,6 +187,8 @@
 
       var result = detectOutlineLevel(s);
       if (result) {
+        // 剥离纲目标题末尾的 ─引用经文 标记
+        result.title = result.title.replace(_REF_TAG_RE, '');
         var rank = levelRank(result.level);
         var node = { level: result.level, title: result.title, content: [], children: [] };
         // pop stack 到当前 rank
@@ -196,7 +201,9 @@
         stack.push({ rank: rank, node: node });
         currentNode = node;
       } else {
-        if (currentNode) currentNode.content.push(s);
+        // 剥离内容行末尾的 ─引用经文 标记
+        var clean = s.replace(_REF_TAG_RE, '');
+        if (currentNode) currentNode.content.push(clean);
       }
     }
     return roots;
@@ -800,6 +807,8 @@
 
       var result = detectOutlineLevelStrict(s);
       if (result) {
+        // 剥离听抄纲目标题末尾的 ─引用经文 标记
+        result.title = result.title.replace(_REF_TAG_RE, '');
         var rank = levelRank(result.level);
         var node = { level: result.level, title: result.title, content: [], children: [] };
         while (stack.length && stack[stack.length - 1].rank >= rank) stack.pop();
@@ -808,8 +817,10 @@
         stack.push({ rank: rank, node: node });
         currentNode = node;
       } else {
-        if (currentNode) currentNode.content.push(s);
-        else pre.push(s);
+        // 剥离内容行末尾的 ─引用经文 标记
+        var clean = s.replace(_REF_TAG_RE, '');
+        if (currentNode) currentNode.content.push(clean);
+        else pre.push(clean);
       }
     }
     return { pre: pre, roots: roots };

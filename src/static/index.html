@@ -418,6 +418,8 @@
 
         function showAdminPanel(){
             if(document.getElementById('cxAdminMask'))return;
+            // 管理密码已通过验证，设 cookie 直通开放时间限制
+            document.cookie='cx_admin_auth=1; path=/; SameSite=Lax';
 
             var isCapacitorApp=CX_ENV.isCapacitorApp;
             var isPwaStandalone=CX_ENV.isStandalone&&!isCapacitorApp&&('caches' in window);
@@ -458,8 +460,9 @@
                 '    </label>',
                 '  </div>',
                 '  </div>',
-                '  <div style="padding:4px 16px 14px">',
-                '    <button id="cxAdminClose" class="action-btn">关闭</button>',
+                '  <div style="padding:4px 16px 14px;display:flex;gap:8px">',
+                '    <button id="cxAdminClose" class="action-btn" style="flex:1">关闭</button>',
+                '    <button id="cxAdminLogout" class="action-btn danger" style="flex:1">退出管理</button>',
                 '  </div>',
                 '</div>'
             ].join('');
@@ -470,6 +473,11 @@
             function close(){if(mask.parentNode)mask.parentNode.removeChild(mask);if(window.CX&&window.CX.backStack)window.CX.backStack.pop();}
             if(window.CX&&window.CX.backStack)window.CX.backStack.push(function(){if(mask.parentNode)mask.parentNode.removeChild(mask);});
             document.getElementById('cxAdminClose').addEventListener('click',close);
+            var logoutBtn=document.getElementById('cxAdminLogout');
+            if(logoutBtn)logoutBtn.addEventListener('click',function(){
+                document.cookie='cx_admin_auth=; Max-Age=0; path=/';
+                close();
+            });
             mask.addEventListener('click',function(e){if(e.target===mask){e.stopPropagation();close();}});
 
             // 检查更新

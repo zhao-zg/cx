@@ -10,16 +10,37 @@ batch_processing:
 sponsor_enabled: true
 
 # 服务端访问时间段控制（北京时间 UTC+8）
-# 不在 allow_start ~ allow_end 时间段内，所有请求返回 403
+# 不在允许访问时间段内，所有请求返回 403
 # 注释掉 enabled: true 或删除此节即可关闭限制
 access_time:
   enabled: true
+  timezone_offset: 8 # UTC 偏移（北京时间 = +8）
+  # ── 统一配置（后备） ──────────────────────────────────
+  # 当某天未在 daily_schedule 中配置时，使用此统一时间
+  # 若 daily_schedule 覆盖了所有天，则这两项不会用到
   allow_start: 0    # 允许访问的开始时间（整点，0-23）
   allow_end: 8     # 允许访问的结束时间（整点，0-23，不含该小时）
-  timezone_offset: 8 # UTC 偏移（北京时间 = +8）
   # 允许访问的星期（0=周日, 1=周一, 2=周二, 3=周三, 4=周四, 5=周五, 6=周六）
   # 注释掉或删除此行表示每天均可访问
-  # allow_days: [0]  # 例如仅工作日可访问
+  # allow_days: [1, 2, 3, 4, 5]  # 例如仅工作日
+
+  # ── 按天配置（优先级高于统一配置） ────────────────────
+  # 每天可配置不同的开放时间段；不配置某天则使用上面的统一配置
+  # 如果某天既不在 daily_schedule 中，统一配置也未设置，则该天不可访问
+  # 格式：day_number: { start: 开始小时, end: 结束小时 }
+  daily_schedule:
+    0: { start: 0, end: 12 }    # 周日 0:00-12:00
+    1: { start: 0, end: 24 }   # 周一 0:00-24:00
+    2: { start: 0, end: 8 }   # 周二
+    3: { start: 0, end: 8 }   # 周三
+    4: { start: 0, end: 8 }   # 周四
+    5: { start: 0, end: 8 }   # 周五
+    6: { start: 0, end: 8 }    # 周六 0:00-8:00
+
+  # ── 管理员直通（无单独 token） ────────────────────────
+  # 前端管理面板密码验证成功后自动设置 cx_admin_auth cookie，
+  # 持有该 cookie 的请求自动跳过时间段检查（无需额外配置）。
+  # 管理面板入口：首页 Logo 连点 5 次，密码见 src/static/index.html。
 
 # 全局配置
 output_dir: "output"
