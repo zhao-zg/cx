@@ -74,7 +74,7 @@
     }
 
     return win.CX.raceFastest(urls, {
-      fetchOptions: { cache: 'no-cache', credentials: 'include' },
+      fetchOptions: { cache: 'no-cache' },
       timeout: 10000,
       logPrefix: '[资源清单]',
       validate: function (r) { return r && r.ok; },
@@ -273,7 +273,7 @@
 
       // 并发竞速：所有 server 同时拉取，首个响应到达即中止其余并使用其 body
       return win.CX.raceFastest(urls, {
-        fetchOptions: { cache: 'no-cache', credentials: 'include' },
+        fetchOptions: { cache: 'no-cache' },
         timeout: RACE_TIMEOUT,
         logPrefix: '[资源包]',
         validate: function (r) { return r && r.ok; },

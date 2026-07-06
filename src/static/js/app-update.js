@@ -639,7 +639,7 @@
         var ts = Date.now();
         var urls = serverUrls.map(function(u) { return u + 'changelog.json?t=' + ts; });
         return window.CX.raceFastest(urls, {
-            fetchOptions: { cache: 'no-cache', credentials: 'include' },
+            fetchOptions: { cache: 'no-cache' },
             timeout: 8000,
             logPrefix: '[changelog]',
             validate: function(r) { return r && r.ok; },
@@ -888,7 +888,7 @@
             }
 
             return window.CX.raceFastest(urls, {
-                fetchOptions: { cache: 'no-cache', credentials: 'include' },
+            fetchOptions: { cache: 'no-cache' },
                 timeout: 10000,
                 logPrefix: '[更新检查]',
                 validate: function(r) { return r && r.ok; },

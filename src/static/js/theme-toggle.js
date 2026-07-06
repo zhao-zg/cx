@@ -581,7 +581,7 @@
                     <button class="action-btn" id="guideBtn">
                         <span class="cache-icon">📖</span><span class="cache-text">使用说明</span>
                     </button>
-                    <button class="action-btn feedback" id="feedbackBtn">
+                    <button class="action-btn feedback" id="feedbackBtn" style="display:none">
                         <span class="cache-icon">💬</span><span class="cache-text">问题反馈</span>
                     </button>
                     <button class="action-btn sponsor" id="sponsorBtn" style="display:none">
@@ -691,10 +691,9 @@
         (function() {
             var feedbackBtn = document.getElementById('feedbackBtn');
             if (!feedbackBtn) return;
-            // 服务器不可达时隐藏（可达性检查完成后由 updateServerDependentButtons 恢复）
-            if (window.CX_SERVERS_REACHABLE === false) {
-                feedbackBtn.style.display = 'none';
-            } else {
+            // 默认隐藏（HTML 模板已设 display:none），仅在确认服务器可达时才显示
+            // 可达性检查是异步的，检查完成后由 updateServerDependentButtons 恢复显示
+            if (window.CX_SERVERS_REACHABLE === true) {
                 feedbackBtn.style.display = 'inline-flex';
             }
             feedbackBtn.addEventListener('click', showFeedbackDialog);
