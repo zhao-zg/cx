@@ -57,21 +57,25 @@ def generate_pages_middleware(config, project_root='.'):
             pairs.append(f"  {int(day)}: [{s}, {e}]")
         schedule_js = f'const SCHEDULE = {{\n' + ',\n'.join(pairs) + ',\n};\n'
 
-        # ── 通用 403 HTML（20 次点击解锁，不暴露任何时段信息） ──
+            # ── 通用伪装页（20 次点击解锁，和浏览器端伪装样式一致） ──
     BLOCKED_HTML = (
-        '<!DOCTYPE html><html><head>'
-        '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-        '<style>body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;'
-        'background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#999;font-size:16px;'
-        'user-select:none;-webkit-user-select:none}</style></head><body>'
-        '<script>(function(){'
-        'var n=parseInt((document.cookie.match(/(?:^|; )cx_click_n=(\\d+)/)||[])[1]||\'0\',10)+1;'
-        'document.cookie=\'cx_click_n=\'+n+\';path=/;max-age=86400\';'
-        'if(n>=20){document.cookie=\'cx_unlock=1;path=/;max-age=2592000\';'
-        'document.cookie=\'cx_click_n=;path=/;max-age=0\';location.reload()})'
-        '</script></body></html>'
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>body{margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:40px 24px;box-sizing:border-box}.icon{font-size:64px;margin-bottom:24px;cursor:default;-webkit-tap-highlight-color:transparent;user-select:none}.title{font-size:20px;font-weight:600;color:#333;margin-bottom:12px}.sub{font-size:14px;color:#999;text-align:center;line-height:1.7;max-width:280px}</style></head><body><div class=\"icon\" id=\"t\">\ud83d\udcf1</div><div class=\"title\" id=\"ti\"></div><div class=\"sub\" id=\"su\"></div><script>(function(){var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;document.getElementById(\"ti\").textContent=isIOS?\"\u6dfb\u52a0\u5230\u4e3b\u5c4f\u5e55\":\"\u8bf7\u4e0b\u8f7d APK \u79bb\u7ebf\u4f7f\u7528\";document.getElementById(\"su\").textContent=isIOS?\"\u8bf7\u53d1\u9001\u5230\u684c\u9762\u7f13\u5b58\u4f7f\u7528\uff0c\u5728\u7ebf\u7248\u5df2\u4e0d\u652f\u6301\uff0c\u8bf7\u8c05\u89e3\":\"\u8bf7\u4e0b\u8f7dAPK\u79bb\u7ebf\u4f7f\u7528\uff0c\u5728\u7ebf\u7248\u5df2\u4e0d\u652f\u6301\uff0c\u8bf7\u8c05\u89e3\";if(isIOS)document.getElementById(\"t\").textContent=\"\ud83d\udcf2\";var cnt=0,t=0;document.getElementById(\"t\").addEventListener(\"click\",function(){clearTimeout(t);cnt++;if(cnt>=20){document.cookie=\"cx_unlock=1;path=/;max-age=2592000\";try{sessionStorage.setItem(\"cx_access\",\"ok\");}catch(e){}location.reload();}else{t=setTimeout(function(){cnt=0;},999);}});})();</script></body></html>"
     )
 
+    # ── 通用 blockedResponse() 函数 ──
+    blocked_func = (
+        'const BLOCKED_HTML = ' + json.dumps(BLOCKED_HTML) + ';\n'
+        '\n'
+        'function blockedResponse() {\n'
+        '  return new Response(BLOCKED_HTML, {\n'
+        '    status: 403,\n'
+        '    headers: {\n'
+        '      "Content-Type": "text/html; charset=utf-8",\n'
+        '      "X-Maintenance": "true",\n'
+        '    },\n'
+        '  });\n'
+        '}\n'
+    )
     # ── 通用 blockedResponse() 函数 ──
     blocked_func = (
         'const BLOCKED_HTML = ' + json.dumps(BLOCKED_HTML) + ';\n'
@@ -89,6 +93,18 @@ def generate_pages_middleware(config, project_root='.'):
 
     # ── 管理员直通 + 20 次点击解锁 cookie 检查 ──
     bypass_code = (
+        '\n'
+        '  // ── 更新检查等 API 路径直通（version.json / changelog.json） ──\n'
+        '  const _path = new URL(context.request.url).pathname;\n'
+        '  const _isApiPath = _path.endsWith(\'/version.json\')'
+        ' || _path.endsWith(\'/changelog.json\')'
+        ' || _path.endsWith(\'/trainings.json\')'
+        ' || _path.endsWith(\'/resource-packs.json\')'
+        ' || _path.startsWith(\'/resource-packs/\')'
+        ' || _path.startsWith(\'/vendor/\');\n'
+        '  if (_isApiPath) {\n'
+        '    return context.next();\n'
+        '  }\n'
         '\n'
         '  // ── 管理员直通（前端管理面板密码验证后设 cookie） ──\n'
         '  const _cookies = (context.request.headers.get("Cookie") || "").split(";").map(c => c.trim());\n'
