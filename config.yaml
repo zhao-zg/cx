@@ -30,7 +30,7 @@ access_time:
   # 格式：day_number: { start: 开始小时, end: 结束小时 }
   daily_schedule:
     0: { start: 1, end: 12 }    # 周日 1:00-12:00
-    2: { start: 0, end: 24 }   # 周二 0:00-24:00
+    4: { start: 22, end: 24 }   # 周四 0:00-24:00
 
   # ── 管理员直通（无单独 token） ────────────────────────
   # 前端管理面板密码验证成功后自动设置 cx_admin_auth cookie，

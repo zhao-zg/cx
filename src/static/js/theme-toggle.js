@@ -340,12 +340,26 @@
     };
     let pageScrollLockCount = 0;
 
+    // 是否为本地开发环境（localhost / 127.0.0.1 / file://）
+    // 这些环境下页面与 CX_SERVERS.cloudflare 跨域，发 HEAD 会被 CORS 策略拦截并打印红字，
+    // 且 opaque 响应无法读取状态码，故在本地直接跳过探测。
+    function _isLocalDevOrigin() {
+        var h = location.hostname;
+        return h === 'localhost' || h === '127.0.0.1' || h === '::1' || location.protocol === 'file:';
+    }
+
     // ── 服务器可达性检查（应用启动时执行）──────────────────────────────
     // 检查远程服务器是否可达，结果存入 window.CX_SERVERS_REACHABLE
     // 不可达时隐藏：检查更新、问题反馈、顾念微工
+    // 语义：仅 HTTP 2xx（r.ok === true）才算可达；403/404/网络失败均为不可达。
     function checkServerReachability() {
         var servers = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
         if (!servers.length) {
+            window.CX_SERVERS_REACHABLE = false;
+            return Promise.resolve(false);
+        }
+        // 本地开发：跳过跨域探测，直接判不可达（与生产“跨域 403 → 不可达”结果一致），消除控制台 CORS 噪音
+        if (_isLocalDevOrigin()) {
             window.CX_SERVERS_REACHABLE = false;
             return Promise.resolve(false);
         }

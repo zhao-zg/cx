@@ -1042,6 +1042,24 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
     color: var(--danger-text);
 }
 
+/* 操作区：✎ + ✕ 并排 */
+.cx-bm-item-actions { display:flex; align-items:center; gap:2px; flex-shrink:0; }
+.cx-bm-item-title-btn {
+    background:none; border:none; color:var(--text-muted); font-size:14px;
+    padding:6px 8px; border-radius:6px; cursor:pointer; flex-shrink:0; opacity:.6;
+    transition:opacity .15s,color .15s; -webkit-tap-highlight-color:transparent;
+}
+.cx-bm-item-title-btn:active { opacity:1; color:var(--brand); }
+
+/* 标题编辑弹框（单行 input） */
+.cx-bm-title-edit-body { padding:12px 16px; }
+.cx-bm-title-input {
+    width:100%; box-sizing:border-box; border:1px solid var(--border);
+    border-radius:8px; padding:10px 12px; font-size:14px; color:var(--text);
+    background:var(--surface-alt); font-family:inherit; line-height:1.4;
+}
+.cx-bm-title-input:focus { outline:none; border-color:var(--brand); box-shadow:0 0 0 2px var(--interactive-soft-border); }
+
 /* 空状态 */
 .cx-bm-empty {
     padding: 40px 20px;
