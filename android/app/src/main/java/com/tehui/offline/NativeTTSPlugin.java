@@ -266,6 +266,38 @@ public class NativeTTSPlugin extends Plugin {
         }
         call.resolve();
     }
+    // ── checkEngine ──────────────────────────────────────────────────────
+    // 检查 TTS 引擎是否可用，返回引擎状态和设备信息。
+    // JS 端可用于诊断华为/鸿蒙设备兼容性问题。
+
+    @PluginMethod
+    public void checkEngine(PluginCall call) {
+        JSObject result = new JSObject();
+
+        // 设备信息
+        result.put("manufacturer", Build.MANUFACTURER);
+        result.put("brand",        Build.BRAND);
+        result.put("model",        Build.MODEL);
+        result.put("sdkVersion",   Build.VERSION.SDK_INT);
+        result.put("isHarmony",    TTSForegroundService.isHarmonyDevice());
+
+        // TTS 引擎状态
+        boolean ttsReady = TTSForegroundService.sStaticTtsReady;
+        result.put("ttsReady", ttsReady);
+
+        // 检查 Web Speech API 的可用性（让 JS 知道是否有降级方案）
+        // 这是 Android 端，无法直接检测 Web Speech，但可以提供 TTS 引擎名
+        String engineName = "";
+        try {
+            if (TTSForegroundService.sStaticTts != null) {
+                engineName = TTSForegroundService.sStaticTts.getDefaultEngine();
+            }
+        } catch (Exception ignored) {}
+        result.put("engineName", engineName != null ? engineName : "");
+
+        call.resolve(result);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────
 
     private void sendServiceAction(String action) {

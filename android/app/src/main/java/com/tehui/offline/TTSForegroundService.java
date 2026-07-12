@@ -157,6 +157,45 @@ public class TTSForegroundService extends Service {
     private int                 synthFailureCount    = 0;      // 当前会话连续合成失败计数
     private int                 directSpeakCharsDone = 0;      // speak 模式已完成 chunk 的累计字符数
 
+    // ── HarmonyOS / Huawei device detection ─────────────────────────────────
+    private static volatile Boolean sIsHarmonyDevice = null;   // 缓存检测结果（null=未检测）
+
+    /** 检测当前设备是否为华为/鸿蒙系统。
+     *  华为 TTS 引擎 synthesizeToFile() 可能返回 SUCCESS 但写入空 WAV，
+     *  需要更激进的降级策略。 */
+    public static boolean isHarmonyDevice() {
+        if (sIsHarmonyDevice != null) return sIsHarmonyDevice;
+        boolean isHarmony = false;
+        // 1. 品牌/制造商检测
+        String manufacturer = Build.MANUFACTURER;
+        String brand = Build.BRAND;
+        if (manufacturer != null && manufacturer.toLowerCase(Locale.ROOT).contains("huawei")) isHarmony = true;
+        if (!isHarmony && brand != null && brand.toLowerCase(Locale.ROOT).contains("huawei")) isHarmony = true;
+        if (!isHarmony && brand != null && brand.toLowerCase(Locale.ROOT).contains("honor")) isHarmony = true;
+        // 2. 鸿蒙系统属性检测
+        if (!isHarmony) {
+            try {
+                String harmonyVer = System.getProperty("hw.sc.build.version.incremental", "");
+                if (!harmonyVer.isEmpty()) isHarmony = true;
+            } catch (Exception ignored) {}
+        }
+        if (!isHarmony) {
+            try {
+                Class<?> clazz = Class.forName("com.huawei.system.BuildEx");
+                isHarmony = true; // 存在华为扩展类即认为是华为系统
+            } catch (ClassNotFoundException ignored) {}
+        }
+        sIsHarmonyDevice = isHarmony;
+        android.util.Log.i("TTSFgSvc", "isHarmonyDevice=" + isHarmony
+                + " manufacturer=" + manufacturer + " brand=" + brand);
+        return isHarmony;
+    }
+
+    /** 获取当前会话的合成失败上限：鸿蒙设备为 1（更快降级），其他设备为 2。 */
+    private int getMaxSynthFailures() {
+        return isHarmonyDevice() ? 1 : MAX_SYNTH_FAILURES;
+    }
+
     // ── System Resources ──────────────────────────────────────────────────
     private AudioManager                          audioManager;
     private AudioFocusRequest                     audioFocusRequest; // API 26+
@@ -372,6 +411,46 @@ public class TTSForegroundService extends Service {
                     int chunkOfUid = parseChunk(utteranceId);
                     File tempFile = new File(getCacheDir(), "tts_" + utteranceId + ".wav");
 
+                    // ★ WAV 文件大小验证：华为/鸿蒙设备 TTS 引擎可能返回 SUCCESS
+                    //   但写入 0 字节或仅有 WAV header(44 bytes) 的无效文件。
+                    //   在 onDone 中提前检测，避免空文件进入 startMediaPlayer 触发无效重试循环。
+                    long fileSize = tempFile.length();
+                    final boolean fileValid = (fileSize > 44); // WAV header = 44 bytes，有效文件必须大于此值
+                    if (!fileValid) {
+                        android.util.Log.w("TTSFgSvc", "onDone: WAV file INVALID (size=" + fileSize
+                                + ") for chunk " + chunkOfUid + " — treating as synth failure");
+                        emitLog("onDone: WAV invalid size=" + fileSize + " chunk" + chunkOfUid);
+                        // 删除无效文件
+                        deleteTempFile(tempFile);
+                        // 计入合成失败
+                        synthFailureCount++;
+                        if (synthFailureCount >= getMaxSynthFailures()) {
+                            // ★ 连续失败达到阈值：切换到 speak() 直接播放降级模式
+                            useSpeakDirect = true;
+                            synthFailureCount = 0;
+                            synthForChunk = -1;
+                            android.util.Log.w("TTSFgSvc", "onDone: empty WAV triggered useSpeakDirect fallback"
+                                    + " (harmony=" + isHarmonyDevice() + ")");
+                            emitLog("empty WAV → useSpeakDirect fallback");
+                            final int g = gen;
+                            mainHandler.post(() -> {
+                                if (speakGen != g || isStopped || isPaused) return;
+                                playDirectSpeakChunk();
+                            });
+                        } else {
+                            // 未达阈值：跳过此 chunk，继续下一个
+                            synthForChunk = -1;
+                            final int g = gen;
+                            mainHandler.post(() -> {
+                                if (speakGen != g || isStopped) return;
+                                onChunkPlaybackComplete(g);
+                            });
+                        }
+                        return;
+                    }
+                    // 文件有效，重置失败计数
+                    synthFailureCount = 0;
+
                     final boolean wasPreSynth = isPreSynthesis; // 捕获当前值，防止跨线程竞态
                     if (gen != speakGen || (isStopped && !wasPreSynth) || isPaused) {
                         // 守卫触发：该合成结果已过期。
@@ -551,6 +630,11 @@ public class TTSForegroundService extends Service {
 
     private void handleSpeak(Intent intent) {
         long _t0 = System.currentTimeMillis(); // ★ 出声延迟计时起点
+        // ★ 设备诊断日志：排查华为/鸿蒙设备 TTS 兼容性问题时关键信息
+        android.util.Log.i("TTSFgSvc", "handleSpeak: device=" + Build.MANUFACTURER + "/" + Build.BRAND
+                + "/" + Build.MODEL + " sdk=" + Build.VERSION.SDK_INT
+                + " harmony=" + isHarmonyDevice()
+                + " useSpeakDirect=" + useSpeakDirect);
         // 取消宽限期内挂起的延迟停止，循环播放时复用现有 TTS 实例而无需重建 Service
         cancelPendingStop();
         String text   = intent.getStringExtra("text");
@@ -1178,7 +1262,7 @@ public class TTSForegroundService extends Service {
                         emitLog("pre-synth all retries ERROR");
                         return;
                     }
-                    if (synthFailureCount >= MAX_SYNTH_FAILURES) {
+                    if (synthFailureCount >= getMaxSynthFailures()) {
                         useSpeakDirect = true;
                         synthFailureCount = 0;
                         synthForChunk = -1;
@@ -1313,10 +1397,27 @@ public class TTSForegroundService extends Service {
             return;
         }
         if (!file.exists() || file.length() == 0) {
-            // ★ 文件不存在或为空：可能是被取消的预合成残留。
-            //   不直接跳过 chunk，而是在 ttsHandler 上延迟重合成一次。
-            android.util.Log.w("TTSFgSvc", "startMediaPlayer: file missing/empty for chunk " + chunkIndex + ", retrying synth");
-            emitLog("MediaPlayer: file missing/empty, retry synth");
+            // ★ 文件不存在或为空：可能是被取消的预合成残留，或 TTS 引擎写入空文件。
+            //   计入合成失败：华为/鸿蒙引擎可能反复写入空文件导致无限重试循环。
+            synthFailureCount++;
+            if (synthFailureCount >= getMaxSynthFailures()) {
+                // 连续空文件达到阈值 → 切换到 speak() 直接播放
+                useSpeakDirect = true;
+                synthFailureCount = 0;
+                synthForChunk = -1;
+                android.util.Log.w("TTSFgSvc", "startMediaPlayer: repeated empty file triggered useSpeakDirect fallback");
+                emitLog("empty file → useSpeakDirect fallback");
+                final int g = gen;
+                ttsHandler.post(() -> {
+                    if (speakGen != g || isStopped || isPaused) return;
+                    playDirectSpeakChunk();
+                });
+                return;
+            }
+            // 未达阈值：延迟重合成
+            android.util.Log.w("TTSFgSvc", "startMediaPlayer: file missing/empty for chunk " + chunkIndex
+                    + " (" + synthFailureCount + "/" + getMaxSynthFailures() + "), retrying synth");
+            emitLog("MediaPlayer: file missing/empty, retry synth (" + synthFailureCount + "/" + getMaxSynthFailures() + ")");
             final int retryGen = gen;
             final int retryIdx = chunkIndex;
             synthForChunk = -1; // 允许 playChunkOnly / doSynthesizeChunk 重新合成

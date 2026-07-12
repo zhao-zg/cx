@@ -383,6 +383,7 @@
         isNative:     isNative,
         useNativeTTS: !!nativeTTS,
         useWebSpeech: !nativeTTS && hasWebSpeech,
+        hasWebSpeech: hasWebSpeech,  // ★ 保留：NativeTTS 失败时的降级目标
         supported:    !!nativeTTS || hasWebSpeech
       };
     }
@@ -418,6 +419,9 @@
 
       var useNativeTTS = engine.useNativeTTS;
       var useWebSpeech = engine.useWebSpeech;
+      var _hasWebSpeechFallback = engine.hasWebSpeech;  // ★ NativeTTS 失败时的降级目标可用性
+      var _nativeTTSFailCount   = 0;                    // NativeTTS 连续失败次数
+      var _NATIVE_FAIL_THRESHOLD = 2;                   // 连续失败 N 次后降级到 Web Speech
 
       var playIcon  = playPauseBtn.querySelector('.play-icon');
       var pauseIcon = playPauseBtn.querySelector('.pause-icon');
@@ -849,6 +853,22 @@
         var NativeTTS = getNativeTTS();
         if (!NativeTTS) {
           console.log('[CXSpeech] nativeSpeak: \u63d2\u4ef6\u4e0d\u53ef\u7528');
+          // ★ NativeTTS 不可用且有 Web Speech → 降级
+          if (_hasWebSpeechFallback && !useWebSpeech) {
+            console.log('[CXSpeech] ★ NativeTTS 插件不可用，降级到 Web Speech API');
+            useNativeTTS = false;
+            useWebSpeech = true;
+            speechTime.textContent = '已切换到浏览器朗读';
+            speechTime.style.color = '#dd6b20';
+            setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 3000);
+            setTimeout(function() {
+              // 降级后用 Web Speech 从头开始播放
+              if (fullText && state !== 'playing') {
+                startSpeakingFromPercent(0);
+              }
+            }, 300);
+            return;
+          }
           setState('idle'); // 恢复状态，允许用户重试
           return;
         }
@@ -944,6 +964,8 @@
             console.log('[CXSpeech] speak resolved: status=' + status + ' gen=' + gen + ' curGen=' + _speakGeneration);
             if (gen !== _speakGeneration) return;
             if (status === 'cancelled' || status === 'stopped') return;
+            // ★ NativeTTS 成功播放完成，重置失败计数
+            _nativeTTSFailCount = 0;
             // Java 已处理循环（loop=true 时永不触发 onFinished），到达此处说明非循环播放自然结束
             resetState();
           })
@@ -951,6 +973,31 @@
             console.log('[CXSpeech] speak rejected: ' + (err && (err.message || err)) + ' gen=' + gen + ' curGen=' + _speakGeneration);
             if (gen !== _speakGeneration) return;
             stopProgressUpdate();
+
+            // ★ NativeTTS 失败自动降级到 Web Speech API
+            //   华为/鸿蒙设备 TTS 引擎可能不可用或反复失败，
+            //   连续失败达阈值后自动切换到 Web Speech（如果浏览器支持）
+            _nativeTTSFailCount++;
+            console.log('[CXSpeech] NativeTTS consecutive failures: ' + _nativeTTSFailCount + '/' + _NATIVE_FAIL_THRESHOLD);
+            if (_nativeTTSFailCount >= _NATIVE_FAIL_THRESHOLD && _hasWebSpeechFallback && !useWebSpeech) {
+              console.log('[CXSpeech] ★ NativeTTS 连续失败 ' + _nativeTTSFailCount + ' 次，降级到 Web Speech API');
+              useNativeTTS = false;
+              useWebSpeech = true;
+              _nativeTTSFailCount = 0;
+              // 显示降级提示
+              speechTime.textContent = '已切换到浏览器朗读';
+              speechTime.style.color = '#dd6b20';
+              setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 3000);
+              // 使用 Web Speech 重试播放
+              nativeStopService(true);
+              setTimeout(function() {
+                if (fullText && state !== 'playing') {
+                  startSpeakingFromPercent(0);
+                }
+              }, 300);
+              return;
+            }
+
             setState('idle');
             var msg = (err && (err.message || err)) || '\u6717\u8bfb\u5931\u8d25';
             speechTime.textContent = msg;
@@ -967,10 +1014,27 @@
         setTimeout(function() {
           if (_lastPosMs < 0 && gen === _speakGeneration && state === 'playing') {
             console.log('[CXSpeech] \u8d85\u65f6\u91cd\u8bd5: 5\u79d2\u672a\u51fa\u58f0\uff0c\u53d1\u9001 stop+speak \u91cd\u8bd5');
+            // ★ 超时也算 NativeTTS 失败
+            _nativeTTSFailCount++;
             // 尝试 stop 再 speak，看能否恢复
             try { NativeTTS.stop(); } catch(e) {}
             setTimeout(function() {
               if (_lastPosMs < 0 && gen === _speakGeneration && state === 'playing') {
+                // ★ 如果已达到降级阈值，直接切换到 Web Speech
+                if (_nativeTTSFailCount >= _NATIVE_FAIL_THRESHOLD && _hasWebSpeechFallback && !useWebSpeech) {
+                  console.log('[CXSpeech] ★ 超时降级: NativeTTS 无响应，切换到 Web Speech API');
+                  useNativeTTS = false;
+                  useWebSpeech = true;
+                  _nativeTTSFailCount = 0;
+                  nativeStopService(true);
+                  speechTime.textContent = '已切换到浏览器朗读';
+                  speechTime.style.color = '#dd6b20';
+                  setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 3000);
+                  setTimeout(function() {
+                    if (fullText && state !== 'playing') startSpeakingFromPercent(0);
+                  }, 300);
+                  return;
+                }
                 console.log('[CXSpeech] \u91cd\u8bd5 speak...');
                 try {
                   NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
