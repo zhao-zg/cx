@@ -164,7 +164,11 @@
     var _el = null;        // 浮动导航栏 DOM 元素
     var _ttsEl = null;     // 浮动朗读栏 DOM 元素（克隆）
     var _timer = null;     // 5 秒自动隐藏定时器
-    var HIDE_DELAY = 5000;
+    var HIDE_DELAY = 7000;
+    function resetTimer() {
+        clearTimeout(_timer);
+        _timer = setTimeout(hide, HIDE_DELAY);
+    }
     var _ttsSyncCleanup = null;
 
     /* 获取当前页面的 .page-navigation（章节 tab 栏） */
@@ -184,6 +188,8 @@
         if (!_el) {
             _el = document.createElement('div');
             _el.className = 'cx-float-nav';
+            _el.setAttribute('role', 'toolbar');
+            _el.setAttribute('aria-orientation', 'horizontal');
             _el.setAttribute('aria-label', '快捷导航');
             document.body.appendChild(_el);
 
@@ -222,11 +228,19 @@
             withId[i].removeAttribute('id');
         }
 
-        // 设置按钮（⚙）
+        // 章节标题上下文（取当前页章节标题，提供定位信息）
+        var titleEl = document.createElement('div');
+        titleEl.className = 'cx-float-nav-title';
+        titleEl.setAttribute('aria-hidden', 'true');
+        var titleSrc = document.querySelector('.header--chapter .chapter-title');
+        titleEl.textContent = titleSrc ? titleSrc.textContent.trim() : '当前内容';
+
+        // 设置按钮（⚙）移到右上角（绝对定位，见 style.css）
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'cx-float-nav-settings';
         btn.title = '设置';
+        btn.setAttribute('aria-label', '设置');
         btn.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M1 12h6m6 0h6"/><path d="M4.2 4.2l4.3 4.3m5.5 5.5l4.3 4.3M4.2 19.8l4.3-4.3m5.5-5.5l4.3-4.3"/></svg>';
         btn.onclick = function(e) {
             e.stopPropagation();
@@ -234,9 +248,14 @@
             if (window.toggleThemePanel) window.toggleThemePanel();
         };
 
+        var head = document.createElement('div');
+        head.className = 'cx-float-nav-head';
+        head.appendChild(titleEl);
+        head.appendChild(btn);
+
         el.innerHTML = '';
+        el.appendChild(head);
         el.appendChild(cloned);
-        el.appendChild(btn);
         return true;
     }
 
@@ -367,9 +386,17 @@
     /* 显示浮动栏 */
     function show() {
         if (!syncContent()) return;
-        ensureEl().classList.add('show');
-        clearTimeout(_timer);
-        _timer = setTimeout(hide, HIDE_DELAY);
+        var el = ensureEl();
+        el.classList.add('show');
+        resetTimer();
+        // 交互（滚动 tab 行）时重置自动隐藏计时
+        var pn = el.querySelector('.page-navigation');
+        if (pn) pn.addEventListener('scroll', resetTimer, { passive: true });
+        // 键盘可达：聚焦首个 tab
+        var first = el.querySelector('.nav-link');
+        if (first && first.focus) {
+            try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); }
+        }
         syncTtsContent();
         if (_ttsEl) {
             _ttsEl.classList.add('show');
