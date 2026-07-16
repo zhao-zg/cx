@@ -8,11 +8,12 @@
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    // 动态构造 base URL：取 origin + 第一段路径
-    // 如 aa.bb.com/cx/xxx → https://aa.bb.com/cx/
     const seg = url.pathname.split('/').filter(Boolean)[0] || '';
-    // 没有路径段（根域名部署），保持原状
-    const allBases = seg ? [url.origin + '/' + seg + '/', ...FALLBACK_BASES] : FALLBACK_BASES;
+    // 有路径段时，替换 FALLBACK_BASES 中所有 cx 为路径段
+    // 如 aa.bb.com/books → https://books.1189.dpdns.org/
+    const allBases = seg
+      ? FALLBACK_BASES.map(b => b.replace('cx', seg))
+      : FALLBACK_BASES;
 
     for (const base of allBases) {
       try {
@@ -20,7 +21,17 @@ export default {
         if (!res.ok) continue;
         const { apk_file } = await res.json();
         if (!apk_file) continue;
-        return Response.redirect(base + apk_file, 302);
+        // 代理模式：fetch APK 文件直接返回，而不是 302 重定向
+        const apkRes = await fetch(base + apk_file);
+        if (!apkRes.ok) continue;
+        return new Response(apkRes.body, {
+          status: 200,
+          headers: {
+            'Content-Type': apkRes.headers.get('Content-Type') || 'application/vnd.android.package-archive',
+            'Content-Length': apkRes.headers.get('Content-Length') || '',
+            'Content-Disposition': 'attachment; filename="' + apk_file.split('/').pop() + '"',
+          },
+        });
       } catch (_) {
         continue;
       }
