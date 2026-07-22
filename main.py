@@ -820,7 +820,8 @@ def generate_main_index(config, batch_results):
     if os.path.exists(spa_shell_src):
         shutil.copy2(spa_shell_src, spa_shell_dst)
         # 注入 CX_MAX_LATEST_TRAININGS，使 PWA 与 APK 保持相同的「默认只缓存最新 N 个训练」行为
-        _max_n = config.get('max_latest_trainings', 7)
+        _batch_cfg = config.get('batch_processing', {})
+        _max_n = _batch_cfg.get('max_latest_trainings', 7)
         try:
             with open(spa_shell_dst, 'r', encoding='utf-8') as _f:
                 _html = _f.read()
