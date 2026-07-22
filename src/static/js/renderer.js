@@ -851,7 +851,23 @@
       if (!sel || sel.isCollapsed) return;
 
       e.preventDefault();
-      var plainText = sel.toString();
+      /* 清理 .fn-ref(注号)/.xref-ref(串珠号) 上标，恢复历史行为：
+         复制晨兴喂养经文时不带注号和串珠号。
+         原因：CSS 已对二者设 user-select:none，但 Selection.toString()
+         不检查 user-select，会把上标文本一并输出，故需在复制时手动剔除。 */
+      var plainText = (function () {
+        var holder = document.createElement('div');
+        for (var i = 0; i < sel.rangeCount; i++) {
+          var frag = sel.getRangeAt(i).cloneContents();
+          var sups = frag.querySelectorAll('.fn-ref, .xref-ref');
+          for (var j = sups.length - 1; j >= 0; j--) {
+            sups[j].parentNode.removeChild(sups[j]);
+          }
+          holder.appendChild(frag);
+        }
+        /* innerText 保留块级换行，贴近用户所见；textContent 兜底 */
+        return (holder.innerText != null) ? holder.innerText : holder.textContent;
+      })();
       try {
         if (e.clipboardData) {
           e.clipboardData.setData('text/plain', plainText);
