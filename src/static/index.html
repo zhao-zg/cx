@@ -762,6 +762,11 @@
                         var _ver=v.version||v.apk_version||'';
                         // 版本未变则跳过，避免每次启动都重复填充
                         if(_capVer&&_capVer===_ver)return;
+                        // APK 版本变化：先清理旧的 trainings.json 缓存，确保后续 fetch 走网络
+                        caches.open('cx-main').then(function(cache){
+                            cache.delete('./trainings.json');
+                            cache.delete(location.origin + '/trainings.json');
+                        }).catch(function(){});
                         waitForTrainings(15000).then(function(){
                             return cacheAllTrainings(null,null);
                         }).then(function(){
