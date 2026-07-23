@@ -9,6 +9,7 @@ import json
 import yaml
 import shutil
 import base64
+import hashlib
 import subprocess
 from datetime import datetime
 from src.parser_improved import parse_training_docs_improved
@@ -299,6 +300,23 @@ def find_document_in_folder(folder_path, filename):
     return None
 
 
+def find_epub_files_in_folder(folder_path):
+    """
+    在指定文件夹中查找 EPUB 文件（不含子目录）。
+    
+    Returns:
+        EPUB 文件路径列表，按文件名排序；无则返回空列表。
+    """
+    if not os.path.isdir(folder_path):
+        return []
+    epub_files = sorted([
+        os.path.join(folder_path, f)
+        for f in os.listdir(folder_path)
+        if f.lower().endswith('.epub') and os.path.isfile(os.path.join(folder_path, f))
+    ])
+    return epub_files
+
+
 def find_txt_files_in_folder(folder_path):
     """
     在指定文件夹中查找 TXT 文件（不含子目录）。
@@ -580,6 +598,18 @@ def process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_f
                         # 精确匹配 hymn_{number}[_或.后缀]，避免 hymn_1 误匹配 hymn_12
                         _pat = re.compile(r'^hymn_' + str(_num) + r'[_\.]')
                         _matched = [f'images/{f}' for f in hymn_files if _pat.match(f)]
+                        # 去重：内容相同的图片只保留第一张
+                        if _matched and len(_matched) > 1:
+                            _seen = {}
+                            for _mf in _matched:
+                                _fp = os.path.join(_images_dir, _mf.replace('images/', ''))
+                                if os.path.exists(_fp):
+                                    _h = hashlib.md5(open(_fp, 'rb').read()).hexdigest()
+                                    if _h not in _seen:
+                                        _seen[_h] = _mf
+                                else:
+                                    _seen[id(_mf)] = _mf
+                            _matched = list(_seen.values())
                         if _matched:
                             _ch['hymn_images'] = _matched
                             _ch['hymn_image'] = _matched[0]
@@ -605,11 +635,240 @@ def process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_f
     }
 
 
+def extract_hymn_numbers_from_txt(txt_path):
+    """
+    从 TXT 文件中提取每篇章节的诗歌编号（hymn_number）。
+    
+    TXT 文件中每篇章节有一行 "诗歌：大本576首" 格式的行，
+    按出现顺序对应章节编号 1, 2, 3, ...
+    与 txt-importer.js 的 parseOneChapter 逻辑一致：只匹配行首的 "诗歌：" 格式。
+    
+    Returns:
+        hymn_numbers 列表（按章节顺序），如 ['大本576首', '大本附5首', ...]
+    """
+    try:
+        with open(txt_path, 'r', encoding='utf-8') as f:
+            text = f.read()
+    except Exception:
+        return []
+    
+    # 规范化（与 build-batch-txt.js 一致）
+    text = text.replace('李常受文集', 'CWWL').replace('生命读经', 'L-S')
+    lines = text.split('\n')
+    
+    hymn_numbers = []
+    hymn_re = re.compile(r'^诗歌[：:∶]\s*(.+)')
+    
+    for line in lines:
+        s = line.strip()
+        m = hymn_re.match(s)
+        if m:
+            hymn_numbers.append(m.group(1).strip())
+    
+    return hymn_numbers
+
+
+def process_batch_epub(batch_folder, config, batch_config, safe_batch_name, epub_file):
+    """
+    使用 EPUB 文件生成 training.json，调用 Python 脚本。
+    标语诗歌图片始终从批次文件夹获取。
+
+    Args:
+        epub_file: EPUB 文件路径。
+
+    Returns:
+        成功时返回批次信息 dict，失败返回 None。
+    """
+    output_dir = os.path.join(config['output_dir'], safe_batch_name)
+
+    _build_epub = os.path.join(os.path.dirname(__file__), 'tools', 'build-batch-epub.py')
+    if not os.path.exists(_build_epub):
+        print(f"⚠ 未找到 EPUB 构建脚本: {_build_epub}")
+        return None
+
+    cmd = [
+        sys.executable, _build_epub,
+        '--epub', epub_file,
+        '--folder', batch_folder,
+        '--output', output_dir,
+    ]
+    if batch_config.get('year'):
+        cmd.extend(['--year', str(batch_config['year'])])
+    if batch_config.get('season'):
+        cmd.extend(['--season', str(batch_config['season'])])
+
+    print(f"  调用 Python 解析 EPUB 文件...")
+    try:
+        _child_env = os.environ.copy()
+        _child_env['PYTHONIOENCODING'] = 'utf-8'
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            errors='replace',
+            env=_child_env,
+            timeout=300,
+        )
+    except Exception as e:
+        print(f"✗ EPUB 解析进程异常: {e}")
+        return None
+
+    # stderr 输出人类可读日志
+    if result.stderr:
+        for line in result.stderr.strip().split('\n'):
+            print(f"  {line}")
+
+    if result.returncode != 0:
+        print(f"✗ EPUB 解析失败 (exit {result.returncode})")
+        if result.stdout:
+            print(f"  stdout: {result.stdout[:200]}")
+        return None
+
+    # stdout 是元数据 JSON
+    try:
+        meta = json.loads(result.stdout.strip())
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"✗ 无法解析 EPUB 脚本输出: {e}")
+        return None
+
+    print(f"✓ EPUB 解析完成: {meta.get('chapter_count', 0)} 篇章")
+
+    # ── 从晨兴 Word 文档补丁诗歌内容和图片（EPUB 中不含诗歌编号）──────────
+    _patch_hymn = os.path.join(os.path.dirname(__file__), 'tools', 'patch-hymn-from-word.py')
+    if os.path.exists(_patch_hymn):
+        print(f"\n  📖 从晨兴 Word 文档提取诗歌内容（补充 EPUB 缺失的编号和图片）...")
+        try:
+            _child_env = os.environ.copy()
+            _child_env['PYTHONIOENCODING'] = 'utf-8'
+            hymn_result = subprocess.run(
+                [sys.executable, _patch_hymn,
+                 '--output-dir', output_dir,
+                 '--batch-folder', batch_folder],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                timeout=180,
+                env=_child_env,
+            )
+            if hymn_result.stderr:
+                for line in hymn_result.stderr.strip().split('\n'):
+                    print(f"  {line}")
+            if hymn_result.returncode == 0 and hymn_result.stdout.strip():
+                _raw = hymn_result.stdout.strip()
+                _json_start = _raw.find('{')
+                _json_end = _raw.rfind('}')
+                if _json_start >= 0 and _json_end > _json_start:
+                    _json_str = _raw[_json_start:_json_end + 1]
+                    hymn_meta = json.loads(_json_str)
+                    patched = hymn_meta.get('patched_chapters', 0)
+                    if patched:
+                        print(f"  ✓ 诗歌数据已合并: {patched}/{hymn_meta.get('total_chapters', 0)} 篇")
+                    else:
+                        print(f"  ⚠ 无诗歌数据需要合并")
+                else:
+                    print(f"  ⚠ 诗歌补丁输出无 JSON，跳过")
+            elif hymn_result.returncode != 0:
+                print(f"  ⚠ 诗歌补丁失败 (exit {hymn_result.returncode})")
+        except subprocess.TimeoutExpired:
+            print(f"  ⚠ 诗歌补丁超时，跳过")
+        except Exception as e:
+            print(f"  ⚠ 诗歌补丁异常: {e}")
+    else:
+        print(f"  ⚠ 未找到诗歌补丁脚本: {_patch_hymn}")
+
+    # ── 回退：若 training.json 中 hymn_images 为空但磁盘有 hymn_*.png，则自动补充 ──
+    _training_json = os.path.join(output_dir, 'training.json')
+    _images_dir = os.path.join(output_dir, 'images')
+    if os.path.exists(_training_json) and os.path.isdir(_images_dir):
+        hymn_files = sorted([
+            f for f in os.listdir(_images_dir)
+            if f.startswith('hymn_') and f.lower().endswith(('.png', '.jpg', '.jpeg'))
+        ])
+        if hymn_files:
+            try:
+                with open(_training_json, 'r', encoding='utf-8') as _f:
+                    _td = json.load(_f)
+                _need_write = False
+                for _ch in _td.get('chapters', []):
+                    if _ch.get('hymn_images'):
+                        continue
+                    _num = _ch.get('number', 0)
+                    _pat = re.compile(r'^hymn_' + str(_num) + r'[_\.]')
+                    _matched = [f'images/{f}' for f in hymn_files if _pat.match(f)]
+                    # 去重：内容相同的图片只保留第一张
+                    if _matched and len(_matched) > 1:
+                        _seen = {}
+                        for _mf in _matched:
+                            _fp = os.path.join(_images_dir, _mf.replace('images/', ''))
+                            if os.path.exists(_fp):
+                                _h = hashlib.md5(open(_fp, 'rb').read()).hexdigest()
+                                if _h not in _seen:
+                                    _seen[_h] = _mf
+                            else:
+                                _seen[id(_mf)] = _mf
+                        _matched = list(_seen.values())
+                    if _matched:
+                        _ch['hymn_images'] = _matched
+                        _ch['hymn_image'] = _matched[0]
+                        _need_write = True
+                if _need_write:
+                    with open(_training_json, 'w', encoding='utf-8') as _f:
+                        json.dump(_td, _f, ensure_ascii=False, indent=2)
+                    print(f"  ✓ 从磁盘补充 hymn_images 引用")
+            except Exception as _e:
+                print(f"  ⚠ hymn_images 回退补充失败: {_e}")
+
+    # ── 从 TXT 文件补充 hymn_number（EPUB HTML 不含诗歌编号）──────────────
+    if os.path.exists(_training_json):
+        # 查找 TXT 文件：批次文件夹 > 历史合辑
+        _txt_files = find_txt_files_in_folder(batch_folder)
+        _txt_file = _txt_files[0] if _txt_files else None
+        if not _txt_file:
+            _batch_name = os.path.basename(batch_folder)
+            _resource_dir = config.get('resource_dir', config.get('resource_base_dir', 'resource'))
+            _txt_file = find_matching_txt_in_history(_batch_name, _resource_dir)
+        
+        if _txt_file:
+            _hymn_numbers = extract_hymn_numbers_from_txt(_txt_file)
+            if _hymn_numbers:
+                try:
+                    with open(_training_json, 'r', encoding='utf-8') as _f:
+                        _td = json.load(_f)
+                    _need_write = False
+                    _patched_count = 0
+                    for _idx, _ch in enumerate(_td.get('chapters', [])):
+                        if _ch.get('hymn_number'):
+                            continue  # 已有值，跳过
+                        if _idx < len(_hymn_numbers) and _hymn_numbers[_idx]:
+                            _ch['hymn_number'] = _hymn_numbers[_idx]
+                            _need_write = True
+                            _patched_count += 1
+                    if _need_write:
+                        with open(_training_json, 'w', encoding='utf-8') as _f:
+                            json.dump(_td, _f, ensure_ascii=False, indent=2)
+                        print(f"  ✓ 从 TXT 补充 hymn_number: {_patched_count} 篇 ({os.path.basename(_txt_file)})")
+                except Exception as _e:
+                    print(f"  ⚠ hymn_number TXT 补充失败: {_e}")
+
+    return {
+        'name': os.path.basename(batch_folder),
+        'year': meta.get('year', batch_config.get('year', 2025)),
+        'season': meta.get('season', batch_config.get('season', '')),
+        'title': meta.get('title', ''),
+        'chapter_count': meta.get('chapter_count', 0),
+        'path': safe_batch_name,
+        'images': meta.get('images', []),
+        'version': meta.get('version', ''),
+    }
+
+
 def process_batch(batch_folder, config, bible_dict: BibleDict = None):
     """
     处理单个批次的文档，生成 training.json。
 
-    优先使用 TXT 文件（如存在）；无 TXT 时回退到 Word 文档解析。
+    优先级：EPUB > TXT > Word 文档。
     标语诗歌图片始终从批次文件夹中的图片文件获取（不依赖 Word）。
 
     Returns:
@@ -645,18 +904,24 @@ def process_batch(batch_folder, config, bible_dict: BibleDict = None):
         batch_config['season'] = default_training.get('season', '秋季')
         print(f"⚠ 文件夹名格式不标准，使用默认配置: {batch_config['year']}年{batch_config['season']}")
 
-    # ── 优先检测 TXT 文件 ────────────────────────────────────────────────────
-    # 1. 批次文件夹内直接有 .txt（最高优先级）
+    # ── 最高优先级：EPUB 文件 ──────────────────────────────────────────────────
+    epub_files = find_epub_files_in_folder(batch_folder)
+    if epub_files:
+        print(f"✓ 找到 EPUB 文件（最高优先级）: {os.path.basename(epub_files[0])}")
+        return process_batch_epub(batch_folder, config, batch_config, safe_batch_name, epub_file=epub_files[0])
+
+    # ── 次优先级：TXT 文件 ────────────────────────────────────────────────────
+    # 1. 批次文件夹内直接有 .txt
     txt_files = find_txt_files_in_folder(batch_folder)
     if txt_files:
-        print(f"✓ 找到 TXT 文件（批次目录内，优先使用）: {os.path.basename(txt_files[0])}")
+        print(f"✓ 找到 TXT 文件（批次目录内）: {os.path.basename(txt_files[0])}")
         return process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_file=txt_files[0])
 
     # 2. 从 resource/历史合辑/ 中按 YYYY-MM 查找匹配的 TXT
     resource_dir = config.get('resource_dir', config.get('resource_base_dir', 'resource'))
     matched_txt = find_matching_txt_in_history(batch_name, resource_dir)
     if matched_txt:
-        print(f"✓ 找到匹配的 TXT（历史合辑，优先使用）: {os.path.relpath(matched_txt, resource_dir)}")
+        print(f"✓ 找到匹配的 TXT（历史合辑）: {os.path.relpath(matched_txt, resource_dir)}")
         return process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_file=matched_txt)
 
     # ── 回退到 Word 文档解析 ─────────────────────────────────────────────────
@@ -895,6 +1160,8 @@ def generate_main_index(config, batch_results):
         'ref-detector.js', 'training-enricher.js', 'router.js', 'renderer.js',
         # 本地 TXT 导入
         'txt-importer.js',
+        # 本地 EPUB 导入
+        'epub-importer.js',
         # 历史资源包下载
         'resource-pack.js',
         # 并发竞速工具（多个场景共用）

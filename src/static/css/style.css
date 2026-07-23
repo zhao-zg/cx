@@ -610,6 +610,12 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .hymn-images-stack{margin-top:15px}
 .hymn-images-stack .hymn-image{margin-bottom:12px}
 .hymn-images-stack .hymn-image:last-of-type{margin-bottom:0}
+/* 诗歌歌词（来自 EPUB） */
+.hymn-lyrics{margin-top:20px;padding:20px 15px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;text-align:center}
+.hymn-stanza{margin-bottom:18px}
+.hymn-stanza:last-child{margin-bottom:0}
+.hymn-stanza-num{display:inline-block;font-size:16px;font-weight:700;color:var(--accent);margin-bottom:6px}
+.hymn-lyric-line{font-size:15px;line-height:2;color:var(--text);margin:0;text-align:center}
 .hymn-note{margin:20px 0;padding:15px;background:var(--callout-bg);border-left:4px solid var(--callout-border);border-radius:4px}
 .hymn-note p{margin:0;color:var(--callout-text);font-size:14px;line-height:1.8}
 @media(min-width:768px){

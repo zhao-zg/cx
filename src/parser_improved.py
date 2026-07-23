@@ -1242,7 +1242,8 @@ class ImprovedParser:
                         chapters[current_week - 1].morning_revivals.append(current_revival)
                 
                 # 开始新的一天（每天使用周纲目，不单独解析纲目）
-                current_day = text
+                _day_match = re.search(r'周[一二三四五六七]', text)
+                current_day = _day_match.group() if _day_match else text
                 current_revival = MorningRevival(day=current_day)
                 current_section = None  # 等待晨兴喂养标记
                 content_buffer = []
@@ -1569,7 +1570,8 @@ class ImprovedParser:
                     pending_outline = [] # 清空已保存的纲目
 
                 # 创建新的一天,从day_outlines获取对应纲目
-                current_revival = MorningRevival(day=text)
+                _day_match2 = re.search(r'周[一二三四五六七]', text)
+                current_revival = MorningRevival(day=_day_match2.group() if _day_match2 else text)
                 # 提取天标记中的"周X"部分
                 day_match = re.search(r'周[一二三四五六]', text)
                 if day_match:
@@ -2049,8 +2051,28 @@ class ImprovedParser:
                 last_pos = pos
             groups.append(current_group)
 
-            # ── 5. 将每组映射到章节并保存图片 ────────────────────────────
+            # ── 5. 将每组映射到章节并保存图片（去重：跳过内容相同的图片）────
             suffix = f"_{doc_identifier}" if doc_identifier else ""
+
+            # 预计算每个 rId 对应图片的 hash，用于去重
+            img_hashes = {}  # rId -> hash hex
+            for rId_set in groups:
+                for rId in rId_set:
+                    if rId not in img_hashes and rId in img_blobs:
+                        import hashlib
+                        img_hashes[rId] = hashlib.md5(img_blobs[rId]).hexdigest()
+
+            # 收集已有图片的内容 hash（跨文档去重：跳过与已有图片内容相同的新图片）
+            existing_img_hashes = set()
+            for ch in chapters:
+                for img_path in ch.hymn_images:
+                    disk_path = os.path.join(output_dir, img_path.replace('images/', ''))
+                    if os.path.exists(disk_path):
+                        try:
+                            with open(disk_path, 'rb') as f:
+                                existing_img_hashes.add(hashlib.md5(f.read()).hexdigest())
+                        except Exception:
+                            pass
 
             for group_idx, rIds in enumerate(groups):
                 if week_numbers and group_idx < len(week_numbers):
@@ -2064,7 +2086,21 @@ class ImprovedParser:
 
                 chapter = chapters[chapter_num - 1]
 
-                for img_idx, rId in enumerate(rIds):
+                # 同组内按内容去重 + 跨文档去重：跳过与已有图片内容相同的 rId
+                seen_hashes = []
+                unique_rIds = []
+                for rId in rIds:
+                    h = img_hashes.get(rId)
+                    if h and h in seen_hashes:
+                        continue  # 组内内容重复，跳过
+                    if h and h in existing_img_hashes:
+                        continue  # 与已有图片内容相同（跨文档重复），跳过
+                    if h:
+                        seen_hashes.append(h)
+                        existing_img_hashes.add(h)
+                    unique_rIds.append(rId)
+
+                for img_idx, rId in enumerate(unique_rIds):
                     # 第1张沿用旧命名（向后兼容），额外图片加 _2/_3 后缀
                     extra = f"_{img_idx + 1}" if img_idx > 0 else ""
                     image_filename = f'hymn_{chapter_num}{suffix}{extra}.png'

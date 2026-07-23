@@ -973,7 +973,7 @@
     var mrs = [];
     for (var d = 0; d < _ALL_DAY_CNS.length; d++) {
       var dc = _ALL_DAY_CNS[d];
-      var dayLabel = '第' + cnStrGlobal + '周 • ' + (_CN_WEEKDAY[dc] || '周' + dc);
+      var dayLabel = _CN_WEEKDAY[dc] || '周' + dc;
       var content = extractMrDayContent(dayContentLines[dc] || []);
       var split = splitFeedingScriptures(content.morning_feeding_raw);
       mrs.push({

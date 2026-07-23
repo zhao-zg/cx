@@ -916,6 +916,50 @@
         fi.click();
       }
 
+      // ── EPUB 导入 ──────────────────────────────────────────────────
+      function doEpubImport() {
+        if (!win.CXEpubImport) { alert('EPUB 导入模块未加载'); return; }
+        var fi = document.createElement('input');
+        fi.type = 'file';
+        fi.accept = '.epub,application/epub+zip';
+        fi.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px';
+        document.body.appendChild(fi);
+        fi.addEventListener('change', function () {
+          var file = fi.files && fi.files[0];
+          document.body.removeChild(fi);
+          if (!file) return;
+          var nameLower = file.name.toLowerCase();
+          if (!nameLower.endsWith('.epub') && file.type !== 'application/epub+zip') {
+            alert('请选择 .epub 格式的电子书文件');
+            return;
+          }
+          if (file.size > 200 * 1024 * 1024) {
+            alert('文件过大（超过 200 MB），请确认是否为正确的 EPUB 文件');
+            return;
+          }
+          if (file.size < 1024) {
+            alert('文件内容过少，不是有效的 EPUB 文件');
+            return;
+          }
+          var overlay = document.getElementById('cxCmImportOverlay');
+          var msgEl   = document.getElementById('cxCmImportMsg');
+          var barEl   = document.getElementById('cxCmImportBar');
+          if (overlay) overlay.style.display = 'flex';
+          win.CXEpubImport.parseAndSave(file, function (done, total, msg) {
+            if (msgEl) msgEl.textContent = msg || ('解析中 ' + done + '/' + total);
+            if (barEl && total) barEl.style.width = Math.round(done / total * 100) + '%';
+          }).then(function (result) {
+            if (overlay) overlay.style.display = 'none';
+            if (win.refreshHomeGrid) win.refreshHomeGrid();
+            tabLoaded['import'] = false; renderImportTab();
+          }).catch(function (err) {
+            if (overlay) overlay.style.display = 'none';
+            alert('EPUB 导入失败：' + (err && err.message ? err.message : '解析错误'));
+          });
+        });
+        fi.click();
+      }
+
       var p_local = win.CXLocalImport
         ? win.CXLocalImport.listImports().catch(function () { return []; })
         : Promise.resolve([]);
@@ -923,10 +967,17 @@
       p_local.then(function (localImports) {
         var html = '<div class="pref-row" style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:4px">' +
           '<div class="pref-label-wrap">' +
-            '<span class="pref-title">本地文件</span>' +
+            '<span class="pref-title">TXT 导入</span>' +
             '<span class="pref-desc">导入 TXT 格式训练文本</span>' +
           '</div>' +
           '<button id="cxTabImportFileBtn" class="action-btn primary icon">📂 导入</button>' +
+        '</div>' +
+        '<div class="pref-row" style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:4px">' +
+          '<div class="pref-label-wrap">' +
+            '<span class="pref-title">EPUB 导入</span>' +
+            '<span class="pref-desc">导入 EPUB 格式训练电子书</span>' +
+          '</div>' +
+          '<button id="cxTabImportEpubBtn" class="action-btn primary icon">📖 导入</button>' +
         '</div>';
         if (!localImports.length) {
           html += '<div style="text-align:center;padding:24px 0;color:var(--text-secondary)">暂无本地导入</div>';
@@ -954,6 +1005,8 @@
 
         var importFileBtn = document.getElementById('cxTabImportFileBtn');
         if (importFileBtn) importFileBtn.addEventListener('click', doImport);
+        var importEpubBtn = document.getElementById('cxTabImportEpubBtn');
+        if (importEpubBtn) importEpubBtn.addEventListener('click', doEpubImport);
 
         updateSelBar();
         Array.prototype.forEach.call(content.querySelectorAll('input[type=checkbox][data-path]'), function (cb) {

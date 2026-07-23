@@ -26,17 +26,52 @@ from src.parser_improved import ImprovedParser
 
 
 def find_morning_docs(folder_path):
-    """在批次文件夹中查找晨兴 Word 文档（.doc / .docx），按文件名排序。"""
+    """在批次文件夹中查找晨兴 Word 文档（.doc / .docx），按文件名排序。
+    
+    去重规则：
+    1. 同一基础名同时有 .doc 和 .docx 时，优先 .docx（更现代，可直接提取图片）
+    2. 内容完全相同的文件只保留一份（如 晨兴.doc 和 晨兴2.doc 可能是同一文档的复制）
+    """
     if not os.path.isdir(folder_path):
         return []
-    docs = sorted([
+    all_docs = sorted([
         os.path.join(folder_path, f)
         for f in os.listdir(folder_path)
         if ('晨兴' in f or 'morning' in f.lower())
         and (f.endswith('.doc') or f.endswith('.docx'))
         and os.path.isfile(os.path.join(folder_path, f))
     ])
-    return docs
+    # 去重1：同名 .doc 和 .docx 只保留 .docx
+    seen_bases = {}  # base_name -> file_path
+    for fp in all_docs:
+        fname = os.path.basename(fp)
+        base = fname.rsplit('.', 1)[0]  # 去掉扩展名
+        if base in seen_bases:
+            if fp.endswith('.docx'):
+                seen_bases[base] = fp
+        else:
+            seen_bases[base] = fp
+    
+    # 去重2：按文件内容（大小+MD5）去重，内容相同的只保留一份
+    import hashlib
+    seen_hashes = {}  # (size, md5) -> file_path
+    for base in sorted(seen_bases.keys()):
+        fp = seen_bases[base]
+        try:
+            fsize = os.path.getsize(fp)
+            with open(fp, 'rb') as f:
+                fhash = hashlib.md5(f.read()).hexdigest()
+            key = (fsize, fhash)
+            if key in seen_hashes:
+                # 内容与已有文件完全相同，跳过
+                print(f"  跳过重复文档: {os.path.basename(fp)} (与 {os.path.basename(seen_hashes[key])} 内容相同)", file=sys.stderr)
+                continue
+            seen_hashes[key] = fp
+        except Exception:
+            seen_hashes[id(fp)] = fp
+    
+    result = [seen_hashes[k] for k in sorted(seen_hashes.keys(), key=lambda k: seen_hashes[k])]
+    return result
 
 
 def patch_training_json(output_dir, batch_folder):
@@ -103,10 +138,12 @@ def patch_training_json(output_dir, batch_folder):
                 ch['hymn_number'] = word_ch.hymn_number
                 updated = True
 
-        # 补丁 hymn_images（诗歌图片）
+        # 补丁 hymn_images（诗歌图片）— Word 优先，覆盖 EPUB 的图片
+        # EPUB 图片和歌词是配对的（来自 _h_hymn.htm），用 Word 图片时需清空 EPUB 歌词
         if word_ch.hymn_images:
             ch['hymn_images'] = word_ch.hymn_images
             ch['hymn_image'] = word_ch.hymn_image
+            ch['hymn_lyrics'] = []
             updated = True
 
         if updated:

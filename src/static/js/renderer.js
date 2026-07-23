@@ -504,6 +504,32 @@
           '</div>';
       }
       inner += '</div>';
+
+      // 歌词（来自 EPUB 的 calibre_text_hymns 段落）
+      var lyrics = chapter.hymn_lyrics;
+      if (lyrics && lyrics.length) {
+        inner += '<div class="hymn-lyrics">';
+        for (var li = 0; li < lyrics.length; li++) {
+          var raw = lyrics[li];
+          if (!raw) continue;
+          var lines = raw.split('\n');
+          inner += '<div class="hymn-stanza">';
+          // 第一行如果是纯数字（节号），单独渲染为节号标识
+          var startIdx = 0;
+          if (lines.length > 1 && /^\d+$/.test(lines[0].trim())) {
+            inner += '<span class="hymn-stanza-num">' + escText(lines[0].trim()) + '</span>';
+            startIdx = 1;
+          }
+          for (var lj = startIdx; lj < lines.length; lj++) {
+            var lineText = lines[lj].trim();
+            if (lineText) {
+              inner += '<p class="hymn-lyric-line">' + escText(lineText) + '</p>';
+            }
+          }
+          inner += '</div>';
+        }
+        inner += '</div>';
+      }
     } else {
       inner = '<p class="no-content">暂无诗歌信息</p>';
     }
