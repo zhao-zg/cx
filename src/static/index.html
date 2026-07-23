@@ -658,7 +658,7 @@
         if(document.getElementById('cxInstallMask'))return;
         var icons={install:'📦',update:'🔄'};
         var titles={install:'首次安装缓存',update:'缓存更新中'};
-        var maxN_=window.CX_MAX_LATEST_TRAININGS||7;
+        var maxN_=window.CX_MAX_LATEST_TRAININGS||5;
         var subs={install:'首次使用会缓存最近 '+maxN_+' 个训练，历史训练可在设置面板下载资源包，请保持网络连接...',update:'正在重新缓存最新资源，用户数据不受影响...'};
         var mask=document.createElement('div');mask.id='cxInstallMask';mask.className='cx-install-mask';
         mask.innerHTML='<div class="cx-install-box"><div class="cx-install-icon">'+icons[mode]+'</div><div class="cx-install-title">'+titles[mode]+'</div><div class="cx-install-sub">'+subs[mode]+'</div><div class="cx-install-progress"><div class="cx-install-progress-bar" id="cxInstallProgressBar"></div></div><div class="cx-install-status" id="cxInstallStatus">正在准备...</div><button class="cx-install-retry" id="cxInstallRetry">重试</button></div>';
