@@ -343,7 +343,12 @@
     // 是否为本地开发环境（localhost / 127.0.0.1 / file://）
     // 这些环境下页面与 CX_SERVERS.cloudflare 跨域，发 HEAD 会被 CORS 策略拦截并打印红字，
     // 且 opaque 响应无法读取状态码，故在本地直接跳过探测。
+    // 注意：Capacitor APK 也以 localhost 提供页面，但它是生产环境，不应跳过探测。
     function _isLocalDevOrigin() {
+        // Capacitor 原生平台：hostname 虽为 localhost，但不是本地开发，不跳过探测
+        if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+            return false;
+        }
         var h = location.hostname;
         return h === 'localhost' || h === '127.0.0.1' || h === '::1' || location.protocol === 'file:';
     }
