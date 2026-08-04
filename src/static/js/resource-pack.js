@@ -45,45 +45,53 @@
   // ── 清单获取 ──────────────────────────────────────────────────────────────────
 
   var _manifest = null;
+  var _manifestTs = 0;
+  var MANIFEST_TTL = 60 * 1000; // 60秒缓存有效期
 
   function fetchManifest() {
-    if (_manifest) return Promise.resolve(_manifest);
+    // 命中缓存直接返回
+    if (_manifest && Date.now() - _manifestTs < MANIFEST_TTL) return Promise.resolve(_manifest);
     var servers = (win.CX_SERVERS && win.CX_SERVERS.cloudflare) || [];
     var bust = '?t=' + Date.now();
+    var pathSuffix = 'resource-packs.json' + bust;
+
+    // 使用 smartFetch：先最快镜像直取，失败再竞速重探
+    if (win.CX && win.CX.smartFetch) {
+      return win.CX.smartFetch(servers, pathSuffix, {
+        timeout: 10000,
+        logPrefix: '[资源清单]',
+        validate: function (r) { return r && r.ok; },
+        transform: function (r) { return r.json(); },
+        fallbackPath: 'resource-packs.json'
+      }).then(function (result) {
+        if (!result) throw new Error('无法获取资源包清单');
+        console.log('[资源清单] 命中: 镜像 #' + (result.idx + 1) + ' (' + result.url + ')');
+        _manifest = result.value;
+        _manifestTs = Date.now();
+        return result.value;
+      });
+    }
+
+    // 降级：顺序 fallback
     var urls = servers.map(function (s) {
       return s.replace(/\/$/, '') + '/resource-packs.json' + bust;
     });
     urls.push(getRoot() + 'resource-packs.json' + bust);
-
-    if (!win.CX || !win.CX.raceFastest) {
-      // 降级：顺序 fallback
-      function tryNext(idx) {
-        if (idx >= urls.length) return Promise.reject(new Error('无法获取资源包清单'));
-        return fetch(urls[idx], { cache: 'no-cache' })
-          .then(function (r) {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            return r.json();
-          })
-          .then(function (data) {
-            _manifest = data;
-            return data;
-          })
-          .catch(function () { return tryNext(idx + 1); });
-      }
-      return tryNext(0);
+    function tryNext(idx) {
+      if (idx >= urls.length) return Promise.reject(new Error('无法获取资源包清单'));
+      return fetch(urls[idx], { cache: 'no-cache' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (data) {
+          _manifest = data;
+          _manifestTs = Date.now();
+          return data;
+        })
+        .catch(function () { return tryNext(idx + 1); });
     }
-
-    return win.CX.raceFastest(urls, {
-      fetchOptions: { cache: 'no-cache' },
-      timeout: 10000,
-      logPrefix: '[资源清单]',
-      validate: function (r) { return r && r.ok; },
-      transform: function (r) { return r.json(); }
-    }).then(function (result) {
-      console.log('[资源清单] 命中: 镜像 #' + (result.idx + 1) + ' (' + result.url + ')');
-      _manifest = result.value;
-      return result.value;
-    });
+    return tryNext(0);
   }
 
   // ── 缓存检查 ──────────────────────────────────────────────────────────────────
@@ -227,11 +235,6 @@
     }
     function fetchZip() {
       var servers = (win.CX_SERVERS && win.CX_SERVERS.cloudflare) || [];
-      var baseUrls = servers.map(function (s) { return s.replace(/\/$/, ''); });
-      baseUrls.push(win.location.origin);
-      var urls = baseUrls.map(function (b) { return b + '/' + pack.path; });
-
-      // 资源包可能较大，多个 server 并发拉取会浪费带宽，故使用保守超时
       var RACE_TIMEOUT = 12000;
 
       function pumpZip(response) {
@@ -257,31 +260,35 @@
         return pump();
       }
 
-      if (!win.CX || !win.CX.raceFastest) {
-        // 降级：顺序 fallback
-        function tryServer(idx) {
-          if (idx >= urls.length) return Promise.reject(new Error('所有镜像均失败'));
-          return fetch(urls[idx], { cache: 'no-cache' })
-            .then(function (r) {
-              if (!r.ok) throw new Error('HTTP ' + r.status);
-              return pumpZip(r);
-            })
-            .catch(function () { return tryServer(idx + 1); });
-        }
-        return tryServer(0);
+      // 使用 smartFetch：先最快镜像直取，失败再竞速重探
+      if (win.CX && win.CX.smartFetch && servers.length) {
+        var pathSuffix = pack.path;
+        return win.CX.smartFetch(servers, pathSuffix, {
+          timeout: RACE_TIMEOUT,
+          logPrefix: '[资源包]',
+          validate: function (r) { return r && r.ok; },
+          transform: function (r) { return r; } // 透传 response，reader 仍在响应体内
+        }).then(function (result) {
+          if (!result) throw new Error('所有镜像均失败');
+          console.log('[资源包] 命中: 镜像 #' + (result.idx + 1) + ' (' + result.url + ')');
+          return pumpZip(result.value);
+        });
       }
 
-      // 并发竞速：所有 server 同时拉取，首个响应到达即中止其余并使用其 body
-      return win.CX.raceFastest(urls, {
-        fetchOptions: { cache: 'no-cache' },
-        timeout: RACE_TIMEOUT,
-        logPrefix: '[资源包]',
-        validate: function (r) { return r && r.ok; },
-        transform: function (r) { return r; } // 透传 response，reader 仍在响应体内
-      }).then(function (result) {
-        console.log('[资源包] 命中: 镜像 #' + (result.idx + 1) + ' (' + result.url + ')');
-        return pumpZip(result.value);
-      });
+      // 降级：顺序 fallback（含本地源）
+      var baseUrls = servers.map(function (s) { return s.replace(/\/$/, ''); });
+      baseUrls.push(win.location.origin);
+      var urls = baseUrls.map(function (b) { return b + '/' + pack.path; });
+      function tryServer(idx) {
+        if (idx >= urls.length) return Promise.reject(new Error('所有镜像均失败'));
+        return fetch(urls[idx], { cache: 'no-cache' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return pumpZip(r);
+          })
+          .catch(function () { return tryServer(idx + 1); });
+      }
+      return tryServer(0);
     }
     return ensureJSZip()
       .then(fetchZip)

@@ -355,40 +355,63 @@
 
     // ── 服务器可达性检查（应用启动时执行）──────────────────────────────
     // 检查远程服务器是否可达，结果存入 window.CX_SERVERS_REACHABLE
-    // 不可达时隐藏：检查更新、问题反馈、顾念微工
-    // 语义：仅 HTTP 2xx（r.ok === true）才算可达；403/404/网络失败均为不可达。
+    // 优化：完全复用 CX.getVersionInfo() 的 HEAD 竞速结果
+    //       HEAD 成功 = 服务器可达 + 找到最快镜像；HEAD 失败 = 不可达
+    //       不再单独发任何请求
+    var _reachabilityCache = { result: null, ts: 0, TTL: 5 * 60 * 1000 }; // 5分钟缓存
+
     function checkServerReachability() {
+        // 命中缓存直接返回
+        if (_reachabilityCache.result !== null && Date.now() - _reachabilityCache.ts < _reachabilityCache.TTL) {
+            window.CX_SERVERS_REACHABLE = _reachabilityCache.result;
+            return Promise.resolve(_reachabilityCache.result);
+        }
         var servers = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
         if (!servers.length) {
             window.CX_SERVERS_REACHABLE = false;
+            _reachabilityCache = { result: false, ts: Date.now(), TTL: _reachabilityCache.TTL };
             return Promise.resolve(false);
         }
-        // 本地开发：跳过跨域探测，直接判不可达（与生产“跨域 403 → 不可达”结果一致），消除控制台 CORS 噪音
+        // 本地开发：跳过跨域探测，直接判不可达
         if (_isLocalDevOrigin()) {
             window.CX_SERVERS_REACHABLE = false;
+            _reachabilityCache = { result: false, ts: Date.now(), TTL: _reachabilityCache.TTL };
             return Promise.resolve(false);
         }
-        var TIMEOUT = 5000;
-        var promises = servers.map(function(serverUrl) {
-            return new Promise(function(resolve) {
-                var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-                var timer = setTimeout(function() {
-                    if (ctrl) try { ctrl.abort(); } catch(e) {}
-                    resolve(false);
-                }, TIMEOUT);
-                var opts = { method: 'HEAD', cache: 'no-cache' };
-                if (ctrl) opts.signal = ctrl.signal;
-                fetch(serverUrl, opts)
-                    .then(function(r) { clearTimeout(timer); resolve(r.ok); })
-                    .catch(function() { clearTimeout(timer); resolve(false); });
+        // 复用 CX.getVersionInfo()：它内部做 HEAD 竞速，已设置 CX_SERVERS_REACHABLE
+        if (window.CX && window.CX.getVersionInfo) {
+            return window.CX.getVersionInfo().then(function(v) {
+                var reachable = !!v; // 有版本信息 = 可达
+                _reachabilityCache = { result: reachable, ts: Date.now(), TTL: _reachabilityCache.TTL };
+                window.CX_SERVERS_REACHABLE = reachable;
+                return reachable;
+            }).catch(function() {
+                _reachabilityCache = { result: false, ts: Date.now(), TTL: _reachabilityCache.TTL };
+                window.CX_SERVERS_REACHABLE = false;
+                return false;
             });
-        });
-        return Promise.all(promises).then(function(results) {
-            var reachable = results.some(function(r) { return r === true; });
+        }
+        // 降级：无 getVersionInfo 时单次 HEAD 探测首个服务器
+        var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        var timer = setTimeout(function() {
+            if (ctrl) try { ctrl.abort(); } catch(e) {}
+            _reachabilityCache = { result: false, ts: Date.now(), TTL: _reachabilityCache.TTL };
+            window.CX_SERVERS_REACHABLE = false;
+        }, 5000);
+        var opts = { method: 'HEAD', cache: 'no-cache' };
+        if (ctrl) opts.signal = ctrl.signal;
+        return fetch(servers[0], opts).then(function(r) {
+            clearTimeout(timer);
+            var reachable = r.ok;
+            _reachabilityCache = { result: reachable, ts: Date.now(), TTL: _reachabilityCache.TTL };
             window.CX_SERVERS_REACHABLE = reachable;
-            console.log('[连通性] 服务器' + (reachable ? '可达' : '不可达'));
             return reachable;
-        });
+        }).catch(function() {
+            clearTimeout(timer);
+            _reachabilityCache = { result: false, ts: Date.now(), TTL: _reachabilityCache.TTL };
+            window.CX_SERVERS_REACHABLE = false;
+             return false;
+         });
     }
 
     // 根据服务器可达性更新依赖网络的 UI 元素
@@ -819,7 +842,7 @@
         // ── 触发服务器可达性检查，完成后更新按钮可见性 ──────────────────
         checkServerReachability().then(function(reachable) {
             updateServerDependentButtons(reachable);
-            // 服务器可达时，探测赞助图片是否可获取，成功才显示按钮
+            // 服务器可达时直接显示赞助按钮（跳过启动时的图片探测，改为点击时按需加载）
             if (reachable) {
                 var sponsorBtn = document.getElementById('sponsorBtn');
                 if (sponsorBtn && sponsorBtn.style.display === 'none' && !sponsorBtn.dataset.probed) {
@@ -828,30 +851,8 @@
                         var elapsed = firstUse ? (Date.now() - firstUse) : 0;
                         if (elapsed >= 5 * 60 * 1000) {
                             sponsorBtn.dataset.probed = '1';
-                            var servers = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
-                            var probeFile = 'images/zanzhu-wx.png';
-                            var tried = 0;
-                            var PROBE_TIMEOUT = 6000;
-                            (function tryNext() {
-                                if (tried >= servers.length) return;
-                                var url = servers[tried++] + probeFile + '?t=' + Date.now();
-                                var img = new Image();
-                                var timer = setTimeout(function() {
-                                    img.onload = img.onerror = null;
-                                    img.src = '';
-                                    tryNext();
-                                }, PROBE_TIMEOUT);
-                                img.onload = function() {
-                                    clearTimeout(timer);
-                                    sponsorBtn.style.display = 'inline-flex';
-                                    sponsorBtn.addEventListener('click', showSponsorDialog);
-                                };
-                                img.onerror = function() {
-                                    clearTimeout(timer);
-                                    tryNext();
-                                };
-                                img.src = url;
-                            })();
+                            sponsorBtn.style.display = 'inline-flex';
+                            sponsorBtn.addEventListener('click', showSponsorDialog);
                         }
                     } catch(e) {}
                 }
@@ -867,14 +868,15 @@
                 apkBtn.style.display = 'inline-flex';
                 apkBtn.addEventListener('click', function() {
                     if (window.CX.downloadApk) { window.CX.downloadApk(); return; }
-                    var root = window.CX_ROOT || './';
                     if (statusEl) { statusEl.textContent = '正在获取最新版本...'; statusEl.className = 'cache-status'; }
-                    fetch(root + 'version.json?t=' + Date.now(), { cache: 'no-cache' })
-                        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                    // 复用全局版本缓存，避免重复请求 version.json
+                    (window.CX.getVersionInfo ? window.CX.getVersionInfo() : fetch((window.CX_ROOT || './') + 'version.json?t=' + Date.now(), { cache: 'no-cache' }).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }))
                         .then(function(v) {
+                            if (!v) throw new Error('无版本信息');
                             var f = v.apk_file || ('TeHui-v' + (v.apk_version || v.version) + '.apk');
                             var sz = v.apk_size ? ' (' + (v.apk_size / 1024 / 1024).toFixed(1) + ' MB)' : '';
                             if (statusEl) { statusEl.textContent = '正在下载 v' + (v.apk_version || v.version) + sz + '...'; statusEl.className = 'cache-status success'; }
+                            var root = window.CX_ROOT || './';
                             window.open(root + f, '_blank');
                         })
                         .catch(function(e) {

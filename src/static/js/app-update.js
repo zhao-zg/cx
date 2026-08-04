@@ -5,6 +5,209 @@
 (function() {
     'use strict';
 
+    // ==================== 全局版本信息单例缓存 ====================
+    // 避免多个模块重复请求 version.json，同一会话内只请求一次
+    // 统一走 smartFetch 策略：先直取最快镜像（1次），失败竞速重探，再失败降级本地
+    // GET 成功 = 服务器可达，连通性检测也一并完成
+    window.CX = window.CX || {};
+    window.CX._versionPromise = null;
+    window.CX._fastestServerIdx = undefined; // smartFetch 首次调用时从 localStorage 恢复
+
+    window.CX.getVersionInfo = function() {
+        if (window.CX._versionPromise) return window.CX._versionPromise;
+
+        var servers = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
+        var root = window.CX_ROOT || './';
+        var ts = Date.now();
+
+        if (servers.length) {
+            // 走 smartFetch：直取最快镜像 → 竞速重探 → 降级本地
+            window.CX._versionPromise = window.CX.smartFetch(servers, 'version.json?t=' + ts, {
+                timeout: 10000,
+                logPrefix: '[版本信息]',
+                validate: function(r) { return r && r.ok; },
+                transform: function(r) { return r.json(); },
+                fallbackPath: 'version.json'
+            }).then(function(result) {
+                if (!result) {
+                    // 所有镜像 + 本地均失败
+                    window.CX_SERVERS_REACHABLE = false;
+                    return null;
+                }
+                // 成功（镜像或本地）
+                if (result.idx >= 0) {
+                    // 镜像命中，smartFetch 内部已更新 _fastestServerIdx
+                    window.CX_SERVERS_REACHABLE = true;
+                    console.log('[版本信息] 命中镜像 #' + (result.idx + 1));
+                } else {
+                    // 降级本地命中
+                    window.CX_SERVERS_REACHABLE = false;
+                    console.warn('[版本信息] 所有镜像失败，降级本地');
+                }
+                return result.value;
+            }).catch(function() {
+                window.CX_SERVERS_REACHABLE = false;
+                return null;
+            });
+
+            // null 时清 _versionPromise，允许下次重试
+            window.CX._versionPromise = window.CX._versionPromise.then(function(v) {
+                if (v === null) window.CX._versionPromise = null;
+                return v;
+            });
+        } else {
+            // 无镜像配置，直接本地
+            var localPromise = fetch(root + 'version.json', { cache: 'no-cache' })
+                .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .catch(function() { return null; });
+            // null 时清 _versionPromise，允许下次重试
+            localPromise.then(function(v) {
+                if (v === null) { window.CX._versionPromise = null; }
+            });
+            window.CX._versionPromise = localPromise;
+        }
+        return window.CX._versionPromise;
+    };
+
+    // ==================== 智能请求策略：先最快镜像直取，失败再竞速重探 ====================
+    //
+    // 日常：1次请求（走 localStorage 记住的最快镜像）
+    // 失败：竞速所有镜像重探，更新最快记录，返回结果
+    // 再失败：降级本地 root + fallbackPath
+    //
+    // serverUrls  : CF 镜像 URL 数组（已含末尾 /）
+    // pathSuffix   : 拼接在镜像 URL 后的路径，如 'changelog.json?t=123'
+    // options.transform : Response → value 的转换函数（默认 r.json()）
+    // options.validate  : Response 合法性检查（默认 r.ok）
+    // options.timeout   : 竞速总超时 ms（默认 10000）
+    // options.logPrefix : 日志前缀
+    // options.fallbackPath: 降级本地路径（如 'changelog.json'），不含 bust 参数
+    // 注：内部固定 fetch cache: 'no-cache'，调用方无需传 fetchOptions
+
+    window.CX.smartFetch = function(serverUrls, pathSuffix, options) {
+        options = options || {};
+        var transform = options.transform || function(r) { return r.json(); };
+        var validate  = options.validate  || function(r) { return r && r.ok; };
+        var timeout   = options.timeout  || 10000;
+        var logPrefix = options.logPrefix || '[smartFetch]';
+        var root = window.CX_ROOT || './';
+
+        if (!serverUrls || !serverUrls.length) {
+            // 无镜像配置，降级本地
+            var localUrl = root + (options.fallbackPath || pathSuffix.split('?')[0]);
+            return fetch(localUrl, { cache: 'no-cache' })
+                .then(function(r) {
+                    if (!validate(r)) throw new Error('HTTP ' + r.status);
+                    return transform(r);
+                })
+                .catch(function() { return null; });
+        }
+
+        // ── 第一步：走最快镜像直取（1次请求） ──
+        var fastestIdx = window.CX._fastestServerIdx;
+        // 首次访问：从 localStorage 恢复上次记录
+        if (fastestIdx === undefined) {
+            try { fastestIdx = parseInt(localStorage.getItem('cx_fastest_mirror') || '-1', 10); } catch(e) { fastestIdx = -1; }
+            if (fastestIdx >= 0 && fastestIdx < serverUrls.length) {
+                window.CX._fastestServerIdx = fastestIdx;
+            } else {
+                fastestIdx = undefined;
+            }
+        }
+        if (fastestIdx !== undefined && fastestIdx >= 0 && fastestIdx < serverUrls.length) {
+            var url = serverUrls[fastestIdx] + pathSuffix;
+            return fetch(url, { cache: 'no-cache' })
+                .then(function(r) {
+                    if (!validate(r)) throw new Error('HTTP ' + r.status);
+                    return transform(r, fastestIdx, serverUrls[fastestIdx]);
+                })
+                .then(function(value) {
+                    console.log(logPrefix, '直取命中镜像 #' + (fastestIdx + 1));
+                    return { value: value, idx: fastestIdx, url: serverUrls[fastestIdx] };
+                })
+                .catch(function(err) {
+                    // 最快镜像失败 → 进入竞速重探
+                    console.warn(logPrefix, '直取镜像 #' + (fastestIdx + 1) + ' 失败 (' + (err.message || err) + ')，竞速重探');
+                    return doRaceAndFallback(serverUrls, pathSuffix, options);
+                });
+        }
+
+        // 无最快镜像记录 → 直接竞速
+        return doRaceAndFallback(serverUrls, pathSuffix, options);
+    };
+
+    // ── 竞速重探 + 降级本地 ──
+    function doRaceAndFallback(serverUrls, pathSuffix, options) {
+        options = options || {};
+        var transform = options.transform || function(r) { return r.json(); };
+        var validate  = options.validate  || function(r) { return r && r.ok; };
+        var timeout   = options.timeout  || 10000;
+        var logPrefix = options.logPrefix || '[smartFetch]';
+        var root = window.CX_ROOT || './';
+
+        var urls = serverUrls.map(function(s, i) {
+            return { url: s + pathSuffix, idx: i, base: s };
+        });
+
+        // 使用 raceFastest 竞速
+        if (window.CX && window.CX.raceFastest) {
+            var fetchUrls = urls.map(function(u) { return u.url; });
+            return window.CX.raceFastest(fetchUrls, {
+                timeout: timeout,
+                logPrefix: logPrefix,
+                validate: validate,
+                transform: function(r, idx) { return transform(r, idx, serverUrls[idx]); }
+            }).then(function(result) {
+                // 竞速成功 → 更新最快镜像记录
+                var newIdx = result.idx;
+                window.CX._fastestServerIdx = newIdx;
+                try { localStorage.setItem('cx_fastest_mirror', String(newIdx)); } catch(e) {}
+                console.log(logPrefix, '竞速命中镜像 #' + (newIdx + 1) + '，已更新记录');
+                return { value: result.value, idx: newIdx, url: serverUrls[newIdx] };
+            }).catch(function() {
+                // 竞速全败 → 降级本地
+                return localFallback(root, options, transform, validate, logPrefix);
+            });
+        }
+
+        // 无 raceFastest → 顺序 fallback
+        return (function tryNext(i) {
+            if (i >= urls.length) {
+                return localFallback(root, options, transform, validate, logPrefix);
+            }
+            return fetch(urls[i].url, { cache: 'no-cache' })
+                .then(function(r) {
+                    if (!validate(r)) throw new Error('HTTP ' + r.status);
+                    return transform(r, urls[i].idx, urls[i].base);
+                })
+                .then(function(value) {
+                    var idx = urls[i].idx;
+                    window.CX._fastestServerIdx = idx;
+                    try { localStorage.setItem('cx_fastest_mirror', String(idx)); } catch(e) {}
+                    console.log(logPrefix, '顺序命中镜像 #' + (idx + 1) + '，已更新记录');
+                    return { value: value, idx: idx, url: urls[i].base };
+                })
+                .catch(function() { return tryNext(i + 1); });
+        })(0);
+    }
+
+    function localFallback(root, options, transform, validate, logPrefix) {
+        var fallbackPath = options.fallbackPath;
+        if (!fallbackPath) return Promise.resolve(null);
+        var url = root + fallbackPath;
+        console.warn(logPrefix, '所有镜像均失败，降级本地:', url);
+        return fetch(url, { cache: 'no-cache' })
+            .then(function(r) {
+                if (!validate(r)) throw new Error('HTTP ' + r.status);
+                return transform(r, -1, url);
+            })
+            .then(function(value) { return { value: value, idx: -1, url: url }; })
+            .catch(function() { return null; });
+    }
+
+    // ==================== Changelog 缓存（60秒 TTL）====================
+    var _changelogCache = { data: null, ts: 0, TTL: 60 * 1000 };
+    
     // ==================== 公共工具函数 ====================
     
     // 获取 CapacitorHttp（兼容多种访问方式）
@@ -267,18 +470,29 @@
                 var blob, downloadUrl;
                 var startDownloadTime = Date.now();
                 
-                // 确定下载 URL（GitHub URL 测速选择最快线路）
+                // 确定下载 URL（优先使用之前竞速记录的最快 CF 服务器，跳过测速）
                 var isGitHubUrl = url.indexOf('github.com') !== -1 || url.indexOf('githubusercontent.com') !== -1;
-                if (isGitHubUrl && CapacitorHttp) {
-                    console.log('[APK下载] GitHub URL，使用快速测速策略');
-                    if (onProgress) onProgress('正在选择最快线路...', 0, 0, 0);
+                if (isGitHubUrl) {
+                    var fastestIdx = window.CX._fastestServerIdx;
+                    var CLOUDFLARE_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
+                    // 如果之前竞速有记录且 CF 镜像可用，直接使用最快服务器
+                    if (fastestIdx !== undefined && CLOUDFLARE_SERVERS.length > 0 && CLOUDFLARE_SERVERS[fastestIdx]) {
+                        var apkFileName = url.split('/').pop();
+                        downloadUrl = CLOUDFLARE_SERVERS[fastestIdx] + apkFileName;
+                        console.log('[APK下载] 复用竞速结果，跳过测速，直接使用 CF 镜像 #' + (fastestIdx + 1));
+                    } else if (CapacitorHttp) {
+                        console.log('[APK下载] 无最快镜像记录，使用测速策略');
+                        if (onProgress) onProgress('正在选择最快线路...', 0, 0, 0);
                     
-                    var downloadSources = [{ name: '线路 1', url: url }];
-                    this.config.mirrors.forEach(function(mirror, index) {
-                        downloadSources.push({ name: '线路 ' + (index + 2), url: mirror + url });
+                    // 构建测速线路：CF 镜像 + 原始 GitHub URL
+                    var downloadSources = [];
+                    CLOUDFLARE_SERVERS.forEach(function(cfUrl, i) {
+                        var apkFile = url.split('/').pop();
+                        downloadSources.push({ name: 'CF 镜像 #' + (i + 1), url: cfUrl + apkFile, serverIdx: i });
                     });
+                    downloadSources.push({ name: 'GitHub', url: url, serverIdx: -1 });
                     
-                    // 竞速测速
+                    // 竞速测速：Range GET 前 100KB
                     var testPromises = downloadSources.map(function(source) {
                         return new Promise(function(resolve) {
                             var startTime = Date.now();
@@ -333,8 +547,19 @@
                     
                     if (!fastestSource) throw new Error('所有下载线路都不可用');
                     
-                    console.log('[APK下载] 选择:', fastestSource.name, '(', fastestTime, 'ms)');
+                    console.log('[APK下载] 测速选择:', fastestSource.name, '(', fastestTime, 'ms)');
                     downloadUrl = fastestSource.url;
+                    // 更新最快镜像记录（CF 镜像才更新）
+                    if (fastestSource.serverIdx >= 0) {
+                        window.CX._fastestServerIdx = fastestSource.serverIdx;
+                        try { localStorage.setItem('cx_fastest_mirror', String(fastestSource.serverIdx)); } catch(e) {}
+                        console.log('[APK下载] 已更新最快镜像记录: #' + (fastestSource.serverIdx + 1));
+                    }
+                    } else {
+                        // 无最快镜像记录且无 CapacitorHttp，直接用原始 URL
+                        downloadUrl = url;
+                        console.log('[APK下载] GitHub URL，无测速条件，使用原始链接');
+                    }
                 } else {
                     downloadUrl = url;
                 }
@@ -625,26 +850,28 @@
             .catch(function() { return null; });
     }
 
-    // 并发竞速拉取 changelog.json，首个成功者获胜（需 raceFastest 工具）
+    // 智能拉取 changelog.json：先最快镜像直取，失败再竞速重探（带60秒缓存）
     function fetchChangelogRace(serverUrls) {
-        if (!serverUrls || !serverUrls.length) return Promise.resolve(null);
-        if (!window.CX || !window.CX.raceFastest) {
-            // 工具未加载时降级为顺序取首个
-            var chain = Promise.resolve(null);
-            serverUrls.forEach(function(u) {
-                chain = chain.then(function(v) { return v || fetchChangelog(u); });
-            });
-            return chain;
+        // 命中缓存直接返回
+        if (_changelogCache.data && Date.now() - _changelogCache.ts < _changelogCache.TTL) {
+            return Promise.resolve(_changelogCache.data);
         }
+        if (!serverUrls || !serverUrls.length) return Promise.resolve(null);
+
         var ts = Date.now();
-        var urls = serverUrls.map(function(u) { return u + 'changelog.json?t=' + ts; });
-        return window.CX.raceFastest(urls, {
-            fetchOptions: { cache: 'no-cache' },
+        var pathSuffix = 'changelog.json?t=' + ts;
+        return window.CX.smartFetch(serverUrls, pathSuffix, {
             timeout: 8000,
             logPrefix: '[changelog]',
             validate: function(r) { return r && r.ok; },
-            transform: function(r) { return r.json(); }
-        }).then(function(result) { return result.value; }).catch(function() { return null; });
+            transform: function(r) { return r.json(); },
+            fallbackPath: 'changelog.json'
+        }).then(function(result) {
+            if (!result) return null;
+            var data = result.value;
+            _changelogCache = { data: data, ts: Date.now(), TTL: _changelogCache.TTL };
+            return data;
+        }).catch(function() { return null; });
     }
 
     // 筛选 fromVer < v <= toVer 的版本列表，版本号倒序
@@ -875,32 +1102,23 @@
         getCurrentApkVersion().then(function(currentVersion) {
             statusEl.innerHTML = '当前版本: ' + currentVersion + '<br>正在检查远程版本...';
 
-            // 并发竞速所有 CF 服务器，首个成功者获胜（raceFastest 工具）
-            var ts = Date.now();
-            var urls = CLOUDFLARE_SERVERS.map(function(serverUrl) {
-                return serverUrl + 'version.json?t=' + ts;
-            });
-            console.log('[更新检查] 并发竞速 ' + urls.length + ' 个 CF 服务器');
-
-            if (!window.CX || !window.CX.raceFastest) {
-                statusEl.innerHTML = '❌ raceFastest 工具未加载';
+            // 使用全局版本信息缓存，避免重复请求 version.json
+            if (!window.CX || !window.CX.getVersionInfo) {
+                statusEl.innerHTML = '❌ 版本检查工具未加载';
                 return;
             }
 
-            return window.CX.raceFastest(urls, {
-            fetchOptions: { cache: 'no-cache' },
-                timeout: 10000,
-                logPrefix: '[更新检查]',
-                validate: function(r) { return r && r.ok; },
-                transform: function(r) { return r.json(); }
-            }).then(function(result) {
-                var serverUrl = CLOUDFLARE_SERVERS[result.idx];
-                var versionInfo = result.value;
-                console.log('[更新检查] 命中: 镜像 #' + (result.idx + 1) + ' (' + serverUrl + ')');
-                return { serverUrl: serverUrl, versionInfo: versionInfo };
-            }).then(function(result) {
-                var serverUrl = result.serverUrl;
-                var versionInfo = result.versionInfo;
+            return window.CX.getVersionInfo().then(function(versionInfo) {
+                if (!versionInfo) {
+                    statusEl.innerHTML = '❌ 所有服务器均无法访问';
+                    return;
+                }
+                // 找到命中服务器的 URL（用于拼接 APK 下载路径）
+                var fastestIdx = window.CX._fastestServerIdx;
+                var serverUrl = (fastestIdx !== undefined && CLOUDFLARE_SERVERS[fastestIdx])
+                    ? CLOUDFLARE_SERVERS[fastestIdx]
+                    : (CLOUDFLARE_SERVERS[0] || '');
+                console.log('[更新检查] 使用镜像 #' + (fastestIdx !== undefined ? fastestIdx + 1 : 1));
 
                 var latestVersion = versionInfo.apk_version || versionInfo.version || '未知';
                 var apkFile = versionInfo.apk_file || ('TeHui-v' + latestVersion + '.apk');
@@ -923,7 +1141,7 @@
                     }
                 }
 
-                // 并行获取 changelog（也使用竞速），不阻塞主流程
+                // 并行获取 changelog（也使用缓存），不阻塞主流程
                 fetchChangelogRace(CLOUDFLARE_SERVERS).then(function(changelog) {
                     if (changelog) fillChangelogPanel('cloudflareUpdateDialog', changelog, currentVersion, latestVersion, comparison);
                 });
@@ -1019,9 +1237,15 @@
 
         statusEl.innerHTML = (currentVersion ? '当前版本: v' + currentVersion + '<br>' : '') + '正在检查远程版本...';
 
-        fetch(root + 'version.json?t=' + Date.now(), { cache: 'no-cache' })
-            .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        // 复用全局版本缓存，避免重复请求 version.json
+        var versionPromise = (window.CX && window.CX.getVersionInfo)
+            ? window.CX.getVersionInfo()
+            : fetch(root + 'version.json?t=' + Date.now(), { cache: 'no-cache' })
+                .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+
+        versionPromise
             .then(function(v) {
+                if (!v) { statusEl.innerHTML = '❌ 版本信息获取失败'; return; }
                 var remoteVersion = v.version || v.apk_version || '';
                 var comparison = currentVersion
                     ? AppUpdate.compareVersion(remoteVersion, currentVersion)
@@ -1114,39 +1338,37 @@
                            (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
 
         if (isCapacitor) {
-            // Capacitor：走 Cloudflare 服务器
+            // Capacitor：复用全局版本缓存
             var CLOUDFLARE_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
             if (!CLOUDFLARE_SERVERS.length) return;
             getCurrentApkVersion().then(function(currentVersion) {
-                var ts = Date.now();
-                var fetches = CLOUDFLARE_SERVERS.map(function(url) {
-                    return fetch(url + 'version.json?t=' + ts, { cache: 'no-cache' })
-                        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-                        .then(function(d) { return { serverUrl: url, versionInfo: d }; });
-                });
-                var race = typeof Promise.any === 'function'
-                    ? Promise.any(fetches)
-                    : new Promise(function(resolve) {
-                        var done = false;
-                        fetches.forEach(function(p) { p.then(function(d) { if (!done) { done = true; resolve(d); } }).catch(function() {}); });
-                        setTimeout(function() { if (!done) resolve(null); }, 8000);
-                    });
-                race.then(function(result) {
-                    if (!result) return;
-                    var latest = result.versionInfo.apk_version || result.versionInfo.version || '';
+                // 使用全局版本信息缓存，避免重复请求
+                var versionPromise = (window.CX && window.CX.getVersionInfo)
+                    ? window.CX.getVersionInfo()
+                    : Promise.any(CLOUDFLARE_SERVERS.map(function(url) {
+                        return fetch(url + 'version.json?t=' + Date.now(), { cache: 'no-cache' })
+                            .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                    }));
+                versionPromise.then(function(versionInfo) {
+                    if (!versionInfo) return;
+                    var latest = versionInfo.apk_version || versionInfo.version || '';
                     if (!latest) return;
                     var cmp = AppUpdate.compareVersion(latest.replace('v', ''), currentVersion.replace('v', ''));
                     if (cmp > 0) showUpdateToast(latest, 'capacitor');
                 }).catch(function() {});
             }).catch(function() {});
         } else if (isStandalone) {
-            // PWA standalone：走 version.json
+            // PWA standalone：复用全局版本缓存
             var root = window.CX_ROOT || './';
             var currentPwa = '';
             try { currentPwa = localStorage.getItem('cx_pwa_version') || ''; } catch(e) {}
-            fetch(root + 'version.json?t=' + Date.now(), { cache: 'no-cache' })
-                .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            var pwaVersionPromise = (window.CX && window.CX.getVersionInfo)
+                ? window.CX.getVersionInfo()
+                : fetch(root + 'version.json?t=' + Date.now(), { cache: 'no-cache' })
+                    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+            pwaVersionPromise
                 .then(function(v) {
+                    if (!v) return;
                     var latest = v.version || v.apk_version || '';
                     if (!latest) return;
                     var cmp = currentPwa

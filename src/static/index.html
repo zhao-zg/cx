@@ -712,9 +712,11 @@
     function checkPwaStartupCache(){
         if(!CX_ENV.isStandalone||CX_ENV.isCapacitorApp||!('caches' in window))return;
         var storedVersion=null;try{storedVersion=localStorage.getItem('cx_pwa_version');}catch(e){}
-        fetch('./version.json?t='+Date.now(),{cache:'no-store'})
-            .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+        // 复用全局版本缓存，避免重复请求 version.json
+        var versionPromise=(window.CX&&window.CX.getVersionInfo)?window.CX.getVersionInfo():fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
+        versionPromise
             .then(function(v){
+                if(!v)return; // getVersionInfo 降级失败时返回 null
                 var remoteVersion=v.version||v.apk_version;
                 var targetVersion=remoteVersion||storedVersion;
                 var versionChanged=remoteVersion&&storedVersion!==remoteVersion;
@@ -757,9 +759,11 @@
             // 完成后写 cx_pwa_version，后续启动直接跳过。
             if('caches' in window){
                 var _capVer=null;try{_capVer=localStorage.getItem('cx_pwa_version');}catch(e){}
-                fetch('./version.json?t='+Date.now(),{cache:'no-store'})
-                    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+                // 复用全局版本缓存，避免重复请求 version.json
+                var _capVersionPromise=(window.CX&&window.CX.getVersionInfo)?window.CX.getVersionInfo():fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
+                _capVersionPromise
                     .then(function(v){
+                        if(!v)return; // 离线或失败
                         var _ver=v.version||v.apk_version||'';
                         // 版本未变则跳过，避免每次启动都重复填充
                         if(_capVer&&_capVer===_ver)return;
