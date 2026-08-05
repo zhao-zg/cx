@@ -952,11 +952,13 @@
         for (var i = 0; i < imports.length; i++) {
           if (imports[i].path === indexPath) {
             imports[i].title = trainingData.title;
+            imports[i].subtitle = trainingData.subtitle || '';
             imports[i].year = trainingData.year;
             imports[i].season = trainingData.season;
             imports[i].chapter_count = (trainingData.chapters || []).length;
             imports[i].importedAt = Date.now();
             imports[i].source = 'epub';
+            imports[i].is_local = true;
             found = true;
             break;
           }
@@ -965,9 +967,11 @@
           imports.push({
             path: indexPath,
             title: trainingData.title,
+            subtitle: trainingData.subtitle || '',
             year: trainingData.year,
             season: trainingData.season,
             chapter_count: (trainingData.chapters || []).length,
+            is_local: true,
             importedAt: Date.now(),
             source: 'epub'
           });
