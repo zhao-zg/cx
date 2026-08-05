@@ -466,7 +466,7 @@ def parse_outline_from_html(doc):
 
     # 跳过的 CSS 类
     SKIP_CLASSES = {
-        'calibre_zongti', 'calibre_content_title', 'calibre_text_verse',
+        'calibre_zongti', 'calibre_content_title', 'calibre_text_verse', 'calibre_verse',
         'calibre_text_chenxing_content', 'calibre_text_chenxing_verse',
         'calibre_text_chenxing_content_wyxd', 'calibre_text_chenxing_content_wn',
         'calibre_text_gangmu_wn', 'calibre_text_hymns', 'calibre_index_chapter',
@@ -808,8 +808,14 @@ def parse_morning_revival_from_html(doc, day_label):
         if not text:
             continue
 
-        # 跳过标题行、读经行、脚注中的经文正文
-        if cls in ('calibre_zongti', 'calibre_content_title', 'calibre_text_verse', 'calibre_verse'):
+        # 跳过标题行、读经行、脚注中的经文正文等非大纲段落
+        # 与 parse_outline_from_html 的 SKIP_CLASSES 保持一致
+        if cls in ('calibre_zongti', 'calibre_content_title', 'calibre_text_verse', 'calibre_verse',
+                   'calibre_text_chenxing_content', 'calibre_text_chenxing_verse',
+                   'calibre_text_chenxing_content_wyxd', 'calibre_text_chenxing_content_wn',
+                   'calibre_text_gangmu_wn', 'calibre_text_hymns', 'calibre_index_chapter',
+                   'calibre_index_title1', 'calibre_text_abs', 'calibre_text_abs_dadian',
+                   'calibre_e_text_dadian', 'calibre_e_text_zhongdian', 'calibre_e_text_xiaodian'):
             continue
 
         # 日标记: "周　一"（两种 CSS 类名）

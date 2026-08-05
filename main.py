@@ -670,7 +670,8 @@ def extract_hymn_numbers_from_txt(txt_path):
 
 def process_batch_epub(batch_folder, config, batch_config, safe_batch_name, epub_file):
     """
-    使用 EPUB 文件生成 training.json，调用 Python 脚本。
+    使用 EPUB 文件生成 training.json，调用 Node.js 脚本。
+    与 process_batch_txt 同架构：require epub-importer.js，避免 Python 重写导致逻辑分叉。
     标语诗歌图片始终从批次文件夹获取。
 
     Args:
@@ -681,13 +682,13 @@ def process_batch_epub(batch_folder, config, batch_config, safe_batch_name, epub
     """
     output_dir = os.path.join(config['output_dir'], safe_batch_name)
 
-    _build_epub = os.path.join(os.path.dirname(__file__), 'tools', 'build-batch-epub.py')
+    _build_epub = os.path.join(os.path.dirname(__file__), 'tools', 'build-batch-epub.js')
     if not os.path.exists(_build_epub):
         print(f"⚠ 未找到 EPUB 构建脚本: {_build_epub}")
         return None
 
     cmd = [
-        sys.executable, _build_epub,
+        'node', _build_epub,
         '--epub', epub_file,
         '--folder', batch_folder,
         '--output', output_dir,
@@ -697,18 +698,14 @@ def process_batch_epub(batch_folder, config, batch_config, safe_batch_name, epub
     if batch_config.get('season'):
         cmd.extend(['--season', str(batch_config['season'])])
 
-    print(f"  调用 Python 解析 EPUB 文件...")
+    print(f"  调用 Node.js 解析 EPUB 文件...")
     try:
-        _child_env = os.environ.copy()
-        _child_env['PYTHONIOENCODING'] = 'utf-8'
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             encoding='utf-8',
             errors='replace',
-            env=_child_env,
-            timeout=300,
         )
     except Exception as e:
         print(f"✗ EPUB 解析进程异常: {e}")

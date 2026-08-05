@@ -226,7 +226,8 @@
       var title = '';
 
       if (cls === 'calibre_zongti' || cls === 'calibre_content_title' ||
-          cls === 'calibre_text_verse' || cls === 'calibre_text_chenxing_content' ||
+          cls === 'calibre_text_verse' || cls === 'calibre_verse' ||
+          cls === 'calibre_text_chenxing_content' ||
           cls === 'calibre_text_chenxing_verse' || cls === 'calibre_text_chenxing_content_wyxd' ||
           cls === 'calibre_text_chenxing_content_wn' || cls === 'calibre_text_gangmu_wn' ||
           cls === 'calibre_text_hymns' || cls === 'calibre_index_chapter' ||
@@ -403,11 +404,8 @@
         continue;
       }
 
-      // 检测"晨兴喂养"区域开始
-      if (/晨兴喂养/.test(text) || cls === 'calibre_text_chenxing_content_wyxd') {
-        mode = 'feeding';
-        continue;
-      }
+      // 注意："信息选读" 和 "参读" 的文字检测必须在 class 检测之前，
+      // 因为 "信息选读" 的 class 也是 calibre_text_chenxing_content_wyxd
 
       // 检测"信息选读"区域开始
       if (/^信息选读/.test(text)) {
@@ -418,11 +416,34 @@
       // 检测"参读"区域开始
       if (/^参读/.test(text)) {
         mode = 'refread';
+        // 保留完整文本含 "参读：" 前缀，与 TXT extractMrDayContent 一致
+        if (text !== '参读' && text !== '参读：' && text !== '参读:') {
+          refReading.push(text);
+        }
+        continue;
+      }
+
+      // 检测"晨兴喂养"区域开始（class 检测放在文字检测之后）
+      if (/晨兴喂养/.test(text) || cls === 'calibre_text_chenxing_content_wyxd') {
+        mode = 'feeding';
         continue;
       }
 
       // 大纲区域
       if (mode === 'outline') {
+        // 跳过非大纲段落（经文、晨兴内容、诗歌等），与 parseOutlineFromHtml 保持一致
+        if (cls === 'calibre_zongti' || cls === 'calibre_content_title' ||
+            cls === 'calibre_text_verse' || cls === 'calibre_verse' ||
+            cls === 'calibre_text_chenxing_content' ||
+            cls === 'calibre_text_chenxing_verse' || cls === 'calibre_text_chenxing_content_wyxd' ||
+            cls === 'calibre_text_chenxing_content_wn' || cls === 'calibre_text_gangmu_wn' ||
+            cls === 'calibre_text_hymns' || cls === 'calibre_index_chapter' ||
+            cls === 'calibre_index_title1' || cls === 'calibre_text_abs' ||
+            cls === 'calibre_text_abs_dadian' || cls === 'calibre_e_text_dadian' ||
+            cls === 'calibre_e_text_zhongdian' || cls === 'calibre_e_text_xiaodian') {
+          continue;
+        }
+
         var rank = 0;
         var level = '';
         var title = '';
@@ -985,6 +1006,76 @@
     });
   }
 
+  /**
+   * 从 ArrayBuffer 解析 EPUB 并返回 trainingData（不存储）。
+   * 用于 Node.js 构建脚本，跳过 FileReader 和动态加载 JSZip。
+   *
+   * @param {ArrayBuffer} arrayBuf - EPUB 文件的 ArrayBuffer
+   * @param {string} fileName - 文件名（用于提取年份/序号）
+   * @param {Function} [onProgress] - 进度回调
+   * @returns {Promise<object>} trainingData
+   */
+  function parseFromBuffer(arrayBuf, fileName, onProgress) {
+    var zip;
+    if (onProgress) onProgress(0, 5, '解压 EPUB…');
+    return new win.JSZip().loadAsync(arrayBuf).then(function (z) {
+      zip = z;
+      if (onProgress) onProgress(1, 5, '解析 EPUB 结构…');
+      return parseEpubStructure(zip);
+    }).then(function (epub) {
+      if (onProgress) onProgress(2, 5, '读取目录…');
+      var indexPath = epub.opfDir + 'index.html';
+      return zipReadText(zip, indexPath).then(function (indexHtml) {
+        if (!indexHtml) throw new Error('找不到目录文件 (index.html)');
+        var indexDoc = parseHtmlDoc(indexHtml);
+        var tocEntries = parseTocFromHtml(indexDoc);
+        if (onProgress) onProgress(2, 5, '读取标语…');
+        var bannerPath = epub.opfDir + 'banner.html';
+        return zipReadText(zip, bannerPath).then(function (bannerHtml) {
+          var mottos = [];
+          if (bannerHtml) {
+            var bannerDoc = parseHtmlDoc(bannerHtml);
+            mottos = parseMottosFromHtml(bannerDoc);
+          }
+          var metaTitle = epub.metadata.title || (fileName || '').replace(/\.epub$/i, '');
+          var h1 = indexDoc.querySelector('.calibre_index_title1, h1');
+          if (h1) {
+            var h1Text = (h1.textContent || '').trim();
+            if (h1Text) metaTitle = h1Text;
+          }
+          var year = extractYearFromTitle(metaTitle) || extractYearFromTitle(fileName || '') || new Date().getFullYear();
+          var seq = extractSeqFromFilename(fileName || '') || extractSeqFromTitle(metaTitle) || 1;
+          var seqStr = seq < 10 ? '0' + seq : '' + seq;
+          var path = 'local-' + year + '-' + seqStr;
+          var shortTitle = getShortTitle(metaTitle);
+          var season = seqStr + ' ' + shortTitle;
+          if (onProgress) onProgress(3, 5, '解析篇章…');
+          var chapters = [];
+          var chapterPromises = tocEntries.map(function (entry, idx) {
+            return parseChapterFromZip(zip, epub, entry, idx, tocEntries.length);
+          });
+          return Promise.all(chapterPromises).then(function (chList) {
+            chapters = chList.filter(Boolean);
+            var trainingData = {
+              path: path,
+              title: shortTitle,
+              subtitle: extractSubtitle(indexDoc) || epub.metadata.subject || '',
+              year: year,
+              season: season,
+              mottos: mottos,
+              motto_song_text: '',
+              motto_song_image: '',
+              chapters: chapters,
+              version: getNowVersion()
+            };
+            if (onProgress) onProgress(5, 5, '完成');
+            return trainingData;
+          });
+        });
+      });
+    });
+  }
+
   // ── 委托 CXLocalImport 的方法 ─────────────────────────────────────────────
 
   function listImports() {
@@ -1006,6 +1097,7 @@
 
   win.CXEpubImport = {
     parseAndSave: parseAndSave,
+    parseFromBuffer: parseFromBuffer,
     listImports: listImports,
     deleteImport: deleteImport,
     getTraining: getTraining
