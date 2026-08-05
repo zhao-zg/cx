@@ -54,6 +54,30 @@
     return (pEl.textContent || '').replace(/^\s+|\s+$/g, '');
   }
 
+  /** 提取元素文本，保留 <br/> 换行。用于诗歌歌词提取。 */
+  function pTextWithBreaks(el) {
+    var parts = [];
+    _walkForText(el, parts);
+    return parts.join('').replace(/^\s+|\s+$/g, '');
+  }
+
+  function _walkForText(el, parts) {
+    for (var n = el.firstChild; n; n = n.nextSibling) {
+      if (n.nodeType === 3) { // TEXT_NODE
+        parts.push(n.textContent || '');
+      } else if (n.nodeType === 1) { // ELEMENT_NODE
+        var tag = (n.tagName || '').toLowerCase();
+        if (tag === 'br') {
+          parts.push('\n');
+        } else if (tag === 'b' || tag === 'strong') {
+          parts.push(n.textContent || '');
+        } else {
+          _walkForText(n, parts);
+        }
+      }
+    }
+  }
+
   // ── EPUB ZIP 解析入口 ────────────────────────────────────────────────────
 
   /**
@@ -539,11 +563,11 @@
       if (src) hymnImage = msgNum + '_hymn.png';
     }
 
-    // 提取诗歌歌词
+    // 提取诗歌歌词（保留换行）
     var lyrics = [];
     var hymnPs = body.querySelectorAll('.calibre_text_hymns');
     for (var i = 0; i < hymnPs.length; i++) {
-      var t = pText(hymnPs[i]);
+      var t = pTextWithBreaks(hymnPs[i]);
       if (t) lyrics.push(t);
     }
 
@@ -553,6 +577,14 @@
     if (titleEl) {
       var tm = (titleEl.textContent || '').match(/诗歌[：:]\s*(.*)/);
       if (tm) hymnNumber = tm[1].trim();
+    }
+
+    // 也尝试从第一个 hymn 段落中提取编号
+    // 格式可能是 "1　歌词" 或 "补充本431首" 开头
+    if (!hymnNumber && hymnPs.length) {
+      var firstHymn = pText(hymnPs[0]);
+      var hymnNumM = firstHymn.match(/^(?:补充[本]?|大[本]?|新[本]?)\s*(\d+[首]?|\d+)/);
+      if (hymnNumM) hymnNumber = hymnNumM[0];
     }
 
     return { hymnNumber: hymnNumber, hymnImage: hymnImage, hymnLyrics: lyrics };
@@ -840,6 +872,8 @@
                 title: entry.title,
                 hymn_number: hymnInfo.hymnNumber,
                 hymn_image: hymnInfo.hymnImage,
+                hymn_lyrics: hymnInfo.hymnLyrics,
+                hymn_images: [],
                 scripture: scripture,
                 outline_sections: outlineSections,
                 detail_sections: detailSections,

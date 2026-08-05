@@ -146,6 +146,65 @@ function copyMottoSongImages(srcFolder, dstOutputDir) {
   return images;
 }
 
+/** 从 EPUB ZIP 中提取诗歌图片到 output/images/，同时填充 hymn_images */
+function extractHymnImages(epubBuffer, chapters, outputDir) {
+  var JSZip = require('jszip');
+  var count = 0;
+
+  // 同步方式：直接用 node 解压
+  var zipData = new JSZip();
+  // JSZip.loadAsync 是异步的，但我们需要在同步上下文中处理
+  // 使用同步解压方式
+  var AdmZip = null;
+  try { AdmZip = require('adm-zip'); } catch(e) {}
+
+  if (!AdmZip) {
+    // 回退：使用 JSZip 异步方式（在同步回调中无法使用，直接跳过）
+    console.error('[EPUB] 警告: adm-zip 未安装，无法提取诗歌图片。运行 npm install adm-zip');
+    return 0;
+  }
+
+  try {
+    var zip = new AdmZip(epubBuffer);
+    var entries = zip.getEntries();
+    var entryMap = {};
+    entries.forEach(function(e) { entryMap[e.entryName] = e; });
+
+    var imgDir = path.join(outputDir, 'images');
+    fs.mkdirSync(imgDir, { recursive: true });
+
+    // 先找到 OPF 目录
+    var opfDir = '';
+    var containerEntry = entryMap['META-INF/container.xml'];
+    if (containerEntry) {
+      var containerXml = containerEntry.getData().toString('utf8');
+      var opfMatch = containerXml.match(/full-path="([^"]+)"/);
+      if (opfMatch) {
+        var opfPath = opfMatch[1];
+        opfDir = opfPath.indexOf('/') >= 0 ? opfPath.substring(0, opfPath.lastIndexOf('/') + 1) : '';
+      }
+    }
+
+    chapters.forEach(function(ch) {
+      if (!ch.hymn_image) return;
+      // hymn_image 格式为 "1_hymn.png"，EPUB 内路径为 "OPS/1_hymn.png"
+      var imgFilename = path.basename(ch.hymn_image);
+      var imgPath = opfDir + imgFilename;
+      var entry = entryMap[imgPath];
+      if (entry) {
+        var dstPath = path.join(imgDir, imgFilename);
+        fs.writeFileSync(dstPath, entry.getData());
+        ch.hymn_images = ['images/' + imgFilename];
+        count++;
+      }
+    });
+  } catch(e) {
+    console.error('[EPUB] 提取诗歌图片失败: ' + (e.message || e));
+  }
+
+  return count;
+}
+
 // ── 主逻辑 ────────────────────────────────────────────────────────────────────
 function main() {
   console.error('[EPUB] 使用文件: ' + path.basename(optEpubFile));
@@ -182,6 +241,12 @@ function main() {
       td.motto_song_image  = mottoImages[0];
       td.motto_song_images = mottoImages;
       console.error('[EPUB] 复制标语诗歌图片 ' + mottoImages.length + ' 张');
+    }
+
+    // ── 从 EPUB ZIP 中提取诗歌图片到 output/images/ ──────────────────────
+    var hymnImages = extractHymnImages(epubBuffer, td.chapters || [], optOutput);
+    if (hymnImages > 0) {
+      console.error('[EPUB] 提取诗歌图片 ' + hymnImages + ' 张');
     }
 
     // ── 写出 training.json ──────────────────────────────────────────────────
