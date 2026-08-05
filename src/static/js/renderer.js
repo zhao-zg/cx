@@ -219,7 +219,7 @@
     if (chapter.morning_revivals && chapter.morning_revivals.length > 0) {
       html += link('cx', '晨读');
     }
-    if (chapter.hymn_number && String(chapter.hymn_number).trim()) {
+    if (chapter.hymn_number || chapter.hymn_image || (chapter.hymn_lyrics && chapter.hymn_lyrics.length)) {
       html += link('sg', '诗歌');
     }
     if (chapter.ministry_excerpt && String(chapter.ministry_excerpt).trim()) {
@@ -473,22 +473,35 @@
     var root = win.CX_ROOT || './';
 
     var inner = '';
-    if (chapter.hymn_number) {
-      inner = '<div class="hymn-info">' +
-        '<h3>诗歌</h3>' +
-        '<p class="hymn-number-display">' + escText(chapter.hymn_number) + '</p>';
+    // 判断是否有诗歌内容（编号、图片或歌词任一即可）
+    var hasHymnImages = (chapter.hymn_images && chapter.hymn_images.length) || chapter.hymn_image;
+    var hasHymnLyrics = chapter.hymn_lyrics && chapter.hymn_lyrics.length;
+    if (chapter.hymn_number || hasHymnImages || hasHymnLyrics) {
+      inner = '<div class="hymn-info">';
+      if (chapter.hymn_number) {
+        inner += '<h3>诗歌</h3>' +
+          '<p class="hymn-number-display">' + escText(chapter.hymn_number) + '</p>';
+      } else {
+        inner += '<h3>诗歌</h3>';
+      }
 
       // 支持多图（hymn_images 优先，向后兼容 hymn_image）
       var images = (chapter.hymn_images && chapter.hymn_images.length)
         ? chapter.hymn_images
         : (chapter.hymn_image ? [chapter.hymn_image] : []);
 
+      // 构建 imgUrl：data URL 直接使用，否则拼接路径
+      function hymnUrl(p) {
+        if (/^data:/i.test(p)) return p;
+        return root + escAttr(batchPath) + '/' + escAttr(p);
+      }
+
       if (images.length > 1) {
         // 多图：直接上下堆叠显示
         inner += '<div class="hymn-images-stack">';
         for (var i = 0; i < images.length; i++) {
-          var imgUrl = root + escAttr(batchPath) + '/' + escAttr(images[i]);
-          var allUrls = images.map(function(p) { return escAttr(JSON.stringify(root + batchPath + '/' + p)); }).join(',');
+          var imgUrl = hymnUrl(images[i]);
+          var allUrls = images.map(function(p) { return escAttr(JSON.stringify(hymnUrl(p))); }).join(',');
           inner += '<div class="hymn-image">' +
             '<img src="' + imgUrl + '" alt="诗歌第' + (i + 1) + '页" class="hymn-img-clickable"' +
             ' onclick="window.openImageViewer&&openImageViewer(this.src,[' + allUrls + '],' + i + ')">' +
@@ -497,7 +510,7 @@
         inner += '<p class="click-hint">👆 点击图片放大查看</p>';
         inner += '</div>';
       } else if (images.length === 1) {
-        var imgUrl = root + escAttr(batchPath) + '/' + escAttr(images[0]);
+        var imgUrl = hymnUrl(images[0]);
         inner += '<div class="hymn-image">' +
           '<img src="' + imgUrl + '" alt="诗歌内容" class="hymn-img-clickable" onclick="window.openImageViewer&&openImageViewer(this.src)">' +
           '<p class="click-hint">👆 点击图片放大查看</p>' +
@@ -531,6 +544,8 @@
         inner += '</div>';
       }
     } else {
+      // 有图片或歌词但无编号时，仍然渲染诗歌内容（上面已进入 if 分支）
+      // 此 else 分支仅在完全无诗歌信息时触发
       inner = '<p class="no-content">暂无诗歌信息</p>';
     }
     inner += '<div class="hymn-note"><p>💡 本诗歌在原始文档中以图片格式存储，完整内容请查阅相应的诗歌本</p></div>';

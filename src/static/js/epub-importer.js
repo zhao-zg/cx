@@ -850,11 +850,18 @@
     }
 
     // 诗歌
-    var hymnPromise = Promise.resolve({ hymnNumber: '', hymnImage: '', hymnLyrics: [] });
+    var hymnPromise = Promise.resolve({ hymnNumber: '', hymnImage: '', hymnLyrics: [], hymnImages: [] });
     var hymnFile = opfDir + msgNum + '_h_hymn.htm';
     hymnPromise = zipReadText(zip, hymnFile).then(function (html) {
-      if (!html) return { hymnNumber: '', hymnImage: '', hymnLyrics: [] };
-      return parseHymnFromHtml(parseHtmlDoc(html), zip, msgNum, opfDir);
+      if (!html) return { hymnNumber: '', hymnImage: '', hymnLyrics: [], hymnImages: [] };
+      var info = parseHymnFromHtml(parseHtmlDoc(html), zip, msgNum, opfDir);
+      // 从 ZIP 中提取诗歌图片为 data URL（浏览器端本地导入时需要内嵌图片数据）
+      if (!info.hymnImage) return Object.assign(info, { hymnImages: [] });
+      var imgPath = opfDir + info.hymnImage;
+      return extractImageAsDataUrl(zip, imgPath).then(function (dataUrl) {
+        info.hymnImages = dataUrl ? [dataUrl] : [];
+        return info;
+      });
     });
 
     return outlinePromise.then(function (outlineSections) {
@@ -873,10 +880,11 @@
                 hymn_number: hymnInfo.hymnNumber,
                 hymn_image: hymnInfo.hymnImage,
                 hymn_lyrics: hymnInfo.hymnLyrics,
-                hymn_images: [],
+                hymn_images: hymnInfo.hymnImages || [],
                 scripture: scripture,
                 outline_sections: outlineSections,
                 detail_sections: detailSections,
+                has_listen_block: transcript.detailSections.length > 0,
                 message_content: transcript.messageContent,
                 ministry_excerpt: transcript.ministryExcerpt,
                 morning_revivals: morningRevivals
