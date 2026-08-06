@@ -52,11 +52,17 @@ default_training:
   season: "秋季"  # 后备季节
 
 # 远程服务器地址（main.py 读取后生成 output/js/remote-config.js，URL 以 base64 存储并混淆）
+# 多 Cloudflare 账户容灾：每个账户一个域名，前端通过竞速自动选择最快镜像
+# 新增账户步骤：1. 在 Cloudflare 新账户创建 Pages 项目 cx → 2. 绑定域名 → 3. 在此添加域名
 remote_servers:
   cloudflare:
+    # 账户 1（主账户）
     - https://cx.1189.dpdns.org/
     - https://cx.zhaozg.cloudns.org/
     - https://cx.zhaozg.dpdns.org/
+    # 账户 2（备用账户）— 在新账户的 Pages 项目部署后取消注释
+    # - https://cx2.11891189.xyz/
+    # - https://cx2.07170501.xyz/
   github_api: https://api.github.com/repos/zhao-zg/cx/releases/latest
   github_mirrors:
     - https://gh-proxy.com/

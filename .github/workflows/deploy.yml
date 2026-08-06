@@ -32,22 +32,50 @@ on:
       - 'generate_version.py'
   workflow_dispatch:
 
+# ════════════════════════════════════════════════════════════════════════
+# 多 Cloudflare 账户容灾部署配置
+# ════════════════════════════════════════════════════════════════════════
+# 每个账户需要在 GitHub Secrets 中配置一对：
+#   CLOUDFLARE_ACCOUNT_ID_{N}  — 账户 ID
+#   CLOUDFLARE_API_TOKEN_{N}    — API Token（需 Cloudflare Pages - Edit 权限）
+#
+# 新增账户步骤：
+#   1. 在 Cloudflare 新账户下创建 Pages 项目（名称 cx）
+#   2. 在 GitHub repo Settings → Secrets 添加 CLOUDFLARE_ACCOUNT_ID_{N} 和 CLOUDFLARE_API_TOKEN_{N}
+#   3. 在下方 DEPLOY_TARGETS 列表新增一行 { account: "N", label: "账户别名" }
+#   4. 在 config.yaml 的 remote_servers.cloudflare 添加该账户的域名
+# ════════════════════════════════════════════════════════════════════════
+
+env:
+  # 部署目标列表：每个账户使用对应的 Secrets 后缀
+  # 修改此列表即可增减账户，无需改动 job 逻辑
+  DEPLOY_TARGETS: |
+    [
+      { "account": "1", "label": "主账户" },
+      { "account": "2", "label": "备用账户" }
+    ]
+
 jobs:
-  build-and-deploy:
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 1: 构建（只执行一次，产出共享给所有部署 job）
+  # ────────────────────────────────────────────────────────────────────────
+  build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # 允许推送到 gh-pages 分支
-    
+      contents: write
+    outputs:
+      commit-hash: ${{ steps.meta.outputs.commit-hash }}
+
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
-      
+
       - name: 设置 Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
           cache: 'pip'
-      
+
       - name: 设置 Node.js
         uses: actions/setup-node@v4
         with:
@@ -64,20 +92,20 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq libreoffice-writer libreoffice-core --no-install-recommends
           echo "✓ LibreOffice 已安装"
-      
+
       - name: 安装 Python 依赖
         run: |
           echo "📦 安装 Python 依赖..."
           pip install -r requirements.txt
-      
+
       - name: 生成静态文件
         run: |
           echo "🔨 生成静态文件..."
           python main.py
-          
+
           echo "📋 检查生成的文件..."
           ls -la output/js/
-          
+
           echo "📄 检查 version.json 是否存在..."
           if [ -f output/version.json ]; then
             echo "✓ version.json 文件存在"
@@ -86,7 +114,7 @@ jobs:
           else
             echo "⚠️ version.json 文件不存在"
           fi
-          
+
           echo "📄 检查 sw.js 是否存在..."
           if [ -f output/sw.js ]; then
             echo "✓ sw.js 文件存在"
@@ -97,50 +125,50 @@ jobs:
             echo "❌ sw.js 文件不存在！"
             exit 1
           fi
-      
+
       - name: 从 GitHub Release 下载 APK
         run: |
           echo "🔍 从 GitHub Release 获取最新 APK..."
-          
+
           # 获取最新 Release 信息
           RELEASE_INFO=$(curl -sf "https://api.github.com/repos/zhao-zg/cx/releases/latest" || echo "{}")
-          
+
           if [ "$RELEASE_INFO" = "{}" ]; then
             echo "ℹ️ 没有找到 Release"
             exit 0
           fi
-          
+
           # 提取 APK 信息
           APK_URL=$(echo "$RELEASE_INFO" | jq -r '.assets[] | select(.name | endswith(".apk")) | .browser_download_url // empty')
           APK_NAME=$(echo "$RELEASE_INFO" | jq -r '.assets[] | select(.name | endswith(".apk")) | .name // empty')
           APK_SIZE=$(echo "$RELEASE_INFO" | jq -r '.assets[] | select(.name | endswith(".apk")) | .size // empty')
           APK_VERSION=$(echo "$RELEASE_INFO" | jq -r '.tag_name // empty' | sed 's/^v//')
-          
+
           if [ -n "$APK_URL" ] && [ "$APK_URL" != "null" ]; then
             echo "📥 下载 APK: $APK_NAME"
             echo "   版本: $APK_VERSION"
             echo "   大小: $APK_SIZE bytes"
             echo "   URL: $APK_URL"
-            
+
             if curl -sfL -o "output/$APK_NAME" "$APK_URL"; then
               DOWNLOADED_SIZE=$(stat -c%s "output/$APK_NAME" 2>/dev/null || echo "0")
               echo "✓ APK 下载成功: $APK_NAME ($DOWNLOADED_SIZE bytes)"
-              
+
               # 更新 version.json 添加 APK 信息
               if [ -f output/version.json ]; then
                 python3 << PYTHON_EOF
           import json
-          
+
           with open('output/version.json', 'r', encoding='utf-8') as f:
               data = json.load(f)
-          
+
           data['apk_file'] = '$APK_NAME'
           data['apk_version'] = '$APK_VERSION'
           data['apk_size'] = $DOWNLOADED_SIZE
-          
+
           with open('output/version.json', 'w', encoding='utf-8') as f:
               json.dump(data, f, ensure_ascii=False, indent=2)
-          
+
           print('✓ version.json 已更新')
           print(f'  APK: $APK_NAME')
           print(f'  版本: $APK_VERSION')
@@ -153,35 +181,89 @@ jobs:
           else
             echo "ℹ️ Release 中没有 APK 文件"
           fi
-      
-      - name: 检查并创建 Cloudflare Pages 项目
+
+      - name: 记录构建元信息
+        id: meta
         run: |
-          echo "🔍 检查项目是否存在..."
-          
-          # 检查项目是否存在
+          echo "commit-hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: output/
+          retention-days: 1
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 2: 部署到 Cloudflare Pages（多账户 matrix 并行）
+  # ────────────────────────────────────────────────────────────────────────
+  deploy-cloudflare:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: ${{ fromJson(env.DEPLOY_TARGETS) }}
+      # 同步部署：任一失败不影响其他账户，最终汇总结果
+      fail-fast: false
+      max-parallel: 4
+
+    steps:
+      - name: 检出代码（用于获取 commit 信息）
+        uses: actions/checkout@v4
+
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: output/
+
+      - name: 部署到 Cloudflare Pages（${{ matrix.target.label }}）
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets[format('CLOUDFLARE_API_TOKEN_{0}', matrix.target.account)] }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets[format('CLOUDFLARE_ACCOUNT_ID_{0}', matrix.target.account)] }}
+        run: |
+          ACCOUNT_SUFFIX="${{ matrix.target.account }}"
+          ACCOUNT_LABEL="${{ matrix.target.label }}"
+
+          echo "🚀 部署到 Cloudflare Pages — ${ACCOUNT_LABEL} (账户 #${ACCOUNT_SUFFIX})"
+
+          # 验证 Secrets 是否配置
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "⚠️ CLOUDFLARE_API_TOKEN_${ACCOUNT_SUFFIX} 未配置，跳过此账户"
+            exit 1
+          fi
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "⚠️ CLOUDFLARE_ACCOUNT_ID_${ACCOUNT_SUFFIX} 未配置，跳过此账户"
+            exit 1
+          fi
+
+          echo "✓ Secrets 已配置"
+          echo "  Account ID (前8位): ${CLOUDFLARE_ACCOUNT_ID:0:8}..."
+
+          # 检查并创建 Pages 项目
+          echo "🔍 检查项目 cx 是否存在..."
           response=$(curl -s -X GET \
-            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects/cx" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/cx" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json")
-          
+
           success=$(echo "$response" | jq -r '.success')
-          
+
           if [ "$success" = "true" ]; then
             echo "✓ 项目 cx 已存在"
           else
             echo "📦 项目不存在，正在创建..."
-            
             create_response=$(curl -s -X POST \
-              "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects" \
-              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
               -H "Content-Type: application/json" \
               -d '{
                 "name": "cx",
                 "production_branch": "main"
               }')
-            
+
             create_success=$(echo "$create_response" | jq -r '.success')
-            
+
             if [ "$create_success" = "true" ]; then
               echo "✓ 项目 cx 创建成功"
             else
@@ -190,51 +272,95 @@ jobs:
               exit 1
             fi
           fi
-      
-      - name: 部署到 Cloudflare Pages
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          echo "🚀 部署到 Cloudflare Pages..."
-          
-          # 安装最新版 wrangler
+
+          # 安装 wrangler
           npm install -g wrangler
-          
-          # 获取 commit 信息（转换为 ASCII，避免 UTF-8 问题）
-          COMMIT_HASH=$(git rev-parse --short HEAD)
-          COMMIT_MSG="Deploy $COMMIT_HASH"
-          
+
+          # 获取 commit 信息
+          COMMIT_HASH="${{ needs.build.outputs.commit-hash }}"
+          COMMIT_MSG="Deploy ${COMMIT_HASH} to ${ACCOUNT_LABEL}"
+
           # 部署（带重试机制）
           MAX_RETRIES=3
           RETRY_COUNT=0
           SUCCESS=false
-          
+
           while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$SUCCESS" = "false" ]; do
             if [ $RETRY_COUNT -gt 0 ]; then
               echo "⏳ 等待 30 秒后重试..."
               sleep 30
               echo "🔄 重试第 $RETRY_COUNT 次..."
             fi
-            
+
             if wrangler pages deploy output \
               --project-name=cx \
               --branch=main \
               --commit-hash="$COMMIT_HASH" \
               --commit-message="$COMMIT_MSG"; then
               SUCCESS=true
-              echo "✓ Cloudflare Pages 部署成功"
+              echo "✓ Cloudflare Pages 部署成功 — ${ACCOUNT_LABEL}"
             else
               RETRY_COUNT=$((RETRY_COUNT + 1))
               if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "⚠️ 部署失败，准备重试 ($RETRY_COUNT/$MAX_RETRIES)"
+                echo "⚠️ 部署失败，准备重试 ($RETRY_COUNT/$MAX_RETRIES) — ${ACCOUNT_LABEL}"
               else
-                echo "❌ 部署失败，已达到最大重试次数"
+                echo "❌ 部署失败，已达到最大重试次数 — ${ACCOUNT_LABEL}"
                 exit 1
               fi
             fi
           done
-      
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 3: 汇总部署结果
+  # ────────────────────────────────────────────────────────────────────────
+  deploy-summary:
+    needs: deploy-cloudflare
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: 汇总部署结果
+        run: |
+          echo "═══════════════════════════════════════════════"
+          echo "         Cloudflare Pages 多账户部署结果"
+          echo "═══════════════════════════════════════════════"
+          echo ""
+
+          # 从 matrix 结果汇总
+          # 如果所有 deploy-cloudflare 都成功，needs.deploy-cloudflare.result == 'success'
+          # 如果有失败，result == 'failure'
+          RESULT="${{ needs.deploy-cloudflare.result }}"
+
+          if [ "$RESULT" = "success" ]; then
+            echo "✅ 所有账户部署成功"
+          elif [ "$RESULT" = "failure" ]; then
+            echo "⚠️ 部分账户部署失败，请检查上方日志"
+            echo ""
+            echo "失败不影响其他账户，已部署的账户仍可正常访问"
+            # 不 exit 1，因为部分成功也算可接受（容灾模式）
+          else
+            echo "❓ 部署状态异常: $RESULT"
+          fi
+
+          echo ""
+          echo "═══════════════════════════════════════════════"
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 4: 部署到 GitHub Pages + 上传 Artifacts
+  # ────────────────────────────────────────────────────────────────────────
+  deploy-github-pages:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: output/
+
       - name: 部署到 GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -246,7 +372,7 @@ jobs:
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: '部署到 GitHub Pages'
           cname: cx.xzdjx.dynv6.net
-      
+
       - name: 上传全量资源包到 Artifacts
         uses: actions/upload-artifact@v4
         with:

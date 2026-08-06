@@ -1,8 +1,15 @@
-﻿const FALLBACK_BASES = [
+﻿// APK 代理下载镜像列表（多 Cloudflare 账户容灾）
+// 新增账户后在此添加域名，前端 version.json 竞速也会自动覆盖
+// 有路径段时，替换域名中的 cx 为路径段（如 books → books.1189.dpdns.org）
+const FALLBACK_BASES = [
+  // 账户 1（主账户）
   'https://cx.1189.dpdns.org/',
   'https://cx.zhaozg.dpdns.org/',
   'https://cx.07170501.xyz/',
   'https://cx.11891189.xyz/'
+  // 账户 2（备用账户）— 新账户部署后取消注释
+  // ,'https://cx2.11891189.xyz/'
+  // ,'https://cx2.07170501.xyz/'
 ];
 
 export default {

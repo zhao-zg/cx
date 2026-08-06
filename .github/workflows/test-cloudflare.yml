@@ -6,53 +6,83 @@ on:
 jobs:
   test-config:
     runs-on: ubuntu-latest
-    
+    strategy:
+      matrix:
+        target: ${{ fromJson(env.DEPLOY_TARGETS) }}
+      fail-fast: false
+
+    env:
+      # 与 deploy.yml 保持一致的多账户配置
+      DEPLOY_TARGETS: |
+        [
+          { "account": "1", "label": "主账户" },
+          { "account": "2", "label": "备用账户" }
+        ]
+
     steps:
-      - name: 检查 Secrets 是否配置
+      - name: 检查 Secrets 是否配置（账户 #${{ matrix.target.account }}）
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets[format('CLOUDFLARE_API_TOKEN_{0}', matrix.target.account)] }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets[format('CLOUDFLARE_ACCOUNT_ID_{0}', matrix.target.account)] }}
+          ACCOUNT_LABEL: ${{ matrix.target.label }}
         run: |
-          echo "检查 GitHub Secrets..."
-          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
-            echo "❌ CLOUDFLARE_API_TOKEN 未配置"
-            exit 1
+          ACCOUNT_SUFFIX="${{ matrix.target.account }}"
+          echo "═══════════════════════════════════════════════"
+          echo "  检查 ${ACCOUNT_LABEL} (账户 #${ACCOUNT_SUFFIX}) 的 Secrets"
+          echo "═══════════════════════════════════════════════"
+
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "⚠️  CLOUDFLARE_API_TOKEN_${ACCOUNT_SUFFIX} 未配置"
+            echo "   如需启用此账户，请在 GitHub repo Settings → Secrets 中添加"
+            exit 0
           else
-            echo "✓ CLOUDFLARE_API_TOKEN 已配置"
+            echo "✓ CLOUDFLARE_API_TOKEN_${ACCOUNT_SUFFIX} 已配置"
           fi
-          
-          if [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
-            echo "❌ CLOUDFLARE_ACCOUNT_ID 未配置"
-            exit 1
+
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "⚠️  CLOUDFLARE_ACCOUNT_ID_${ACCOUNT_SUFFIX} 未配置"
+            echo "   如需启用此账户，请在 GitHub repo Settings → Secrets 中添加"
+            exit 0
           else
-            echo "✓ CLOUDFLARE_ACCOUNT_ID 已配置"
-            echo "Account ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+            echo "✓ CLOUDFLARE_ACCOUNT_ID_${ACCOUNT_SUFFIX} 已配置"
+            echo "  Account ID (前8位): ${CLOUDFLARE_ACCOUNT_ID:0:8}..."
           fi
-      
-      - name: 测试 Cloudflare API
+
+      - name: 测试 Cloudflare API（${{ matrix.target.label }}）
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets[format('CLOUDFLARE_API_TOKEN_{0}', matrix.target.account)] }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets[format('CLOUDFLARE_ACCOUNT_ID_{0}', matrix.target.account)] }}
         run: |
+          # Secrets 未配置时跳过
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "⏭️  跳过未配置的账户"
+            exit 0
+          fi
+
           echo "测试 Cloudflare API 连接..."
-          echo "Account ID (前8位): ${ACCOUNT_ID:0:8}..."
           echo ""
-          
+
           # 列出所有 Pages 项目
           response=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X GET \
-            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json")
-          
+
           # 分离响应体和状态码
           http_code=$(echo "$response" | grep "HTTP_CODE:" | cut -d: -f2)
           body=$(echo "$response" | sed '/HTTP_CODE:/d')
-          
+
           echo "HTTP 状态码: $http_code"
           echo ""
           echo "API 响应:"
           echo "$body" | jq '.' || echo "$body"
           echo ""
-          
+
           # 检查是否成功
           success=$(echo "$body" | jq -r '.success' 2>/dev/null || echo "false")
           if [ "$success" = "true" ]; then
             echo "✅ API 连接成功"
-            
+
             # 列出所有项目名称
             echo ""
             echo "📋 你的 Cloudflare Pages 项目列表:"
@@ -64,7 +94,7 @@ jobs:
                 echo "  - $project"
               done
             fi
-            
+
             # 检查 cx 项目是否存在
             echo ""
             project_exists=$(echo "$body" | jq -r '.result[] | select(.name=="cx") | .name' 2>/dev/null)
@@ -92,5 +122,3 @@ jobs:
             echo "2. API Token 无效或已过期"
             echo "3. API Token 权限不足（需要 'Cloudflare Pages - Edit'）"
           fi
-        env:
-          ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
