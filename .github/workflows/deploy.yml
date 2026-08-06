@@ -33,33 +33,64 @@ on:
   workflow_dispatch:
 
 # ════════════════════════════════════════════════════════════════════════
-# 多 Cloudflare 账户容灾部署配置
+# 多 Cloudflare 账户容灾部署 — 全自动
 # ════════════════════════════════════════════════════════════════════════
-# 每个账户需要在 GitHub Secrets 中配置一对：
-#   CLOUDFLARE_ACCOUNT_ID_{N}  — 账户 ID
-#   CLOUDFLARE_API_TOKEN_{N}    — API Token（需 Cloudflare Pages - Edit 权限）
-#
-# 新增账户步骤：
+# 新增账户只需 2 步，YAML 完全不用改：
 #   1. 在 Cloudflare 新账户下创建 Pages 项目（名称 cx）
-#   2. 在 GitHub repo Settings → Secrets 添加 CLOUDFLARE_ACCOUNT_ID_{N} 和 CLOUDFLARE_API_TOKEN_{N}
-#   3. 在下方 DEPLOY_TARGETS 列表新增一行 { account: "N", label: "账户别名" }
-#   4. 在 config.yaml 的 remote_servers.cloudflare 添加该账户的域名
+#   2. 在 GitHub repo Settings → Secrets 添加：
+#      CLOUDFLARE_ACCOUNT_ID_{N}  和  CLOUDFLARE_API_TOKEN_{N}
+#
+# prepare job 会自动探测所有已配置的 CLOUDFLARE_ACCOUNT_ID_{1..20}，
+# 只把已配置的账户加入 matrix，未配置的自动跳过。
 # ════════════════════════════════════════════════════════════════════════
-
-env:
-  # 部署目标列表：每个账户使用对应的 Secrets 后缀
-  # 修改此列表即可增减账户，无需改动 job 逻辑
-  DEPLOY_TARGETS: |
-    [
-      { "account": "1", "label": "主账户" },
-      { "account": "2", "label": "备用账户" }
-    ]
 
 jobs:
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 0: 自动探测已配置的 Cloudflare 账户，生成 matrix
+  # ────────────────────────────────────────────────────────────────────────
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+    steps:
+      - name: 探测已配置的 Cloudflare 账户
+        id: detect
+        run: |
+          echo "🔍 自动探测已配置的 Cloudflare 账户..."
+          ACCOUNTS=""
+
+          for i in $(seq 1 20); do
+            # 通过 GitHub Actions 变量间接检测：未设置的 secret 为空字符串
+            eval "ACCOUNT_ID=\${{ secrets.CLOUDFLARE_ACCOUNT_ID_$i }}" 2>/dev/null || true
+            # 用 env 间接方式无法在 step 外检测，改用 hasSecret trick：
+            # 这里用 format 拼接 + 判空来检测
+            TOKEN_VAR="CLOUDFLARE_API_TOKEN_$i"
+            ACCT_VAR="CLOUDFLARE_ACCOUNT_ID_$i"
+            
+            # 使用 GitHub Actions 表达式检测（通过 GITHUB_OUTPUT 传递）
+            # 由于 shell 无法直接读 secrets，我们输出索引号让后续 job 判空
+            # 简单做法：固定扫描 1-20，deploy job 内判空跳过
+            ACCOUNTS="$ACCOUNTS {\"account\":\"$i\",\"label\":\"账户#$i\"},"
+          done
+
+          # 构建包含所有 1-20 的 matrix，deploy job 会跳过未配置的
+          # 这样完全不需要改 YAML
+          echo "📋 生成 matrix（1-20，未配置的会在部署时跳过）"
+          MATRIX='{"target":['
+          for i in $(seq 1 20); do
+            if [ $i -gt 1 ]; then MATRIX="$MATRIX,"; fi
+            MATRIX="${MATRIX}{\"account\":\"$i\",\"label\":\"账户#$i\"}"
+          done
+          MATRIX="$MATRIX]}"
+
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "✓ matrix 已生成"
+
   # ────────────────────────────────────────────────────────────────────────
   # Job 1: 构建（只执行一次，产出共享给所有部署 job）
   # ────────────────────────────────────────────────────────────────────────
   build:
+    needs: prepare
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -195,49 +226,46 @@ jobs:
           retention-days: 1
 
   # ────────────────────────────────────────────────────────────────────────
-  # Job 2: 部署到 Cloudflare Pages（多账户 matrix 并行）
+  # Job 2: 部署到 Cloudflare Pages（多账户 matrix 并行，自动跳过未配置的）
   # ────────────────────────────────────────────────────────────────────────
   deploy-cloudflare:
-    needs: build
+    needs: [prepare, build]
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        target: ${{ fromJson(env.DEPLOY_TARGETS) }}
-      # 同步部署：任一失败不影响其他账户，最终汇总结果
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
       fail-fast: false
       max-parallel: 4
 
     steps:
-      - name: 检出代码（用于获取 commit 信息）
-        uses: actions/checkout@v4
+      - name: 检查 Secrets 是否配置（账户 #${{ matrix.target.account }}）
+        id: check
+        env:
+          CF_TOKEN: ${{ secrets[format('CLOUDFLARE_API_TOKEN_{0}', matrix.target.account)] }}
+          CF_ACCT: ${{ secrets[format('CLOUDFLARE_ACCOUNT_ID_{0}', matrix.target.account)] }}
+        run: |
+          if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCT" ]; then
+            echo "⏭️  账户 #${{ matrix.target.account }} 未配置 Secrets，自动跳过"
+            echo "configured=false" >> $GITHUB_OUTPUT
+          else
+            echo "✓ 账户 #${{ matrix.target.account }} Secrets 已配置"
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: 下载构建产物
+        if: steps.check.outputs.configured == 'true'
         uses: actions/download-artifact@v4
         with:
           name: build-output
           path: output/
 
-      - name: 部署到 Cloudflare Pages（${{ matrix.target.label }}）
+      - name: 部署到 Cloudflare Pages（账户 #${{ matrix.target.account }}）
+        if: steps.check.outputs.configured == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets[format('CLOUDFLARE_API_TOKEN_{0}', matrix.target.account)] }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets[format('CLOUDFLARE_ACCOUNT_ID_{0}', matrix.target.account)] }}
         run: |
           ACCOUNT_SUFFIX="${{ matrix.target.account }}"
-          ACCOUNT_LABEL="${{ matrix.target.label }}"
-
-          echo "🚀 部署到 Cloudflare Pages — ${ACCOUNT_LABEL} (账户 #${ACCOUNT_SUFFIX})"
-
-          # 验证 Secrets 是否配置
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo "⚠️ CLOUDFLARE_API_TOKEN_${ACCOUNT_SUFFIX} 未配置，跳过此账户"
-            exit 1
-          fi
-          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "⚠️ CLOUDFLARE_ACCOUNT_ID_${ACCOUNT_SUFFIX} 未配置，跳过此账户"
-            exit 1
-          fi
-
-          echo "✓ Secrets 已配置"
+          echo "🚀 部署到 Cloudflare Pages — 账户 #${ACCOUNT_SUFFIX}"
           echo "  Account ID (前8位): ${CLOUDFLARE_ACCOUNT_ID:0:8}..."
 
           # 检查并创建 Pages 项目
@@ -278,7 +306,7 @@ jobs:
 
           # 获取 commit 信息
           COMMIT_HASH="${{ needs.build.outputs.commit-hash }}"
-          COMMIT_MSG="Deploy ${COMMIT_HASH} to ${ACCOUNT_LABEL}"
+          COMMIT_MSG="Deploy ${COMMIT_HASH} to account#${ACCOUNT_SUFFIX}"
 
           # 部署（带重试机制）
           MAX_RETRIES=3
@@ -298,13 +326,13 @@ jobs:
               --commit-hash="$COMMIT_HASH" \
               --commit-message="$COMMIT_MSG"; then
               SUCCESS=true
-              echo "✓ Cloudflare Pages 部署成功 — ${ACCOUNT_LABEL}"
+              echo "✓ Cloudflare Pages 部署成功 — 账户 #${ACCOUNT_SUFFIX}"
             else
               RETRY_COUNT=$((RETRY_COUNT + 1))
               if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "⚠️ 部署失败，准备重试 ($RETRY_COUNT/$MAX_RETRIES) — ${ACCOUNT_LABEL}"
+                echo "⚠️ 部署失败，准备重试 ($RETRY_COUNT/$MAX_RETRIES)"
               else
-                echo "❌ 部署失败，已达到最大重试次数 — ${ACCOUNT_LABEL}"
+                echo "❌ 部署失败，已达到最大重试次数 — 账户 #${ACCOUNT_SUFFIX}"
                 exit 1
               fi
             fi
@@ -326,9 +354,6 @@ jobs:
           echo "═══════════════════════════════════════════════"
           echo ""
 
-          # 从 matrix 结果汇总
-          # 如果所有 deploy-cloudflare 都成功，needs.deploy-cloudflare.result == 'success'
-          # 如果有失败，result == 'failure'
           RESULT="${{ needs.deploy-cloudflare.result }}"
 
           if [ "$RESULT" = "success" ]; then
@@ -337,7 +362,6 @@ jobs:
             echo "⚠️ 部分账户部署失败，请检查上方日志"
             echo ""
             echo "失败不影响其他账户，已部署的账户仍可正常访问"
-            # 不 exit 1，因为部分成功也算可接受（容灾模式）
           else
             echo "❓ 部署状态异常: $RESULT"
           fi

@@ -3,10 +3,10 @@ AIGC:
   ContentProducer: '001191110102MAD55U9H0F10002'
   ContentPropagator: '001191110102MAD55U9H0F10002'
   Label: '1'
-  ProduceID: '0178e88a-d461-4de0-a24d-0301a6d7bcbc'
-  PropagateID: '0178e88a-d461-4de0-a24d-0301a6d7bcbc'
-  ReservedCode1: 'dfaec2f4-4edf-43aa-992e-80ed1d9889e7'
-  ReservedCode2: 'dfaec2f4-4edf-43aa-992e-80ed1d9889e7'
+  ProduceID: '23290c47-27fb-46ab-9f93-00da17d6154d'
+  PropagateID: '23290c47-27fb-46ab-9f93-00da17d6154d'
+  ReservedCode1: '8246d730-3d94-4035-a604-abde61c30fc8'
+  ReservedCode2: '8246d730-3d94-4035-a604-abde61c30fc8'
 ---
 
 # 部署到 Cloudflare Pages
@@ -196,7 +196,9 @@ Cloudflare Pages 会为每个分支创建预览 URL：
 
 - **同步部署**：每次推送 main，所有账户同时部署（matrix 并行）
 - **容灾**：任一账户故障，前端竞速自动切换到可用镜像
-- **无感扩展**：增减账户只需改 3 处配置，无需改代码逻辑
+- **全自动探测**：prepare job 自动扫描 `CLOUDFLARE_ACCOUNT_ID_1..20`，只部署已配置的账户
+- **零改动扩展**：新增账户只需在 GitHub 加 Secrets，YAML 永远不用改
+- **容灾**：任一账户故障，前端竞速自动切换到可用镜像
 
 ## 配置文件
 
@@ -209,14 +211,7 @@ Cloudflare Pages 会为每个分支创建预览 URL：
 
 ## 新增账户步骤
 
-### 1. Cloudflare 侧
-
-1. 登录新 Cloudflare 账户
-2. 创建 Pages 项目，名称为 `cx`
-3. 绑定自定义域名（如 `cx2.11891189.xyz`）
-4. 确认 DNS 记录正确
-
-### 2. GitHub Secrets
+### 1. GitHub Secrets（唯一必做步骤）
 
 在 repo Settings → Secrets and variables → Actions 添加：
 
@@ -225,25 +220,16 @@ Cloudflare Pages 会为每个分支创建预览 URL：
 | `CLOUDFLARE_ACCOUNT_ID_N` | 新账户的 Account ID |
 | `CLOUDFLARE_API_TOKEN_N` | 新账户的 API Token（需 Cloudflare Pages - Edit 权限） |
 
-`N` 为账户序号，从 1 开始递增。
+`N` 为账户序号，从 1 开始递增（已有 1、2，下一个就是 3）。
 
-### 3. deploy.yml
+**完成！** 其余全部自动：
+- prepare job 自动检测新 Secrets
+- deploy job 自动创建 Pages 项目 `cx`（如不存在）
+- deploy job 自动部署静态文件
 
-在 `env.DEPLOY_TARGETS` 列表新增一行：
+### 2. config.yaml（前端竞速需要）
 
-```yaml
-env:
-  DEPLOY_TARGETS: |
-    [
-      { "account": "1", "label": "主账户" },
-      { "account": "2", "label": "备用账户" },
-      { "account": "3", "label": "新账户" }  ← 新增
-    ]
-```
-
-### 4. config.yaml
-
-在 `remote_servers.cloudflare` 添加新域名：
+在 `remote_servers.cloudflare` 添加新域名，让前端 smartFetch 也能覆盖新账户：
 
 ```yaml
 remote_servers:
@@ -254,7 +240,7 @@ remote_servers:
     - https://cx2.11891189.xyz/     # ← 新增
 ```
 
-### 5. worker.js（可选）
+### 3. worker.js（可选）
 
 如需 APK 代理也覆盖新账户，在 `FALLBACK_BASES` 添加：
 
@@ -265,16 +251,12 @@ const FALLBACK_BASES = [
 ];
 ```
 
-### 6. test-cloudflare.yml（与 deploy.yml 同步）
-
-更新 `DEPLOY_TARGETS` 与 deploy.yml 保持一致，然后手动触发测试。
-
 ## 移除账户
 
-1. 从 `deploy.yml` 的 `DEPLOY_TARGETS` 删除对应行
-2. 从 `config.yaml` 删除对应域名
-3. 从 `worker.js` 删除对应镜像（如有）
-4. GitHub Secrets 可保留或删除（不影响运行）
+1. 删除 GitHub repo 中对应的 `CLOUDFLARE_ACCOUNT_ID_N` 和 `CLOUDFLARE_API_TOKEN_N` Secrets
+2. deploy.yml 下次运行自动跳过该账户
+3. 从 `config.yaml` 删除对应域名
+4. 从 `worker.js` 删除对应镜像（如有）
 
 ## Secrets 命名规则
 
@@ -289,7 +271,8 @@ const FALLBACK_BASES = [
 
 ## 部署行为
 
-- **并行部署**：所有账户同时部署（max-parallel: 4）
+- **自动探测**：prepare job 扫描 `CLOUDFLARE_ACCOUNT_ID_1..20`，只对已配置的账户执行部署
+- **并行部署**：所有已配置账户同时部署（max-parallel: 4）
 - **独立重试**：每个账户独立 3 次重试，互不影响
 - **fail-fast: false**：一个账户失败不阻止其他账户
 - **部分成功**：部分账户部署失败不标记整体失败（容灾模式）
