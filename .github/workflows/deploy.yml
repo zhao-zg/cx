@@ -53,38 +53,17 @@ jobs:
     outputs:
       matrix: ${{ steps.detect.outputs.matrix }}
     steps:
-      - name: 探测已配置的 Cloudflare 账户
+      - name: 生成部署矩阵（1-20，未配置的账户在部署时自动跳过）
         id: detect
         run: |
-          echo "🔍 自动探测已配置的 Cloudflare 账户..."
-          ACCOUNTS=""
-
-          for i in $(seq 1 20); do
-            # 通过 GitHub Actions 变量间接检测：未设置的 secret 为空字符串
-            eval "ACCOUNT_ID=\${{ secrets.CLOUDFLARE_ACCOUNT_ID_$i }}" 2>/dev/null || true
-            # 用 env 间接方式无法在 step 外检测，改用 hasSecret trick：
-            # 这里用 format 拼接 + 判空来检测
-            TOKEN_VAR="CLOUDFLARE_API_TOKEN_$i"
-            ACCT_VAR="CLOUDFLARE_ACCOUNT_ID_$i"
-            
-            # 使用 GitHub Actions 表达式检测（通过 GITHUB_OUTPUT 传递）
-            # 由于 shell 无法直接读 secrets，我们输出索引号让后续 job 判空
-            # 简单做法：固定扫描 1-20，deploy job 内判空跳过
-            ACCOUNTS="$ACCOUNTS {\"account\":\"$i\",\"label\":\"账户#$i\"},"
-          done
-
-          # 构建包含所有 1-20 的 matrix，deploy job 会跳过未配置的
-          # 这样完全不需要改 YAML
-          echo "📋 生成 matrix（1-20，未配置的会在部署时跳过）"
           MATRIX='{"target":['
           for i in $(seq 1 20); do
             if [ $i -gt 1 ]; then MATRIX="$MATRIX,"; fi
             MATRIX="${MATRIX}{\"account\":\"$i\",\"label\":\"账户#$i\"}"
           done
           MATRIX="$MATRIX]}"
-
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
-          echo "✓ matrix 已生成"
+          echo "✓ matrix 已生成（1-20，部署时自动跳过未配置 Secrets 的账户）"
 
   # ────────────────────────────────────────────────────────────────────────
   # Job 1: 构建（只执行一次，产出共享给所有部署 job）
