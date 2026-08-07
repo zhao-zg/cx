@@ -1298,9 +1298,12 @@
                         if (extStatusEl) { extStatusEl.textContent = '正在准备更新...'; extStatusEl.className = 'cache-status'; }
                         var steps = [];
                         if ('caches' in window) {
-                            // 只清除命名训练缓存（cx-YYYY-NN），保留 cx-main（历史合辑包数据）
-                            steps.push(caches.keys().then(function(keys) {
-                                return Promise.all(keys.filter(function(k) { return /^cx-\d{4}-\d{2}$/.test(k); }).map(function(k) { return caches.delete(k); }));
+                            // 只刷新 cx-main 中的 trainings.json，不清除命名训练缓存
+                            // 保留已缓存的训练（包括被新版本淘汰的老训练），重载后由 showMandatoryInstallDialog 精确清理
+                            steps.push(caches.open('cx-main').then(function(cache) {
+                                return cache.delete('./trainings.json').then(function() {
+                                    return cache.delete(location.origin + '/trainings.json');
+                                });
                             }).catch(function() {}));
                         }
                         // 保存新版本号，使重载后 checkPwaStartupCache 进行完整性检查并触发增量缓存

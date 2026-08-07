@@ -375,17 +375,49 @@
                     // 构建初始数据 path 集合（有命名缓存 cx-YYYY-NN），用于屏蔽错误的历史合辑标记
                     var namedCacheSet={};
                     byKey.forEach(function(t){namedCacheSet[t.path]=true;});
-                    if(!rest.length){
+
+                    // ── orphan 扫描：发现"有命名缓存但不在 trainings.json 列表中的老训练" ──
+                    var allPaths={};
+                    all.forEach(function(t){allPaths[t.path]=true;});
+                    var orphanKeys=keys.filter(function(k){
+                        var m=k.match(/^cx-(\d{4}-\d{2})$/);
+                        return m&&!allPaths[m[1]];
+                    });
+                    var orphanFetches=orphanKeys.map(function(k){
+                        var tp=k.slice(3); // 去掉 "cx-" 前缀
+                        return caches.open(k).then(function(cache){
+                            return cache.match(window.location.origin+'/'+tp+'/training.json');
+                        }).then(function(resp){
+                            if(!resp)return null;
+                            return resp.json().then(function(d){
+                                // training.json 中 season 是纯名称（如"夏季训练"），需补序号前缀对齐 trainings.json 的"NN 名称"格式
+                                var nn=tp.split('-')[1]; // 取 path 中的 NN 部分（如 "04"）
+                                var season=d.season||tp;
+                                var fixedSeason=/^\d{2}\s/.test(season)?season:(nn+' '+season);
+                                return {path:tp,year:d.year||parseInt(tp.split('-')[0])||tp,season:fixedSeason,title:d.title||season,chapter_count:(d.chapters||[]).length,is_collection:false};
+                            });
+                        }).catch(function(){return null;});
+                    });
+
+                    if(!rest.length&&orphanFetches.length===0){
                         renderWithLocals(byKey.length?byKey:displayTrainings,namedCacheSet);
                         return;
                     }
-                    return Promise.all(rest.map(function(t){
+                    var restCheck=rest.length?Promise.all(rest.map(function(t){
                         return caches.match(window.location.origin+'/'+t.path+'/training.json')
                             .then(function(r){return!!r;},function(){return false;});
-                    })).then(function(flags){
+                    })):Promise.resolve([]);
+
+                    restCheck.then(function(flags){
                         var fromMatch=rest.filter(function(_,i){return flags[i];});
-                        var cached=byKey.concat(fromMatch);
-                        renderWithLocals(cached.length?cached:displayTrainings,namedCacheSet);
+                        // 等待 orphan 元数据读取完成
+                        return Promise.all(orphanFetches).then(function(orphanResults){
+                            var orphans=orphanResults.filter(Boolean);
+                            // 将 orphan 的 path 加入 namedCacheSet，避免被错误标记为合辑
+                            orphans.forEach(function(t){namedCacheSet[t.path]=true;});
+                            var cached=byKey.concat(fromMatch).concat(orphans);
+                            renderWithLocals(cached.length?cached:displayTrainings,namedCacheSet);
+                        });
                     });
                 }).catch(function(){renderWithLocals(displayTrainings);});
             };
