@@ -709,6 +709,15 @@
     var zip;
     return readFileAsArrayBuffer(file).then(function (arrayBuf) {
       if (onProgress) onProgress(0, 5, '解压 EPUB…');
+      /* 预校验：EPUB 本质是 ZIP，必须以 PK 魔数 (0x504B) 开头。
+         避免将非 ZIP 文件传给 JSZip 导致晦涩的 "Can't find end of central directory" 错误。 */
+      if (!arrayBuf || arrayBuf.byteLength < 4) {
+        throw new Error('文件内容为空或过小，不是有效的 EPUB 文件');
+      }
+      var view = new Uint8Array(arrayBuf);
+      if (view[0] !== 0x50 || view[1] !== 0x4B) {
+        throw new Error('文件不是有效的 EPUB 格式（缺少 ZIP 文件头），请确认文件未损坏');
+      }
       return new win.JSZip().loadAsync(arrayBuf);
     }).then(function (z) {
       zip = z;

@@ -360,7 +360,19 @@
     //       不再单独发任何请求
     var _reachabilityCache = { result: null, ts: 0, TTL: 5 * 60 * 1000 }; // 5分钟缓存
 
-    function checkServerReachability() {
+    function checkServerReachability(opts) {
+        // skipIfAutoCheckOff=true 时，关闭自动检查更新则跳过探测（用于启动时自动调用）
+        // 不传或 false 时始终执行（用于用户手动操作）
+        // 跳过时返回 null 表示"未知"，调用方可据此做降级处理（如按钮默认显示）
+        if (opts && opts.skipIfAutoCheckOff) {
+            try {
+                if (localStorage.getItem('cx_auto_check_update') !== '1') {
+                    window.CX_SERVERS_REACHABLE = null; // 未知：未探测
+                    // 不写入 _reachabilityCache，让后续手动调用时能真正探测
+                    return Promise.resolve(null);
+                }
+            } catch(e) {}
+        }
         // 命中缓存直接返回
         if (_reachabilityCache.result !== null && Date.now() - _reachabilityCache.ts < _reachabilityCache.TTL) {
             window.CX_SERVERS_REACHABLE = _reachabilityCache.result;
@@ -415,16 +427,18 @@
     }
 
     // 根据服务器可达性更新依赖网络的 UI 元素
+    // reachable: true=可达, false=不可达, null=未知（未探测，按可达显示按钮）
     function updateServerDependentButtons(reachable) {
         var updateBtn = document.getElementById('checkUpdateBtn');
         var feedbackBtn = document.getElementById('feedbackBtn');
         var autoCheckSection = document.getElementById('autoCheckSection');
 
-        if (!reachable) {
+        if (reachable === false) {
             if (updateBtn) updateBtn.style.display = 'none';
             if (feedbackBtn) feedbackBtn.style.display = 'none';
             if (autoCheckSection) autoCheckSection.style.display = 'none';
         } else {
+            // reachable === true 或 null（未知）：按可达显示按钮
             // 恢复检查更新按钮（仅对应环境）
             if (updateBtn) {
                 var _isCap = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
@@ -735,7 +749,8 @@
             if (!feedbackBtn) return;
             // 默认隐藏（HTML 模板已设 display:none），仅在确认服务器可达时才显示
             // 可达性检查是异步的，检查完成后由 updateServerDependentButtons 恢复显示
-            if (window.CX_SERVERS_REACHABLE === true) {
+            // CX_SERVERS_REACHABLE 为 null 时表示未探测（关闭自动更新），按可达显示
+            if (window.CX_SERVERS_REACHABLE !== false) {
                 feedbackBtn.style.display = 'inline-flex';
             }
             feedbackBtn.addEventListener('click', showFeedbackDialog);
@@ -815,8 +830,9 @@
         }
         // 默认隐藏（HTML 模板已设 display:none），仅确认服务器可达且环境匹配时才显示
         // 可达性检查是异步的，检查完成后由 updateServerDependentButtons 恢复显示
+        // CX_SERVERS_REACHABLE 为 null 时表示未探测（关闭自动更新），按可达显示
         if (updateBtn) {
-            updateBtn.style.display = (updateBtnEnvMatch && window.CX_SERVERS_REACHABLE === true) ? 'inline-flex' : 'none';
+            updateBtn.style.display = (updateBtnEnvMatch && window.CX_SERVERS_REACHABLE !== false) ? 'inline-flex' : 'none';
         }
 
         // ── 自动检查更新偏好设置（Capacitor APK / PWA standalone，服务器可达时显示）──
@@ -824,7 +840,7 @@
         if (autoCheckEnvMatch) {
             var autoCheckSection = document.getElementById('autoCheckSection');
             var autoCheckToggle  = document.getElementById('autoCheckUpdateToggle');
-            if (autoCheckSection) autoCheckSection.style.display = (window.CX_SERVERS_REACHABLE === true) ? '' : 'none';
+            if (autoCheckSection) autoCheckSection.style.display = (window.CX_SERVERS_REACHABLE !== false) ? '' : 'none';
             if (autoCheckToggle) {
                 try { autoCheckToggle.checked = localStorage.getItem('cx_auto_check_update') === '1'; } catch(e) {}
                 autoCheckToggle.addEventListener('change', function() {
@@ -840,24 +856,25 @@
         }
 
         // ── 触发服务器可达性检查，完成后更新按钮可见性 ──────────────────
-        checkServerReachability().then(function(reachable) {
+        // 关闭自动更新时跳过启动时的网络探测，用户手动操作时仍可触发
+        checkServerReachability({ skipIfAutoCheckOff: true }).then(function(reachable) {
             updateServerDependentButtons(reachable);
-            // 服务器可达时直接显示赞助按钮（跳过启动时的图片探测，改为点击时按需加载）
-            if (reachable) {
-                var sponsorBtn = document.getElementById('sponsorBtn');
-                if (sponsorBtn && sponsorBtn.style.display === 'none' && !sponsorBtn.dataset.probed) {
-                    try {
-                        var firstUse = parseInt(localStorage.getItem('cx_first_use') || '0', 10);
-                        var elapsed = firstUse ? (Date.now() - firstUse) : 0;
-                        if (elapsed >= 5 * 60 * 1000) {
-                            sponsorBtn.dataset.probed = '1';
-                            sponsorBtn.style.display = 'inline-flex';
-                            sponsorBtn.addEventListener('click', showSponsorDialog);
-                        }
-                    } catch(e) {}
-                }
-            }
         });
+
+        // ── 赞助按钮：默认可见，不依赖服务器探测，点击打开弹框时再按需加载远程图片 ──
+        (function() {
+            var sponsorBtn = document.getElementById('sponsorBtn');
+            if (!sponsorBtn || sponsorBtn.dataset.probed) return;
+            try {
+                var firstUse = parseInt(localStorage.getItem('cx_first_use') || '0', 10);
+                var elapsed = firstUse ? (Date.now() - firstUse) : 0;
+                if (elapsed >= 5 * 60 * 1000) {
+                    sponsorBtn.dataset.probed = '1';
+                    sponsorBtn.style.display = 'inline-flex';
+                    sponsorBtn.addEventListener('click', showSponsorDialog);
+                }
+            } catch(e) {}
+        })();
 
 
 

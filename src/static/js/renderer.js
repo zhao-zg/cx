@@ -906,8 +906,35 @@
           }
           holder.appendChild(frag);
         }
-        /* innerText 保留块级换行，贴近用户所见；textContent 兜底 */
-        return (holder.innerText != null) ? holder.innerText : holder.textContent;
+        /* 手动遍历 DOM 树，在块级元素边界插入换行符。
+           不依赖 innerText（未挂载 DOM 时，旧版 Android WebView Chrome/88
+           的 innerText 不识别块级边界，丢失所有换行）。
+           textContent 则完全不产生换行。*/
+        var BLOCK_TAGS = {P:1,DIV:1,H1:1,H2:1,H3:1,H4:1,H5:1,H6:1,
+                          LI:1,TR:1,BLOCKQUOTE:1,SECTION:1,ARTICLE:1,
+                          HEADER:1,FOOTER:1,MAIN:1,ASIDE:1,DETAILS:1,
+                          SUMMARY:1,FIGURE:1,FIGCAPTION:1,DL:1,DT:1,
+                          DD:1,PRE:1,ADDRESS:1,HR:1};
+        function extractText(node) {
+          var parts = [];
+          if (node.nodeType === 3) { // TEXT_NODE
+            parts.push(node.nodeValue);
+          } else if (node.nodeType === 1) { // ELEMENT_NODE
+            var tag = node.tagName;
+            if (tag === 'BR') {
+              parts.push('\n');
+            } else {
+              var isBlock = !!BLOCK_TAGS[tag];
+              for (var c = node.firstChild; c; c = c.nextSibling) {
+                parts.push(extractText(c));
+              }
+              if (isBlock) parts.push('\n');
+            }
+          }
+          return parts.join('');
+        }
+        var text = extractText(holder).replace(/\n{2,}/g, '\n\n').replace(/^\n+|\n+$/g, '');
+        return text || holder.textContent;
       })();
       try {
         if (e.clipboardData) {

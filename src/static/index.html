@@ -264,20 +264,42 @@
     })();
 
     // ── 动态加载训练列表 ──────────────────────────────────────────────────
+    // 关闭自动检查更新时走缓存优先，避免启动时无条件网络请求
     (function(){
-        fetch('trainings.json?t='+Date.now())
-            .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-            .then(function(data){
-                window.__cxTrainings=data.trainings||[];
-                renderTrainings(data);
-                // 更新页脚时间
-                var fm=document.getElementById('footerMeta');
-                if(fm&&data.generation_time)fm.textContent='生成时间: '+data.generation_time;
-            })
-            .catch(function(err){
-                console.error('[训练列表]',err);
-                showLoadError();
-            });
+        var _autoCheck;
+        try { _autoCheck = localStorage.getItem('cx_auto_check_update') === '1'; } catch(e) { _autoCheck = false; }
+        function loadTrainingsFromNetwork(){
+            fetch('trainings.json?t='+Date.now())
+                .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+                .then(function(data){
+                    window.__cxTrainings=data.trainings||[];
+                    renderTrainings(data);
+                    var fm=document.getElementById('footerMeta');
+                    if(fm&&data.generation_time)fm.textContent='生成时间: '+data.generation_time;
+                })
+                .catch(function(err){
+                    console.error('[训练列表]',err);
+                    showLoadError();
+                });
+        }
+        if(_autoCheck || !('caches' in window)){
+            // 开启自动更新 或 无 Cache API：走网络
+            loadTrainingsFromNetwork();
+        } else {
+            // 关闭自动更新：缓存优先，未命中才走网络
+            caches.match('trainings.json').then(function(cached){
+                if(cached && cached.ok){
+                    cached.json().then(function(data){
+                        window.__cxTrainings=data.trainings||[];
+                        renderTrainings(data);
+                        var fm=document.getElementById('footerMeta');
+                        if(fm&&data.generation_time)fm.textContent='生成时间: '+data.generation_time;
+                    }).catch(function(){ loadTrainingsFromNetwork(); });
+                } else {
+                    loadTrainingsFromNetwork();
+                }
+            }).catch(function(){ loadTrainingsFromNetwork(); });
+        }
 
         function renderTrainings(data){
             var grid=document.getElementById('trainingsGrid');
@@ -744,6 +766,10 @@
     function checkPwaStartupCache(){
         if(!CX_ENV.isStandalone||CX_ENV.isCapacitorApp||!('caches' in window))return;
         var storedVersion=null;try{storedVersion=localStorage.getItem('cx_pwa_version');}catch(e){}
+        // 关闭自动检查更新时：跳过版本变更检测（不请求 version.json 检查新版本），
+        // 但首次安装（无本地版本）仍需走网络，否则 PWA 无法离线使用
+        var _autoCheckOff;try{_autoCheckOff=localStorage.getItem('cx_auto_check_update')!=='1';}catch(e){_autoCheckOff=false;}
+        if(_autoCheckOff && storedVersion) return;
         // 复用全局版本缓存，避免重复请求 version.json
         var versionPromise=(window.CX&&window.CX.getVersionInfo)?window.CX.getVersionInfo():fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
         versionPromise
@@ -789,9 +815,18 @@
             // Capacitor WebView 不支持 SW，跳过注册
             // APK 所有资源已内置，首次启动在后台静默填充 Cache API，不阻塞用户；
             // 完成后写 cx_pwa_version，后续启动直接跳过。
+            // 关闭自动检查更新时跳过版本校验网络请求，但 APK 升级时仍需重新填充缓存
             if('caches' in window){
                 var _capVer=null;try{_capVer=localStorage.getItem('cx_pwa_version');}catch(e){}
-                // 复用全局版本缓存，避免重复请求 version.json
+                var _capApkVer=null;try{_capApkVer=localStorage.getItem('cx_apk_version');}catch(e){}
+                var _capAutoCheck;try{_capAutoCheck=localStorage.getItem('cx_auto_check_update')==='1';}catch(e){_capAutoCheck=false;}
+                // APK 升级时（apk_version 与 pwa_version 不匹配），无论自动更新开关都需要重新填充
+                var _capApkUpgraded=_capApkVer&&_capVer&&_capApkVer!==_capVer;
+                // 关闭自动更新且已有本地版本且 APK 未升级：跳过，不请求 version.json
+                if(!_capAutoCheck && _capVer && !_capApkUpgraded) {
+                    // 不做任何网络请求
+                } else {
+                // 开启自动更新、或首次安装、或 APK 升级：请求 version.json 检查版本
                 var _capVersionPromise=(window.CX&&window.CX.getVersionInfo)?window.CX.getVersionInfo():fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
                 _capVersionPromise
                     .then(function(v){
@@ -811,10 +846,12 @@
                         }).catch(function(){});
                     })
                     .catch(function(){/* 离线时跳过 */});
+                } // end else (auto check on or no local version)
             }
         } else {
         navigator.serviceWorker.register('./sw.js').then(function(reg){
-            reg.update().catch(function(){});
+            // 关闭自动检查更新时跳过主动 SW 更新检查，避免启动时网络请求
+            try { if(localStorage.getItem('cx_auto_check_update')==='1') reg.update().catch(function(){}); } catch(e){}
             reg.addEventListener('updatefound',function(){
                 var nw=reg.installing;
                 if(nw)nw.addEventListener('statechange',function(){

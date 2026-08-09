@@ -294,6 +294,15 @@
       .then(fetchZip)
       .then(function (arrayBuf) {
         if (onProgress) onProgress(0.8);
+        /* 预校验：ZIP 文件必须以 PK 魔数 (0x504B) 开头，且至少 4 字节。
+           避免将 HTML 错误页、空响应等无效数据传给 JSZip 导致难以理解的错误。 */
+        if (!arrayBuf || arrayBuf.byteLength < 4) {
+          throw new Error('下载的数据不完整（' + (arrayBuf ? arrayBuf.byteLength + ' 字节' : '空') + '），请检查网络后重试');
+        }
+        var view = new Uint8Array(arrayBuf);
+        if (view[0] !== 0x50 || view[1] !== 0x4B) {
+          throw new Error('下载的数据不是有效的资源包（缺少 ZIP 文件头），可能网络中断或服务器异常');
+        }
         return new win.JSZip().loadAsync(arrayBuf);
       })
       .then(function (zip) {
