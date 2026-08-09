@@ -28,6 +28,8 @@ import android.media.MediaMetadata;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 
+import com.getcapacitor.JSObject;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,6 +83,24 @@ public class TTSForegroundService extends Service {
     private static void emitLog(String msg) {
         Listener cb = listener;
         if (cb != null) cb.onLog(msg);
+    }
+
+    /**
+     * ★ 通知 JS 同步播放状态（stop/pause/resume）。
+     * 通知栏/锁屏控件直接走 Java 侧 handleStop/handlePause/handleResume，
+     * JS 端不知道状态已变，导致回到 APP 后 UI 不一致。
+     * 通过 NativeTTSPlugin 的 notifyListeners 发送 ttsStateChanged 事件，
+     * JS 端收到后同步 state 变量和 UI。
+     */
+    private static void emitStateChanged(String state) {
+        try {
+            NativeTTSPlugin pluginInstance = NativeTTSPlugin.getStaticInstance();
+            if (pluginInstance != null) {
+                JSObject data = new JSObject();
+                data.put("state", state);
+                pluginInstance.notifyListeners("ttsStateChanged", data);
+            }
+        } catch (Exception ignored) {}
     }
 
     // ── Constants ─────────────────────────────────────────────────────────
@@ -973,6 +993,10 @@ public class TTSForegroundService extends Service {
         if (r != null) {
             mainHandler.postDelayed(r, 100);
         }
+        // ★ 额外通知 JS 同步 state：通知栏/锁屏停止按钮直接走 Java 侧，
+        //    JS 不知道播放已被停止，回到 APP 后 UI 状态不同步。
+        //    通过 listener.onStop() 发送 ttsStateChanged 事件。
+        emitStateChanged("stopped");
     }
 
     private void handlePause() {
@@ -1012,12 +1036,16 @@ public class TTSForegroundService extends Service {
 
         // 冻结位置：暂停后 getCurrentPositionMs() 依赖 mediaPlayer.getCurrentPosition()（不变）
         updateNotification(false);
+        // ★ 通知 JS 同步 state：通知栏/锁屏暂停按钮直接走 Java 侧
+        emitStateChanged("paused");
     }
 
     private void handleResume() {
         // ★ isStopped + 有预合成数据：锁屏/蓝牙等外部媒体控件触发的「首次播放」
         //   场景：用户打开 APP 后切到后台（预合成完成但未点播放），锁屏出现媒体控件后点击播放。
-        if (isStopped && !chunks.isEmpty()) {
+        //   ★ isPreSynthesis 守卫：预合成阶段（页面刚加载，用户未点播放）时，
+        //     锁屏/蓝牙等外部控件不应触发播放，否则用户"关不上"。
+        if (isStopped && !chunks.isEmpty() && !isPreSynthesis) {
             emitLog("handleResume: isStopped with chunks, starting playback from pre-synth");
             isStopped = false;
             isPaused  = false;
@@ -1033,6 +1061,7 @@ public class TTSForegroundService extends Service {
             acquireWakeLock();
             updateNotification(true);
             updatePlaybackState(true);
+            emitStateChanged("playing");
             if (ttsReady) {
                 final int gen = speakGen;
                 ttsHandler.postDelayed(() -> {
@@ -1050,6 +1079,7 @@ public class TTSForegroundService extends Service {
         //   MediaPlayer 恢复路径不递增（保留 OnCompletionListener 的有效性）；
         //   speak 模式和重新合成路径递增（新 utterance / MediaPlayer 需要新的 gen）。
         updateNotification(true);
+        emitStateChanged("playing");
 
         if (useSpeakDirect) {
             // speak 模式：没有 MediaPlayer，直接从当前 chunk 重新朗读

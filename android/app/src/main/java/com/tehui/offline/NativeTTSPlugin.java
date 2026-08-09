@@ -27,6 +27,26 @@ public class NativeTTSPlugin extends Plugin {
     // Keep alive the pending speak() call until service finishes
     private PluginCall activeCall = null;
 
+    // ★ 静态实例引用：TTSForegroundService 通过此引用发送 ttsStateChanged 事件到 JS
+    private static NativeTTSPlugin staticInstance = null;
+
+    /** 获取静态实例，供 TTSForegroundService 发送事件 */
+    public static NativeTTSPlugin getStaticInstance() {
+        return staticInstance;
+    }
+
+    @Override
+    public void load() {
+        super.load();
+        staticInstance = this;
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        super.handleOnDestroy();
+        if (staticInstance == this) staticInstance = null;
+    }
+
     // ── speak ─────────────────────────────────────────────────────────────
 
     @PluginMethod(returnType = PluginMethod.RETURN_PROMISE)

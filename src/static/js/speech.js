@@ -177,6 +177,7 @@
   var _waitStopDone = false;
   var _waitStopGen = 0;
   var _ttsStoppedHandle = null;   // Capacitor addListener handle
+  var _ttsStateChangedHandle = null; // Capacitor addListener handle (ttsStateChanged)
 
   // -- 跨页面 generation 计数器：全局递增，不在 init() 中重置
   // 确保页面切换后旧回调（超时守卫、ttsPosition 等）仍能正确失效
@@ -1433,15 +1434,73 @@
         });
       }
 
-      // -- visibilitychange (Web Speech only) ---------------------------------
+      // -- visibilitychange ---------------------------------------------------
       // Web Speech 不支持後台播放，切到后台时直接停止。
-      // NativeTTS 已由前台服务支持后台，不干预。
+      // NativeTTS 已由前台服务支持后台播放，切到后台不停止。
+      // 两种模式回到前台时，如果 Java 侧状态变了（通知栏/锁屏操作），
+      // 由 ttsStateChanged 事件驱动 JS 状态同步，此处无需额外处理。
       if (useWebSpeech) {
         document.addEventListener('visibilitychange', function () {
           if (document.visibilityState === 'hidden' && state !== 'idle') {
             resetState();
           }
         });
+      }
+
+      // -- ttsStateChanged: 同步 Java 侧状态到 JS（NativeTTS only） ---------------
+      // 通知栏/锁屏的停止/暂停/恢复按钮直接走 Java 侧 handleStop/handlePause/handleResume，
+      // JS 不知道状态已变，回到 APP 后 UI 不一致。
+      // Java 端在 handleStop/handlePause/handleResume 中发送 ttsStateChanged 事件，
+      // JS 收到后同步 state 变量和 UI 控件。
+      if (useNativeTTS) {
+        // ★ 移除旧监听器（init 可能被多次调用：SPA 导航/翻页）
+        if (_ttsStateChangedHandle) {
+          try { _ttsStateChangedHandle.remove(); } catch (e) {}
+          _ttsStateChangedHandle = null;
+        }
+        var N_state = getNativeTTS();
+        if (N_state && typeof N_state.addListener === 'function') {
+          _ttsStateChangedHandle = N_state.addListener('ttsStateChanged', function (data) {
+            if (!data || !data.state) return;
+            var newState = data.state; // 'stopped' | 'paused' | 'playing'
+            console.log('[CXSpeech] ttsStateChanged: ' + newState + ' (JS state was: ' + state + ')');
+            if (newState === 'stopped') {
+              // Java 侧已停止，JS 必须同步到 idle
+              if (state === 'idle') return; // 已同步，跳过
+              stopProgressUpdate();
+              clearTTSHighlight();
+              nativeStopService(false); // 不再发 stop 给 Java（已停了）
+              fullText = '';
+              elapsedOffset = 0; startTime = 0; totalDuration = 0; _originalTotalDuration = 0;
+              _nativeCharsDone = -1; _nativeCharsDoneTime = 0; _lastPosMs = -1;
+              _resumeNextSegPercent = -1;
+              textChunks = []; currentChunk = 0;
+              progressBar.value = '0';
+              speechTime.textContent = '00:00 / 00:00';
+              speechTime.style.color = '';
+              setState('idle');
+            } else if (newState === 'paused') {
+              if (state === 'playing') {
+                stopProgressUpdate();
+                elapsedOffset = currentElapsedSeconds(); startTime = 0;
+                _resumePercent = totalDuration > 0
+                  ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100) : 0;
+                setState('paused');
+              }
+            } else if (newState === 'playing') {
+              if (state === 'idle' || state === 'paused') {
+                // Java 侧开始播放了（锁屏控件触发），JS 需同步
+                // 如果 state=idle，说明是外部控件触发的播放，JS 不知道播放了什么文本
+                // → 无法高亮，但至少把按钮设为暂停图标
+                if (totalDuration > 0) {
+                  startTime = Date.now();
+                  startProgressUpdate();
+                }
+                setState('playing');
+              }
+            }
+          });
+        }
       }
 
       setState('idle');
