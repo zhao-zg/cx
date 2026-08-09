@@ -47,6 +47,11 @@ public class NativeTTSPlugin extends Plugin {
         if (staticInstance == this) staticInstance = null;
     }
 
+    /** 供外部类（TTSForegroundService）发送事件到 JS，避免直接调用 protected notifyListeners */
+    public void emitEvent(String eventName, JSObject data) {
+        notifyListeners(eventName, data);
+    }
+
     // ── speak ─────────────────────────────────────────────────────────────
 
     @PluginMethod(returnType = PluginMethod.RETURN_PROMISE)

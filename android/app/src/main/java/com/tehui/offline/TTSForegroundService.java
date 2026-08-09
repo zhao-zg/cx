@@ -98,7 +98,7 @@ public class TTSForegroundService extends Service {
             if (pluginInstance != null) {
                 JSObject data = new JSObject();
                 data.put("state", state);
-                pluginInstance.notifyListeners("ttsStateChanged", data);
+                pluginInstance.emitEvent("ttsStateChanged", data);
             }
         } catch (Exception ignored) {}
     }
