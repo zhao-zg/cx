@@ -259,6 +259,12 @@
     parentId = parentId || '';
     idPrefix = idPrefix || '';
     var box = toCtxBox(ctx);
+    // 若纲目节点有脚注经文提供的 ctx_scripture（阿拉伯格式如"弗4:23"），用它更新上下文
+    // 这确保后续的相对引用（如"五1""17节"）能正确回溯到准确的书卷和章号
+    if (sec.ctx_scripture && win.CXRef && win.CXRef.scanCtx) {
+      var newCtx = win.CXRef.scanCtx(sec.ctx_scripture, box.val);
+      if (newCtx) box.val = newCtx;
+    }
     var sectionId = idPrefix + (parentId ? (parentId + '-' + sec.level) : sec.level);
     var hasChildren = sec.children && sec.children.length > 0;
     var lvCls = outlineLevelClass(sec.level);
@@ -305,6 +311,11 @@
 
   function renderMessageSection(sec, depth, ctx) {
     var box = toCtxBox(ctx);
+    // 用脚注经文提供的准确 ctx_scripture 校准上下文
+    if (sec.ctx_scripture && win.CXRef && win.CXRef.scanCtx) {
+      var newCtx = win.CXRef.scanCtx(sec.ctx_scripture, box.val);
+      if (newCtx) box.val = newCtx;
+    }
     var html = '<div class="section">';
     var titleKey = sec.level + '\u3000' + sec.title;
     html += '<div class="section-level' + depth + '">' + wrapRefs(titleKey, box.val) + '</div>';
@@ -332,6 +343,11 @@
 
   function renderDetailSection(sec, ctx) {
     var box = toCtxBox(ctx);
+    // 用脚注经文提供的准确 ctx_scripture 校准上下文
+    if (sec.ctx_scripture && win.CXRef && win.CXRef.scanCtx) {
+      var newCtx = win.CXRef.scanCtx(sec.ctx_scripture, box.val);
+      if (newCtx) box.val = newCtx;
+    }
     var levelLen = (sec.level || '').length;
     var levelN = levelLen <= 4 ? levelLen : 4;
     if (levelN === 0) levelN = 1;

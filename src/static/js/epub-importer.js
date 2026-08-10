@@ -230,6 +230,28 @@
    *
    * 返回 Content 节点树 []
    */
+  /**
+   * 从纲目标题段落后的 <aside> 脚注中提取经文引用，生成 ctx_scripture 字符串。
+   * 脚注格式：<p class="calibre_verse"><b>弗4:23</b>　经文内容</p>
+   * 返回第一个引用的阿拉伯格式（如 "弗4:23"），用于渲染时为该节点设定初始上下文。
+   */
+  function _extractCtxFromFootnote(pEl) {
+    // 查找紧跟当前 <p> 的兄弟 <aside> 元素
+    var sibling = pEl.nextElementSibling;
+    if (!sibling) return '';
+    var tag = (sibling.tagName || '').toLowerCase();
+    if (tag !== 'aside') return '';
+    // 从 aside 中提取第一个 calibre_verse 的 <b> 标签内容
+    var firstVerse = sibling.querySelector('.calibre_verse b');
+    if (!firstVerse) return '';
+    var ref = (firstVerse.textContent || '').trim();
+    // 验证格式：应形如 "弗4:23" 或 "太5:1"
+    if (/^[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启][前后上下壹贰叁参]?\d+:\d+/.test(ref)) {
+      return ref;
+    }
+    return '';
+  }
+
   function parseOutlineFromHtml(doc) {
     var body = doc.querySelector('body');
     if (!body) return [];
@@ -309,7 +331,11 @@
       // 剥离 ─引用经文 标记
       title = title.replace(/\u2500引用经文$/, '');
 
+      // 从紧跟的脚注中提取首个经文引用作为 ctx_scripture
+      var ctxScripture = _extractCtxFromFootnote(p);
+
       var node = { level: level, title: title, content: [], children: [] };
+      if (ctxScripture) node.ctx_scripture = ctxScripture;
 
       // 维护栈：弹出 rank >= 当前的节点
       while (stack.length && stack[stack.length - 1].rank >= rank) stack.pop();
@@ -404,20 +430,41 @@
     var normO = _normalizeTitleForMatch(title);
     if (!normT || !normO) return text;
     var prefixLen = _commonPrefixLen(normT, normO);
-    if (prefixLen < 6) return text; // 重叠太短，不算重复
+    // 公共前缀需足够长才算重复：至少 8 字符，且覆盖标题标准化串 60% 以上
+    // 过低阈值会误截语义不同但共享短前缀的段落（如"初熟的果子是…"）
+    var minPrefixLen = Math.max(8, Math.floor(normO.length * 0.6));
+    if (prefixLen < minPrefixLen) return text; // 重叠太短，不算重复
     if (prefixLen >= normT.length && prefixLen >= normO.length) return ''; // 完全相同
-    // 在原文中找到对应的截断位置，保留后半段
-    var charIdx = 0;
-    var normCount = 0;
-    while (normCount < prefixLen && charIdx < text.length) {
-      var ch = text[charIdx];
-      var normCh = ch.replace(/[（(].*?[)）]/g, '')
-        .replace(/[\u2500\u2014]/g, '')
-        .replace(/[，。；：、（）()\[\]「」\u201c\u201d\u2018\u2019\s\u3000·~0-9]/g, '');
-      if (normCh) normCount++;
-      charIdx++;
+    // 构建原文→标准化串的位置映射：charMap[normIdx] = 该标准化字符在原文中的起始位置
+    // 对原文做与 _normalizeTitleForMatch 相同的标准化，逐字符跟踪位置
+    var charMap = [];
+    var normChars = [];
+    var ti = 0;
+    while (ti < text.length) {
+      var rest = text.substring(ti);
+      // 尝试匹配括号对（非贪婪），匹配成功则跳过整段括号内容
+      var parenMatch = rest.match(/^[（(].*?[)）]/);
+      if (parenMatch) {
+        ti += parenMatch[0].length;
+        continue;
+      }
+      var ch = text[ti];
+      // 跳过与 _normalizeTitleForMatch 相同的字符
+      if (/[\u2500\u2014，。；：、（）()[\]「」\u201c\u201d\u2018\u2019\s\u3000·~0-9]/.test(ch)) {
+        ti++;
+        continue;
+      }
+      charMap.push(ti);
+      normChars.push(ch);
+      ti++;
     }
-    var remainder = text.substring(charIdx).replace(/^[\s\u3000，。；：、]+/, '');
+    // prefixLen 对应的原文截断位置：标准化串前 prefixLen 个字符之后的原文偏移
+    if (prefixLen >= charMap.length) {
+      // 标准化前缀覆盖了整个原文标准化部分，截掉剩余标点
+      return text.substring(ti).replace(/^[\s\u3000，。；：、]+/, '');
+    }
+    var cutPos = charMap[prefixLen];
+    var remainder = text.substring(cutPos).replace(/^[\s\u3000，。；：、]+/, '');
     return remainder;
   }
 

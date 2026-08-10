@@ -4,6 +4,7 @@
 """
 from dataclasses import dataclass, field
 from typing import List, Optional
+import re
 
 
 @dataclass
@@ -170,6 +171,13 @@ class Chapter:
                 'content': content.content,
                 'children': self._sections_to_dict(content.children)
             }
+            # 从 scripture 字段提取首个经文引用键作为 ctx_scripture
+            # 格式如"腓4:23　而在你们心思的灵里得以更新"，取"腓4:23"部分
+            if content.scripture:
+                first_line = content.scripture.split('\n')[0].strip()
+                ref_match = re.match(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启][前后上下壹贰叁参]?\d+:\d+[上中下]?)', first_line)
+                if ref_match:
+                    content_dict['ctx_scripture'] = ref_match.group(1)
             result.append(content_dict)
         return result
 
