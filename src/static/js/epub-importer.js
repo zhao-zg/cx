@@ -393,17 +393,32 @@
     return bestMatch;
   }
 
-  /** 检查正文段落是否与标题重复（完全匹配，避免前缀误删正文）
-   *  Calibre 生成的 EPUB 中，标题段落（calibre_text_abs_dadian 等）
-   *  后紧跟的第一个正文段落（calibre_text_abs）会重复标题文本，
-   *  但内容完全相同才应去重；前缀相同但正文更长的段落不应被误删。
+  /** 截掉正文段落中与标题重复的前缀，返回剩余内容
+   *  Calibre 生成的 EPUB 中，标题段落后的首段正文常以标题文本开头再展开，
+   *  例如标题 "我们是基督的门徒" → 正文 "我们是基督的门徒，就是跟从基督…"
+   *  截掉重复前缀后保留 "，就是跟从基督…"，避免读者看到连续重复内容。
+   *  若正文与标题完全相同则返回空串，若无重复前缀则返回原文。
    */
-  function _isTitleDuplicate(text, title) {
+  function _stripTitlePrefix(text, title) {
     var normT = _normalizeTitleForMatch(text);
     var normO = _normalizeTitleForMatch(title);
-    if (!normT || !normO) return false;
-    // 标准化后完全相同才视为重复
-    return normT === normO;
+    if (!normT || !normO) return text;
+    var prefixLen = _commonPrefixLen(normT, normO);
+    if (prefixLen < 6) return text; // 重叠太短，不算重复
+    if (prefixLen >= normT.length && prefixLen >= normO.length) return ''; // 完全相同
+    // 在原文中找到对应的截断位置，保留后半段
+    var charIdx = 0;
+    var normCount = 0;
+    while (normCount < prefixLen && charIdx < text.length) {
+      var ch = text[charIdx];
+      var normCh = ch.replace(/[（(].*?[)）]/g, '')
+        .replace(/[\u2500\u2014]/g, '')
+        .replace(/[，。；：、（）()\[\]「」\u201c\u201d\u2018\u2019\s\u3000·~0-9]/g, '');
+      if (normCh) normCount++;
+      charIdx++;
+    }
+    var remainder = text.substring(charIdx).replace(/^[\s\u3000，。；：、]+/, '');
+    return remainder;
   }
 
   /** 将文本追加到当前节点或引言内容 */
@@ -449,9 +464,6 @@
 
     // 标记刚创建的新节点 rank，用于过滤与标题重复的首段
     var justCreatedRank = 0;
-
-    // 追踪首个匹配之前是否出现过未匹配的大点（决定引言归属）
-    var hasUnmatchedDadian = false;
     var firstMatchFound = false;
 
     var allP = body.querySelectorAll('p, h2');
@@ -502,46 +514,34 @@
           }
         }
 
-        // 2. 在纲目中匹配标题
+        // 2. 在纲目中匹配标题，确定 level 和 title
         var parentOutlineChildren = outlineChildrenStack[rank - 1];
         var matched = _matchTranscriptToOutline(cleanTitle, parentOutlineChildren);
-        var newNode;
+        if (matched) firstMatchFound = true;
 
-        if (matched) {
-          // 匹配纲目 → 创建节点，标题用纲目标题，level 用纲目的 level
-          firstMatchFound = true;
-          var outlineTitle = matched.title || cleanTitle;
-          newNode = {
-            level: matched.level || levelPrefix,
-            title: outlineTitle.replace(/\u2500/g, '\u2014'),
-            content: [], children: []
-          };
-          justCreatedRank = rank;
-        } else {
-          // 未匹配纲目的层级标题 → 仍创建节点（与 Python parse_listen_doc 一致）
-          // 保留原始文本作为标题，level 用提取到的前缀
-          newNode = {
-            level: levelPrefix, title: cleanTitle,
-            content: [], children: []
-          };
-          justCreatedRank = rank;
-        }
+        var nodeLevel = matched ? (matched.level || levelPrefix) : levelPrefix;
+        var nodeTitle = matched
+          ? (matched.title || cleanTitle).replace(/\u2500/g, '\u2014')
+          : cleanTitle;
 
-        // 重置更深层级
+        // 3. 创建节点
+        var newNode = {
+          level: nodeLevel, title: nodeTitle,
+          content: [], children: []
+        };
+        justCreatedRank = rank;
+
+        // 4. 重置更深层级
         for (var j = rank; j < 4; j++) {
           currentNodes[j] = null;
           outlineChildrenStack[j + 1] = [];
         }
 
-        // 设置当前层级节点
+        // 5. 设置当前层级节点
         currentNodes[rank - 1] = newNode;
-        if (matched) {
-          outlineChildrenStack[rank] = matched.children || [];
-        } else {
-          outlineChildrenStack[rank] = [];
-        }
+        outlineChildrenStack[rank] = matched ? (matched.children || []) : [];
 
-        // 添加到父节点或顶级列表
+        // 6. 添加到父节点或顶级列表
         if (rank === 1) {
           detailSections.push(newNode);
         } else if (currentNodes[rank - 2]) {
@@ -552,14 +552,17 @@
 
       // ── 正文段落（所有非层级标题的段落） ──
       } else {
-        // 过滤与刚创建节点标题重复的首段
+        // 截掉首段正文中与标题重复的前缀，避免连续重复
         if (justCreatedRank > 0) {
           var target = currentNodes[3] || currentNodes[2] || currentNodes[1] || currentNodes[0];
-          if (target && _isTitleDuplicate(text, target.title)) {
+          if (target) {
+            var stripped = _stripTitlePrefix(text, target.title);
             justCreatedRank = 0;
-            continue;
+            if (!stripped) continue; // 完全相同，跳过
+            text = stripped;
+          } else {
+            justCreatedRank = 0;
           }
-          justCreatedRank = 0;
         }
 
         var _tgt = currentNodes[3] || currentNodes[2] || currentNodes[1] || currentNodes[0];
@@ -567,16 +570,14 @@
       }
     }
 
-    // 引言内容归属：
-    // - 有未匹配大点 → 创建 Section 0（引言模式）
-    // - 无未匹配大点 → 放入 messageContent
+    // 引言内容归属：有 detailSections 时放入 messageContent，否则创建引言 Section
     if (introContent.length) {
-      if (hasUnmatchedDadian || !detailSections.length) {
+      if (detailSections.length) {
+        messageContent = introContent;
+      } else {
         detailSections.unshift({
           level: '', title: '', content: introContent, children: []
         });
-      } else {
-        messageContent = introContent;
       }
     }
 
