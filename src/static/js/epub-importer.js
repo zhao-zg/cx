@@ -235,19 +235,63 @@
    * 脚注格式：<p class="calibre_verse"><b>弗4:23</b>　经文内容</p>
    * 返回第一个引用的阿拉伯格式（如 "弗4:23"），用于渲染时为该节点设定初始上下文。
    */
+  // 中文书卷全名 → 简称映射（与 ref-detector.js 的 FULL_BOOK_MAP 一致）
+  var _FULL_BOOK_MAP = {
+    '创世记':'创','出埃及记':'出','利未记':'利','民数记':'民','申命记':'申',
+    '约书亚记':'书','士师记':'士','路得记':'得',
+    '撒母耳记上':'撒上','撒母耳记下':'撒下',
+    '列王纪上':'王上','列王纪下':'王下',
+    '历代志上':'代上','历代志下':'代下',
+    '以斯拉记':'拉','尼希米记':'尼','以斯帖记':'斯',
+    '约伯记':'伯','诗篇':'诗','箴言':'箴','传道书':'传','雅歌':'歌',
+    '以赛亚书':'赛','耶利米书':'耶','耶利米哀歌':'哀',
+    '以西结书':'结','但以理书':'但',
+    '何西阿书':'何','约珥书':'珥','阿摩司书':'摩','俄巴底亚书':'俄',
+    '约拿书':'拿','弥迦书':'弥','那鸿书':'鸿','哈巴谷书':'哈',
+    '西番雅书':'番','哈该书':'该','撒迦利亚书':'亚','玛拉基书':'玛',
+    '马太福音':'太','马可福音':'可','路加福音':'路','约翰福音':'约',
+    '使徒行传':'徒','罗马书':'罗',
+    '哥林多前书':'林前','哥林多后书':'林后',
+    '加拉太书':'加','以弗所书':'弗','腓立比书':'腓','歌罗西书':'西',
+    '帖撒罗尼迦前书':'帖前','帖撒罗尼迦后书':'帖后',
+    '提摩太前书':'提前','提摩太后书':'提后',
+    '腓利门书':'门','希伯来书':'来','雅各书':'雅',
+    '彼得前书':'彼前','彼得后书':'彼后',
+    '约翰壹书':'约壹','约翰贰书':'约贰','约翰叁书':'约叁',
+    '犹大书':'犹','启示录':'启','提多书':'多'
+  };
+  // 按长度降序排列，确保长名优先匹配（如"撒母耳记上"优先于"撒"）
+  var _sortedFullNames = Object.keys(_FULL_BOOK_MAP).sort(function(a, b) { return b.length - a.length; });
+
   function _extractCtxFromFootnote(pEl) {
-    // 查找紧跟当前 <p> 的兄弟 <aside> 元素
+    // 优先：查找紧跟当前 <p> 的兄弟 <aside> 元素中的经文引用
     var sibling = pEl.nextElementSibling;
-    if (!sibling) return '';
-    var tag = (sibling.tagName || '').toLowerCase();
-    if (tag !== 'aside') return '';
-    // 从 aside 中提取第一个 calibre_verse 的 <b> 标签内容
-    var firstVerse = sibling.querySelector('.calibre_verse b');
-    if (!firstVerse) return '';
-    var ref = (firstVerse.textContent || '').trim();
-    // 验证格式：应形如 "弗4:23" 或 "太5:1"
-    if (/^[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启][前后上下壹贰叁参]?\d+:\d+/.test(ref)) {
-      return ref;
+    if (sibling) {
+      var tag = (sibling.tagName || '').toLowerCase();
+      if (tag === 'aside') {
+        var firstVerse = sibling.querySelector('.calibre_verse b');
+        if (firstVerse) {
+          var ref = (firstVerse.textContent || '').trim();
+          if (/^[创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启][前后上下壹贰叁参]?\d+:\d+/.test(ref)) {
+            return ref;
+          }
+        }
+      }
+    }
+    // 回退：从标题文本中提取中文书卷全名（后不接章节号），生成"简称0:0"格式的 ctx_scripture
+    // 例如「…在雅歌中也提到：」→ "歌0:0"，让渲染时子节点的"一7上"能正确回溯到雅歌
+    var text = (pEl.textContent || '').trim();
+    for (var i = 0; i < _sortedFullNames.length; i++) {
+      var name = _sortedFullNames[i];
+      var idx = text.indexOf(name);
+      if (idx >= 0) {
+        var after = idx + name.length;
+        var nextChar = after < text.length ? text[after] : '';
+        // 后不接章节号相关字符（否则是标准引用，不应走此回退路径）
+        if (!/[一二三四五六七八九十百\d章篇]/.test(nextChar)) {
+          return _FULL_BOOK_MAP[name] + '0:0';
+        }
+      }
     }
     return '';
   }

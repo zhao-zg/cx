@@ -178,8 +178,60 @@ class Chapter:
                 ref_match = re.match(r'^([创出利民申书士得撒王代拉尼斯伯诗箴传歌赛耶哀结但何珥摩俄拿弥鸿哈番该亚玛太可路约徒罗林加弗腓西帖提门多来雅彼犹启][前后上下壹贰叁参]?\d+:\d+[上中下]?)', first_line)
                 if ref_match:
                     content_dict['ctx_scripture'] = ref_match.group(1)
+            # 回退：从标题文本中提取中文书卷全名（后不接章节号）作为 ctx_scripture
+            # 例如「…在雅歌中也提到：」→ "歌0:0"
+            if 'ctx_scripture' not in content_dict and content.title:
+                book = self._extract_book_from_title(content.title)
+                if book:
+                    content_dict['ctx_scripture'] = book + '0:0'
             result.append(content_dict)
         return result
+
+    # 中文书卷全名 → 简称映射（与 ref-detector.js 的 FULL_BOOK_MAP / epub-importer.js 的 _FULL_BOOK_MAP 一致）
+    _FULL_BOOK_MAP = {
+        '创世记': '创', '出埃及记': '出', '利未记': '利', '民数记': '民', '申命记': '申',
+        '约书亚记': '书', '士师记': '士', '路得记': '得',
+        '撒母耳记上': '撒上', '撒母耳记下': '撒下',
+        '列王纪上': '王上', '列王纪下': '王下',
+        '历代志上': '代上', '历代志下': '代下',
+        '以斯拉记': '拉', '尼希米记': '尼', '以斯帖记': '斯',
+        '约伯记': '伯', '诗篇': '诗', '箴言': '箴', '传道书': '传', '雅歌': '歌',
+        '以赛亚书': '赛', '耶利米书': '耶', '耶利米哀歌': '哀',
+        '以西结书': '结', '但以理书': '但',
+        '何西阿书': '何', '约珥书': '珥', '阿摩司书': '摩', '俄巴底亚书': '俄',
+        '约拿书': '拿', '弥迦书': '弥', '那鸿书': '鸿', '哈巴谷书': '哈',
+        '西番雅书': '番', '哈该书': '该', '撒迦利亚书': '亚', '玛拉基书': '玛',
+        '马太福音': '太', '马可福音': '可', '路加福音': '路', '约翰福音': '约',
+        '使徒行传': '徒', '罗马书': '罗',
+        '哥林多前书': '林前', '哥林多后书': '林后',
+        '加拉太书': '加', '以弗所书': '弗', '腓立比书': '腓', '歌罗西书': '西',
+        '帖撒罗尼迦前书': '帖前', '帖撒罗尼迦后书': '帖后',
+        '提摩太前书': '提前', '提摩太后书': '提后',
+        '腓利门书': '门', '希伯来书': '来', '雅各书': '雅',
+        '彼得前书': '彼前', '彼得后书': '彼后',
+        '约翰壹书': '约壹', '约翰贰书': '约贰', '约翰叁书': '约叁',
+        '犹大书': '犹', '启示录': '启', '提多书': '多',
+    }
+    # 按长度降序排列，确保长名优先匹配
+    _SORTED_FULL_NAMES = sorted(_FULL_BOOK_MAP.keys(), key=lambda x: len(x), reverse=True)
+
+    @staticmethod
+    def _extract_book_from_title(title):
+        """从标题文本中提取中文书卷全名（后不接章节号），返回简称。
+        例如「…在雅歌中也提到：」→ "歌"
+        与 JS 端 epub-importer.js 的 _extractCtxFromFootnote 回退逻辑一致。
+        """
+        if not title:
+            return ''
+        for name in Chapter._SORTED_FULL_NAMES:
+            idx = title.find(name)
+            if idx >= 0:
+                after = idx + len(name)
+                next_char = title[after] if after < len(title) else ''
+                # 后不接章节号相关字符（否则是标准引用，不应走此回退路径）
+                if not re.match(r'[一二三四五六七八九十百\d章篇]', next_char):
+                    return Chapter._FULL_BOOK_MAP[name]
+        return ''
 
     @staticmethod
     def _extract_ref_keys(scripture_text):

@@ -505,6 +505,9 @@
             if (fm.ctxBook !== book) ch = 0;
             book = fm.ctxBook;
           }
+          // 输出不可见的 ctx-book span，让 scanCtx 能检测到书卷上下文变化
+          // 例如「雅歌」→ <span class="ctx-book" data-refs="歌0:0" style="display:none"></span>
+          result.push('<span class="ctx-book" data-refs="' + escHtml(fm.ctxBook) + '0:0" style="display:none"></span>');
           result.push(escHtml(fm.text));
           continue;
         }
@@ -653,13 +656,23 @@
   function scanCtx(text, ctxStr) {
     if (!text) return ctxStr || '';
     var html = wrapRefs(text, ctxStr);
-    var re = /data-refs="([^"]+)"/g, m, lastRefs = null;
-    while ((m = re.exec(html)) !== null) lastRefs = m[1];
-    if (!lastRefs) return ctxStr || '';
-    var refs = lastRefs.split(',');
-    var lr = refs[refs.length - 1].trim().replace(/[上中下]$/, '');
-    var cm = lr.match(/^([^\d:]+)(\d+):(\d+)/);
-    return cm ? (cm[1] + cm[2] + ':' + cm[3]) : (ctxStr || '');
+    // 收集所有 data-refs，优先取章号>0 的最后一个（精确引用），回退到章号=0 的（裸书名 ctx-book）
+    var re = /data-refs="([^"]+)"/g, m;
+    var bestNonZero = null, bestZero = null;
+    while ((m = re.exec(html)) !== null) {
+      var refs = m[1].split(',');
+      var lr = refs[refs.length - 1].trim().replace(/[上中下]$/, '');
+      var cm = lr.match(/^([^\d:]+)(\d+):(\d+)/);
+      if (cm) {
+        var entry = cm[1] + cm[2] + ':' + cm[3];
+        if (parseInt(cm[2], 10) > 0) {
+          bestNonZero = entry;
+        } else {
+          bestZero = entry;
+        }
+      }
+    }
+    return bestNonZero || bestZero || ctxStr || '';
   }
 
   win.CXRef = { wrapRefs: wrapRefs, escHtml: escHtml, expandCnRefs: expandCnRefs, cnToInt: cnToInt, scanCtx: scanCtx };
