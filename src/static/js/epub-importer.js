@@ -324,26 +324,132 @@
     return roots;
   }
 
+  // ── 听抄纲目匹配辅助函数 ──────────────────────────────────────────────
+
+  /** 标准化标题用于匹配：去除括号内容、经文引用、标点、空白 */
+  function _normalizeTitleForMatch(title) {
+    if (!title) return '';
+    var t = title.replace(/[（(].*?[)）]/g, ''); // 去括号及内容
+    t = t.replace(/\u2500/g, '').replace(/\u2014/g, ''); // 去 dash
+    t = t.replace(/[，。；：、（）()\[\]「」\u201c\u201d\u2018\u2019\s\u3000·~0-9]/g, '');
+    return t;
+  }
+
+  /** 计算两个字符串的公共前缀长度 */
+  function _commonPrefixLen(a, b) {
+    var n = Math.min(a.length, b.length);
+    for (var i = 0; i < n; i++) {
+      if (a[i] !== b[i]) return i;
+    }
+    return n;
+  }
+
+  /** 在纲目节点列表中找到与听抄标题最佳匹配的节点 */
+  function _matchTranscriptToOutline(transcriptTitle, outlineNodes, minMatch) {
+    minMatch = minMatch || 6;
+    if (!transcriptTitle || !outlineNodes || !outlineNodes.length) return null;
+    var normT = _normalizeTitleForMatch(transcriptTitle);
+    if (normT.length < minMatch) return null;
+    var bestMatch = null;
+    var bestLen = 0;
+    for (var i = 0; i < outlineNodes.length; i++) {
+      var node = outlineNodes[i];
+      var normO = _normalizeTitleForMatch(node.title);
+      if (normO.length < minMatch) continue;
+
+      // 1. 直接前缀匹配
+      var matchLen = _commonPrefixLen(normT, normO);
+      if (matchLen >= minMatch && matchLen > bestLen) {
+        bestMatch = node;
+        bestLen = matchLen;
+      }
+
+      // 2. 偏移前缀匹配：在 outline 中查找 transcript 起始位置
+      if (normT.length >= minMatch && normO.length > normT.length) {
+        var searchStr = normT.substring(0, minMatch);
+        var pos = normO.indexOf(searchStr);
+        if (pos > 0) {
+          var offLen = _commonPrefixLen(normT, normO.substring(pos));
+          if (offLen >= minMatch && offLen > bestLen) {
+            bestMatch = node;
+            bestLen = offLen;
+          }
+        }
+      }
+
+      // 3. 反向偏移匹配：在 transcript 中查找 outline 起始位置
+      if (normO.length >= minMatch) {
+        var searchStrO = normO.substring(0, minMatch);
+        var posT = normT.indexOf(searchStrO);
+        if (posT > 0) {
+          var offLen2 = _commonPrefixLen(normO, normT.substring(posT));
+          if (offLen2 >= minMatch && offLen2 > bestLen) {
+            bestMatch = node;
+            bestLen = offLen2;
+          }
+        }
+      }
+    }
+    return bestMatch;
+  }
+
+  /** 检查正文段落是否与标题重复 */
+  function _isTitleDuplicate(text, title) {
+    var normT = _normalizeTitleForMatch(text);
+    var normO = _normalizeTitleForMatch(title);
+    var minMatch = 12;
+    if (normT.length < minMatch || normO.length < minMatch) return false;
+    var matchLen = Math.min(normT.length, normO.length, 20);
+    return normT.substring(0, matchLen) === normO.substring(0, matchLen);
+  }
+
+  /** 将文本追加到当前节点或引言内容 */
+  function _appendToCurrent(node, introContent, text) {
+    if (node) {
+      node.content.push(text);
+    } else {
+      introContent.push(text);
+    }
+  }
+
   // ── 听抄解析 ─────────────────────────────────────────────────────────────
 
   /**
    * 解析 _ts.htm 页面中的听抄内容。
-   * CSS 类名映射：
-   *   calibre_text_abs_dadian    → 大点标题（壹）
-   *   calibre_text_abs_zhongdian → 中点标题（一）
-   *   calibre_text_abs_xiaodian  → 小点标题（1）
-   *   calibre_text_abs           → 听抄正文段落
+   * 使用 CSS 类名确定 4 级嵌套（dadian/zhongdian/xiaodian/zimudian），
+   * 通过纲目匹配获取级别号和完整标题。
    *
-   * 返回 { detailSections, messageContent, ministryExcerpt }
+   * CSS 类名映射：
+   *   calibre_text_abs_dadian     → 大点（壹）
+   *   calibre_text_abs_zhongdian  → 中点（一）
+   *   calibre_text_abs_xiaodian   → 小点（1）
+   *   calibre_text_abs_zimudian   → 子目点（a）(暂未出现)
+   *   calibre_text_abs            → 听抄正文段落
+   *
+   * @param {Document} doc - 解析后的 HTML 文档
+   * @param {Array} [outlineSections] - 纲目层级节点（用于匹配标题获取 level）
+   * @returns {{ detailSections, messageContent, ministryExcerpt }}
    */
-  function parseTranscriptFromHtml(doc) {
+  function parseTranscriptFromHtml(doc, outlineSections) {
     var body = doc.querySelector('body');
     if (!body) return { detailSections: [], messageContent: [], ministryExcerpt: '' };
 
     var detailSections = [];
     var messageContent = [];
-    var currentNode = null;
-    var stack = []; // [{rank, node}]
+    var introContent = []; // 第一个匹配纲目之前的内容
+
+    // 4 级嵌套状态
+    var currentNodes = [null, null, null, null]; // [section, child, grandchild, great_grandchild]
+
+    // 各级对应的纲目子节点列表（5 个元素：索引 0-4，rank 4 的子节点存放在索引 4）
+    var outlineChildrenStack = [outlineSections || [], [], [], [], []];
+
+    // 标记刚创建的新节点 rank，用于过滤与标题重复的首段
+    var justCreatedRank = 0;
+
+    // 追踪首个匹配之前是否出现过未匹配的大点（决定引言归属）
+    var hasUnmatchedDadian = false;
+    var firstMatchFound = false;
 
     var allP = body.querySelectorAll('p, h2');
     for (var i = 0; i < allP.length; i++) {
@@ -352,67 +458,138 @@
       var text = pText(p);
       if (!text) continue;
 
-      // 跳过标题行和读经行
+      // 跳过标题行、读经行、脚注
       if (cls === 'calibre_zongti' || cls === 'calibre_content_title' ||
-          cls === 'calibre_text_verse') continue;
+          cls === 'calibre_text_verse' || cls === 'calibre_verse' ||
+          cls === 'calibre_text_abs_shuoming') continue;
 
+      // CSS 类名 → 层级 rank
       var rank = 0;
-      var level = '';
-      var title = '';
+      if (cls === 'calibre_text_abs_dadian') rank = 1;
+      else if (cls === 'calibre_text_abs_zhongdian') rank = 2;
+      else if (cls === 'calibre_text_abs_xiaodian') rank = 3;
+      else if (cls === 'calibre_text_abs_zimudian') rank = 4;
 
-      if (cls === 'calibre_text_abs_dadian') {
-        rank = 1;
-        if (text.length > 1 && LEVEL1_CHARS.indexOf(text[0]) >= 0) {
-          level = text[0];
-          title = text.slice(1).replace(/^[\s\u3000]+/, '');
-        } else {
-          level = '';
-          title = text;
+      // ── 层级标题 ──
+      if (rank > 0) {
+        // 1. 剥离级别号前缀
+        var levelPrefix = '';
+        var cleanTitle = text;
+        if (text.length > 1 && rank <= 2) {
+          var chars = rank === 1 ? LEVEL1_CHARS : LEVEL2_CHARS;
+          if (chars.indexOf(text[0]) >= 0) {
+            levelPrefix = text[0];
+            cleanTitle = text.slice(1).replace(/^[\s\u3000]+/, '');
+          }
         }
-      } else if (cls === 'calibre_text_abs_zhongdian') {
-        rank = 2;
-        if (text.length > 1 && LEVEL2_CHARS.indexOf(text[0]) >= 0) {
-          level = text[0];
-          title = text.slice(1).replace(/^[\s\u3000]+/, '');
-        } else {
-          level = '';
-          title = text;
+        if (!levelPrefix && rank === 3) {
+          var m3 = text.match(/^(\d+)[.。\s\u3000]+(.*)/);
+          if (m3) { levelPrefix = m3[1]; cleanTitle = m3[2]; }
+          else {
+            var mLetter = text.match(/^([a-z])[.\s\u3000]+(.*)/);
+            if (mLetter) { levelPrefix = mLetter[1]; cleanTitle = mLetter[2]; }
+          }
         }
-      } else if (cls === 'calibre_text_abs_xiaodian') {
-        rank = 3;
-        var m3 = text.match(/^(\d+)[.。\s\u3000]+(.*)/);
-        if (m3) {
-          level = m3[1];
-          title = m3[2];
-        } else {
-          level = '';
-          title = text;
+        if (!levelPrefix && rank === 4) {
+          var m4 = text.match(/^([a-z])[.\s\u3000]+(.*)/);
+          if (m4) { levelPrefix = m4[1]; cleanTitle = m4[2]; }
+          else {
+            var m4d = text.match(/^(\d+)[.。\s\u3000]+(.*)/);
+            if (m4d) { levelPrefix = m4d[1]; cleanTitle = m4d[2]; }
+          }
         }
+
+        // 2. 在纲目中匹配标题
+        var parentOutlineChildren = outlineChildrenStack[rank - 1];
+        var matched = _matchTranscriptToOutline(cleanTitle, parentOutlineChildren);
+        var newNode;
+
+        if (matched) {
+          // 匹配纲目 → 创建节点，标题用纲目标题，level 用纲目的 level
+          firstMatchFound = true;
+          var outlineTitle = matched.title || cleanTitle;
+          newNode = {
+            level: matched.level || levelPrefix,
+            title: outlineTitle.replace(/\u2500/g, '\u2014'),
+            content: [], children: []
+          };
+          justCreatedRank = rank;
+        } else if (rank === 1) {
+          // 未匹配纲目的大点 → 视为引言标题，文本保留在 content 中
+          if (!firstMatchFound) hasUnmatchedDadian = true;
+          var _target = currentNodes[3] || currentNodes[2] || currentNodes[1] || currentNodes[0];
+          _appendToCurrent(_target, introContent, text);
+          justCreatedRank = 0;
+          continue;
+        } else if (currentNodes[rank - 2]) {
+          // 有父节点但未匹配纲目 → 用原始文本创建子节点
+          newNode = {
+            level: levelPrefix, title: cleanTitle,
+            content: [], children: []
+          };
+          justCreatedRank = rank;
+        } else {
+          // 无父节点且未匹配 → 保留文本在 content 中
+          var _target2 = currentNodes[3] || currentNodes[2] || currentNodes[1] || currentNodes[0];
+          _appendToCurrent(_target2, introContent, text);
+          justCreatedRank = 0;
+          continue;
+        }
+
+        // 重置更深层级
+        for (var j = rank; j < 4; j++) {
+          currentNodes[j] = null;
+          outlineChildrenStack[j + 1] = [];
+        }
+
+        // 设置当前层级节点
+        currentNodes[rank - 1] = newNode;
+        if (matched) {
+          outlineChildrenStack[rank] = matched.children || [];
+        } else {
+          outlineChildrenStack[rank] = [];
+        }
+
+        // 添加到父节点或顶级列表
+        if (rank === 1) {
+          detailSections.push(newNode);
+        } else if (currentNodes[rank - 2]) {
+          currentNodes[rank - 2].children.push(newNode);
+        } else {
+          detailSections.push(newNode);
+        }
+
+      // ── 正文段落 ──
       } else if (cls === 'calibre_text_abs') {
-        // 听抄正文
-        if (currentNode) {
-          currentNode.content.push(text);
-        } else {
-          messageContent.push(text);
+        // 过滤与刚创建节点标题重复的首段
+        if (justCreatedRank > 0) {
+          var target = currentNodes[3] || currentNodes[2] || currentNodes[1] || currentNodes[0];
+          if (target && _isTitleDuplicate(text, target.title)) {
+            justCreatedRank = 0;
+            continue;
+          }
+          justCreatedRank = 0;
         }
-        continue;
+
+        var _tgt = currentNodes[3] || currentNodes[2] || currentNodes[1] || currentNodes[0];
+        _appendToCurrent(_tgt, introContent, text);
+
       } else {
         continue;
       }
+    }
 
-      // 剥离 ─引用经文 标记
-      title = title.replace(/\u2500引用经文$/, '');
-
-      // 维护栈：弹出 rank >= 当前的节点，构建层级嵌套
-      while (stack.length && stack[stack.length - 1].rank >= rank) stack.pop();
-      var node = { level: level, title: title, content: [], children: [] };
-      if (stack.length) {
-        stack[stack.length - 1].node.children.push(node);
+    // 引言内容归属：
+    // - 有未匹配大点 → 创建 Section 0（引言模式）
+    // - 无未匹配大点 → 放入 messageContent
+    if (introContent.length) {
+      if (hasUnmatchedDadian || !detailSections.length) {
+        detailSections.unshift({
+          level: '', title: '', content: introContent, children: []
+        });
       } else {
-        detailSections.push(node);
+        messageContent = introContent;
       }
-      stack.push({ rank: rank, node: node });
-      currentNode = node;
     }
 
     // 若无结构化段落，将所有正文作为单一节点
@@ -875,15 +1052,6 @@
       });
     }
 
-    // 听抄
-    var transcriptPromise = Promise.resolve({ detailSections: [], messageContent: [], ministryExcerpt: '' });
-    if (links.ts) {
-      transcriptPromise = zipReadText(zip, opfDir + links.ts).then(function (html) {
-        if (!html) return { detailSections: [], messageContent: [], ministryExcerpt: '' };
-        return parseTranscriptFromHtml(parseHtmlDoc(html));
-      });
-    }
-
     // 晨兴：6 天
     var mrPromise = Promise.resolve([]);
     var dayCns = ['一','二','三','四','五','六'];
@@ -924,8 +1092,18 @@
     });
 
     return outlinePromise.then(function (outlineSections) {
+      // 听抄需要 outlineSections 来做纲目匹配，所以在这里初始化
+      var transcriptResolved;
+      if (links.ts) {
+        transcriptResolved = zipReadText(zip, opfDir + links.ts).then(function (html) {
+          if (!html) return { detailSections: [], messageContent: [], ministryExcerpt: '' };
+          return parseTranscriptFromHtml(parseHtmlDoc(html), outlineSections);
+        });
+      } else {
+        transcriptResolved = Promise.resolve({ detailSections: [], messageContent: [], ministryExcerpt: '' });
+      }
       return scripturePromise.then(function (scripture) {
-        return transcriptPromise.then(function (transcript) {
+        return transcriptResolved.then(function (transcript) {
           return mrPromise.then(function (morningRevivals) {
             return hymnPromise.then(function (hymnInfo) {
               // 若无听抄 detailSections，则用 outlineSections 作为 detail
