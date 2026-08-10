@@ -256,7 +256,8 @@
           cls === 'calibre_text_chenxing_content_wn' || cls === 'calibre_text_gangmu_wn' ||
           cls === 'calibre_text_hymns' || cls === 'calibre_index_chapter' ||
           cls === 'calibre_index_title1' || cls === 'calibre_text_abs' ||
-          cls === 'calibre_text_abs_dadian' || cls === 'calibre_e_text_dadian' ||
+          cls === 'calibre_text_abs_dadian' || cls === 'calibre_text_abs_zhongdian' ||
+          cls === 'calibre_text_abs_xiaodian' || cls === 'calibre_e_text_dadian' ||
           cls === 'calibre_e_text_zhongdian' || cls === 'calibre_e_text_xiaodian') {
         continue; // 跳过非大纲段落
       }
@@ -328,8 +329,10 @@
   /**
    * 解析 _ts.htm 页面中的听抄内容。
    * CSS 类名映射：
-   *   calibre_text_abs_dadian → 听抄段落标题
-   *   calibre_text_abs        → 听抄正文段落
+   *   calibre_text_abs_dadian    → 大点标题（壹）
+   *   calibre_text_abs_zhongdian → 中点标题（一）
+   *   calibre_text_abs_xiaodian  → 小点标题（1）
+   *   calibre_text_abs           → 听抄正文段落
    *
    * 返回 { detailSections, messageContent, ministryExcerpt }
    */
@@ -340,6 +343,7 @@
     var detailSections = [];
     var messageContent = [];
     var currentNode = null;
+    var stack = []; // [{rank, node}]
 
     var allP = body.querySelectorAll('p, h2');
     for (var i = 0; i < allP.length; i++) {
@@ -352,10 +356,38 @@
       if (cls === 'calibre_zongti' || cls === 'calibre_content_title' ||
           cls === 'calibre_text_verse') continue;
 
+      var rank = 0;
+      var level = '';
+      var title = '';
+
       if (cls === 'calibre_text_abs_dadian') {
-        // 听抄段落标题 → 新建 Content 节点
-        currentNode = { level: '', title: text, content: [], children: [] };
-        detailSections.push(currentNode);
+        rank = 1;
+        if (text.length > 1 && LEVEL1_CHARS.indexOf(text[0]) >= 0) {
+          level = text[0];
+          title = text.slice(1).replace(/^[\s\u3000]+/, '');
+        } else {
+          level = '';
+          title = text;
+        }
+      } else if (cls === 'calibre_text_abs_zhongdian') {
+        rank = 2;
+        if (text.length > 1 && LEVEL2_CHARS.indexOf(text[0]) >= 0) {
+          level = text[0];
+          title = text.slice(1).replace(/^[\s\u3000]+/, '');
+        } else {
+          level = '';
+          title = text;
+        }
+      } else if (cls === 'calibre_text_abs_xiaodian') {
+        rank = 3;
+        var m3 = text.match(/^(\d+)[.。\s\u3000]+(.*)/);
+        if (m3) {
+          level = m3[1];
+          title = m3[2];
+        } else {
+          level = '';
+          title = text;
+        }
       } else if (cls === 'calibre_text_abs') {
         // 听抄正文
         if (currentNode) {
@@ -363,7 +395,24 @@
         } else {
           messageContent.push(text);
         }
+        continue;
+      } else {
+        continue;
       }
+
+      // 剥离 ─引用经文 标记
+      title = title.replace(/\u2500引用经文$/, '');
+
+      // 维护栈：弹出 rank >= 当前的节点，构建层级嵌套
+      while (stack.length && stack[stack.length - 1].rank >= rank) stack.pop();
+      var node = { level: level, title: title, content: [], children: [] };
+      if (stack.length) {
+        stack[stack.length - 1].node.children.push(node);
+      } else {
+        detailSections.push(node);
+      }
+      stack.push({ rank: rank, node: node });
+      currentNode = node;
     }
 
     // 若无结构化段落，将所有正文作为单一节点
@@ -463,7 +512,8 @@
             cls === 'calibre_text_chenxing_content_wn' || cls === 'calibre_text_gangmu_wn' ||
             cls === 'calibre_text_hymns' || cls === 'calibre_index_chapter' ||
             cls === 'calibre_index_title1' || cls === 'calibre_text_abs' ||
-            cls === 'calibre_text_abs_dadian' || cls === 'calibre_e_text_dadian' ||
+            cls === 'calibre_text_abs_dadian' || cls === 'calibre_text_abs_zhongdian' ||
+            cls === 'calibre_text_abs_xiaodian' || cls === 'calibre_e_text_dadian' ||
             cls === 'calibre_e_text_zhongdian' || cls === 'calibre_e_text_xiaodian') {
           continue;
         }
