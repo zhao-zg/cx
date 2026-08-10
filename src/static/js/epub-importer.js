@@ -393,14 +393,17 @@
     return bestMatch;
   }
 
-  /** 检查正文段落是否与标题重复 */
+  /** 检查正文段落是否与标题重复（完全匹配，避免前缀误删正文）
+   *  Calibre 生成的 EPUB 中，标题段落（calibre_text_abs_dadian 等）
+   *  后紧跟的第一个正文段落（calibre_text_abs）会重复标题文本，
+   *  但内容完全相同才应去重；前缀相同但正文更长的段落不应被误删。
+   */
   function _isTitleDuplicate(text, title) {
     var normT = _normalizeTitleForMatch(text);
     var normO = _normalizeTitleForMatch(title);
-    var minMatch = 12;
-    if (normT.length < minMatch || normO.length < minMatch) return false;
-    var matchLen = Math.min(normT.length, normO.length, 20);
-    return normT.substring(0, matchLen) === normO.substring(0, matchLen);
+    if (!normT || !normO) return false;
+    // 标准化后完全相同才视为重复
+    return normT === normO;
   }
 
   /** 将文本追加到当前节点或引言内容 */
@@ -514,26 +517,14 @@
             content: [], children: []
           };
           justCreatedRank = rank;
-        } else if (rank === 1) {
-          // 未匹配纲目的大点 → 视为引言标题，文本保留在 content 中
-          if (!firstMatchFound) hasUnmatchedDadian = true;
-          var _target = currentNodes[3] || currentNodes[2] || currentNodes[1] || currentNodes[0];
-          _appendToCurrent(_target, introContent, text);
-          justCreatedRank = 0;
-          continue;
-        } else if (currentNodes[rank - 2]) {
-          // 有父节点但未匹配纲目 → 用原始文本创建子节点
+        } else {
+          // 未匹配纲目的层级标题 → 仍创建节点（与 Python parse_listen_doc 一致）
+          // 保留原始文本作为标题，level 用提取到的前缀
           newNode = {
             level: levelPrefix, title: cleanTitle,
             content: [], children: []
           };
           justCreatedRank = rank;
-        } else {
-          // 无父节点且未匹配 → 保留文本在 content 中
-          var _target2 = currentNodes[3] || currentNodes[2] || currentNodes[1] || currentNodes[0];
-          _appendToCurrent(_target2, introContent, text);
-          justCreatedRank = 0;
-          continue;
         }
 
         // 重置更深层级
@@ -559,8 +550,8 @@
           detailSections.push(newNode);
         }
 
-      // ── 正文段落 ──
-      } else if (cls === 'calibre_text_abs') {
+      // ── 正文段落（所有非层级标题的段落） ──
+      } else {
         // 过滤与刚创建节点标题重复的首段
         if (justCreatedRank > 0) {
           var target = currentNodes[3] || currentNodes[2] || currentNodes[1] || currentNodes[0];
@@ -573,9 +564,6 @@
 
         var _tgt = currentNodes[3] || currentNodes[2] || currentNodes[1] || currentNodes[0];
         _appendToCurrent(_tgt, introContent, text);
-
-      } else {
-        continue;
       }
     }
 
