@@ -55,6 +55,7 @@
   var LEVEL2_CHARS = '一二三四五六七八九十';
   var LEVEL3_FW = '１２３４５６７８９０';
   var LEVEL5_CHARS = '㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩';
+  var LEVEL6_CHARS = '⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽';
 
   // 纲目内容中标记引用经文的尾缀（─引用经文）
   var _REF_TAG_RE = /\u2500引用经文$/;
@@ -148,6 +149,10 @@
     if (LEVEL5_CHARS.indexOf(c0) >= 0) {
       return { level: c0, title: s.slice(1).replace(/^[\u3000 \t]+/, '') };
     }
+    // Level 6: ⑴⑵...
+    if (LEVEL6_CHARS.indexOf(c0) >= 0) {
+      return { level: c0, title: s.slice(1).replace(/^[\u3000 \t]+/, '') };
+    }
     return null;
   }
 
@@ -166,6 +171,7 @@
     if (LEVEL3_FW.indexOf(levelStr) >= 0) return 3;
     if (/^\d+$/.test(levelStr)) return 3;
     if (LEVEL5_CHARS.indexOf(levelStr) >= 0) return 5;
+    if (LEVEL6_CHARS.indexOf(levelStr) >= 0) return 6;
     return 4; // a b c / 甲乙
   }
 
@@ -854,6 +860,9 @@
       if (ma) return { level: ma[1], title: ma[2] };
     }
     if (LEVEL5_CHARS.indexOf(c0) >= 0) {
+      return { level: c0, title: s.slice(1).replace(/^[\u3000 \t]+/, '') };
+    }
+    if (LEVEL6_CHARS.indexOf(c0) >= 0) {
       return { level: c0, title: s.slice(1).replace(/^[\u3000 \t]+/, '') };
     }
     return null;

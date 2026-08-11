@@ -198,6 +198,10 @@ class HTMLGenerator:
         if level_str in '㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩' or (len(level_str) == 1 and '\u3220' <= level_str <= '\u3229'):
             return "level-5"
         
+        # 括号数字 ⑴⑵⑶ -> level-6 (最细纲)
+        if level_str in '⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽' or (len(level_str) == 1 and '\u2474' <= level_str <= '\u247d'):
+            return "level-6"
+        
         # 其他情况默认为 level-3
         return "level-3"
     

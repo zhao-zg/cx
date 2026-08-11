@@ -207,6 +207,8 @@
 
   var LEVEL1_CHARS = '壹贰叁肆伍陆柒捌玖拾';
   var LEVEL2_CHARS = '一二三四五六七八九十';
+  var LEVEL5_CHARS = '㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩';
+  var LEVEL6_CHARS = '⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽';
 
   function cnOrdToInt(cn) {
     var map = {
@@ -360,13 +362,21 @@
           title = text;
         }
       } else {
-        // 未知类名 — 可能是更深层内容（a. b. 等），尝试解析
+        // 未知类名 — 可能是更深层内容，尝试按文本前缀匹配层级
         // 也可能是不带 class 的 <p>（听抄中的散文段落），跳过
         var m4 = text.match(/^([a-z])[.\s\u3000]+(.*)/);
         if (m4) {
           rank = 4;
           level = m4[1];
           title = m4[2];
+        } else if (text.length > 1 && LEVEL5_CHARS.indexOf(text[0]) >= 0) {
+          rank = 5;
+          level = text[0];
+          title = text.slice(1).replace(/^[\s\u3000]+/, '');
+        } else if (text.length > 1 && LEVEL6_CHARS.indexOf(text[0]) >= 0) {
+          rank = 6;
+          level = text[0];
+          title = text.slice(1).replace(/^[\s\u3000]+/, '');
         } else {
           continue;
         }
@@ -794,6 +804,16 @@
           var m3 = text.match(/^(\d+)[.。\s\u3000]+(.*)/);
           if (m3) { level = m3[1]; title = m3[2]; }
           else { level = ''; title = text; }
+        } else {
+          // 未知类名 — 尝试按文本前缀匹配更深层级
+          var m4 = text.match(/^([a-z])[.\s\u3000]+(.*)/);
+          if (m4) {
+            rank = 4; level = m4[1]; title = m4[2];
+          } else if (text.length > 1 && LEVEL5_CHARS.indexOf(text[0]) >= 0) {
+            rank = 5; level = text[0]; title = text.slice(1).replace(/^[\s\u3000]+/, '');
+          } else if (text.length > 1 && LEVEL6_CHARS.indexOf(text[0]) >= 0) {
+            rank = 6; level = text[0]; title = text.slice(1).replace(/^[\s\u3000]+/, '');
+          }
         }
 
         if (rank > 0) {

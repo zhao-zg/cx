@@ -133,6 +133,7 @@
     if (/^\d+$/.test(s)) return 'level-3';
     if (s.length === 1 && /^[a-z]$/.test(s)) return 'level-4';
     if ('㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩'.indexOf(s) >= 0) return 'level-5';
+    if ('⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽'.indexOf(s) >= 0) return 'level-6';
     return 'level-3';
   }
 

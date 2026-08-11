@@ -346,7 +346,7 @@ mark.cx-search-hl{background-color:#ffb347;color:inherit;border-radius:2px;paddi
 .cx-search-target{box-shadow:inset 3px 0 0 #ff8c00 !important;animation:cx-target-pulse 1s ease-in-out 2;transition:box-shadow 0.5s,background-color 0.5s}
 /* 纲目搜索定位时，给 outline-item 补 5px 左 padding，使竖线与标题数字之间留出间距 */
 .outline-item.level-1.cx-search-target,.outline-item.level-2.cx-search-target{padding-left:calc(1.1em + 5px)}
-.outline-item.level-3.cx-search-target,.outline-item.level-4.cx-search-target,.outline-item.level-5.cx-search-target{padding-left:calc(1em + 5px)}
+.outline-item.level-3.cx-search-target,.outline-item.level-4.cx-search-target,.outline-item.level-5.cx-search-target,.outline-item.level-6.cx-search-target{padding-left:calc(1em + 5px)}
 @keyframes cx-target-pulse{0%,100%{background-color:transparent}50%{background-color:rgba(255,179,71,0.25)}}
 /* 朗读句子高亮：纯背景色，逐句跟随 */
 mark.cx-tts-sent{background-color:transparent;color:inherit;font:inherit;border-radius:2px;transition:background-color 0.25s}
@@ -440,6 +440,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .section-level3,.outline-item.level-3{font-size:1.02em;font-weight:540;margin:11px 0 8px;color:var(--heading-soft);line-height:1.6;margin-left:16px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
 .section-level4,.outline-item.level-4{font-size:1.00em;font-weight:500;margin:9px 0 6px;color:var(--heading-muted);line-height:1.6;margin-left:24px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
 .section-level5,.outline-item.level-5{font-size:.97em;font-weight:450;margin:7px 0 5px;color:var(--heading-muted);line-height:1.6;margin-left:32px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
+.section-level6,.outline-item.level-6{font-size:.95em;font-weight:430;margin:6px 0 4px;color:var(--heading-muted);line-height:1.6;margin-left:40px;text-align:justify;padding-left:1em;padding-right:0.3em;text-indent:-1em}
 .outline-node-content .outline-content-text{font-size:.98em;font-weight:450;margin:7px 0 5px;color:var(--heading-muted);line-height:1.6;text-align:justify;padding-left:1.6em}
 .outline-item .outline-level,.outline-item .outline-text{display:inline}
 .outline-children{margin-left:0}
@@ -451,8 +452,9 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
     .section-level3,.outline-item.level-3{margin:12px 0 10px;font-size:1.07em;margin-left:38px;padding-left:1.5em;text-indent:-1.5em}
     .section-level4,.outline-item.level-4{margin:10px 0 8px;font-size:1.04em;margin-left:52px;padding-left:1.5em;text-indent:-1.5em}
     .section-level5,.outline-item.level-5{margin:8px 0 6px;font-size:1.01em;margin-left:66px;padding-left:1.5em;text-indent:-1.5em}
+    .section-level6,.outline-item.level-6{margin:7px 0 5px;font-size:.98em;margin-left:80px;padding-left:1.5em;text-indent:-1.5em}
     .outline-item.level-1.cx-search-target,.outline-item.level-2.cx-search-target{padding-left:calc(1.75em + 5px)}
-    .outline-item.level-3.cx-search-target,.outline-item.level-4.cx-search-target,.outline-item.level-5.cx-search-target{padding-left:calc(1.5em + 5px)}
+    .outline-item.level-3.cx-search-target,.outline-item.level-4.cx-search-target,.outline-item.level-5.cx-search-target,.outline-item.level-6.cx-search-target{padding-left:calc(1.5em + 5px)}
 }
 .outline-item{display:block}
 .outline-lvl-toggle{cursor:pointer;-webkit-tap-highlight-color:transparent;color:inherit;font-weight:bold;display:inline;touch-action:manipulation}

@@ -290,6 +290,7 @@ class ImprovedParser:
         self.current_level3 = None
         self.current_level4 = None
         self.current_level5 = None
+        self.current_level6 = None
         self.verse_cache = {}  # 缓存已出现的经文范围内容
     
     def _chinese_to_number(self, chinese_str: str) -> Optional[int]:
@@ -725,7 +726,16 @@ class ImprovedParser:
                     title = self._clean_title(text)
                     level5 = Content(level=level, title=title)
                     self.current_level4.add_child(level5)
+                    self.current_level5 = level5
                     current_node = level5  # 设置当前节点
+
+                elif re.match(r'^[\u2474-\u247d⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽]', text) and self.current_level5:
+                    level = self._extract_level_marker(text)
+                    title = self._clean_title(text)
+                    level6 = Content(level=level, title=title)
+                    self.current_level5.add_child(level6)
+                    self.current_level6 = level6
+                    current_node = level6  # 设置当前节点
             
             # 处理经文内容（verses样式或经文格式）
             if self.current_chapter:
@@ -820,6 +830,8 @@ class ImprovedParser:
                     style_type = 'section_level4'
                 elif re.match(r'^[\u3220-\u3229㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩]', text):
                     style_type = 'section_level5'
+                elif re.match(r'^[\u2474-\u247d⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽]', text):
+                    style_type = 'section_level6'
                 else:
                     style_type = 'content'
             
@@ -839,6 +851,7 @@ class ImprovedParser:
                 self.current_level3 = None
                 self.current_level4 = None
                 self.current_level5 = None
+                self.current_level6 = None
                 
             elif style_type == 'section_level1' and self.current_chapter:
                 # 创建新的大点节点(带内容的)
@@ -858,6 +871,7 @@ class ImprovedParser:
                         self.current_level3 = None
                         self.current_level4 = None
                         self.current_level5 = None
+                        self.current_level6 = None
                 else:
                     self.current_level1 = Content(level=level, title=title)
                     self.current_chapter.add_detail_section(self.current_level1)
@@ -865,6 +879,7 @@ class ImprovedParser:
                     self.current_level3 = None
                     self.current_level4 = None
                     self.current_level5 = None
+                    self.current_level6 = None
                     
             elif style_type == 'section_level2' and self.current_level1:
                 level = self._extract_level_marker(text)
@@ -882,12 +897,14 @@ class ImprovedParser:
                         self.current_level3 = None
                         self.current_level4 = None
                         self.current_level5 = None
+                        self.current_level6 = None
                 else:
                     self.current_level2 = Content(level=level, title=title)
                     self.current_level1.add_child(self.current_level2)
                     self.current_level3 = None
                     self.current_level4 = None
                     self.current_level5 = None
+                    self.current_level6 = None
                     
             elif style_type == 'section_level3' and self.current_level2:
                 level = self._extract_level_marker(text)
@@ -904,11 +921,13 @@ class ImprovedParser:
                         self.current_level2.add_child(self.current_level3)
                         self.current_level4 = None
                         self.current_level5 = None
+                        self.current_level6 = None
                 else:
                     self.current_level3 = Content(level=level, title=title)
                     self.current_level2.add_child(self.current_level3)
                     self.current_level4 = None
                     self.current_level5 = None
+                    self.current_level6 = None
 
             elif style_type == 'section_level4' and self.current_level3:
                 level = self._extract_level_marker(text)
@@ -916,12 +935,20 @@ class ImprovedParser:
                 self.current_level4 = Content(level=level, title=title)
                 self.current_level3.add_child(self.current_level4)
                 self.current_level5 = None
+                self.current_level6 = None
 
             elif style_type == 'section_level5' and self.current_level4:
                 level = self._extract_level_marker(text)
                 title = self._clean_title(text)
                 self.current_level5 = Content(level=level, title=title)
                 self.current_level4.add_child(self.current_level5)
+                self.current_level6 = None
+
+            elif style_type == 'section_level6' and self.current_level5:
+                level = self._extract_level_marker(text)
+                title = self._clean_title(text)
+                self.current_level6 = Content(level=level, title=title)
+                self.current_level5.add_child(self.current_level6)
                     
             elif style_type == 'content':
                 # 添加正文内容到对应的层级
@@ -930,6 +957,8 @@ class ImprovedParser:
                 # 注：content 样式段在听抄中始终是正文；跨页标题续接由 section_level* 分支处理。
                 if text.startswith('读经：') or text.startswith('读经:'):
                     pass
+                elif self.current_level6:
+                    self.current_level6.add_content(text)
                 elif self.current_level5:
                     self.current_level5.add_content(text)
                 elif self.current_level4:
@@ -982,6 +1011,7 @@ class ImprovedParser:
             r'^(\d+)\s',
             r'^([a-z])\s',
             r'^([\u3220-\u3229㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩])',  # level-5: ㈠㈡㈢
+            r'^([\u2474-\u247d⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽])',  # level-6: ⑴⑵⑶
         ]
         
         for pattern in patterns:
@@ -1798,6 +1828,8 @@ class ImprovedParser:
         current_level2 = None
         current_level3 = None
         current_level4 = None
+        current_level5 = None
+        current_level6 = None
         
         for text in content_lines:
             if not text or len(text) < 2:
@@ -1865,6 +1897,16 @@ class ImprovedParser:
                 title = level5_match.group(2)
                 level5 = Content(level=level, title=title)
                 current_level4.add_child(level5)
+                current_level5 = level5
+                continue
+
+            # ⑴⑵⑶等括号数字 (level6)
+            level6_match = re.match(r'^([\u2474-\u247d])\s*(.*)', text)
+            if level6_match and current_level5:
+                level = level6_match.group(1)
+                title = level6_match.group(2)
+                level6 = Content(level=level, title=title)
+                current_level5.add_child(level6)
                 continue
 
             # 如果是段落文本，添加到最近的节点
@@ -2201,6 +2243,7 @@ class ImprovedParser:
         text = re.sub(r'^\d+\s+', '', text)
         text = re.sub(r'^[a-z]\s+', '', text)
         text = re.sub(r'^[\u3220-\u3229㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩]\s*', '', text)  # level-5 括号数字
+        text = re.sub(r'^[\u2474-\u247d⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽]\s*', '', text)  # level-6 括号数字
         return text.strip()
     
     # ── 中文章节引用辅助方法 ──────────────────────────────────────────
