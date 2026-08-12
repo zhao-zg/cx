@@ -732,7 +732,20 @@
                 var toCache=trainings.filter(function(t){return!t.is_collection;}).slice(0,window.CX_MAX_LATEST_TRAININGS||trainings.length);
                 var refreshKeys=toCache.map(function(t){return'cx-'+t.path;});
                 if(statusEl)statusEl.textContent='正在清理旧缓存...';
-                var clearStep=('caches' in window)?caches.keys().then(function(keys){return Promise.all(keys.filter(function(k){return refreshKeys.indexOf(k)!==-1;}).map(function(k){return caches.delete(k);}));}).catch(function(){}):Promise.resolve();
+                var clearStep=('caches' in window)?caches.keys().then(function(keys){
+                    // 清理命名缓存（cx-YYYY-NN）
+                    var delNamed=Promise.all(keys.filter(function(k){return refreshKeys.indexOf(k)!==-1;}).map(function(k){return caches.delete(k);}));
+                    // 同时清理 cx-main 中可能过期的目录文件，确保后续 fetch 走网络拿最新
+                    var delStale=caches.open('cx-main').then(function(cache){
+                        return Promise.all([
+                            cache.delete('./trainings.json'),
+                            cache.delete(location.origin+'/trainings.json'),
+                            cache.delete('./version.json'),
+                            cache.delete(location.origin+'/version.json')
+                        ]);
+                    }).catch(function(){});
+                    return Promise.all([delNamed, delStale]);
+                }).catch(function(){}):Promise.resolve();
                 return clearStep.then(function(){
                     if(statusEl)statusEl.textContent='开始缓存资源...';
                     return cacheAllTrainings(statusEl,function(percent){if(progressBar)progressBar.style.width=Math.min(percent,100)+'%';}).then(function(){
