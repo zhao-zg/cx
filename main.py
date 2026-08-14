@@ -993,6 +993,7 @@ def process_batch(batch_folder, config, bible_dict: BibleDict = None):
         'path': safe_batch_name,
         'images': training_images,
         'version': training_version,
+        'is_collection': False,
     }
 
 
@@ -1018,6 +1019,7 @@ def generate_main_index(config, batch_results):
             'path': result['path'],
             'images': result.get('images', []),
             'version': result.get('version', ''),
+            'is_collection': result.get('is_collection', False),
         })
         total_chapters += result['chapter_count']
 
@@ -1065,6 +1067,9 @@ def generate_main_index(config, batch_results):
                 'version': meta.get('version', ''),
                 'is_collection': meta.get('is_collection', True),
             })
+            # 历史训练如果在当前批次中也生成了（同 path），
+            # is_collection 已在上面 batch_results 中正确标记为 False，
+            # 但 batch_results 优先级更高，此处需去重
             total_chapters += chapter_count
             current_paths.add(entry)
         except Exception as e:
@@ -1555,6 +1560,7 @@ def main():
                     'chapter_count': len(tdata.get('chapters', [])),
                     'path': safe_batch_name,
                     'images': images,
+                    'is_collection': tdata.get('is_collection', False),
                 })
                 success_count += 1
             except Exception:
