@@ -1021,6 +1021,20 @@ def generate_main_index(config, batch_results):
         })
         total_chapters += result['chapter_count']
 
+        # 回写 is_collection: false 到 training.json，确保下次构建时
+        # 该训练被扫描到历史目录时能正确识别为非合辑
+        batch_meta_path = os.path.join(output_dir, result['path'], 'training.json')
+        if os.path.exists(batch_meta_path):
+            try:
+                with open(batch_meta_path, 'r', encoding='utf-8') as f:
+                    batch_meta = json.load(f)
+                if not batch_meta.get('is_collection') is False:
+                    batch_meta['is_collection'] = False
+                    with open(batch_meta_path, 'w', encoding='utf-8') as f:
+                        json.dump(batch_meta, f, ensure_ascii=False, separators=(',', ':'))
+            except Exception:
+                pass
+
     # ── 合并已生成的历史训练（由 build-trainings-json.js 生成，不在 batch_results 中）──
     current_paths = {t['path'] for t in trainings}
     for entry in sorted(os.listdir(output_dir)):
@@ -1049,7 +1063,7 @@ def generate_main_index(config, batch_results):
                 'path': entry,
                 'images': images,
                 'version': meta.get('version', ''),
-                'is_collection': True,
+                'is_collection': meta.get('is_collection', True),
             })
             total_chapters += chapter_count
             current_paths.add(entry)

@@ -412,6 +412,8 @@ def export_training_json(training_data, output_dir: str) -> str:
     from datetime import datetime as _dt
     version = _dt.now().strftime('%Y%m%d%H%M%S')
     training_dict['version'] = version
+    # 标记为非合辑：当前构建的训练默认可直接显示，不需要额外下载
+    training_dict['is_collection'] = False
 
     # Write training.json (compact, no indent)
     json_path = os.path.join(output_dir, 'training.json')
