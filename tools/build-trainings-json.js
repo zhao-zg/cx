@@ -124,6 +124,8 @@ function writeTraining(td, year, seq) {
   var seqStr = seq < 10 ? '0' + seq : '' + seq;
   var dirName = year + '-' + seqStr;
   var outDir  = path.join(OUTPUT_DIR, dirName);
+  // 历史合辑生成的训练标记为 collection，需额外下载才能在首页显示
+  td.is_collection = true;
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(
     path.join(outDir, 'training.json'),
