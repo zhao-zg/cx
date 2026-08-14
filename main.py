@@ -632,6 +632,7 @@ def process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_f
         'path': safe_batch_name,
         'images': meta.get('images', []),
         'version': meta.get('version', ''),
+        'is_collection': False,
     }
 
 
@@ -858,7 +859,9 @@ def process_batch_epub(batch_folder, config, batch_config, safe_batch_name, epub
         'path': safe_batch_name,
         'images': meta.get('images', []),
         'version': meta.get('version', ''),
+        'is_collection': False,
     }
+
 
 
 def process_batch(batch_folder, config, bible_dict: BibleDict = None):

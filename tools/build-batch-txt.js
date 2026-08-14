@@ -212,6 +212,9 @@ function main() {
   // 添加版本
   td.version = getNowVersion();
 
+  // 标记为非合辑：当前构建的训练默认可直接显示，不需要额外下载
+  td.is_collection = false;
+
   // ── 复制标语诗歌图片 ──────────────────────────────────────────────────────
   fs.mkdirSync(outputDir, { recursive: true });
   var mottoImages = copyMottoSongImages(batchFolder, outputDir);
@@ -257,6 +260,7 @@ function main() {
     chapter_count: (td.chapters || []).length,
     images:        mottoImages,
     version:       td.version,
+    is_collection: false,
     source:        'txt'
   };
 

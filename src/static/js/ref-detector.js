@@ -99,7 +99,8 @@
     // 限制为不含「百」，因除诗篇外无书卷超过 66 章；诗篇已由「篇」分支覆盖
     var CN_NO_BAI = '[一二三四五六七八九十〇○]+';
     return new RegExp(
-      '(?:(?:诗篇|诗)' + CN + '篇' + versePart
+      '(?:(?:诗篇|诗)' + CN + '(?:(?:[至到]|、)' + CN + ')?篇' + versePart
+      + '|' + CN + '(?:(?:[至到]|、)' + CN + ')?篇' + versePart   /* 省书名X篇，须在诗篇上下文中由规则过滤 */
       + '|' + bookPat + '的?第?' + CN + '(?:(?:[至到]|、)' + CN + ')*章' + versePart
       + '|第?' + CN + '(?:节(?:[至到]' + CN + '节)?|(?:[至到]' + CN + ')?节)(?:[上下]半?)?'
       + '|(?:犹|门|俄|约贰|约叁)' + CN + '(?:节(?:[至到]' + CN + '节)?|(?:[至到]' + CN + ')?节)(?:[上下]半?)?'
@@ -560,6 +561,12 @@
         var _isPureVerse = !/[章篇]/.test(fm.text) && !_isBookAbbr;
         // '首'：诗歌N首后紧接的「第N节」是诗歌节次而非经文节号
         if (_isPureVerse && prevCharI && '哪那这有前后没无每外的此同某上下首'.indexOf(prevCharI) >= 0) {
+          result.push(escHtml(fm.text)); continue;
+        }
+        // 规则5：省略书名的「X篇」（无诗/诗篇前缀），仅诗篇使用「篇」，
+        // 当上下文书卷非诗篇时跳过，避免"第一篇""第二篇"等训练篇目序号被误识别
+        var _isBarePian = !/^(?:诗篇|诗)/.test(fm.text) && /篇/.test(fm.text);
+        if (_isBarePian && (book !== '诗' || prevCharI === '第')) {
           result.push(escHtml(fm.text)); continue;
         }
         var irefs = expandCnRefs(fm.text, book, ch);  // 传入当前 book/ch，支持无书卷名的相对章引用

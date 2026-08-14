@@ -30,6 +30,9 @@ on:
       - 'config.yaml'
       - 'app_config.json'
       - 'generate_version.py'
+      - 'tools/**'
+      - 'package.json'
+      - 'requirements.txt'
   workflow_dispatch:
 
 # ════════════════════════════════════════════════════════════════════════
@@ -93,6 +96,8 @@ jobs:
 
       - name: 安装混淆工具
         run: |
+          npm install
+          echo "✓ 项目依赖安装完成"
           npm install -g javascript-obfuscator
           echo "✓ javascript-obfuscator 已安装"
 
