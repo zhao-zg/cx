@@ -224,8 +224,8 @@ jobs:
       - name: 检查 Secrets 是否配置（账户 #${{ matrix.target.account }}）
         id: check
         env:
-          CF_TOKEN: ${{ secrets[format('CLOUDFLARE_API_TOKEN_{0}', matrix.target.account)] }}
-          CF_ACCT: ${{ secrets[format('CLOUDFLARE_ACCOUNT_ID_{0}', matrix.target.account)] }}
+          CF_TOKEN: ${{ secrets[format('CLOUDFLARE_API_TOKEN_{0}', matrix.target.account)] || (matrix.target.account == '1' && secrets.CLOUDFLARE_API_TOKEN) || '' }}
+          CF_ACCT: ${{ secrets[format('CLOUDFLARE_ACCOUNT_ID_{0}', matrix.target.account)] || (matrix.target.account == '1' && secrets.CLOUDFLARE_ACCOUNT_ID) || '' }}
         run: |
           if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCT" ]; then
             echo "⏭️  账户 #${{ matrix.target.account }} 未配置 Secrets，自动跳过"
@@ -245,8 +245,8 @@ jobs:
       - name: 部署到 Cloudflare Pages（账户 #${{ matrix.target.account }}）
         if: steps.check.outputs.configured == 'true'
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets[format('CLOUDFLARE_API_TOKEN_{0}', matrix.target.account)] }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets[format('CLOUDFLARE_ACCOUNT_ID_{0}', matrix.target.account)] }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets[format('CLOUDFLARE_API_TOKEN_{0}', matrix.target.account)] || (matrix.target.account == '1' && secrets.CLOUDFLARE_API_TOKEN) || '' }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets[format('CLOUDFLARE_ACCOUNT_ID_{0}', matrix.target.account)] || (matrix.target.account == '1' && secrets.CLOUDFLARE_ACCOUNT_ID) || '' }}
         run: |
           ACCOUNT_SUFFIX="${{ matrix.target.account }}"
           echo "🚀 部署到 Cloudflare Pages — 账户 #${ACCOUNT_SUFFIX}"
