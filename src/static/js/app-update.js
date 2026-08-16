@@ -69,6 +69,14 @@
         return window.CX._versionPromise;
     };
 
+    // 清除最快镜像缓存记录（域名失效时调用，使后续请求重新竞速）
+    window.CX.invalidateFastestMirror = function() {
+        var old = window.CX._fastestServerIdx;
+        window.CX._fastestServerIdx = undefined;
+        try { localStorage.removeItem('cx_fastest_mirror'); } catch(e) {}
+        if (old !== undefined) console.log('[smartFetch] 最快镜像记录已清除 (旧 #' + (old + 1) + ')');
+    };
+
     // ==================== 智能请求策略：先最快镜像直取，失败再竞速重探 ====================
     //
     // 日常：1次请求（走 localStorage 记住的最快镜像）
@@ -470,18 +478,17 @@
                 var blob, downloadUrl;
                 var startDownloadTime = Date.now();
                 
-                // 确定下载 URL（优先使用之前竞速记录的最快 CF 服务器，跳过测速）
+                // 确定下载 URL：优先使用竞速记录的最快 CF 服务器，失败时清除记录并降级
                 var isGitHubUrl = url.indexOf('github.com') !== -1 || url.indexOf('githubusercontent.com') !== -1;
+                var CLOUDFLARE_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
                 if (isGitHubUrl) {
                     var fastestIdx = window.CX._fastestServerIdx;
-                    var CLOUDFLARE_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
                     // 如果之前竞速有记录且 CF 镜像可用，直接使用最快服务器
                     if (fastestIdx !== undefined && CLOUDFLARE_SERVERS.length > 0 && CLOUDFLARE_SERVERS[fastestIdx]) {
                         var apkFileName = url.split('/').pop();
                         downloadUrl = CLOUDFLARE_SERVERS[fastestIdx] + apkFileName;
                         console.log('[APK下载] 复用竞速结果，跳过测速，直接使用 CF 镜像 #' + (fastestIdx + 1));
                     } else if (CapacitorHttp) {
-                        console.log('[APK下载] 无最快镜像记录，使用测速策略');
                         if (onProgress) onProgress('正在选择最快线路...', 0, 0, 0);
                     
                     // 构建测速线路：CF 镜像 + 原始 GitHub URL
@@ -619,6 +626,58 @@
                 
             } catch (error) {
                 console.error('[APK下载] 失败:', error);
+                // 如果使用的是 CF 镜像下载失败，清除最快镜像记录 + 版本缓存，允许后续重新竞速
+                if (downloadUrl && CLOUDFLARE_SERVERS.some(function(s) { return downloadUrl.indexOf(s) === 0; })) {
+                    console.warn('[APK下载] CF 镜像下载失败，清除最快镜像记录');
+                    if (window.CX && window.CX.invalidateFastestMirror) window.CX.invalidateFastestMirror();
+                    window.CX._versionPromise = null; // 清版本缓存，下次 getVersionInfo 会重新竞速
+                    // 降级到 GitHub 原始 URL 重试一次
+                    if (isGitHubUrl && downloadUrl !== url) {
+                        console.log('[APK下载] 降级 GitHub 原始 URL 重试');
+                        downloadUrl = url;
+                        try {
+                            if (onProgress) onProgress('镜像失败，切换线路重试...', 10, 0, 0);
+                            blob = await downloadFile(downloadUrl, onProgress);
+                            // 重试成功 → 继续后续保存安装流程
+                            var downloadTime = ((Date.now() - startDownloadTime) / 1000).toFixed(1);
+                            console.log('[APK下载] 重试下载完成:', (blob.size / 1024 / 1024).toFixed(2), 'MB, 耗时:', downloadTime, 's');
+                            if (onProgress) onProgress('下载完成，正在保存...', 80, 0, blob.size);
+                            var base64 = await blobToBase64(blob, function(progress) {
+                                if (onProgress) onProgress('正在处理文件 (' + progress + '%)...', 80 + Math.round(progress * 0.1), 0, blob.size);
+                            });
+                            if (onProgress) onProgress('正在保存到本地...', 90, 0, blob.size);
+                            var fileUri = null, savedDir = null;
+                            for (var i = 0; i < saveAttempts.length; i++) {
+                                try {
+                                    fileUri = await saveToFilesystem(saveAttempts[i].path, base64, saveAttempts[i].dir);
+                                    savedDir = saveAttempts[i].name;
+                                    break;
+                                } catch (e) {
+                                    if (i === saveAttempts.length - 1) throw new Error('无法保存文件: ' + e.message);
+                                }
+                            }
+                            if (!fileUri) throw new Error('文件保存失败');
+                            if (onProgress) onProgress('准备安装...', 95, 0, blob.size);
+                            var installed = false;
+                            var ApkInstaller = window.Capacitor.Plugins && window.Capacitor.Plugins.ApkInstaller;
+                            if (ApkInstaller) {
+                                try {
+                                    if (onProgress) onProgress('打开安装程序...', 98, 0, blob.size);
+                                    await ApkInstaller.install({ filePath: fileUri });
+                                    installed = true;
+                                } catch (e) { console.error('[APK安装] ApkInstaller 失败:', e); }
+                            }
+                            if (!installed) alert('无法自动打开安装器\n\n文件已下载到: ' + savedDir + '\n文件: ' + filename + '\n\n请手动到文件管理器安装');
+                            if (onProgress) onProgress('完成', 100, 0, blob.size);
+                            if (onComplete) onComplete();
+                            return; // 重试成功，提前返回
+                        } catch (retryErr) {
+                            console.error('[APK下载] GitHub 重试也失败:', retryErr);
+                            if (onError) onError(retryErr);
+                            return;
+                        }
+                    }
+                }
                 if (onError) onError(error);
             }
         }
