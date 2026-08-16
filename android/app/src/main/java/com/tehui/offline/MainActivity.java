@@ -1,5 +1,7 @@
 package com.tehui.offline;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -11,6 +13,9 @@ import androidx.core.view.WindowCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    private static final String PREFS_NAME = "cx_apk_prefs";
+    private static final String KEY_LAST_APK_VERSION = "last_apk_version";
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         // 最早安装崩溃日志收集器（在 super.onCreate 前），覆盖尽可能多的异常
@@ -25,6 +30,9 @@ public class MainActivity extends BridgeActivity {
         // ★ 在 super.onCreate 之前预热 TTS 引擎，尽早绑定系统 TTS 服务。
         //   Service 启动时 initTts() 会复用此实例，不再重复绑定。
         TTSForegroundService.prewarmTts(this);
+
+        // ★ APK 升级检测：版本变化时清除 WebView 缓存，防止加载旧缓存页面
+        clearWebViewCacheOnUpgrade();
 
         super.onCreate(savedInstanceState);
 
@@ -78,5 +86,34 @@ public class MainActivity extends BridgeActivity {
         // 仅调用 super.onPause()，不额外冻结 WebView
         // BridgeActivity 内部会暂停定时器，但 WebView 渲染表面保持存活
         super.onPause();
+    }
+
+    /**
+     * APK 升级时清除 WebView 缓存。
+     *
+     * Android WebView 有内核级 HTTP 磁盘缓存，APK 覆盖安装后旧缓存仍存在，
+     * 会导致 WebView 加载到旧版 index.html / JS / CSS 而非 APK 内置的新文件。
+     * 在 super.onCreate() 之前调用，确保 WebView 初始化前缓存已清空。
+     */
+    private void clearWebViewCacheOnUpgrade() {
+        try {
+            String currentVersion = getPackageManager()
+                .getPackageInfo(getPackageName(), 0).versionName;
+            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            String lastVersion = prefs.getString(KEY_LAST_APK_VERSION, "");
+
+            if (!currentVersion.equals(lastVersion)) {
+                // 版本变化：仅清除 WebView HTTP 缓存（磁盘缓存），
+                // 不清 localStorage/IndexedDB（用户笔记数据在那里）
+                WebView webView = new WebView(this);
+                webView.clearCache(true);   // true = 清除磁盘缓存文件
+                webView.clearFormData();
+                webView.destroy();
+
+                prefs.edit().putString(KEY_LAST_APK_VERSION, currentVersion).apply();
+            }
+        } catch (Exception e) {
+            // 降级：版本检测失败时不清除缓存，避免每次启动都清
+        }
     }
 }

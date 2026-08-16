@@ -254,20 +254,26 @@
     };
 
     // ── Capacitor 版本获取 ────────────────────────────────────────────────
+    // 将 Promise 暴露到全局，供后续 trainings.json 加载逻辑等待，
+    // 确保 APK 升级检测在数据加载前完成
+    window.__cxApkInfoPromise = null;
     (function(){
         var isCapacitor=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App;
         if(isCapacitor){
-            window.Capacitor.Plugins.App.getInfo().then(function(info){
+            window.__cxApkInfoPromise = window.Capacitor.Plugins.App.getInfo().then(function(info){
                 if(info.version)localStorage.setItem('cx_apk_version',info.version);
-            }).catch(function(){});
+                return info;
+            }).catch(function(){ return null; });
         }
     })();
 
     // ── 动态加载训练列表 ──────────────────────────────────────────────────
     // 关闭自动检查更新时走缓存优先，避免启动时无条件网络请求
+    // 但 APK 升级时必须强制走网络（旧缓存 trainings.json 与新版不匹配）
     (function(){
         var _autoCheck;
         try { _autoCheck = localStorage.getItem('cx_auto_check_update') === '1'; } catch(e) { _autoCheck = false; }
+        var _isCapacitor=!!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App);
         function loadTrainingsFromNetwork(){
             fetch('trainings.json?t='+Date.now())
                 .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
@@ -282,11 +288,7 @@
                     showLoadError();
                 });
         }
-        if(_autoCheck || !('caches' in window)){
-            // 开启自动更新 或 无 Cache API：走网络
-            loadTrainingsFromNetwork();
-        } else {
-            // 关闭自动更新：缓存优先，未命中才走网络
+        function loadTrainingsWithCache(){
             caches.match('trainings.json').then(function(cached){
                 if(cached && cached.ok){
                     cached.json().then(function(data){
@@ -299,6 +301,32 @@
                     loadTrainingsFromNetwork();
                 }
             }).catch(function(){ loadTrainingsFromNetwork(); });
+        }
+        if(_autoCheck || !('caches' in window)){
+            // 开启自动更新 或 无 Cache API：走网络
+            loadTrainingsFromNetwork();
+        } else if(_isCapacitor && window.__cxApkInfoPromise){
+            // Capacitor 环境：等 APK 版本号获取完成，检测是否升级
+            window.__cxApkInfoPromise.then(function(info){
+                var newApkVer=info&&info.version||'';
+                var oldPwaVer=null;try{oldPwaVer=localStorage.getItem('cx_pwa_version');}catch(e){}
+                // APK 升级判定：新 APK 版本与上次缓存的 pwa_version 不匹配
+                var apkUpgraded=newApkVer&&oldPwaVer&&newApkVer!==oldPwaVer;
+                if(apkUpgraded){
+                    // APK 升级：清除旧 trainings.json 缓存，强制走网络
+                    console.log('[缓存] APK 升级检测：'+oldPwaVer+' → '+newApkVer+'，清除旧缓存');
+                    caches.open('cx-main').then(function(cache){
+                        cache.delete('./trainings.json');
+                        cache.delete(location.origin+'/trainings.json');
+                    }).catch(function(){});
+                    loadTrainingsFromNetwork();
+                } else {
+                    loadTrainingsWithCache();
+                }
+            }).catch(function(){ loadTrainingsWithCache(); });
+        } else {
+            // 非 Capacitor + 关闭自动更新：缓存优先
+            loadTrainingsWithCache();
         }
 
         function renderTrainings(data){
@@ -847,10 +875,9 @@
                         var _ver=v.version||v.apk_version||'';
                         // 版本未变则跳过，避免每次启动都重复填充
                         if(_capVer&&_capVer===_ver)return;
-                        // APK 版本变化：先清理旧的 trainings.json 缓存，确保后续 fetch 走网络
-                        caches.open('cx-main').then(function(cache){
-                            cache.delete('./trainings.json');
-                            cache.delete(location.origin + '/trainings.json');
+                        // APK 版本变化：清除所有旧缓存，确保后续重新填充
+                        caches.keys().then(function(keys){
+                            return Promise.all(keys.filter(function(k){return k.startsWith('cx-');}).map(function(k){return caches.delete(k);}));
                         }).catch(function(){});
                         waitForTrainings(15000).then(function(){
                             return cacheAllTrainings(null,null);
