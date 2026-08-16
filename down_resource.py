@@ -31,7 +31,11 @@ DOWNLOAD_HEADERS = {
 BASE_URL = "https://mygoodland.notion.site/b1935b21f2874bc4a928cae9385f717d"
 TARGET_EXTENSIONS = ('.doc', '.docx')
 PDB_EXTENSIONS = ('.pdb', '.pdb.zip')
-ALL_EXTENSIONS = TARGET_EXTENSIONS + PDB_EXTENSIONS
+ZIP_EXTENSIONS = ('.zip',)
+EPUB_EXTENSIONS = ('.epub',)
+# 需要从 zip 内提取的目标扩展名
+ZIP_TARGET_EXTENSIONS = TARGET_EXTENSIONS + PDB_EXTENSIONS + EPUB_EXTENSIONS + ('.txt',)
+ALL_EXTENSIONS = TARGET_EXTENSIONS + PDB_EXTENSIONS + ZIP_EXTENSIONS + EPUB_EXTENSIONS
 MIN_TRAINING_YEAR = 2025
 MIN_TRAINING_MONTH = 4
 NOTION_TOKEN = os.getenv('NOTION_TOKEN', 'v03%3AeyJhbGciOiJkaXIiLCJraWQiOiJwcm9kdWN0aW9uOnRva2VuLXYzOjIwMjQtMTEtMDciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIn0..ST-Isd0_hRgIVz7FFliobA.gJdJhpEgvTHQWQlAsMENC6E1LAB46Y94LlziqE6Z6II-KTUv8X2ywrq_7hioHPSXzDFLGje9Uggd3jl5MfOUho8C8O8IiscKqogJJZQICwypZXQs3Yuev7J_5ta95u43Plfqsnp6NNaNKh2UeFNsO32ep3mCSOglmnSMb94yRaI6xhTnyRZq9V7RTPGrVaPNbpaIr3fRJtH3NQ5eFTyDgrg7hTBX6Lpcn5hv3R7ECan8SSn1ZSHRFoXNpxYNXKx56RWF-BxdpwAz0bITzdCBJJXn54AmbaQqP_YJh1i7sPFJIcGX_9Hq_cRDR74fbjKh3GKHO14ZpOQVE41WpwMMVhMt-HDvwJUwRadBYRTHdTE.4GPzA8xpek2Et5k0lTbQyFJdszLayX0L5pVKDlsRzVw')
@@ -227,7 +231,7 @@ def find_motto_pages(session: requests.Session, training: Dict[str, str]) -> Opt
 
 def process_resource_page(session: requests.Session, resource: Dict[str, str]) -> Dict[str, List[Dict[str, Any]]]:
     blocks = load_page_blocks(session, resource['id'])
-    documents = {'经文': [], '听抄': [], '晨兴': [], 'pdb': []}
+    documents = {'经文': [], '听抄': [], '晨兴': [], 'pdb': [], 'zip': [], 'epub': []}
     current_section = '经文'
 
     # 所有已知的 heading 类型（h1-h6 的各种命名）
@@ -313,19 +317,31 @@ def collect_file(block: Dict[str, Any], documents: Dict[str, List[Dict[str, Any]
         return
     lower_name = filename.lower()
     is_pdb = lower_name.endswith('.pdb') or lower_name.endswith('.pdb.zip')
+    is_zip = lower_name.endswith('.zip') and not is_pdb  # 排除 .pdb.zip
+    is_epub = lower_name.endswith('.epub')
     is_word = lower_name.endswith(TARGET_EXTENSIONS)
-    if not is_pdb and not is_word:
+    if not is_pdb and not is_word and not is_zip and not is_epub:
         return
     # PDB 文件: 只检查简体中文，不检查 with verses
     if is_pdb:
         if not is_simplified_chinese(filename):
             return
         doc_type = 'pdb'
+    elif is_epub:
+        # EPUB 文件: 简体中文检查
+        if not is_simplified_chinese(filename):
+            return
+        doc_type = 'epub'
+    elif is_zip:
+        # 通用 ZIP 文件: 简体中文检查，类型标记为 zip
+        if not is_simplified_chinese(filename):
+            return
+        doc_type = 'zip'
     else:
         if not is_simplified_chinese(filename) or (section_type == '经文' and not is_with_verses_s(filename)):
             return
         doc_type = section_type if section_type in documents else '经文'
-    # PDB 分类可能不在 documents 中，初始化
+    # 新类型可能不在 documents 中，初始化
     if doc_type not in documents:
         documents[doc_type] = []
     file_id = get_file_id(value)
@@ -386,6 +402,11 @@ def is_simplified_chinese(filename: str) -> bool:
         if '-t.' in lower or '-e.' in lower:
             return False
         return True
+    # ZIP/EPUB 文件：不检查 -s 后缀（zip 内容由预检查筛选）
+    if lower.endswith('.zip') or lower.endswith('.epub'):
+        if '-t.' in lower or '-e.' in lower:
+            return False
+        return True
     if lower.endswith('-s.doc') or lower.endswith('-s.docx'):
         return True
     if '-t.' in lower or '-e.' in lower:
@@ -412,81 +433,194 @@ def calculate_file_md5(file_path: Path) -> Optional[str]:
         return None
 
 
-def unzip_pdb(zip_path: Path) -> Optional[Path]:
-    """解压 .pdb.zip 文件，返回解压后的 .pdb 文件路径。
+def decode_zip_filename(info) -> str:
+    """解码 zip 成员文件名：UTF-8 优先 → GBK → 保留原始 CP437。
+    
+    Windows 压缩工具常用 GBK 编码文件名，标准 zip 用 UTF-8 (flag_bits 0x800)。
+    """
+    name = info.filename
+    if info.flag_bits & 0x800:
+        # 有 UTF-8 标记，文件名已是正确编码
+        return name
+    # 无 UTF-8 标记：先尝试 UTF-8，再 GBK
+    try:
+        name = info.filename.encode('cp437').decode('utf-8')
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        try:
+            name = info.filename.encode('cp437').decode('gbk')
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            pass
+    return name
 
-    zip 内应恰好包含一个 .pdb 文件。解压成功后删除 zip 文件。
-    支持 GBK 编码的中文文件名（Windows 压缩工具常见格式）。
+
+def inspect_zip_contents(zip_path: Path) -> List[Dict[str, Any]]:
+    """检查 zip 文件内部资源列表，返回包含目标资源的成员信息。
+    
+    只返回 ZIP_TARGET_EXTENSIONS 中匹配的文件，跳过目录和无关文件。
+    每个成员信息包含: name(解码后文件名), size(压缩后大小), is_target(是否为目标资源)。
     """
     if not zip_path.exists():
-        return None
-    pdb_name = None
-    pdb_path = None
+        return []
     try:
-        zf = zipfile.ZipFile(zip_path, 'r')
-        try:
-            members = zf.infolist()
-            # 找到 zip 中的 .pdb 文件
-            pdb_member = None
-            decoded_name = None
-            for info in members:
-                # 解码文件名：UTF-8 优先 → GBK → 保留原始 CP437
-                name = info.filename
-                if not (info.flag_bits & 0x800):
-                    # 无 UTF-8 标记：先尝试 UTF-8，再 GBK
-                    try:
-                        name = info.filename.encode('cp437').decode('utf-8')
-                    except (UnicodeDecodeError, UnicodeEncodeError):
-                        try:
-                            name = info.filename.encode('cp437').decode('gbk')
-                        except (UnicodeDecodeError, UnicodeEncodeError):
-                            pass
-                if name.lower().endswith('.pdb'):
-                    pdb_member = info
-                    decoded_name = name
-                    break
-
-            if pdb_member is None:
-                print(f"  [WARN] zip 内未找到 .pdb 文件: {zip_path.name}")
-                return None
-
-            pdb_name = Path(decoded_name).name
-            pdb_path = zip_path.parent / pdb_name
-
-            # 如果 pdb 文件已存在且大小非零，比较 MD5
-            if pdb_path.exists() and pdb_path.stat().st_size > 0:
-                existing_md5 = calculate_file_md5(pdb_path)
-                tmp_path = zip_path.parent / (pdb_name + '.tmp')
-                with zf.open(pdb_member) as src, open(tmp_path, 'wb') as dst:
-                    dst.write(src.read())
-                new_md5 = calculate_file_md5(tmp_path)
-                tmp_path.unlink()
-                if existing_md5 == new_md5:
-                    print(f"  [OK] PDB 已存在且 MD5 相同，跳过解压: {pdb_name}")
-                    zf.close()
-                    zip_path.unlink()
-                    return pdb_path
-
-            # 解压
-            with zf.open(pdb_member) as src, open(pdb_path, 'wb') as dst:
-                dst.write(src.read())
-            size_kb = pdb_path.stat().st_size / 1024
-            print(f"  [OK] 已解压: {pdb_name} ({size_kb:.1f} KB)")
-        finally:
-            zf.close()
-
-        # ZipFile 关闭后再删除 zip 文件（避免 Windows 文件锁）
-        zip_path.unlink()
-        return pdb_path
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            results = []
+            for info in zf.infolist():
+                if info.is_dir():
+                    continue
+                name = decode_zip_filename(info)
+                lower_name = name.lower()
+                is_target = any(lower_name.endswith(ext) for ext in ZIP_TARGET_EXTENSIONS)
+                results.append({
+                    'name': name,
+                    'size': info.file_size,
+                    'compressed_size': info.compress_size,
+                    'is_target': is_target,
+                    'info': info,
+                })
+            return results
     except zipfile.BadZipFile:
         print(f"  [ERROR] 无效的 zip 文件: {zip_path.name}")
-        return None
+        return []
+    except Exception as e:
+        print(f"  [ERROR] 检查 zip 内容失败: {zip_path.name}: {e}")
+        return []
+
+
+def smart_unzip(zip_path: Path, output_dir: Path, keep_zip: bool = False) -> List[Path]:
+    """智能解压 zip 文件：只解压需要的资源文件，跳过无关文件。
+    
+    对于 .pdb.zip：只解压 .pdb 文件（兼容旧逻辑）
+    对于通用 .zip：只解压 ZIP_TARGET_EXTENSIONS 匹配的文件
+    对于 .epub：整个文件直接保留（EPUB 本身就是 zip 格式，不需要解压）
+    
+    Args:
+        zip_path: zip 文件路径
+        output_dir: 解压输出目录
+        keep_zip: 是否保留 zip 文件（默认删除）
+    
+    Returns:
+        解压出的文件路径列表
+    """
+    if not zip_path.exists():
+        return []
+    
+    extracted: List[Path] = []
+    
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            members = zf.infolist()
+            target_members = []
+            
+            for info in members:
+                if info.is_dir():
+                    continue
+                name = decode_zip_filename(info)
+                lower_name = name.lower()
+                
+                # 筛选目标文件
+                is_target = any(lower_name.endswith(ext) for ext in ZIP_TARGET_EXTENSIONS)
+                if is_target:
+                    target_members.append((info, name))
+            
+            if not target_members:
+                print(f"  [WARN] zip 内未找到目标资源文件: {zip_path.name}")
+                if not keep_zip:
+                    zip_path.unlink()
+                return []
+            
+            print(f"  zip 内找到 {len(target_members)} 个目标资源 / {len(members)} 个总文件")
+            
+            for info, name in target_members:
+                # 取文件名部分（去掉路径中的目录）
+                base_name = Path(name).name
+                target_path = output_dir / base_name
+                
+                # 如果目标文件已存在，比较 MD5
+                if target_path.exists() and target_path.stat().st_size > 0:
+                    existing_md5 = calculate_file_md5(target_path)
+                    # 解压到临时文件比较
+                    tmp_path = output_dir / (base_name + '.tmp')
+                    with zf.open(info) as src, open(tmp_path, 'wb') as dst:
+                        dst.write(src.read())
+                    new_md5 = calculate_file_md5(tmp_path)
+                    if existing_md5 == new_md5:
+                        print(f"  [OK] 已存在且相同，跳过: {base_name}")
+                        tmp_path.unlink()
+                        extracted.append(target_path)
+                        continue
+                    else:
+                        # MD5 不同，用新文件替换
+                        shutil.move(str(tmp_path), str(target_path))
+                        print(f"  [OK] 已更新: {base_name}")
+                        extracted.append(target_path)
+                        continue
+                
+                # 直接解压
+                with zf.open(info) as src, open(target_path, 'wb') as dst:
+                    dst.write(src.read())
+                size_kb = target_path.stat().st_size / 1024
+                print(f"  [OK] 已解压: {base_name} ({size_kb:.1f} KB)")
+                extracted.append(target_path)
+    
+    except zipfile.BadZipFile:
+        print(f"  [ERROR] 无效的 zip 文件: {zip_path.name}")
+        return []
     except Exception as e:
         print(f"  [ERROR] 解压 zip 失败: {zip_path.name}: {e}")
-        return None
+        return []
+    
+    # 删除 zip 文件
+    if not keep_zip:
+        try:
+            zip_path.unlink()
+        except Exception:
+            pass
+    
+    return extracted
 
 
-def get_signed_download_url(session: requests.Session, file_id: str) -> Optional[str]:
+def process_downloaded_file(file_path: Path, doc_type: str) -> List[Path]:
+    """下载后处理文件：根据文件类型决定是否需要检查/解压。
+    
+    - .pdb.zip / .zip: 检查 zip 内容，只解压需要的资源
+    - .epub: 直接保留（EPUB 本身就是 zip 格式，由构建流程处理）
+    - 其他: 不需要处理
+    
+    Returns:
+        处理后的文件路径列表
+    """
+    lower_name = file_path.name.lower()
+    
+    # EPUB 文件：直接保留，不做解压
+    if lower_name.endswith('.epub'):
+        size_kb = file_path.stat().st_size / 1024
+        print(f"  [OK] EPUB 保留: {file_path.name} ({size_kb:.1f} KB)")
+        return [file_path]
+    
+    # ZIP 文件（含 .pdb.zip）：检查内容后选择性解压
+    if lower_name.endswith('.zip'):
+        # 先检查 zip 内有哪些目标资源
+        contents = inspect_zip_contents(file_path)
+        target_files = [c for c in contents if c['is_target']]
+        if not target_files:
+            print(f"  [WARN] zip 内无目标资源，跳过: {file_path.name}")
+            file_path.unlink()
+            return []
+        
+        print(f"  zip 预检查: {len(target_files)} 个目标资源 / {len(contents)} 个总文件")
+        for f in target_files:
+            print(f"    - {f['name']} ({f['size'] / 1024:.1f} KB)")
+        
+        # 智能解压：只解压目标文件
+        output_dir = file_path.parent
+        if doc_type == 'pdb':
+            output_dir = Path('resource') / 'pdb'
+        return smart_unzip(file_path, output_dir)
+    
+    # 其他文件（Word/PDB 等）：不做额外处理
+    return [file_path]
+
+
     if not file_id:
         return None
     if file_id in SIGNED_URL_CACHE:
@@ -515,6 +649,12 @@ def download_documents(session: requests.Session, documents: Dict[str, List[Dict
             if doc_type == 'pdb':
                 # PDB 文件保持原始文件名，存放到 pdb/ 子目录
                 new_name = doc['filename']
+            elif doc_type == 'epub':
+                # EPUB 文件保持原始文件名
+                new_name = doc['filename']
+            elif doc_type == 'zip':
+                # 通用 ZIP 文件保持原始文件名，下载后智能解压
+                new_name = doc['filename']
             else:
                 ext = '.docx' if doc['filename'].lower().endswith('.docx') else '.doc'
                 if len(doc_list) == 1:
@@ -536,12 +676,18 @@ def download_documents(session: requests.Session, documents: Dict[str, List[Dict
             })
     
     pdb_count = sum(1 for d in all_docs if d['doc_type'] == 'pdb')
-    word_count = len(all_docs) - pdb_count
+    zip_count = sum(1 for d in all_docs if d['doc_type'] == 'zip')
+    epub_count = sum(1 for d in all_docs if d['doc_type'] == 'epub')
+    word_count = len(all_docs) - pdb_count - zip_count - epub_count
     parts = []
     if word_count:
         parts.append(f"{word_count} 个Word文档")
     if pdb_count:
         parts.append(f"{pdb_count} 个PDB文件")
+    if zip_count:
+        parts.append(f"{zip_count} 个ZIP压缩包")
+    if epub_count:
+        parts.append(f"{epub_count} 个EPUB文件")
     print(f"收集到 {', '.join(parts)}，将使用 Playwright 下载...")
     return all_docs
 
@@ -689,7 +835,7 @@ def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode
             print(f"  找到 {len(resource_pages)} 个资源页面")
             
             for resource in resource_pages:
-                aggregated: Dict[str, List[Dict[str, Any]]] = {'经文': [], '听抄': [], '晨兴': [], 'pdb': []}
+                aggregated: Dict[str, List[Dict[str, Any]]] = {'经文': [], '听抄': [], '晨兴': [], 'pdb': [], 'zip': [], 'epub': []}
                 docs = process_resource_page(session, resource)
                 for key, value in docs.items():
                     if key in aggregated:
@@ -854,7 +1000,7 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                 if not temp_download_dir.exists():
                     temp_download_dir.mkdir(parents=True, exist_ok=True)
                 
-                # 最终目标路径: PDB 文件存放到 resource/pdb/{training}/ 子目录
+                # 最终目标路径: PDB/ZIP 文件存放到对应子目录
                 if doc['doc_type'] == 'pdb':
                     download_dir = Path('resource') / 'pdb' / doc['folder']
                 else:
@@ -907,9 +1053,8 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                                 print(f"  MD5不同，从临时目录移动到resource: {filename}")
                                 shutil.move(str(temp_path), str(target_path))
                                 print(f"  [OK] 已更新：{target_path}")
-                                # .pdb.zip → 自动解压
-                                if filename.lower().endswith('.pdb.zip'):
-                                    unzip_pdb(target_path)
+                                # ZIP/EPUB 等文件下载后检查/解压
+                                process_downloaded_file(target_path, doc['doc_type'])
                                 total_success += 1
                                 continue
                         else:
@@ -948,8 +1093,8 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                             dl.save_as(temp_path)
                             shutil.move(str(temp_path), str(target_path))
                             print(f"  [OK] 点击下载成功：{target_path}")
-                            if filename.lower().endswith('.pdb.zip'):
-                                unzip_pdb(target_path)
+                            # ZIP/EPUB 等文件下载后检查/解压
+                            process_downloaded_file(target_path, doc['doc_type'])
                             total_success += 1
                             downloaded = True
                             break
@@ -974,8 +1119,8 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                                     target_path.write_bytes(body)
                                     size_kb = len(body) / 1024
                                     print(f"  [OK] 附件URL响应成功: {target_path} ({size_kb:.1f} KB)")
-                                    if filename.lower().endswith('.pdb.zip'):
-                                        unzip_pdb(target_path)
+                                    # ZIP/EPUB 等文件下载后检查/解压
+                                    process_downloaded_file(target_path, doc['doc_type'])
                                     total_success += 1
                                     downloaded = True
                                 else:
@@ -1011,8 +1156,8 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                                     target_path.write_bytes(new_content)
                                     size_kb = len(new_content) / 1024
                                     print(f"  [OK] 签名URL下载成功: {target_path} ({size_kb:.1f} KB)")
-                                    if filename.lower().endswith('.pdb.zip'):
-                                        unzip_pdb(target_path)
+                                    # ZIP/EPUB 等文件下载后检查/解压
+                                    process_downloaded_file(target_path, doc['doc_type'])
                                     total_success += 1
                                     downloaded = True
                                 else:
@@ -1037,8 +1182,8 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                                 target_path.write_bytes(resp.content)
                                 size_kb = len(resp.content) / 1024
                                 print(f"  [OK] Cookie+requests下载成功: {target_path} ({size_kb:.1f} KB)")
-                                if filename.lower().endswith('.pdb.zip'):
-                                    unzip_pdb(target_path)
+                                # ZIP/EPUB 等文件下载后检查/解压
+                                process_downloaded_file(target_path, doc['doc_type'])
                                 total_success += 1
                                 downloaded = True
                             else:
