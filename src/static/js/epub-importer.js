@@ -404,6 +404,61 @@
     return roots;
   }
 
+  // ── 职事信息摘录解析 ──────────────────────────────────────────────────
+
+  /**
+   * 从 _cv.htm（纲目附经文）文件中提取"职事信息摘录"内容。
+   *
+   * EPUB 中职事信息摘录位于 _cv.htm 末尾，结构如下：
+   *   <p class="calibre_text_dadian">职事信息摘录：</p>   ← 标记段落
+   *   <p class="calibre_text_abs_dadian">小标题</p>       ← 小标题（可选，可多个）
+   *   <p class="calibre_text_abs">正文段落</p>           ← 实际内容
+   *
+   * 收集标记段落之后的所有 abs_dadian 小标题和 abs 正文段落，
+   * 用 \n\n 分隔，小标题独占一行。
+   *
+   * @param {Document} doc - 解析后的 HTML 文档
+   * @returns {string} 职事信息摘录纯文本
+   */
+  function parseMinistryExcerptFromHtml(doc) {
+    var body = doc.querySelector('body');
+    if (!body) return '';
+
+    var allP = body.querySelectorAll('p, h2');
+    var inMinistry = false;
+    var lines = [];
+
+    for (var i = 0; i < allP.length; i++) {
+      var p = allP[i];
+      var cls = p.getAttribute('class') || '';
+      var text = pText(p);
+
+      // 检测"职事信息摘录："标记段落
+      if (!inMinistry) {
+        if (cls === 'calibre_text_dadian' &&
+            (/^职事信息摘录[：:]?\s*$/.test(text) || text === '职事信息摘录' || text === '职事信息摘录：')) {
+          inMinistry = true;
+        }
+        continue;
+      }
+
+      // 进入职事摘录区域后：
+      // - calibre_text_abs_dadian：小标题（可能为空，跳过空值）
+      // - calibre_text_abs：正文段落
+      // - 其他类名（如 calibre_text_dadian 新大点）：结束收集
+      if (cls === 'calibre_text_abs_dadian') {
+        if (text) lines.push(text);
+      } else if (cls === 'calibre_text_abs') {
+        if (text) lines.push(text);
+      } else {
+        // 遇到非 abs_dadian / abs 的段落，结束收集
+        break;
+      }
+    }
+
+    return lines.length ? lines.join('\n\n') : '';
+  }
+
   // ── 听抄纲目匹配辅助函数 ──────────────────────────────────────────────
 
   /** 标准化标题用于匹配：去除括号内容、经文引用、标点、空白 */
@@ -1136,13 +1191,16 @@
     var msgNum = entry.number || (idx + 1);
 
     // 优先级：_cv.htm（完整纲目）> _dg.htm（仅大纲）
+    // _cv.htm 末尾还包含"职事信息摘录"，需要一并提取
     var outlinePromise = Promise.resolve([]);
     var scripturePromise = Promise.resolve('');
+    var ministryExcerptPromise = Promise.resolve('');
     if (links.cv) {
       outlinePromise = zipReadText(zip, opfDir + links.cv).then(function (html) {
         if (!html) return [];
         var doc = parseHtmlDoc(html);
         scripturePromise = Promise.resolve(extractScripture(doc));
+        ministryExcerptPromise = Promise.resolve(parseMinistryExcerptFromHtml(doc));
         return parseOutlineFromHtml(doc);
       });
     } else if (links.dg) {
@@ -1211,21 +1269,24 @@
                 ? transcript.detailSections
                 : outlineSections;
 
-              return {
-                number: msgNum,
-                title: entry.title,
-                hymn_number: hymnInfo.hymnNumber,
-                hymn_image: hymnInfo.hymnImage,
-                hymn_lyrics: hymnInfo.hymnLyrics,
-                hymn_images: hymnInfo.hymnImages || [],
-                scripture: scripture,
-                outline_sections: outlineSections,
-                detail_sections: detailSections,
-                has_listen_block: transcript.detailSections.length > 0,
-                message_content: transcript.messageContent,
-                ministry_excerpt: transcript.ministryExcerpt,
-                morning_revivals: morningRevivals
-              };
+              // 职事摘录优先取 _cv.htm 中提取的内容，回退到听抄中的（通常为空）
+              return ministryExcerptPromise.then(function(cvMinistryExcerpt) {
+                return {
+                  number: msgNum,
+                  title: entry.title,
+                  hymn_number: hymnInfo.hymnNumber,
+                  hymn_image: hymnInfo.hymnImage,
+                  hymn_lyrics: hymnInfo.hymnLyrics,
+                  hymn_images: hymnInfo.hymnImages || [],
+                  scripture: scripture,
+                  outline_sections: outlineSections,
+                  detail_sections: detailSections,
+                  has_listen_block: transcript.detailSections.length > 0,
+                  message_content: transcript.messageContent,
+                  ministry_excerpt: cvMinistryExcerpt || transcript.ministryExcerpt,
+                  morning_revivals: morningRevivals
+                };
+              });
             });
           });
         });
