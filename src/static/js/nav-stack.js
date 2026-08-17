@@ -468,10 +468,31 @@
         return /^#\/[^\/]+\/\d+\//.test(window.location.hash);
     }
 
+    /* 检查是否有浮动菜单/弹框当前可见（不依赖事件执行顺序） */
+    function anyFloatingMenuOpen() {
+        // 高亮选择菜单 / 标注菜单
+        var selMenu = document.getElementById('hl-selection-menu');
+        if (selMenu && selMenu.style.display !== 'none') return true;
+        var annMenu = document.getElementById('hl-annotation-menu');
+        if (annMenu && annMenu.style.display !== 'none') return true;
+        // 笔记编辑框
+        var noteModal = document.getElementById('hl-note-modal');
+        if (noteModal && noteModal.style.display !== 'none') return true;
+        // 设置面板
+        var themePanel = document.getElementById('themePanel');
+        if (themePanel && themePanel.classList.contains('show')) return true;
+        // 经文弹框
+        var scriptureOverlay = document.getElementById('scripture-popup-overlay');
+        if (scriptureOverlay && scriptureOverlay.classList.contains('scripture-popup-overlay--open')) return true;
+        return false;
+    }
+
     /* 全局点击监听 */
     document.addEventListener('click', function(e) {
         /* 点击已被其他模块消费（如关闭弹框），不再触发浮动栏 */
         if (e._cxConsumed) return;
+        /* 有浮动菜单/面板正在显示时，本次点击可能是在关闭它，不弹浮动栏 */
+        if (anyFloatingMenuOpen()) return;
         // 浮动栏已显示 → 浮动栏外任意点击收起（浮动栏内部点击已被 stopPropagation，不会到达这里）
         if (_el && _el.classList.contains('show')) {
             hide();
