@@ -557,7 +557,7 @@
         const overlay = document.createElement('div');
         overlay.className = 'theme-panel-overlay';
         overlay.id = 'themePanelOverlay';
-        overlay.onclick = function() { window.toggleThemePanel(); };
+        overlay.onclick = function(e) { e._cxConsumed = true; window.toggleThemePanel(); };
         document.body.appendChild(overlay);
 
         // 创建设置面板
@@ -694,16 +694,16 @@
                 for (var i = 0; i < masks.length; i++) {
                     if (masks[i].contains(e.target)) return;
                 }
+                e._cxConsumed = true;
                 window.toggleThemePanel(); // 通过统一入口关闭，消耗 history
             }
         });
-        
+
         // ESC键关闭面板
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 const panel = document.getElementById('themePanel');
                 if (panel && panel.classList.contains('show')) {
-                e._cxConsumed = true;
                 window.toggleThemePanel(); // 通过统一入口关闭，消耗 history
                 }
             }
