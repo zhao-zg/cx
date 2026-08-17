@@ -1317,21 +1317,8 @@
             }
 
             // ─── 新触摸开始：取消挂起的菜单定时器，隐藏旧选择菜单 ─────────
-            // 触摸设备上 touchstart → ~300ms → click，如果在 touchstart 阶段隐藏了菜单，
-            // 到 click 时 nav-stack 的 clickOutsideFloatingMenu 会认为"没有弹框开着"而放行，
-            // 导致顶栏误弹。因此在 touchstart 阶段就要给事件打 _cxConsumed 标记。
-            document.addEventListener('touchstart', function (e) {
+            document.addEventListener('touchstart', function () {
                 clearTimeout(_showTimer);
-                // 任何高亮菜单/笔记弹框正开着时，这次触摸属于"操作弹框"（关闭或内部交互）
-                var ids = ['hl-selection-menu', 'hl-annotation-menu', 'hl-note-modal'];
-                var menuOpen = false;
-                for (var i = 0; i < ids.length; i++) {
-                    var el = document.getElementById(ids[i]);
-                    if (el && window.getComputedStyle(el).display !== 'none') { menuOpen = true; break; }
-                }
-                if (menuOpen) {
-                    try { e._cxConsumed = true; } catch (_) {}
-                }
                 _hideSelMenu();
             }, { passive: true });
 

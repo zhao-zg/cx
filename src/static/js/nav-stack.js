@@ -468,33 +468,38 @@
         return /^#\/[^\/]+\/\d+\//.test(window.location.hash);
     }
 
-    /* 检查点击是否落在某个正开着的浮动菜单/弹框外部（即正在关闭它） */
-    function clickOutsideFloatingMenu(e) {
-        var t = e.target;
-        // 高亮选择菜单 / 标注菜单 / 笔记编辑框
-        // 注意：这些元素由 CSS 默认 display:none，初始内联 style.display 为空字符串，
-        // 不能用 el.style.display !== 'none' 判断（空串也 !== 'none'），必须用 getComputedStyle
+    /* ── 触摸设备时序问题 ──────────────────────────────────────────
+       touchstart → ~300ms → click。highlight.js 的 touchstart handler 会
+       提前隐藏菜单（_hideSelMenu），等 click 到达时菜单已关，
+       clickOutsideFloatingMenu 检查不到"有弹框开着"而放行 → 顶栏误弹。
+       解法：用 capture 阶段 touchstart（比 highlight.js 的 bubble 先执行）
+       在菜单被隐藏前拍快照，click 时用快照判断。 */
+    var _menuOpenAtTouchStart = false;
+
+    document.addEventListener('touchstart', function () {
+        _menuOpenAtTouchStart = _anyFloatingMenuOpen();
+    }, true); /* capture=true：先于 highlight.js 的 bubble 阶段执行 */
+
+    /* 检查此刻是否有任何浮动菜单/弹框正开着 */
+    function _anyFloatingMenuOpen() {
         var ids = ['hl-selection-menu', 'hl-annotation-menu', 'hl-note-modal'];
         for (var i = 0; i < ids.length; i++) {
             var el = document.getElementById(ids[i]);
-            if (el && window.getComputedStyle(el).display !== 'none') {
-                return true;
-            }
+            if (el && window.getComputedStyle(el).display !== 'none') return true;
         }
-        // 设置面板
         var themePanel = document.getElementById('themePanel');
-        if (themePanel && themePanel.classList.contains('show')) {
-            var btn = document.querySelector('.theme-toggle-btn');
-            if (!themePanel.contains(t) && !(btn && btn.contains(t))) return true;
-            return true;
-        }
-        // 经文弹框
+        if (themePanel && themePanel.classList.contains('show')) return true;
         var scriptureOverlay = document.getElementById('scripture-popup-overlay');
-        if (scriptureOverlay && scriptureOverlay.classList.contains('scripture-popup-overlay--open')) {
-            if (!scriptureOverlay.contains(t)) return true;
-            return true;
-        }
+        if (scriptureOverlay && scriptureOverlay.classList.contains('scripture-popup-overlay--open')) return true;
         return false;
+    }
+
+    /* 检查点击是否落在某个正开着的浮动菜单/弹框外部（即正在关闭它） */
+    function clickOutsideFloatingMenu(e) {
+        /* 优先用 touchstart 快照（解决触摸设备时序问题） */
+        if (_menuOpenAtTouchStart) return true;
+        /* 桌面端无 touchstart，直接查当前 DOM 状态 */
+        return _anyFloatingMenuOpen();
     }
 
     /* 全局点击监听 */
