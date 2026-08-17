@@ -642,10 +642,13 @@ def smart_unzip_by_content(zip_path: Path) -> List[Path]:
     zip_doc_type = classify_document_type(zip_stem, strict=True)
     zip_has_verses = 'with verses' in zip_stem.lower()
     
+    # 收集阶段：先识别所有目标文件，按类型分组
+    # 解压阶段：同类型按文件名排序后统一编号重命名，避免 ZIP 条目顺序乱序
+    pending_word: Dict[str, List[Tuple[str, Any, str]]] = {}  # doc_type -> [(base_name, info, name), ...]
+    pending_extract: List[Tuple[str, Any, str, str, Path]] = []  # (base_name, info, name, out_label, out_dir)
+
     try:
         with zipfile.ZipFile(zip_path, 'r') as zf:
-            type_counter: Dict[str, int] = {}  # 各类型计数，用于多文件编号
-            
             for info in zf.infolist():
                 if info.is_dir():
                     continue
@@ -653,18 +656,18 @@ def smart_unzip_by_content(zip_path: Path) -> List[Path]:
                 if _is_macos_junk(name):
                     continue
                 lower_name = name.lower()
-                
+
                 # 跳过非目标文件
                 is_target = any(lower_name.endswith(ext) for ext in ZIP_TARGET_EXTENSIONS)
                 if not is_target:
                     continue
-                
+
                 base_name = Path(name).name
                 is_word = any(lower_name.endswith(ext) for ext in ('.doc', '.docx'))
                 is_epub = lower_name.endswith('.epub')
                 is_pdb = lower_name.endswith('.pdb') or lower_name.endswith('.pdb.zip')
-                
-                # PDB / TXT：保留原名，按类型决定输出目录
+
+                # PDB / TXT：保留原名，按类型决定输出目录（无编号问题，直接解压）
                 if is_pdb:
                     out_dir = Path('resource') / 'pdb' / training_folder
                     out_dir.mkdir(parents=True, exist_ok=True)
@@ -676,7 +679,7 @@ def smart_unzip_by_content(zip_path: Path) -> List[Path]:
                         print(f"  [OK] 已存在且相同，跳过: {base_name}")
                     extracted.append(target_path)
                     continue
-                
+
                 if lower_name.endswith('.txt'):
                     out_dir = zip_path.parent
                     target_path = out_dir / base_name
@@ -687,7 +690,7 @@ def smart_unzip_by_content(zip_path: Path) -> List[Path]:
                         print(f"  [OK] 已存在且相同，跳过: {base_name}")
                     extracted.append(target_path)
                     continue
-                
+
                 # Word / EPUB：与 Notion 单文件下载一致
                 # EPUB 只检查简体中文，不需要类型识别（与 collect_file 一致）
                 doc_type = None
@@ -711,16 +714,40 @@ def smart_unzip_by_content(zip_path: Path) -> List[Path]:
                         if not is_with_verses_s(base_name) and not zip_has_verses:
                             print(f"  [SKIP] 经文缺少 with verses-s，跳过: {base_name}")
                             continue
-                
-                out_dir = zip_path.parent
-                out_dir.mkdir(parents=True, exist_ok=True)
-                
+
                 if is_word:
-                    # Word 文件：按类型重命名
-                    count = type_counter.get(doc_type, 0)
-                    type_counter[doc_type] = count + 1
+                    # 收集到待重命名列表，稍后排序统一编号
+                    pending_word.setdefault(doc_type, []).append((base_name, info, name))
+                elif is_epub:
+                    # EPUB 保留原名，直接解压
+                    out_dir = zip_path.parent
+                    out_dir.mkdir(parents=True, exist_ok=True)
+                    target_path = out_dir / base_name
+                    if _extract_entry(zf, info, target_path):
+                        size_kb = target_path.stat().st_size / 1024
+                        print(f"  [OK] 已解压: {out_dir.name}/{base_name} ({size_kb:.1f} KB)")
+                    else:
+                        print(f"  [OK] 已存在且相同，跳过: {base_name}")
+                    extracted.append(target_path)
+
+            # 解压阶段：同类型按文件名自然排序后统一编号重命名
+            # 排序规则：文件名末尾的数字序号优先（_1 < _2 < _10），无数字按字母序
+            import re as _re
+            def _sort_key(item):
+                base = item[0].lower()
+                # 提取末尾数字（如 hw_26_st_a4_1.doc -> 1），无数字返回 0
+                m = _re.search(r'(\d+)\.\w+$', base)
+                num = int(m.group(1)) if m else 0
+                return (num, base)
+
+            out_dir = zip_path.parent
+            out_dir.mkdir(parents=True, exist_ok=True)
+            for doc_type, items in pending_word.items():
+                items.sort(key=_sort_key)
+                for idx, (base_name, info, name) in enumerate(items):
+                    lower_name = name.lower()
                     ext = '.docx' if lower_name.endswith('.docx') else '.doc'
-                    renamed = f"{doc_type}{ext}" if count == 0 else f"{doc_type}{count + 1}{ext}"
+                    renamed = f"{doc_type}{ext}" if idx == 0 else f"{doc_type}{idx + 1}{ext}"
                     target_path = out_dir / renamed
                     if _extract_entry(zf, info, target_path):
                         size_kb = target_path.stat().st_size / 1024
@@ -728,16 +755,6 @@ def smart_unzip_by_content(zip_path: Path) -> List[Path]:
                         print(f"  [OK] 已解压: {out_dir.name}/{label} ({size_kb:.1f} KB)")
                     else:
                         print(f"  [OK] 已存在且相同，跳过: {renamed}")
-                    extracted.append(target_path)
-                
-                elif is_epub:
-                    # EPUB 文件：保留原名，已通过类型识别
-                    target_path = out_dir / base_name
-                    if _extract_entry(zf, info, target_path):
-                        size_kb = target_path.stat().st_size / 1024
-                        print(f"  [OK] 已解压: {out_dir.name}/{base_name} ({size_kb:.1f} KB)")
-                    else:
-                        print(f"  [OK] 已存在且相同，跳过: {base_name}")
                     extracted.append(target_path)
         
         # 删除 zip
