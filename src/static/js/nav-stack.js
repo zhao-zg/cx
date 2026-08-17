@@ -472,13 +472,12 @@
     function clickOutsideFloatingMenu(e) {
         var t = e.target;
         // 高亮选择菜单 / 标注菜单 / 笔记编辑框
+        // 注意：这些元素由 CSS 默认 display:none，初始内联 style.display 为空字符串，
+        // 不能用 el.style.display !== 'none' 判断（空串也 !== 'none'），必须用 getComputedStyle
         var ids = ['hl-selection-menu', 'hl-annotation-menu', 'hl-note-modal'];
         for (var i = 0; i < ids.length; i++) {
             var el = document.getElementById(ids[i]);
-            if (el && el.style.display !== 'none') {
-                // 弹框正开着，且点击不在弹框内 → 这次 click 会关闭它
-                if (!el.contains(t)) return true;
-                // 点击在弹框内 → 交由弹框自身处理
+            if (el && window.getComputedStyle(el).display !== 'none') {
                 return true;
             }
         }
