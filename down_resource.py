@@ -355,12 +355,27 @@ def collect_file(block: Dict[str, Any], documents: Dict[str, List[Dict[str, Any]
     })
 
 
-def classify_document_type(title: str) -> str:
+def classify_document_type(title: str, *, strict: bool = False) -> Optional[str]:
+    """根据标题/文件名关键字判断文档类型。
+    
+    Args:
+        title: 标题或文件名
+        strict: 严格模式——无法识别时返回 None 而非默认'经文'。
+                用于 ZIP 解压场景（无上下文，无法识别则丢弃）。
+    
+    Returns:
+        '经文' / '听抄' / '晨兴'，strict=True 时可能返回 None
+    """
     lower = title.lower()
     if '听抄' in title or 'transcript' in lower:
         return '听抄'
     if '晨兴' in title or 'hwmr' in lower or 'morning' in lower:
         return '晨兴'
+    # 经文需显式关键字匹配（中英文均可）
+    if '经文' in title or 'verses' in lower or 'with verses' in lower or '纲目附' in title:
+        return '经文'
+    if strict:
+        return None
     return '经文'
 
 
@@ -452,10 +467,25 @@ def decode_zip_filename(info) -> str:
     return name
 
 
+# macOS 元数据文件过滤规则：跳过 ._ 前缀（AppleDouble）和 __MACOSX 目录
+_MACOS_PREFIX = '._'
+_MACOSX_DIR = '__MACOSX/'
+
+# 需要类型识别的扩展名（Word 重命名，EPUB 保留原名但需识别）
+_RENAMEABLE_EXTENSIONS = ('.doc', '.docx', '.epub')
+
+
+def _is_macos_junk(name: str) -> bool:
+    """判断是否为 macOS 元数据垃圾文件（AppleDouble / __MACOSX）"""
+    base = Path(name).name
+    return base.startswith(_MACOS_PREFIX) or name.startswith(_MACOSX_DIR) or '/' + _MACOSX_DIR in name
+
+
 def inspect_zip_contents(zip_path: Path) -> List[Dict[str, Any]]:
     """检查 zip 文件内部资源列表，返回包含目标资源的成员信息。
     
-    只返回 ZIP_TARGET_EXTENSIONS 中匹配的文件，跳过目录和无关文件。
+    只返回 ZIP_TARGET_EXTENSIONS 中匹配的文件，跳过目录、macOS 元数据文件和无关文件。
+    Word/EPUB 文件还需通过 classify_document_type(strict=True) 类型识别才算目标资源。
     每个成员信息包含: name(解码后文件名), size(压缩后大小), is_target(是否为目标资源)。
     """
     if not zip_path.exists():
@@ -467,8 +497,20 @@ def inspect_zip_contents(zip_path: Path) -> List[Dict[str, Any]]:
                 if info.is_dir():
                     continue
                 name = decode_zip_filename(info)
+                # 跳过 macOS 元数据垃圾文件
+                if _is_macos_junk(name):
+                    continue
                 lower_name = name.lower()
                 is_target = any(lower_name.endswith(ext) for ext in ZIP_TARGET_EXTENSIONS)
+                
+                # Word/EPUB 需通过类型识别才算目标资源
+                base_name = Path(name).name
+                is_renameable = any(lower_name.endswith(ext) for ext in _RENAMEABLE_EXTENSIONS)
+                if is_renameable and is_target:
+                    doc_type = classify_document_type(base_name, strict=True)
+                    if not doc_type:
+                        is_target = False  # 无法识别类型，不算目标资源
+                
                 results.append({
                     'name': name,
                     'size': info.file_size,
@@ -528,11 +570,40 @@ def process_downloaded_file(file_path: Path, doc_type: str) -> List[Path]:
     return [file_path]
 
 
+def _extract_entry(zf: zipfile.ZipFile, info, target_path: Path) -> bool:
+    """解压单个 ZIP 条目到目标路径，含 MD5 增量检查。
+    
+    Returns:
+        True 成功，False 跳过（内容相同）。
+    """
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    if target_path.exists() and target_path.stat().st_size > 0:
+        existing_md5 = calculate_file_md5(target_path)
+        tmp_path = target_path.with_suffix(target_path.suffix + '.tmp')
+        with zf.open(info) as src, open(tmp_path, 'wb') as dst:
+            dst.write(src.read())
+        new_md5 = calculate_file_md5(tmp_path)
+        if existing_md5 == new_md5:
+            tmp_path.unlink()
+            return False  # 内容相同
+        else:
+            shutil.move(str(tmp_path), str(target_path))
+            return True
+    else:
+        with zf.open(info) as src, open(target_path, 'wb') as dst:
+            dst.write(src.read())
+        return True
+
+
 def smart_unzip_by_content(zip_path: Path) -> List[Path]:
-    """智能解压 zip：按内容类型分类输出目录。
+    """智能解压 zip：按内容类型分类输出目录，可识别的文件按类型重命名。
     
     - .pdb / .pdb.zip → resource/pdb/{training}/
-    - .epub / .doc / .docx / .txt → resource/{training}/（zip 所在目录）
+    - .epub → 保留原始文件名（需通过类型识别，否则丢弃）
+    - .doc / .docx → 按类型重命名（经文.docx / 听抄.doc / 晨兴.doc / 晨兴2.doc...）
+    - .txt → 保留原始文件名
+    - 无法识别类型的 Word/EPUB 文件直接丢弃
     """
     if not zip_path.exists():
         return []
@@ -542,51 +613,84 @@ def smart_unzip_by_content(zip_path: Path) -> List[Path]:
     
     try:
         with zipfile.ZipFile(zip_path, 'r') as zf:
+            type_counter: Dict[str, int] = {}  # 各类型计数，用于多文件编号
+            
             for info in zf.infolist():
                 if info.is_dir():
                     continue
                 name = decode_zip_filename(info)
+                if _is_macos_junk(name):
+                    continue
                 lower_name = name.lower()
                 
-                # 判断是否为目标文件
+                # 跳过非目标文件
                 is_target = any(lower_name.endswith(ext) for ext in ZIP_TARGET_EXTENSIONS)
                 if not is_target:
                     continue
                 
                 base_name = Path(name).name
+                is_word = any(lower_name.endswith(ext) for ext in ('.doc', '.docx'))
+                is_epub = lower_name.endswith('.epub')
+                is_pdb = lower_name.endswith('.pdb') or lower_name.endswith('.pdb.zip')
                 
-                # 按内容类型决定输出目录
-                if lower_name.endswith('.pdb') or lower_name.endswith('.pdb.zip'):
+                # PDB / TXT：保留原名，按类型决定输出目录
+                if is_pdb:
                     out_dir = Path('resource') / 'pdb' / training_folder
-                else:
-                    out_dir = zip_path.parent
-                
-                out_dir.mkdir(parents=True, exist_ok=True)
-                target_path = out_dir / base_name
-                
-                # MD5 增量检查
-                if target_path.exists() and target_path.stat().st_size > 0:
-                    existing_md5 = calculate_file_md5(target_path)
-                    tmp_path = out_dir / (base_name + '.tmp')
-                    with zf.open(info) as src, open(tmp_path, 'wb') as dst:
-                        dst.write(src.read())
-                    new_md5 = calculate_file_md5(tmp_path)
-                    if existing_md5 == new_md5:
-                        print(f"  [OK] 已存在且相同，跳过: {base_name}")
-                        tmp_path.unlink()
-                        extracted.append(target_path)
-                        continue
+                    out_dir.mkdir(parents=True, exist_ok=True)
+                    target_path = out_dir / base_name
+                    if _extract_entry(zf, info, target_path):
+                        size_kb = target_path.stat().st_size / 1024
+                        print(f"  [OK] 已解压: {out_dir.name}/{base_name} ({size_kb:.1f} KB)")
                     else:
-                        shutil.move(str(tmp_path), str(target_path))
-                        print(f"  [OK] 已更新: {out_dir.name}/{base_name}")
-                        extracted.append(target_path)
-                        continue
+                        print(f"  [OK] 已存在且相同，跳过: {base_name}")
+                    extracted.append(target_path)
+                    continue
                 
-                with zf.open(info) as src, open(target_path, 'wb') as dst:
-                    dst.write(src.read())
-                size_kb = target_path.stat().st_size / 1024
-                print(f"  [OK] 已解压: {out_dir.name}/{base_name} ({size_kb:.1f} KB)")
-                extracted.append(target_path)
+                if lower_name.endswith('.txt'):
+                    out_dir = zip_path.parent
+                    target_path = out_dir / base_name
+                    if _extract_entry(zf, info, target_path):
+                        size_kb = target_path.stat().st_size / 1024
+                        print(f"  [OK] 已解压: {out_dir.name}/{base_name} ({size_kb:.1f} KB)")
+                    else:
+                        print(f"  [OK] 已存在且相同，跳过: {base_name}")
+                    extracted.append(target_path)
+                    continue
+                
+                # Word / EPUB：用 classify_document_type(strict=True) 识别类型
+                # 无法识别的文件直接丢弃
+                doc_type = classify_document_type(base_name, strict=True)
+                if not doc_type:
+                    print(f"  [SKIP] 无法识别类型，跳过: {base_name}")
+                    continue
+                
+                out_dir = zip_path.parent
+                out_dir.mkdir(parents=True, exist_ok=True)
+                
+                if is_word:
+                    # Word 文件：按类型重命名
+                    count = type_counter.get(doc_type, 0)
+                    type_counter[doc_type] = count + 1
+                    ext = '.docx' if lower_name.endswith('.docx') else '.doc'
+                    renamed = f"{doc_type}{ext}" if count == 0 else f"{doc_type}{count + 1}{ext}"
+                    target_path = out_dir / renamed
+                    if _extract_entry(zf, info, target_path):
+                        size_kb = target_path.stat().st_size / 1024
+                        label = f"{renamed} (原: {base_name})" if renamed != base_name else renamed
+                        print(f"  [OK] 已解压: {out_dir.name}/{label} ({size_kb:.1f} KB)")
+                    else:
+                        print(f"  [OK] 已存在且相同，跳过: {renamed}")
+                    extracted.append(target_path)
+                
+                elif is_epub:
+                    # EPUB 文件：保留原名，已通过类型识别
+                    target_path = out_dir / base_name
+                    if _extract_entry(zf, info, target_path):
+                        size_kb = target_path.stat().st_size / 1024
+                        print(f"  [OK] 已解压: {out_dir.name}/{base_name} ({size_kb:.1f} KB)")
+                    else:
+                        print(f"  [OK] 已存在且相同，跳过: {base_name}")
+                    extracted.append(target_path)
         
         # 删除 zip
         zip_path.unlink()

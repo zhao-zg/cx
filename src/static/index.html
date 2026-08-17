@@ -310,16 +310,24 @@
             window.__cxApkInfoPromise.then(function(info){
                 var newApkVer=info&&info.version||'';
                 var oldPwaVer=null;try{oldPwaVer=localStorage.getItem('cx_pwa_version');}catch(e){}
-                // APK 升级判定：新 APK 版本与上次缓存的 pwa_version 不匹配
-                var apkUpgraded=newApkVer&&oldPwaVer&&newApkVer!==oldPwaVer;
+                var oldApkVer=null;try{oldApkVer=localStorage.getItem('cx_apk_version');}catch(e){}
+                // APK 升级判定：
+                //   1) 新 APK 版本与上次缓存的 pwa_version 不匹配；
+                //   2) pwa_version 为 null（从未完成缓存填充）但 cx_apk_version 存在且与当前不同
+                //      （覆盖安装旧版从未成功缓存的情况）
+                var apkUpgraded=(newApkVer&&oldPwaVer&&newApkVer!==oldPwaVer)
+                    ||(newApkVer&&!oldPwaVer&&oldApkVer&&newApkVer!==oldApkVer);
                 if(apkUpgraded){
-                    // APK 升级：清除旧 trainings.json 缓存，强制走网络
-                    console.log('[缓存] APK 升级检测：'+oldPwaVer+' → '+newApkVer+'，清除旧缓存');
-                    caches.open('cx-main').then(function(cache){
-                        cache.delete('./trainings.json');
-                        cache.delete(location.origin+'/trainings.json');
-                    }).catch(function(){});
-                    loadTrainingsFromNetwork();
+                    // APK 升级：清除所有 cx-* 缓存（trainings.json + 各训练命名缓存 cx-YYYY-NN），
+                    // 否则 refreshHomeGrid 会用旧命名缓存覆盖新 trainings.json，导致春季/夏季不显示
+                    console.log('[缓存] APK 升级检测：'+(oldPwaVer||oldApkVer||'(无)')+' → '+newApkVer+'，清除所有 cx-* 缓存');
+                    caches.keys().then(function(keys){
+                        return Promise.all(keys.filter(function(k){return k.indexOf('cx-')===0||k==='cx-main';}).map(function(k){return caches.delete(k);}));
+                    }).then(function(){
+                        loadTrainingsFromNetwork();
+                    }).catch(function(){
+                        loadTrainingsFromNetwork();
+                    });
                 } else {
                     loadTrainingsWithCache();
                 }
@@ -389,6 +397,19 @@
                 var g=document.getElementById('trainingsGrid');
                 if(!g)return;
 
+                // 合并新版 trainings.json 的 displayTrainings 与已缓存的 cachedList，
+                // 以 displayTrainings 为优先（同 path 取新版数据），追加 cached 中额外下载/合辑训练。
+                // 修复 APK 升级后旧命名缓存覆盖新 trainings.json 导致春季/夏季不显示的问题。
+                function mergeDisplayWithCached(cachedList){
+                    var displayPaths={};
+                    displayTrainings.forEach(function(t){displayPaths[t.path]=true;});
+                    var merged=displayTrainings.slice();
+                    (cachedList||[]).forEach(function(t){
+                        if(!displayPaths[t.path]){merged.push(t);displayPaths[t.path]=true;}
+                    });
+                    return merged;
+                }
+
                 function renderWithLocals(cachedList,namedCacheSet){
                     // 读取历史合辑来源记录（cx_pack_sources），仅对非初始数据的训练打标（初始数据优先级高于历史合辑）
                     namedCacheSet=namedCacheSet||{};
@@ -450,7 +471,7 @@
                     });
 
                     if(!rest.length&&orphanFetches.length===0){
-                        renderWithLocals(byKey.length?byKey:displayTrainings,namedCacheSet);
+                        renderWithLocals(mergeDisplayWithCached(byKey),namedCacheSet);
                         return;
                     }
                     var restCheck=rest.length?Promise.all(rest.map(function(t){
@@ -466,7 +487,7 @@
                             // 将 orphan 的 path 加入 namedCacheSet，避免被错误标记为合辑
                             orphans.forEach(function(t){namedCacheSet[t.path]=true;});
                             var cached=byKey.concat(fromMatch).concat(orphans);
-                            renderWithLocals(cached.length?cached:displayTrainings,namedCacheSet);
+                            renderWithLocals(mergeDisplayWithCached(cached),namedCacheSet);
                         });
                     });
                 }).catch(function(){renderWithLocals(displayTrainings);});
@@ -862,7 +883,9 @@
                 var _capApkVer=null;try{_capApkVer=localStorage.getItem('cx_apk_version');}catch(e){}
                 var _capAutoCheck;try{_capAutoCheck=localStorage.getItem('cx_auto_check_update')==='1';}catch(e){_capAutoCheck=false;}
                 // APK 升级时（apk_version 与 pwa_version 不匹配），无论自动更新开关都需要重新填充
-                var _capApkUpgraded=_capApkVer&&_capVer&&_capApkVer!==_capVer;
+                // 兜底：pwa_version 为 null（旧版从未完成缓存填充）也按升级处理
+                var _capApkUpgraded=(_capApkVer&&_capVer&&_capApkVer!==_capVer)
+                    ||(_capApkVer&&!_capVer);
                 // 关闭自动更新且已有本地版本且 APK 未升级：跳过，不请求 version.json
                 if(!_capAutoCheck && _capVer && !_capApkUpgraded) {
                     // 不做任何网络请求

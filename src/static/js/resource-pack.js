@@ -310,7 +310,12 @@
         return caches.open(CACHE_NAME).then(function (cache) {
           var files = [];
           zip.forEach(function (relativePath, zipEntry) {
-            if (!zipEntry.dir) files.push({ path: relativePath, entry: zipEntry });
+            if (zipEntry.dir) return;
+            // 跳过 macOS 元数据垃圾文件（._ 前缀 / __MACOSX 目录）
+            var baseName = relativePath.split('/').pop() || '';
+            if (baseName.indexOf('._') === 0) return;
+            if (relativePath.indexOf('__MACOSX') >= 0) return;
+            files.push({ path: relativePath, entry: zipEntry });
           });
           var done = 0;
           function nextFile() {
