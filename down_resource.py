@@ -486,10 +486,18 @@ def inspect_zip_contents(zip_path: Path) -> List[Dict[str, Any]]:
     
     只返回 ZIP_TARGET_EXTENSIONS 中匹配的文件，跳过目录、macOS 元数据文件和无关文件。
     Word/EPUB 文件还需通过 classify_document_type(strict=True) 类型识别才算目标资源。
-    每个成员信息包含: name(解码后文件名), size(压缩后大小), is_target(是否为目标资源)。
+    当 ZIP 内文件名无法识别类型时，用 ZIP 文件名作为上下文 fallback（类似 Notion heading 上下文）。
+    每个成员信息包含: name(解码后文件名), size(压缩后大小), is_target(是否为目标资源),
+    doc_type(识别的文档类型，用于后续重命名)。
     """
     if not zip_path.exists():
         return []
+    
+    # 从 ZIP 文件名推断类型上下文（类似 Notion heading 提供的分区上下文）
+    zip_stem = zip_path.stem  # e.g. "05 Transcripts", "06 HWMR", "02 Outlines with Verses"
+    zip_doc_type = classify_document_type(zip_stem, strict=True)
+    zip_has_verses = 'with verses' in zip_stem.lower()
+    
     try:
         with zipfile.ZipFile(zip_path, 'r') as zf:
             results = []
@@ -503,19 +511,35 @@ def inspect_zip_contents(zip_path: Path) -> List[Dict[str, Any]]:
                 lower_name = name.lower()
                 is_target = any(lower_name.endswith(ext) for ext in ZIP_TARGET_EXTENSIONS)
                 
-                # Word/EPUB 需通过类型识别才算目标资源
+                # Word/EPUB 需通过筛选才算目标资源（与 Notion 单文件下载一致）
                 base_name = Path(name).name
                 is_renameable = any(lower_name.endswith(ext) for ext in _RENAMEABLE_EXTENSIONS)
+                doc_type = None
                 if is_renameable and is_target:
-                    doc_type = classify_document_type(base_name, strict=True)
-                    if not doc_type:
-                        is_target = False  # 无法识别类型，不算目标资源
+                    if not is_simplified_chinese(base_name):
+                        is_target = False
+                    elif lower_name.endswith('.epub'):
+                        pass  # EPUB 只需简体中文检查，不需要类型识别
+                    else:
+                        # Word：类型识别 + 经文需 with verses-s
+                        doc_type = classify_document_type(base_name, strict=True)
+                        if not doc_type and zip_doc_type:
+                            # fallback: 用 ZIP 文件名上下文推断类型
+                            doc_type = zip_doc_type
+                        if not doc_type:
+                            is_target = False
+                        elif doc_type == '经文':
+                            # 经文需 with verses-s 检查
+                            # 文件名含 with verses-s 或 ZIP 名含 with verses 均可通过
+                            if not is_with_verses_s(base_name) and not zip_has_verses:
+                                is_target = False
                 
                 results.append({
                     'name': name,
                     'size': info.file_size,
                     'compressed_size': info.compress_size,
                     'is_target': is_target,
+                    'doc_type': doc_type,
                     'info': info,
                 })
             return results
@@ -604,12 +628,19 @@ def smart_unzip_by_content(zip_path: Path) -> List[Path]:
     - .doc / .docx → 按类型重命名（经文.docx / 听抄.doc / 晨兴.doc / 晨兴2.doc...）
     - .txt → 保留原始文件名
     - 无法识别类型的 Word/EPUB 文件直接丢弃
+    
+    当 ZIP 内文件名无法识别类型时，用 ZIP 文件名作为上下文 fallback（类似 Notion heading 上下文）。
     """
     if not zip_path.exists():
         return []
     
     training_folder = zip_path.parent.name
     extracted: List[Path] = []
+    
+    # 从 ZIP 文件名推断类型上下文（类似 Notion heading 提供的分区上下文）
+    zip_stem = zip_path.stem
+    zip_doc_type = classify_document_type(zip_stem, strict=True)
+    zip_has_verses = 'with verses' in zip_stem.lower()
     
     try:
         with zipfile.ZipFile(zip_path, 'r') as zf:
@@ -657,12 +688,29 @@ def smart_unzip_by_content(zip_path: Path) -> List[Path]:
                     extracted.append(target_path)
                     continue
                 
-                # Word / EPUB：用 classify_document_type(strict=True) 识别类型
-                # 无法识别的文件直接丢弃
-                doc_type = classify_document_type(base_name, strict=True)
-                if not doc_type:
-                    print(f"  [SKIP] 无法识别类型，跳过: {base_name}")
-                    continue
+                # Word / EPUB：与 Notion 单文件下载一致
+                # EPUB 只检查简体中文，不需要类型识别（与 collect_file 一致）
+                doc_type = None
+                if is_epub:
+                    if not is_simplified_chinese(base_name):
+                        print(f"  [SKIP] EPUB 非简体中文，跳过: {base_name}")
+                        continue
+                else:
+                    # Word：检查简体中文 → 类型识别 → 经文需 with verses-s
+                    if not is_simplified_chinese(base_name):
+                        print(f"  [SKIP] 非简体中文，跳过: {base_name}")
+                        continue
+                    doc_type = classify_document_type(base_name, strict=True)
+                    if not doc_type and zip_doc_type:
+                        # fallback: 用 ZIP 文件名上下文推断类型
+                        doc_type = zip_doc_type
+                    if not doc_type:
+                        print(f"  [SKIP] 无法识别类型，跳过: {base_name}")
+                        continue
+                    if doc_type == '经文':
+                        if not is_with_verses_s(base_name) and not zip_has_verses:
+                            print(f"  [SKIP] 经文缺少 with verses-s，跳过: {base_name}")
+                            continue
                 
                 out_dir = zip_path.parent
                 out_dir.mkdir(parents=True, exist_ok=True)
