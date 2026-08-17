@@ -703,7 +703,8 @@
             if (e.key === 'Escape') {
                 const panel = document.getElementById('themePanel');
                 if (panel && panel.classList.contains('show')) {
-                    window.toggleThemePanel(); // 通过统一入口关闭，消耗 history
+                e._cxConsumed = true;
+                window.toggleThemePanel(); // 通过统一入口关闭，消耗 history
                 }
             }
         });

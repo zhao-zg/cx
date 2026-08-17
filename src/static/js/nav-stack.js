@@ -454,6 +454,8 @@
                     cls.contains('toc-item')            || cls.contains('scripture-popup') ||
                     cls.contains('scripture-popup-overlay') || cls.contains('scripture-popup-body') ||
                     cls.contains('scripture-popup-header') ||
+                    cls.contains('theme-panel-overlay')        || cls.contains('hl-modal-mask') ||
+                    cls.contains('cx-search-overlay')         || cls.contains('image-viewer-overlay') ||
                     cls.contains('cx-highlight')        || cls.contains('cx-note-icon')) return false;
             }
             el = el.parentElement;
@@ -468,6 +470,8 @@
 
     /* 全局点击监听 */
     document.addEventListener('click', function(e) {
+        /* 点击已被其他模块消费（如关闭弹框），不再触发浮动栏 */
+        if (e._cxConsumed) return;
         // 浮动栏已显示 → 浮动栏外任意点击收起（浮动栏内部点击已被 stopPropagation，不会到达这里）
         if (_el && _el.classList.contains('show')) {
             hide();

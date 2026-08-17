@@ -1120,7 +1120,7 @@
                 if (id) self.saveNote(id, text);
             });
             modal.addEventListener('click', function (e) {
-                if (e.target === modal) closeModal();
+                if (e.target === modal) { e._cxConsumed = true; closeModal(); }
             });
 
             // 防触摸滚动穿透 + 触摸遮罩空白区关闭（与 click 事件互补，不冲突）
@@ -1382,7 +1382,7 @@
                 var annMenu = document.getElementById('hl-annotation-menu');
                 var outsideSel = selMenu && selMenu.style.display !== 'none' && !selMenu.contains(e.target);
                 var outsideAnn = annMenu && annMenu.style.display !== 'none' && !annMenu.contains(e.target);
-                if (outsideSel || outsideAnn) self.hideAllMenus();
+                if (outsideSel || outsideAnn) { self.hideAllMenus(); e._cxConsumed = true; }
             });
 
             document.addEventListener('keydown', function (e) {

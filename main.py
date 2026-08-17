@@ -565,10 +565,13 @@ def process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_f
                     _json_str = _raw[_json_start:_json_end + 1]
                     hymn_meta = json.loads(_json_str)
                     patched = hymn_meta.get('patched_chapters', 0)
+                    orphans = hymn_meta.get('orphan_images_cleaned', 0)
                     if patched:
                         print(f"  ✓ 诗歌数据已合并: {patched}/{hymn_meta.get('total_chapters', 0)} 篇")
                     else:
                         print(f"  ⚠ 无诗歌数据需要合并")
+                    if orphans:
+                        print(f"  ✓ 清理孤儿图片: {orphans} 张")
                 else:
                     print(f"  ⚠ 诗歌补丁输出无 JSON，跳过")
             elif hymn_result.returncode != 0:
@@ -761,10 +764,13 @@ def process_batch_epub(batch_folder, config, batch_config, safe_batch_name, epub
                     _json_str = _raw[_json_start:_json_end + 1]
                     hymn_meta = json.loads(_json_str)
                     patched = hymn_meta.get('patched_chapters', 0)
+                    orphans = hymn_meta.get('orphan_images_cleaned', 0)
                     if patched:
                         print(f"  ✓ 诗歌数据已合并: {patched}/{hymn_meta.get('total_chapters', 0)} 篇")
                     else:
                         print(f"  ⚠ 无诗歌数据需要合并")
+                    if orphans:
+                        print(f"  ✓ 清理孤儿图片: {orphans} 张")
                 else:
                     print(f"  ⚠ 诗歌补丁输出无 JSON，跳过")
             elif hymn_result.returncode != 0:

@@ -149,12 +149,41 @@ def patch_training_json(output_dir, batch_folder):
         if updated:
             patched += 1
 
+    # ── 清理被 Word 图片覆盖的 EPUB 孤儿诗歌图片 ──────────────────────────────
+    # EPUB 图片命名格式为 {number}_hymn.png（如 1_hymn.png），
+    # Word 图片命名格式为 hymn_{number}.png（如 hymn_1.png）。
+    # patch 后 training.json 引用已指向 Word 图片，EPUB 图片成为孤儿文件，需删除。
+    images_dir = os.path.join(output_dir, 'images')
+    cleaned = 0
+    if os.path.isdir(images_dir):
+        # 收集 patch 后仍被引用的所有图片文件名
+        referenced_files = set()
+        for ch in training_data['chapters']:
+            for img_path in ch.get('hymn_images', []):
+                referenced_files.add(os.path.basename(img_path))
+            # 兼容旧字段
+            if ch.get('hymn_image'):
+                referenced_files.add(os.path.basename(ch['hymn_image']))
+
+        # EPUB 图片的命名模式：{number}_hymn.{ext}
+        epub_hymn_re = re.compile(r'^\d+_hymn\.\w+$')
+        for fname in os.listdir(images_dir):
+            if epub_hymn_re.match(fname) and fname not in referenced_files:
+                orphan_path = os.path.join(images_dir, fname)
+                try:
+                    os.remove(orphan_path)
+                    cleaned += 1
+                    print(f"  清理孤儿图片: {fname}", file=sys.stderr)
+                except Exception as e:
+                    print(f"  ⚠ 删除失败 {fname}: {e}", file=sys.stderr)
+
     # 写回 training.json
     with open(training_path, 'w', encoding='utf-8') as f:
         json.dump(training_data, f, ensure_ascii=False, indent=2)
 
     result = {
         'patched_chapters': patched,
+        'orphan_images_cleaned': cleaned,
         'morning_docs': [os.path.basename(d) for d in morning_docs],
         'total_chapters': chapter_count,
     }

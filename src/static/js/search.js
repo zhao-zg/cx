@@ -1005,7 +1005,8 @@
       // 事件绑定
       var self = this;
 
-      modal.querySelector('.cx-search-overlay').addEventListener('click', function () {
+      modal.querySelector('.cx-search-overlay').addEventListener('click', function (e) {
+        e._cxConsumed = true;
         self.close();
       });
       modal.querySelector('.cx-search-close').addEventListener('click', function () {

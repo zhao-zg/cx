@@ -275,7 +275,7 @@
                 if (!_gestured && e.target === overlay) close();
             });
             overlay.addEventListener('click', function (e) {
-                if (e.target === overlay) close();
+                if (e.target === overlay) { e._cxConsumed = true; close(); }
             });
 
             var shareBtn = document.getElementById('viewerShare');

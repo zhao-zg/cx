@@ -720,6 +720,8 @@
     /* 平板不锁滚动，history.back() 会异步恢复滚动位置，提前保存并还原 */
     var savedScrollY = window.scrollY;
     closeModal();
+    /* 标记本次 click 已被消费，防止冒泡到浮动栏误触 */
+    e._cxConsumed = true;
     /* history.back() 是异步的，用 popstate 之后恢复最可靠 */
     window.addEventListener('popstate', function restoreScroll() {
       window.removeEventListener('popstate', restoreScroll);
