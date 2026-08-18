@@ -47,6 +47,16 @@
   var _scrollPageKey = null;  // 当前页面的 per-page 滚动键（cx 分页器视图除外均有）
 
   function loadTraining(batchPath) {
+    // 已删除训练黑名单检查：用户在资源管理中删除的训练不应再打开
+    // （本地导入 local- 前缀的不受黑名单管理，由 CXLocalImport.deleteImport 独立处理）
+    if (batchPath && batchPath.indexOf('local-') !== 0) {
+      try {
+        var deletedMap = JSON.parse(win.localStorage.getItem('cx_deleted_trainings') || '{}') || {};
+        if (deletedMap[batchPath]) {
+          return Promise.reject(new Error('该训练已被删除，请在资源管理中重新安装'));
+        }
+      } catch (e) {}
+    }
     if (_cache[batchPath]) return Promise.resolve(_cache[batchPath]);
     // 本地导入训练（LocalForage）
     if (batchPath.indexOf('local-') === 0 && win.CXLocalImport) {
@@ -1563,7 +1573,15 @@
     renderMotto: renderMotto,
     renderMottoSong: renderMottoSong,
     extractRefs: extractRefs,
-    outlineLevelClass: outlineLevelClass
+    outlineLevelClass: outlineLevelClass,
+    // 清除指定训练的内存缓存（删除训练时调用，避免删除后仍从内存秒开）
+    invalidateCache: function (batchPath) {
+      if (!batchPath) return;
+      delete _cache[batchPath];
+      if (win.CXSearch && win.CXSearch.evictTraining) {
+        try { win.CXSearch.evictTraining(batchPath); } catch (e) {}
+      }
+    }
   };
 
   // ── 退出/后台时立即保存滚动位置（跳过防抖，防止 300ms 内退出导致位置丢失）──────

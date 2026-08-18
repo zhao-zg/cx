@@ -181,8 +181,16 @@
       var entries = this._buildSearchEntries(path, data);
       this._searchCache[path] = entries;
       if (!win.localforage) return;
-      var version = this._trainingVersions[path] || data.version || '';
+      var version = this._trainingVersions[path] || (data && data.version) || '';
       win.localforage.setItem('cx_search_' + path, { version: version, entries: entries });
+    },
+
+    // ── 驱逐训练的搜索缓存（删除训练时调用）────────────────
+    evictTraining: function (path) {
+      if (!path) return;
+      delete this._searchCache[path];
+      this._searchQueue = Object.keys(this._searchCache);
+      if (win.localforage) { try { win.localforage.removeItem('cx_search_' + path); } catch (e) {} }
     },
 
     // ── 确保 trainings.json 已加载（建立版本表）──────────────────────────

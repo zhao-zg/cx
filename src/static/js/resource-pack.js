@@ -14,6 +14,8 @@
   var SOURCES_KEY = 'cx_pack_sources';
   // 记录初始安装的训练元数据，供删除后展示"可恢复"状态用
   var INITIAL_TRAININGS_KEY = 'cx_initial_trainings';
+  // 已删除训练黑名单：删除后记录 path，主页与渲染器据此过滤，避免 trainings.json/orphan 扫描重新显示已删除训练
+  var DELETED_KEY = 'cx_deleted_trainings';
 
   // ── 工具 ───────────────────────────────────────────────────────────────────────────
 
@@ -139,6 +141,26 @@
     try { win.localStorage.setItem(INITIAL_TRAININGS_KEY, JSON.stringify(obj)); } catch (e) {}
   }
 
+  // 已删除训练黑名单读写：记录用户主动删除的训练 path
+  function _loadDeleted() {
+    try { var o = JSON.parse(win.localStorage.getItem(DELETED_KEY) || '{}'); return o || {}; }
+    catch (e) { return {}; }
+  }
+  function _saveDeleted(obj) {
+    try { win.localStorage.setItem(DELETED_KEY, JSON.stringify(obj)); } catch (e) {}
+  }
+  function _markDeleted(path) {
+    if (!path) return;
+    var d = _loadDeleted();
+    d[path] = Date.now();
+    _saveDeleted(d);
+  }
+  function _unmarkDeleted(path) {
+    if (!path) return;
+    var d = _loadDeleted();
+    if (d.hasOwnProperty(path)) { delete d[path]; _saveDeleted(d); }
+  }
+
   function _markPackSources(pack) {
     var sources = _loadSources();
     var ts = Date.now();
@@ -152,12 +174,18 @@
 
   // 来源感知删除整包：只删该包下载且未被后续操作覆写的训练
   function deletePack(pack, onDone) {
-    if (!('caches' in win)) { if (onDone) onDone(); return; }
     var sources = _loadSources();
     var pathsToDelete = (pack.trainings || []).filter(function (t) {
       var rec = sources[t.path];
       return !rec || rec.packPath === pack.path;
     }).map(function (t) { return t.path; });
+    // 记录黑名单（无论 caches 是否可用，主页都据此过滤）
+    pathsToDelete.forEach(function (tp) { _markDeleted(tp); });
+    // 同步清除 renderer 内存缓存
+    pathsToDelete.forEach(function (tp) {
+      if (win.CXRenderer && win.CXRenderer.invalidateCache) win.CXRenderer.invalidateCache(tp);
+    });
+    if (!('caches' in win)) { if (onDone) onDone(); return; }
     caches.open(CACHE_NAME).then(function (cache) {
       return cache.keys().then(function (keys) {
         var toDelete = keys.filter(function (req) {
@@ -176,8 +204,12 @@
     }).catch(function () { if (onDone) onDone(); });
   }
 
-  // 删除单个训练缓存：同时清命名缓存 cx-{path} 和 cx-main 内的条目
+  // 删除单个训练缓存：同时清命名缓存 cx-{path} 和 cx-main 内的条目，并记录黑名单
   function deleteTraining(trainingPath, onDone) {
+    // 先记录黑名单（无论 caches 是否可用，主页都据此过滤）
+    _markDeleted(trainingPath);
+    // 同步清除 renderer 内存缓存（避免删除后点击仍从内存秒开）
+    if (win.CXRenderer && win.CXRenderer.invalidateCache) win.CXRenderer.invalidateCache(trainingPath);
     if (!('caches' in win)) { if (onDone) onDone(); return; }
     var prefix = '/' + trainingPath + '/';
     var namedName = 'cx-' + trainingPath;
@@ -212,6 +244,8 @@
         return cache.put(url, r);
       });
     }).then(function () {
+      // 恢复成功后才清除黑名单，避免失败时主页显示但点不开
+      _unmarkDeleted(trainingPath);
       if (win.refreshHomeGrid) win.refreshHomeGrid();
       if (onSuccess) onSuccess();
     }).catch(function (err) {
@@ -344,6 +378,8 @@
       })
       .then(function () {
         _markPackSources(pack);
+        // 重新下载后清除黑名单（downloadPack 成功意味着这些训练又可用了）
+        (pack.trainings || []).forEach(function (t) { _unmarkDeleted(t.path); });
       });
   }
 
@@ -1062,6 +1098,17 @@
     isPackCached: isPackCached,
     downloadPack: downloadPack,
     downloadAll: downloadAll,
+    // 是否已删除（供主页/渲染器查询）
+    isDeleted: function (path) { return !!path && !!_loadDeleted()[path]; },
+    // 批量清理黑名单（APK 升级或 trainings.json 版本变化时由主流程调用）
+    pruneDeleted: function (validPaths) {
+      var d = _loadDeleted();
+      var valid = {};
+      (validPaths || []).forEach(function (p) { valid[p] = true; });
+      var changed = false;
+      Object.keys(d).forEach(function (p) { if (valid[p]) { delete d[p]; changed = true; } });
+      if (changed) _saveDeleted(d);
+    }
   };
 
 }(window));

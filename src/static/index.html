@@ -397,13 +397,20 @@
                 var g=document.getElementById('trainingsGrid');
                 if(!g)return;
 
+                // 已删除训练黑名单：用户在资源管理中删除的训练不显示在主页
+                var deletedMap={};
+                try{deletedMap=JSON.parse(localStorage.getItem('cx_deleted_trainings')||'{}')||{};}catch(e){}
+                function isDeleted(t){return!!deletedMap[t.path];}
+                // 过滤掉已删除的训练（displayTrainings 来自 trainings.json，始终包含所有训练）
+                var visibleDisplay=displayTrainings.filter(function(t){return!isDeleted(t);});
+
                 // 合并新版 trainings.json 的 displayTrainings 与已缓存的 cachedList，
                 // 以 displayTrainings 为优先（同 path 取新版数据），追加 cached 中额外下载/合辑训练。
                 // 修复 APK 升级后旧命名缓存覆盖新 trainings.json 导致春季/夏季不显示的问题。
                 function mergeDisplayWithCached(cachedList){
                     var displayPaths={};
-                    displayTrainings.forEach(function(t){displayPaths[t.path]=true;});
-                    var merged=displayTrainings.slice();
+                    visibleDisplay.forEach(function(t){displayPaths[t.path]=true;});
+                    var merged=visibleDisplay.slice();
                     (cachedList||[]).forEach(function(t){
                         if(!displayPaths[t.path]){merged.push(t);displayPaths[t.path]=true;}
                     });
@@ -426,19 +433,21 @@
                                 var kb=b.path.replace(/^local-/,'');
                                 return kb.localeCompare(ka);
                             });
-                            g.innerHTML=buildGridHtml(combined.length?combined:displayTrainings);
+                            g.innerHTML=buildGridHtml(combined.length?combined:visibleDisplay);
                         }).catch(function(){
-                            g.innerHTML=buildGridHtml(cachedList.length?cachedList:displayTrainings);
+                            g.innerHTML=buildGridHtml(cachedList.length?cachedList:visibleDisplay);
                         });
                     } else {
-                        g.innerHTML=buildGridHtml(cachedList.length?cachedList:displayTrainings);
+                        g.innerHTML=buildGridHtml(cachedList.length?cachedList:visibleDisplay);
                     }
                 }
 
-                if(!('caches' in window)){renderWithLocals(displayTrainings);return;}
+                if(!('caches' in window)){renderWithLocals(visibleDisplay);return;}
                 // 检查全部训练是否已缓存：先用 caches.keys() 快速找到 cx-YYYY-NN 独立缓存，
                 // 再对剩余项做 caches.match（覆盖 cx-main 资源包下载的训练）
                 var all=allTrainings.length?allTrainings:displayTrainings;
+                // 过滤已删除的训练（all 也来自 trainings.json，始终包含所有训练）
+                all=all.filter(function(t){return!isDeleted(t);});
                 caches.keys().then(function(keys){
                     var keySet={};keys.forEach(function(k){keySet[k]=true;});
                     var byKey=all.filter(function(t){return keySet['cx-'+t.path];});
@@ -452,7 +461,8 @@
                     all.forEach(function(t){allPaths[t.path]=true;});
                     var orphanKeys=keys.filter(function(k){
                         var m=k.match(/^cx-(\d{4}-\d{2})$/);
-                        return m&&!allPaths[m[1]];
+                        // orphan 也要排除已删除的训练（黑名单中的 path 不重新出现）
+                        return m&&!allPaths[m[1]]&&!deletedMap[m[1]];
                     });
                     var orphanFetches=orphanKeys.map(function(k){
                         var tp=k.slice(3); // 去掉 "cx-" 前缀
@@ -490,7 +500,7 @@
                             renderWithLocals(mergeDisplayWithCached(cached),namedCacheSet);
                         });
                     });
-                }).catch(function(){renderWithLocals(displayTrainings);});
+                }).catch(function(){renderWithLocals(visibleDisplay);});
             };
 
             window.refreshHomeGrid();
