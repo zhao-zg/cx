@@ -1,5 +1,7 @@
 ﻿name: 构建离线版APK
 
+retention-days: 1
+
 on:
   push:
     tags:
