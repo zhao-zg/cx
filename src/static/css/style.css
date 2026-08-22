@@ -408,7 +408,7 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 }
 
 /* ── 六、页面间导航栏 ───────────────────────────────────────── */
-.page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:10px 0 10px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.83em;box-sizing:border-box;overflow:hidden;box-shadow:var(--shadow-sm)}
+.page-navigation{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:0;margin:10px 0 10px;padding:6px;background:transparent;border:none;border-radius:var(--radius-md);font-size:0.83em;box-sizing:border-box;overflow:hidden;box-shadow:none}
 .page-navigation .nav-link{color:var(--btn-secondary-text);text-decoration:none;padding:0 8px;border-radius:0;font-size:0.84em;background:var(--surface-alt);border:1px solid var(--btn-secondary-border);height:38px;line-height:38px;display:inline-flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;white-space:nowrap;box-sizing:border-box;font-weight:600;box-shadow:none}
 .page-navigation .nav-link + .nav-link{border-left:1px solid var(--border)}
 .page-navigation .nav-link:first-child{border-top-left-radius:var(--radius-sm);border-bottom-left-radius:var(--radius-sm)}
