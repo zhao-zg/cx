@@ -234,7 +234,7 @@ def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, 
         "function _d(s){return atob(s);}"
         "window.CX_SERVERS={"
         f"cloudflare:{arr(cf)},"
-        f"githubApi:{_d('{b64(gh_api)}')},"
+        f"githubApi:_d('{b64(gh_api)}'),"
         f"githubMirrors:{arr(mirrors)},"
         f"push:{arr(push)},"
         f"ipApis:{arr(ip_apis)},"
