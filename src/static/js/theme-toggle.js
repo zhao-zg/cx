@@ -725,15 +725,6 @@
         if (section) section.style.display = 'block';
         var statusEl = document.getElementById('actionStatus');
 
-        // ── 使用时长跟踪：记录首次启动时间 ─────────────────────────
-        (function() {
-            try {
-                if (!localStorage.getItem('cx_first_use')) {
-                    localStorage.setItem('cx_first_use', Date.now().toString());
-                }
-            } catch(e) {}
-        })();
-
         // ── 顾念微工：默认隐藏，等可达性检查完成后在 then 回调中决定是否探测 ──
 
         // ── 使用说明（所有页面）──────────────────────────────────────
@@ -862,19 +853,85 @@
             updateServerDependentButtons(reachable);
         });
 
-        // ── 赞助按钮：默认可见，不依赖服务器探测，点击打开弹框时再按需加载远程图片 ──
-        (function() {
-            var sponsorBtn = document.getElementById('sponsorBtn');
-            if (!sponsorBtn || sponsorBtn.dataset.probed) return;
-            try {
-                var firstUse = parseInt(localStorage.getItem('cx_first_use') || '0', 10);
-                var elapsed = firstUse ? (Date.now() - firstUse) : 0;
-                if (elapsed >= 5 * 60 * 1000) {
-                    sponsorBtn.dataset.probed = '1';
-                    sponsorBtn.style.display = 'inline-flex';
-                    sponsorBtn.addEventListener('click', showSponsorDialog);
+        // ── 赞助按钮：按累计前台使用时长显示 ──────────────────────────────
+        // 显示条件：sponsorEnabled 开启，且累计前台活跃时长 ≥ sponsorShowMinutes 分钟。
+        // 活跃时长按「页面可见才计时」累计（切后台/锁屏暂停），非墙钟时间。
+        window.CX = window.CX || {};
+
+        // 全局活跃时长跟踪器（只初始化一次，供每次打开设置面板复用）
+        if (!window.CX.activeTimeTracker) {
+            window.CX.activeTimeTracker = (function() {
+                var KEY = 'cx_active_ms';
+                var start = null; // 当前前台会话的起始时间戳（内存），null 表示处于后台
+
+                function loadTotal() {
+                    try { return parseInt(localStorage.getItem(KEY) || '0', 10) || 0; }
+                    catch(e) { return 0; }
                 }
-            } catch(e) {}
+                function saveTotal(ms) {
+                    try { localStorage.setItem(KEY, String(ms)); } catch(e) {}
+                }
+                function onVisible() {
+                    if (start === null) start = Date.now();
+                }
+                function onHidden() {
+                    if (start === null) return;
+                    var added = Date.now() - start;
+                    start = null;
+                    saveTotal(loadTotal() + added);
+                }
+
+                // 累计前台时长（含当前仍在进行的会话）
+                function getActiveMs() {
+                    var total = loadTotal();
+                    if (start !== null) total += (Date.now() - start);
+                    return total;
+                }
+
+                // 初始化：若当前可见则开始计时
+                if (document.visibilityState !== 'hidden') onVisible();
+                document.addEventListener('visibilitychange', function() {
+                    if (document.hidden) onHidden();
+                    else onVisible();
+                });
+                // 切后台/卸载兜底保存
+                window.addEventListener('pagehide', onHidden);
+                window.addEventListener('beforeunload', onHidden);
+
+                return { getActiveMs: getActiveMs, onVisible: onVisible, onHidden: onHidden };
+            })();
+        }
+
+        (function() {
+            // 统一评估入口（幂等）：动态获取当前 DOM 按钮，防止重复 init 后旧按钮 detached。
+            // 触发点：初始化 / 切回前台 / 打开设置面板（toggleThemePanel 内调用）。
+            window.CX.evaluateSponsor = function() {
+                var btn = document.getElementById('sponsorBtn');
+                if (!btn) return;
+                // 读取配置（remote-config.js 注入），缺省默认 5 分钟
+                var cfg = window.CX_SERVERS || {};
+                if (cfg.sponsorEnabled === false) return;   // 配置关闭则永不显示
+                if (btn.dataset.probed) return;
+                var showMinutes = (typeof cfg.sponsorShowMinutes === 'number' && cfg.sponsorShowMinutes > 0)
+                    ? cfg.sponsorShowMinutes : 5;
+                var thresholdMs = showMinutes * 60 * 1000;
+                if (window.CX.activeTimeTracker && window.CX.activeTimeTracker.getActiveMs() >= thresholdMs) {
+                    btn.dataset.probed = '1';
+                    btn.style.display = 'inline-flex';
+                    btn.addEventListener('click', showSponsorDialog);
+                }
+            };
+
+            // 立即评估一次
+            window.CX.evaluateSponsor();
+
+            // 切回前台时再评估（全局去重：SPA 多次 init 只注册一个监听）
+            if (!window.CX._sponsorVisBound) {
+                window.CX._sponsorVisBound = true;
+                document.addEventListener('visibilitychange', function() {
+                    if (!document.hidden) window.CX.evaluateSponsor();
+                });
+            }
         })();
 
 
@@ -1031,14 +1088,14 @@
                     var theme = localStorage.getItem('readingTheme');
                     var fontSize = localStorage.getItem('globalFontSize');
                     var highlights = localStorage.getItem('cx_highlights');
-                    var firstUse = localStorage.getItem('cx_first_use');  // 保留赞助显示时间
+                    var activeMs = localStorage.getItem('cx_active_ms');  // 保留累计使用时长（顾念微工显示进度）
                     for (var i = localStorage.length - 1; i >= 0; i--) {
                         var k = localStorage.key(i); if (k) localStorage.removeItem(k);
                     }
                     if (theme)      localStorage.setItem('readingTheme', theme);
                     if (fontSize)   localStorage.setItem('globalFontSize', fontSize);
                     if (highlights) localStorage.setItem('cx_highlights', highlights);
-                    if (firstUse)   localStorage.setItem('cx_first_use', firstUse);
+                    if (activeMs)   localStorage.setItem('cx_active_ms', activeMs);
                 } catch(ex) {}
                 Promise.all(steps).then(function() {
                     // 完整页面重载而非 hash 切换，确保 SW 真正注销
@@ -1478,6 +1535,8 @@
             panel.classList.add('show');
             if (overlay) overlay.classList.add('show');
             lockPageScroll();
+            // 打开面板时重新评估赞助按钮（面板停留期间跨过阈值也能显示）
+            try { if (window.CX.evaluateSponsor) window.CX.evaluateSponsor(); } catch(e) {}
             // 打开：push 关闭回调
             window.CX.backStack.push(function() {
                 closeThemePanelInternal(panel, overlay);

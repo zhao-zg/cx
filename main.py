@@ -213,7 +213,7 @@ def generate_pages_middleware(config, project_root='.'):
     return mw_path
 
 
-def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True):
+def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, sponsor_show_minutes=5):
     """从配置生成 remote-config.js（URL 以 base64 存储，运行时 atob() 解码）"""
     def b64(s):
         return base64.b64encode(s.encode()).decode()
@@ -227,17 +227,19 @@ def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True):
     push     = remote_servers.get('push', [])
     ip_apis  = remote_servers.get('ip_apis', [])
     sponsor_js = 'true' if sponsor_enabled else 'false'
+    show_minutes_js = max(0, int(sponsor_show_minutes or 0))
 
     js = (
         "(function(){"
         "function _d(s){return atob(s);}"
         "window.CX_SERVERS={"
         f"cloudflare:{arr(cf)},"
-        f"githubApi:_d('{b64(gh_api)}'),"
+        f"githubApi:{_d('{b64(gh_api)}')},"
         f"githubMirrors:{arr(mirrors)},"
         f"push:{arr(push)},"
         f"ipApis:{arr(ip_apis)},"
-        f"sponsorEnabled:{sponsor_js}"
+        f"sponsorEnabled:{sponsor_js},"
+        f"sponsorShowMinutes:{show_minutes_js}"
         "};})();"
     )
 
@@ -1201,7 +1203,8 @@ def generate_main_index(config, batch_results):
     # ── remote-config.js ──────────────────────────────────────────────────
     remote_servers = config.get('remote_servers', {})
     if remote_servers:
-        generate_remote_config_js(remote_servers, output_dir, sponsor_enabled)
+        generate_remote_config_js(remote_servers, output_dir, sponsor_enabled,
+                                  config.get('sponsor_show_minutes', 5))
 
     # ── Cloudflare Pages Functions middleware（时间段访问控制）──────────────
     generate_pages_middleware(config, project_root='.')
