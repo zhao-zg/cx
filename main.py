@@ -213,7 +213,7 @@ def generate_pages_middleware(config, project_root='.'):
     return mw_path
 
 
-def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, sponsor_show_minutes=5):
+def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, sponsor_show_minutes=5, sponsor_links=None):
     """从配置生成 remote-config.js（URL 以 base64 存储，运行时 atob() 解码）"""
     def b64(s):
         return base64.b64encode(s.encode()).decode()
@@ -228,6 +228,12 @@ def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, 
     ip_apis  = remote_servers.get('ip_apis', [])
     sponsor_js = 'true' if sponsor_enabled else 'false'
     show_minutes_js = max(0, int(sponsor_show_minutes or 0))
+    # 赞助弹框外部链接：[{text, url}] → base64 编码后运行时 atob 解码
+    links = sponsor_links or []
+    links_js = '[' + ','.join(
+        '{"text":_d(\'' + b64(item.get('text', '')) + '\'),"url":_d(\'' + b64(item.get('url', '')) + '\')}'
+        for item in links if item.get('url')
+    ) + ']'
 
     js = (
         "(function(){"
@@ -239,7 +245,8 @@ def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, 
         f"push:{arr(push)},"
         f"ipApis:{arr(ip_apis)},"
         f"sponsorEnabled:{sponsor_js},"
-        f"sponsorShowMinutes:{show_minutes_js}"
+        f"sponsorShowMinutes:{show_minutes_js},"
+        f"sponsorLinks:{links_js}"
         "};})();"
     )
 
@@ -1215,7 +1222,8 @@ def generate_main_index(config, batch_results):
     remote_servers = config.get('remote_servers', {})
     if remote_servers:
         generate_remote_config_js(remote_servers, output_dir, sponsor_enabled,
-                                  config.get('sponsor_show_minutes', 5))
+                                  config.get('sponsor_show_minutes', 5),
+                                  config.get('sponsor_links', []))
 
     # ── Cloudflare Pages Functions middleware（时间段访问控制）──────────────
     generate_pages_middleware(config, project_root='.')

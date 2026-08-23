@@ -10,6 +10,11 @@ batch_processing:
 sponsor_enabled: true
 # 顾念微工入口显示条件：累计前台使用时长达到该分钟数后才显示（默认 5 分钟）
 sponsor_show_minutes: 30
+# 顾念微工弹框中的外部链接（多个链接竞速择优跳转，全部不可达时按顺序兜底打开第一个）
+# 每项格式：{ text: "链接文字", url: "https://..." }
+sponsor_links:
+  - text: "软件维护合辑"
+    url: "https://apk.xzdjx.dynv6.net"
 
 # 服务端访问时间段控制（北京时间 UTC+8）
 # 不在允许访问时间段内，所有请求返回 403

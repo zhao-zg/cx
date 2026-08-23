@@ -1210,7 +1210,19 @@
     // 赞助对话框
     function showSponsorDialog() {
         var SPONSOR_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
+        var SPONSOR_LINKS = (window.CX_SERVERS && window.CX_SERVERS.sponsorLinks) || [];
         var imgFiles = { wx: 'images/zanzhu-wx.png', zfb: 'images/zanzhu-zfb.jpg' };
+
+        // 构建外部链接 HTML（每个 link 生成一个按钮）
+        var linksHtml = '';
+        if (SPONSOR_LINKS.length) {
+            linksHtml = '<div class="cx-sponsor-links">' +
+                SPONSOR_LINKS.map(function(link, i) {
+                    return '<button class="cx-sponsor-link" data-link-idx="' + i + '">' +
+                        '<span>🔗</span><span>' + (link.text || '外部链接') + '</span></button>';
+                }).join('') +
+                '</div>';
+        }
 
         var dlg = window.CX.openDialog({
             id: 'cxSponsorMask',
@@ -1224,6 +1236,7 @@
                 '    <button class="cx-sponsor-tab" data-type="zfb">🔵 支付宝</button>',
                 '  </div>',
                 '  <div class="cx-sponsor-img-wrap" id="cxSponsorImgWrap"></div>',
+                linksHtml,
                 '</div>'
             ].join('')
         });
@@ -1238,6 +1251,12 @@
                 dlg.mask.querySelectorAll('.cx-sponsor-tab').forEach(function(b) { b.classList.remove('active'); });
                 tab.classList.add('active');
                 loadImg(tab.dataset.type);
+                return;
+            }
+            // 外部链接点击：多链接竞速择优跳转
+            var linkBtn = t.closest ? t.closest('.cx-sponsor-link') : (t.classList.contains('cx-sponsor-link') ? t : null);
+            if (linkBtn && linkBtn.dataset.linkIdx != null) {
+                openSponsorLink(parseInt(linkBtn.dataset.linkIdx, 10));
             }
         });
 
@@ -1264,6 +1283,36 @@
                     }
                 }
             );
+        }
+
+        // 外部链接竞速跳转：多链接并发 HEAD 探测，首个可达者获胜；全部不可达时回退到第一个 URL 直接打开
+        function openSponsorLink(linkIdx) {
+            if (linkIdx < 0 || linkIdx >= SPONSOR_LINKS.length) return;
+            var targetUrl = SPONSOR_LINKS[linkIdx].url;
+            if (!targetUrl) return;
+            // 单链接直接打开
+            if (SPONSOR_LINKS.length === 1) {
+                window.open(targetUrl, '_blank');
+                return;
+            }
+            // 多链接：用 raceFastest HEAD 竞速，首个可达者获胜
+            var urls = SPONSOR_LINKS.map(function(l) { return l.url; }).filter(Boolean);
+            if (window.CX && window.CX.raceFastest) {
+                window.CX.raceFastest(urls, {
+                    fetchOptions: { method: 'HEAD', cache: 'no-cache' },
+                    timeout: 5000,
+                    logPrefix: '[赞助链接]',
+                    validate: function(r) { return r.ok; }
+                }).then(function(result) {
+                    window.open(result.url, '_blank');
+                }).catch(function() {
+                    // 全部不可达，回退到第一个 URL 直接打开
+                    window.open(targetUrl, '_blank');
+                });
+            } else {
+                // 无 raceFastest 时直接打开点击的链接
+                window.open(targetUrl, '_blank');
+            }
         }
 
         // 初始加载微信

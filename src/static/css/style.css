@@ -730,6 +730,10 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 .cx-sponsor-img-wrap{display:flex;align-items:center;justify-content:center;min-height:60px}
 .cx-sponsor-loading{font-size:12px;color:var(--text-muted)}
 .cx-sponsor-qr{width:200px;height:200px;border-radius:8px;display:block;object-fit:contain}
+/* 赞助弹框外部链接 */
+.cx-sponsor-links{margin-top:14px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.cx-sponsor-link{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--sponsor-text);text-decoration:none;padding:6px 16px;border-radius:20px;border:1px solid var(--sponsor-border);background:var(--sponsor-bg);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s}
+.cx-sponsor-link:active{background:var(--sponsor-bg-active)}
 .cache-icon{font-size:15px;flex-shrink:0;line-height:1;width:20px;text-align:center}
 .cache-text{flex:1}
 .cache-status{margin-top:6px;font-size:12px;color:var(--text-secondary);text-align:center;min-height:14px;padding:0}
