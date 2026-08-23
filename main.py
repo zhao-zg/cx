@@ -1009,13 +1009,9 @@ def process_batch(batch_folder, config, bible_dict: BibleDict = None):
 
 
 
-def generate_main_index(config, batch_results):
-    """生成总主页（SPA 模式）：复制 SPA shell、生成 trainings.json 和所有静态资产。"""
-    if not batch_results:
-        return
-
+def _build_trainings_list(config, batch_results):
+    """从 batch_results 和 output 目录中已有的历史训练构建训练列表。"""
     output_dir = config.get('output_dir', 'output')
-    template_dir = config.get('template_dir', 'src/templates')
 
     # ── 整理训练列表 ──────────────────────────────────────────────────────
     trainings = []
@@ -1094,17 +1090,32 @@ def generate_main_index(config, batch_results):
         return (t['year'], season_order.get(t['season'], 5))
 
     trainings.sort(key=get_sort_key, reverse=True)
+    return trainings, total_chapters
 
-    # ── trainings.json ────────────────────────────────────────────────────
-    trainings_json = {
-        'version': datetime.now().strftime('%Y%m%d%H%M%S'),
-        'generation_time': datetime.now().strftime('%Y年%m月%d日 %H:%M'),
-        'trainings': trainings,
-        'total_chapters': total_chapters,
-    }
-    with open(os.path.join(output_dir, 'trainings.json'), 'w', encoding='utf-8') as f:
-        json.dump(trainings_json, f, ensure_ascii=False, indent=2)
-    print(f"✓ trainings.json 已生成")
+
+def generate_main_index(config, batch_results):
+    """生成总主页（SPA 模式）：复制 SPA shell、生成 trainings.json 和所有静态资产。"""
+    # 即使 batch_results 为空也继续执行：静态资产（sw.js/manifest/CSS/JS 等）
+    # 必须复制到 output，否则 CI 部署会因缺失 sw.js 而失败。
+    output_dir = config.get('output_dir', 'output')
+    template_dir = config.get('template_dir', 'src/templates')
+
+    # ── 构建训练列表 ──────────────────────────────────────────────────────
+    trainings, total_chapters = _build_trainings_list(config, batch_results)
+
+    if trainings:
+        # ── trainings.json ────────────────────────────────────────────────
+        trainings_json = {
+            'version': datetime.now().strftime('%Y%m%d%H%M%S'),
+            'generation_time': datetime.now().strftime('%Y年%m月%d日 %H:%M'),
+            'trainings': trainings,
+            'total_chapters': total_chapters,
+        }
+        with open(os.path.join(output_dir, 'trainings.json'), 'w', encoding='utf-8') as f:
+            json.dump(trainings_json, f, ensure_ascii=False, indent=2)
+        print(f"✓ trainings.json 已生成")
+    else:
+        print("⚠ 没有训练数据可生成 trainings.json（batch_results 为空且无历史训练）")
 
     # ── 复制 SPA index.html shell ─────────────────────────────────────────
     spa_shell_src = os.path.join('src', 'static', 'index.html')
@@ -1250,7 +1261,10 @@ def generate_main_index(config, batch_results):
     sw_src = os.path.join(template_dir, 'main_sw.js')
     if os.path.exists(sw_src):
         shutil.copy2(sw_src, os.path.join(output_dir, 'sw.js'))
-    print(f"✓ Service Worker 已生成")
+        print(f"✓ Service Worker 已生成")
+    else:
+        print(f"⚠ main_sw.js 模板不存在: {sw_src}")
+        raise FileNotFoundError(f"Service Worker 模板不存在: {sw_src}")
 
     # ── _headers（Cloudflare Pages MIME）────────────────────────────────
     headers_src = os.path.join(template_dir, '_headers')
@@ -1587,14 +1601,13 @@ def main():
             failed_count += 1
 
     
-    # 生成总主页
-    if batch_results:
-        try:
-            generate_main_index(config, batch_results)
-        except Exception as e:
-            print(f"⚠ 生成总主页失败: {e}")
-            import traceback
-            traceback.print_exc()
+    # 生成总主页（即使 batch_results 为空也执行，确保静态资产复制）
+    try:
+        generate_main_index(config, batch_results)
+    except Exception as e:
+        print(f"⚠ 生成总主页失败: {e}")
+        import traceback
+        traceback.print_exc()
     
     # 总结
     print("\n" + "="*60)
