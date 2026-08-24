@@ -20,7 +20,7 @@ sponsor_links:
 # 不在允许访问时间段内，所有请求返回 403
 # 注释掉 enabled: true 或删除此节即可关闭限制
 access_time:
-  enabled: true
+  enabled: false
   timezone_offset: 8 # UTC 偏移（北京时间 = +8）
   # ── 统一配置（后备） ──────────────────────────────────
   # 当某天未在 daily_schedule 中配置时，使用此统一时间
@@ -65,6 +65,7 @@ remote_servers:
   cloudflare:
     # 账户 1（主账户）
     - https://cx.1189.dpdns.org/
+    - https://cx.zzgxxx.eu.org/
     - https://cx.zhaozg.cloudns.org/
     - https://cx.bxg.dpdns.org/
     # 账户 2（备用账户）— 在新账户的 Pages 项目部署后取消注释
