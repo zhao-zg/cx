@@ -237,7 +237,9 @@ def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, 
 
     js = (
         "(function(){"
-        "function _d(s){return atob(s);}"
+        # _d: base64 → UTF-8 文本。atob 仅能解码 latin1，中文文本（如 sponsor text）
+        # 需先转字节再经 TextDecoder 还原，避免显示乱码。
+        "function _d(s){var b=atob(s);var u=new Uint8Array(b.length);for(var i=0;i<b.length;i++){u[i]=b.charCodeAt(i);}return new TextDecoder().decode(u);}"
         "window.CX_SERVERS={"
         f"cloudflare:{arr(cf)},"
         f"githubApi:_d('{b64(gh_api)}'),"
