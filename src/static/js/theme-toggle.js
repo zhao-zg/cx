@@ -1211,7 +1211,9 @@
     function showSponsorDialog() {
         var SPONSOR_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
         var SPONSOR_LINKS = (window.CX_SERVERS && window.CX_SERVERS.sponsorLinks) || [];
-        var imgFiles = { wx: 'images/zanzhu-wx.png', zfb: 'images/zanzhu-zfb.jpg' };
+        var SPONSOR_IMAGES = (window.CX_SERVERS && window.CX_SERVERS.sponsorImages) || {};
+        // 兜底：remote-config 未下发图片路径时用旧路径（兼容老版本配置）
+        var imgFiles = { wx: SPONSOR_IMAGES.wx || 'images/zanzhu-wx.png', zfb: SPONSOR_IMAGES.zfb || 'images/zanzhu-zfb.jpg' };
 
         // 构建外部链接 HTML（每个 link 生成一个按钮）
         var linksHtml = '';

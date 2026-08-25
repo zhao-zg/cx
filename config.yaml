@@ -15,6 +15,12 @@ sponsor_show_minutes: 30
 sponsor_links:
   - text: "软件维护合辑"
     url: "https://apk.xzdjx.dynv6.net"
+# 赞助二维码图片路径（下发到 remote-config.js，前端运行时读取）
+# 修改文件名后老版本因硬编码旧路径无法加载，可防止直接获取
+# 对应 src/static/image/ 下的实际文件名
+sponsor_images:
+  wx: "qr-wx-7k2m.png"
+  zfb: "qr-zfb-3f8a.jpg"
 
 # 服务端访问时间段控制（北京时间 UTC+8）
 # 不在允许访问时间段内，所有请求返回 403

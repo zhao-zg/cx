@@ -213,7 +213,7 @@ def generate_pages_middleware(config, project_root='.'):
     return mw_path
 
 
-def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, sponsor_show_minutes=5, sponsor_links=None):
+def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, sponsor_show_minutes=5, sponsor_links=None, sponsor_images=None):
     """从配置生成 remote-config.js（URL 以 base64 存储，运行时 atob() 解码）"""
     def b64(s):
         return base64.b64encode(s.encode()).decode()
@@ -234,6 +234,11 @@ def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, 
         '{"text":_d(\'' + b64(item.get('text', '')) + '\'),"url":_d(\'' + b64(item.get('url', '')) + '\')}'
         for item in links if item.get('url')
     ) + ']'
+    # 赞助二维码图片路径：{wx: "images/xxx.png", zfb: "images/xxx.jpg"} → base64 编码
+    imgs = sponsor_images or {}
+    imgs_js = '{' + ','.join(
+        f'"{k}":_d(\'{b64(v)}\')' for k, v in imgs.items() if v
+    ) + '}'
 
     js = (
         "(function(){"
@@ -248,7 +253,8 @@ def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, 
         f"ipApis:{arr(ip_apis)},"
         f"sponsorEnabled:{sponsor_js},"
         f"sponsorShowMinutes:{show_minutes_js},"
-        f"sponsorLinks:{links_js}"
+        f"sponsorLinks:{links_js},"
+        f"sponsorImages:{imgs_js}"
         "};})();"
     )
 
@@ -1162,7 +1168,12 @@ def generate_main_index(config, batch_results):
     # ── 静态图片 → output/images/（赞助二维码等）───────────────────────
     # 赞助二维码文件（仅在 sponsor_enabled 时发布）
     sponsor_enabled = config.get('sponsor_enabled', True)
-    _SPONSOR_IMAGE_FILES = {'zanzhu-wx.png', 'zanzhu-zfb.jpg'}
+    sponsor_images = config.get('sponsor_images', {})
+    # 从配置读取赞助图片文件名（配置化，可随时改路径防老版本直接获取）
+    _SPONSOR_IMAGE_FILES = set(sponsor_images.values()) if sponsor_images else set()
+    # 兜底：配置缺失时用旧文件名（兼容老配置）
+    if not _SPONSOR_IMAGE_FILES:
+        _SPONSOR_IMAGE_FILES = {'zanzhu-wx.png', 'zanzhu-zfb.jpg'}
     static_img_src = os.path.join('src', 'static', 'image')
     static_img_dst = os.path.join(output_dir, 'images')
     if os.path.exists(static_img_src):
@@ -1183,6 +1194,15 @@ def generate_main_index(config, batch_results):
             if os.path.isfile(old):
                 os.remove(old)
                 print(f"  ✗ 已删除旧赞助图片 images/{fn}")
+
+    # 无论赞助是否开启，都清理旧版硬编码文件名（zanzhu-wx.png / zanzhu-zfb.jpg）
+    # 防止改路径后 output/images/ 中残留旧文件被老版本直接获取
+    if os.path.isdir(static_img_dst):
+        for old_fn in ['zanzhu-wx.png', 'zanzhu-zfb.jpg']:
+            old = os.path.join(static_img_dst, old_fn)
+            if os.path.isfile(old):
+                os.remove(old)
+                print(f"  ✗ 已清理旧版赞助图片 images/{old_fn}")
 
     # ── vendor 目录（localforage 等第三方库）────────────────────────────
     vendor_src = os.path.join('src', 'static', 'js', 'vendor')
@@ -1225,7 +1245,8 @@ def generate_main_index(config, batch_results):
     if remote_servers:
         generate_remote_config_js(remote_servers, output_dir, sponsor_enabled,
                                   config.get('sponsor_show_minutes', 5),
-                                  config.get('sponsor_links', []))
+                                  config.get('sponsor_links', []),
+                                  config.get('sponsor_images', {}))
 
     # ── Cloudflare Pages Functions middleware（时间段访问控制）──────────────
     generate_pages_middleware(config, project_root='.')

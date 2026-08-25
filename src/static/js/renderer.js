@@ -46,6 +46,65 @@
   var _scrollSaveHandler = null;
   var _scrollPageKey = null;  // 当前页面的 per-page 滚动键（cx 分页器视图除外均有）
 
+  // ── 回到顶部悬浮按钮（仅正文阅读页启用）───────────────────────────────
+  var _backTopActive = false;   // 当前是否处于正文阅读页
+  var _backTopShown = false;    // 当前是否已显示按钮
+  var _backTopEl = null;        // 缓存 #backToTop 元素
+  var _backTopRaf = null;       // 滚动节流的 rAF 句柄
+  var _backTopTick = false;     // 是否已绑定常驻事件
+
+  function _getBackTopEl() {
+    if (_backTopEl) return _backTopEl;
+    _backTopEl = document.getElementById('backToTop');
+    return _backTopEl;
+  }
+
+  function _backTopSetVisible(v) {
+    var el = _getBackTopEl();
+    if (!el) return;
+    if (v && !_backTopShown) { el.classList.add('visible'); _backTopShown = true; }
+    else if (!v && _backTopShown) { el.classList.remove('visible'); _backTopShown = false; }
+  }
+
+  // 根据当前滚动位置决定按钮显示/隐藏（滚动 > 约 1 屏才显示）
+  function _backTopSync() {
+    var y = (win.scrollY || 0);
+    if (_backTopActive && y > 400) _backTopSetVisible(true);
+    else _backTopSetVisible(false);
+  }
+
+  function _backTopOnScroll() {
+    if (_backTopRaf) return;
+    _backTopRaf = win.requestAnimationFrame(function() {
+      _backTopRaf = null;
+      _backTopSync();
+    });
+  }
+
+  function _backTopOnClick(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+    try { win.scrollTo({ top: 0, behavior: 'smooth' }); }
+    catch (err) { win.scrollTo(0, 0); }
+  }
+
+  function backTopEnable() {
+    _backTopActive = true;
+    var el = _getBackTopEl();
+    if (!el) return;
+    if (!_backTopTick) {
+      _backTopTick = true;
+      win.addEventListener('scroll', _backTopOnScroll, { passive: true });
+      el.addEventListener('click', _backTopOnClick);
+    }
+    // 进入正文时同步一次（可能从带滚动位置返回）
+    _backTopSync();
+  }
+  function backTopDisable() {
+    _backTopActive = false;
+    _backTopSync(); // 立即隐藏
+  }
+
   function loadTraining(batchPath) {
     // 已删除训练黑名单检查：用户在资源管理中删除的训练不应再打开
     // （本地导入 local- 前缀的不受黑名单管理，由 CXLocalImport.deleteImport 独立处理）
@@ -1239,6 +1298,7 @@
   // ── 批次目录页 ──────────────────────────────────────────────────────────
 
   function renderBatchIndex(batchPath) {
+    backTopDisable(); // 目录/列表页不显示回到顶部按钮
     // 离开听抄等章节页前，丢弃还未提交的 scroll 防抖 timer，避免 scrollTo(0,0) 触发的 scroll
     // 事件在 300ms 后把 scrollY=0 写回 cx_h_scroll 键，覆盖用户的记忆位置
     if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
@@ -1326,6 +1386,7 @@
   }
 
   function renderMotto(batchPath) {
+    backTopDisable(); // 语录页不显示回到顶部按钮
     if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
     if (_scrollSaveHandler) { win.removeEventListener('scroll', _scrollSaveHandler); _scrollSaveHandler = null; }
     _scrollPageKey = null;
@@ -1402,6 +1463,7 @@
   }
 
   function renderMottoSong(batchPath) {
+    backTopDisable(); // 诗歌页不显示回到顶部按钮
     if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
     if (_scrollSaveHandler) { win.removeEventListener('scroll', _scrollSaveHandler); _scrollSaveHandler = null; }
     _scrollPageKey = null;
@@ -1484,6 +1546,7 @@
   }
 
   function renderHome() {
+    backTopDisable(); // 离开正文页，隐藏回到顶部按钮
     if (_scrollSaveTimer) { clearTimeout(_scrollSaveTimer); _scrollSaveTimer = null; }
     if (_scrollSaveHandler) { win.removeEventListener('scroll', _scrollSaveHandler); _scrollSaveHandler = null; }
     _scrollPageKey = 'cx_scroll:home';
@@ -1533,6 +1596,7 @@
   // ── 章节视图分发 ────────────────────────────────────────────────────────
 
   function renderChapterView(batchPath, chNum, viewType) {
+    backTopEnable(); // 正文阅读页启用回到顶部按钮
     showApp();
     rescueThemeBtn();
     getApp().innerHTML = '<div class="home-status"><div class="home-status-icon">⏳</div>加载中...</div>';

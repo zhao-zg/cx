@@ -98,6 +98,10 @@
         #cxSplash.cx-splash-out{opacity:0}
         .cx-splash-ref{font-size:15px;color:var(--brand,#007aff);font-weight:600;letter-spacing:.08em;margin-bottom:10px;text-align:center}
         .cx-splash-verse{font-size:17px;color:var(--text,#1a1a1a);text-align:center;line-height:2;font-weight:400}
+        /* 回到顶部悬浮按钮（仅正文阅读页显示） */
+        #backToTop{position:fixed;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:900;width:44px;height:44px;border-radius:50%;border:none;background:var(--surface-alt,#eef1f6);color:var(--brand,#007aff);font-size:20px;line-height:1;box-shadow:0 3px 10px rgba(0,0,0,.18);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(12px);visibility:hidden;transition:opacity .25s ease,transform .25s ease,visibility .25s ease;-webkit-tap-highlight-color:transparent;padding:0}
+        #backToTop.visible{opacity:1;transform:translateY(0);visibility:visible}
+        #backToTop:active{opacity:.75}
     </style>
 </head>
 <body>
@@ -169,6 +173,9 @@
 
     <!-- ── SPA 章节/批次视图容器（默认隐藏）──────────────────────── -->
     <div id="app" style="display:none"></div>
+
+    <!-- 回到顶部悬浮按钮（仅正文阅读页由 renderer.js 控制显示） -->
+    <button type="button" id="backToTop" aria-label="回到顶部" title="回到顶部">↑</button>
 
     <!-- 脚本 -->
     <script src="js/image-utils.js"></script>
