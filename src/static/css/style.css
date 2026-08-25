@@ -846,6 +846,8 @@ mark.cx-tts-sent.cx-tts-active{background-color:rgba(79,125,219,0.22)}
 
 /* tab 行：克隆自页面目录栏，只保留按钮样式，去掉外框背景/边框/圆角/阴影 */
 .cx-float-nav .page-navigation{flex:0 0 auto;margin:0;padding:2px 0;display:flex;flex-wrap:nowrap;overflow:visible;width:100%;background:transparent;border:none;border-radius:0;box-shadow:none}
+/* 浮动栏是快捷导航，show() 会 focus 首个 tab（返回），去掉 focus 蓝圈避免视觉干扰 */
+.cx-float-nav .nav-link:focus,.cx-float-nav .nav-link:focus-visible{outline:none}
 
 /* 设置齿轮：与 theme-toggle-btn 保持完全一致的尺寸 */
 .cx-float-nav-settings{flex:0 0 auto;width:40px;height:40px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-primary);border-radius:50%;padding:0;-webkit-tap-highlight-color:transparent}
