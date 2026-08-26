@@ -675,8 +675,11 @@
         var matched = _matchTranscriptToOutline(cleanTitle, parentOutlineChildren);
         if (matched) firstMatchFound = true;
 
-        var nodeLevel = matched ? (matched.level || levelPrefix) : levelPrefix;
-        var nodeTitle = matched
+        // 听抄标题是否允许被纲目标题覆盖（由 config.yaml 的 use_outline_fallback 控制，
+        // 默认 false：听抄标题保持原文，不出现纲目的「壹贰」编号）
+        var allowOutlineTitle = !!(win.CX_SERVERS && win.CX_SERVERS.useOutlineFallback);
+        var nodeLevel = (matched && allowOutlineTitle) ? (matched.level || levelPrefix) : levelPrefix;
+        var nodeTitle = (matched && allowOutlineTitle)
           ? (matched.title || cleanTitle).replace(/\u2500/g, '\u2014')
           : cleanTitle;
 
