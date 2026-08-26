@@ -612,11 +612,16 @@
     var messageContent = [];
     var introContent = []; // 第一个匹配纲目之前的内容
 
+    // 听抄是否允许被纲目干预（标题覆盖 + 层级下钻），由 config.yaml 的 use_outline_fallback 控制。
+    // 默认 false：听抄完全按原文显示，不参与纲目匹配，避免出现纲目的「壹贰」编号及层级改写。
+    var useOutlineFallback = !!(win.CX_SERVERS && win.CX_SERVERS.useOutlineFallback);
+
     // 4 级嵌套状态
     var currentNodes = [null, null, null, null]; // [section, child, grandchild, great_grandchild]
 
     // 各级对应的纲目子节点列表（5 个元素：索引 0-4，rank 4 的子节点存放在索引 4）
-    var outlineChildrenStack = [outlineSections || [], [], [], [], []];
+    // 仅在 useOutlineFallback=true 时参与纲目匹配下钻，否则恒为空，完全按原文层级。
+    var outlineChildrenStack = [useOutlineFallback ? (outlineSections || []) : [], [], [], [], []];
 
     // 标记刚创建的新节点 rank，用于过滤与标题重复的首段
     var justCreatedRank = 0;
@@ -670,16 +675,17 @@
           }
         }
 
-        // 2. 在纲目中匹配标题，确定 level 和 title
-        var parentOutlineChildren = outlineChildrenStack[rank - 1];
-        var matched = _matchTranscriptToOutline(cleanTitle, parentOutlineChildren);
-        if (matched) firstMatchFound = true;
+        // 2. 在纲目中匹配标题（仅在 useOutlineFallback 开启时），确定 level 和 title
+        var matched = null;
+        if (useOutlineFallback) {
+          var parentOutlineChildren = outlineChildrenStack[rank - 1];
+          matched = _matchTranscriptToOutline(cleanTitle, parentOutlineChildren);
+          if (matched) firstMatchFound = true;
+        }
 
-        // 听抄标题是否允许被纲目标题覆盖（由 config.yaml 的 use_outline_fallback 控制，
-        // 默认 false：听抄标题保持原文，不出现纲目的「壹贰」编号）
-        var allowOutlineTitle = !!(win.CX_SERVERS && win.CX_SERVERS.useOutlineFallback);
-        var nodeLevel = (matched && allowOutlineTitle) ? (matched.level || levelPrefix) : levelPrefix;
-        var nodeTitle = (matched && allowOutlineTitle)
+        // 纲目参与时：匹配成功则用纲目的 level/title 覆盖听抄标题
+        var nodeLevel = matched ? (matched.level || levelPrefix) : levelPrefix;
+        var nodeTitle = matched
           ? (matched.title || cleanTitle).replace(/\u2500/g, '\u2014')
           : cleanTitle;
 

@@ -585,17 +585,21 @@
       }
     }
 
+    // 听抄是否允许被纲目干预（无听抄时用纲目填充 / 纯散文按纲目标题拆分 / 旧格式提取纲目作 detail），
+    // 由 config.yaml 的 use_outline_fallback 控制，默认 false：听抄完全按原文，不被纲目干预。
+    var useOutlineFallback = !!(win.CX_SERVERS && win.CX_SERVERS.useOutlineFallback);
+
     // 若无 detail 块（纯纲目文件 / 英文块被跳过），复用 outline 作为 detail
     // 由 config.yaml 的 use_outline_fallback 控制（remote-config.js 下发），默认不侵入听抄
-    if (!hasDetail) {
-      var useOutlineFallback = !!(win.CX_SERVERS && win.CX_SERVERS.useOutlineFallback);
-      if (useOutlineFallback) detailSections = outlineSections;
+    if (!hasDetail && useOutlineFallback) {
+      detailSections = outlineSections;
     }
 
     // 无管道导航行回退（等价于 Python 的 has_pipe_nav=False 检测）：
     // 当所有块都没有含 | 的 nav 时（如1999年前格式、无块分隔的合一格式），
     // 直接扫描全部行提取大纲，相当于 Python 的 parse_cn_outline_2024 路径。
-    if (!hasOutline) {
+    // 仅在 useOutlineFallback 开启时才用纲目结构覆盖 detail。
+    if (!hasOutline && useOutlineFallback) {
       var hasPipeNav = blocks.some(function(bl) { return bl.nav && bl.nav.indexOf('|') >= 0; });
       if (!hasPipeNav) {
         var fallbackNodes = parseCnOutline(msgLines);
@@ -608,7 +612,8 @@
     }
 
     // 后处理：若 detail 是单个纯散文节点，尝试按大纲标题拆分（移植自 Python _split_prose_by_outline）
-    if (detailSections.length === 1 && !detailSections[0].level && outlineSections.length > 0) {
+    // 仅 useOutlineFallback 开启时允许纲目干预拆分；默认 false 保留纯散文原文结构
+    if (useOutlineFallback && detailSections.length === 1 && !detailSections[0].level && outlineSections.length > 0) {
       var split = splitProseByOutline(detailSections[0].content, outlineSections);
       if (split.length > 1 || (split.length === 1 && split[0].level)) {
         detailSections = split;

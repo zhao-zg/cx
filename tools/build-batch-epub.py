@@ -1149,7 +1149,7 @@ def copy_motto_song_images(src_folder, dst_output_dir):
 # ── 主解析逻辑 ──────────────────────────────────────────────────────────
 # 对照 epub-importer.js: parseAndSave() + parseChapterFromZip()
 
-def parse_chapter_from_zip(zf, epub, entry, idx):
+def parse_chapter_from_zip(zf, epub, entry, idx, use_outline_fallback=False):
     """解析单个篇章的所有子页面"""
     opf_dir = epub['opfDir']
     links = entry.get('links', {})
@@ -1211,8 +1211,9 @@ def parse_chapter_from_zip(zf, epub, entry, idx):
     # 注意：此处无法访问 output_dir，由调用方 build_training_from_epub() 统一提取
 
     # 若无听抄 detailSections，则用 outlineSections 作为 detail
+    # 由 use_outline_fallback 控制（对应 config.yaml 的 use_outline_fallback），默认不侵入听抄
     has_listen_block = bool(detail_sections)  # 听抄是否真正解析到内容
-    if not detail_sections:
+    if not detail_sections and use_outline_fallback:
         detail_sections = outline_sections
 
     return {
@@ -1232,7 +1233,7 @@ def parse_chapter_from_zip(zf, epub, entry, idx):
     }
 
 
-def build_training_from_epub(epub_path, batch_folder, output_dir, opt_year=None, opt_season=None):
+def build_training_from_epub(epub_path, batch_folder, output_dir, opt_year=None, opt_season=None, use_outline_fallback=False):
     """
     从 EPUB 文件构建训练数据。
     返回 (training_data_dict, metadata_dict)
@@ -1280,7 +1281,7 @@ def build_training_from_epub(epub_path, batch_folder, output_dir, opt_year=None,
         # 7. 解析各篇章
         chapters = []
         for idx, entry in enumerate(toc_entries):
-            chapter = parse_chapter_from_zip(zf, epub, entry, idx)
+            chapter = parse_chapter_from_zip(zf, epub, entry, idx, use_outline_fallback=use_outline_fallback)
             if chapter:
                 chapters.append(chapter)
 
@@ -1381,6 +1382,8 @@ def main():
     parser.add_argument('--output', required=True, help='输出目录')
     parser.add_argument('--year', type=int, default=None, help='年份覆盖')
     parser.add_argument('--season', type=str, default=None, help='季节覆盖')
+    parser.add_argument('--use-outline-fallback', action='store_true',
+                        help='允许纲目侵入听抄（无听抄时用纲目填充 detail），默认关闭，对应 config.yaml 的 use_outline_fallback')
     args = parser.parse_args()
 
     if not os.path.exists(args.epub):
@@ -1392,7 +1395,8 @@ def main():
     # 构建训练数据
     td = build_training_from_epub(
         args.epub, args.folder, args.output,
-        opt_year=args.year, opt_season=args.season
+        opt_year=args.year, opt_season=args.season,
+        use_outline_fallback=args.use_outline_fallback
     )
 
     # 写出 training.json
