@@ -586,7 +586,11 @@
     }
 
     // 若无 detail 块（纯纲目文件 / 英文块被跳过），复用 outline 作为 detail
-    if (!hasDetail) detailSections = outlineSections;
+    // 由 config.yaml 的 use_outline_fallback 控制（remote-config.js 下发），默认不侵入听抄
+    if (!hasDetail) {
+      var useOutlineFallback = !!(win.CX_SERVERS && win.CX_SERVERS.useOutlineFallback);
+      if (useOutlineFallback) detailSections = outlineSections;
+    }
 
     // 无管道导航行回退（等价于 Python 的 has_pipe_nav=False 检测）：
     // 当所有块都没有含 | 的 nav 时（如1999年前格式、无块分隔的合一格式），

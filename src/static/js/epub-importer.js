@@ -1264,8 +1264,10 @@
         return transcriptResolved.then(function (transcript) {
           return mrPromise.then(function (morningRevivals) {
             return hymnPromise.then(function (hymnInfo) {
-              // 若无听抄 detailSections，则用 outlineSections 作为 detail
-              var detailSections = transcript.detailSections.length > 0
+              // 若无听抄 detailSections，是否用 outlineSections 作为 detail（纲目侵入听抄）
+              // 由 config.yaml 的 use_outline_fallback 控制（remote-config.js 下发），默认不侵入
+              var useOutlineFallback = !!(win.CX_SERVERS && win.CX_SERVERS.useOutlineFallback);
+              var detailSections = (transcript.detailSections.length > 0 || !useOutlineFallback)
                 ? transcript.detailSections
                 : outlineSections;
 

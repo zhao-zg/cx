@@ -213,7 +213,7 @@ def generate_pages_middleware(config, project_root='.'):
     return mw_path
 
 
-def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, sponsor_show_minutes=5, sponsor_links=None, sponsor_images=None):
+def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, sponsor_show_minutes=5, sponsor_links=None, sponsor_images=None, use_outline_fallback=False):
     """从配置生成 remote-config.js（URL 以 base64 存储，运行时 atob() 解码）"""
     def b64(s):
         return base64.b64encode(s.encode()).decode()
@@ -228,6 +228,8 @@ def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, 
     ip_apis  = remote_servers.get('ip_apis', [])
     sponsor_js = 'true' if sponsor_enabled else 'false'
     show_minutes_js = max(0, int(sponsor_show_minutes or 0))
+    # 听抄页是否允许纲目回退填充（默认不侵入）
+    outline_fallback_js = 'true' if use_outline_fallback else 'false'
     # 赞助弹框外部链接：[{text, url}] → base64 编码后运行时 atob 解码
     links = sponsor_links or []
     links_js = '[' + ','.join(
@@ -263,7 +265,8 @@ def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, 
         f"sponsorEnabled:{sponsor_js},"
         f"sponsorShowMinutes:{show_minutes_js},"
         f"sponsorLinks:{links_js},"
-        f"sponsorImages:{imgs_js}"
+        f"sponsorImages:{imgs_js},"
+        f"useOutlineFallback:{outline_fallback_js}"
         "};})();"
     )
 
@@ -1258,7 +1261,8 @@ def generate_main_index(config, batch_results):
         generate_remote_config_js(remote_servers, output_dir, sponsor_enabled,
                                   config.get('sponsor_show_minutes', 5),
                                   config.get('sponsor_links', []),
-                                  config.get('sponsor_images', {}))
+                                  config.get('sponsor_images', {}),
+                                  config.get('use_outline_fallback', False))
 
     # ── Cloudflare Pages Functions middleware（时间段访问控制）──────────────
     generate_pages_middleware(config, project_root='.')

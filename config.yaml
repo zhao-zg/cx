@@ -1,3 +1,10 @@
+# 听抄配置
+# 听抄页面内容回退：当听抄没有真正的正文（detail_sections 为空）时，
+# 是否用该篇的纲目（outline_sections）填充听抄内容。
+# true  = 允许纲目侵入听抄（历史行为，听抄页会显示纲目内容）
+# false = 不侵入（默认），听抄保持原有内容，无正文则不做回退
+use_outline_fallback: false
+
 # 通用批量处理配置
 batch_processing:
   enabled: true
