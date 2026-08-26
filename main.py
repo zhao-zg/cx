@@ -236,8 +236,17 @@ def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, 
     ) + ']'
     # 赞助二维码图片路径：{wx: "images/xxx.png", zfb: "images/xxx.jpg"} → base64 编码
     imgs = sponsor_images or {}
+    # 配置值为文件名（如 qr-wx-7k2m.png），统一加 images/ 前缀；
+    # 若已含路径分隔符（如 images/xxx.png）则直接使用
+    def img_path(name):
+        name = (name or '').strip()
+        if not name:
+            return ''
+        if '/' in name or '\\' in name:
+            return name
+        return 'images/' + name
     imgs_js = '{' + ','.join(
-        f'"{k}":_d(\'{b64(v)}\')' for k, v in imgs.items() if v
+        f'"{k}":_d(\'{b64(img_path(v))}\')' for k, v in imgs.items() if v
     ) + '}'
 
     js = (
@@ -1169,8 +1178,11 @@ def generate_main_index(config, batch_results):
     # 赞助二维码文件（仅在 sponsor_enabled 时发布）
     sponsor_enabled = config.get('sponsor_enabled', True)
     sponsor_images = config.get('sponsor_images', {})
-    # 从配置读取赞助图片文件名（配置化，可随时改路径防老版本直接获取）
-    _SPONSOR_IMAGE_FILES = set(sponsor_images.values()) if sponsor_images else set()
+    # 从配置读取赞助图片文件名（去掉可能的 images/ 前缀，用于与 os.listdir 匹配）
+    _SPONSOR_IMAGE_FILES = set()
+    for v in (sponsor_images or {}).values():
+        v = (v or '').strip().replace('\\', '/')
+        _SPONSOR_IMAGE_FILES.add(v.split('/')[-1] if v else '')
     # 兜底：配置缺失时用旧文件名（兼容老配置）
     if not _SPONSOR_IMAGE_FILES:
         _SPONSOR_IMAGE_FILES = {'zanzhu-wx.png', 'zanzhu-zfb.jpg'}

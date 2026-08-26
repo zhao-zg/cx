@@ -89,8 +89,22 @@ jobs:
         python main.py
         echo "✓ 静态网站生成完成"
         # 删除赞助二维码（APK 走远程获取，不需要打包）
-        rm -rf output/images/zanzhu-wx.png output/images/zanzhu-zfb.jpg
-        echo "✓ 已移除赞助图片（APK 不打包）"
+        # 文件名从 config.yaml 的 sponsor_images 读取（配置化，改路径时无需改 workflow）
+        python3 << 'PY'
+        import yaml, os, glob
+        with open('config.yaml', encoding='utf-8') as f:
+            cfg = yaml.safe_load(f)
+        img_files = list((cfg.get('sponsor_images') or {}).values())
+        # 兼容旧配置缺失时的默认文件名
+        if not img_files:
+            img_files = ['zanzhu-wx.png', 'zanzhu-zfb.jpg']
+        for fn in img_files:
+            base = os.path.basename(fn.replace('\\', '/'))
+            for p in glob.glob('output/images/' + base):
+                os.remove(p)
+                print(f'✓ 已移除赞助图片 {p}')
+        print('✓ 赞助图片已从 APK 构建产物移除')
+        PY
         du -sh output/
         find output/ -type f | wc -l
         echo "文件总数"

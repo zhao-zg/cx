@@ -195,7 +195,9 @@
     var i, ok;
     ok = true; for (i=0;i<s.length;i++){ if (_LEVEL_1_CHARS.indexOf(s.charAt(i))<0){ok=false;break;} }
     if (ok) return 'level-1';
-    if (_ROMAN.indexOf(s.toUpperCase()) >= 0) return 'level-1';
+    // 罗马数字（多字符组合如 II/IV/VI/VII/IX 等）→ level-1；
+    // 但单个小写字母（a b c d e i v x …）是细纲 → level-4，不能被 toUpperCase 误判为罗马数字
+    if (_ROMAN.indexOf(s.toUpperCase()) >= 0 && !(s.length === 1 && /^[a-z]$/.test(s))) return 'level-1';
     if (s.length === 1 && /^[A-Z]$/.test(s)) return 'level-1';
     ok = true; for (i=0;i<s.length;i++){ if (_LEVEL_2_CHARS.indexOf(s.charAt(i))<0){ok=false;break;} }
     if (ok) return 'level-2';

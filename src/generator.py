@@ -175,7 +175,10 @@ class HTMLGenerator:
             return "level-1"
         
         # 罗马数字 I II III IV V VI VII VIII IX X -> level-1 (大纲)
-        if level_str.upper() in ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']:
+        # 注意：单个小写字母（a b c d e i v x …）是细纲 level-4，
+        # 不能被 upper() 误判为罗马数字（如 "i" -> "I"）
+        if level_str.upper() in ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'] \
+                and not (len(level_str) == 1 and level_str.islower() and level_str.isalpha()):
             return "level-1"
         
         # 大写字母 A B C D E F G H I J -> level-1 (大纲)
