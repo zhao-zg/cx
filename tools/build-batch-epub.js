@@ -61,6 +61,19 @@ var dom   = new jsdom.JSDOM('<!DOCTYPE html><html><body></body></html>');
 
 global.window = dom.window;
 global.document = dom.window.document;
+
+// 从 config.yaml 读取 use_outline_fallback（听抄是否允许纲目回退填充，默认不侵入）
+// 注入 window.CX_SERVERS，使 epub-importer.js 的运行时配置在构建端保持一致
+(function () {
+  var val = false;
+  try {
+    var cfgPath = path.join(ROOT, 'config.yaml');
+    var txt = fs.readFileSync(cfgPath, 'utf-8');
+    var m = txt.match(/^use_outline_fallback\s*:\s*(true|false)\s*$/m);
+    if (m) val = (m[1] === 'true');
+  } catch (e) { /* 读取失败则使用默认 false */ }
+  global.window.CX_SERVERS = { useOutlineFallback: val };
+})();
 global.DOMParser = dom.window.DOMParser;
 global.XMLSerializer = dom.window.XMLSerializer;
 global.Text = dom.window.Text;
