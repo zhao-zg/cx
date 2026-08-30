@@ -1294,7 +1294,30 @@
             h.push(row('原生失败次数', esc(rt.nativeFailCount) + ' / ' + esc(rt.nativeFailTotal)));
             h.push(row('最近错误', rt.lastError ? esc(rt.lastError) : '—'));
             h.push(row('首音延迟', rt.lastSpeakMs ? rt.lastSpeakMs + ' ms' : '—'));
-            h.push(row('Web 语音', rt.webSpeechUsable ? badge(true, '可用') : badge(false, '不可用/未测')));
+
+            // ── Web Speech API 详情（独立分区）──────────────────────────
+            var ws = d.webSpeech || {};
+            h.push(sec('🌐 Web 语音 (浏览器朗读)'));
+            // 三态：已测可用 / 已测不可用 / 未测
+            var wsBadge;
+            if (rt.webSpeechUsable === true) {
+                wsBadge = badge(true, '可用（已测）');
+            } else if (rt.webSpeechUsable === false) {
+                wsBadge = badge(false, '不可用（已测）');
+            } else {
+                wsBadge = '<span style="color:var(--text-muted)">— 未测（需实际朗读触发）</span>';
+            }
+            h.push(row('可用性', wsBadge));
+            h.push(row('API 支持', env.hasWebSpeech ? badge(true, 'speechSynthesis') : badge(false, '不支持')));
+            if (ws.error) {
+                h.push(row('状态', '<span style="color:var(--danger-text)">' + esc(ws.error) + '</span>'));
+            } else {
+                h.push(row('语音总数', esc(ws.voiceCount)));
+                h.push(row('中文语音', ws.zhVoices && ws.zhVoices.length
+                    ? '<span style="color:var(--success-text)">' + ws.zhVoices.length + ' 个</span><br><span style="font-size:11px;color:var(--text-muted)">' + esc(ws.zhVoices.join('；')) + '</span>'
+                    : '<span style="color:var(--danger-text)">0 个（系统缺中文语音包）</span>'));
+                h.push(row('合成状态', ws.speaking ? '朗读中' : (ws.paused ? '已暂停' : '空闲')));
+            }
 
             // 结论/建议（针对荣耀无声音问题）
             var tips = [];
@@ -1331,6 +1354,13 @@
             L('失败次数', rt.nativeFailCount + '/' + rt.nativeFailTotal);
             L('最近错误', rt.lastError || '');
             L('首音延迟', rt.lastSpeakMs ? rt.lastSpeakMs + 'ms' : '');
+            var ws = d.webSpeech || {};
+            L('Web语音可用性', rt.webSpeechUsable === true ? '可用' : (rt.webSpeechUsable === false ? '不可用' : '未测'));
+            L('Web语音API', env.hasWebSpeech ? '支持' : '不支持');
+            L('Web语音总数', ws.voiceCount != null ? ws.voiceCount : '');
+            L('Web中文语音', ws.zhVoices ? ws.zhVoices.length + '个' : '');
+            L('Web语音详情', ws.zhVoices ? ws.zhVoices.join(';') : '');
+            L('Web合成状态', ws.speaking ? '朗读中' : (ws.paused ? '已暂停' : '空闲'));
             L('运行环境', env.isNative ? 'APK' : '浏览器');
             collected.copyText = lines.join('\n');
             collected.ts = new Date().toISOString();
