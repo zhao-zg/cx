@@ -351,28 +351,41 @@ public class NativeTTSPlugin extends Plugin {
     }
 
     // ── openTtsSettings ──────────────────────────────────────────────────
-    // 打开系统 TTS 设置页（用户可下载语音包 / 试听 / 切换引擎）。
-    // 荣耀/华为等系统在「设置 → 辅助功能 → 文字转语音」中管理中文语音数据包。
+    // 打开系统 TTS 设置页（用户语音安装包 / 试听 / 切换引擎）。
+    // 优先用系统标准的「文字转语音」设置页（Settings.ACTION_TTS_SETTINGS），
+    // 任何 ROM 都有该入口；次选引擎语音包安装页（ACTION_INSTALL_TTS_DATA，
+    // 仅当系统已装 TTS 引擎时才可能被响应）；最后回退到应用详情页。
 
     @PluginMethod
     public void openTtsSettings(PluginCall call) {
         try {
-            Intent intent = new Intent();
-            intent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            // 优先跳转 TTS 引擎设置页；部分 ROM 无对应 Activity 时回退应用详情页
+            // 1) 系统 TTS 设置页：最通用，能看引擎列表/下载语音包
+            Intent systemTts = new Intent(Settings.ACTION_TTS_SETTINGS);
+            systemTts.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
-                getActivity().startActivity(intent);
-            } catch (Exception e) {
-                Intent fallback = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                fallback.setData(Uri.parse("package:" + getContext().getPackageName()));
-                getActivity().startActivity(fallback);
-            }
+                getActivity().startActivity(systemTts);
+                call.resolve();
+                return;
+            } catch (Exception ignored) {}
+
+            // 2) 默认引擎的语音包安装页：部分 ROM 无对应 Activity
+            try {
+                Intent installData = new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                installData.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getActivity().startActivity(installData);
+                call.resolve();
+                return;
+            } catch (Exception ignored) {}
+
+            // 3) 兜底：跳 App 自身详情页（引导用户手动到系统设置）
+            Intent details = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            details.setData(Uri.parse("package:" + getContext().getPackageName()));
+            details.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getActivity().startActivity(details);
+            call.resolve();
         } catch (Exception e) {
             call.reject("无法打开 TTS 设置: " + e.getMessage());
-            return;
         }
-        call.resolve();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
