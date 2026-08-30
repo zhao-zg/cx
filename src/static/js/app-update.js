@@ -1402,6 +1402,10 @@
             return;
         }
 
+        // 自动检查 = 强制重新探测：清除会话缓存，避免复用启动时竞速未完成/降级本地的旧结果
+        // （启动的 index.html 探测可能仍在竞速或已降级本地，复用旧缓存会导致自动检查永远不更新）
+        if (window.CX) window.CX._versionPromise = null;
+
         var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
         var isStandalone = (window.navigator.standalone === true) ||
                            (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
