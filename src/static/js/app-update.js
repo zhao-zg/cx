@@ -40,9 +40,10 @@
                     window.CX_SERVERS_REACHABLE = true;
                     console.log('[版本信息] 命中镜像 #' + (result.idx + 1));
                 } else {
-                    // 降级本地命中
-                    window.CX_SERVERS_REACHABLE = false;
-                    console.warn('[版本信息] 所有镜像失败，降级本地');
+                    // 降级本地命中：本地版本信息可用，App 仍能正常工作
+                    // 视为"可用"而非"不可达"，避免锁死检查更新/反馈等依赖网络可用性的按钮
+                    window.CX_SERVERS_REACHABLE = true;
+                    console.warn('[版本信息] 所有镜像失败，使用本地版本信息');
                 }
                 return result.value;
             }).catch(function() {
@@ -1167,6 +1168,9 @@
                 return;
             }
 
+            // 手动检查 = 强制重新探测：清除会话缓存，避免复用启动时降级本地/失败的旧结果
+            window.CX._versionPromise = null;
+
             return window.CX.getVersionInfo().then(function(versionInfo) {
                 if (!versionInfo) {
                     statusEl.innerHTML = '❌ 所有服务器均无法访问';
@@ -1295,6 +1299,9 @@
         try { currentVersion = localStorage.getItem('cx_pwa_version') || ''; } catch(e) {}
 
         statusEl.innerHTML = (currentVersion ? '当前版本: v' + currentVersion + '<br>' : '') + '正在检查远程版本...';
+
+        // 手动检查 = 强制重新探测：清除会话缓存，避免复用启动时降级本地/失败的旧结果
+        if (window.CX) window.CX._versionPromise = null;
 
         // 复用全局版本缓存，避免重复请求 version.json
         var versionPromise = (window.CX && window.CX.getVersionInfo)
