@@ -108,6 +108,9 @@ public class TTSForegroundService extends Service {
     private static final int    NOTIF_ID   = 8001;
     private static final int    CHUNK_SIZE = 200;   // chars per chunk
 
+    // ★ 当前 Service 实例引用：供 NativeTTSPlugin.checkEngine 读取运行中的状态（降级标志等）
+    private static volatile TTSForegroundService sInstance = null;
+
     // ── TTS ───────────────────────────────────────────────────────────────
     private volatile TextToSpeech tts;  // volatile: 后台线程(UtteranceProgressListener)需要可见性
     private volatile boolean      ttsReady      = false;
@@ -216,6 +219,38 @@ public class TTSForegroundService extends Service {
         return isHarmonyDevice() ? 1 : MAX_SYNTH_FAILURES;
     }
 
+    /** 供 NativeTTSPlugin.checkEngine 读取 Service 实例的 tts（若存在）。 */
+    public static TextToSpeech getServiceTts() {
+        try {
+            TTSForegroundService inst = getInstance();
+            return inst != null ? inst.tts : null;
+        } catch (Exception ignored) { return null; }
+    }
+
+    /** 是否已切到 speak() 直读降级模式（当前会话）。 */
+    public static boolean isSpeakDirectMode() {
+        try {
+            TTSForegroundService inst = getInstance();
+            return inst != null && inst.useSpeakDirect;
+        } catch (Exception ignored) { return false; }
+    }
+
+    /** 鸿蒙诊断信息：是否鸿蒙 + 合成失败上限（供 checkEngine 汇总）。 */
+    public static String getHarmonyInfo() {
+        return "isHarmony=" + isHarmonyDevice() + ", maxSynthFailures=" + getMaxSynthFailuresStatic();
+    }
+
+    private static int getMaxSynthFailuresStatic() {
+        return isHarmonyDevice() ? 1 : 2;
+    }
+
+    private static TTSForegroundService getInstance() {
+        try {
+            TTSForegroundService inst = sInstance;
+            return inst;
+        } catch (Exception ignored) { return null; }
+    }
+
     // ── System Resources ──────────────────────────────────────────────────
     private AudioManager                          audioManager;
     private AudioFocusRequest                     audioFocusRequest; // API 26+
@@ -235,6 +270,7 @@ public class TTSForegroundService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        sInstance = this;
         mainHandler = new Handler(Looper.getMainLooper());
         ttsHandlerThread = new HandlerThread("CXTTSWorker", android.os.Process.THREAD_PRIORITY_AUDIO);
         ttsHandlerThread.start();
@@ -629,6 +665,7 @@ public class TTSForegroundService extends Service {
                 t.shutdown();
             }
         }
+        if (sInstance == this) sInstance = null;
         super.onDestroy();
     }
 

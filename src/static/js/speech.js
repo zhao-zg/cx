@@ -900,6 +900,14 @@
             // 首个 ttsPosition 事件 = 音频开始播放
             if (_lastPosMs < 0) {
               console.log('[CXSpeech] \u9996\u4e2a ttsPosition\uff0c\u51fa\u58f0\u5ef6\u8fdf ' + (Date.now() - _speakCallTime) + 'ms');
+              if (window.CXSpeech && window.CXSpeech._setDiag) {
+                window.CXSpeech._setDiag({
+                  lastSpeakMs: Date.now() - _speakCallTime,
+                  lastSpeakAt: Date.now(),
+                  engine: 'native',
+                  lastNativeError: ''
+                });
+              }
             }
             // 循环播放时 MediaPlayer 回到起点导致 posMs 大幅倒退，视为循环重置
             if (_lastPosMs >= 0 && data.posMs < _lastPosMs) {
@@ -979,12 +987,23 @@
             //   华为/鸿蒙设备 TTS 引擎可能不可用或反复失败，
             //   连续失败达阈值后自动切换到 Web Speech（如果浏览器支持）
             _nativeTTSFailCount++;
+            if (window.CXSpeech && window.CXSpeech._setDiag) {
+              window.CXSpeech._setDiag({
+                nativeFailCount: _nativeTTSFailCount,
+                nativeFailTotal: (window.CXSpeech._diag ? window.CXSpeech._diag.nativeFailTotal : 0) + 1,
+                lastNativeError: String((err && (err.message || err)) || ''),
+                engine: 'native'
+              });
+            }
             console.log('[CXSpeech] NativeTTS consecutive failures: ' + _nativeTTSFailCount + '/' + _NATIVE_FAIL_THRESHOLD);
             if (_nativeTTSFailCount >= _NATIVE_FAIL_THRESHOLD && _hasWebSpeechFallback && !useWebSpeech) {
               console.log('[CXSpeech] ★ NativeTTS 连续失败 ' + _nativeTTSFailCount + ' 次，降级到 Web Speech API');
               useNativeTTS = false;
               useWebSpeech = true;
               _nativeTTSFailCount = 0;
+              if (window.CXSpeech && window.CXSpeech._setDiag) {
+                window.CXSpeech._setDiag({ degraded: true, engine: 'web', nativeFailCount: 0 });
+              }
               // 显示降级提示
               speechTime.textContent = '已切换到浏览器朗读';
               speechTime.style.color = '#dd6b20';
@@ -1027,6 +1046,9 @@
                   useNativeTTS = false;
                   useWebSpeech = true;
                   _nativeTTSFailCount = 0;
+                  if (window.CXSpeech && window.CXSpeech._setDiag) {
+                    window.CXSpeech._setDiag({ degraded: true, engine: 'web', nativeFailCount: 0, lastTimeout: true });
+                  }
                   nativeStopService(true);
                   speechTime.textContent = '已切换到浏览器朗读';
                   speechTime.style.color = '#dd6b20';
@@ -1611,4 +1633,101 @@
 
   window.CXSpeech = window.CXSpeech || {};
   window.CXSpeech.init = init;
+
+  // ======================================================================
+  // 朗读诊断（CX.getDiagnostics）
+  // ======================================================================
+  // 供设置面板「朗读诊断」弹窗使用：汇总
+  //   - 环境：是否 Capacitor / Web Speech 可用性
+  //   - Java 端 checkEngine() 的设备与引擎信息（含中文语音包可用性）
+  //   - 当前运行时引擎选择（NativeTTS vs Web Speech）与降级状态
+  // 返回 Promise<诊断对象>。任何环节失败都不抛错，回填降级字段。
+  // ======================================================================
+
+  // 运行时诊断状态（由 init 内部闭包写入）
+  var _diag = {
+    engine:            null,  // 'native' | 'web'
+    webSpeechUsable:   null,  // 实际试读是否成功
+    nativeFailCount:   0,      // NativeTTS 连续失败计数
+    nativeFailTotal:   0,      // 累计失败次数（诊断用）
+    lastNativeError:   '',     // 最近一次 NativeTTS 错误消息
+    lastTimeout:       false,  // 最近一次是否超时降级
+    degraded:          false,  // 是否已从 Native 降级到 Web
+    lastSpeakMs:       0,      // 最近一次 speak 的耗时（Native，首音延迟）
+    lastSpeakAt:       0       // 最近一次 speak 时间戳
+  };
+
+  // 供 init 闭包写入诊断状态（失败计数 / 降级 / 首音延迟）
+  window.CXSpeech._diag = _diag;
+  window.CXSpeech._setDiag = function(patch) {
+    try {
+      if (patch && typeof patch === 'object') {
+        for (var k in patch) {
+          if (Object.prototype.hasOwnProperty.call(patch, k)) _diag[k] = patch[k];
+        }
+      }
+    } catch (e) {}
+  };
+
+  window.CXSpeech.getDiagnostics = function() {
+    var env = detectEngine();
+
+    var diag = {
+      env: {
+        isNative:     env.isNative,
+        useNativeTTS: env.useNativeTTS,
+        useWebSpeech: env.useWebSpeech,
+        hasWebSpeech: env.hasWebSpeech,
+        supported:    env.supported
+      },
+      runtime: {
+        engine:            _diag.engine,
+        degraded:          _diag.degraded,
+        nativeFailCount:   _diag.nativeFailCount,
+        nativeFailTotal:   _diag.nativeFailTotal,
+        lastError:         _diag.lastNativeError,
+        lastTimeout:       _diag.lastTimeout,
+        lastSpeakMs:       _diag.lastSpeakMs,
+        webSpeechUsable:   _diag.webSpeechUsable
+      },
+      webSpeech: null,
+      native: null
+    };
+
+    // Web Speech 运行时信息（voices 数量、当前语言、状态）
+    try {
+      var ws = window.speechSynthesis;
+      if (ws) {
+        var voices = [];
+        try { voices = ws.getVoices ? ws.getVoices() : []; } catch (e) {}
+        var zhVoices = [];
+        for (var i = 0; i < voices.length; i++) {
+          if (voices[i] && voices[i].lang && voices[i].lang.toLowerCase().indexOf('zh') === 0) zhVoices.push(voices[i].lang + '/' + (voices[i].name || ''));
+        }
+        diag.webSpeech = {
+          speaking:   ws.speaking,
+          paused:     ws.paused,
+          pending:    ws.pending,
+          voiceCount: voices.length,
+          zhVoices:   zhVoices
+        };
+      }
+    } catch (e) { diag.webSpeech = { error: String((e && e.message) || e) }; }
+
+    // NativeTTS 可用时调用 checkEngine 补充设备/引擎详情（超时 4s 兜底）
+    var nativeTTS = safeGetNativeTTS();
+    if (nativeTTS && typeof nativeTTS.checkEngine === 'function') {
+      return Promise.race([
+        nativeTTS.checkEngine().then(function(r) {
+          diag.native = r || {};
+          return diag;
+        }).catch(function(e) {
+          diag.native = { error: String((e && e.message) || e) };
+          return diag;
+        }),
+        new Promise(function(resolve) { setTimeout(function() { resolve(diag); }, 4000); })
+      ]);
+    }
+    return Promise.resolve(diag);
+  };
 })();

@@ -6,6 +6,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.speech.tts.TextToSpeech;
+import java.util.Locale;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -310,17 +312,67 @@ public class NativeTTSPlugin extends Plugin {
         boolean ttsReady = TTSForegroundService.sStaticTtsReady;
         result.put("ttsReady", ttsReady);
 
-        // 检查 Web Speech API 的可用性（让 JS 知道是否有降级方案）
-        // 这是 Android 端，无法直接检测 Web Speech，但可以提供 TTS 引擎名
+        TextToSpeech tts = TTSForegroundService.sStaticTts;
+        if (tts == null) tts = TTSForegroundService.getServiceTts();
+
+        // 引擎名（默认引擎）
         String engineName = "";
         try {
-            if (TTSForegroundService.sStaticTts != null) {
-                engineName = TTSForegroundService.sStaticTts.getDefaultEngine();
+            if (tts != null) {
+                engineName = tts.getDefaultEngine();
+                if (engineName == null) engineName = "";
             }
         } catch (Exception ignored) {}
-        result.put("engineName", engineName != null ? engineName : "");
+
+        // 中文（zh-CN）语音包可用性：荣耀/华为系统常见出厂缺中文语音数据包，
+        // 此时 TTS 引擎初始化可能成功但合成无声。isLanguageAvailable 是权威探测。
+        boolean zhAvailable = false;
+        try {
+            if (tts != null) {
+                zhAvailable = tts.isLanguageAvailable(Locale.SIMPLIFIED_CHINESE) == TextToSpeech.LANG_COUNTRY_AVAILABLE
+                        || tts.isLanguageAvailable(Locale.SIMPLIFIED_CHINESE) == TextToSpeech.LANG_AVAILABLE;
+            }
+        } catch (Exception ignored) {}
+
+        result.put("engineName",  engineName);
+        result.put("zhAvailable", zhAvailable);
+        // TTS 引擎内部标签（zh-CN → 华为/Honor 常见 com.huawei... / com.iflytek...）
+        try {
+            String langTag = (tts != null) ? tts.getVoice() != null ? tts.getVoice().getLocale().toLanguageTag() : "" : "";
+            result.put("engineInfo", langTag);
+        } catch (Exception ignored) { result.put("engineInfo", ""); }
+
+        // 当前降级状态（Java 侧）：是否已切到 speak() 直读模式
+        result.put("isSpeakDirect", TTSForegroundService.isSpeakDirectMode());
+        // 鸿蒙设备合成失败上限（1=鸿蒙更快降级）
+        result.put("harmonyInfo", TTSForegroundService.getHarmonyInfo());
 
         call.resolve(result);
+    }
+
+    // ── openTtsSettings ──────────────────────────────────────────────────
+    // 打开系统 TTS 设置页（用户可下载语音包 / 试听 / 切换引擎）。
+    // 荣耀/华为等系统在「设置 → 辅助功能 → 文字转语音」中管理中文语音数据包。
+
+    @PluginMethod
+    public void openTtsSettings(PluginCall call) {
+        try {
+            Intent intent = new Intent();
+            intent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            // 优先跳转 TTS 引擎设置页；部分 ROM 无对应 Activity 时回退应用详情页
+            try {
+                getActivity().startActivity(intent);
+            } catch (Exception e) {
+                Intent fallback = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                fallback.setData(Uri.parse("package:" + getContext().getPackageName()));
+                getActivity().startActivity(fallback);
+            }
+        } catch (Exception e) {
+            call.reject("无法打开 TTS 设置: " + e.getMessage());
+            return;
+        }
+        call.resolve();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

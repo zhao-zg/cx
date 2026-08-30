@@ -634,6 +634,9 @@
                     <button class="action-btn" id="checkUpdateBtn" style="display:none">
                         <span class="cache-icon">🔄</span><span class="cache-text">检查更新</span>
                     </button>
+                    <button class="action-btn" id="ttsDiagBtn" style="display:none">
+                        <span class="cache-icon">🔍</span><span class="cache-text">朗读诊断</span>
+                    </button>
                     <button class="action-btn" id="guideBtn">
                         <span class="cache-icon">📖</span><span class="cache-text">使用说明</span>
                     </button>
@@ -733,6 +736,17 @@
             if (guideBtn) {
                 guideBtn.addEventListener('click', showGuideDialog);
             }
+        })();
+
+        // ── 朗读诊断（仅 Capacitor APK，原生 TTS 场景）──────────────────
+        (function() {
+            var ttsDiagBtn = document.getElementById('ttsDiagBtn');
+            if (!ttsDiagBtn) return;
+            var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
+                                 window.Capacitor.isNativePlatform());
+            if (!isCapacitor) return; // 非 APK 环境不显示
+            ttsDiagBtn.style.display = 'inline-flex';
+            ttsDiagBtn.addEventListener('click', showTtsDiagnosticsDialog);
         })();
 
         // ── 反馈问题（服务器可达时显示）────────────────────────────
@@ -1205,6 +1219,172 @@
 
         var closeBtn = document.getElementById('cxGuideClose');
         if (closeBtn) closeBtn.addEventListener('click', dlg.close);
+    }
+
+    // 朗读诊断对话框（仅 Capacitor APK 显示，位于「应用」区）
+    // 用途：排查荣耀/华为等设备「朗读完全没声音」问题。
+    // 数据来源：speech.js 的 CXSpeech.getDiagnostics()（环境/运行时/引擎/中文语音包）。
+    function showTtsDiagnosticsDialog() {
+        var dlg = window.CX.openDialog({
+            id: 'cxTtsDiagMask',
+            html: [
+                '<div class="cx-dialog" style="max-width:420px;padding:0;position:relative;max-height:80vh;display:flex;flex-direction:column">',
+                '  <div style="padding:14px 16px 10px;font-size:16px;font-weight:600;color:var(--heading);flex-shrink:0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">',
+                '    <span>🔍 朗读诊断</span>',
+                '    <button id="cxTtsDiagClose" style="width:28px;height:28px;border-radius:50%;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center" title="关闭">×</button>',
+                '  </div>',
+                '  <div style="flex:1;overflow-y:auto;padding:12px 16px 16px;line-height:1.6;font-size:13px;color:var(--text)" id="cxTtsDiagBody">',
+                '    <div style="text-align:center;color:var(--text-muted);padding:18px 0">正在检测朗读环境…</div>',
+                '  </div>',
+                '  <div style="flex-shrink:0;display:flex;border-top:1px solid var(--border)">',
+                '    <button id="cxTtsDiagCopy" style="flex:1;padding:13px;background:none;border:none;font-size:14px;color:var(--text-secondary);cursor:pointer;border-right:1px solid var(--border);-webkit-tap-highlight-color:transparent">复制诊断信息</button>',
+                '    <button id="cxTtsDiagSettings" style="flex:1;padding:13px;background:none;border:none;font-size:14px;font-weight:600;color:var(--brand);cursor:pointer;-webkit-tap-highlight-color:transparent">打开系统TTS设置</button>',
+                '  </div>',
+                '</div>'
+            ].join('')
+        });
+        if (!dlg) return;
+
+        var closeBtn = document.getElementById('cxTtsDiagClose');
+        if (closeBtn) closeBtn.addEventListener('click', dlg.close);
+
+        var bodyEl = document.getElementById('cxTtsDiagBody');
+        if (!bodyEl) return;
+
+        // ── 文案工具 ────────────────────────────────────────────────
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function row(label, val) {
+            return '<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px dashed var(--border)">' +
+                '<span style="color:var(--text-secondary);flex-shrink:0">' + label + '</span>' +
+                '<span style="text-align:right;word-break:break-all">' + val + '</span></div>';
+        }
+        function sec(title) {
+            return '<div style="font-size:14px;font-weight:600;color:var(--brand);margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border)">' + title + '</div>';
+        }
+        function badge(ok, t) {
+            return ok ? '<span style="color:var(--success-text)">✓ ' + t + '</span>' : '<span style="color:var(--danger-text)">✗ ' + t + '</span>';
+        }
+
+        // 收集诊断数据（Promise，最多等 4s）
+        var collected = { copyText: '', ts: 0 };
+        function doRender(d) {
+            if (!bodyEl) return;
+            var h = [];
+            var n = d.native || {};
+            var env = d.env || {};
+            var rt  = d.runtime || {};
+
+            h.push(sec('📱 设备'));
+            h.push(row('厂商', esc(n.manufacturer || '') + ' ' + esc(n.brand || '')));
+            h.push(row('型号', esc(n.model || '')));
+            h.push(row('系统', n.isHarmony ? '鸿蒙 (HarmonyOS)' : 'Android API ' + esc(n.sdkVersion)));
+
+            h.push(sec('🗣️ 引擎状态'));
+            h.push(row('引擎', n.engineName ? esc(n.engineName) : '<span style="color:var(--danger-text)">未初始化</span>'));
+            h.push(row('引擎标签', esc(n.engineInfo || '')));
+            h.push(row('TTS 就绪', n.ttsReady === true ? badge(true, '是') : badge(false, '否')));
+            h.push(row('中文语音包', n.zhAvailable === true ? badge(true, '可用') : badge(false, '缺失/不可用')));
+            h.push(row('鸿蒙快速降级', n.isHarmony ? (esc(n.harmonyInfo || '') + '（失败1次即降级）') : '非鸿蒙设备'));
+
+            h.push(sec('🛠️ 运行时'));
+            h.push(row('当前引擎', esc(rt.engine === 'native' ? '原生 TTS' : (rt.engine === 'web' ? '浏览器朗读' : '未启动'))));
+            h.push(row('是否降级', rt.degraded ? badge(false, '已切换到浏览器朗读') : badge(true, '未降级')));
+            h.push(row('原生失败次数', esc(rt.nativeFailCount) + ' / ' + esc(rt.nativeFailTotal)));
+            h.push(row('最近错误', rt.lastError ? esc(rt.lastError) : '—'));
+            h.push(row('首音延迟', rt.lastSpeakMs ? rt.lastSpeakMs + ' ms' : '—'));
+            h.push(row('Web 语音', rt.webSpeechUsable ? badge(true, '可用') : badge(false, '不可用/未测')));
+
+            // 结论/建议（针对荣耀无声音问题）
+            var tips = [];
+            if (!n.ttsReady || n.zhAvailable === false) {
+                tips.push('TTS 引擎未就绪或缺少中文语音包。请点下方「打开系统TTS设置」，确认已下载中文语音包后重试朗读。');
+            } else if (rt.degraded) {
+                tips.push('当前已切换为浏览器朗读。若仍无声，请确认系统已下载中文语音包并允许本应用在后台运行。');
+            } else if (env.useNativeTTS && rt.lastSpeakMs == null) {
+                tips.push('尚未进行朗读。请先点击正文中的播放按钮朗读一次，再打开本诊断查看首音延迟。');
+            } else {
+                tips.push('当前未发现明显异常。若仍无声，请复制诊断信息，通过「问题反馈」发送给我们。');
+            }
+            h.push(sec('💡 建议'));
+            tips.forEach(function(t) {
+                h.push('<div style="padding:6px 8px;background:var(--bg-secondary,rgba(0,0,0,.04));border-radius:6px;margin-top:6px;font-size:12px;color:var(--text-secondary);line-height:1.5">' + esc(t) + '</div>');
+            });
+
+            bodyEl.innerHTML = h.join('');
+
+            // 复制用纯文本
+            var lines = [];
+            function L(k, v) { lines.push(k + ': ' + v); }
+            L('诊断时间', new Date().toLocaleString('zh-CN'));
+            L('厂商', (n.manufacturer || '') + ' ' + (n.brand || ''));
+            L('型号', n.model || '');
+            L('系统', (n.isHarmony ? '鸿蒙' : 'Android API') + (n.sdkVersion ? ' ' + n.sdkVersion : ''));
+            L('TTS引擎', n.engineName || '');
+            L('引擎标签', n.engineInfo || '');
+            L('TTS就绪', n.ttsReady);
+            L('中文语音包', n.zhAvailable);
+            L('鸿蒙快速降级', n.isHarmony);
+            L('当前引擎', rt.engine || '');
+            L('是否降级', rt.degraded);
+            L('失败次数', rt.nativeFailCount + '/' + rt.nativeFailTotal);
+            L('最近错误', rt.lastError || '');
+            L('首音延迟', rt.lastSpeakMs ? rt.lastSpeakMs + 'ms' : '');
+            L('运行环境', env.isNative ? 'APK' : '浏览器');
+            collected.copyText = lines.join('\n');
+            collected.ts = new Date().toISOString();
+        }
+
+        if (window.CXSpeech && window.CXSpeech.getDiagnostics) {
+            window.CXSpeech.getDiagnostics().then(doRender).catch(function(e) {
+                if (bodyEl) bodyEl.innerHTML = '<div style="text-align:center;color:var(--danger-text);padding:18px 0">诊断失败：' + esc(String((e && e.message) || e)) + '</div>';
+            });
+        } else {
+            bodyEl.innerHTML = '<div style="text-align:center;color:var(--danger-text);padding:18px 0">诊断接口未就绪，请确认已加载最新版本</div>';
+        }
+
+        // ── 复制诊断信息 ─────────────────────────────────────────────
+        var copyBtn = document.getElementById('cxTtsDiagCopy');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function() {
+                var text = collected.copyText || '';
+                if (!text) { copyBtn.textContent = '检测中…'; return; }
+                var done = function() {
+                    copyBtn.textContent = '✓ 已复制';
+                    setTimeout(function() { copyBtn.textContent = '复制诊断信息'; }, 2000);
+                };
+                function fallbackCopy(t) {
+                    var ta = document.createElement('textarea');
+                    ta.value = t;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); } catch(e) {}
+                    document.body.removeChild(ta);
+                }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(done).catch(function() { fallbackCopy(text); done(); });
+                } else { fallbackCopy(text); done(); }
+            });
+        }
+
+        // ── 打开系统 TTS 设置 ────────────────────────────────────────
+        var settingsBtn = document.getElementById('cxTtsDiagSettings');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', function() {
+                var nativeTTS = null;
+                try {
+                    if (window.Capacitor && window.Capacitor.Plugins) {
+                        nativeTTS = window.Capacitor.Plugins.NativeTTS || window.Capacitor.Plugins.TTSPlugin || null;
+                    }
+                } catch(e) {}
+                if (nativeTTS && typeof nativeTTS.openTtsSettings === 'function') {
+                    nativeTTS.openTtsSettings();
+                }
+            });
+        }
     }
 
     // 赞助对话框

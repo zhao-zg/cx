@@ -292,8 +292,27 @@
                 })
                 .catch(function(err){
                     console.error('[训练列表]',err);
-                    showLoadError();
+                    // 网络失败：先尝试缓存兜底，不替换已有内容
+                    loadFromCacheOrShowError();
                 });
+        }
+        function loadFromCacheOrShowError(){
+            if('caches' in window){
+                caches.match('trainings.json').then(function(cached){
+                    if(cached && cached.ok){
+                        cached.json().then(function(data){
+                            window.__cxTrainings=data.trainings||[];
+                            renderTrainings(data);
+                            var fm=document.getElementById('footerMeta');
+                            if(fm)fm.textContent='⚠ 网络不可用，显示缓存内容';
+                        }).catch(function(){ showLoadError(); });
+                    } else {
+                        showLoadError();
+                    }
+                }).catch(function(){ showLoadError(); });
+            } else {
+                showLoadError();
+            }
         }
         function loadTrainingsWithCache(){
             caches.match('trainings.json').then(function(cached){
@@ -310,7 +329,7 @@
             }).catch(function(){ loadTrainingsFromNetwork(); });
         }
         if(_autoCheck || !('caches' in window)){
-            // 开启自动更新 或 无 Cache API：走网络
+            // 开启自动更新 或 无 Cache API：网络优先，失败回退缓存
             loadTrainingsFromNetwork();
         } else if(_isCapacitor && window.__cxApkInfoPromise){
             // Capacitor 环境：等 APK 版本号获取完成，检测是否升级
@@ -515,7 +534,15 @@
 
         function showLoadError(){
             var grid=document.getElementById('trainingsGrid');
-            if(grid)grid.innerHTML='<div class="home-status error"><div class="home-status-icon">❌</div><div>加载训练列表失败</div><button onclick="location.reload()" class="home-retry-btn">重试</button></div>';
+            if(!grid)return;
+            // 已有训练卡片：不替换，仅底部提示
+            if(grid.querySelector('.training-card')){
+                console.warn('[训练列表] 网络失败，保留已有内容');
+                var fm=document.getElementById('footerMeta');
+                if(fm)fm.textContent='⚠ 网络不可用，显示上次缓存内容';
+                return;
+            }
+            grid.innerHTML='<div class="home-status error"><div class="home-status-icon">❌</div><div>加载训练列表失败</div><button onclick="location.reload()" class="home-retry-btn">重试</button></div>';
         }
     })();
 
@@ -782,7 +809,7 @@
         var maxN_=window.CX_MAX_LATEST_TRAININGS||5;
         var subs={install:'首次使用会缓存最近 '+maxN_+' 个训练，历史训练可在设置面板下载资源包，请保持网络连接...',update:'正在重新缓存最新资源，用户数据不受影响...'};
         var mask=document.createElement('div');mask.id='cxInstallMask';mask.className='cx-install-mask';
-        mask.innerHTML='<div class="cx-install-box"><div class="cx-install-icon">'+icons[mode]+'</div><div class="cx-install-title">'+titles[mode]+'</div><div class="cx-install-sub">'+subs[mode]+'</div><div class="cx-install-progress"><div class="cx-install-progress-bar" id="cxInstallProgressBar"></div></div><div class="cx-install-status" id="cxInstallStatus">正在准备...</div><button class="cx-install-retry" id="cxInstallRetry">重试</button></div>';
+        mask.innerHTML='<div class="cx-install-box"><div class="cx-install-icon">'+icons[mode]+'</div><div class="cx-install-title">'+titles[mode]+'</div><div class="cx-install-sub">'+subs[mode]+'</div><div class="cx-install-progress"><div class="cx-install-progress-bar" id="cxInstallProgressBar"></div></div><div class="cx-install-status" id="cxInstallStatus">正在准备...</div><button class="cx-install-retry" id="cxInstallRetry">重试</button>'+(mode==='update'?'<button class="cx-install-retry" id="cxInstallLater" style="display:block;margin-top:8px;background:var(--surface-alt,#eef1f6);color:var(--text-muted,#666);border:1px solid var(--border,#ddd)">稍后再说</button>':'')+'</div>';
         mask.addEventListener('click',function(e){e.stopPropagation();});
         document.body.appendChild(mask);
         var statusEl=document.getElementById('cxInstallStatus');
@@ -839,7 +866,10 @@
             }).catch(function(err){if(statusEl)statusEl.textContent='⚠ 出错：'+(err&&err.message||'未知')+'，请重试';if(retryBtn)retryBtn.style.display='block';});
         }
         if(retryBtn)retryBtn.addEventListener('click',doInstall);
-        doInstall();
+        var laterBtn=document.getElementById('cxInstallLater');
+        if(laterBtn)laterBtn.addEventListener('click',function(){if(mask.parentNode)mask.parentNode.removeChild(mask);});
+        // install 模式（首次安装，无已有缓存）立即执行；update 模式等用户选择
+        if(mode==='install')doInstall();
     }
 
     function checkPwaStartupCache(){

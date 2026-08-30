@@ -114,9 +114,13 @@ self.addEventListener('fetch', event => {
 
   event.respondWith(responsePromise.catch(err => {
     if (request.mode === 'navigate') {
-      return new Response(getOfflineHTML(), {
-        headers: { 'Content-Type': 'text/html; charset=utf-8' }
-      });
+      // 先尝试缓存的 index.html（SPA fallback），避免直接返回离线空壳
+      return caches.match('./')
+        || caches.match(normalizedUrl)
+        || caches.match(request.url)
+        || new Response(getOfflineHTML(), {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        });
     }
     throw err;
   }));
