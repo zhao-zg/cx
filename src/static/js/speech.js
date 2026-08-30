@@ -1670,7 +1670,19 @@
   };
 
   window.CXSpeech.getDiagnostics = function() {
-    var env = detectEngine();
+    // 内联引擎检测（detectEngine 在 init 闭包内，此处无法访问）
+    var isNative = !!(window.Capacitor &&
+                      typeof window.Capacitor.isNativePlatform === 'function' &&
+                      window.Capacitor.isNativePlatform());
+    var nativeTTS = safeGetNativeTTS();
+    var hasWebSpeech = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+    var env = {
+      isNative:     isNative,
+      useNativeTTS: !!nativeTTS,
+      useWebSpeech: !nativeTTS && hasWebSpeech,
+      hasWebSpeech: hasWebSpeech,
+      supported:    !!nativeTTS || hasWebSpeech
+    };
 
     var diag = {
       env: {
