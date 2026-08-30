@@ -383,9 +383,11 @@
             this.cleanupOldApks();
             this.loadConfig();
             // 自动检查更新（需用户开启）
+            // 不等固定延迟：复用启动时的版本探测，探测完成（含竞速结束）后自动执行
+            // 若启动时未探测（如自动检查刚开启），silentCheckUpdate 内部会主动探测一次
             try {
                 if (localStorage.getItem('cx_auto_check_update') === '1') {
-                    setTimeout(function() { AppUpdate.silentCheckUpdate(); }, 2000);
+                    AppUpdate.silentCheckUpdate();
                 }
             } catch(e) {}
         },
@@ -1402,26 +1404,23 @@
             return;
         }
 
-        // 自动检查 = 强制重新探测：清除会话缓存，避免复用启动时竞速未完成/降级本地的旧结果
-        // （启动的 index.html 探测可能仍在竞速或已降级本地，复用旧缓存会导致自动检查永远不更新）
-        if (window.CX) window.CX._versionPromise = null;
+        // 等待启动时的版本探测结束（复用其结果，不重复请求）：
+        // 启动时 index.html 已调用 getVersionInfo 发起镜像竞速（最长 10s），
+        // 这里等它 settle 后读取最新版本即可，避免与竞速抢跑或重复探测。
+        // 若启动时未探测（如自动检查刚开启），getVersionInfo 会主动探测一次。
+        var versionPromise = (window.CX && window.CX.getVersionInfo)
+            ? window.CX.getVersionInfo()
+            : Promise.resolve(null);
 
         var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
         var isStandalone = (window.navigator.standalone === true) ||
                            (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
 
         if (isCapacitor) {
-            // Capacitor：复用全局版本缓存
+            // Capacitor：等待版本探测结果
             var CLOUDFLARE_SERVERS = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
             if (!CLOUDFLARE_SERVERS.length) return;
             getCurrentApkVersion().then(function(currentVersion) {
-                // 使用全局版本信息缓存，避免重复请求
-                var versionPromise = (window.CX && window.CX.getVersionInfo)
-                    ? window.CX.getVersionInfo()
-                    : Promise.any(CLOUDFLARE_SERVERS.map(function(url) {
-                        return fetch(url + 'version.json?t=' + Date.now(), { cache: 'no-cache' })
-                            .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-                    }));
                 versionPromise.then(function(versionInfo) {
                     if (!versionInfo) return;
                     var latest = versionInfo.apk_version || versionInfo.version || '';
@@ -1431,15 +1430,10 @@
                 }).catch(function() {});
             }).catch(function() {});
         } else if (isStandalone) {
-            // PWA standalone：复用全局版本缓存
-            var root = window.CX_ROOT || './';
+            // PWA standalone：等待版本探测结果
             var currentPwa = '';
             try { currentPwa = localStorage.getItem('cx_pwa_version') || ''; } catch(e) {}
-            var pwaVersionPromise = (window.CX && window.CX.getVersionInfo)
-                ? window.CX.getVersionInfo()
-                : fetch(root + 'version.json?t=' + Date.now(), { cache: 'no-cache' })
-                    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
-            pwaVersionPromise
+            versionPromise
                 .then(function(v) {
                     if (!v) return;
                     var latest = v.version || v.apk_version || '';
@@ -1510,7 +1504,8 @@
         if (!isStandalone) return;
         try {
             if (localStorage.getItem('cx_auto_check_update') === '1') {
-                setTimeout(function() { AppUpdate.silentCheckUpdate(); }, 2000);
+                // 不等固定延迟：复用启动时的版本探测，探测完成（含竞速结束）后自动执行
+                AppUpdate.silentCheckUpdate();
             }
         } catch(e) {}
         // 处理 index.html 中在 app-update.js 加载前设置的待处理更新通知（用 toast 替代直接弹框）
