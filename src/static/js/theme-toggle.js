@@ -403,27 +403,54 @@
                 return false;
             });
         }
-        // 降级：无 getVersionInfo 时单次 HEAD 探测首个服务器
-        var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        var timer = setTimeout(function() {
-            if (ctrl) try { ctrl.abort(); } catch(e) {}
-            _reachabilityCache = { result: false, ts: Date.now(), TTL: _reachabilityCache.TTL };
-            window.CX_SERVERS_REACHABLE = false;
-        }, 5000);
-        var opts = { method: 'HEAD', cache: 'no-cache' };
-        if (ctrl) opts.signal = ctrl.signal;
-        return fetch(servers[0], opts).then(function(r) {
-            clearTimeout(timer);
-            var reachable = r.ok;
-            _reachabilityCache = { result: reachable, ts: Date.now(), TTL: _reachabilityCache.TTL };
-            window.CX_SERVERS_REACHABLE = reachable;
-            return reachable;
-        }).catch(function() {
-            clearTimeout(timer);
-            _reachabilityCache = { result: false, ts: Date.now(), TTL: _reachabilityCache.TTL };
-            window.CX_SERVERS_REACHABLE = false;
-             return false;
-         });
+        // getVersionInfo 未就绪：app-update.js 是动态加载，DOMContentLoaded 时可能尚未执行完。
+        // 等待其出现后再复用（APK/PWA 场景），避免降级单点 HEAD 被 CORS 拦截而误判"不可达"，
+        // 导致依赖网络可用性的按钮（检查更新/反馈）被隐藏且无人再刷新。
+        // 最多等 6s（app-update.js 为本地资源，加载极快）；超时仍未就绪（纯浏览器无 app-update.js）
+        // 才退回单点 HEAD 探测，保持原 web 行为。
+        return new Promise(function(resolve) {
+            var waited = 0;
+            var waitIv = setInterval(function() {
+                waited += 200;
+                if (window.CX && window.CX.getVersionInfo) {
+                    clearInterval(waitIv);
+                    window.CX.getVersionInfo().then(function(v) {
+                        var reachable = !!v;
+                        _reachabilityCache = { result: reachable, ts: Date.now(), TTL: _reachabilityCache.TTL };
+                        window.CX_SERVERS_REACHABLE = reachable;
+                        resolve(reachable);
+                    }).catch(function() {
+                        _reachabilityCache = { result: false, ts: Date.now(), TTL: _reachabilityCache.TTL };
+                        window.CX_SERVERS_REACHABLE = false;
+                        resolve(false);
+                    });
+                } else if (waited >= 6000) {
+                    clearInterval(waitIv);
+                    // 超时无 getVersionInfo（非 APK/PWA 环境）：单次 HEAD 探测首个服务器
+                    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                    var timer = setTimeout(function() {
+                        if (ctrl) try { ctrl.abort(); } catch(e) {}
+                        _reachabilityCache = { result: false, ts: Date.now(), TTL: _reachabilityCache.TTL };
+                        window.CX_SERVERS_REACHABLE = false;
+                        resolve(false);
+                    }, 5000);
+                    var opts = { method: 'HEAD', cache: 'no-cache' };
+                    if (ctrl) opts.signal = ctrl.signal;
+                    fetch(servers[0], opts).then(function(r) {
+                        clearTimeout(timer);
+                        var reachable = r.ok;
+                        _reachabilityCache = { result: reachable, ts: Date.now(), TTL: _reachabilityCache.TTL };
+                        window.CX_SERVERS_REACHABLE = reachable;
+                        resolve(reachable);
+                    }).catch(function() {
+                        clearTimeout(timer);
+                        _reachabilityCache = { result: false, ts: Date.now(), TTL: _reachabilityCache.TTL };
+                        window.CX_SERVERS_REACHABLE = false;
+                        resolve(false);
+                    });
+                }
+            }, 200);
+        });
     }
 
     // 根据服务器可达性更新依赖网络的 UI 元素
@@ -463,6 +490,10 @@
             }
         }
     }
+
+    // 暴露给外部（app-update.js 竞速完成后刷新依赖可达性的按钮状态）
+    window.CX = window.CX || {};
+    window.CX.updateServerDependentButtons = updateServerDependentButtons;
 
     function getStoredTheme() {
         try {

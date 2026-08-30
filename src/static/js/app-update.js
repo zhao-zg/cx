@@ -32,6 +32,7 @@
                 if (!result) {
                     // 所有镜像 + 本地均失败
                     window.CX_SERVERS_REACHABLE = false;
+                    refreshServerDependentButtons();
                     return null;
                 }
                 // 成功（镜像或本地）
@@ -45,9 +46,11 @@
                     window.CX_SERVERS_REACHABLE = true;
                     console.warn('[版本信息] 所有镜像失败，使用本地版本信息');
                 }
+                refreshServerDependentButtons();
                 return result.value;
             }).catch(function() {
                 window.CX_SERVERS_REACHABLE = false;
+                refreshServerDependentButtons();
                 return null;
             });
 
@@ -69,6 +72,16 @@
         }
         return window.CX._versionPromise;
     };
+
+    // 竞速完成后刷新依赖服务器可达性的按钮状态（theme-toggle.js 暴露）
+    // 防止启动早期 getVersionInfo 未就绪时按钮被误隐藏后无法恢复
+    function refreshServerDependentButtons() {
+        try {
+            if (window.CX && window.CX.updateServerDependentButtons) {
+                window.CX.updateServerDependentButtons(window.CX_SERVERS_REACHABLE);
+            }
+        } catch(e) {}
+    }
 
     // 清除最快镜像缓存记录（域名失效时调用，使后续请求重新竞速）
     window.CX.invalidateFastestMirror = function() {
