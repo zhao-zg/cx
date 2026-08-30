@@ -360,7 +360,7 @@ public class NativeTTSPlugin extends Plugin {
     public void openTtsSettings(PluginCall call) {
         try {
             // 1) 系统 TTS 设置页：最通用，能看引擎列表/下载语音包
-            Intent systemTts = new Intent(Settings.ACTION_TTS_SETTINGS);
+            Intent systemTts = new Intent(TextToSpeech.Engine.ACTION_TTS_SETTINGS);
             systemTts.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
                 getActivity().startActivity(systemTts);
