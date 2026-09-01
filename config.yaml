@@ -79,8 +79,8 @@ remote_servers:
     # 账户 1（主账户）
     - https://cx.1189.dpdns.org/
     - https://cx.zzgxxx.eu.org/
-    - https://cx.zhaozg.cloudns.org/
     - https://cx.bxg.dpdns.org/
+    - https://cx.xzdjx.dpdns.org/
     # 账户 2（备用账户）— 在新账户的 Pages 项目部署后取消注释
     # - https://cx2.11891189.xyz/
     # - https://cx2.07170501.xyz/
