@@ -1,0 +1,43 @@
+{
+  "_comment": "2026-04 夏季训练（信徒（一））。title_fixes 顺序敏感（probe60 定案）；seg_rules 键为 0-based (ch_idx,day_idx)，值 {field: {NEW段号: [OLD段号...]}}；ch9d2_special=(8,1) 跨字段专案。meta 与 OLD output/2026-04/training.json 顶层不一致（OLD 为 local-2024-12/2024 冬季训练），merge 只取 NEW 的 version，其余顶层取 OLD，故 meta 不影响最终产物。meta_en/top_en 为预留键（本批未用）。",
+  "batch_name": "2026-04 夏季训练",
+  "pdf": "resource/2026-04 夏季训练/晨兴中英对照.pdf",
+  "short_name": "2026-04",
+  "meta": {
+    "path": "local-2026-06",
+    "title": "六月半年度训练",
+    "subtitle": "信徒（一）",
+    "year": "2026",
+    "season": "06 夏季训练",
+    "has_listen_block": true
+  },
+  "meta_en": {
+    "title": "THE SEMIANNUAL TRAINING",
+    "subtitle": "The Believers (1)"
+  },
+  "top_en": {
+    "title": "June Semiannual Training",
+    "subtitle": "The Believers (1)"
+  },
+  "title_fixes": [
+    ["、(?=和|及)", ""],
+    ["成熟、以及", "成熟以及"],
+    ["、以及", "，以及"]
+  ],
+  "footer_filter": "半年度训练第\\d+周纲要",
+  "seg_rules": {
+    "(2,2)": {
+      "message_reading": { "0": [0], "1": [1], "2": [2], "3": [3], "4": [4, 5] }
+    },
+    "(11,0)": {
+      "message_reading": { "0": [0], "1": [1, 2], "2": [3], "3": [4], "4": [5], "5": [6] }
+    },
+    "(11,1)": {
+      "message_reading": { "0": [0], "1": [1], "2": [2], "3": [3, 4] }
+    }
+  },
+  "ch9d2_special": "(8,1)",
+  "verify": {
+    "exclude_version": true
+  }
+}

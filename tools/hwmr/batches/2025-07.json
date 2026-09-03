@@ -1,0 +1,21 @@
+{
+  "_comment": "2025-07 冬季训练试跑配置。页脚正则为猜测值，试跑后按实际页脚文本修正；meta 参照 resource/2025-07 冬季训练/ 目录名与 OLD 底座（如存在 output/2025-07/training.json 则以其为准）。此批仅验证 parser 泛化性，不执行 install。",
+  "batch_name": "2025-07 冬季训练",
+  "pdf": "resource/2025-07 冬季训练/晨兴中英对照.pdf",
+  "short_name": "2025-07",
+  "meta": {
+    "path": "local-2025-07",
+    "title": "冬季训练",
+    "subtitle": "",
+    "year": "2025",
+    "season": "07 冬季训练",
+    "has_listen_block": true
+  },
+  "title_fixes": [],
+  "footer_filter": "训练第\\d+周纲要",
+  "seg_rules": {},
+  "ch9d2_special": null,
+  "verify": {
+    "exclude_version": true
+  }
+}
