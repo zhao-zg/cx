@@ -127,11 +127,54 @@
     return out;
   }
 
+  /**
+   * 双树同步（原地挂载）：CN 树为骨架，逐节点对位挂 .en 属性。
+   * 顶层按 pairEn 语义补齐（多余侧不丢）；子树节点数对不上时该子树整棵 en=null（回退仅中文）。
+   * @param cnNodes CN 树数组（原地修改，挂 .en）
+   * @param enNodes EN 树数组（只读）
+   * @returns 传入的 cnNodes（原地挂载返回同一数组）
+   */
+  function pairEnTree(cnNodes, enNodes) {
+    if (!Array.isArray(cnNodes)) return cnNodes || [];
+    var en = Array.isArray(enNodes) ? enNodes : [];
+    for (var i = 0; i < cnNodes.length; i++) {
+      cnNodes[i].en = en[i] || null; // 挂对位 EN 节点（缺失为 null）
+      _attachChildren(cnNodes[i], en[i] || null);
+    }
+    return cnNodes;
+  }
+
+  function _attachChildren(cnNode, enNode) {
+    if (!cnNode || cnNode.en === null) return;
+    var cnCh = cnNode.children;
+    if (!Array.isArray(cnCh) || cnCh.length === 0) return;
+    var enCh = enNode && Array.isArray(enNode.children) ? enNode.children : null;
+    if (!enCh || enCh.length !== cnCh.length) {
+      // 子节点数对不上：本节点自身的 en 保留（索引对位成功），仅其下子孙整棵 en=null（回退仅中文）
+      for (var k = 0; k < cnCh.length; k++) _nullTree(cnCh[k]);
+      return;
+    }
+    for (var i = 0; i < cnCh.length; i++) {
+      cnCh[i].en = enCh[i] || null;
+      _attachChildren(cnCh[i], enCh[i] || null);
+    }
+  }
+
+  function _nullTree(node) {
+    if (!node) return;
+    node.en = null;
+    var ch = node.children;
+    if (Array.isArray(ch)) {
+      for (var i = 0; i < ch.length; i++) _nullTree(ch[i]);
+    }
+  }
+
   win.CXBilingual = {
     isEnchsMode: isEnchsMode,
     setEnchsMode: setEnchsMode,
     loadEnchs: loadEnchs,
     getEnchs: getEnchs,
     pairEn: pairEn,
+    pairEnTree: pairEnTree,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
