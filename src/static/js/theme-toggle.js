@@ -630,6 +630,24 @@
             </div>
             
             <div class="theme-section">
+                <div class="theme-section-title">阅读语言</div>
+                <div class="theme-options">
+                    <div class="theme-option lang-option" data-lang="cn" onclick="setLangMode('cn')">
+                        <div class="theme-option-content">
+                            <div class="theme-radio"></div>
+                            <div class="theme-label">中文</div>
+                        </div>
+                    </div>
+                    <div class="theme-option lang-option" data-lang="enchs" onclick="setLangMode('enchs')">
+                        <div class="theme-option-content">
+                            <div class="theme-radio"></div>
+                            <div class="theme-label">英中对照</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="theme-section">
                 <div class="theme-section-title">字体大小</div>
                 <div class="font-size-slider-container">
                     <span class="font-label-small">A</span>
@@ -705,6 +723,8 @@
         document.documentElement.setAttribute('data-theme', initialTheme);
         updateThemeUI(initialTheme);
         syncThemeColor(initialTheme);
+        // 加载阅读语言选中态
+        updateLangUI(getInitialLangMode());
         
         // 加载保存的字体大小
         const savedSize = localStorage.getItem('globalFontSize');
@@ -1850,10 +1870,56 @@
         syncThemeColor(theme);
     };
     
-    // 更新主题UI状态
+    // 更新主题UI状态（仅 data-theme 选项，避免误清 lang-option 的 active）
     function updateThemeUI(theme) {
-        document.querySelectorAll('.theme-option').forEach(function(option) {
+        document.querySelectorAll('.theme-option[data-theme]').forEach(function(option) {
             if (option.getAttribute('data-theme') === theme) {
+                option.classList.add('active');
+            } else {
+                option.classList.remove('active');
+            }
+        });
+    }
+
+    // ── 阅读语言（中文 / 英中对照）────────────────────────────────────
+    // 初始 lang 模式（优先走 CXBilingual，防御性直接读 localStorage）
+    function getInitialLangMode() {
+        try {
+            if (window.CXBilingual && window.CXBilingual.isEnchsMode) {
+                return window.CXBilingual.isEnchsMode() ? 'enchs' : 'cn';
+            }
+            return localStorage.getItem('cx_lang_mode') === 'enchs' ? 'enchs' : 'cn';
+        } catch (e) { return 'cn'; }
+    }
+
+    // 设置阅读语言：写持久化（经 CXBilingual.setEnchsMode）→ 更新选中态 →
+    // 正文视图（3 段路径）立即 navigateReplace 重渲染；面板保持打开
+    // （面板是 body 级 overlay，不受 app innerHTML 替换影响）
+    window.setLangMode = function(mode) {
+        var enchs = (mode === 'enchs');
+        try {
+            if (window.CXBilingual && window.CXBilingual.setEnchsMode) {
+                window.CXBilingual.setEnchsMode(enchs);
+            } else if (enchs) {
+                localStorage.setItem('cx_lang_mode', 'enchs');
+            } else {
+                localStorage.removeItem('cx_lang_mode');
+            }
+        } catch (e) {}
+        updateLangUI(enchs ? 'enchs' : 'cn');
+        try {
+            var path = (window.CXRouter && window.CXRouter.currentPath) ? window.CXRouter.currentPath() : '';
+            var parts = String(path || '').split('/').filter(Boolean);
+            if (parts.length >= 3 && window.CXRouter && window.CXRouter.navigateReplace) {
+                window.CXRouter.navigateReplace(path); // 英中数据异步加载，重渲染自动等待 enchs
+            }
+        } catch (e) {}
+    };
+
+    // 更新阅读语言选中态（独立 lang-option，不与主题选项互相干扰）
+    function updateLangUI(mode) {
+        document.querySelectorAll('.lang-option').forEach(function(option) {
+            if (option.getAttribute('data-lang') === mode) {
                 option.classList.add('active');
             } else {
                 option.classList.remove('active');
