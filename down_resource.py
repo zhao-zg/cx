@@ -320,13 +320,19 @@ def collect_file(block: Dict[str, Any], documents: Dict[str, List[Dict[str, Any]
     is_zip = lower_name.endswith('.zip') and not is_pdb  # 排除 .pdb.zip
     is_epub = lower_name.endswith('.epub')
     is_word = lower_name.endswith(TARGET_EXTENSIONS)
-    if not is_pdb and not is_word and not is_zip and not is_epub:
+    is_pdf = is_hwmr_enchs_pdf(filename)  # 仅中英对照晨兴 PDF
+    if not is_pdb and not is_word and not is_zip and not is_epub and not is_pdf:
         return
     # PDB 文件: 只检查简体中文，不检查 with verses
     if is_pdb:
         if not is_simplified_chinese(filename):
             return
         doc_type = 'pdb'
+    elif is_pdf:
+        # 中英对照晨兴 PDF：必须在晨兴分区上下文中，避免误收其他分区下的 PDF
+        if section_type != '晨兴':
+            return
+        doc_type = '晨兴pdf'
     elif is_epub:
         if not is_simplified_chinese(filename):
             return
@@ -377,6 +383,19 @@ def classify_document_type(title: str, *, strict: bool = False) -> Optional[str]
     if strict:
         return None
     return '经文'
+
+
+def is_hwmr_enchs_pdf(filename: str) -> bool:
+    """识别中英对照晨兴圣言 PDF（HWMR enchs，双语 PDF）。
+    
+    实测样本：'（0724）2026-JST-HWMR-en&chs.pdf'（全角括号 + en&chs）。
+    需同时满足：PDF + hwmr + chs（chinese 缩写，中英对照标记）。
+    纲目（OS-en&chs）、英文单语 HWMR（HWMR-en）均不算。
+    """
+    lower = filename.lower()
+    if not lower.endswith('.pdf'):
+        return False
+    return 'hwmr' in lower and 'chs' in lower
 
 
 def extract_filename(value: Dict[str, Any]) -> Optional[str]:
@@ -797,9 +816,9 @@ def download_documents(session: requests.Session, documents: Dict[str, List[Dict
             if doc_type == 'pdb':
                 # PDB 文件保持原始文件名，存放到 pdb/ 子目录
                 new_name = doc['filename']
-            elif doc_type in ('epub', 'zip'):
-                # EPUB/ZIP 保持原始文件名，下载后按内容处理
-                new_name = doc['filename']
+            elif doc_type == '晨兴pdf':
+                # 中英对照晨兴 PDF：统一命名（与晨兴.doc/晨兴2.doc 风格一致）
+                new_name = f'晨兴中英对照{idx}.pdf' if idx > 1 else '晨兴中英对照.pdf'
             elif lower_filename.endswith('.zip') or lower_filename.endswith('.epub'):
                 # zip/epub 格式保持原始文件名
                 new_name = doc['filename']
@@ -832,6 +851,7 @@ def download_documents(session: requests.Session, documents: Dict[str, List[Dict
     type_labels = {
         '经文': '个经文文档', '听抄': '个听抄文档', '晨兴': '个晨兴文档',
         'pdb': '个PDB文件', 'epub': '个EPUB文件', 'zip': '个ZIP压缩包',
+        '晨兴pdf': '个中英对照晨兴PDF',
     }
     for t, count in type_counts.items():
         label = type_labels.get(t, f'个{t}')
@@ -907,7 +927,26 @@ def download_motto_image(session: requests.Session, motto_page: Dict[str, str], 
     return True
 
 
-def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode: bool = False) -> List[Dict[str, Any]]:
+def filter_docs_by_type(all_docs: List[Dict[str, Any]], only_types: Sequence[str]) -> List[Dict[str, Any]]:
+    """按 doc_type 过滤文档清单（--only 参数用）。
+    
+    标语诗歌图片不走此链路，不受影响。
+    """
+    if not only_types:
+        return all_docs
+    wanted = {t.strip() for t in only_types if t.strip()}
+    unknown = wanted - {'经文', '听抄', '晨兴', '晨兴pdf', 'pdb', 'zip', 'epub'}
+    if unknown:
+        print(f"[WARN] 未知的 --only 类型将被忽略: {', '.join(sorted(unknown))}"
+              f"（可选值：经文/听抄/晨兴/晨兴pdf/pdb/zip/epub）")
+        wanted -= unknown
+    if not wanted:
+        return []
+    return [d for d in all_docs if d['doc_type'] in wanted]
+
+
+def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode: bool = False,
+                              only_types: Optional[Sequence[str]] = None) -> List[Dict[str, Any]]:
     page_id = extract_page_id(base_url)
     if not page_id:
         print("无法解析页面 ID")
@@ -939,8 +978,8 @@ def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode
         folder_name = re.sub(r'[<>:\\"/|?*]', '_', training['title'])
         print(f"\n处理训练: {training['title']}")
         
-        # 下载标语诗歌图片 (PDB 模式跳过)
-        if not pdb_mode:
+        # 下载标语诗歌图片 (PDB 模式跳过；--only 指定类型时也跳过，保持语义纯粹)
+        if not pdb_mode and not only_types:
             motto_page = find_motto_pages(session, training)
             if motto_page:
                 print(f"  找到标语页面: {motto_page['title']}")
@@ -983,7 +1022,7 @@ def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode
             print(f"  找到 {len(resource_pages)} 个资源页面")
             
             for resource in resource_pages:
-                aggregated: Dict[str, List[Dict[str, Any]]] = {'经文': [], '听抄': [], '晨兴': [], 'pdb': [], 'zip': [], 'epub': []}
+                aggregated: Dict[str, List[Dict[str, Any]]] = {'经文': [], '听抄': [], '晨兴': [], 'pdb': [], 'zip': [], 'epub': [], '晨兴pdf': []}
                 docs = process_resource_page(session, resource)
                 for key, value in docs.items():
                     if key in aggregated:
@@ -1130,7 +1169,7 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
             resource_url = f"https://mygoodland.notion.site/{resource_id.replace('-', '')}"
             print(f"\n访问资源页面: {resource_url}")
             try:
-                page.goto(resource_url, wait_until='load', timeout=30000)
+                page.goto(resource_url, wait_until='domcontentloaded', timeout=60000)
                 # 等待页面内容加载完成
                 page.wait_for_load_state('domcontentloaded')
                 # 额外等待确保所有内容渲染
@@ -1369,6 +1408,8 @@ def main() -> None:
     parser = ArgumentParser(description="Notion 文档下载器（自动使用 Playwright 回退下载）")
     parser.add_argument('--url', default=BASE_URL, help='Notion 页面 URL')
     parser.add_argument('--only-images', action='store_true', help='只下载标语诗歌图片，跳过Word文档')
+    parser.add_argument('--only', action='append', default=[], metavar='TYPE',
+                        help='只下载指定类型文档，可多次传入（可选值：经文/听抄/晨兴/晨兴pdf/pdb/zip/epub）')
     parser.add_argument('--pdb', action='store_true', help='补充下载PDB文件（仅 < 2025-04 的老训练，正常模式已覆盖新训练）')
     parser.add_argument('--dry-run', action='store_true', help='只扫描 Notion 页面，不实际下载（用于调试）')
     args = parser.parse_args()
@@ -1389,7 +1430,7 @@ def main() -> None:
     start_time = time.time()
     all_docs: List[Dict[str, Any]] = []
     try:
-        all_docs = download_notion_documents(args.url, args.only_images, args.pdb)
+        all_docs = download_notion_documents(args.url, args.only_images, args.pdb, args.only)
     except KeyboardInterrupt:
         print('\n\n用户中断下载')
     except Exception as error:
@@ -1403,14 +1444,18 @@ def main() -> None:
         print('=' * 80)
     
     if all_docs and not args.only_images:
+        filtered = filter_docs_by_type(all_docs, args.only)
+        if args.only:
+            dropped = len(all_docs) - len(filtered)
+            print(f"[ONLY] 类型过滤: {len(all_docs)} -> {len(filtered)} 个（跳过 {dropped} 个其他类型）")
         if args.dry_run:
-            print(f"\n[DRY-RUN] 共找到 {len(all_docs)} 个待下载文档:")
-            for doc in all_docs[:20]:
+            print(f"\n[DRY-RUN] 共找到 {len(filtered)} 个待下载文档:")
+            for doc in filtered[:20]:
                 print(f"  [{doc['doc_type']}] {doc['folder']}/{doc['filename']}")
-            if len(all_docs) > 20:
-                print(f"  ... 还有 {len(all_docs) - 20} 个")
-        else:
-            playwright_downloads(all_docs)
+            if len(filtered) > 20:
+                print(f"  ... 还有 {len(filtered) - 20} 个")
+        elif filtered:
+            playwright_downloads(filtered)
 
 
 if __name__ == '__main__':
