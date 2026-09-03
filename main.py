@@ -6,6 +6,7 @@ import os
 import sys
 import re
 import json
+import glob
 import yaml
 import shutil
 import base64
@@ -885,6 +886,18 @@ def process_batch_epub(batch_folder, config, batch_config, safe_batch_name, epub
                 except Exception as _e:
                     print(f"  ⚠ hymn_number TXT 补充失败: {_e}")
 
+    # ── 附加 JSON 复制：批次目录自带的额外 JSON（如双语版 training-enchs.json）──
+    # 直接复制到输出目录，与 training.json 并存；资源包遍历 output 目录会自动打包
+    for _extra_json in sorted(glob.glob(os.path.join(batch_folder, '*.json'))):
+        _extra_name = os.path.basename(_extra_json)
+        if _extra_name == 'training.json':
+            continue  # training.json 由构建管道生成，防止源文件覆盖产物
+        try:
+            shutil.copy2(_extra_json, os.path.join(output_dir, _extra_name))
+            print(f"  ✓ 复制附加 JSON: {_extra_name}")
+        except Exception as _e:
+            print(f"  ⚠ 附加 JSON 复制失败 {_extra_name}: {_e}")
+
     return {
         'name': os.path.basename(batch_folder),
         'year': meta.get('year', batch_config.get('year', 2025)),
@@ -1239,7 +1252,7 @@ def generate_main_index(config, batch_results):
         'scripture-popup.js', 'toc-redirect.js', 'font-control.js',
         'search.js', 'image-utils.js', 'bookmark.js',
         # SPA-specific
-        'ref-detector.js', 'training-enricher.js', 'router.js', 'renderer.js',
+        'ref-detector.js', 'training-enricher.js', 'router.js', 'bilingual.js', 'renderer.js',
         # 本地 TXT 导入
         'txt-importer.js',
         # 本地 EPUB 导入
