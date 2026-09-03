@@ -41,6 +41,36 @@
   // 缓存已加载的 training.json
   var _cache = {};
 
+  // ── 双语渲染辅助（Task 5）────────────────────────────────────────────
+
+  // 是否处于英中对照模式（设置面板 radio → localStorage cx_lang_mode）
+  function _isEnchs() {
+    return !!(win.CXBilingual && win.CXBilingual.isEnchsMode && win.CXBilingual.isEnchsMode());
+  }
+
+  // 英文段包装：英文引用转中文标准引用（data-refs），无 CXBilingual 时退化为纯转义
+  function wrapEn(text) {
+    return (win.CXBilingual && win.CXBilingual.wrapEnRefs) ? win.CXBilingual.wrapEnRefs(text) : escText(text);
+  }
+
+  // 英中对照块：EN 主位（en 在前 cn 在后）。tag 默认 div；h2 等只能含 phrasing
+  // 内容的容器里传 'span'。调用方保证 enHtml 非空（缺英文段时直接输出 cnHtml，不包 pair）。
+  function pairHtml(enHtml, cnHtml, tag) {
+    tag = tag || 'div';
+    return '<' + tag + ' class="pair-bilingual"><' + tag + ' class="pair-en">' + enHtml +
+      '</' + tag + '><' + tag + ' class="pair-cn">' + cnHtml + '</' + tag + '></' + tag + '>';
+  }
+
+  // 从 enchs 文档中按篇号取对应章节数据（含 title_en/outline_sections_en/morning_revivals[i].*_en）
+  function findEnchsChapter(enchsDoc, chNum) {
+    if (!enchsDoc || !enchsDoc.chapters || !enchsDoc.chapters.length) return null;
+    for (var i = 0; i < enchsDoc.chapters.length; i++) {
+      var c = enchsDoc.chapters[i];
+      if (c && c.number === chNum) return c;
+    }
+    return null;
+  }
+
   // 滚动位置记忆
   var _scrollSaveTimer = null;
   var _scrollSaveHandler = null;
@@ -303,10 +333,18 @@
     return html;
   }
 
-  function buildChapterHeader(chapter) {
-    return '<div class="header header--chapter">' +
-      '<h2 class="chapter-title">第' + chapter.number + '篇 ' + escText(chapter.title) + '</h2>' +
-      '</div>';
+  function buildChapterHeader(chapter, chEn) {
+    var enTitle = chEn ? chEn.title_en : null;
+    var titleHtml;
+    if (enTitle) {
+      // 英中对照：EN 主位；h2 内只能用 span（CSS display 由 .pair-bilingual 控制）
+      titleHtml = '<h2 class="chapter-title">' +
+        pairHtml(escText(enTitle), '第' + chapter.number + '篇 ' + escText(chapter.title), 'span') +
+        '</h2>';
+    } else {
+      titleHtml = '<h2 class="chapter-title">第' + chapter.number + '篇 ' + escText(chapter.title) + '</h2>';
+    }
+    return '<div class="header header--chapter">' + titleHtml + '</div>';
   }
 
   function buildFooter(training) {
@@ -327,10 +365,12 @@
     if (next) box.val = next;
   }
 
-  function renderOutlineSection(sec, depth, parentId, defaultCollapsed, idPrefix, ctx) {
+  function renderOutlineSection(sec, depth, parentId, defaultCollapsed, idPrefix, ctx, enSec) {
     parentId = parentId || '';
     idPrefix = idPrefix || '';
     var box = toCtxBox(ctx);
+    // 本节点是否启用英中对照：enSec 存在且有英文标题才包 pair；子树对位用原始 enSec
+    var enPair = (enSec && enSec.title) ? enSec : null;
     // 若纲目节点有脚注经文提供的 ctx_scripture（阿拉伯格式如"弗4:23"），用它更新上下文
     // 这确保后续的相对引用（如"五1""17节"）能正确回溯到准确的书卷和章号
     if (sec.ctx_scripture && win.CXRef && win.CXRef.scanCtx) {
@@ -352,6 +392,18 @@
       titleHtml = wrapRefs(titleKey, box.val);
     }
     scanCtxBox(titleKey, box);
+    // 英中对照：EN 段（toggle span 复用同一 subId，两侧行均可点击折叠）
+    if (enPair) {
+      var enTitleHtml;
+      if (hasChildren) {
+        enTitleHtml = '<span class="outline-lvl-toggle' + (defaultCollapsed ? '' : ' expanded') +
+          '" data-toggle-for="' + escAttr(subId) + '" onclick="toggleSection(\'' + escAttr(subId) + '\')">' +
+          escText(enPair.level || '') + '</span>\u3000' + wrapEn(enPair.title);
+      } else {
+        enTitleHtml = escText(enPair.level ? enPair.level + '\u3000' : '') + wrapEn(enPair.title);
+      }
+      titleHtml = pairHtml(enTitleHtml, titleHtml);
+    }
 
     var html = '<div class="section" id="section-' + escAttr(sectionId) + '" data-level="' + depth + '">';
     html += '<div class="outline-item ' + lvCls + '">';
@@ -360,7 +412,10 @@
     if (sec.content && sec.content.length) {
       html += '<div class="outline-node-content">';
       for (var ci = 0; ci < sec.content.length; ci++) {
-        html += '<div class="outline-content-text">' + wrapRefs(sec.content[ci], box.val) + '</div>';
+        var cnContentHtml = wrapRefs(sec.content[ci], box.val);
+        var enContent = enPair && enPair.content && enPair.content[ci];
+        html += '<div class="outline-content-text">' +
+          (enContent ? pairHtml(wrapEn(enContent), cnContentHtml) : cnContentHtml) + '</div>';
         scanCtxBox(sec.content[ci], box);
       }
       html += '</div>';
@@ -371,7 +426,9 @@
       html += '<div class="subsections" id="subsection-' + escAttr(sectionId) +
               '" data-parent-level="' + depth + '" style="display: ' + disp + ';">';
       for (var i = 0; i < sec.children.length; i++) {
-        html += renderOutlineSection(sec.children[i], depth + 1, sectionId, defaultCollapsed, '', box);
+        // EN 子树按 index 对位递归（逐节点缺英文时该子树回退纯中文）
+        var enChild = (enSec && enSec.children) ? enSec.children[i] : undefined;
+        html += renderOutlineSection(sec.children[i], depth + 1, sectionId, defaultCollapsed, '', box, enChild);
       }
       html += '</div>';
     }
@@ -446,14 +503,21 @@
 
   // ── 视图: cv（纲目）────────────────────────────────────────────────────
 
-  function renderCv(batchPath, chapter, training) {
+  function renderCv(batchPath, chapter, training, chEn) {
     var nav = buildPageNavigation(batchPath, chapter, 'cv', training);
-    var header = buildChapterHeader(chapter);
+    var header = buildChapterHeader(chapter, chEn);
 
     var scriptureBlock = '';
     if (chapter.scripture) {
-      var inner = buildScriptureBanner(chapter.scripture, chapter.scripture_verses);
-      scriptureBlock = '<div class="scripture-section"><div class="scripture">读经：' + inner + '</div></div>';
+      var scrInner = buildScriptureBanner(chapter.scripture, chapter.scripture_verses);
+      var scrEn = chEn ? chEn.scripture_en : null;
+      if (scrEn) {
+        // 英中对照：'读经：'前缀移入中文段，避免悬在 pair 外
+        scriptureBlock = '<div class="scripture-section"><div class="scripture">' +
+          pairHtml(wrapEn(scrEn), '读经：' + scrInner) + '</div></div>';
+      } else {
+        scriptureBlock = '<div class="scripture-section"><div class="scripture">读经：' + scrInner + '</div></div>';
+      }
     }
 
     var controls = '<div class="outline-level-controls">' +
@@ -464,9 +528,11 @@
 
     var sections = '';
     var secs = chapter.outline_sections || [];
+    var secsEn = chEn ? chEn.outline_sections_en : null;
     var ctxBox = {val: chapter.scripture || ''};
     for (var i = 0; i < secs.length; i++) {
-      sections += renderOutlineSection(secs[i], 1, '', false, '', ctxBox);
+      sections += renderOutlineSection(secs[i], 1, '', false, '', ctxBox,
+        secsEn ? secsEn[i] : undefined);
     }
 
     var html = '<div class="container">' +
@@ -689,9 +755,9 @@
 
   // ── 视图: cx（晨读）────────────────────────────────────────────────────
 
-  function renderCx(batchPath, chapter, training) {
+  function renderCx(batchPath, chapter, training, chEn) {
     var nav = buildPageNavigation(batchPath, chapter, 'cx', training);
-    var header = buildChapterHeader(chapter);
+    var header = buildChapterHeader(chapter, chEn);
     var revivals = chapter.morning_revivals || [];
 
     if (!revivals.length) {
@@ -707,15 +773,19 @@
     var pages = '';
     for (var ri = 0; ri < revivals.length; ri++) {
       var rev = revivals[ri];
+      // EN 天级数据按 index 对位（enchs 与 training 天序一致；缺失/无英文时 revEn 为 null）
+      var revEn = (chEn && chEn.morning_revivals) ? chEn.morning_revivals[ri] : null;
       var dayPrefix = 'day' + (ri + 1) + '-';
       var feedingRefs = rev.feeding_refs || [];
 
       var outlineHtml = '';
+      var revOutlineEn = revEn ? revEn.outline_en : null;
       if (rev.outline && rev.outline.length) {
         outlineHtml = '<div class="outline-section">';
         var cxOutlineBox = toCtxBox(chapter.scripture || '');
         for (var oi = 0; oi < rev.outline.length; oi++) {
-          outlineHtml += renderOutlineSection(rev.outline[oi], 1, '', false, dayPrefix, cxOutlineBox);
+          outlineHtml += renderOutlineSection(rev.outline[oi], 1, '', false, dayPrefix, cxOutlineBox,
+            revOutlineEn ? revOutlineEn[oi] : undefined);
         }
         outlineHtml += '</div>';
       }
@@ -726,18 +796,32 @@
       if (hasFeeding) {
         feedingHtml = '<div class="feeding-section"><h4>晨兴喂养</h4>';
         var fs = rev.feeding_scriptures || [];
+        var fsEn = revEn ? revEn.feeding_scriptures_en : null;
         for (var fi = 0; fi < fs.length; fi++) {
           var frefs = feedingRefs[fi] || '';
-          if (frefs) {
-            feedingHtml += '<div class="scripture-block-static" data-refs="' + escAttr(frefs) + '">' + escText(fs[fi]) + '</div>';
+          // 英文段复用中文 feeding_refs 作 data-refs（英文引用已转中文标准引用，弹中文经文）
+          var fsCn = frefs
+            ? '<div class="scripture-block-static" data-refs="' + escAttr(frefs) + '">' + escText(fs[fi]) + '</div>'
+            : '<div class="feeding-scripture">' + escText(fs[fi]) + '</div>';
+          var fsEnItem = fsEn && fsEn[fi];
+          if (fsEnItem) {
+            var fsEnHtml = frefs
+              ? '<div class="scripture-block-static" data-refs="' + escAttr(frefs) + '">' + wrapEn(fsEnItem) + '</div>'
+              : '<div class="feeding-scripture">' + wrapEn(fsEnItem) + '</div>';
+            feedingHtml += pairHtml(fsEnHtml, fsCn);
           } else {
-            feedingHtml += '<div class="feeding-scripture">' + escText(fs[fi]) + '</div>';
+            feedingHtml += fsCn;
           }
         }
         var mf = rev.morning_feeding || [];
+        var mfEn = revEn ? revEn.morning_feeding_en : null;
         var mfBox = toCtxBox(chapter.scripture || '');
         for (var mfi = 0; mfi < mf.length; mfi++) {
-          feedingHtml += '<p class="content-text">' + wrapRefs(mf[mfi], mfBox.val) + '</p>';
+          var mfCn = '<p class="content-text">' + wrapRefs(mf[mfi], mfBox.val) + '</p>';
+          var mfEnItem = mfEn && mfEn[mfi];
+          feedingHtml += mfEnItem
+            ? pairHtml('<p class="content-text">' + wrapEn(mfEnItem) + '</p>', mfCn)
+            : mfCn;
           scanCtxBox(mf[mfi], mfBox);
         }
         feedingHtml += '</div>';
@@ -747,9 +831,14 @@
       if (hasReading) {
         readingHtml = '<div class="reading-section"><h4>信息选读</h4>';
         var mr = rev.message_reading;
+        var mrEn = revEn ? revEn.message_reading_en : null;
         var mrBox = toCtxBox(chapter.scripture || '');
         for (var mri = 0; mri < mr.length; mri++) {
-          readingHtml += '<p class="content-text">' + wrapRefs(mr[mri], mrBox.val) + '</p>';
+          var mrCn = '<p class="content-text">' + wrapRefs(mr[mri], mrBox.val) + '</p>';
+          var mrEnItem = mrEn && mrEn[mri];
+          readingHtml += mrEnItem
+            ? pairHtml('<p class="content-text">' + wrapEn(mrEnItem) + '</p>', mrCn)
+            : mrCn;
           scanCtxBox(mr[mri], mrBox);
         }
         readingHtml += '</div>';
@@ -759,7 +848,16 @@
       if (rev.ref_reading && rev.ref_reading.length) {
         var validRefs = rev.ref_reading.filter(function(l){ return l.indexOf('参读') >= 0; });
         if (validRefs.length) {
-          refReadHtml = '<p class="content-text">' + validRefs.map(escText).join('<br>') + '</p>';
+          var rrCn = '<p class="content-text">' + validRefs.map(escText).join('<br>') + '</p>';
+          var rrEn = revEn && revEn.ref_reading_en
+            ? revEn.ref_reading_en.filter(function(l){ return l.indexOf('Further Reading') >= 0; })
+            : null;
+          if (rrEn && rrEn.length) {
+            refReadHtml = pairHtml(
+              '<p class="content-text">' + rrEn.map(wrapEn).join('<br>') + '</p>', rrCn);
+          } else {
+            refReadHtml = rrCn;
+          }
         }
       }
 
@@ -1159,7 +1257,9 @@
       var bar = document.getElementById('bottomControlBar');
       var btn = document.getElementById('playPauseBtn');
       if (!bar || !btn) return true;
-      win.CXSpeech.init({ getElements: buildGetElements(viewType, chapter) });
+      // TTS 语言跟随阅读模式：英中读英文，中文显式 zh-CN
+      var lang = _isEnchs() ? 'en-US' : 'zh-CN';
+      win.CXSpeech.init({ getElements: buildGetElements(viewType, chapter), lang: lang });
       return true;
     }
     if (!tryInit()) {
@@ -1173,33 +1273,55 @@
   function buildGetElements(viewType, chapter) {
     return function() {
       var segs = [];
-      var titleEl = document.querySelector('.chapter-title');
-      if (titleEl && titleEl.textContent.trim()) segs.push({el: titleEl});
-      var scrEl = document.querySelector('.scripture');
-      if (scrEl && scrEl.textContent.trim()) segs.push({el: scrEl});
+      var blMode = _isEnchs();
+      if (blMode) {
+        // 英中模式：只读英文段（.pair-en，EN 主位即朗读顺序）
+        var tEn = document.querySelector('.chapter-title .pair-en');
+        if (tEn && tEn.textContent.trim()) segs.push({el: tEn});
+        var sEn = document.querySelector('.scripture .pair-en');
+        if (sEn && sEn.textContent.trim()) segs.push({el: sEn});
+      } else {
+        var titleEl = document.querySelector('.chapter-title');
+        if (titleEl && titleEl.textContent.trim()) segs.push({el: titleEl});
+        var scrEl = document.querySelector('.scripture');
+        if (scrEl && scrEl.textContent.trim()) segs.push({el: scrEl});
+      }
 
       if (viewType === 'cv') {
-        document.querySelectorAll('.outline-item').forEach(function(el){
-          if (el.textContent.trim()) segs.push({el: el});
-        });
+        if (blMode) {
+          // 纲目区 pair 全在 .outline-content 内（header/scripture 已单独收集，避免重复）
+          document.querySelectorAll('.outline-content .pair-en').forEach(function(el){
+            if (el.textContent.trim()) segs.push({el: el});
+          });
+        } else {
+          document.querySelectorAll('.outline-item').forEach(function(el){
+            if (el.textContent.trim()) segs.push({el: el});
+          });
+        }
       } else if (viewType === 'cx') {
         var active = document.querySelector('.day-page.is-active') || document.querySelector('.day-page');
         if (active) {
-          active.querySelectorAll('.outline-item').forEach(function(el){
-            if (el.textContent.trim()) segs.push({el: el});
-          });
-          var feedingSec = active.querySelector('.feeding-section');
-          if (feedingSec) {
-            feedingSec.querySelectorAll('.scripture-block-static').forEach(function(block){
-              if (block.textContent.trim()) segs.push({el: block});
+          if (blMode) {
+            active.querySelectorAll('.pair-en').forEach(function(el){
+              if (el.textContent.trim()) segs.push({el: el});
             });
-            feedingSec.querySelectorAll('.feeding-scripture').forEach(function(s){
-              if (s.textContent.trim()) segs.push({el: s});
+          } else {
+            active.querySelectorAll('.outline-item').forEach(function(el){
+              if (el.textContent.trim()) segs.push({el: el});
+            });
+            var feedingSec = active.querySelector('.feeding-section');
+            if (feedingSec) {
+              feedingSec.querySelectorAll('.scripture-block-static').forEach(function(block){
+                if (block.textContent.trim()) segs.push({el: block});
+              });
+              feedingSec.querySelectorAll('.feeding-scripture').forEach(function(s){
+                if (s.textContent.trim()) segs.push({el: s});
+              });
+            }
+            active.querySelectorAll('.content-text').forEach(function(el){
+              if (el.textContent.trim()) segs.push({el: el});
             });
           }
-          active.querySelectorAll('.content-text').forEach(function(el){
-            if (el.textContent.trim()) segs.push({el: el});
-          });
         }
       } else if (viewType === 'h') {
         var msg = document.querySelector('.message-content');
@@ -1613,13 +1735,22 @@
           getApp().innerHTML = '<p class="no-content">未找到第' + chNum + '篇</p>';
           return;
         }
-        if (viewType === 'cv') renderCv(batchPath, chapter, training);
-        else if (viewType === 'cx') renderCx(batchPath, chapter, training);
-        else if (viewType === 'h')  renderH(batchPath, chapter, training);
-        else if (viewType === 'ts') renderTs(batchPath, chapter, training);
-        else if (viewType === 'sg') renderSg(batchPath, chapter, training);
-        else if (viewType === 'zs') renderZs(batchPath, chapter, training);
-        else renderCv(batchPath, chapter, training);
+        // 英中模式：先加载 enchs（失败 resolve null 静默降级）再分发；中文模式 chEn=null，
+        // 渲染函数走原路径，输出与纯中文逐字节一致
+        var blOn = _isEnchs();
+        var dispatch = function(chEn) {
+          if (viewType === 'cv') renderCv(batchPath, chapter, training, chEn);
+          else if (viewType === 'cx') renderCx(batchPath, chapter, training, chEn);
+          else if (viewType === 'h')  renderH(batchPath, chapter, training);
+          else if (viewType === 'ts') renderTs(batchPath, chapter, training);
+          else if (viewType === 'sg') renderSg(batchPath, chapter, training);
+          else if (viewType === 'zs') renderZs(batchPath, chapter, training);
+          else renderCv(batchPath, chapter, training, chEn);
+        };
+        if (!blOn || !win.CXBilingual || !win.CXBilingual.loadEnchs) { dispatch(null); return; }
+        win.CXBilingual.loadEnchs(batchPath).then(function(enchsDoc) {
+          dispatch(findEnchsChapter(enchsDoc, chNum));
+        });
       })
       .catch(function(err) {
         var isCapacitor = !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
