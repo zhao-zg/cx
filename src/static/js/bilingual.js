@@ -101,10 +101,37 @@
     return _enchsCache[batchPath];
   }
 
+  /**
+   * 英中段落等长配对：以中文数组为主序，逐项配英文（缺失补 null，渲染层跳过英文块）。
+   * 中文缺失而英文存在时以英文为准补齐（cn 为空串）。
+   * @returns Array<{cn:string, en:string|null}>
+   */
+  function pairEn(arrEn, arrCn) {
+    var en = Array.isArray(arrEn) ? arrEn : null;
+    var cn = Array.isArray(arrCn) ? arrCn : null;
+    if (!cn && !en) return [];
+    if (!cn) {
+      // 无中文：仅英文
+      var outEnOnly = [];
+      for (var i = 0; i < en.length; i++) outEnOnly.push({ cn: '', en: en[i] });
+      return outEnOnly;
+    }
+    var out = [];
+    var n = Math.max(cn.length, en ? en.length : 0);
+    for (var j = 0; j < n; j++) {
+      out.push({
+        cn: j < cn.length ? cn[j] : '',
+        en: en && j < en.length ? en[j] : null,
+      });
+    }
+    return out;
+  }
+
   win.CXBilingual = {
     isEnchsMode: isEnchsMode,
     setEnchsMode: setEnchsMode,
     loadEnchs: loadEnchs,
     getEnchs: getEnchs,
+    pairEn: pairEn,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
