@@ -1,15 +1,17 @@
 /**
- * 双语阅读模式（中文 / 英中对照）
+ * 双语阅读模式（中文 / 英中对照 / 纯英文）
  * 语言模式开关 + 双语数据加载 + 英中配对 + 英文引用转换
  * 零依赖，IIFE 挂载 window.CXBilingual
  *
- * 语言模式持久化：localStorage['cx_lang_mode'] === 'enchs' → 英中对照；其余/缺失 → 中文
+ * 语言模式持久化：localStorage['cx_lang_mode']：'enchs' → 英中对照；'en' → 纯英文；
+ * 其余/缺失 → 中文（cn，存储值不存在）
  */
 (function (win) {
   'use strict';
 
   var LANG_KEY = 'cx_lang_mode';
   var ENCHS_VAL = 'enchs';
+  var EN_VAL = 'en';
 
   // 内部缓存：batchPath → enchs 数据（null 表示加载失败，静默降级中文）
   var _enchsCache = {};
@@ -57,18 +59,35 @@
     } catch (e) {}
   }
 
-  /** 当前是否英中对照模式 */
-  function isEnchsMode() {
-    return _readStorage(LANG_KEY) === ENCHS_VAL;
+  /** 当前语言模式：'cn' | 'enchs' | 'en'（非法值防御性回退 cn） */
+  function getLangMode() {
+    var v = _readStorage(LANG_KEY);
+    if (v === ENCHS_VAL || v === EN_VAL) return v;
+    return 'cn';
   }
 
-  /** 设置语言模式：true=英中对照，false=中文（清空存储值） */
-  function setEnchsMode(enchs) {
-    if (enchs) {
-      _writeStorage(LANG_KEY, ENCHS_VAL);
+  /** 设置语言模式：'cn'|'enchs'|'en'；cn 清空存储值；非法值视为 cn */
+  function setLangMode(mode) {
+    if (mode === ENCHS_VAL || mode === EN_VAL) {
+      _writeStorage(LANG_KEY, mode);
     } else {
       _removeStorage(LANG_KEY);
     }
+  }
+
+  /** 当前是否英中对照模式 */
+  function isEnchsMode() {
+    return getLangMode() === ENCHS_VAL;
+  }
+
+  /** 当前是否纯英文模式 */
+  function isEnMode() {
+    return getLangMode() === EN_VAL;
+  }
+
+  /** 设置语言模式（旧二态 API，保留兼容）：true=英中对照，false=中文（清空存储值） */
+  function setEnchsMode(enchs) {
+    setLangMode(enchs ? ENCHS_VAL : 'cn');
   }
 
   /**
@@ -329,7 +348,10 @@
   }
 
   win.CXBilingual = {
+    getLangMode: getLangMode,
+    setLangMode: setLangMode,
     isEnchsMode: isEnchsMode,
+    isEnMode: isEnMode,
     setEnchsMode: setEnchsMode,
     loadEnchs: loadEnchs,
     getEnchs: getEnchs,

@@ -48,6 +48,21 @@
     return !!(win.CXBilingual && win.CXBilingual.isEnchsMode && win.CXBilingual.isEnchsMode());
   }
 
+  // 是否处于纯英文模式（cx_lang_mode === 'en'）
+  function _isEn() {
+    return !!(win.CXBilingual && win.CXBilingual.isEnMode && win.CXBilingual.isEnMode());
+  }
+
+  // 是否需要双语数据（英中或纯英文都要加载 enchs）
+  function _needEnchs() {
+    return _isEnchs() || _isEn();
+  }
+
+  // UI 标签文案：纯英文模式用英文，其余中文（CN 输出字节不变）
+  function _uiText(cn, en) {
+    return _isEn() ? en : cn;
+  }
+
   // 英文段包装：英文引用转中文标准引用（data-refs），无 CXBilingual 时退化为纯转义
   function wrapEn(text) {
     return (win.CXBilingual && win.CXBilingual.wrapEnRefs) ? win.CXBilingual.wrapEnRefs(text) : escText(text);
@@ -55,7 +70,9 @@
 
   // 英中对照块：EN 主位（en 在前 cn 在后）。tag 默认 div；h2 等只能含 phrasing
   // 内容的容器里传 'span'。调用方保证 enHtml 非空（缺英文段时直接输出 cnHtml，不包 pair）。
+  // 纯英文模式：不包装，直接输出英文段（无 pair 结构）。
   function pairHtml(enHtml, cnHtml, tag) {
+    if (_isEn()) return enHtml;
     tag = tag || 'div';
     return '<' + tag + ' class="pair-bilingual"><' + tag + ' class="pair-en">' + enHtml +
       '</' + tag + '><' + tag + ' class="pair-cn">' + cnHtml + '</' + tag + '></' + tag + '>';
@@ -794,7 +811,7 @@
       var hasFeeding = (rev.feeding_scriptures && rev.feeding_scriptures.length) || (rev.morning_feeding && rev.morning_feeding.length);
       var hasReading = rev.message_reading && rev.message_reading.length;
       if (hasFeeding) {
-        feedingHtml = '<div class="feeding-section"><h4>晨兴喂养</h4>';
+        feedingHtml = '<div class="feeding-section"><h4>' + _uiText('晨兴喂养', 'Morning Nourishment') + '</h4>';
         var fs = rev.feeding_scriptures || [];
         var fsEn = revEn ? revEn.feeding_scriptures_en : null;
         for (var fi = 0; fi < fs.length; fi++) {
@@ -829,7 +846,7 @@
 
       var readingHtml = '';
       if (hasReading) {
-        readingHtml = '<div class="reading-section"><h4>信息选读</h4>';
+        readingHtml = '<div class="reading-section"><h4>' + _uiText('信息选读', 'Message Selection') + '</h4>';
         var mr = rev.message_reading;
         var mrEn = revEn ? revEn.message_reading_en : null;
         var mrBox = toCtxBox(chapter.scripture || '');
@@ -1268,8 +1285,8 @@
       var bar = document.getElementById('bottomControlBar');
       var btn = document.getElementById('playPauseBtn');
       if (!bar || !btn) return true;
-      // TTS 语言跟随阅读模式：英中读英文，中文显式 zh-CN
-      var lang = _isEnchs() ? 'en-US' : 'zh-CN';
+      // TTS 语言跟随阅读模式：英中/纯英文读英文，中文显式 zh-CN
+      var lang = _needEnchs() ? 'en-US' : 'zh-CN';
       // 朗读进度持久化 key：按批次/篇/视图隔离；缺任一要素则不启用持久化
       var speechStoreKey = (batchPath && chapter && chapter.number)
         ? ('cx_speech:' + batchPath + '/' + chapter.number + '/' + viewType) : null;
@@ -1287,6 +1304,8 @@
   function buildGetElements(viewType, chapter) {
     return function() {
       var segs = [];
+      // 英中模式只读英文段（.pair-en）；纯英文模式无 pair 结构，
+      // 走普通选择器路径收集的即是英文内容（TTS lang 已切 en-US）
       var blMode = _isEnchs();
       if (blMode) {
         // 英中模式：只读英文段（.pair-en，EN 主位即朗读顺序）
@@ -1749,9 +1768,9 @@
           getApp().innerHTML = '<p class="no-content">未找到第' + chNum + '篇</p>';
           return;
         }
-        // 英中模式：先加载 enchs（失败 resolve null 静默降级）再分发；中文模式 chEn=null，
-        // 渲染函数走原路径，输出与纯中文逐字节一致
-        var blOn = _isEnchs();
+        // 英中/纯英文模式：先加载 enchs（失败 resolve null 静默降级中文）再分发；
+        // 中文模式 chEn=null，渲染函数走原路径，输出与纯中文逐字节一致
+        var blOn = _needEnchs();
         var dispatch = function(chEn) {
           if (viewType === 'cv') renderCv(batchPath, chapter, training, chEn);
           else if (viewType === 'cx') renderCx(batchPath, chapter, training, chEn);

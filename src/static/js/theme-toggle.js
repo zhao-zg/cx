@@ -644,6 +644,12 @@
                             <div class="theme-label">英中对照</div>
                         </div>
                     </div>
+                    <div class="theme-option lang-option" data-lang="en" onclick="setLangMode('en')">
+                        <div class="theme-option-content">
+                            <div class="theme-radio"></div>
+                            <div class="theme-label">纯英文</div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -1881,32 +1887,33 @@
         });
     }
 
-    // ── 阅读语言（中文 / 英中对照）────────────────────────────────────
-    // 初始 lang 模式（优先走 CXBilingual，防御性直接读 localStorage）
+    // ── 阅读语言（中文 / 英中对照 / 纯英文）────────────────────────────
+    // 初始 lang 模式（优先走 CXBilingual 三态 API，防御性直接读 localStorage）
     function getInitialLangMode() {
         try {
-            if (window.CXBilingual && window.CXBilingual.isEnchsMode) {
-                return window.CXBilingual.isEnchsMode() ? 'enchs' : 'cn';
+            if (window.CXBilingual && window.CXBilingual.getLangMode) {
+                return window.CXBilingual.getLangMode();
             }
-            return localStorage.getItem('cx_lang_mode') === 'enchs' ? 'enchs' : 'cn';
+            var v = localStorage.getItem('cx_lang_mode');
+            return (v === 'enchs' || v === 'en') ? v : 'cn';
         } catch (e) { return 'cn'; }
     }
 
-    // 设置阅读语言：写持久化（经 CXBilingual.setEnchsMode）→ 更新选中态 →
+    // 设置阅读语言：写持久化（经 CXBilingual.setLangMode）→ 更新选中态 →
     // 正文视图（3 段路径）立即 navigateReplace 重渲染；面板保持打开
     // （面板是 body 级 overlay，不受 app innerHTML 替换影响）
     window.setLangMode = function(mode) {
-        var enchs = (mode === 'enchs');
+        mode = (mode === 'enchs' || mode === 'en') ? mode : 'cn';
         try {
-            if (window.CXBilingual && window.CXBilingual.setEnchsMode) {
-                window.CXBilingual.setEnchsMode(enchs);
-            } else if (enchs) {
-                localStorage.setItem('cx_lang_mode', 'enchs');
+            if (window.CXBilingual && window.CXBilingual.setLangMode) {
+                window.CXBilingual.setLangMode(mode);
+            } else if (mode === 'enchs' || mode === 'en') {
+                localStorage.setItem('cx_lang_mode', mode);
             } else {
                 localStorage.removeItem('cx_lang_mode');
             }
         } catch (e) {}
-        updateLangUI(enchs ? 'enchs' : 'cn');
+        updateLangUI(mode);
         try {
             var path = (window.CXRouter && window.CXRouter.currentPath) ? window.CXRouter.currentPath() : '';
             var parts = String(path || '').split('/').filter(Boolean);
