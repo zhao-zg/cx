@@ -11,6 +11,9 @@ batch_processing:
   skip_existing: false
   strict_exit_on_batch_failure: false  # false: 部分失败也返回0；true: 只要有失败就返回1
   max_latest_trainings: 5  # GitHub 打包最多保留最新 N 个训练
+  # 并行处理批次的线程数（默认 1 = 串行；设为 2-4 可加速多批次构建，
+  # 瓶颈为 Node/Python 子进程 I/O 等待，线程并行即可；批次日志按批次隔离输出）
+  parallel_workers: 3
   # specific_trainings: []  # 注释掉此行，默认生成所有可用训练
 
 # 赞助功能（关闭后不发布二维码图片，前端自动隐藏顾念微工入口）

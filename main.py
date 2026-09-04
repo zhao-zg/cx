@@ -8,10 +8,13 @@ import re
 import json
 import glob
 import yaml
+import io
 import shutil
 import base64
 import hashlib
 import subprocess
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from src.parser_improved import parse_training_docs_improved
 from src.generator import export_training_json, generate_search_index_from_json
@@ -1689,6 +1692,43 @@ def generate_resource_packs(output_dir, all_trainings):
           f"{len(individuals)} 个独立训练)")
 
 
+class _ThreadOutputRouter(io.TextIOBase):
+    """线程安全 stdout 路由：工作线程的 print 写入各自缓冲区，主线程直通真实 stdout。
+
+    用于并行构建时隔离各批次日志，避免多批次输出交叉；
+    子进程输出不受影响（subprocess 均已 capture_output 自行捕获）。
+    """
+
+    def __init__(self, real_stdout):
+        self._real = real_stdout
+        self._tls = threading.local()
+
+    def begin_capture(self):
+        self._tls.buf = io.StringIO()
+
+    def end_capture(self):
+        buf = getattr(self._tls, 'buf', None)
+        self._tls.buf = None
+        return buf.getvalue() if buf else ''
+
+    def writable(self):
+        return True
+
+    def write(self, s):
+        buf = getattr(self._tls, 'buf', None)
+        if buf is not None:
+            buf.write(s)
+        else:
+            self._real.write(s)
+        return len(s)
+
+    def flush(self):
+        try:
+            self._real.flush()
+        except Exception:
+            pass
+
+
 def main():
     """主函数"""
     import sys as _sys
@@ -1840,13 +1880,18 @@ def main():
         else:
             print("⚠ 历史合辑 training.json 生成失败")
 
-    # 处理每个批次
+    # 处理每个批次（支持并行）
     success_count = 0
     failed_count = 0
     skip_existing = batch_config.get('skip_existing', False)
     strict_exit_on_batch_failure = batch_config.get('strict_exit_on_batch_failure', False)
+    parallel_workers = batch_config.get('parallel_workers', 1)
+    if not isinstance(parallel_workers, int) or parallel_workers < 1:
+        parallel_workers = 1
     batch_results = []
 
+    # skip_existing 预筛（串行读元数据，避免并行读共享 app 状态）
+    to_process = []
     for batch_folder in batch_folders:
         batch_name = os.path.basename(batch_folder)
         safe_batch_name = url_safe_name(batch_name)
@@ -1880,12 +1925,72 @@ def main():
                 pass
             continue
 
-        result = process_batch(batch_folder, config, bible_dict)
-        if result is not None:
-            success_count += 1
-            batch_results.append(result)
-        else:
-            failed_count += 1
+        to_process.append((batch_folder, batch_name))
+
+    if parallel_workers > 1 and len(to_process) > 1:
+        # ── 并行处理 ──
+        real_stdout = sys.stdout
+        router = _ThreadOutputRouter(real_stdout)
+        sys.stdout = router
+
+        # 预打印并行开始信息（主线程捕获前）
+        header_lines = [
+            f"🚀 并行处理 {len(to_process)} 个批次 (workers={parallel_workers})",
+            ""
+        ]
+
+        def _worker(bf):
+            router.begin_capture()
+            try:
+                res = process_batch(bf, config, bible_dict)
+            except Exception:
+                res = None
+                import traceback
+                traceback.print_exc(file=sys.stdout)
+            log = router.end_capture()
+            return bf, res, log
+
+        fut_to_batch = {}
+        with ThreadPoolExecutor(max_workers=parallel_workers) as pool:
+            for bf, bn in to_process:
+                fut = pool.submit(_worker, bf)
+                fut_to_batch[fut] = bn
+
+            # 按提交顺序逐个收割完成日志（结果保序）
+            results_by_name = {}
+            for fut in as_completed(fut_to_batch):
+                bf, res, log = fut.result()
+                bn = os.path.basename(bf)
+                results_by_name[bn] = (res, log)
+                real_stdout.write(
+                    f"\n✓ [{bn}] 完成 ({'成功' if res is not None else '失败'})\n")
+
+        sys.stdout = real_stdout
+
+        print()
+        print("=" * 60)
+        for line in header_lines:
+            print(line)
+        # 按原批次顺序整块输出各批次日志
+        for bf, bn in to_process:
+            res, log = results_by_name.get(bn, (None, ''))
+            print("=" * 60)
+            print(log.rstrip('\n'))
+            if res is not None:
+                success_count += 1
+                batch_results.append(res)
+            else:
+                failed_count += 1
+        print("=" * 60)
+    else:
+        # ── 串行处理（默认） ──
+        for bf, bn in to_process:
+            result = process_batch(bf, config, bible_dict)
+            if result is not None:
+                success_count += 1
+                batch_results.append(result)
+            else:
+                failed_count += 1
 
     
     # 生成总主页（即使 batch_results 为空也执行，确保静态资产复制）
