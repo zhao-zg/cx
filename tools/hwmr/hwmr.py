@@ -2,11 +2,12 @@
 """hwmr.py: HWMR 双语管线 CLI 入口
 
 子命令：
-  parse <批次短名>     PDF → NEW 双语树 JSON（写 resource/<批次>/training-enchs.json 前身，输出到 .temp 复验）
+  parse <批次短名>     PDF → NEW 双语树 JSON（写 .temp 复验）
   normalize <批次短名> NEW 中文字段归一（写 .temp 复验）
-  merge <批次短名>     OLD 底座 + NEW → 双语 training.json（写 resource/<批次>/training-enchs.json）
+  merge <批次短名>     OLD 底座 + NEW → 双语 training.json（写 .temp 复验）
   verify <批次短名>    同构检查 + 锚点复现对比（仅当批次配置声明 anchors）
-  all <批次短名>       parse → normalize → merge → verify 一条龙
+  install <批次短名>   合并结果落盘到 output/<短名>/training-enchs.json
+  all <批次短名>       parse → normalize → merge → verify → install 一条龙
 
 用法（在 cx 项目根目录运行）：
   G:\\soft\\Python3.12\\python.exe -X utf8 tools/hwmr/hwmr.py all 2026-04
@@ -32,6 +33,7 @@ import merger                      # noqa: E402
 import verifier                    # noqa: E402
 
 TEMP = os.path.join(ROOT, '.temp')
+os.makedirs(TEMP, exist_ok=True)  # CI 环境 .temp 被 gitignore，checkout 后不存在，须主动创建
 BATCHES_DIR = os.path.join(TOOLS_DIR, 'batches')
 
 
@@ -48,15 +50,15 @@ def load_batch(short_name):
 
 
 def batch_paths(cfg):
-    batch_dir = os.path.join(ROOT, 'resource', cfg['batch_name'])
+    output_dir = os.path.join(ROOT, 'output', cfg['short_name'])
     return {
         'pdf': os.path.join(ROOT, cfg['pdf']),
-        'batch_dir': batch_dir,
-        'enchs_final': os.path.join(batch_dir, 'training-enchs.json'),
+        'output_dir': output_dir,
+        'enchs_final': os.path.join(output_dir, 'training-enchs.json'),
         'new_tmp': os.path.join(TEMP, f'hwmr-enchs-{cfg["short_name"]}.json'),
         'norm_tmp': os.path.join(TEMP, f'hwmr-enchs-{cfg["short_name"]}-norm.json'),
         'merged_tmp': os.path.join(TEMP, f'hwmr-enchs-{cfg["short_name"]}-merged.json'),
-        'old_training': os.path.join(ROOT, 'output', cfg['short_name'], 'training.json'),
+        'old_training': os.path.join(output_dir, 'training.json'),
     }
 
 
@@ -149,9 +151,9 @@ def cmd_verify(cfg):
 
 
 def install(cfg, merged):
-    """把合并结果落到批次目录 training-enchs.json（main.py 构建时自动带入 output）。"""
+    """把合并结果直接落到 output/<短名>/training-enchs.json（双语版最终位置）。"""
     paths = batch_paths(cfg)
-    os.makedirs(paths['batch_dir'], exist_ok=True)
+    os.makedirs(paths['output_dir'], exist_ok=True)
     json.dump(merged, open(paths['enchs_final'], 'w', encoding='utf-8'),
               ensure_ascii=False, indent=1)
     log(f'已安装: {paths["enchs_final"]}')

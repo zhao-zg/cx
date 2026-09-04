@@ -60,8 +60,7 @@ functions/
 # Temporary downloads
 tmp_downloads/
 resource/pdb/
-# 双语 JSON 与中英对照 PDF（本地保存，不入库）
-resource/*/training-enchs.json
+# 中英对照 PDF（本地保存，不入库）；training-enchs.json 由 hwmr 直接写 output/（已被 output/ 规则排除）
 
 # Security build artifacts
 *.dev.backup

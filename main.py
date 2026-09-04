@@ -506,9 +506,11 @@ def url_safe_name(name):
 
 def copy_extra_jsons(batch_folder, output_dir):
     """
-    复制批次目录自带的额外 JSON（如双语版 training-enchs.json）到输出目录。
+    复制批次目录自带的额外 JSON（如附加数据 JSON）到输出目录。
 
     与 training.json 并存；资源包遍历 output 目录会自动打包。
+    training.json / training-enchs.json 不在此列：前者由构建管道生成，
+    后者由 hwmr 双语管线直接写 output（防止旧文件覆盖新产物）。
 
     Returns:
         复制成功的文件名列表。
@@ -516,8 +518,8 @@ def copy_extra_jsons(batch_folder, output_dir):
     copied = []
     for extra_json in sorted(glob.glob(os.path.join(batch_folder, '*.json'))):
         extra_name = os.path.basename(extra_json)
-        if extra_name == 'training.json':
-            continue  # training.json 由构建管道生成，防止源文件覆盖产物
+        if extra_name in ('training.json', 'training-enchs.json'):
+            continue  # training.json 由构建管道生成；enchs 由 hwmr 直接写 output，防旧文件覆盖
         try:
             shutil.copy2(extra_json, os.path.join(output_dir, extra_name))
             copied.append(extra_name)
@@ -532,8 +534,8 @@ def run_hwmr_bilingual_pipeline(safe_batch_name, batch_folder, output_dir):
     构建时自动运行 hwmr 双语管线：PDF → NEW 双语树 → merge OLD 底座 → training-enchs.json。
 
     触发条件：tools/hwmr/batches/<短名>.json 批次配置存在。
-    管线产物由 hwmr install 落盘到 resource/<批次>/training-enchs.json（不入库，
-    .gitignore 已排除），随后由 copy_extra_jsons 复制进 output/<短名>/。
+    管线产物由 hwmr install 直接落盘到 output/<短名>/training-enchs.json（不入库，
+    .gitignore 已排除），不经 resource 中转。
     必须在 output/<短名>/training.json 生成之后调用（merge 依赖 OLD 底座）。
 
     增量跳过：输入指纹（PDF/批次配置/hwmr 源码/OLD 底座内容，去 version 时间戳）
@@ -598,9 +600,7 @@ def run_hwmr_bilingual_pipeline(safe_batch_name, batch_folder, output_dir):
         fingerprint = None
 
     fp_path = os.path.join(project_root, '.temp', f'hwmr-fp-{safe_batch_name}.json')
-    enchs_resource = os.path.join(
-        project_root, 'resource', cfg['batch_name'], 'training-enchs.json')
-    if fingerprint is not None and (os.path.exists(enchs_out) or os.path.exists(enchs_resource)):
+    if fingerprint is not None and os.path.exists(enchs_out):
         try:
             with open(fp_path, encoding='utf-8') as f:
                 saved = json.load(f)
@@ -641,7 +641,7 @@ def run_hwmr_bilingual_pipeline(safe_batch_name, batch_folder, output_dir):
         print(f"    {line}")
 
     # 成功且产物落盘：写指纹供下次增量跳过
-    if result.returncode == 0 and fingerprint is not None and os.path.exists(enchs_resource):
+    if result.returncode == 0 and fingerprint is not None and os.path.exists(enchs_out):
         try:
             os.makedirs(os.path.dirname(fp_path), exist_ok=True)
             with open(fp_path, 'w', encoding='utf-8') as f:
@@ -845,7 +845,8 @@ def process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_f
     # 必须在 training.json（OLD 底座）生成后调用
     run_hwmr_bilingual_pipeline(safe_batch_name, batch_folder, output_dir)
 
-    # ── 附加 JSON 复制：批次目录自带的额外 JSON（如双语版 training-enchs.json）──
+    # ── 附加 JSON 复制：批次目录自带的额外 JSON ──
+    # training.json / training-enchs.json 不复制（分别由构建管道 / hwmr 管线生成）
     copy_extra_jsons(batch_folder, output_dir)
 
     return {
@@ -1117,7 +1118,8 @@ def process_batch_epub(batch_folder, config, batch_config, safe_batch_name, epub
     # 必须在 training.json（OLD 底座）生成后调用
     run_hwmr_bilingual_pipeline(safe_batch_name, batch_folder, output_dir)
 
-    # ── 附加 JSON 复制：批次目录自带的额外 JSON（如双语版 training-enchs.json）──
+    # ── 附加 JSON 复制：批次目录自带的额外 JSON ──
+    # training.json / training-enchs.json 不复制（分别由构建管道 / hwmr 管线生成）
     # 直接复制到输出目录，与 training.json 并存；资源包遍历 output 目录会自动打包
     copy_extra_jsons(batch_folder, output_dir)
 
