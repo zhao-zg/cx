@@ -610,51 +610,86 @@ def process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_f
             print(f"  ⚠ 诗歌补丁超时，跳过")
         except Exception as e:
             print(f"  ⚠ 诗歌补丁异常: {e}")
-
-        # ── 回退：若 training.json 中 hymn_images 为空但磁盘有 hymn_*.png，则自动补充 ──
-        _training_json = os.path.join(output_dir, 'training.json')
-        _images_dir = os.path.join(output_dir, 'images')
-        if os.path.exists(_training_json) and os.path.isdir(_images_dir):
-            hymn_files = sorted([
-                f for f in os.listdir(_images_dir)
-                if f.startswith('hymn_') and f.lower().endswith(('.png', '.jpg', '.jpeg'))
-            ])
-            if hymn_files:
-                try:
-                    with open(_training_json, 'r', encoding='utf-8') as _f:
-                        _td = json.load(_f)
-                    _need_write = False
-                    for _ch in _td.get('chapters', []):
-                        if _ch.get('hymn_images'):
-                            continue  # 已有图片，跳过
-                        _num = _ch.get('number', 0)
-                        # 精确匹配 hymn_{number}[_或.后缀]，避免 hymn_1 误匹配 hymn_12
-                        _pat = re.compile(r'^hymn_' + str(_num) + r'[_\.]')
-                        _matched = [f'images/{f}' for f in hymn_files if _pat.match(f)]
-                        # 去重：内容相同的图片只保留第一张
-                        if _matched and len(_matched) > 1:
-                            _seen = {}
-                            for _mf in _matched:
-                                _fp = os.path.join(_images_dir, _mf.replace('images/', ''))
-                                if os.path.exists(_fp):
-                                    _h = hashlib.md5(open(_fp, 'rb').read()).hexdigest()
-                                    if _h not in _seen:
-                                        _seen[_h] = _mf
-                                else:
-                                    _seen[id(_mf)] = _mf
-                            _matched = list(_seen.values())
-                        if _matched:
-                            _ch['hymn_images'] = _matched
-                            _ch['hymn_image'] = _matched[0]
-                            _need_write = True
-                    if _need_write:
-                        with open(_training_json, 'w', encoding='utf-8') as _f:
-                            json.dump(_td, _f, ensure_ascii=False, indent=2)
-                        print(f"  ✓ 从磁盘补充 hymn_images 引用")
-                except Exception as _e:
-                    print(f"  ⚠ hymn_images 回退补充失败: {_e}")
     else:
         print(f"  ⚠ 未找到诗歌补丁脚本: {_patch_hymn}")
+
+    # ── 从晨兴中英对照 PDF 追加诗歌图（高清）────────────────────────────
+    _patch_pdf = os.path.join(os.path.dirname(__file__), 'tools', 'patch_hymn_from_pdf.py')
+    if os.path.exists(_patch_pdf):
+        try:
+            _child_env2 = os.environ.copy()
+            _child_env2['PYTHONIOENCODING'] = 'utf-8'
+            pdf_result = subprocess.run(
+                [sys.executable, _patch_pdf,
+                 '--output-dir', output_dir,
+                 '--batch-folder', batch_folder],
+                capture_output=True, text=True, encoding='utf-8',
+                errors='replace', timeout=240, env=_child_env2)
+            if pdf_result.stderr:
+                for _l in pdf_result.stderr.strip().split('\n'):
+                    print(f"  {_l}")
+            if pdf_result.returncode == 0 and pdf_result.stdout.strip():
+                _raw = pdf_result.stdout.strip()
+                _js = _raw[_raw.find('{'):_raw.rfind('}') + 1]
+                if _js.startswith('{'):
+                    _meta = json.loads(_js)
+                    _n = _meta.get('images_written', 0)
+                    _w = _meta.get('patched_chapters', 0)
+                    if _n:
+                        print(f"  ✓ PDF 诗歌图补充: {_n} 张 ({_w} 篇)")
+                    else:
+                        print(f"  ℹ PDF 诗歌图补充: 无新增（已存在或跳过）")
+            elif pdf_result.returncode != 0:
+                print(f"  ⚠ PDF 诗歌图补充失败 (exit {pdf_result.returncode})")
+        except subprocess.TimeoutExpired:
+            print(f"  ⚠ PDF 诗歌图补充超时，跳过")
+        except Exception as _e:
+            print(f"  ⚠ PDF 诗歌图补充异常: {_e}")
+    else:
+        print(f"  ⚠ 未找到 PDF 诗歌图补充脚本: {_patch_pdf}")
+
+    # ── 回退：若 training.json 中已为空但磁盘有 hymn_*.png，则自动补充 ──
+    _training_json = os.path.join(output_dir, 'training.json')
+    _images_dir = os.path.join(output_dir, 'images')
+    if os.path.exists(_training_json) and os.path.isdir(_images_dir):
+        hymn_files = sorted([
+            f for f in os.listdir(_images_dir)
+            if f.startswith('hymn_') and f.lower().endswith(('.png', '.jpg', '.jpeg'))
+        ])
+        if hymn_files:
+            try:
+                with open(_training_json, 'r', encoding='utf-8') as _f:
+                    _td = json.load(_f)
+                _need_write = False
+                for _ch in _td.get('chapters', []):
+                    if _ch.get('hymn_images'):
+                        continue  # 已有图片，跳过
+                    _num = _ch.get('number', 0)
+                    # 精确匹配 hymn_{number}[_或.后缀]，避免 hymn_1 误匹配 hymn_12
+                    _pat = re.compile(r'^hymn_' + str(_num) + r'[_\.]')
+                    _matched = [f'images/{f}' for f in hymn_files if _pat.match(f)]
+                    # 去重：内容相同的图片只保留第一张
+                    if _matched and len(_matched) > 1:
+                        _seen = {}
+                        for _mf in _matched:
+                            _fp = os.path.join(_images_dir, _mf.replace('images/', ''))
+                            if os.path.exists(_fp):
+                                _h = hashlib.md5(open(_fp, 'rb').read()).hexdigest()
+                                if _h not in _seen:
+                                    _seen[_h] = _mf
+                            else:
+                                _seen[id(_mf)] = _mf
+                        _matched = list(_seen.values())
+                    if _matched:
+                        _ch['hymn_images'] = _matched
+                        _ch['hymn_image'] = _matched[0]
+                        _need_write = True
+                if _need_write:
+                    with open(_training_json, 'w', encoding='utf-8') as _f:
+                        json.dump(_td, _f, ensure_ascii=False, indent=2)
+                    print(f"  ✓ 从磁盘补充 hymn_images 引用")
+            except Exception as _e:
+                print(f"  ⚠ hymn_images 回退补充失败: {_e}")
 
     return {
         'name': batch_name,
@@ -811,6 +846,41 @@ def process_batch_epub(batch_folder, config, batch_config, safe_batch_name, epub
             print(f"  ⚠ 诗歌补丁异常: {e}")
     else:
         print(f"  ⚠ 未找到诗歌补丁脚本: {_patch_hymn}")
+
+    # ── 从晨兴中英对照 PDF 追加诗歌图（高清）────────────────────────────
+    _patch_pdf = os.path.join(os.path.dirname(__file__), 'tools', 'patch_hymn_from_pdf.py')
+    if os.path.exists(_patch_pdf):
+        try:
+            _child_env2 = os.environ.copy()
+            _child_env2['PYTHONIOENCODING'] = 'utf-8'
+            pdf_result = subprocess.run(
+                [sys.executable, _patch_pdf,
+                 '--output-dir', output_dir,
+                 '--batch-folder', batch_folder],
+                capture_output=True, text=True, encoding='utf-8',
+                errors='replace', timeout=240, env=_child_env2)
+            if pdf_result.stderr:
+                for _l in pdf_result.stderr.strip().split('\n'):
+                    print(f"  {_l}")
+            if pdf_result.returncode == 0 and pdf_result.stdout.strip():
+                _raw = pdf_result.stdout.strip()
+                _js = _raw[_raw.find('{'):_raw.rfind('}') + 1]
+                if _js.startswith('{'):
+                    _meta = json.loads(_js)
+                    _n = _meta.get('images_written', 0)
+                    _w = _meta.get('patched_chapters', 0)
+                    if _n:
+                        print(f"  ✓ PDF 诗歌图补充: {_n} 张 ({_w} 篇)")
+                    else:
+                        print(f"  ℹ PDF 诗歌图补充: 无新增（已存在或跳过）")
+            elif pdf_result.returncode != 0:
+                print(f"  ⚠ PDF 诗歌图补充失败 (exit {pdf_result.returncode})")
+        except subprocess.TimeoutExpired:
+            print(f"  ⚠ PDF 诗歌图补充超时，跳过")
+        except Exception as _e:
+            print(f"  ⚠ PDF 诗歌图补充异常: {_e}")
+    else:
+        print(f"  ⚠ 未找到 PDF 诗歌图补充脚本: {_patch_pdf}")
 
     # ── 回退：若 training.json 中 hymn_images 为空但磁盘有 hymn_*.png，则自动补充 ──
     _training_json = os.path.join(output_dir, 'training.json')

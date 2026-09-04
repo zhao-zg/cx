@@ -1002,6 +1002,13 @@ DAY_CN = ['周一', '周二', '周三', '周四', '周五', '周六']
 DAY_CN_STR = '一二三四五六'
 
 
+def _strip_is_bold(nodes):
+    """递归剥离内部标记 is_bold（非 schema 字段，仅 B 类续行归属内部逻辑用）。"""
+    for n in nodes:
+        n.pop('is_bold', None)
+        _strip_is_bold(n['children'])
+
+
 def build(pdf_path, config, log=print):
     """解析 PDF → NEW 双语树 dict。config 见 batches/*.json。"""
     title_fixes = config.get('title_fixes', [])
@@ -1120,6 +1127,14 @@ def build(pdf_path, config, log=print):
         'is_collection': False,
         'motto_song_images': [],
     }
+    # 剥离内部标记：is_bold 仅供 B 类续行归属逻辑（outline_flat_nodes）内部使用，
+    # 不属于 training.json schema，产物须干净（与 OLD/锚点字段集一致）。
+    for ch in result['chapters']:
+        _strip_is_bold(ch['outline_sections'])
+        _strip_is_bold(ch['outline_sections_en'])
+        for d in ch['morning_revivals']:
+            _strip_is_bold(d['outline'])
+            _strip_is_bold(d['outline_en'])
     return result
 
 
