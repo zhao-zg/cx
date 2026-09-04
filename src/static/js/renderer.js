@@ -889,11 +889,22 @@
 
     setContent(html, 'cx', batchPath, chapter, training);
 
-    // 确定初始显示天：优先使用书签跳转写入的天索引（屏蔽当前星期设定），否则按当前星期
+    // 确定初始显示天（三级优先）：书签跳转天索引 > 上次朗读的天 > 按当前星期。
+    // 书签 key 读后即删；朗读 key 读后保留（speech.js 恢复逻辑还需按它定位进度）。
     var bmDayKey = 'cx_bm_day:' + batchPath + '/' + chapter.number + '/cx';
     var bmDayVal = -1;
     try { bmDayVal = parseInt(localStorage.getItem(bmDayKey) || '-1', 10); localStorage.removeItem(bmDayKey); } catch(e){}
-    var initialPage = (bmDayVal >= 0) ? bmDayVal : currentWeekdayIdx();
+    var speechDayVal = -1;
+    if (bmDayVal < 0) {
+      try {
+        var _spRaw = localStorage.getItem('cx_speech:' + batchPath + '/' + chapter.number + '/cx');
+        if (_spRaw) {
+          var _sp = JSON.parse(_spRaw);
+          if (_sp && typeof _sp.day === 'number' && _sp.day >= 0) speechDayVal = _sp.day;
+        }
+      } catch(e){}
+    }
+    var initialPage = (bmDayVal >= 0) ? bmDayVal : (speechDayVal >= 0 ? speechDayVal : currentWeekdayIdx());
     if (initialPage >= revivals.length) initialPage = 0;
     setTimeout(function(){ initDayPager(initialPage); }, 0);
   }
@@ -1186,7 +1197,7 @@
 
     initSearchBtn();
     relocateThemeBtn();
-    initSpeechForView(viewType, chapter);
+    initSpeechForView(viewType, chapter, batchPath);
 
     // 消费冷启动恢复标记
     if (_restoreScroll) sessionStorage.removeItem('cx_restore_scroll');
@@ -1251,7 +1262,7 @@
 
   // ── TTS 初始化 ──────────────────────────────────────────────────────────
 
-  function initSpeechForView(viewType, chapter) {
+  function initSpeechForView(viewType, chapter, batchPath) {
     function tryInit() {
       if (!win.CXSpeech || !win.CXSpeech.init) return false;
       var bar = document.getElementById('bottomControlBar');
@@ -1259,7 +1270,10 @@
       if (!bar || !btn) return true;
       // TTS 语言跟随阅读模式：英中读英文，中文显式 zh-CN
       var lang = _isEnchs() ? 'en-US' : 'zh-CN';
-      win.CXSpeech.init({ getElements: buildGetElements(viewType, chapter), lang: lang });
+      // 朗读进度持久化 key：按批次/篇/视图隔离；缺任一要素则不启用持久化
+      var speechStoreKey = (batchPath && chapter && chapter.number)
+        ? ('cx_speech:' + batchPath + '/' + chapter.number + '/' + viewType) : null;
+      win.CXSpeech.init({ getElements: buildGetElements(viewType, chapter), lang: lang, storageKey: speechStoreKey });
       return true;
     }
     if (!tryInit()) {

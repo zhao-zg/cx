@@ -189,11 +189,17 @@
   // init() 重新执行时自动替换为新 init() 闭包内的 resetState。
   var _hashStopNav = null;
 
+  // -- 高亮滚动跟随监听卸载句柄（模块级）：每次 init 重新执行时先卸载上一页监听，
+  //    防止 document/window 级监听器随页面导航无限累积
+  var _scrollFollowUnbinds = null;
+
   // -- Init -----------------------------------------------------------------
 
   function init(options) {
     var getElements = options && typeof options.getElements === 'function' ? options.getElements : null;
     if (!getElements) return;
+    // 朗读进度持久化 key：'cx_speech:{batchPath}/{chapterNum}/{viewType}'，null=不持久化
+    var storageKey = options && typeof options.storageKey === 'string' && options.storageKey ? options.storageKey : null;
     // 先停止上一个页面可能仍在运行的朗读（SPA 切换视图时 cancel 尚未被调用）
     if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
       try { window.CXSpeech.cancel(); } catch(e) {}
@@ -441,6 +447,8 @@
       var isLooping     = localStorage.getItem('speechLoop') === '1';
       var _resumePercent = 0;   // % position to resume from after pause
       var _resumeNextSegPercent = -1; // % position of next segment boundary (NativeTTS, -1=unset)
+      var _restoredPct = 0;     // 恢复态：上次持久化的朗读进度（0=无），点播放时消费
+      var _lastProgressSave = 0; // updateProgressUI 定时保存节流时间戳
       var _nativePositionHandle = null;
       var textChunks   = [];
       var currentChunk = 0;
@@ -449,6 +457,11 @@
       // _sentenceMarkData 已在 init 作用域声明，此处不重复声明
       var _prevTTSEl        = null; // 当前高亮的 <mark> 元素
       var _ttsMarkOffset    = 0;    // _segmentMap 中对应 currentChunk=0 的句子索引
+      var _scrollFollowEnabled = true; // 高亮自动滚动跟随开关：用户手动滚动离开高亮区后暂停，滑回高亮区自动恢复
+      var _progScrollUntil = 0;        // 程序滚动（scrollIntoView 平滑）期间的时间窗口，scroll 事件据此区分程序/用户滚动
+      var _progScrollStarted = 0;      // 程序滚动开始时刻，窗口延长不超过 1200ms 防长滚动误吞用户拖动
+      var _followTouchX = 0, _followTouchY = 0; // touchstart 记录，touchmove 判断垂直拖动
+      var _followTouchActive = false;  // 手指是否还在屏上：拖动期间跳过 scroll 恢复评估
       var _stopOnNav        = null; // 已废弃（改用模块级 _hashStopNav），保留兼容引用
       var _nativeCharsDone  = -1;   // ttsProgress 最近一次推送的 charsDone（-1=未收到）
       var _nativeCharsDoneTime = 0; // _nativeCharsDone 更新时的 Date.now()
@@ -712,7 +725,14 @@
         _prevTTSEl = el;
         if (el) {
           el.classList.add('cx-tts-active');
-          try { el.scrollIntoView({behavior: 'smooth', block: 'nearest'}); } catch(e) {}
+          // 自动滚动跟随：用户手动滚动离开高亮区后暂停（_scrollFollowEnabled=false），
+          // 滑回高亮区域（scroll 监听检测高亮回到视口）自动恢复；
+          // _progScrollUntil 标记供 scroll 监听区分程序滚动/用户滚动。
+          if (_scrollFollowEnabled) {
+            _progScrollStarted = Date.now();
+            _progScrollUntil = _progScrollStarted + 600;
+            try { el.scrollIntoView({behavior: 'smooth', block: 'nearest'}); } catch(e) {}
+          }
         }
       }
 
@@ -777,6 +797,12 @@
           }
           setTTSHighlight(findSegmentAt(charPos));
         }
+        // 定时兜底：每 3s 保存一次进度快照（防 Android 杀进程时
+        // beforeunload/visibilitychange 均不可靠导致丢失）
+        if (state === 'playing' && Date.now() - _lastProgressSave > 3000) {
+          _lastProgressSave = Date.now();
+          _saveSpeechProgress();
+        }
       }
 
       function startProgressUpdate() {
@@ -788,6 +814,25 @@
         if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
       }
 
+      // ★ 朗读进度持久化：把当前播放位置（百分比）写入 localStorage。
+      //   仅在 playing/paused 时调用有效；恢复态（idle 但 fullText 已填）翻页时
+      //   旧闭包 state 已被 cancel→resetState 复位为 idle，天然不会误写。
+      //   pct>=100（自然播完）时移除 key，下次从头开始。
+      function _saveSpeechProgress() {
+        if (!storageKey || !fullText) return;
+        if (state !== 'playing' && state !== 'paused') return;
+        var pct = totalDuration > 0 ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100) : 0;
+        try {
+          if (pct >= 100) { localStorage.removeItem(storageKey); return; }
+          var day = null, activeDay = document.querySelector('.day-page.is-active');
+          if (activeDay) {
+            var d = parseInt(activeDay.getAttribute('data-page'), 10);
+            if (!isNaN(d)) day = d;
+          }
+          localStorage.setItem(storageKey, JSON.stringify({ pct: Math.round(pct), day: day, ts: Date.now() }));
+        } catch (e) {}
+      }
+
       function resetState() {
         ++_speakGeneration;
         // 注意：不再移除 hashchange 监听器 _hashStopNav。
@@ -795,6 +840,7 @@
         // 用户再次播放时 init() 未重新执行，hashchange 无法停止朗读，
         // 导致导航时旧页面内容继续播放。
         // 模块级 _hashStopNav 在 init() 重新执行时由 init() 自动替换。
+        _saveSpeechProgress();
         stopProgressUpdate();
         clearTTSHighlight();
         var sendStop = (state !== 'idle');
@@ -804,6 +850,8 @@
         elapsedOffset = 0; startTime = 0; totalDuration = 0; _originalTotalDuration = 0;
         _nativeCharsDone = -1; _nativeCharsDoneTime = 0; _lastPosMs = -1;
         _resumeNextSegPercent = -1;
+        _restoredPct = 0;
+        _scrollFollowEnabled = true; _progScrollUntil = 0; // 重置高亮滚动跟随
         textChunks = []; currentChunk = 0;
         progressBar.value = '0';
         speechTime.textContent = '00:00 / 00:00';
@@ -1188,6 +1236,8 @@
           window.addEventListener('hashchange', _hashStopNav);
         }
         if (!fullText) return;
+        // 用户主动定位（首次播放/seek/循环重启）→ 重新启用高亮滚动跟随
+        _scrollFollowEnabled = true;
         var p          = clamp(Number(percent) || 0, 0, 100);
         var targetSecs = totalDuration ? (p / 100) * totalDuration : 0;
         var charIndex  = clamp(Math.floor(fullText.length * (p / 100)), 0, Math.max(0, fullText.length - 1));
@@ -1273,6 +1323,8 @@
         _seekPending = false; isSeeking = false;
         if (!fullText) { startProgressUpdate(); return; }
         var pct = clamp(Number(progressBar.value) || 0, 0, 100);
+        // 恢复态（idle 但已有 _restoredPct）拖动进度条：仅更新恢复点，不启动播放
+        if (state === 'idle') { if (_restoredPct > 0) _restoredPct = pct; return; }
         // NativeTTS 正在播放时需先 stop，否则新 speak 指令会被忽略导致无声
         if (useNativeTTS && state === 'playing') {
           ++_speakGeneration;   // 使旧 promise 失效，防止触发 onPlaybackNaturalEnd
@@ -1342,7 +1394,9 @@
           // resetState 已确保 preSynthesize 在 STOP 处理干净后（3s delay）才发出，
           // onDone 回调不会丢失。直接发送 speak()，Java 端会正确等待预合成完成或回退全量合成。
           console.log('[CXSpeech] \u6587\u672c\u5c31\u7eea ' + (Date.now() - _t0) + 'ms\uff0c\u53d1\u9001 speak');
-          startSpeakingFromPercent(0);
+          // 恢复态：从上次持久化的位置继续，并清零标记（一次性消费）
+          var _startPct = _restoredPct; _restoredPct = 0;
+          startSpeakingFromPercent(_startPct);
           console.log('[CXSpeech] speak \u53d1\u9001\u5b8c\u6210 ' + (Date.now() - _t0) + 'ms');
           return;
         }
@@ -1376,6 +1430,7 @@
         elapsedOffset = currentElapsedSeconds(); startTime = 0;
         _resumePercent = pct;
         _resumeNextSegPercent = -1;
+        _saveSpeechProgress();
         if (useNativeTTS) {
           // NativeTTS.pause() 是 @PluginMethod，暂停 MediaPlayer 但不销毁状态。
           // 恢复时调用 resume() 可从暂停位置继续，无需重新发送文本。
@@ -1395,6 +1450,22 @@
       rateSelect.addEventListener('change', function () {
         localStorage.setItem('speechRate', rateSelect.value);
         if (!fullText) return;
+        // 恢复态（idle 但已有 _restoredPct）：仅重算恢复点的显示时长，不启动播放。
+        // 注意 newRateR 等换名，避免与下方 var newRate 同作用域变量名冲突。
+        if (state === 'idle' && _restoredPct > 0) {
+          var newRateR = Number(rateSelect.value) || 0.5;
+          totalDuration = estimateTotalSeconds(fullText, newRateR);
+          _originalTotalDuration = totalDuration;
+          progressBar.value = String(_restoredPct);
+          speechTime.textContent = formatTime((_restoredPct / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
+          if (useNativeTTS) {
+            var NRate = getNativeTTS();
+            if (NRate && typeof NRate.setRate === 'function') {
+              try { NRate.setRate({ rate: newRateR }); } catch (e) {}
+            }
+          }
+          return;
+        }
         var newRate   = Number(rateSelect.value) || 0.5;
         var current   = currentElapsedSeconds();
         var oldTotal  = totalDuration;
@@ -1421,6 +1492,7 @@
 
       // -- Page unload --------------------------------------------------------
       window.addEventListener('beforeunload', function () {
+        _saveSpeechProgress();
         ++_speakGeneration;
         if (useNativeTTS) nativeStopService(state !== 'idle');
         else { try { window.speechSynthesis.cancel(); } catch (e) {} }
@@ -1457,17 +1529,21 @@
       }
 
       // -- visibilitychange ---------------------------------------------------
-      // Web Speech 不支持後台播放，切到后台时直接停止。
-      // NativeTTS 已由前台服务支持后台播放，切到后台不停止。
+      // Web Speech 不支持后台播放，切到后台时直接停止（resetState 内部会先保存进度）。
+      // NativeTTS 已由前台服务支持后台播放，切到后台不停止，仅保存进度快照
+      // （防 Android 杀进程后丢失进度）。
       // 两种模式回到前台时，如果 Java 侧状态变了（通知栏/锁屏操作），
       // 由 ttsStateChanged 事件驱动 JS 状态同步，此处无需额外处理。
-      if (useWebSpeech) {
-        document.addEventListener('visibilitychange', function () {
-          if (document.visibilityState === 'hidden' && state !== 'idle') {
-            resetState();
-          }
-        });
-      }
+      // 注：init 多次调用会叠加监听器，旧闭包的 state 已被 cancel→resetState
+      // 复位为 idle，_saveSpeechProgress 内部守卫使其安全惰性化。
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState !== 'hidden') return;
+        if (useWebSpeech) {
+          if (state !== 'idle') resetState();
+        } else if (useNativeTTS) {
+          _saveSpeechProgress();
+        }
+      });
 
       // -- ttsStateChanged: 同步 Java 侧状态到 JS（NativeTTS only） ---------------
       // 通知栏/锁屏的停止/暂停/恢复按钮直接走 Java 侧 handleStop/handlePause/handleResume，
@@ -1489,6 +1565,7 @@
             if (newState === 'stopped') {
               // Java 侧已停止，JS 必须同步到 idle
               if (state === 'idle') return; // 已同步，跳过
+              _saveSpeechProgress(); // 此刻 state 仍为 playing/paused，可保存
               stopProgressUpdate();
               clearTTSHighlight();
               nativeStopService(false); // 不再发 stop 给 Java（已停了）
@@ -1508,6 +1585,7 @@
                 _resumePercent = totalDuration > 0
                   ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100) : 0;
                 setState('paused');
+                _saveSpeechProgress();
               }
             } else if (newState === 'playing') {
               if (state === 'idle' || state === 'paused') {
@@ -1529,6 +1607,101 @@
       progressBar.value = '0';
       speechTime.textContent = '00:00 / 00:00';
       if (useWebSpeech) setupMediaSession();
+
+      // ★ 朗读进度恢复：读取上次保存的进度，仅定位（进度条+高亮+滚动），
+      //   不自动播放，用户点播放时从 _restoredPct 处继续。
+      //   必须延迟执行：renderCx 中 setContent→init 同步执行后，
+      //   initDayPager 要到 setTimeout(0) 才跑，此时 is-active 尚未标记；
+      //   立即恢复会读到错误的 day-page（getElements 回退第一天）。
+      if (storageKey) {
+        var _restoredDay = null;
+        try {
+          var _savedRaw = localStorage.getItem(storageKey);
+          if (_savedRaw) {
+            var _saved = JSON.parse(_savedRaw);
+            if (_saved && typeof _saved.pct === 'number' && _saved.pct > 0 && _saved.pct < 100) {
+              if (typeof _saved.day === 'number' && _saved.day >= 0) _restoredDay = _saved.day;
+              setTimeout(_tryApplyRestore, 100);
+            }
+          }
+        } catch (e) {}
+        function _tryApplyRestore(attempt) {
+          // 防旧闭包：SPA 快速导航/Router 双 dispatch 时，本 init 的元素已从 DOM 脱离；
+          // 用户已抢先播放则 state 不为 idle；书签跳转/翻页则活动天不匹配 → 三重守卫兜底。
+          // 注：不可用 _speakGeneration 判断——renderCx 同步 init 后 setTimeout(0) 才跑
+          // initDayPager，其 showPage 首行必调 cancel→resetState→gen++，导致恢复
+          // 永远失效，故不检查 gen。
+          if (!progressBar || !progressBar.isConnected) return;
+          if (state !== 'idle') return;                 // 用户已抢先播放/暂停
+          // 等待 day pager 标记 is-active（每 100ms 重试，最多 50 次 = 5s）
+          if (document.querySelector('.pages-container') && !document.querySelector('.day-page.is-active')) {
+            var n = typeof attempt === 'number' ? attempt : 0;
+            if (n < 50) setTimeout(function () { _tryApplyRestore(n + 1); }, 100);
+            return;
+          }
+          // 活动天与保存时不一致：书签跳转/用户已翻页 → 放弃恢复
+          var activeDayEl = document.querySelector('.day-page.is-active');
+          if (activeDayEl) {
+            var ad = parseInt(activeDayEl.getAttribute('data-page'), 10);
+            if (!isNaN(ad) && _restoredDay !== null && ad !== _restoredDay) return;
+          }
+          // 按当前活动天重建文本缓存（翻页后预构建缓存指向非活动天）
+          var text = prebuildText();
+          if (!text) { _restoredPct = 0; return; }
+          fullText = text;
+          _segmentMap = _prebuiltSegmentMap || [];
+          totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
+          _originalTotalDuration = totalDuration;
+          _restoredPct = _saved.pct;  // 此刻才真正持有恢复进度
+          setTTSHighlight(findSegmentAt(Math.floor(fullText.length * _restoredPct / 100)));
+          progressBar.value = String(_restoredPct);
+          speechTime.textContent = formatTime((_restoredPct / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
+        }
+      }
+
+      // -- 高亮滚动跟随：用户手动滚动打断，滑回高亮区自动恢复 ----------------------
+      // 程序滚动（scrollIntoView 平滑）期间产生的 scroll 事件不算用户滚动；
+      // 用户垂直拖动/滚轮立即暂停跟随（避免与手指滚动打架，横向翻页手势不受影响）；
+      // 手指离开后 scroll 事件评估当前高亮是否回到视口内：回到 → 恢复跟随，
+      // 之后下一句高亮不在屏幕中时由 setTTSHighlight 自动滚入。
+      // 每次页面渲染 init 重新执行，先卸载上一页监听（模块级句柄防累积）。
+      if (_scrollFollowUnbinds) { try { _scrollFollowUnbinds(); } catch (e) {} }
+      var _sfUnbinds = [];
+      function _sfBind(type, target, fn, opts) {
+        target.addEventListener(type, fn, opts);
+        _sfUnbinds.push(function () { target.removeEventListener(type, fn, opts); });
+      }
+      _sfBind('touchstart', document, function (e) {
+        if (e.touches && e.touches.length) {
+          _followTouchX = e.touches[0].clientX;
+          _followTouchY = e.touches[0].clientY;
+          _followTouchActive = true;
+        }
+      }, {passive:true});
+      _sfBind('touchmove', document, function (e) {
+        if (!e.touches || !e.touches.length) return;
+        var dy = e.touches[0].clientY - _followTouchY;
+        var dx = e.touches[0].clientX - _followTouchX;
+        // 垂直拖动 = 滚动意图：立即暂停跟随（横向晨读翻页手势 dy 占比小，不受影响）
+        if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) _scrollFollowEnabled = false;
+      }, {passive:true});
+      _sfBind('touchend', document, function () { _followTouchActive = false; }, {passive:true});
+      _sfBind('touchcancel', document, function () { _followTouchActive = false; }, {passive:true});
+      _sfBind('wheel', window, function () { _scrollFollowEnabled = false; }, {passive:true});
+      _sfBind('scroll', window, function () {
+        var now = Date.now();
+        if (now < _progScrollUntil && now - _progScrollStarted < 1200) { _progScrollUntil = now + 400; return; } // 程序滚动进行中
+        if (now < _progScrollUntil) return; // 程序滚动超时兜底（防长平滑滚动期间误判用户拖动）
+        if (_followTouchActive) return;     // 手指还在屏上，拖动期间的评估交给 touchmove/松手后
+        if (!_prevTTSEl || !_prevTTSEl.isConnected) return;
+        if (state !== 'playing' && state !== 'paused') return;
+        var r = _prevTTSEl.getBoundingClientRect();
+        if (r.bottom > 0 && r.top < window.innerHeight) _scrollFollowEnabled = true; // 高亮回到视口 → 恢复跟随
+      }, {passive:true});
+      _scrollFollowUnbinds = function () {
+        for (var i = 0; i < _sfUnbinds.length; i++) { try { _sfUnbinds[i](); } catch (e) {} }
+        _sfUnbinds = null;
+      };
 
       // -- 预构建朗读文本 + 预合成首 chunk（NativeTTS only） --------------------
       // 1. prebuildText() 预提取文本和 segmentMap（始终立即执行，轻量 DOM 克隆）
