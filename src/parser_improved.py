@@ -5,12 +5,237 @@
 import re
 import os
 import sys
+import time
 import shutil
 import subprocess
+import threading
 from docx import Document
 from typing import List, Optional
 from .models import Chapter, Content, TrainingData, MorningRevival
 from .bible_dict import BibleDict
+
+
+# LibreOffice headless 是单实例模型：并发调用时第二个实例会静默退出，
+# 导致 .doc→.docx 转换偶发失败。并行构建时既有同进程多线程（Word 解析路径），
+# 也有多批次诗歌补丁子进程（EPUB/TXT 路径），防护分三层：
+# 1. 内容寻址缓存（.temp/doc-cache/<md5>.docx）：同一 .doc 只转换一次；
+# 2. 跨进程文件锁（_CrossProcessFileLock）：多子进程串行调用 soffice；
+# 3. 进程内线程锁（_SOFFICE_LOCK）：同进程多线程串行 + 失败重试兑底。
+_SOFFICE_LOCK = threading.Lock()
+
+_DOC_CACHE_DIR = None       # 内容寻址缓存目录（惰性初始化；None=未初始化，''=不可用）
+_DOC_CACHE_INITED = False
+
+
+class _CrossProcessFileLock:
+    """基于 OS 文件锁的跨进程互斥（Windows msvcrt / POSIX flock）。
+
+    进程崩溃或退出时由 OS 自动释放，无残留死锁问题。
+    acquire 超时返回 False，调用方降级为无锁执行（靠重试兑底）。
+    """
+
+    def __init__(self, path: str):
+        self._path = path
+        self._fd: Optional[int] = None
+
+    @staticmethod
+    def _try_lock(fd: int) -> bool:
+        try:
+            import msvcrt
+        except ImportError:
+            import fcntl
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return True
+            except OSError:
+                return False
+        try:
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+            return True
+        except OSError:
+            return False
+
+    def acquire(self, timeout: float = 300, poll: float = 0.2) -> bool:
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                fd = os.open(self._path, os.O_CREAT | os.O_RDWR, 0o666)
+            except OSError:
+                return False
+            try:
+                if self._try_lock(fd):
+                    self._fd = fd
+                    return True
+            finally:
+                if self._fd is None:
+                    os.close(fd)
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(poll)
+
+    def release(self):
+        fd, self._fd = self._fd, None
+        if fd is None:
+            return
+        try:
+            try:
+                import msvcrt
+                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+            except ImportError:
+                import fcntl
+                fcntl.flock(fd, fcntl.LOCK_UN)
+        except OSError:
+            pass
+        finally:
+            os.close(fd)
+
+
+def _get_doc_cache_dir():
+    """返回 .doc→.docx 内容寻址缓存目录（项目根 .temp/doc-cache，已被 gitignore）。
+
+    初始化或可写性验证失败返回 None，缓存与跨进程锁整体降级（回退旧行为）。
+    """
+    global _DOC_CACHE_DIR, _DOC_CACHE_INITED
+    if _DOC_CACHE_INITED:
+        return _DOC_CACHE_DIR or None
+    _DOC_CACHE_INITED = True
+    try:
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        cache_dir = os.path.join(project_root, '.temp', 'doc-cache')
+        os.makedirs(cache_dir, exist_ok=True)
+        probe = os.path.join(cache_dir, '.probe')
+        with open(probe, 'w') as f:
+            f.write('ok')
+        os.remove(probe)
+        _DOC_CACHE_DIR = cache_dir
+    except Exception:
+        _DOC_CACHE_DIR = ''
+    return _DOC_CACHE_DIR or None
+
+
+def _doc_cache_copy(cache_path: Optional[str], expected: str) -> bool:
+    """缓存命中时复制到 expected 并返回 True；未命中/失败返回 False。"""
+    if not cache_path:
+        return False
+    try:
+        if os.path.isfile(cache_path) and os.path.getsize(cache_path) > 0:
+            shutil.copyfile(cache_path, expected)
+            return True
+    except OSError:
+        pass
+    return False
+
+
+def _find_soffice():
+    """查找可用的 LibreOffice/soffice 可执行文件，返回路径或 None。"""
+    soffice_commands = [
+        'soffice',           # Linux/Mac
+        'libreoffice',       # Linux
+        r'C:\Program Files\LibreOffice\program\soffice.exe',  # Windows
+        r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',
+    ]
+    for cmd in soffice_commands:
+        if shutil.which(cmd) or os.path.exists(cmd):
+            return cmd
+    return None
+
+
+def _convert_doc_to_docx(abs_doc_path: str, out_dir: str, timeout: int = 60,
+                         retries: int = 3) -> str:
+    """将 .doc 转换为 .docx 到 out_dir，返回转换后文件路径；失败抛异常。
+
+    三层防护：内容寻址缓存 → 跨进程文件锁 → 进程内线程锁+重试（详见文件头部注释）。
+    """
+    soffice_path = _find_soffice()
+    if not soffice_path:
+        raise ImportError(
+            f"无法转换 .doc 文件: {os.path.basename(abs_doc_path)}\n"
+            "请安装 LibreOffice 或手动转换为 .docx 格式"
+        )
+    expected = os.path.join(
+        out_dir,
+        os.path.splitext(os.path.basename(abs_doc_path))[0] + '.docx')
+
+    # ── 1. 内容寻址缓存：同一 .doc 只转换一次 ────────────────────────
+    cache_dir = _get_doc_cache_dir()
+    cache_path = None
+    if cache_dir:
+        try:
+            import hashlib
+            h = hashlib.md5()
+            with open(abs_doc_path, 'rb') as f:
+                for chunk in iter(lambda: f.read(1 << 20), b''):
+                    h.update(chunk)
+            cache_path = os.path.join(cache_dir, h.hexdigest() + '.docx')
+        except OSError:
+            cache_path = None
+    if _doc_cache_copy(cache_path, expected):
+        print(f"    ✓ 命中 .doc 转换缓存（{os.path.getsize(expected) // 1024} KB），跳过 LibreOffice",
+              file=sys.stderr)
+        return expected
+
+    # ── 2. 跨进程文件锁：多批次诗歌补丁子进程串行调用 soffice ────────
+    lock = None
+    if cache_path:
+        lock = _CrossProcessFileLock(os.path.join(cache_dir, '.soffice.lock'))
+        if not lock.acquire(timeout=300):
+            print("    ⚠ 获取跨进程转换锁超时，降级为无锁转换（靠重试兑底）", file=sys.stderr)
+            lock = None
+
+    try:
+        # 锁内双重检查：排队等待期间其他进程可能已写入同一内容的缓存
+        if _doc_cache_copy(cache_path, expected):
+            print(f"    ✓ 命中 .doc 转换缓存（锁内二次检查），跳过 LibreOffice",
+                  file=sys.stderr)
+            return expected
+
+        # ── 3. 进程内线程锁 + 失败重试 ──────────────────────────────
+        last_err = None
+        for attempt in range(1, retries + 1):
+            # 先清理上次残留，避免误判为本次转换成功
+            if os.path.exists(expected):
+                try:
+                    os.remove(expected)
+                except OSError:
+                    pass
+            try:
+                with _SOFFICE_LOCK:
+                    result = subprocess.run(
+                        [soffice_path, '--headless', '--convert-to', 'docx',
+                         '--outdir', out_dir, abs_doc_path],
+                        capture_output=True,
+                        text=True,
+                        encoding='utf-8',
+                        errors='replace',
+                        timeout=timeout
+                    )
+                if result.returncode == 0 and os.path.exists(expected):
+                    # 原子写入缓存，供后续构建/其他批次复用（失败不影响本次结果）
+                    if cache_path:
+                        try:
+                            tmp_cache = cache_path + '.tmp'
+                            shutil.copyfile(expected, tmp_cache)
+                            os.replace(tmp_cache, cache_path)
+                        except OSError:
+                            pass
+                    if attempt > 1:
+                        print(f"    ✓ 重试第 {attempt - 1} 次后转换成功", file=sys.stderr)
+                    return expected
+                last_err = result.stderr.strip() or result.stdout.strip() or (
+                    f"returncode={result.returncode}, 输出文件缺失")
+            except subprocess.TimeoutExpired:
+                last_err = f"转换超时（{timeout}秒）"
+            if attempt < retries:
+                print(f"    ⚠ 转换失败（{last_err}），{1} 秒后重试 {attempt}/{retries}",
+                      file=sys.stderr)
+                time.sleep(1)
+        raise ImportError(
+            f"无法转换 .doc 文件: {os.path.basename(abs_doc_path)}\n"
+            f"LibreOffice 转换失败: {last_err}"
+        )
+    finally:
+        if lock is not None:
+            lock.release()
 
 
 def load_document(doc_path: str):
@@ -34,7 +259,7 @@ def load_document(doc_path: str):
         return Document(doc_path)
     elif ext == '.doc':
         # .doc格式需要先转换为.docx
-        # 尝试使用LibreOffice进行转换（跨平台方案）
+        # 使用LibreOffice进行转换（跨平台方案）
         try:
             import tempfile
             
@@ -42,66 +267,13 @@ def load_document(doc_path: str):
             temp_dir = tempfile.mkdtemp()
             abs_path = os.path.abspath(doc_path)
             
-            # 尝试找到LibreOffice/soffice命令
-            soffice_commands = [
-                'soffice',           # Linux/Mac
-                'libreoffice',       # Linux
-                r'C:\Program Files\LibreOffice\program\soffice.exe',  # Windows
-                r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',
-            ]
-            
-            soffice_path = None
-            for cmd in soffice_commands:
-                if shutil.which(cmd) or os.path.exists(cmd):
-                    soffice_path = cmd
-                    break
-            
-            if soffice_path:
-                print(f"    ⏳ 正在转换 .doc 文件...", file=sys.stderr)
-                # 使用LibreOffice转换
-                result = subprocess.run(
-                    [soffice_path, '--headless', '--convert-to', 'docx', '--outdir', temp_dir, abs_path],
-                    capture_output=True,
-                    timeout=60
-                )
-                
-                if result.returncode == 0:
-                    # 查找转换后的文件
-                    docx_name = os.path.splitext(os.path.basename(doc_path))[0] + '.docx'
-                    temp_docx = os.path.join(temp_dir, docx_name)
-                    
-                    if os.path.exists(temp_docx):
-                        print(f"    ✓ 转换成功，继续处理...", file=sys.stderr)
-                        doc = Document(temp_docx)
-                        # 清理临时文件
-                        shutil.rmtree(temp_dir, ignore_errors=True)
-                        return doc
-            
-            # LibreOffice不可用或转换失败
-            shutil.rmtree(temp_dir, ignore_errors=True)
-            
-            # 提供友好的错误提示
-            print("\n" + "="*60, file=sys.stderr)
-            print("⚠ 无法自动转换 .doc 文件", file=sys.stderr)
-            print("="*60, file=sys.stderr)
-            print("\n请选择以下解决方案之一：", file=sys.stderr)
-            print("\n方案 1: 手动转换（最快）", file=sys.stderr)
-            print(f"  1. 在 Word 中打开: {doc_path}", file=sys.stderr)
-            print("  2. 另存为 .docx 格式", file=sys.stderr)
-            print("  3. 重新运行此程序", file=sys.stderr)
-            print("\n方案 2: 安装 LibreOffice（自动化）", file=sys.stderr)
-            print("  运行转换工具: python convert_doc_to_docx.py", file=sys.stderr)
-            print("  工具会自动检测系统并引导安装", file=sys.stderr)
-            print("\n方案 3: 使用在线转换", file=sys.stderr)
-            print("  https://www.online-convert.com/", file=sys.stderr)
-            print("  https://www.zamzar.com/", file=sys.stderr)
-            print("\n" + "="*60, file=sys.stderr)
-            
-            raise ImportError(
-                f"无法转换 .doc 文件: {os.path.basename(doc_path)}\n"
-                "请安装 LibreOffice 或手动转换为 .docx 格式"
-            )
-            
+            try:
+                temp_docx = _convert_doc_to_docx(abs_path, temp_dir)
+                print("    ✓ 转换成功，继续处理...", file=sys.stderr)
+                doc = Document(temp_docx)
+                return doc
+            finally:
+                shutil.rmtree(temp_dir, ignore_errors=True)
         except subprocess.TimeoutExpired:
             raise Exception("LibreOffice 转换超时（60秒）")
         except Exception as e:
@@ -1041,60 +1213,27 @@ class ImprovedParser:
         doc = load_document(docx_path)
         
         # 对于.doc文件，需要先转换为临时.docx才能提取图片
-        # 使用LibreOffice转换（跨平台方案）
+        # 使用LibreOffice转换（跨平台方案，加锁串行防并发冲突）
         temp_docx_path = None
         if is_doc_format:
             import tempfile
-            import subprocess
             import shutil
             
             temp_dir = tempfile.mkdtemp()
             abs_path = os.path.abspath(docx_path)
             
             try:
-                # 尝试找到LibreOffice/soffice命令
-                soffice_commands = [
-                    'soffice',
-                    'libreoffice',
-                    r'C:\Program Files\LibreOffice\program\soffice.exe',
-                    r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',
-                ]
+                try:
+                    temp_docx_path = _convert_doc_to_docx(abs_path, temp_dir)
+                except ImportError as e:
+                    # 无 LibreOffice 或转换重试后仍失败：图片提取是增强功能，跳过不致命
+                    print(f"    ⚠ {str(e).splitlines()[0]}，跳过图片提取", file=sys.stderr)
                 
-                soffice_path = None
-                for cmd in soffice_commands:
-                    if shutil.which(cmd) or os.path.exists(cmd):
-                        soffice_path = cmd
-                        break
-                
-                if soffice_path:
-                    # 使用LibreOffice转换
-                    result = subprocess.run(
-                        [soffice_path, '--headless', '--convert-to', 'docx', '--outdir', temp_dir, abs_path],
-                        capture_output=True,
-                        text=True,
-                        encoding='utf-8',
-                        errors='replace',
-                        timeout=30
-                    )
-                    
-                    if result.returncode == 0:
-                        docx_name = os.path.splitext(os.path.basename(docx_path))[0] + '.docx'
-                        temp_docx_path = os.path.join(temp_dir, docx_name)
-                        
-                        if os.path.exists(temp_docx_path):
-                            # 从临时docx提取图片
-                            print("  提取诗歌图片...", file=sys.stderr)
-                            doc_id = os.path.basename(docx_path).replace('.doc', '').replace('.docx', '')
-                            self._extract_hymn_images(temp_docx_path, chapters, doc_id)
-                            temp_docx_path = temp_docx_path  # 保存路径供后续使用
-                        else:
-                            print("    ⚠ LibreOffice转换失败，跳过图片提取", file=sys.stderr)
-                else:
-                    print("    ⚠ 未找到LibreOffice，跳过图片提取", file=sys.stderr)
-                    print("    提示: 安装LibreOffice或手动将.doc转换为.docx", file=sys.stderr)
-                
-            except subprocess.TimeoutExpired:
-                print("    ⚠ LibreOffice转换超时", file=sys.stderr)
+                if temp_docx_path and os.path.exists(temp_docx_path):
+                    # 从临时docx提取图片
+                    print("  提取诗歌图片...", file=sys.stderr)
+                    doc_id = os.path.basename(docx_path).replace('.doc', '').replace('.docx', '')
+                    self._extract_hymn_images(temp_docx_path, chapters, doc_id)
             except Exception as e:
                 print(f"    ⚠ 提取诗歌图片失败: {e}", file=sys.stderr)
             finally:
