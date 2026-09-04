@@ -888,15 +888,26 @@ def process_batch_epub(batch_folder, config, batch_config, safe_batch_name, epub
 
     # ── 附加 JSON 复制：批次目录自带的额外 JSON（如双语版 training-enchs.json）──
     # 直接复制到输出目录，与 training.json 并存；资源包遍历 output 目录会自动打包
+    _copied_extra = []
     for _extra_json in sorted(glob.glob(os.path.join(batch_folder, '*.json'))):
         _extra_name = os.path.basename(_extra_json)
         if _extra_name == 'training.json':
             continue  # training.json 由构建管道生成，防止源文件覆盖产物
         try:
             shutil.copy2(_extra_json, os.path.join(output_dir, _extra_name))
+            _copied_extra.append(_extra_name)
             print(f"  ✓ 复制附加 JSON: {_extra_name}")
         except Exception as _e:
             print(f"  ⚠ 附加 JSON 复制失败 {_extra_name}: {_e}")
+
+    # ── 双语文件缺失提示：批次有中文底座但未配置双语产物时提醒 ──
+    # 双语产物由 tools/hwmr/ 管线生成：python tools/hwmr/hwmr.py all <短名>
+    # （PDF → NEW 双语树 → OLD 底座 merge → training-enchs.json）
+    if 'training-enchs.json' not in _copied_extra and _copied_extra == []:
+        _pdf_path = os.path.join(batch_folder, '晨兴中英对照.pdf')
+        if os.path.exists(_pdf_path):
+            print(f"  ℹ 双语提示: 批次含 晨兴中英对照.pdf 但无 training-enchs.json；"
+                  f"如需双语可运行 tools/hwmr 管线生成后重新构建")
 
     return {
         'name': os.path.basename(batch_folder),
