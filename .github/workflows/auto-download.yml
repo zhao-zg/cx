@@ -91,7 +91,18 @@ jobs:
           git add resource/
           git reset HEAD resource/pdb/ 2>/dev/null || true
           git commit -m "🤖 自动下载: 新增训练资源"
-          git push
+          # 防并发推送冲突：变基拉取后再推送，失败重试 3 次
+          for i in 1 2 3; do
+            if git pull --rebase origin main && git push; then
+              echo "✅ push 成功 (第 $i 次尝试)"
+              exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            echo "⚠️ 第 $i 次推送失败，5 秒后重试..."
+            sleep 5
+          done
+          echo "❌ push 重试 3 次仍失败"
+          exit 1
 
       - name: Summary
         if: always()

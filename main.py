@@ -501,6 +501,153 @@ def url_safe_name(name):
     return safe if safe else name
 
 
+def copy_extra_jsons(batch_folder, output_dir):
+    """
+    复制批次目录自带的额外 JSON（如双语版 training-enchs.json）到输出目录。
+
+    与 training.json 并存；资源包遍历 output 目录会自动打包。
+
+    Returns:
+        复制成功的文件名列表。
+    """
+    copied = []
+    for extra_json in sorted(glob.glob(os.path.join(batch_folder, '*.json'))):
+        extra_name = os.path.basename(extra_json)
+        if extra_name == 'training.json':
+            continue  # training.json 由构建管道生成，防止源文件覆盖产物
+        try:
+            shutil.copy2(extra_json, os.path.join(output_dir, extra_name))
+            copied.append(extra_name)
+            print(f"  ✓ 复制附加 JSON: {extra_name}")
+        except Exception as e:
+            print(f"  ⚠ 附加 JSON 复制失败 {extra_name}: {e}")
+    return copied
+
+
+def run_hwmr_bilingual_pipeline(safe_batch_name, batch_folder, output_dir):
+    """
+    构建时自动运行 hwmr 双语管线：PDF → NEW 双语树 → merge OLD 底座 → training-enchs.json。
+
+    触发条件：tools/hwmr/batches/<短名>.json 批次配置存在。
+    管线产物由 hwmr install 落盘到 resource/<批次>/training-enchs.json（不入库，
+    .gitignore 已排除），随后由 copy_extra_jsons 复制进 output/<短名>/。
+    必须在 output/<短名>/training.json 生成之后调用（merge 依赖 OLD 底座）。
+
+    增量跳过：输入指纹（PDF/批次配置/hwmr 源码/OLD 底座内容，去 version 时间戳）
+    与上次一致且产物在盘时跳过重跑，避免每次构建重复解析 PDF（每批次约 1 分钟）。
+    指纹存 .temp/（不入库），CI 全新 checkout 时自然全量执行。
+    失败不中断构建（该批次仅缺双语版，与附加 JSON 复制失败同级处理）。
+    """
+    def _file_md5(path):
+        h = hashlib.md5()
+        with open(path, 'rb') as f:
+            for chunk in iter(lambda: f.read(65536), b''):
+                h.update(chunk)
+        return h.hexdigest()
+
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    cfg_path = os.path.join(project_root, 'tools', 'hwmr', 'batches', f'{safe_batch_name}.json')
+    if not os.path.exists(cfg_path):
+        # 无双语配置的普通批次；但批次含对照 PDF 时提示补配置
+        if os.path.exists(os.path.join(batch_folder, '晨兴中英对照.pdf')):
+            print(f"  ℹ 双语提示: 批次含 晨兴中英对照.pdf 但无 hwmr 批次配置 "
+                  f"({os.path.relpath(cfg_path, project_root)})，跳过双语生成")
+        return
+    try:
+        with open(cfg_path, encoding='utf-8') as f:
+            cfg = json.load(f)
+    except Exception as e:
+        print(f"  ⚠ 双语批次配置读取失败 {cfg_path}: {e}")
+        return
+
+    pdf_path = os.path.join(project_root, cfg.get('pdf', ''))
+    old_training = os.path.join(output_dir, 'training.json')
+    enchs_out = os.path.join(output_dir, 'training-enchs.json')
+    if not os.path.exists(pdf_path):
+        print(f"  ⚠ 双语管线跳过: 对照 PDF 不存在 {cfg.get('pdf')}")
+        return
+    if not os.path.exists(old_training):
+        print(f"  ⚠ 双语管线跳过: OLD 底座未生成 {old_training}")
+        return
+
+    # ── 输入指纹：任何输入变化都触发重跑 ──
+    hwmr_dir = os.path.join(project_root, 'tools', 'hwmr')
+    try:
+        with open(old_training, encoding='utf-8') as f:
+            old_data = json.load(f)
+        old_data.pop('version', None)  # version 为构建时间戳，剔除以保证内容指纹稳定
+        fp_src = {
+            'pdf': _file_md5(pdf_path),
+            'cfg': _file_md5(cfg_path),
+            'old': hashlib.md5(
+                json.dumps(old_data, ensure_ascii=False, sort_keys=True).encode('utf-8')
+            ).hexdigest(),
+        }
+        for name in ('hwmr.py', 'parser.py', 'normalizer.py', 'merger.py', 'verifier.py'):
+            p = os.path.join(hwmr_dir, name)
+            if os.path.exists(p):
+                fp_src[name] = _file_md5(p)
+        fingerprint = hashlib.md5(
+            json.dumps(fp_src, sort_keys=True).encode('utf-8')
+        ).hexdigest()
+    except Exception as e:
+        print(f"  ⚠ 双语指纹计算失败（按需重跑）: {e}")
+        fingerprint = None
+
+    fp_path = os.path.join(project_root, '.temp', f'hwmr-fp-{safe_batch_name}.json')
+    enchs_resource = os.path.join(
+        project_root, 'resource', cfg['batch_name'], 'training-enchs.json')
+    if fingerprint is not None and (os.path.exists(enchs_out) or os.path.exists(enchs_resource)):
+        try:
+            with open(fp_path, encoding='utf-8') as f:
+                saved = json.load(f)
+            if saved.get('fingerprint') == fingerprint:
+                print("  ⏭ 双语输入未变化，跳过 hwmr 管线（产物已复用）")
+                return
+        except Exception:
+            pass  # 指纹文件缺失/损坏：视为需重跑
+
+    hwmr_cli = os.path.join(hwmr_dir, 'hwmr.py')
+    print(f"\n  🌐 运行 hwmr 双语管线: {safe_batch_name} ...")
+    env = os.environ.copy()
+    env['PYTHONIOENCODING'] = 'utf-8'
+    try:
+        result = subprocess.run(
+            [sys.executable, '-X', 'utf8', hwmr_cli, 'all', safe_batch_name],
+            cwd=project_root,
+            capture_output=True, text=True,
+            encoding='utf-8', errors='replace',
+            timeout=300, env=env,
+        )
+    except subprocess.TimeoutExpired:
+        print("  ⚠ 双语管线超时（300s），该批次跳过双语生成")
+        return
+    except Exception as e:
+        print(f"  ⚠ 双语管线进程异常: {e}")
+        return
+    if result.stderr:
+        for line in result.stderr.strip().split('\n'):
+            print(f"    {line}")
+    if result.returncode != 0:
+        print(f"  ⚠ 双语管线失败 (exit {result.returncode})，批次继续（无双语版）")
+        tail_lines = 30
+    else:
+        tail_lines = 8
+    tail = [l for l in (result.stdout or '').strip().split('\n') if l.strip()]
+    for line in tail[-tail_lines:]:
+        print(f"    {line}")
+
+    # 成功且产物落盘：写指纹供下次增量跳过
+    if result.returncode == 0 and fingerprint is not None and os.path.exists(enchs_resource):
+        try:
+            os.makedirs(os.path.dirname(fp_path), exist_ok=True)
+            with open(fp_path, 'w', encoding='utf-8') as f:
+                json.dump({'fingerprint': fingerprint,
+                           'updated': datetime.now().isoformat()}, f, ensure_ascii=False)
+        except Exception as e:
+            print(f"  ⚠ 双语指纹写入失败（不影响产物，下次将重跑）: {e}")
+
+
 def process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_file=None):
     """
     使用 TXT 文件（优先）生成 training.json，调用 Node.js 脚本。
@@ -690,6 +837,13 @@ def process_batch_txt(batch_folder, config, batch_config, safe_batch_name, txt_f
                     print(f"  ✓ 从磁盘补充 hymn_images 引用")
             except Exception as _e:
                 print(f"  ⚠ hymn_images 回退补充失败: {_e}")
+
+    # ── 双语管线：批次有 hwmr 配置时自动生成 training-enchs.json ──
+    # 必须在 training.json（OLD 底座）生成后调用
+    run_hwmr_bilingual_pipeline(safe_batch_name, batch_folder, output_dir)
+
+    # ── 附加 JSON 复制：批次目录自带的额外 JSON（如双语版 training-enchs.json）──
+    copy_extra_jsons(batch_folder, output_dir)
 
     return {
         'name': batch_name,
@@ -956,28 +1110,13 @@ def process_batch_epub(batch_folder, config, batch_config, safe_batch_name, epub
                 except Exception as _e:
                     print(f"  ⚠ hymn_number TXT 补充失败: {_e}")
 
+    # ── 双语管线：批次有 hwmr 配置时自动生成 training-enchs.json ──
+    # 必须在 training.json（OLD 底座）生成后调用
+    run_hwmr_bilingual_pipeline(safe_batch_name, batch_folder, output_dir)
+
     # ── 附加 JSON 复制：批次目录自带的额外 JSON（如双语版 training-enchs.json）──
     # 直接复制到输出目录，与 training.json 并存；资源包遍历 output 目录会自动打包
-    _copied_extra = []
-    for _extra_json in sorted(glob.glob(os.path.join(batch_folder, '*.json'))):
-        _extra_name = os.path.basename(_extra_json)
-        if _extra_name == 'training.json':
-            continue  # training.json 由构建管道生成，防止源文件覆盖产物
-        try:
-            shutil.copy2(_extra_json, os.path.join(output_dir, _extra_name))
-            _copied_extra.append(_extra_name)
-            print(f"  ✓ 复制附加 JSON: {_extra_name}")
-        except Exception as _e:
-            print(f"  ⚠ 附加 JSON 复制失败 {_extra_name}: {_e}")
-
-    # ── 双语文件缺失提示：批次有中文底座但未配置双语产物时提醒 ──
-    # 双语产物由 tools/hwmr/ 管线生成：python tools/hwmr/hwmr.py all <短名>
-    # （PDF → NEW 双语树 → OLD 底座 merge → training-enchs.json）
-    if 'training-enchs.json' not in _copied_extra and _copied_extra == []:
-        _pdf_path = os.path.join(batch_folder, '晨兴中英对照.pdf')
-        if os.path.exists(_pdf_path):
-            print(f"  ℹ 双语提示: 批次含 晨兴中英对照.pdf 但无 training-enchs.json；"
-                  f"如需双语可运行 tools/hwmr 管线生成后重新构建")
+    copy_extra_jsons(batch_folder, output_dir)
 
     return {
         'name': os.path.basename(batch_folder),
@@ -1107,6 +1246,13 @@ def process_batch(batch_folder, config, bible_dict: BibleDict = None):
         return None
 
     print(f"✓ 完成: {output_dir}/training.json")
+
+    # ── 双语管线：批次有 hwmr 配置时自动生成 training-enchs.json ──
+    # 必须在 training.json（OLD 底座）生成后调用
+    run_hwmr_bilingual_pipeline(safe_batch_name, batch_folder, output_dir)
+
+    # ── 附加 JSON 复制：批次目录自带的额外 JSON ──
+    copy_extra_jsons(batch_folder, output_dir)
 
     # Collect image list (for trainings.json metadata)
     training_images = []
