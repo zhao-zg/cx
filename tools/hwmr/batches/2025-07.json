@@ -1,5 +1,5 @@
 {
-  "_comment": "2025-07 冬季训练试跑配置。页脚正则为猜测值，试跑后按实际页脚文本修正；meta 参照 resource/2025-07 冬季训练/ 目录名与 OLD 底座（如存在 output/2025-07/training.json 则以其为准）。此批仅验证 parser 泛化性，不执行 install。",
+  "_comment": "2025-07 冬季训练试跑配置。页脚正则已按 2025-12 半年度训练实际页脚（二〇二五年十二月半年度训练第37周纲要—第N页）核验：84 个纲要页脚行全命中，NEW 树页脚噪声 0。注意周序号自 37 起（续全本圣经编号），parser 用顺序周数不受影响。此批仅验证 parser 泛化性，未执行 install（无 OLD 底座接入点）。",
   "batch_name": "2025-07 冬季训练",
   "pdf": "resource/2025-07 冬季训练/晨兴中英对照.pdf",
   "short_name": "2025-07",
@@ -12,7 +12,7 @@
     "has_listen_block": true
   },
   "title_fixes": [],
-  "footer_filter": "训练第\\d+周纲要",
+  "footer_filter": "半年度训练第\\d+周纲要",
   "seg_rules": {},
   "ch9d2_special": null,
   "verify": {
