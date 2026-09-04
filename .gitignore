@@ -62,7 +62,6 @@ tmp_downloads/
 resource/pdb/
 # 双语 JSON 与中英对照 PDF（本地保存，不入库）
 resource/*/training-enchs.json
-resource/*/晨兴中英对照.pdf
 
 # Security build artifacts
 *.dev.backup
