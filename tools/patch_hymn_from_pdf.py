@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 """
 从「晨兴中英对照.pdf」识别诗歌页（12 周诗歌 + 封面歌），渲染为 200dpi WebP q80，
-**追加**到 training.json（hymn_images / motto_song_images 尾部），不替换 Word 图，幂等可重跑。
+**追加**到 training.json（hymn_images / motto_song_images 尾部），幂等可重跑。
+
+Word 图优先（APK 瘦身策略）：training.json 中该章已有非 PDF 来源（Word/EPUB）诗歌图
+→ 不渲染、不追加 PDF 高清图；hymn_images 为空/缺失的章才补 PDF 图；封面歌同理。
+无 training.json 时（独立 CLI 场景）保持旧行为：全量渲染。
 
 用法:
     python tools/patch-hymn-from-pdf.py --output-dir <dir> --batch-folder <folder> [--force]
 
 设计要点:
-    - 追加而非替换：PDF 图追加到数组尾部，Word 图（hymn_{n}_晨兴*.png、标语诗歌.png）保持首位。
+    - Word 图优先：已有 Word 图（非 hymn_pdf_ / 标语诗歌_pdf_ 前缀项）的章/封面歌
+      跳过渲染与追加，计入 skipped_word；无 Word 图的章保持 PDF 图补齐。
     - 命名：周诗歌 hymn_pdf_{number}.webp（number=1-12）；
             封面歌 标语诗歌_pdf_{n}.webp（n=1..len(motto)），以「标语」开头才能被
             build-batch-epub.js/py 的 ^标语 匹配复制进 output/images/。
@@ -38,7 +43,7 @@ def patch_hymn_from_pdf(output_dir, batch_folder, force=False):
     if not os.path.exists(pdf_path):
         print(f"  ⚠ 未找到 {PDF_FILENAME}，跳过 PDF 诗歌图补充", file=sys.stderr)
         return {'images_written': 0, 'patched_chapters': 0,
-                'motto_appended': False, 'skipped_existing': 0,
+                'motto_appended': False, 'skipped_existing': 0, 'skipped_word': 0,
                 'weeks': [], 'motto': [], 'warning': 'pdf not found'}
 
     res = identify_hymn_pages(pdf_path)
@@ -47,18 +52,49 @@ def patch_hymn_from_pdf(output_dir, batch_folder, force=False):
     if not weeks and not motto:
         print("  ⚠ PDF 中未识别到诗歌页（识别为 0），跳过", file=sys.stderr)
         return {'images_written': 0, 'patched_chapters': 0,
-                'motto_appended': False, 'skipped_existing': 0,
+                'motto_appended': False, 'skipped_existing': 0, 'skipped_word': 0,
                 'weeks': [], 'motto': [], 'warning': 'no hymn pages identified'}
 
     images_dir = os.path.join(output_dir, 'images')
     os.makedirs(images_dir, exist_ok=True)
 
+    # ── 预读 training.json：识别已有 Word/EPUB 诗歌图的目标（Word 图优先策略）───
+    training_path = os.path.join(output_dir, 'training.json')
+    word_hymn_numbers = set()  # hymn_images 含非 PDF 图（Word/EPUB）的章号
+    all_json_numbers = set()   # training.json 中实际存在的章号
+    has_word_motto = False     # motto_song_images 含 Word 图
+    td = None
+    if os.path.exists(training_path):
+        with open(training_path, 'r', encoding='utf-8') as f:
+            td = json.load(f)
+        for ch in td.get('chapters', []):
+            number = ch.get('number')
+            all_json_numbers.add(number)
+            hym = ch.get('hymn_images')
+            if not isinstance(hym, list):
+                continue
+            if any(not str(x).startswith('images/' + HYMN_PREFIX) for x in hym):
+                word_hymn_numbers.add(number)
+        mlist = td.get('motto_song_images')
+        if isinstance(mlist, list) and any(
+                not str(x).startswith('images/' + MOTTO_PREFIX) for x in mlist):
+            has_word_motto = True
+
     images_written = 0
     skipped_existing = 0
+    skipped_word = 0
+    skipped_no_chapter = 0
 
-    # ── 渲染周诗歌 WebP ────────────────────────────────────────────────
+    # ── 渲染周诗歌 WebP（已有 Word 图的章跳过；JSON 无对应章号的也跳过——
+    #    渲染了不会被任何章引用，属于 orphan 文件白占 APK 体积）───────────
     for w in weeks:
         number = w['number']
+        if td is not None and number not in all_json_numbers:
+            skipped_no_chapter += 1
+            continue
+        if number in word_hymn_numbers:
+            skipped_word += 1
+            continue
         fname = f'{HYMN_PREFIX}{number}.webp'
         fpath = os.path.join(images_dir, fname)
         if os.path.exists(fpath) and not force:
@@ -71,8 +107,13 @@ def patch_hymn_from_pdf(output_dir, batch_folder, force=False):
         images_written += 1
         print(f"  ✓ 写入 {fname} ({len(data) / 1024:.0f}KB, 页 {w['page_index']})", file=sys.stderr)
 
-    # ── 渲染封面歌 WebP（含续页）────────────────────────────────────────
+    # ── 渲染封面歌 WebP（含续页；已有 Word 图则整体跳过）────────────────
+    if has_word_motto:
+        skipped_word += len(motto)
+        print(f"  ↷ 封面歌已有 Word 图，跳过 {len(motto)} 张 PDF 高清图", file=sys.stderr)
     for n, idx in enumerate(motto, start=1):
+        if has_word_motto:
+            continue
         fname = f'{MOTTO_PREFIX}{n}.webp'
         fpath = os.path.join(images_dir, fname)
         if os.path.exists(fpath) and not force:
@@ -85,14 +126,10 @@ def patch_hymn_from_pdf(output_dir, batch_folder, force=False):
         images_written += 1
         print(f"  ✓ 写入 {fname} ({len(data) / 1024:.0f}KB, 第 {idx} 页)", file=sys.stderr)
 
-    # ── 读 training.json 并追加引用 ────────────────────────────────────
-    training_path = os.path.join(output_dir, 'training.json')
+    # ── JSON 追加引用（Word 图优先：已有 Word 图的章/封面歌不追加）───────
     patched_chapters = 0
     motto_appended = False
-    if os.path.exists(training_path):
-        with open(training_path, 'r', encoding='utf-8') as f:
-            td = json.load(f)
-
+    if td is not None:
         for ch in td.get('chapters', []):
             hym = ch.get('hymn_images')
             if not isinstance(hym, list):
@@ -103,13 +140,14 @@ def patch_hymn_from_pdf(output_dir, batch_folder, force=False):
             # 幂等：该章已含自身对应图则跳过
             if any(str(x) == target for x in hym):
                 continue
+            # Word 图优先：该章已有 Word 图则不追加 PDF 图；
             # 仅当该 number 在 weeks 映射中才追加（避免无效 number 追加幽灵图）
-            if number in {w['number'] for w in weeks}:
+            if number not in word_hymn_numbers and number in {w['number'] for w in weeks}:
                 hym.append(target)
                 patched_chapters += 1
 
         motto_list = td.get('motto_song_images')
-        if isinstance(motto_list, list) and not any(
+        if isinstance(motto_list, list) and not has_word_motto and not any(
                 str(x).startswith('images/' + MOTTO_PREFIX) for x in motto_list):
             for n in range(1, len(motto) + 1):
                 motto_list.append(f'images/{MOTTO_PREFIX}{n}.webp')
@@ -125,6 +163,8 @@ def patch_hymn_from_pdf(output_dir, batch_folder, force=False):
         'patched_chapters': patched_chapters,
         'motto_appended': motto_appended,
         'skipped_existing': skipped_existing,
+        'skipped_word': skipped_word,
+        'skipped_no_chapter': skipped_no_chapter,
         'weeks': weeks,
         'motto': motto,
     }

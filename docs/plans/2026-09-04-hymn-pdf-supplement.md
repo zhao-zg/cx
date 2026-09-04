@@ -3,10 +3,10 @@ AIGC:
   ContentProducer: '001191110102MAD55U9H0F10002'
   ContentPropagator: '001191110102MAD55U9H0F10002'
   Label: '1'
-  ProduceID: '22f63a59-19c6-4c2e-9977-6d3f974efe7d'
-  PropagateID: '22f63a59-19c6-4c2e-9977-6d3f974efe7d'
-  ReservedCode1: 'bd1f0bf4-73f3-42cc-bcba-9c99fcade841'
-  ReservedCode2: 'bd1f0bf4-73f3-42cc-bcba-9c99fcade841'
+  ProduceID: '6f4b919f-9c63-4aeb-a3b3-881af3263324'
+  PropagateID: '6f4b919f-9c63-4aeb-a3b3-881af3263324'
+  ReservedCode1: 'df93c110-7f8f-4297-bdce-4e198ff9ebd9'
+  ReservedCode2: 'df93c110-7f8f-4297-bdce-4e198ff9ebd9'
 ---
 
 # 晨兴中英对照 PDF 诗歌图补充（hymn-pdf-supplement）实施计划
@@ -15,6 +15,8 @@ AIGC:
 > Python 一律 `G:\soft\Python3.12\python.exe`；PowerShell 禁止写文件（编码破坏），写文件用 Write/Edit 工具。
 
 **Goal:** 从「晨兴中英对照.pdf」识别诗歌页（12 周诗歌 + 封面歌），渲染为 200dpi WebP q80，**追加**到 training.json（`hymn_images` / `motto_song_images` 尾部），不替换 Word 图，幂等可重跑，接入 main.py 两条管线。
+
+**策略变更（2026-09-04 晚，APK 瘦身）：** 实测 v1.4.33 APK 从 13.1MB 翻倍到 24.5MB，主因即本功能新增的 PDF 高清诗歌图（43 张 / 8.83MB）与 Word 图双份并存。经确认改为 **Word 图优先**：training.json 中该章已有 Word/EPUB 来源诗歌图（非 `hymn_pdf_` 前缀）→ 不渲染、不追加 PDF 图；仅 hymn_images 为空/缺失的章补 PDF 图；封面歌同理（motto_song_images 已有 Word 图则整体跳过）；training.json 不存在时（独立 CLI 场景）保持旧行为全量渲染。返回 dict 新增 `skipped_word` / `skipped_no_chapter` 字段；顺带修复：JSON 无对应章号的号段不再渲染成 orphan 文件。实现见 `tools/patch_hymn_from_pdf.py`，测试 `tests/test_patch_hymn_from_pdf.py`（4 测试）。
 
 **Architecture:** 新增纯逻辑库 `tools/hymn_pdf_lib.py`（识别/渲染/压缩/命名），CLI `tools/patch-hymn-from-pdf.py` 执行「识别→渲染→追加→写回」；main.py 在 word patch 之后调用。
 
