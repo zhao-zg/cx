@@ -1,0 +1,29 @@
+{
+  "_comment": "2026-01 国际华语特会（挪亚、但以理和约伯—在生命线上过得胜生活以成就神经纶的榜样）。页脚已核验；seg_rules 无（merge 预检通过）。",
+  "batch_name": "2026-01 国际华语特会",
+  "pdf": "resource/2026-01 国际华语特会/晨兴中英对照.pdf",
+  "short_name": "2026-01",
+  "meta": {
+    "path": "local-2026-01",
+    "title": "国际华语特会",
+    "subtitle": "挪亚、但以理和约伯—在生命线上过得胜生活以成就神经纶的榜样",
+    "year": "2026",
+    "season": "01 国际华语特会",
+    "has_listen_block": false
+  },
+  "meta_en": {
+    "title": "INTERNATIONAL CHINESE-SPEAKING CONFERENCE",
+    "subtitle": "Noah, Daniel, and Job—Patterns of Overcomers Living a Victorious Life on the Line of Life to Accomplish God's Economy"
+  },
+  "top_en": {
+    "title": "International Chinese-speaking Conference",
+    "subtitle": "Noah, Daniel, and Job—Patterns of Overcomers Living a Victorious Life on the Line of Life to Accomplish God's Economy"
+  },
+  "title_fixes": [],
+  "footer_filter": "二〇二六年国际华语相调特会(第\\d+周纲要—第\\d+页|-第\\d+周晨兴圣言-第\\d+页)",
+  "seg_rules": {},
+  "ch9d2_special": null,
+  "verify": {
+    "exclude_version": true
+  }
+}

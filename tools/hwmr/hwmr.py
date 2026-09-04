@@ -5,14 +5,14 @@
   parse <批次短名>     PDF → NEW 双语树 JSON（写 resource/<批次>/training-enchs.json 前身，输出到 .temp 复验）
   normalize <批次短名> NEW 中文字段归一（写 .temp 复验）
   merge <批次短名>     OLD 底座 + NEW → 双语 training.json（写 resource/<批次>/training-enchs.json）
-  verify <批次短名>    同构检查 + 锚点复现对比（如锚点存在）
+  verify <批次短名>    同构检查 + 锚点复现对比（仅当批次配置声明 anchors）
   all <批次短名>       parse → normalize → merge → verify 一条龙
 
 用法（在 cx 项目根目录运行）：
   G:\\soft\\Python3.12\\python.exe -X utf8 tools/hwmr/hwmr.py all 2026-04
 
 批次配置：tools/hwmr/batches/<短名>.json
-锚点文件（复现验证用，可选）：.temp/hwmr-enchs.json / hwmr-enchs-norm.json / hwmr-enchs-merged.json
+锚点文件（复现验证用，可选）：仅 2026-04 在配置中声明 anchors 指向开发期黄金快照
 """
 import io
 import json
@@ -126,11 +126,14 @@ def cmd_verify(cfg):
         new_norm = json.load(open(paths['norm_tmp'], encoding='utf-8'))
         verifier.compare_cn_residual(old, new_norm, log=log)
 
-    anchors = [
-        ('parse', paths['new_tmp'], os.path.join(TEMP, 'hwmr-enchs.json')),
-        ('norm', paths['norm_tmp'], os.path.join(TEMP, 'hwmr-enchs-norm.json')),
-        ('merged', paths['merged_tmp'], os.path.join(TEMP, 'hwmr-enchs-merged.json')),
-    ]
+    anchors = []
+    # 锚点对比：仅限批次配置显式声明 anchors 的批次（目前只有 2026-04），
+    # 否则其他批次会错拿 2026-04 的中间产物对比出海量假差异。
+    tmp_key = {'parse': 'new_tmp', 'norm': 'norm_tmp', 'merged': 'merged_tmp'}
+    for tag, key in [('parse', 'parse'), ('norm', 'norm'), ('merged', 'merged')]:
+        rel = (cfg.get('anchors') or {}).get(key)
+        if rel:
+            anchors.append((tag, paths[tmp_key[tag]], os.path.join(ROOT, rel)))
     all_ok = True
     for tag, got_path, anchor_path in anchors:
         if not os.path.exists(anchor_path):

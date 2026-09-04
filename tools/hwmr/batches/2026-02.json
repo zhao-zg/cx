@@ -1,0 +1,29 @@
+{
+  "_comment": "2026-02 春季长老及负责弟兄训练（话语的职事与为着神的经纶之神的分赐）。页脚已核验（纲要页+晨兴页双模式）；seg_rules 无（merge 预检通过）。",
+  "batch_name": "2026-02 春季长老及负责弟兄训练",
+  "pdf": "resource/2026-02 春季长老及负责弟兄训练/晨兴中英对照.pdf",
+  "short_name": "2026-02",
+  "meta": {
+    "path": "local-2026-01",
+    "title": "春季国际长老及负责弟兄训练",
+    "subtitle": "话语的职事与为着神的经纶之神的分赐",
+    "year": "2026",
+    "season": "02 春季长老及负责弟兄训练",
+    "has_listen_block": false
+  },
+  "meta_en": {
+    "title": "SPRING INTERNATIONAL ELDERS AND RESPONSIBLE BROTHERS TRAINING",
+    "subtitle": "The Ministry of the Word and the Dispensing of God for God's Economy"
+  },
+  "top_en": {
+    "title": "Spring International Elders and Responsible Brothers Training",
+    "subtitle": "The Ministry of the Word and the Dispensing of God for God's Economy"
+  },
+  "title_fixes": [],
+  "footer_filter": "二〇二六年三月国际长老及负责弟兄训练(第\\d+周纲要—第\\d+页|-第\\d+周晨兴圣言-第\\d+页)",
+  "seg_rules": {},
+  "ch9d2_special": null,
+  "verify": {
+    "exclude_version": true
+  }
+}

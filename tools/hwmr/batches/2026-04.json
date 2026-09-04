@@ -39,5 +39,10 @@
   "ch9d2_special": "(8,1)",
   "verify": {
     "exclude_version": true
+  },
+  "anchors": {
+    "parse": ".temp/hwmr-enchs.json",
+    "norm": ".temp/hwmr-enchs-norm.json",
+    "merged": ".temp/hwmr-enchs-merged.json"
   }
 }

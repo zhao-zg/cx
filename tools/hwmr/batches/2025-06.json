@@ -1,0 +1,29 @@
+{
+  "_comment": "2025-06 感恩节相调特会（马太福音中所启示包罗万有的基督）。页脚已核验；seg_rules 无（merge 预检通过）。",
+  "batch_name": "2025-06 感恩节相调特会",
+  "pdf": "resource/2025-06 感恩节相调特会/晨兴中英对照.pdf",
+  "short_name": "2025-06",
+  "meta": {
+    "path": "local-2025-06",
+    "title": "感恩节相调特会",
+    "subtitle": "马太福音中所启示包万有的基督",
+    "year": "2025",
+    "season": "06 感恩节相调特会",
+    "has_listen_block": false
+  },
+  "meta_en": {
+    "title": "THANKSGIVING CONFERENCE",
+    "subtitle": "The All-inclusive Christ Revealed in the Gospel of Matthew"
+  },
+  "top_en": {
+    "title": "Thanksgiving Conference",
+    "subtitle": "The All-inclusive Christ Revealed in the Gospel of Matthew"
+  },
+  "title_fixes": [],
+  "footer_filter": "二○二五年感恩节国际相调特会(第\\d+周纲要—第\\d+页|-第\\d+周晨兴圣言-第\\d+页)",
+  "seg_rules": {},
+  "ch9d2_special": null,
+  "verify": {
+    "exclude_version": true
+  }
+}

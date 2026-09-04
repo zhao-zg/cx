@@ -1,0 +1,29 @@
+{
+  "_comment": "2025-04 夏季训练（经历、享受并彰显基督（三））。页脚已核验；seg_rules 无（merge 预检通过）。",
+  "batch_name": "2025-04 夏季训练",
+  "pdf": "resource/2025-04 夏季训练/晨兴中英对照.pdf",
+  "short_name": "2025-04",
+  "meta": {
+    "path": "local-2025-04",
+    "title": "七月半年度训练",
+    "subtitle": "经历、享受并彰显基督（三）",
+    "year": "2025",
+    "season": "04 七月半年度训练",
+    "has_listen_block": false
+  },
+  "meta_en": {
+    "title": "JULY SEMIANNUAL TRAINING",
+    "subtitle": "Experiencing, Enjoying, and Expressing Christ (3)"
+  },
+  "top_en": {
+    "title": "July Semiannual Training",
+    "subtitle": "Experiencing, Enjoying, and Expressing Christ (3)"
+  },
+  "title_fixes": [],
+  "footer_filter": "二[○〇]二五年六月半年度训练(第\\d+周纲要—第\\d+页|-第\\d+周晨兴圣言-第\\d+页)",
+  "seg_rules": {},
+  "ch9d2_special": null,
+  "verify": {
+    "exclude_version": true
+  }
+}

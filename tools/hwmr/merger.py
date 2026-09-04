@@ -76,17 +76,119 @@ def trim_to_prefix(tree, n):
     return out
 
 
-def inject_tree(cn_tree, en_tree, where):
-    """断言同构后返回 EN 树；豁免：CN 深度序列是 EN 严格前缀（OLD 内部不一致，
-    如 ch2d6 天级 OLD CN 9 节点 vs NEW EN 12 节点）→ 裁剪 EN 对齐 OLD 底座。
-    返回 (en_tree, trimmed)。"""
-    ds_cn, ds_en = depth_seq(cn_tree), depth_seq(en_tree)
+def _align_depth_seq(cn_pre, en_pre):
+    """LCS 深度序列对齐（CN/EN 先序节点列表 → aligned 三元组）。
+
+    aligned: [(d, cn_node|None, en_node|None)]，按「CN 先序 + EN 独有插回原序」排列：
+      - 匹配对 (cn, en)：深度相等（LCS），EN 节点挂该深度；
+      - CN 独有 (cn, None)：CN 有 EN 无（A/C 类）→ EN 空占位；
+      - EN 独有 (None, en)：EN 有 CN 无（B 类）→ 保留 EN 节点，深度沿用 EN 原始深度。
+    LCS 保证头部+尾部尽量对齐，中间缺项（C 类）正确识别为独有。
+    """
+    m, n = len(cn_pre), len(en_pre)
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if cn_pre[i - 1][0] == en_pre[j - 1][0]:
+                dp[i][j] = dp[i - 1][j - 1] + 1
+            else:
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+    # 回溯得到匹配对 (cn_idx, en_idx)
+    matched = []
+    i, j = m, n
+    while i > 0 and j > 0:
+        if cn_pre[i - 1][0] == en_pre[j - 1][0] and dp[i][j] == dp[i - 1][j - 1] + 1:
+            matched.append((i - 1, j - 1))
+            i -= 1
+            j -= 1
+        elif dp[i][j] == dp[i - 1][j]:
+            i -= 1  # CN 独有
+        else:
+            j -= 1  # EN 独有
+    matched.reverse()
+    matched_cn = {ci for ci, _ in matched}
+    matched_en = {ej for _, ej in matched}
+    en_to_cn = {ej: ci for ci, ej in matched}
+
+    # 重建 aligned：按 CN 先序走，EN 独有按 EN 原序插入对应位置
+    out = []
+    i = j = 0
+    while i < m or j < n:
+        if j < n and j not in matched_en:
+            # EN 独有：按 EN 原序插回
+            out.append((en_pre[j][0], None, en_pre[j][1]))
+            j += 1
+        elif j < n and en_to_cn[j] == i:
+            # 对齐对
+            out.append((cn_pre[i][0], cn_pre[i][1], en_pre[j][1]))
+            i += 1
+            j += 1
+        else:
+            # CN 独有
+            out.append((cn_pre[i][0], cn_pre[i][1], None))
+            i += 1
+    return out
+
+
+def _rebuild_en(aligned, cn_depths):
+    """按 aligned 重建 EN 树，以 CN 深度序列 cn_depths 为骨架。
+    - 匹配对 (cn,en) / CN 独有 (cn,None)：EN 节点挂 CN 深度 d（CN 独有挂空 dict 占位）；
+    - EN 独有 (None,en)：保留 EN 节点原深度，作为其兄弟挂载（B 类），
+      深度沿用 en 原始深度（可能与 CN 骨架交错）。
+    返回 (en_nodes, en_only_count)。"""
+    out, stack = [], []
+    en_only = 0
+    for d, cn_node, en_node in aligned:
+        if en_node is None:
+            nd = {}                     # CN 独有：EN 空占位
+            eff_d = d                  # 挂 CN 深度 d
+        else:
+            nd = clone(en_node)
+            nd.pop('children', None)
+            if cn_node is None:
+                en_only += 1           # EN 独有（B 类）
+                eff_d = d              # 深度沿用 EN 原深度（与 CN 骨架可能不齐）
+            else:
+                eff_d = d              # 匹配对：挂 CN 深度
+        if eff_d == 0:
+            out.append(nd)
+        else:
+            # 栈顶必须存在 eff_d-1 的父；EN 独有深度跳级时中间补空占位容器
+            while len(stack) < eff_d:
+                stack.append({})
+            stack[eff_d - 1].setdefault('children', []).append(nd)
+        del stack[eff_d:]
+        stack.append(nd)
+    return out, en_only
+
+
+def align_tree(cn_tree, en_tree, where):
+    """通用树对齐：CN 权威骨架 + EN 注入。不同构时：
+    - 前缀豁免保留（CN 是 EN 严格前缀 → 裁剪 EN 对齐 OLD）；
+    - 非前缀 → 双指针对齐：CN 独有（A/C 类）EN 空占位；EN 独有（B 类）保留。
+    返回 (en_tree_aligned, stats)。"""
+    cn_pre, en_pre = [], []
+
+    def walk(ns, d, out):
+        for n in ns or []:
+            out.append((d, n))
+            walk(n.get('children'), d + 1, out)
+
+    walk(cn_tree, 0, cn_pre)
+    walk(en_tree, 0, en_pre)
+
+    ds_cn = [d for d, _ in cn_pre]
+    ds_en = [d for d, _ in en_pre]
     if ds_cn == ds_en:
-        return en_tree, False
+        return clone(en_tree), {'aligned': 0, 'cn_only': 0, 'en_only': 0}
     if len(ds_cn) < len(ds_en) and ds_en[:len(ds_cn)] == ds_cn:
-        return trim_to_prefix(en_tree, len(ds_cn)), True
-    _die(f'{where}: CN/EN 树不同构（CN {len(ds_cn)} 节点 vs EN {len(ds_en)} 节点，'
-         f'深度序列不一致，且非前缀关系）')
+        # 前缀豁免：CN 少、EN 多且 CN 是 EN 前缀 → 裁剪 EN 对齐 OLD（保留 trim 语义）
+        return trim_to_prefix(en_tree, len(ds_cn)), {'aligned': 0, 'cn_only': 0,
+                                                      'en_only': len(ds_en) - len(ds_cn)}
+    aligned = _align_depth_seq(cn_pre, en_pre)
+    cn_only = sum(1 for _, cn, en in aligned if cn is not None and en is None)
+    en_tree_al, en_only = _rebuild_en(aligned, ds_cn)
+    return en_tree_al, {'aligned': 1, 'cn_only': cn_only, 'en_only': en_only}
 
 
 def cn_digest(doc):
@@ -109,6 +211,33 @@ def cn_digest(doc):
     return hashlib.sha256('\n'.join(parts).encode('utf-8')).hexdigest()
 
 
+def _align_segments(cn_list, en_list, where):
+    """段级通用对齐：EN 多段 → 拼接；CN 多段 → 末段吸收。
+    - len(en) == len(cn)：直接对位；
+    - len(en) > len(cn)：EN 每段挂 CN 对应段，多余 EN 并入 CN 末段（拼接）；
+    - len(en) < len(cn)：EN 全文挂 CN 前段，后续 CN 段空串（合并公式）；
+    返回对齐后的 EN 列表（长度 = len(cn_list)）。"""
+    n_cn, n_en = len(cn_list), len(en_list)
+    if n_cn == n_en:
+        return clone(en_list)
+    if n_cn == 0:
+        # CN 无段可挂（如 EN 有段但 OLD 该字段为空）：EN 无处注入，丢弃
+        return []
+    out = []
+    if n_en > n_cn:
+        # EN 侧：前 n_cn-1 段对位，末段拼接剩余 EN 段
+        for k in range(n_cn - 1):
+            out.append(clone(en_list[k]))
+        tail = ''.join(str(x) for x in en_list[n_cn - 1:])
+        out.append(tail)
+    else:
+        # CN 多：EN 段全文挂前位，后续空串（与 probe89 合并段公式一致）
+        out = [clone(en_list[0])] + [''] * (n_cn - 1)
+    if len(out) != n_cn:
+        _die(f'{where}: 对齐后段数 {len(out)} != CN {n_cn}')
+    return out
+
+
 def merge(old, new, seg_rules=None, ch9d2_special=None, log=print):
     """核心合并：OLD 为 CN 底座注入 NEW 的 _en 字段。
 
@@ -122,7 +251,8 @@ def merge(old, new, seg_rules=None, ch9d2_special=None, log=print):
     merged['version'] = new.get('version', merged['version'])
 
     stats = {'ch_en_fields': 0, 'mr_en_fields': 0, 'outline_en_injected': 0,
-             'seg_resplit': 0, 'ch9d2_special': 0, 'tree_trim': 0}
+             'seg_resplit': 0, 'ch9d2_special': 0, 'tree_trim': 0,
+             'tree_align': 0, 'cn_only': 0, 'en_only': 0, 'seg_pad': 0}
 
     if len(merged['chapters']) != len(new['chapters']):
         _die(f'章节数不等: OLD {len(merged["chapters"])} vs NEW {len(new["chapters"])}')
@@ -136,10 +266,14 @@ def merge(old, new, seg_rules=None, ch9d2_special=None, log=print):
             if not ev:  # None/'' 跳过（ch5 hymn_number_en='' → 保持 OLD 底座，UI 回退 CN 值）
                 continue
             if f == 'outline_sections_en':
-                ev, trimmed = inject_tree(oc.get('outline_sections'), ev,
-                                          f'{where}.outline_sections')
-                if trimmed:
+                ev, st = align_tree(oc.get('outline_sections'), ev,
+                                    f'{where}.outline_sections')
+                if st['aligned']:
+                    stats['tree_align'] += 1
+                else:
                     stats['tree_trim'] += 1
+                stats['cn_only'] += st['cn_only']
+                stats['en_only'] += st['en_only']
             oc[f] = clone(ev)
             stats['ch_en_fields'] += 1
 
@@ -153,9 +287,13 @@ def merge(old, new, seg_rules=None, ch9d2_special=None, log=print):
             # ---- outline_en（树型）----
             ev = nmr.get('outline_en')
             if ev:
-                ev, trimmed = inject_tree(omr.get('outline'), ev, f'{w}.outline')
-                if trimmed:
+                ev, st = align_tree(omr.get('outline'), ev, f'{w}.outline')
+                if st['aligned']:
+                    stats['tree_align'] += 1
+                else:
                     stats['tree_trim'] += 1
+                stats['cn_only'] += st['cn_only']
+                stats['en_only'] += st['en_only']
                 omr['outline_en'] = clone(ev)
                 stats['mr_en_fields'] += 1
                 stats['outline_en_injected'] += 1
@@ -205,8 +343,13 @@ def merge(old, new, seg_rules=None, ch9d2_special=None, log=print):
                         omr[f] = clone(ev)
                         stats['mr_en_fields'] += 1
                     else:
-                        _die(f'{w} {f}: 段数不等 EN {len(ev)} vs CN {len(cn_list)} '
-                             f'且无重切规则')
+                        # 段数不等且无显式规则：通用对齐（D/E 类）。
+                        # EN 多段 → 每段全文挂 CN 对应段（多余 EN 并入 CN 末段）；
+                        # CN 多段 → 末段吸收多余（EN 段全文挂前位，后续 CN 段空串——
+                        # 与 probe89 合并段公式一致）。
+                        omr[f] = _align_segments(cn_list, ev, f'{w} {f}')
+                        stats['mr_en_fields'] += 1
+                        stats['seg_pad'] += 1
                 else:
                     # 完整 NEW→OLD 映射校验
                     if len(ev) != len(rmap):

@@ -288,13 +288,13 @@ DAY_MARK_RE = re.compile(r'【([^】]{1,20})】')
 L1_RE = re.compile(r'^(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾)')
 L2_RE = re.compile(r'^([一二三四五六七八九十])')
 L3_RE = re.compile(r'^(\d{1,2})')
-L4_RE = re.compile(r'^([a-h])(?![A-Za-z0-9])')  # CN L4 无点形式（probe72 定案）
+L4_RE = re.compile(r'^([a-z])(?![A-Za-z0-9])')  # CN L4 无点形式（probe72 定案；i./j. 等超出 a-h 也识别）
 EN_L1_RE = re.compile(r'^([IVX]+)\.\s')
 EN_L2_RE = re.compile(r'^([A-Z])\.\s')
 EN_L3_RE = re.compile(r'^(\d{1,2})\.\s')
-EN_L4_RE = re.compile(r'^([a-h])\.\s')
+EN_L4_RE = re.compile(r'^([a-z])\.\s')      # EN L4：a.~j.（C 类修复：原 [a-h] 吞掉 i./j.）
 EN_L5_RE = re.compile(r'^(\d{1,2})\)\s')   # EN L5：'1) …'（x0=377）
-EN_L6_RE = re.compile(r'^([a-h])\)\s')     # EN L6：'a) …'（x0=377，probe74 ch6 day3）
+EN_L6_RE = re.compile(r'^([a-z])\)\s')     # EN L6：'a) …'（x0=377，probe74 ch6 day3）
 L1_SET = {'壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖', '拾'}
 CN_L2_SET = {'一', '二', '三', '四', '五', '六', '七', '八', '九', '十'}
 PICK_FOLD = {'拾壹': '壹', '拾贰': '贰', '拾叁': '叁', '拾肆': '肆', '拾伍': '伍'}
@@ -366,12 +366,13 @@ def outline_flat_nodes(lines, is_en=False):
     for line in lines:
         top, x0, text = line[0], line[1], line[2]
         kind = line[3] if len(line) > 3 else ('en' if is_en else 'kai')
+        bold = (kind == 'enB')  # B 类修复：粗体（标题）行指纹
         s = text.strip()
         if not s:
             continue
         if is_en and re.match(r'^§\s*Day', s):
             continue
-        # A 类兜底（probe94 定案）：「§ Day N」标记与段首行同视觉行，剥到行尾安全
+        # A 类兜底（probe94 定案）：「§ Day N」标记与段首行同视觉时，剥到行尾安全
         if is_en and '§' in s:
             s = re.sub(r'§\s*Day\s*\d.*$', '', s).strip()
             if not s:
@@ -386,10 +387,10 @@ def outline_flat_nodes(lines, is_en=False):
             if EN_L5_X0_LO <= round(x0) <= EN_L5_X0_HI:
                 if l4_active and nodes:
                     l5_seq += 1
-                    nodes.append({'level': f'{l5_seq})', 'title': s,
+                    nodes.append({'level': f'{l5_seq})', 'title': s, 'is_bold': bold,
                                   'content': [], 'children': []})
                 elif nodes:
-                    nodes[-1]['title'] += s
+                    nodes[-1]['title'] += (' ' + s if bold else s)
                 continue
             is_head = x0 < EN_HEAD_X0
         else:
@@ -404,22 +405,32 @@ def outline_flat_nodes(lines, is_en=False):
                     l5_seq += 1
                     continue
                 is_head = x0 < CN_L34_X0
-            else:  # hei 等：天标记已剥，其余并入前节点
+            else:  # hei 等：天行已剥，其余为前节点续行
                 is_head = False
         if not is_head:
             if nodes:
-                nodes[-1]['title'] += s
+                # B 类修复：EN 普通续行归最近普通节点（跳过粗体标题节点）；
+                # 粗体续行归最近邻（标题续行/强调词均空格拼接）。
+                if is_en and not bold:
+                    idx = len(nodes) - 1
+                    while idx >= 0 and nodes[idx].get('is_bold'):
+                        idx -= 1
+                    if idx >= 0:
+                        nodes[idx]['title'] += ' ' + s
+                else:
+                    nodes[-1]['title'] += (' ' + s if bold else s)
             continue
         level, rest = parse_outline_level(s, is_en, x0)
         if level is not None:
             # C 类：EN L6 拍平进前一 L5 节点 title（probe99：全书仅 p114 两行）
-            if is_en and re.match(r'^[a-h]\)$', level) and nodes \
+            if is_en and re.match(r'^[a-z]\)$', level) and nodes \
                     and re.match(r'^\d{1,2}\)$', nodes[-1]['level']):
                 nodes[-1]['title'] += ' ' + rest
                 continue
-            node = {'level': level, 'title': rest, 'content': [], 'children': []}
+            node = {'level': level, 'title': rest, 'is_bold': bold,
+                    'content': [], 'children': []}
             # D 类（probe104 定案）：EN L2 字母行紧贴前一行 L1 罗马行
-            # （top 差 <15pt）= PDF 排版错位，该 L2 逻辑上属 L1 之前的节。
+            # （top 差 <15pt）＝ PDF 排版错位，该 L2 逻辑上属 L1 之前的节。
             if is_en and re.match(r'^[A-Z]\.$', level) \
                     and last_l1_idx is not None and last_l1_idx == len(nodes) - 1 \
                     and last_l1_top is not None and abs(top - last_l1_top) < L1_TOP_GAP:
@@ -431,12 +442,13 @@ def outline_flat_nodes(lines, is_en=False):
                     last_l1_idx = len(nodes) - 1
                     last_l1_top = top
             l5_seq = 0
-            l4_active = is_en and re.match(r'^[a-h]\.$', level)
+            l4_active = is_en and re.match(r'^[a-z]\.$', level)
             continue
         if nodes:
-            nodes[-1]['title'] += s
+            nodes[-1]['title'] += ' ' + s if is_en else s
             continue
-        nodes.append({'level': '', 'title': s, 'content': [], 'children': []})
+        nodes.append({'level': '', 'title': s, 'is_bold': bold,
+                      'content': [], 'children': []})
         l5_seq = 0
         l4_active = False
     return nodes
@@ -461,13 +473,13 @@ def nest(flat, add_ctx=False, is_en=False):
             elif re.match(r'^\d{1,2}\.$', lv):
                 (l2['children'] if l2 else l1['children'] if l1 else roots).append(n)
                 l3, l4, l5 = n, None, None
-            elif re.match(r'^[a-h]\.$', lv):
+            elif re.match(r'^[a-z]\.$', lv):
                 (l3['children'] if l3 else l2['children'] if l2 else l1['children'] if l1 else roots).append(n)
                 l4, l5 = n, None
             elif re.match(r'^\d{1,2}\)$', lv):
                 (l4['children'] if l4 else l3['children'] if l3 else l2['children'] if l2 else l1['children'] if l1 else roots).append(n)
                 l5 = n
-            elif re.match(r'^[a-h]\)$', lv):
+            elif re.match(r'^[a-z]\)$', lv):
                 (l5['children'] if l5 else l4['children'] if l4 else l3['children'] if l3 else l2['children'] if l2 else l1['children'] if l1 else roots).append(n)
             else:
                 (l5 or l4 or l3 or l2 or l1 or roots).append(n)
@@ -481,7 +493,7 @@ def nest(flat, add_ctx=False, is_en=False):
         elif re.match(r'^\d{1,2}$', lv):
             (l2['children'] if l2 else l1['children'] if l1 else roots).append(n)
             l3, l4 = n, None
-        elif re.match(r'^[a-h]$', lv):
+        elif re.match(r'^[a-z]$', lv):
             (l3['children'] if l3 else l2['children'] if l2 else l1['children'] if l1 else roots).append(n)
             l4 = n
         elif lv in ('㈠', '㈡', '㈢', '㈣'):
