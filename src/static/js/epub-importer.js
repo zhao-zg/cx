@@ -317,7 +317,13 @@
       var level = '';
       var title = '';
 
-      if (cls === 'calibre_zongti' || cls === 'calibre_content_title' ||
+      // 带圈层级前缀（㈠㈡㈢…/⑴⑵⑶…）即使挂在跳过类（calibre_text_abs、chenxing 等）上
+      // 也是真大纲节点：按前缀放行，落入下方按文本前缀的层级识别（rank5/6）
+      var circledLevel = text.length > 1 &&
+        (LEVEL5_CHARS.indexOf(text[0]) >= 0 || LEVEL6_CHARS.indexOf(text[0]) >= 0);
+
+      if (!circledLevel &&
+          (cls === 'calibre_zongti' || cls === 'calibre_content_title' ||
           cls === 'calibre_text_verse' || cls === 'calibre_verse' ||
           cls === 'calibre_text_chenxing_content' ||
           cls === 'calibre_text_chenxing_verse' || cls === 'calibre_text_chenxing_content_wyxd' ||
@@ -326,7 +332,7 @@
           cls === 'calibre_index_title1' || cls === 'calibre_text_abs' ||
           cls === 'calibre_text_abs_dadian' || cls === 'calibre_text_abs_zhongdian' ||
           cls === 'calibre_text_abs_xiaodian' || cls === 'calibre_e_text_dadian' ||
-          cls === 'calibre_e_text_zhongdian' || cls === 'calibre_e_text_xiaodian') {
+          cls === 'calibre_e_text_zhongdian' || cls === 'calibre_e_text_xiaodian')) {
         continue; // 跳过非大纲段落
       }
 
@@ -835,8 +841,13 @@
 
       // 大纲区域
       if (mode === 'outline') {
+        // 带圈层级前缀（㈠㈡㈢…/⑴⑵⑶…）即使挂在跳过类上也是真大纲节点，按前缀放行
+        var circledLevel = text.length > 1 &&
+          (LEVEL5_CHARS.indexOf(text[0]) >= 0 || LEVEL6_CHARS.indexOf(text[0]) >= 0);
+
         // 跳过非大纲段落（经文、晨兴内容、诗歌等），与 parseOutlineFromHtml 保持一致
-        if (cls === 'calibre_zongti' || cls === 'calibre_content_title' ||
+        if (!circledLevel &&
+            (cls === 'calibre_zongti' || cls === 'calibre_content_title' ||
             cls === 'calibre_text_verse' || cls === 'calibre_verse' ||
             cls === 'calibre_text_chenxing_content' ||
             cls === 'calibre_text_chenxing_verse' || cls === 'calibre_text_chenxing_content_wyxd' ||
@@ -845,7 +856,7 @@
             cls === 'calibre_index_title1' || cls === 'calibre_text_abs' ||
             cls === 'calibre_text_abs_dadian' || cls === 'calibre_text_abs_zhongdian' ||
             cls === 'calibre_text_abs_xiaodian' || cls === 'calibre_e_text_dadian' ||
-            cls === 'calibre_e_text_zhongdian' || cls === 'calibre_e_text_xiaodian') {
+            cls === 'calibre_e_text_zhongdian' || cls === 'calibre_e_text_xiaodian')) {
           continue;
         }
 
