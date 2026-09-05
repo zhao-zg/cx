@@ -1,0 +1,2160 @@
+﻿/* Shared speech controls for CX site
+   Engines:
+   - NativeTTS (Capacitor Foreground Service) -- Android APK, background-safe
+   - Web Speech API                           -- browser / PWA fallback
+
+   Exposes:
+     window.CXSpeech.init({ getElements: () => [{el}], lang?: string })
+     window.CXSpeech.cancel()
+*/
+(function () {
+  'use strict';
+
+  // -- Utilities ------------------------------------------------------------
+
+  function byId(id) { return document.getElementById(id); }
+
+  // 统一文本处理管道：全局字符过滤 + 括号移除。
+  // 所有文本（fullText、segmentMap、speakText）必须经过此函数，确保坐标系一致。
+  // isEn=true 时走英文白名单（保留英文标点终止符/描号/引号；全角标点仍删除）；
+  // CN 路径字符类逐字节不变，行为与旧版完全一致。
+  // 历史行为（两模式一致）：全角括号（…）内容整体删除；半角括号 (…) 仅剥字符、内容保留
+  //（半角括号不在任一白名单内，先于括号内容删除规则被字符层剥离）。
+  function processText(raw, isEn) {
+    return (raw || '')
+      .replace(/\s+/g, ' ')
+      .replace(/[\r\n\t]/g, '')
+      .replace(isEn
+        ? /[^\u4e00-\u9fa5a-zA-Z0-9\s.,!?;:'"\u201c\u201d\u2018\u2019\u2014\u2013-]/g
+        : /[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！\u201c\u201d\u2018\u2019（）《》\s]/g, '')
+      .trim()
+      .replace(/（[^）]*）/g, '')
+      .replace(/\([^)]*\)/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // -- Bible reference expansion --------------------------------------------
+
+  var _BN = {
+    '创': '创世记', '出': '出埃及记', '利': '利未记', '民': '民数记',
+    '申': '申命记', '书': '约书亚记', '士': '士师记', '得': '路得记',
+    '撒上': '撒母耳记上', '撒下': '撒母耳记下',
+    '王上': '列王纪上', '王下': '列王纪下',
+    '代上': '历代志上', '代下': '历代志下',
+    '拉': '以斯拉记', '尼': '尼希米记', '斯': '以斯帖记',
+    '伯': '约伯记', '诗': '诗篇', '箴': '箴言', '传': '传道书',
+    '歌': '雅歌', '赛': '以赛亚书', '耶': '耶利米书',
+    '哀': '耶利米哀歌', '结': '以西结书', '但': '但以理书',
+    '何': '何西阿书', '珥': '约珥书', '摩': '阿摩司书',
+    '俄': '俄巴底亚书', '拿': '约拿书', '弥': '弥迦书',
+    '鸿': '那鸿书', '哈': '哈巴谷书', '番': '西番雅书',
+    '该': '哈该书', '亚': '撒迦利亚书', '玛': '玛拉基书',
+    '太': '马太福音', '可': '马可福音', '路': '路加福音',
+    '约': '约翰福音', '徒': '使徒行传', '罗': '罗马书',
+    '林前': '哥林多前书', '林后': '哥林多后书',
+    '加': '加拉太书', '弗': '以弗所书', '腓': '腓立比书',
+    '西': '歌罗西书',
+    '帖前': '帖撒罗尼迦前书', '帖后': '帖撒罗尼迦后书',
+    '提前': '提摩太前书', '提后': '提摩太后书',
+    '门': '腓利门书', '来': '希伯来书', '雅': '雅各书',
+    '彼前': '彼得前书', '彼后': '彼得后书',
+    '约壹': '约翰壹书', '约贰': '约翰贰书', '约叁': '约翰叁书',
+    '犹': '犹大书', '启': '启示录', '多': '提多书'
+  };
+
+  // 诗篇用「篇」而非「章」
+  var _PIAN = { '诗': 1 };
+
+  function _numToCN(n) {
+    n = parseInt(n, 10);
+    if (isNaN(n) || n <= 0) return String(n);
+    var d = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    if (n < 10) return d[n];
+    if (n < 20) return '十' + (n > 10 ? d[n - 10] : '');
+    if (n < 100) return d[Math.floor(n / 10)] + '十' + (n % 10 ? d[n % 10] : '');
+    var h = Math.floor(n / 100), r = n % 100;
+    if (r === 0) return d[h] + '百';
+    if (r < 10) return d[h] + '百零' + d[r];
+    return d[h] + '百' + _numToCN(r);
+  }
+
+  // 解析单条 data-ref 如 太7:22 或 林前3:13 或 约15:5下
+  function _parseRef(ref) {
+    ref = (ref || '').trim();
+    var m = ref.match(/^([^\d:]{1,3})(\d+):(\d+)([上下]?)$/);
+    if (!m) return null;
+    return { book: m[1], chapter: parseInt(m[2], 10), verse: parseInt(m[3], 10), suffix: m[4] };
+  }
+
+  function _expandRef(p) {
+    var full = _BN[p.book] || p.book;
+    var chWord = _PIAN[p.book] ? '篇' : '章';
+    // verse 为 0 表示整章引用，不读节数
+    if (p.verse === 0) return full + _numToCN(p.chapter) + chWord;
+    return full + _numToCN(p.chapter) + chWord + _numToCN(p.verse) + '节' + (p.suffix || '');
+  }
+
+  // 解析跨章引用 如 启1:9-2:1（由 expandCnRefs 的 F1x 格式产生）
+  function _parseCrossRef(ref) {
+    ref = (ref || '').trim();
+    var m = ref.match(/^([^\d:]{1,3})(\d+):(\d+)([上下]?)-(\d+):(\d+)([上下]?)$/);
+    if (!m) return null;
+    return {
+      book: m[1],
+      ch1: parseInt(m[2], 10), v1: parseInt(m[3], 10), s1: m[4],
+      ch2: parseInt(m[5], 10), v2: parseInt(m[6], 10), s2: m[7]
+    };
+  }
+
+  function _expandCrossRef(p) {
+    var full = _BN[p.book] || p.book;
+    var chWord = _PIAN[p.book] ? '篇' : '章';
+    var from = full + _numToCN(p.ch1) + chWord + _numToCN(p.v1) + '节' + (p.s1 || '');
+    var to = (p.ch1 !== p.ch2 ? _numToCN(p.ch2) + chWord : '') + _numToCN(p.v2) + '节' + (p.s2 || '');
+    return from + '至' + to;
+  }
+
+  // 将逗号分隔的 data-refs 字符串展开为朗读文本
+  // 同书同章连续节 → 用「至」压缩；其余逐条列出
+  // 支持跨章引用格式（如 启1:9-2:1 → 启示录一章九节至二章一节）
+  function expandDataRefs(refs) {
+    if (!refs) return '';
+    var parts = (refs + '').split(',').map(function (r) { return r.trim(); }).filter(Boolean);
+    if (!parts.length) return '';
+    var result = [], i = 0;
+    while (i < parts.length) {
+      // 跨章引用（如 启1:9-2:1）：单独展开，不参与同章合并
+      var cr = _parseCrossRef(parts[i]);
+      if (cr) { result.push(_expandCrossRef(cr)); i++; continue; }
+      var p = _parseRef(parts[i]);
+      if (!p) { result.push(parts[i]); i++; continue; }
+      // 整章引用（verse=0）不参与范围合并，直接单条输出
+      if (p.verse === 0) { result.push(_expandRef(p)); i++; continue; }
+      var j = i + 1;
+      while (j < parts.length) {
+        // 若下一个是跨章引用，停止合并
+        if (_parseCrossRef(parts[j])) break;
+        var q = _parseRef(parts[j]);
+        if (!q || q.book !== p.book || q.chapter !== p.chapter) break;
+        j++;
+      }
+      if (j === i + 1) {
+        result.push(_expandRef(p));
+      } else {
+        var last = _parseRef(parts[j - 1]);
+        result.push(_expandRef(p) + '至' + _numToCN(last.verse) + '节' + (last.suffix || ''));
+      }
+      i = j;
+    }
+    return result.join('，');
+  }
+
+  // 剥除 CN 静态经文块正文开头的显示前缀（如「加二20　」「十一29　」「约一12～13　」）。
+  // 该前缀与 withExpanded 前置的展开引用（如「加拉太书二章二十节」）语义重复，
+  // 不剥会双读。形态来自真实数据全量（124 块）：
+  //   可选[书缩写+中文数字章] + 阿拉伯节号 + 可选范围尾(～/~) + 可选上/下 + 全角/半角空格
+  // 必须含阿拉伯数字节号且后跟空白，普通中文正文不会命中（防误伤）。
+  var _CN_REF_PREFIX_RE = /^[一-龥]{0,6}\d+(?:[～~]\d+)?[上下]?[\u3000 ]/;
+  function stripCnRefPrefix(text) {
+    return (text || '').replace(_CN_REF_PREFIX_RE, '');
+  }
+
+  // 中文缩写 → 英文全名（EN 展开用；键与 _BN 一致）
+  var _BN_EN = {
+    '创': 'Genesis', '出': 'Exodus', '利': 'Leviticus', '民': 'Numbers',
+    '申': 'Deuteronomy', '书': 'Joshua', '士': 'Judges', '得': 'Ruth',
+    '撒上': '1 Samuel', '撒下': '2 Samuel',
+    '王上': '1 Kings', '王下': '2 Kings',
+    '代上': '1 Chronicles', '代下': '2 Chronicles',
+    '拉': 'Ezra', '尼': 'Nehemiah', '斯': 'Esther',
+    '伯': 'Job', '诗': 'Psalms', '箴': 'Proverbs', '传': 'Ecclesiastes',
+    '歌': 'Song of Songs', '赛': 'Isaiah', '耶': 'Jeremiah',
+    '哀': 'Lamentations', '结': 'Ezekiel', '但': 'Daniel',
+    '何': 'Hosea', '珥': 'Joel', '摩': 'Amos',
+    '俄': 'Obadiah', '拿': 'Jonah', '弥': 'Micah',
+    '鸿': 'Nahum', '哈': 'Habakkuk', '番': 'Zephaniah',
+    '该': 'Haggai', '亚': 'Zechariah', '玛': 'Malachi',
+    '太': 'Matthew', '可': 'Mark', '路': 'Luke',
+    '约': 'John', '徒': 'Acts', '罗': 'Romans',
+    '林前': '1 Corinthians', '林后': '2 Corinthians',
+    '加': 'Galatians', '弗': 'Ephesians', '腓': 'Philippians',
+    '西': 'Colossians',
+    '帖前': '1 Thessalonians', '帖后': '2 Thessalonians',
+    '提前': '1 Timothy', '提后': '2 Timothy',
+    '门': 'Philemon', '来': 'Hebrews', '雅': 'James',
+    '彼前': '1 Peter', '彼后': '2 Peter',
+    '约壹': '1 John', '约贰': '2 John', '约叁': '3 John',
+    '犹': 'Jude', '启': 'Revelation', '多': 'Titus'
+  };
+
+  // EN 展开单条引用（方案 A「全名+数字」）：Ephesians 4:20 / Ephesians 4（整章）；后缀上/下丢弃
+  function _expandRefEN(p) {
+    var full = _BN_EN[p.book] || p.book;
+    if (p.verse === 0) return full + ' ' + p.chapter;
+    return full + ' ' + p.chapter + ':' + p.verse;
+  }
+
+  // EN 展开跨章引用：Revelation 1:9 to 2:1（同章也保留两章号，便于聆听理解）
+  function _expandCrossRefEN(p) {
+    var full = _BN_EN[p.book] || p.book;
+    return full + ' ' + p.ch1 + ':' + p.v1 + ' to ' + p.ch2 + ':' + p.v2;
+  }
+
+  // EN 版 expandDataRefs：输入仍为中文缩写 refs（与 CN 同格式），仅输出为英文。
+  // 合并规则与 CN 完全同构：同书同章连续节 → to 压缩；跨章/整章单条；多条逗号连接。
+  function expandDataRefsEN(refs) {
+    if (!refs) return '';
+    var parts = (refs + '').split(',').map(function (r) { return r.trim(); }).filter(Boolean);
+    if (!parts.length) return '';
+    // wrapEnRefs 产出的同章范围（如 弗4:20-24，来自 "Eph. 4:20-24"）拆为首末两个端点，
+    // 交由下方同书同章合并逻辑压缩为「X to Y」；跨章格式（启1:9-2:1，含冒号）不匹配、不受影响。
+    var flat = [];
+    for (var k = 0; k < parts.length; k++) {
+      var rm = /^([^\d:]{1,3})(\d+):(\d+)[-–](\d+)$/.exec(parts[k]);
+      if (rm) {
+        flat.push(rm[1] + rm[2] + ':' + rm[3]);
+        flat.push(rm[1] + rm[2] + ':' + rm[4]);
+      } else {
+        flat.push(parts[k]);
+      }
+    }
+    parts = flat;
+    var result = [], i = 0;
+    while (i < parts.length) {
+      var cr = _parseCrossRef(parts[i]);
+      if (cr) { result.push(_expandCrossRefEN(cr)); i++; continue; }
+      var p = _parseRef(parts[i]);
+      if (!p) { result.push(parts[i]); i++; continue; }
+      if (p.verse === 0) { result.push(_expandRefEN(p)); i++; continue; }
+      var j = i + 1;
+      while (j < parts.length) {
+        if (_parseCrossRef(parts[j])) break;
+        var q = _parseRef(parts[j]);
+        if (!q || q.book !== p.book || q.chapter !== p.chapter) break;
+        j++;
+      }
+      if (j === i + 1) {
+        result.push(_expandRefEN(p));
+      } else {
+        var last = _parseRef(parts[j - 1]);
+        result.push(_expandRefEN(p) + ' to ' + last.verse);
+      }
+      i = j;
+    }
+    return result.join(', ');
+  }
+
+  // -- 段落分隔符（段末无终止符时补什么） ---------------------------------------
+  // CN 行为逐字节不变：补「。」；EN：补「. 」
+  function appendSeparator(lastChar, isEn) {
+    if (isEn) {
+      return /[.!?;]/.test(lastChar) ? '' : '. ';
+    }
+    return /[。！？；]/.test(lastChar) ? '' : '。';
+  }
+
+  // -- EN 不读规则纯谓词（span 自带文本 + 相邻文本节点上下文） -------------------
+  // EN 现实：span 文本形如 "Acts 11:26; 26:28"，不以破折号开头（CN 对照 span 才以 — 开头）；
+  // 破折号在前一文本节点尾部（" daily life—"），且 span 后还有文本节点以 ":" 或 "." 开头。
+  // 纲目破折号前缀引用不读；括号前缀引用不读；其余正文引用要读。
+  // inOutline: 纲目容器判定结果（true/false/unknown=null）。
+  function shouldSkipEnRef(spanText, prevText, inOutline) {
+    var txt = (spanText || '').trim();
+    if (!txt) return true;
+    if (/[（(]/.test(txt.charAt(0))) return true;          // span 自带前括号
+    // span 自带前导破折号（CN 格式 span 混入 EN 页面）：镜像 CN 规则，仅纲目内不读
+    if (/^[\u2014\u2500\-]/.test(txt)) return inOutline === true;
+    var prev = (prevText == null) ? '' : String(prevText);
+    var prevDash = /[\u2014\u2500\-]\s*$/.test(prev);        // prev 尾部破折号（可跨空白）
+    var prevParen = /[（(]\s*$/.test(prev);                  // prev 尾部前括号
+    if (prevParen) return true;                              // 括号前缀：无条件不读
+    if (prevDash) {
+      if (inOutline === null) return true;                   // 纲目未知 → 保守不读
+      return !!inOutline;                                    // 仅纲目内不读
+    }
+    return false;
+  }
+
+  // -- EN 切句（模块层纯函数）：按英文终止符（.!?;）切分，每句作为独立 utterance ----------
+  function splitBySentenceEN(text) {
+    var result = [];
+    var re = /[^.!?;]*[.!?;]/g;
+    var m, last = 0;
+    while ((m = re.exec(text)) !== null) {
+      var s = m[0];
+      if (s.trim()) result.push(s);
+      last = re.lastIndex;
+    }
+    if (last < text.length) {
+      var tail = text.slice(last).trim();
+      if (tail) result.push(text.slice(last));
+    }
+    return result.length > 0 ? result : [text];
+  }
+
+  function formatTime(seconds) {
+    var s = Math.max(0, Math.floor(seconds || 0));
+    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  function estimateTotalSeconds(text, rate) {
+    var r = Math.max(0.1, Number(rate) || 1);
+    return Math.max(1, Math.ceil((text || '').length / (250 * r) * 60));
+  }
+
+  function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+  // Module-level safe getter: tries both plugin names for compatibility.
+  // Java @CapacitorPlugin(name="NativeTTS") → Capacitor.Plugins.NativeTTS
+  // Older builds may expose as TTSPlugin; try both.
+  function safeGetNativeTTS() {
+    try {
+      if (!window.Capacitor || !window.Capacitor.Plugins) return null;
+      var p = window.Capacitor.Plugins;
+      var tts = p.NativeTTS || p.TTSPlugin || null;
+      return (tts && typeof tts.speak === 'function') ? tts : null;
+    } catch (e) { return null; }
+  }
+
+  // -- 预合成防重复：Router 双重 dispatch 时避免重复发送 preSynthesize（500ms 去重窗口）
+  var _preSynthTime = 0;
+  // stop → ttsStopped 事件驱动等待标记。
+  // resetState 发送 NativeTTS.stop() 后置 true，Java handleStop 完成后
+  // 触发 ttsStopped 事件，JS 收到后清除此标记并发送 preSynthesize。
+  // 替代之前的盲等 3s 定时器方案。
+  var _waitStopDone = false;
+  var _waitStopGen = 0;
+  var _ttsStoppedHandle = null;   // Capacitor addListener handle
+  var _ttsStateChangedHandle = null; // Capacitor addListener handle (ttsStateChanged)
+
+  // -- 跨页面 generation 计数器：全局递增，不在 init() 中重置
+  // 确保页面切换后旧回调（超时守卫、ttsPosition 等）仍能正确失效
+  var _speakGeneration = 0;
+
+  // -- hashchange 监听器引用（模块级）：SPA 导航时停止朗读
+  // 模块级而非 init() 局部变量，使 resetState() 不会移除它，
+  // 确保翻页（day pager）后重新播放时 hashchange 仍能正确停止朗读。
+  // init() 重新执行时自动替换为新 init() 闭包内的 resetState。
+  var _hashStopNav = null;
+
+  // -- 高亮滚动跟随监听卸载句柄（模块级）：每次 init 重新执行时先卸载上一页监听，
+  //    防止 document/window 级监听器随页面导航无限累积
+  var _scrollFollowUnbinds = null;
+
+  // -- Init -----------------------------------------------------------------
+
+  function init(options) {
+    var getElements = options && typeof options.getElements === 'function' ? options.getElements : null;
+    if (!getElements) return;
+    // 朗读进度持久化 key：'cx_speech:{batchPath}/{chapterNum}/{viewType}'，null=不持久化
+    var storageKey = options && typeof options.storageKey === 'string' && options.storageKey ? options.storageKey : null;
+    // 先停止上一个页面可能仍在运行的朗读（SPA 切换视图时 cancel 尚未被调用）
+    if (window.CXSpeech && typeof window.CXSpeech.cancel === 'function') {
+      try { window.CXSpeech.cancel(); } catch(e) {}
+    }
+
+    // ★ 强制取消上一页的预合成（preSynthesize）：即使 state='idle' 也需要发送 STOP，
+    //    告诉 Java 清除正在进行中的预合成任务和已生成的 WAV 文件，
+    //    防止上一页的预合成音频在后台完成后意外开始播放。
+    //    详见 #ts-tts-loop-button-flag 翻页保持监听器。
+    if (safeGetNativeTTS()) {
+      try { safeGetNativeTTS().stop(); } catch(e) {}
+      _waitStopDone = true;
+      _waitStopGen = _speakGeneration;
+    }
+
+    // TTS 句子级高亮复原数据（init 作用域，供 withExpanded 调用）
+    var _sentenceMarkData = [];
+
+    function restoreElement(injected) {
+      // 先恢复被剥去括号内容的文本节点原始值
+      if (injected._savedParenTN) {
+        injected._savedParenTN.forEach(function(s) {
+          try { if (s.tn.parentNode) s.tn.nodeValue = s.orig; } catch(e) {}
+        });
+      }
+      var el = injected.el;
+      if (!el) return;
+      var marks = Array.prototype.slice.call(el.querySelectorAll('mark.cx-tts-sent'));
+      marks.forEach(function(mark) {
+        var parent = mark.parentNode;
+        if (!parent) return;
+        while (mark.firstChild) {
+          parent.insertBefore(mark.firstChild, mark);
+        }
+        parent.removeChild(mark);
+      });
+      try { el.normalize(); } catch(e) {}
+    }
+
+    function clearSentenceMarks() {
+      _sentenceMarkData.forEach(function(inj) { try { restoreElement(inj); } catch(e) {} });
+      _sentenceMarkData = [];
+    }
+
+    // 将经文引用临时展开后执行回调，完成后还原 DOM。
+    // buildAll 在 withExpanded 内运行，确保 fullText 和 segmentMap 都基于展开后的文本。
+    function withExpanded(fn) {
+      var spans = Array.prototype.slice.call(document.querySelectorAll('.scripture-ref[data-refs]'));
+      var tnMap = [];
+      var removedSpans = []; // 不应朗读的 span（纲目破折号/括号前缀），临时从 DOM 移除
+      var trimmedTextNodes = []; // EN：被修剪尾部破折号的 prev 文本节点，还原时恢复原值
+      spans.forEach(function (span) {
+        var txt = (span.textContent || '').trim();
+        if (_isEn) {
+          // EN：span 文本不以破折号开头，需结合相邻文本节点判定（见 shouldSkipEnRef）
+          var prevNode = span.previousSibling;
+          var prevTxt = (prevNode && prevNode.nodeType === 3) ? prevNode.nodeValue : null;
+          var inOutline = (typeof span.closest === 'function')
+            ? !!(span.closest('.outline-section') || span.closest('.outline-item') || span.closest('[class*="section-level"]'))
+            : null;
+          if (!span.parentNode || shouldSkipEnRef(txt, prevTxt, inOutline)) {
+            if (span.parentNode) {
+              // 同步修剪 prev 尾部残留破折号，避免读出孤立符号
+              if (prevNode && prevNode.nodeType === 3 && /[\u2014\u2500\-]\s*$/.test(prevNode.nodeValue)) {
+                trimmedTextNodes.push({ tn: prevNode, orig: prevNode.nodeValue });
+                prevNode.nodeValue = prevNode.nodeValue.replace(/[\u2014\u2500\-]\s*$/, '');
+              }
+              removedSpans.push({ span: span, parent: span.parentNode, next: span.nextSibling });
+              span.parentNode.removeChild(span);
+            }
+            tnMap.push(null); return;
+          }
+        } else if (!span.parentNode ||
+            (/^[\u2014\u2500\-]/.test(txt) && typeof span.closest === 'function' && (span.closest('.outline-section') || span.closest('.outline-item') || span.closest('[class*="section-level"]'))) ||
+            /^[（(]/.test(txt)) {
+          // 纲目/听抄中破折号/括号前缀的经文引用不应朗读，从 DOM 临时移除
+          // 使 injectSentenceMarks 不会将其文本包裹进 <mark>，朗读时自然跳过
+          if (span.parentNode) {
+            removedSpans.push({ span: span, parent: span.parentNode, next: span.nextSibling });
+            span.parentNode.removeChild(span);
+          }
+          tnMap.push(null); return;
+        }
+        var expanded = _isEn ? expandDataRefsEN(span.getAttribute('data-refs'))
+                             : expandDataRefs(span.getAttribute('data-refs'));
+        if (!expanded) { tnMap.push(null); return; }
+        // 用临时 wrapper span 而非裸文本节点：injectSentenceMarks 会把内联元素整体移入 <mark>，
+        // clearSentenceMarks 后 wrapper 仍是完整元素（parentNode 不为 null），可被正确移除。
+        // 裸文本节点会被 injectSentenceMarks 切碎成新文本节点，导致 tn.parentNode 变为 null，
+        // 还原时无法移除，展开的经文文本会残留在 DOM 中造成重复显示。
+        var wrapper = document.createElement('span');
+        wrapper.className = 'cx-tts-expand-tmp';
+        wrapper.textContent = expanded;
+        var parent = span.parentNode;
+        var next = span.nextSibling;
+        parent.replaceChild(wrapper, span);
+        tnMap.push({tn: wrapper, span: span, parent: parent, next: next});
+      });
+      var staticBlocks = Array.prototype.slice.call(document.querySelectorAll('.scripture-block-static[data-refs]'));
+      var sbMap = [];
+      staticBlocks.forEach(function (block) {
+        var refs = block.getAttribute('data-refs');
+        var expanded = _isEn ? expandDataRefsEN(refs) : expandDataRefs(refs);
+        if (!expanded) { sbMap.push(null); return; }
+        var origHTML = block.innerHTML;
+        var clone = block.cloneNode(true);
+        clone.querySelectorAll('sup').forEach(function(s) { s.remove(); });
+        var cleanText = clone.textContent;
+        var tabIdx = cleanText.indexOf('\t');
+        var body = tabIdx !== -1 ? cleanText.slice(tabIdx + 1) : cleanText;
+        if (_isEn) {
+          // EN：块文本自带可读英文前缀（如 "Gal. 2:20"，为纯文本，块内无内嵌 span，
+          // spans 循环覆盖不到）；若像 CN 一样前置展开会双重朗读，且与 scripture-popup
+          // 拍平竞态冲突。故只保留块正文：前缀作为英文原文直接朗读（兜底，TTS 可读），
+          // 仅在纲目内联引用等处做英文全名展开。
+          block.textContent = '\t' + body;
+        } else {
+          // CN：前置展开引用 + '\t' + 正文（读「展开引用 + 正文」）。
+          // 剥除正文开头的显示前缀（如「加二20　」）——它与展开引用语义重复，
+          // 不剥会双读「加拉太书二章二十节 加二20 我已经…」。
+          block.textContent = expanded + '\t' + stripCnRefPrefix(body);
+        }
+        sbMap.push({ block: block, origHTML: origHTML });
+      });
+
+      var result = fn();
+
+      // 不调用 clearSentenceMarks()，保留 <mark> 在 DOM 中供朗读高亮使用。
+      // wrapper span 被 injectSentenceMarks 整体移入某个 <mark>，
+      // 用 replaceChild 将 wrapper 原位替换为原始 .scripture-ref span，marks 保持完整。
+      // （EN：英文块不前置展开，还原 innerHTML 同时会丢弃块内就展开 wrapper，无残留问题。）
+
+      var _insideStatic = function (node) {
+        for (var k = 0; k < staticBlocks.length; k++) {
+          if (staticBlocks[k].contains(node)) return true;
+        }
+        return false;
+      };
+
+      // staticBlocks 通过 innerHTML 整体还原（同时自动移除其内的 wrapper）
+      staticBlocks.forEach(function (block, idx) {
+        var saved = sbMap[idx]; if (saved) { block.innerHTML = saved.origHTML; }
+      });
+      spans.forEach(function (span, idx) {
+        var item = tnMap[idx];
+        if (!item) return;
+        // wrapper 在某个 <mark> 内，replaceChild 原位还原为原始 span，mark 保留
+        if (item.tn && item.tn.parentNode && !_insideStatic(item.tn.parentNode)) {
+          try {
+            item.tn.parentNode.replaceChild(item.span, item.tn);
+          } catch (e) {
+            if (item.tn.parentNode) item.tn.parentNode.removeChild(item.tn);
+          }
+        } else if (item.tn && item.tn.parentNode) {
+          item.tn.parentNode.removeChild(item.tn);
+        }
+      });
+      // 还原 EN 修剪过的 prev 文本节点（破折号尾缀）。
+      // 注意：fn() 内 injectSentenceMarks 可能已将该文本节点切碎/移入 mark，
+      // 仅当节点仍挂在 DOM 上时才恢复原值；node 仍可寻址（闭包引用），nodeValue 可直接写回。
+      trimmedTextNodes.forEach(function (t) {
+        try { t.tn.nodeValue = t.orig; } catch (e) {}
+      });
+      // 还原临时移除的 span（按移除逆序，保证嵌套关系正确）
+      // injectSentenceMarks 后 item.parent 直接子节点均为 <mark>，
+      // item.next 可能在某个 mark 内，需找到其直接子 mark 祖先再 insertBefore。
+      function _findDirectChild(parent, node) {
+        var n = node;
+        while (n && n.parentNode && n.parentNode !== parent) { n = n.parentNode; }
+        return (n && n.parentNode === parent) ? n : null;
+      }
+      for (var i = removedSpans.length - 1; i >= 0; i--) {
+        var item = removedSpans[i];
+        if (item.parent && !_insideStatic(item.parent)) {
+          try {
+            if (item.next) {
+              var directRef = item.next.parentNode === item.parent
+                ? item.next
+                : _findDirectChild(item.parent, item.next);
+              if (directRef) {
+                item.parent.insertBefore(item.span, directRef);
+              } else {
+                item.parent.appendChild(item.span);
+              }
+            } else {
+              item.parent.appendChild(item.span);
+            }
+          } catch (e) {
+            try { item.parent.appendChild(item.span); } catch (e2) {}
+          }
+        }
+      }
+      return result;
+    }
+
+    var lang  = (options && options.lang)  || 'zh-CN';
+    // 语言模式标记（init 闭包级，供 buildAll/prebuildText/withExpanded 共用）：
+    // en-US / en* → true；zh-CN → false（CN 行为路径逐字节不变）
+    var _isEn = !!(lang && lang.indexOf('en') === 0);
+    // 锁屏/通知栏：title = 篇章标题（大字），artist = 训练名（副标题小字）
+    // document.title 只含 "第X篇 - 类型"，训练名从 base.html 里的 meta[name=training-title] 读取
+    var _pageTitleRaw = document.title || '';
+    var _trainingMeta = document.querySelector('meta[name="training-title"]');
+    var title  = (options && options.title)  || _pageTitleRaw  || '晨读 · 朗读';
+    var artist = (options && options.artist) ||
+                 (_trainingMeta ? _trainingMeta.getAttribute('content') : '') || '';
+
+    var controlsDiv   = byId('bottomControlBar') || byId('speechControls');
+    var playPauseBtn  = byId('playPauseBtn');
+    var loopBtn       = byId('loopBtn');
+    var rateSelect    = byId('rateSelect');
+    var speechTime    = byId('speechTime');
+    var progressBar   = byId('progressBar');
+
+    if (!playPauseBtn || !rateSelect || !speechTime || !progressBar || !controlsDiv) return;
+
+    // -- Engine detection ---------------------------------------------------
+
+    function getNativeTTS() {
+      return safeGetNativeTTS();
+    }
+
+    function detectEngine() {
+      var isNative = !!(window.Capacitor &&
+                        typeof window.Capacitor.isNativePlatform === 'function' &&
+                        window.Capacitor.isNativePlatform());
+      var nativeTTS    = getNativeTTS();
+      var hasWebSpeech = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+      return {
+        isNative:     isNative,
+        useNativeTTS: !!nativeTTS,
+        useWebSpeech: !nativeTTS && hasWebSpeech,
+        hasWebSpeech: hasWebSpeech,  // ★ 保留：NativeTTS 失败时的降级目标
+        supported:    !!nativeTTS || hasWebSpeech
+      };
+    }
+
+    function showUnsupported(message) {
+      playPauseBtn.style.display = 'none';
+      progressBar.style.display  = 'none';
+      rateSelect.style.display   = 'none';
+      speechTime.textContent     = message;
+      speechTime.style.color     = '#999';
+      speechTime.style.fontSize  = '11px';
+      speechTime.style.textAlign = 'center';
+      var ps = speechTime.parentElement;
+      if (ps) { ps.style.justifyContent = 'center'; ps.style.alignItems = 'center'; }
+    }
+
+    controlsDiv.style.display = 'flex';
+
+    var initAttempts = 0;
+
+    function startInit() {
+      var engine = detectEngine();
+      // On native Android: wait up to 1.5 s for NativeTTS plugin to become available.
+      if (engine.isNative && !engine.useNativeTTS && initAttempts < 10) {
+        initAttempts++;
+        setTimeout(startInit, 150);
+        return;
+      }
+      if (!engine.supported) {
+        showUnsupported(engine.isNative ? '朗读插件未就绪' : '朗读暂不可用');
+        return;
+      }
+
+      var useNativeTTS = engine.useNativeTTS;
+      var useWebSpeech = engine.useWebSpeech;
+      var _hasWebSpeechFallback = engine.hasWebSpeech;  // ★ NativeTTS 失败时的降级目标可用性
+      var _nativeTTSFailCount   = 0;                    // NativeTTS 连续失败次数
+      var _NATIVE_FAIL_THRESHOLD = 2;                   // 连续失败 N 次后降级到 Web Speech
+
+      var playIcon  = playPauseBtn.querySelector('.play-icon');
+      var pauseIcon = playPauseBtn.querySelector('.pause-icon');
+
+      var savedRate = localStorage.getItem('speechRate');
+      if (savedRate) rateSelect.value = savedRate;
+
+      // -- State machine: 'idle' | 'playing' | 'paused' -----------------------
+      var state         = 'idle';
+      var fullText      = '';
+      var totalDuration = 0;
+      var elapsedOffset = 0;   // seconds elapsed at moment startTime was captured
+      var startTime     = 0;   // Date.now() when current playback segment started
+      var progressInterval = null;
+      var isSeeking     = false;
+      var isLooping     = localStorage.getItem('speechLoop') === '1';
+      var _resumePercent = 0;   // % position to resume from after pause
+      var _resumeNextSegPercent = -1; // % position of next segment boundary (NativeTTS, -1=unset)
+      var _restoredPct = 0;     // 恢复态：上次持久化的朗读进度（0=无），点播放时消费
+      var _lastProgressSave = 0; // updateProgressUI 定时保存节流时间戳
+      var _nativePositionHandle = null;
+      var textChunks   = [];
+      var currentChunk = 0;
+      // -- TTS 句子级高亮追踪 -------------------------------------------------
+      var _segmentMap       = [];   // [{el, start, end, speakText}] 元素级字符偏移
+      // _sentenceMarkData 已在 init 作用域声明，此处不重复声明
+      var _prevTTSEl        = null; // 当前高亮的 <mark> 元素
+      var _ttsMarkOffset    = 0;    // _segmentMap 中对应 currentChunk=0 的句子索引
+      var _scrollFollowEnabled = true; // 高亮自动滚动跟随开关：用户手动滚动离开高亮区后暂停，滑回高亮区自动恢复
+      var _progScrollUntil = 0;        // 程序滚动（scrollIntoView 平滑）期间的时间窗口，scroll 事件据此区分程序/用户滚动
+      var _progScrollStarted = 0;      // 程序滚动开始时刻，窗口延长不超过 1200ms 防长滚动误吞用户拖动
+      var _followTouchX = 0, _followTouchY = 0; // touchstart 记录，touchmove 判断垂直拖动
+      var _followTouchActive = false;  // 手指是否还在屏上：拖动期间跳过 scroll 恢复评估
+      var _stopOnNav        = null; // 已废弃（改用模块级 _hashStopNav），保留兼容引用
+      var _nativeCharsDone  = -1;   // ttsProgress 最近一次推送的 charsDone（-1=未收到）
+      var _nativeCharsDoneTime = 0; // _nativeCharsDone 更新时的 Date.now()
+      var _nativeProgressHandle = null; // ttsProgress 监听句柄
+      var _nativeLogHandle     = null; // ttsLog 监听句柄（Java 诊断日志）
+      var _lastPosMs        = -1;   // ttsPosition 最近一次接受的 posMs（-1=尚未接受）
+      var _originalTotalDuration = 0; // 原始估算总时长（不受倍速覆盖，用于 charsPerSec 插值）
+      // -- 预构建缓存 ----------------------------------------------------------
+      // prebuildText() 在页面加载时预提取文本和 segmentMap，
+      // 用户点播放时直接复用，跳过耗时的 buildAll()（DOM 遍历 + withExpanded）。
+      var _prebuiltFullText    = null;  // 预提取的 fullText（null=未预构建）
+      var _prebuiltSegmentMap  = null;  // 预提取的 _segmentMap
+
+      // 检测预构建缓存是否与当前可见的 day-page 匹配。
+      // 晨读视图有多天分页（.day-page），prebuildText() 在页面加载时执行，
+      // 此时 initDayPager（setTimeout 0）尚未运行，无 is-active 标记，
+      // getElements() 回退到第一个 day-page（第一天）。
+      // 用户翻到其他天后点播放，若仍用第一天的缓存文本，声音与文字不匹配。
+      function _isPrebuiltCacheStale() {
+        var activePage = document.querySelector('.day-page.is-active');
+        if (!activePage) return false; // 非分页视图，缓存有效
+        if (!_prebuiltSegmentMap || !_prebuiltSegmentMap.length) return true;
+        for (var i = 0; i < _prebuiltSegmentMap.length; i++) {
+          if (activePage.contains(_prebuiltSegmentMap[i].el)) return false;
+        }
+        return true; // 缓存元素不在当前活动页内
+      }
+
+      // -- State machine helpers ----------------------------------------------
+
+      function setState(s) {
+        state = s;
+        var playing = (s === 'playing');
+        var paused  = (s === 'paused');
+        if (playIcon && pauseIcon) {
+          playIcon.style.display  = playing ? 'none'   : 'inline';
+          pauseIcon.style.display = playing ? 'inline' : 'none';
+        }
+        // paused 状态添加视觉提示：让用户知道点播放会从暂停位置继续而非从头开始
+        playPauseBtn.classList.toggle('cx-paused', paused);
+        playPauseBtn.setAttribute('aria-label', playing ? '暂停' : (paused ? '继续' : '播放'));
+        updateMediaSessionState(playing);
+        // 播放结束时同步收起 nav-stack 浮动朗读条（若正显示），防止结束后残留
+        if (s === 'idle') {
+          try {
+            var _ftb = document.querySelector('.cx-float-tts-bar.show');
+            if (_ftb) _ftb.classList.remove('show');
+          } catch (e) {}
+        }
+      }
+
+      // 暴露朗读状态查询（供 nav-stack 浮动朗读栏等外部判断是否正在播放/暂停）
+      window.CXSpeech.getState = function() { return state; };
+      window.CXSpeech.isSpeaking = function() { return state !== 'idle'; };
+
+      function updateLoopButton() {
+        if (!loopBtn) return;
+        loopBtn.classList.toggle('active', isLooping);
+        if (isLooping) {
+          loopBtn.innerHTML = '🔂';
+          loopBtn.title = '循环播放当前页面（已开启）';
+          loopBtn.setAttribute('aria-label', '循环播放当前页面（已开启）');
+        } else {
+          loopBtn.innerHTML = '①';
+          loopBtn.title = '只播放当前页面';
+          loopBtn.setAttribute('aria-label', '只播放当前页面');
+        }
+      }
+
+      // -- TTS 句子级高亮 --------------------------------------------------------
+
+      // 将元素内容按句子（。！？；）拆分，注入 <mark class="cx-tts-sent"> span。
+      // 返回 {marks:[], origChildren:[], el} 或 null（无内容时）。
+      function injectSentenceMarks(el) {
+        var origChildren = Array.prototype.slice.call(el.childNodes);
+        if (!origChildren.length) return null;
+        var marks = [];
+        var frag  = document.createDocumentFragment();
+        var cur   = document.createElement('mark');
+        cur.className = 'cx-tts-sent';
+        var hasContent = false;
+
+        function flushCur() {
+          if (!hasContent) return;
+          frag.appendChild(cur);
+          marks.push(cur);
+          cur = document.createElement('mark');
+          cur.className = 'cx-tts-sent';
+          hasContent = false;
+        }
+
+        origChildren.forEach(function(node) {
+          if (node.nodeType === 3) { // 文本节点：按句子终止符拆分
+            var text = node.nodeValue;
+            var re = /[。！？；]/g;
+            var m, last = 0;
+            while ((m = re.exec(text)) !== null) {
+              cur.appendChild(document.createTextNode(text.slice(last, m.index + 1)));
+              hasContent = true;
+              last = m.index + 1;
+              flushCur();
+            }
+            if (last < text.length) {
+              cur.appendChild(document.createTextNode(text.slice(last)));
+              hasContent = true;
+            }
+          } else {
+            // 内联元素：整体移入当前句子 mark（移动节点，保留原有事件绑定）
+            cur.appendChild(node);
+            hasContent = true;
+            if (/[。！？；]$/.test(node.textContent)) flushCur();
+          }
+        });
+        flushCur(); // 冲刷末尾未终止的句子
+
+        if (!marks.length) return null;
+
+        // 用注入了 mark 的 frag 替换原始内容
+        // 原始文本节点已被 while 清除（inline 元素已移入 cur，已不在 el 中）
+        while (el.firstChild) el.removeChild(el.firstChild);
+        el.appendChild(frag);
+        return {marks: marks, origChildren: origChildren, el: el};
+      }
+
+      // restoreElement / clearSentenceMarks 已在 init 作用域定义，此处直接使用。
+
+      // 单一遍历构建 fullText 和 _segmentMap（坐标同源）。
+      // 在 withExpanded 内执行：经文引用已被替换为展开文本节点，
+      // 文本提取无需再单独移除 .scripture-ref，fullText 与 segmentMap 位置严格对齐。
+      function buildAll() {
+        return withExpanded(function() {
+          clearSentenceMarks();
+          _segmentMap = [];
+          fullText = '';
+          if (!getElements) return;
+          var segs = getElements();
+
+          segs.forEach(function(seg) {
+            var el = seg.el;
+
+            // Step 1: 提取元素原始文本（withExpanded 内，引用已展开）
+            var rawText;
+            if (el.classList.contains('scripture-block-static')) {
+              // 经文块：withExpanded 已修改 block.textContent（含 expanded + '\t' + body）
+              var clone = el.cloneNode(true);
+              clone.querySelectorAll('sup').forEach(function(s){ s.remove(); });
+              rawText = clone.textContent;
+            } else if (el.classList.contains('chapter-title') || el.classList.contains('scripture')) {
+              // title / scripture：直接取 textContent
+              rawText = el.textContent;
+            } else {
+              // 常规元素：移除 UI 控件和嵌入经文块
+              // .scripture-ref 也需移除：withExpanded 已将可展开的替换为文本节点，
+              // 剩余的是破折号前缀（纲目中不读的经文）或括号前缀的引用，不应朗读
+              var clone = el.cloneNode(true);
+              clone.querySelectorAll('button, .scripture-content, .verse-line, .scripture-ref').forEach(function(s){ s.remove(); });
+              rawText = clone.textContent;
+            }
+
+            // Step 2: 统一管道过滤
+            var filteredText = processText(rawText, _isEn);
+            if (!filteredText) return;
+
+            // Step 3: 记录在 fullText 中的精确位置（智能分隔符：已有终止符则不重复追加）
+            var separator = '';
+            if (fullText) {
+              var lastChar = fullText[fullText.length - 1];
+              separator = appendSeparator(lastChar, _isEn);
+            }
+            var start = fullText.length + separator.length;
+            fullText += separator + filteredText;
+            var end = fullText.length;
+
+            // Step 4: 元素级高亮，不修改 DOM（processText 已过滤不读内容，坐标自然跳过）
+            _segmentMap.push({el: el, start: start, end: end, speakText: filteredText});
+          });
+        });
+      }
+
+      /**
+       * 预提取朗读文本 + segmentMap（不修改 DOM）。
+       * 复制 buildAll() 的文本构建逻辑，但通过 cloneNode 在副本上操作，
+       * 不注入 <mark>，不展开经文引用的真实 DOM，保证页面渲染不受影响。
+       * 产出的 fullText 和 _segmentMap 与 buildAll() 完全一致（同一 processText 管道）。
+       * 结果缓存到 _prebuiltFullText / _prebuiltSegmentMap，供播放时直接复用。
+       */
+      function prebuildText() {
+        if (!getElements) return '';
+        var segs = getElements();
+        var result = '';
+        var segMap = [];
+
+        segs.forEach(function(seg) {
+          var el = seg.el;
+          var rawText;
+
+          if (el.classList.contains('scripture-block-static')) {
+            var clone = el.cloneNode(true);
+            // 在副本中展开经文引用（EN：展开为英文）
+            clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(ref) {
+              var expanded = _isEn ? expandDataRefsEN(ref.getAttribute('data-refs'))
+                                   : expandDataRefs(ref.getAttribute('data-refs'));
+              if (expanded) ref.textContent = expanded;
+            });
+            clone.querySelectorAll('sup').forEach(function(s) { s.remove(); });
+            // 与 withExpanded 的 staticBlocks 分支保持一致（契约：两路径产出完全一致）：
+            // '\t' 分界仅旧数据存在，其后为正文；'\t' 本身由 processText 剥除
+            var tabIdx = clone.textContent.indexOf('\t');
+            var body = tabIdx !== -1 ? clone.textContent.slice(tabIdx + 1) : clone.textContent;
+            if (_isEn) {
+              // EN：只保留正文，前缀作为英文原文直接朗读
+              rawText = body;
+            } else {
+              // CN：前置展开引用 + 剥除正文显示前缀（修复「展开引用 + 缩写前缀」双读）
+              var blockExpanded = expandDataRefs(el.getAttribute('data-refs'));
+              rawText = blockExpanded ? blockExpanded + '\t' + stripCnRefPrefix(body)
+                                      : clone.textContent;
+            }
+          } else if (el.classList.contains('chapter-title')) {
+            rawText = el.textContent;
+          } else if (el.classList.contains('scripture')) {
+            // 读经横幅：在副本中展开经文引用（与 buildAll 的 withExpanded 等效）
+            var clone = el.cloneNode(true);
+            clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(ref) {
+              var expanded = _isEn ? expandDataRefsEN(ref.getAttribute('data-refs'))
+                                   : expandDataRefs(ref.getAttribute('data-refs'));
+              if (expanded) ref.textContent = expanded;
+            });
+            rawText = clone.textContent;
+          } else {
+            var clone = el.cloneNode(true);
+            // 在副本中展开可读的经文引用
+            clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(ref) {
+              var txt = (ref.textContent || '').trim();
+              if (_isEn) {
+                // EN：结合相邻文本节点判定（span 文本不以破折号开头）
+                var prevNode = ref.previousSibling;
+                var prevTxt = (prevNode && prevNode.nodeType === 3) ? prevNode.nodeValue : null;
+                var inOutline = (typeof ref.closest === 'function')
+                  ? !!(ref.closest('.outline-section') || ref.closest('.outline-item') || ref.closest('[class*="section-level"]'))
+                  : null;
+                if (shouldSkipEnRef(txt, prevTxt, inOutline)) {
+                  ref.parentNode.removeChild(ref);
+                  return;
+                }
+                var expanded = expandDataRefsEN(ref.getAttribute('data-refs'));
+                if (expanded) ref.textContent = expanded;
+                return;
+              }
+              // 与 withExpanded() 保持一致：
+              // 破折号前缀仅在纲目/听抄容器内移除，括号前缀无条件移除
+              if ((/^[\u2014\u2500\-]/.test(txt) && typeof ref.closest === 'function' &&
+                   (ref.closest('.outline-section') || ref.closest('.outline-item') || ref.closest('[class*="section-level"]'))) ||
+                  /^[\uff08(]/.test(txt)) {
+                ref.parentNode.removeChild(ref);
+                return;
+              }
+              var expanded = expandDataRefs(ref.getAttribute('data-refs'));
+              if (expanded) ref.textContent = expanded;
+            });
+            clone.querySelectorAll('button, .scripture-content, .verse-line').forEach(function(s) { s.remove(); });
+            rawText = clone.textContent;
+          }
+
+          var filteredText = processText(rawText, _isEn);
+          if (!filteredText) return;
+
+          var separator = '';
+          if (result) {
+            var lastChar = result[result.length - 1];
+            separator = appendSeparator(lastChar, _isEn);
+          }
+          var start = result.length + separator.length;
+          result += separator + filteredText;
+          var end = result.length;
+
+          segMap.push({el: el, start: start, end: end, speakText: filteredText});
+        });
+
+        // 缓存结果，供播放时跳过 buildAll()
+        _prebuiltFullText   = result;
+        _prebuiltSegmentMap = segMap;
+        return result;
+      }
+
+      function findSegmentIndex(charPos) {
+        for (var i = 0; i < _segmentMap.length; i++) {
+          if (charPos < _segmentMap[i].end) return i;
+        }
+        return Math.max(0, _segmentMap.length - 1);
+      }
+
+      function findSegmentAt(charPos) {
+        var idx = findSegmentIndex(charPos);
+        return _segmentMap[idx] ? _segmentMap[idx].el : null;
+      }
+
+      function setTTSHighlight(el) {
+        if (_prevTTSEl === el) return;
+        if (_prevTTSEl) _prevTTSEl.classList.remove('cx-tts-active');
+        _prevTTSEl = el;
+        if (el) {
+          el.classList.add('cx-tts-active');
+          // 自动滚动跟随：用户手动滚动离开高亮区后暂停（_scrollFollowEnabled=false），
+          // 滑回高亮区域（scroll 监听检测高亮回到视口）自动恢复；
+          // _progScrollUntil 标记供 scroll 监听区分程序滚动/用户滚动。
+          if (_scrollFollowEnabled) {
+            _progScrollStarted = Date.now();
+            _progScrollUntil = _progScrollStarted + 600;
+            try { el.scrollIntoView({behavior: 'smooth', block: 'nearest'}); } catch(e) {}
+          }
+        }
+      }
+
+      function clearTTSHighlight() {
+        if (_prevTTSEl) { _prevTTSEl.classList.remove('cx-tts-active'); _prevTTSEl = null; }
+        clearSentenceMarks();
+        _segmentMap = [];
+      }
+
+      function onPlaybackNaturalEnd() {
+        if (isLooping && fullText) {
+          // 立即递增 generation，使所有旧回调（ttsPosition listener、chunk onerror 等）失效
+          ++_speakGeneration;
+          var loopGen = _speakGeneration;
+          // 先进入 idle，防止 visibilitychange 在延迟内误判为"playing 但未在说话"而重入
+          setState('idle');
+          elapsedOffset = 0; startTime = 0;
+          progressBar.value = '0';
+          speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
+          // 清除高亮，循环重新开始时从第一个元素重新标记
+          clearTTSHighlight();
+          setTimeout(function () {
+            if (loopGen !== _speakGeneration) return;  // 期间被手动取消/暂停则放弃
+            startSpeakingFromPercent(0);
+          }, 50);
+        } else {
+          resetState();
+        }
+      }
+
+      // NativeTTS 位置监听句柄（每 500ms Java 推送一次实际位置）
+
+      // -- Progress helpers ---------------------------------------------------
+
+      function currentElapsedSeconds() {
+        if (!totalDuration) return 0;
+        if (!startTime) return clamp(elapsedOffset, 0, totalDuration);
+        return clamp(elapsedOffset + (Date.now() - startTime) / 1000, 0, totalDuration);
+      }
+
+      function updateProgressUI() {
+        if (!totalDuration) { progressBar.value = '0'; speechTime.textContent = '00:00 / 00:00'; return; }
+        var elapsed = currentElapsedSeconds();
+        progressBar.value = String(clamp((elapsed / totalDuration) * 100, 0, 100));
+        speechTime.textContent = formatTime(elapsed) + ' / ' + formatTime(totalDuration);
+        // NativeTTS：高亮主要由 ttsPosition 事件（每 50ms，携带 charsDone）直接驱动。
+        // 此处作为备份：若 ttsPosition 未携带 done 字段，则从锚点插值补充。
+        // Web Speech 的高亮由 wsPlayChunk 按句子边界更新，不在此处干预
+        if (useNativeTTS && _segmentMap.length && fullText) {
+          var charPos;
+          if (_nativeCharsDone >= 0 && _nativeCharsDoneTime > 0 && totalDuration > 0) {
+            // charsPerSec 必须用原始估算时长（_originalTotalDuration），而非被 ttsPosition 覆写的倍速时长。
+            // totalDuration 在 ttsPosition 中被 data.totalMs 覆写为实际音频时长（2x 时为一半），
+            // 导致 charsPerSec 偏小、插值追不上朗读；_originalTotalDuration 始终保持 rate=1x 基准。
+            var baseDur = _originalTotalDuration > 0 ? _originalTotalDuration : totalDuration;
+            var charsPerSec = fullText.length / baseDur;
+            var dt = (Date.now() - _nativeCharsDoneTime) / 1000;
+            charPos = clamp(_nativeCharsDone + dt * charsPerSec, 0, fullText.length);
+          } else {
+            var ratio = clamp(elapsed / totalDuration, 0, 1);
+            charPos = Math.floor(ratio * fullText.length);
+          }
+          setTTSHighlight(findSegmentAt(charPos));
+        }
+        // 定时兜底：每 3s 保存一次进度快照（防 Android 杀进程时
+        // beforeunload/visibilitychange 均不可靠导致丢失）
+        if (state === 'playing' && Date.now() - _lastProgressSave > 3000) {
+          _lastProgressSave = Date.now();
+          _saveSpeechProgress();
+        }
+      }
+
+      function startProgressUpdate() {
+        if (progressInterval) return;
+        progressInterval = setInterval(function () { if (!isSeeking) updateProgressUI(); }, 80);
+      }
+
+      function stopProgressUpdate() {
+        if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
+      }
+
+      // ★ 朗读进度持久化：把当前播放位置（百分比）写入 localStorage。
+      //   仅在 playing/paused 时调用有效；恢复态（idle 但 fullText 已填）翻页时
+      //   旧闭包 state 已被 cancel→resetState 复位为 idle，天然不会误写。
+      //   pct>=100（自然播完）时移除 key，下次从头开始。
+      function _saveSpeechProgress() {
+        if (!storageKey || !fullText) return;
+        if (state !== 'playing' && state !== 'paused') return;
+        var pct = totalDuration > 0 ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100) : 0;
+        try {
+          if (pct >= 100) { localStorage.removeItem(storageKey); return; }
+          var day = null, activeDay = document.querySelector('.day-page.is-active');
+          if (activeDay) {
+            var d = parseInt(activeDay.getAttribute('data-page'), 10);
+            if (!isNaN(d)) day = d;
+          }
+          localStorage.setItem(storageKey, JSON.stringify({ pct: Math.round(pct), day: day, ts: Date.now() }));
+        } catch (e) {}
+      }
+
+      function resetState() {
+        ++_speakGeneration;
+        // 注意：不再移除 hashchange 监听器 _hashStopNav。
+        // 移除后，若翻页（day pager showPage）→ cancel → resetState 移除了监听器，
+        // 用户再次播放时 init() 未重新执行，hashchange 无法停止朗读，
+        // 导致导航时旧页面内容继续播放。
+        // 模块级 _hashStopNav 在 init() 重新执行时由 init() 自动替换。
+        _saveSpeechProgress();
+        stopProgressUpdate();
+        clearTTSHighlight();
+        var sendStop = (state !== 'idle');
+        if (useNativeTTS) nativeStopService(sendStop);
+        else { try { window.speechSynthesis.cancel(); } catch (e) {} }
+        fullText = '';
+        elapsedOffset = 0; startTime = 0; totalDuration = 0; _originalTotalDuration = 0;
+        _nativeCharsDone = -1; _nativeCharsDoneTime = 0; _lastPosMs = -1;
+        _resumeNextSegPercent = -1;
+        _restoredPct = 0;
+        _scrollFollowEnabled = true; _progScrollUntil = 0; // 重置高亮滚动跟随
+        textChunks = []; currentChunk = 0;
+        progressBar.value = '0';
+        speechTime.textContent = '00:00 / 00:00';
+        speechTime.style.color = '';
+        // ★ 仅在真正发送了 NativeTTS.stop() 时才等待 ttsStopped 事件。
+        //   App 启动时 Router 双重 dispatch 导致第二次 init() 的 cancel() 调用 resetState，
+        //   此时 state='idle'，sendStop=false，Java 不会发送 ttsStopped 事件。
+        //   若无条件设 _waitStopDone=true，会导致 preSynthesize 等待 5s 超时才发出。
+        _waitStopDone = sendStop;
+        _waitStopGen = _speakGeneration;
+        // 清除旧的 ttsStopped 监听（若有），等新页面 init 重新注册
+        if (_ttsStoppedHandle) { try { _ttsStoppedHandle.remove(); } catch(e) {} _ttsStoppedHandle = null; }
+        setState('idle');
+      }
+
+      // -- MediaSession (Web Speech only) ------------------------------------
+
+      function setupMediaSession() {
+        if (!('mediaSession' in navigator)) return;
+        try {
+          navigator.mediaSession.setActionHandler('play', function () {
+            if (state !== 'playing') playPauseBtn.click();
+          });
+          navigator.mediaSession.setActionHandler('pause', function () {
+            if (state === 'playing') playPauseBtn.click();
+          });
+          navigator.mediaSession.setActionHandler('stop', function () {
+            if (window.CXSpeech && window.CXSpeech.cancel) window.CXSpeech.cancel();
+          });
+        } catch (e) {}
+      }
+
+      function updateMediaSessionState(playing) {
+        if (!useWebSpeech || !('mediaSession' in navigator)) return;
+        try {
+          if (playing && !navigator.mediaSession.metadata) {
+            navigator.mediaSession.metadata = new MediaMetadata({ title: document.title || '朗读' });
+          }
+          navigator.mediaSession.playbackState = playing ? 'playing' : (state === 'paused' ? 'paused' : 'none');
+        } catch (e) {}
+      }
+
+      // ======================================================================
+      // NativeTTS path
+      // ======================================================================
+
+      function nativeSpeak(segmentText, targetSeconds) {
+        var NativeTTS = getNativeTTS();
+        if (!NativeTTS) {
+          console.log('[CXSpeech] nativeSpeak: \u63d2\u4ef6\u4e0d\u53ef\u7528');
+          // ★ NativeTTS 不可用且有 Web Speech → 降级
+          if (_hasWebSpeechFallback && !useWebSpeech) {
+            console.log('[CXSpeech] ★ NativeTTS 插件不可用，降级到 Web Speech API');
+            useNativeTTS = false;
+            useWebSpeech = true;
+            speechTime.textContent = '已切换到浏览器朗读';
+            speechTime.style.color = '#dd6b20';
+            setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 3000);
+            setTimeout(function() {
+              // 降级后用 Web Speech 从头开始播放
+              if (fullText && state !== 'playing') {
+                startSpeakingFromPercent(0);
+              }
+            }, 300);
+            return;
+          }
+          setState('idle'); // 恢复状态，允许用户重试
+          return;
+        }
+        ++_speakGeneration;
+        var gen  = _speakGeneration;
+        var rate = Number(rateSelect.value) || 0.5;
+
+        if (_nativePositionHandle) {
+          try { _nativePositionHandle.remove(); } catch (e) {}
+          _nativePositionHandle = null;
+        }
+        if (_nativeProgressHandle) {
+          try { _nativeProgressHandle.remove(); } catch (e) {}
+          _nativeProgressHandle = null;
+        }
+        if (_nativeLogHandle) {
+          try { _nativeLogHandle.remove(); } catch (e) {}
+          _nativeLogHandle = null;
+        }
+        _nativeCharsDone = -1;
+        _nativeCharsDoneTime = 0;
+        _lastPosMs = -1;
+
+        if (typeof NativeTTS.addListener === 'function') {
+          var _speakCallTime = Date.now(); // nativeSpeak 调用时刻
+          var handle = NativeTTS.addListener('ttsPosition', function (data) {
+            if (gen !== _speakGeneration || !data || data.posMs == null) return;
+            // 首个 ttsPosition 事件 = 音频开始播放
+            if (_lastPosMs < 0) {
+              console.log('[CXSpeech] \u9996\u4e2a ttsPosition\uff0c\u51fa\u58f0\u5ef6\u8fdf ' + (Date.now() - _speakCallTime) + 'ms');
+              if (window.CXSpeech && window.CXSpeech._setDiag) {
+                window.CXSpeech._setDiag({
+                  lastSpeakMs: Date.now() - _speakCallTime,
+                  lastSpeakAt: Date.now(),
+                  engine: 'native',
+                  lastNativeError: ''
+                });
+              }
+            }
+            // 循环播放时 MediaPlayer 回到起点导致 posMs 大幅倒退，视为循环重置
+            if (_lastPosMs >= 0 && data.posMs < _lastPosMs) {
+              if (isLooping && data.posMs < _lastPosMs * 0.5) {
+                // 循环重置：清除追踪状态，让进度条和高亮从头开始
+                _nativeCharsDone = -1;
+                _nativeCharsDoneTime = 0;
+                _lastPosMs = -1;
+                setTTSHighlight(null);
+              } else {
+                return;  // chunk 切换时的瞬态回退，忽略
+              }
+            }
+            _lastPosMs = data.posMs;
+            elapsedOffset = data.posMs / 1000;
+            if (data.totalMs > 0) totalDuration = data.totalMs / 1000;
+            startTime = Date.now();
+            // ttsPosition 每 50ms 推送，携带基于 MediaPlayer 实际位置的 charsDone，
+            // 比 ttsProgress（仅 chunk 完成时触发）频率更高，实现逐句精准高亮
+            if (data.done != null) {
+              _nativeCharsDone = data.done;
+              _nativeCharsDoneTime = Date.now();
+              if (_segmentMap.length) {
+                setTTSHighlight(findSegmentAt(data.done));
+              }
+            }
+          });
+          // 监听 Java 端 onProgress 推送的字符级精确进度，用于句子高亮定位
+          // 注：ttsPosition 每 50ms 推送实时 charsDone（主驱动），
+          // ttsProgress 仅在 chunk 完成时触发（备份锚点），两者互补
+          var progressHandle = NativeTTS.addListener('ttsProgress', function (data) {
+            if (gen !== _speakGeneration || !data || data.done == null) return;
+            // 单调递增保护：忽略倒退值（防止 chunk 切换时瞬态回跳）
+            if (data.done < _nativeCharsDone) return;
+            _nativeCharsDone = data.done;
+            _nativeCharsDoneTime = Date.now();
+            // 直接用精确字符位置更新高亮
+            if (_segmentMap.length) {
+              setTTSHighlight(findSegmentAt(data.done));
+            }
+          });
+          // ★ Java 端性能诊断日志，桥接到 DevTools console
+          var logHandle = NativeTTS.addListener('ttsLog', function (data) {
+            if (data && data.msg) console.log('[TTSFgSvc] ' + data.msg);
+          });
+          if (gen !== _speakGeneration) {
+            try { handle.remove(); } catch (e) {}
+            try { progressHandle.remove(); } catch (e) {}
+            try { logHandle.remove(); } catch (e) {}
+          } else {
+            _nativePositionHandle = handle;
+            _nativeProgressHandle = progressHandle;
+            _nativeLogHandle = logHandle;
+          }
+        }
+
+        console.log('[CXSpeech] speak() \u53d1\u9001\u7ed9 Java: text=' + segmentText.length + 'chars gen=' + gen);
+        NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
+                          startSecs: targetSeconds || 0, totalSecs: totalDuration || 0,
+                          loop: isLooping })
+          .then(function (result) {
+            var status = result && result.status;
+            console.log('[CXSpeech] speak resolved: status=' + status + ' gen=' + gen + ' curGen=' + _speakGeneration);
+            if (gen !== _speakGeneration) return;
+            if (status === 'cancelled' || status === 'stopped') return;
+            // ★ NativeTTS 成功播放完成，重置失败计数
+            _nativeTTSFailCount = 0;
+            // Java 已处理循环（loop=true 时永不触发 onFinished），到达此处说明非循环播放自然结束
+            resetState();
+          })
+          .catch(function (err) {
+            console.log('[CXSpeech] speak rejected: ' + (err && (err.message || err)) + ' gen=' + gen + ' curGen=' + _speakGeneration);
+            if (gen !== _speakGeneration) return;
+            stopProgressUpdate();
+
+            // ★ NativeTTS 失败自动降级到 Web Speech API
+            //   华为/鸿蒙设备 TTS 引擎可能不可用或反复失败，
+            //   连续失败达阈值后自动切换到 Web Speech（如果浏览器支持）
+            _nativeTTSFailCount++;
+            if (window.CXSpeech && window.CXSpeech._setDiag) {
+              window.CXSpeech._setDiag({
+                nativeFailCount: _nativeTTSFailCount,
+                nativeFailTotal: (window.CXSpeech._diag ? window.CXSpeech._diag.nativeFailTotal : 0) + 1,
+                lastNativeError: String((err && (err.message || err)) || ''),
+                engine: 'native'
+              });
+            }
+            console.log('[CXSpeech] NativeTTS consecutive failures: ' + _nativeTTSFailCount + '/' + _NATIVE_FAIL_THRESHOLD);
+            if (_nativeTTSFailCount >= _NATIVE_FAIL_THRESHOLD && _hasWebSpeechFallback && !useWebSpeech) {
+              console.log('[CXSpeech] ★ NativeTTS 连续失败 ' + _nativeTTSFailCount + ' 次，降级到 Web Speech API');
+              useNativeTTS = false;
+              useWebSpeech = true;
+              _nativeTTSFailCount = 0;
+              if (window.CXSpeech && window.CXSpeech._setDiag) {
+                window.CXSpeech._setDiag({ degraded: true, engine: 'web', nativeFailCount: 0 });
+              }
+              // 显示降级提示
+              speechTime.textContent = '已切换到浏览器朗读';
+              speechTime.style.color = '#dd6b20';
+              setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 3000);
+              // 使用 Web Speech 重试播放
+              nativeStopService(true);
+              setTimeout(function() {
+                if (fullText && state !== 'playing') {
+                  startSpeakingFromPercent(0);
+                }
+              }, 300);
+              return;
+            }
+
+            setState('idle');
+            var msg = (err && (err.message || err)) || '\u6717\u8bfb\u5931\u8d25';
+            speechTime.textContent = msg;
+            speechTime.style.color = '#e53e3e';
+            setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 4000);
+          });
+
+        // 超时检测：3 秒内未出声则记录警告，5 秒后自动重试一次
+        setTimeout(function() {
+          if (_lastPosMs < 0 && gen === _speakGeneration && state === 'playing') {
+            console.log('[CXSpeech] \u8b66\u544a: 3\u79d2\u672a\u51fa\u58f0\uff0c\u7b49\u5f85 Java \u54cd\u5e94...');
+          }
+        }, 3000);
+        setTimeout(function() {
+          if (_lastPosMs < 0 && gen === _speakGeneration && state === 'playing') {
+            console.log('[CXSpeech] \u8d85\u65f6\u91cd\u8bd5: 5\u79d2\u672a\u51fa\u58f0\uff0c\u53d1\u9001 stop+speak \u91cd\u8bd5');
+            // ★ 超时也算 NativeTTS 失败
+            _nativeTTSFailCount++;
+            // 尝试 stop 再 speak，看能否恢复
+            try { NativeTTS.stop(); } catch(e) {}
+            setTimeout(function() {
+              if (_lastPosMs < 0 && gen === _speakGeneration && state === 'playing') {
+                // ★ 如果已达到降级阈值，直接切换到 Web Speech
+                if (_nativeTTSFailCount >= _NATIVE_FAIL_THRESHOLD && _hasWebSpeechFallback && !useWebSpeech) {
+                  console.log('[CXSpeech] ★ 超时降级: NativeTTS 无响应，切换到 Web Speech API');
+                  useNativeTTS = false;
+                  useWebSpeech = true;
+                  _nativeTTSFailCount = 0;
+                  if (window.CXSpeech && window.CXSpeech._setDiag) {
+                    window.CXSpeech._setDiag({ degraded: true, engine: 'web', nativeFailCount: 0, lastTimeout: true });
+                  }
+                  nativeStopService(true);
+                  speechTime.textContent = '已切换到浏览器朗读';
+                  speechTime.style.color = '#dd6b20';
+                  setTimeout(function () { speechTime.textContent = '00:00 / 00:00'; speechTime.style.color = ''; }, 3000);
+                  setTimeout(function() {
+                    if (fullText && state !== 'playing') startSpeakingFromPercent(0);
+                  }, 300);
+                  return;
+                }
+                console.log('[CXSpeech] \u91cd\u8bd5 speak...');
+                try {
+                  NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
+                    startSecs: targetSeconds || 0, totalSecs: totalDuration || 0, loop: isLooping })
+                  .catch(function(e) { console.log('[CXSpeech] \u91cd\u8bd5\u5931\u8d25: ' + e); });
+                } catch(e) { console.log('[CXSpeech] \u91cd\u8bd5\u5f02\u5e38: ' + e); }
+              }
+            }, 200);
+          }
+        }, 5000);
+
+        // startTime 保持 0：进度条在 Java 端真正开始播放（首个 ttsPosition 到达）前
+        // 停留在起始位置，避免合成延迟期间进度条先走再跳回的问题。
+        elapsedOffset = targetSeconds || 0;
+        setState('playing');
+        startProgressUpdate();
+      }
+
+      function nativeStopService(sendStop) {
+        if (_nativePositionHandle) {
+          try { _nativePositionHandle.remove(); } catch (e) {}
+          _nativePositionHandle = null;
+        }
+        if (_nativeProgressHandle) {
+          try { _nativeProgressHandle.remove(); } catch (e) {}
+          _nativeProgressHandle = null;
+        }
+        if (_nativeLogHandle) {
+          try { _nativeLogHandle.remove(); } catch (e) {}
+          _nativeLogHandle = null;
+        }
+        _nativeCharsDone = -1;
+        _nativeCharsDoneTime = 0;
+        // sendStop=false 时仅移除监听，不发 STOP（保护预合成：idle 状态下
+        // 无需停止 Service，发送 STOP 会取消进行中的预合成并删除 WAV 文件）
+        if (sendStop !== false) {
+          var NativeTTS = getNativeTTS();
+          if (NativeTTS) try { NativeTTS.stop(); } catch (e) {}
+        }
+      }
+
+      // ======================================================================
+      // Web Speech API path
+      // ======================================================================
+
+      function splitBySentence(text) {
+        // 每个句子终止符（。！？；）处切分，每句作为独立 utterance
+        var result = [];
+        var re = /[^。！？；]*[。！？；]/g;
+        var m, last = 0;
+        while ((m = re.exec(text)) !== null) {
+          var s = m[0];
+          if (s.trim()) result.push(s);
+          last = re.lastIndex;
+        }
+        if (last < text.length) {
+          var tail = text.slice(last).trim();
+          if (tail) result.push(text.slice(last));
+        }
+        return result.length > 0 ? result : [text];
+      }
+
+      function wsPlayNextChunk() {
+        if (state !== 'playing') return;
+        // 跳过空白 chunk（segment 文本为空时产生）
+        while (currentChunk < textChunks.length && !textChunks[currentChunk]) { currentChunk++; }
+        if (currentChunk >= textChunks.length) { onPlaybackNaturalEnd(); return; }
+        var gen  = _speakGeneration;
+        var rate = Number(rateSelect.value) || 0.5;
+        var utt  = new SpeechSynthesisUtterance(textChunks[currentChunk]);
+        utt.lang = lang; utt.rate = rate;
+        // 防止同一 utterance 的 onend 和 onerror(interrupted) 都触发时双重推进
+        var consumed = false;
+
+        // 提前更新高亮：在 speak() 前同步更新，避免部分 Android 设备上 onstart 不触发导致高亮只移动一次
+        elapsedOffset = currentElapsedSeconds();
+        startTime = Date.now();
+        startProgressUpdate();
+        var markIdx = _ttsMarkOffset + currentChunk;
+        setTTSHighlight(_segmentMap[markIdx] ? _segmentMap[markIdx].el : null);
+
+        utt.onstart = function () {
+          if (gen !== _speakGeneration || state !== 'playing') return;
+          // 重置时钟，保证进度条从本句实际开始时间起算
+          elapsedOffset = currentElapsedSeconds();
+          startTime = Date.now();
+        };
+        utt.onend = function () {
+          if (consumed || gen !== _speakGeneration || state !== 'playing') return;
+          consumed = true;
+          currentChunk++;
+          wsPlayNextChunk();
+        };
+        utt.onerror = function (event) {
+          if (gen !== _speakGeneration) return;
+          var err = event && event.error;
+          if (err === 'interrupted' || err === 'cancelled') {
+            if (consumed || state !== 'playing') return;
+            consumed = true;
+            currentChunk++; // per-sentence 模式下不重读同一句，直接推进
+            setTimeout(function () {
+              if (gen !== _speakGeneration || state !== 'playing') return;
+              wsPlayNextChunk();
+            }, 80);
+            return;
+          }
+          if (consumed) return;
+          consumed = true;
+          currentChunk++;
+          if (currentChunk < textChunks.length) {
+            setTimeout(function () { if (gen !== _speakGeneration) return; wsPlayNextChunk(); }, 100);
+          } else {
+            stopProgressUpdate(); setState('idle');
+          }
+        };
+        window.speechSynthesis.speak(utt);
+      }
+
+      // ======================================================================
+      // Common: start speaking from a percentage position (seek, first play, resume)
+      // ======================================================================
+
+      function startSpeakingFromPercent(percent) {
+        // 确保 hashchange 监听器已注册（翻页后 playback 重新开始，init 未重新执行）
+        // 参考 #ts-tts-loop-button-flag 翻页后保持监听器
+        if (!_hashStopNav) {
+          _hashStopNav = function() { resetState(); };
+          window.addEventListener('hashchange', _hashStopNav);
+        }
+        if (!fullText) return;
+        // 用户主动定位（首次播放/seek/循环重启）→ 重新启用高亮滚动跟随
+        _scrollFollowEnabled = true;
+        var p          = clamp(Number(percent) || 0, 0, 100);
+        var targetSecs = totalDuration ? (p / 100) * totalDuration : 0;
+        var charIndex  = clamp(Math.floor(fullText.length * (p / 100)), 0, Math.max(0, fullText.length - 1));
+        // NativeTTS: 始终传完整文本（fullText 已由 buildAll 经 processText 处理），
+        // 由 Java 通过 startSecs/totalSecs 定位起始 chunk。
+        var segText    = useNativeTTS ? fullText : fullText.slice(charIndex);
+        if (!segText) return;
+
+        progressBar.value = String(p);
+        speechTime.textContent = formatTime(targetSecs) + ' / ' + formatTime(totalDuration);
+
+        // 初始化高亮到当前起始句子
+        _ttsMarkOffset = findSegmentIndex(charIndex);
+        setTTSHighlight(_segmentMap[_ttsMarkOffset] ? _segmentMap[_ttsMarkOffset].el : null);
+
+        if (useNativeTTS) {
+          // nativeSpeak does its own ++_speakGeneration
+          nativeSpeak(segText, targetSecs);
+        } else {
+          ++_speakGeneration;
+          var gen = _speakGeneration;
+          try { window.speechSynthesis.cancel(); } catch (e) {}
+          stopProgressUpdate();
+          // 直接用 _segmentMap 各项的 speakText（buildAll 中已由 processText 处理），
+          // 保证 textChunks[i] ↔ _segmentMap[_ttsMarkOffset+i] 严格对应
+          if (_segmentMap.length > _ttsMarkOffset) {
+            textChunks = _segmentMap.slice(_ttsMarkOffset).map(function(seg) {
+              return seg.speakText;
+            });
+          } else {
+            textChunks = _isEn ? splitBySentenceEN(segText) : splitBySentence(segText);
+          }
+          currentChunk = 0;
+          elapsedOffset = targetSecs; startTime = Date.now();
+          setState('playing');
+          setTimeout(function () {
+            if (gen !== _speakGeneration) return;
+            wsPlayNextChunk();
+          }, 50);
+        }
+      }
+
+      // -- safeCancel ---------------------------------------------------------
+      window.CXSpeech = window.CXSpeech || {};
+      window.CXSpeech.cancel = function () { resetState(); };
+
+      // -- 电池优化说明弹框 ---------------------------------------------------
+      // 在跳转系统设置前向用户解释原因，避免突兀跳转。
+      // 使用 cx-dialog / cx-dialog-mask 样式（已在 style.css 中定义）。
+      function _showBatteryOptDialog(onConfirm) {
+        var mask = document.createElement('div');
+        mask.className = 'cx-dialog-mask';
+        mask.innerHTML =
+          '<div class="cx-dialog">' +
+            '<div class="cx-dialog-title">允许后台朗读</div>' +
+            '<div class="cx-dialog-desc">' +
+              '息屏或切换 App 时，电池优化可能中断朗读。<br>' +
+              '点击"立即开启"后，系统将弹出确认框，选择"允许"即可保障息屏连续播放。<br>' +
+              '<small style="color:var(--text-muted,#888)">（若系统弹框未出现，可在 App 详情页的电池选项中手动设置）</small>' +
+            '</div>' +
+            '<div class="cx-dialog-actions">' +
+              '<button class="cx-dialog-cancel">稍后再说</button>' +
+              '<button class="cx-dialog-confirm" style="color:var(--brand,#4f7ddb)">立即开启</button>' +
+            '</div>' +
+          '</div>';
+        document.body.appendChild(mask);
+        mask.querySelector('.cx-dialog-cancel').addEventListener('click', function () {
+          document.body.removeChild(mask);
+        });
+        mask.querySelector('.cx-dialog-confirm').addEventListener('click', function () {
+          document.body.removeChild(mask);
+          onConfirm();
+        });
+        mask.addEventListener('click', function (e) {
+          if (e.target === mask) document.body.removeChild(mask);
+        });
+      }
+
+      // -- Seekbar events -----------------------------------------------------
+      var _seekPending = false;
+      function commitSeek() {
+        if (!_seekPending) return;
+        _seekPending = false; isSeeking = false;
+        if (!fullText) { startProgressUpdate(); return; }
+        var pct = clamp(Number(progressBar.value) || 0, 0, 100);
+        // 恢复态（idle 但已有 _restoredPct）拖动进度条：仅更新恢复点，不启动播放
+        if (state === 'idle') { if (_restoredPct > 0) _restoredPct = pct; return; }
+        // NativeTTS 正在播放时需先 stop，否则新 speak 指令会被忽略导致无声
+        if (useNativeTTS && state === 'playing') {
+          ++_speakGeneration;   // 使旧 promise 失效，防止触发 onPlaybackNaturalEnd
+          nativeStopService();
+          setTimeout(function () { startSpeakingFromPercent(pct); }, 80);
+        } else {
+          startSpeakingFromPercent(pct);
+        }
+      }
+      progressBar.addEventListener('touchstart', function () {
+        isSeeking = true; _seekPending = true; stopProgressUpdate();
+      }, { passive: true });
+      progressBar.addEventListener('mousedown', function () {
+        isSeeking = true; _seekPending = true; stopProgressUpdate();
+      });
+      progressBar.addEventListener('input', function () {
+        if (!totalDuration) { progressBar.value = '0'; speechTime.textContent = '00:00 / 00:00'; return; }
+        var p = clamp(Number(progressBar.value) || 0, 0, 100);
+        speechTime.textContent = formatTime((p / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
+      });
+      progressBar.addEventListener('touchend', function () { commitSeek(); });
+      progressBar.addEventListener('mouseup',  function () { commitSeek(); });
+
+      // -- Play / Pause button ------------------------------------------------
+      playPauseBtn.addEventListener('click', function () {
+        console.log('[CXSpeech] \u70b9\u51fb\u64ad\u653e state=' + state + ' useNativeTTS=' + useNativeTTS);
+
+        // First press: load text and start from beginning
+        if (state === 'idle') {
+          var _t0 = Date.now();
+          if (useNativeTTS) {
+            var NativeTTS = getNativeTTS();
+            if (NativeTTS && typeof NativeTTS.isBatteryOptimizationIgnored === 'function') {
+              NativeTTS.isBatteryOptimizationIgnored().then(function (r) {
+                if (!r.ignored && typeof NativeTTS.requestIgnoreBatteryOptimization === 'function') {
+                  _showBatteryOptDialog(function () {
+                    NativeTTS.requestIgnoreBatteryOptimization();
+                  });
+                }
+              }).catch(function () {});
+            }
+          }
+          // 优先使用预构建缓存（页面加载时 prebuildText() 已提取），
+          // 跳过耗时的 buildAll()（DOM 遍历 + withExpanded）。
+          if (_prebuiltFullText && _prebuiltSegmentMap && !_isPrebuiltCacheStale()) {
+            fullText = _prebuiltFullText;
+            _segmentMap = _prebuiltSegmentMap;
+            console.log('[CXSpeech] \u7f13\u5b58\u547d\u4e2d\uff0c\u8df3\u8fc7 buildAll (' + (Date.now() - _t0) + 'ms)');
+          } else {
+            if (_prebuiltFullText && _isPrebuiltCacheStale()) {
+              console.log('[CXSpeech] \u9884\u6784\u5efa\u7f13\u5b58\u5df2\u8fc7\u671f\uff08\u7ffb\u9875\u540e\uff09\uff0c\u91cd\u65b0 buildAll');
+            }
+            buildAll();
+            console.log('[CXSpeech] buildAll \u8017\u65f6 ' + (Date.now() - _t0) + 'ms'
+              + (_prebuiltFullText === '' ? '\uff08\u7f13\u5b58\u4e3a\u7a7a\uff0c\u56de\u9000\uff09' : '\uff08\u672a\u547d\u4e2d\u7f13\u5b58\uff09'));
+          }
+          if (!fullText) {
+            console.log('[CXSpeech] fullText \u4e3a\u7a7a\uff0c\u65e0\u6cd5\u64ad\u653e');
+            return;
+          }
+          totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
+          _originalTotalDuration = totalDuration;
+          elapsedOffset = 0; progressBar.value = '0';
+          speechTime.textContent = '00:00 / ' + formatTime(totalDuration);
+          _resumeNextSegPercent = -1;
+
+          // resetState 已确保 preSynthesize 在 STOP 处理干净后（3s delay）才发出，
+          // onDone 回调不会丢失。直接发送 speak()，Java 端会正确等待预合成完成或回退全量合成。
+          console.log('[CXSpeech] \u6587\u672c\u5c31\u7eea ' + (Date.now() - _t0) + 'ms\uff0c\u53d1\u9001 speak');
+          // 恢复态：从上次持久化的位置继续，并清零标记（一次性消费）
+          var _startPct = _restoredPct; _restoredPct = 0;
+          startSpeakingFromPercent(_startPct);
+          console.log('[CXSpeech] speak \u53d1\u9001\u5b8c\u6210 ' + (Date.now() - _t0) + 'ms');
+          return;
+        }
+
+        // Resume from paused
+        if (state === 'paused') {
+          if (useNativeTTS) {
+            // NativeTTS.resume() 从暂停位置继续 MediaPlayer，无需重新发送文本。
+            var NativeTTS = getNativeTTS();
+            if (NativeTTS) {
+              try { NativeTTS.resume(); } catch (e) {}
+            }
+            // 重置时间锚点，让 ttsPosition 事件从当前暂停位置继续驱动进度
+            startTime = Date.now();
+            startProgressUpdate();
+            setState('playing');
+          } else {
+            // Web Speech: stop+speak 方案（从 _resumePercent 位置重新开始）
+            var resumePct = (_resumeNextSegPercent >= 0) ? _resumeNextSegPercent : _resumePercent;
+            _resumeNextSegPercent = -1;
+            startSpeakingFromPercent(resumePct);
+          }
+          return;
+        }
+
+        // Pause from playing
+        var pct = totalDuration > 0
+          ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100)
+          : 0;
+        stopProgressUpdate();
+        elapsedOffset = currentElapsedSeconds(); startTime = 0;
+        _resumePercent = pct;
+        _resumeNextSegPercent = -1;
+        _saveSpeechProgress();
+        if (useNativeTTS) {
+          // NativeTTS.pause() 是 @PluginMethod，暂停 MediaPlayer 但不销毁状态。
+          // 恢复时调用 resume() 可从暂停位置继续，无需重新发送文本。
+          var NativeTTS = getNativeTTS();
+          if (NativeTTS) {
+            try { NativeTTS.pause(); } catch (e) {}
+          }
+          setState('paused');
+        } else {
+          ++_speakGeneration;
+          try { window.speechSynthesis.cancel(); } catch (e) {}
+          setState('paused');
+        }
+      });
+
+      // -- Rate change --------------------------------------------------------
+      rateSelect.addEventListener('change', function () {
+        localStorage.setItem('speechRate', rateSelect.value);
+        if (!fullText) return;
+        // 恢复态（idle 但已有 _restoredPct）：仅重算恢复点的显示时长，不启动播放。
+        // 注意 newRateR 等换名，避免与下方 var newRate 同作用域变量名冲突。
+        if (state === 'idle' && _restoredPct > 0) {
+          var newRateR = Number(rateSelect.value) || 0.5;
+          totalDuration = estimateTotalSeconds(fullText, newRateR);
+          _originalTotalDuration = totalDuration;
+          progressBar.value = String(_restoredPct);
+          speechTime.textContent = formatTime((_restoredPct / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
+          if (useNativeTTS) {
+            var NRate = getNativeTTS();
+            if (NRate && typeof NRate.setRate === 'function') {
+              try { NRate.setRate({ rate: newRateR }); } catch (e) {}
+            }
+          }
+          return;
+        }
+        var newRate   = Number(rateSelect.value) || 0.5;
+        var current   = currentElapsedSeconds();
+        var oldTotal  = totalDuration;
+        totalDuration = estimateTotalSeconds(fullText, newRate);
+        var newPct    = oldTotal > 0 ? clamp((current / oldTotal) * 100, 0, 100) : 0;
+        elapsedOffset = (newPct / 100) * totalDuration;
+        startTime     = state === 'playing' ? Date.now() : 0;
+        progressBar.value = String(newPct);
+
+        if (useNativeTTS) {
+          var NativeTTS = getNativeTTS();
+          if (NativeTTS && typeof NativeTTS.setRate === 'function') {
+            try { NativeTTS.setRate({ rate: newRate }); } catch (e) {}
+          }
+        } else if (state === 'playing') {
+          // 不重置 chunk 状态，只取消当前句子的 utterance；
+          // onerror(interrupted) 会把 currentChunk++ 并调用 wsPlayNextChunk，
+          // 后者每次都从 rateSelect.value 读取倍速，自动使用新倍速继续朗读。
+          try { window.speechSynthesis.cancel(); } catch (e) {}
+        } else if (state === 'paused') {
+          _resumePercent = newPct;
+        }
+      });
+
+      // -- Page unload --------------------------------------------------------
+      window.addEventListener('beforeunload', function () {
+        _saveSpeechProgress();
+        ++_speakGeneration;
+        if (useNativeTTS) nativeStopService(state !== 'idle');
+        else { try { window.speechSynthesis.cancel(); } catch (e) {} }
+      });
+
+      // -- Stop on SPA navigation (hashchange = 切换章节或返回目录) -------------------
+      // 使用模块级 _hashStopNav 跨 resetState() 持久化，翻页后重新播放时仍有效。
+      // 如果 _hashStopNav 已被前一次 init() 注册且尚未被清理（正常情况下不会），
+      // 先移除旧监听器再注册新监听器，保证引用的是当前闭包的 resetState。
+      if (_hashStopNav) {
+        window.removeEventListener('hashchange', _hashStopNav);
+      }
+      _hashStopNav = function() { resetState(); };
+      window.addEventListener('hashchange', _hashStopNav);
+      // 保留局部 _stopOnNav 引用（只在 resetState 注释中用于移除，现仅用于兼容）
+      _stopOnNav = _hashStopNav;
+
+      // -- Loop button --------------------------------------------------------
+      updateLoopButton();
+      if (loopBtn) {
+        loopBtn.addEventListener('click', function () {
+          isLooping = !isLooping;
+          localStorage.setItem('speechLoop', isLooping ? '1' : '0');
+          updateLoopButton();
+          // NativeTTS 正在播放时需立即同步 loop 参数给 Java，否则下一轮仍用旧值循环
+          if (useNativeTTS && state === 'playing' && fullText) {
+            var pct = totalDuration > 0
+              ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100) : 0;
+            ++_speakGeneration;
+            nativeStopService();
+            setTimeout(function () { startSpeakingFromPercent(pct); }, 80);
+          }
+        });
+      }
+
+      // -- visibilitychange ---------------------------------------------------
+      // Web Speech 不支持后台播放，切到后台时直接停止（resetState 内部会先保存进度）。
+      // NativeTTS 已由前台服务支持后台播放，切到后台不停止，仅保存进度快照
+      // （防 Android 杀进程后丢失进度）。
+      // 两种模式回到前台时，如果 Java 侧状态变了（通知栏/锁屏操作），
+      // 由 ttsStateChanged 事件驱动 JS 状态同步，此处无需额外处理。
+      // 注：init 多次调用会叠加监听器，旧闭包的 state 已被 cancel→resetState
+      // 复位为 idle，_saveSpeechProgress 内部守卫使其安全惰性化。
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState !== 'hidden') return;
+        if (useWebSpeech) {
+          if (state !== 'idle') resetState();
+        } else if (useNativeTTS) {
+          _saveSpeechProgress();
+        }
+      });
+
+      // -- ttsStateChanged: 同步 Java 侧状态到 JS（NativeTTS only） ---------------
+      // 通知栏/锁屏的停止/暂停/恢复按钮直接走 Java 侧 handleStop/handlePause/handleResume，
+      // JS 不知道状态已变，回到 APP 后 UI 不一致。
+      // Java 端在 handleStop/handlePause/handleResume 中发送 ttsStateChanged 事件，
+      // JS 收到后同步 state 变量和 UI 控件。
+      if (useNativeTTS) {
+        // ★ 移除旧监听器（init 可能被多次调用：SPA 导航/翻页）
+        if (_ttsStateChangedHandle) {
+          try { _ttsStateChangedHandle.remove(); } catch (e) {}
+          _ttsStateChangedHandle = null;
+        }
+        var N_state = getNativeTTS();
+        if (N_state && typeof N_state.addListener === 'function') {
+          _ttsStateChangedHandle = N_state.addListener('ttsStateChanged', function (data) {
+            if (!data || !data.state) return;
+            var newState = data.state; // 'stopped' | 'paused' | 'playing'
+            console.log('[CXSpeech] ttsStateChanged: ' + newState + ' (JS state was: ' + state + ')');
+            if (newState === 'stopped') {
+              // Java 侧已停止，JS 必须同步到 idle
+              if (state === 'idle') return; // 已同步，跳过
+              _saveSpeechProgress(); // 此刻 state 仍为 playing/paused，可保存
+              stopProgressUpdate();
+              clearTTSHighlight();
+              nativeStopService(false); // 不再发 stop 给 Java（已停了）
+              fullText = '';
+              elapsedOffset = 0; startTime = 0; totalDuration = 0; _originalTotalDuration = 0;
+              _nativeCharsDone = -1; _nativeCharsDoneTime = 0; _lastPosMs = -1;
+              _resumeNextSegPercent = -1;
+              textChunks = []; currentChunk = 0;
+              progressBar.value = '0';
+              speechTime.textContent = '00:00 / 00:00';
+              speechTime.style.color = '';
+              setState('idle');
+            } else if (newState === 'paused') {
+              if (state === 'playing') {
+                stopProgressUpdate();
+                elapsedOffset = currentElapsedSeconds(); startTime = 0;
+                _resumePercent = totalDuration > 0
+                  ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100) : 0;
+                setState('paused');
+                _saveSpeechProgress();
+              }
+            } else if (newState === 'playing') {
+              if (state === 'idle' || state === 'paused') {
+                // Java 侧开始播放了（锁屏控件触发），JS 需同步
+                // 如果 state=idle，说明是外部控件触发的播放，JS 不知道播放了什么文本
+                // → 无法高亮，但至少把按钮设为暂停图标
+                if (totalDuration > 0) {
+                  startTime = Date.now();
+                  startProgressUpdate();
+                }
+                setState('playing');
+              }
+            }
+          });
+        }
+      }
+
+      setState('idle');
+      progressBar.value = '0';
+      speechTime.textContent = '00:00 / 00:00';
+      if (useWebSpeech) setupMediaSession();
+
+      // ★ 朗读进度恢复：读取上次保存的进度，仅定位（进度条+高亮+滚动），
+      //   不自动播放，用户点播放时从 _restoredPct 处继续。
+      //   必须延迟执行：renderCx 中 setContent→init 同步执行后，
+      //   initDayPager 要到 setTimeout(0) 才跑，此时 is-active 尚未标记；
+      //   立即恢复会读到错误的 day-page（getElements 回退第一天）。
+      if (storageKey) {
+        var _restoredDay = null;
+        try {
+          var _savedRaw = localStorage.getItem(storageKey);
+          if (_savedRaw) {
+            var _saved = JSON.parse(_savedRaw);
+            if (_saved && typeof _saved.pct === 'number' && _saved.pct > 0 && _saved.pct < 100) {
+              if (typeof _saved.day === 'number' && _saved.day >= 0) _restoredDay = _saved.day;
+              setTimeout(_tryApplyRestore, 100);
+            }
+          }
+        } catch (e) {}
+        function _tryApplyRestore(attempt) {
+          // 防旧闭包：SPA 快速导航/Router 双 dispatch 时，本 init 的元素已从 DOM 脱离；
+          // 用户已抢先播放则 state 不为 idle；书签跳转/翻页则活动天不匹配 → 三重守卫兜底。
+          // 注：不可用 _speakGeneration 判断——renderCx 同步 init 后 setTimeout(0) 才跑
+          // initDayPager，其 showPage 首行必调 cancel→resetState→gen++，导致恢复
+          // 永远失效，故不检查 gen。
+          if (!progressBar || !progressBar.isConnected) return;
+          if (state !== 'idle') return;                 // 用户已抢先播放/暂停
+          // 等待 day pager 标记 is-active（每 100ms 重试，最多 50 次 = 5s）
+          if (document.querySelector('.pages-container') && !document.querySelector('.day-page.is-active')) {
+            var n = typeof attempt === 'number' ? attempt : 0;
+            if (n < 50) setTimeout(function () { _tryApplyRestore(n + 1); }, 100);
+            return;
+          }
+          // 活动天与保存时不一致：书签跳转/用户已翻页 → 放弃恢复
+          var activeDayEl = document.querySelector('.day-page.is-active');
+          if (activeDayEl) {
+            var ad = parseInt(activeDayEl.getAttribute('data-page'), 10);
+            if (!isNaN(ad) && _restoredDay !== null && ad !== _restoredDay) return;
+          }
+          // 按当前活动天重建文本缓存（翻页后预构建缓存指向非活动天）
+          var text = prebuildText();
+          if (!text) { _restoredPct = 0; return; }
+          fullText = text;
+          _segmentMap = _prebuiltSegmentMap || [];
+          totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
+          _originalTotalDuration = totalDuration;
+          _restoredPct = _saved.pct;  // 此刻才真正持有恢复进度
+          setTTSHighlight(findSegmentAt(Math.floor(fullText.length * _restoredPct / 100)));
+          progressBar.value = String(_restoredPct);
+          speechTime.textContent = formatTime((_restoredPct / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
+        }
+      }
+
+      // -- 高亮滚动跟随：用户手动滚动打断，滑回高亮区自动恢复 ----------------------
+      // 程序滚动（scrollIntoView 平滑）期间产生的 scroll 事件不算用户滚动；
+      // 用户垂直拖动/滚轮立即暂停跟随（避免与手指滚动打架，横向翻页手势不受影响）；
+      // 手指离开后 scroll 事件评估当前高亮是否回到视口内：回到 → 恢复跟随，
+      // 之后下一句高亮不在屏幕中时由 setTTSHighlight 自动滚入。
+      // 每次页面渲染 init 重新执行，先卸载上一页监听（模块级句柄防累积）。
+      if (_scrollFollowUnbinds) { try { _scrollFollowUnbinds(); } catch (e) {} }
+      var _sfUnbinds = [];
+      function _sfBind(type, target, fn, opts) {
+        target.addEventListener(type, fn, opts);
+        _sfUnbinds.push(function () { target.removeEventListener(type, fn, opts); });
+      }
+      _sfBind('touchstart', document, function (e) {
+        if (e.touches && e.touches.length) {
+          _followTouchX = e.touches[0].clientX;
+          _followTouchY = e.touches[0].clientY;
+          _followTouchActive = true;
+        }
+      }, {passive:true});
+      _sfBind('touchmove', document, function (e) {
+        if (!e.touches || !e.touches.length) return;
+        var dy = e.touches[0].clientY - _followTouchY;
+        var dx = e.touches[0].clientX - _followTouchX;
+        // 垂直拖动 = 滚动意图：立即暂停跟随（横向晨读翻页手势 dy 占比小，不受影响）
+        if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) _scrollFollowEnabled = false;
+      }, {passive:true});
+      _sfBind('touchend', document, function () { _followTouchActive = false; }, {passive:true});
+      _sfBind('touchcancel', document, function () { _followTouchActive = false; }, {passive:true});
+      _sfBind('wheel', window, function () { _scrollFollowEnabled = false; }, {passive:true});
+      _sfBind('scroll', window, function () {
+        var now = Date.now();
+        if (now < _progScrollUntil && now - _progScrollStarted < 1200) { _progScrollUntil = now + 400; return; } // 程序滚动进行中
+        if (now < _progScrollUntil) return; // 程序滚动超时兜底（防长平滑滚动期间误判用户拖动）
+        if (_followTouchActive) return;     // 手指还在屏上，拖动期间的评估交给 touchmove/松手后
+        if (!_prevTTSEl || !_prevTTSEl.isConnected) return;
+        if (state !== 'playing' && state !== 'paused') return;
+        var r = _prevTTSEl.getBoundingClientRect();
+        if (r.bottom > 0 && r.top < window.innerHeight) _scrollFollowEnabled = true; // 高亮回到视口 → 恢复跟随
+      }, {passive:true});
+      _scrollFollowUnbinds = function () {
+        for (var i = 0; i < _sfUnbinds.length; i++) { try { _sfUnbinds[i](); } catch (e) {} }
+        _sfUnbinds = null;
+      };
+
+      // -- 预构建朗读文本 + 预合成首 chunk（NativeTTS only） --------------------
+      // 1. prebuildText() 预提取文本和 segmentMap（始终立即执行，轻量 DOM 克隆）
+      // 2. 若刚发送过 NativeTTS.stop()（_waitStopDone=true），等待 Java 的
+      //    ttsStopped 事件后再发 preSynthesize；否则直接发送。
+      //    播放按钮直接发 speak()，Java 端检测到预合成文件就绪则立即播放，
+      //    未就绪则等待 onDone 或回退全量合成。
+      if (useNativeTTS) {
+        // 预构建文本始终立即执行（轻量，不修改 DOM）
+        try {
+          prebuildText();
+        } catch(e) {
+          console.log('[CXSpeech] prebuild 异常: ' + e);
+        }
+
+        if (_waitStopDone) {
+          // 刚发过 STOP，等待 Java handleStop 完成后再发 preSynthesize
+          var _stopGen = _waitStopGen;
+          console.log('[CXSpeech] 等待 ttsStopped 事件 (gen=' + _stopGen + ')...');
+          // 清除旧监听（resetState 中已清除过，此处双保险）
+          if (_ttsStoppedHandle) { try { _ttsStoppedHandle.remove(); } catch(e) {} }
+          var NativeTTS = getNativeTTS();
+          if (NativeTTS && typeof NativeTTS.addListener === 'function') {
+            _ttsStoppedHandle = NativeTTS.addListener('ttsStopped', function() {
+              if (_stopGen !== _waitStopGen) return;
+              console.log('[CXSpeech] ttsStopped 事件到达，发送 preSynthesize');
+              _waitStopDone = false;
+              if (_ttsStoppedHandle) { try { _ttsStoppedHandle.remove(); } catch(e) {} _ttsStoppedHandle = null; }
+              _preSynthTime = Date.now();  // 防 Router 双重 dispatch
+              var preNativeTTS = getNativeTTS();
+              if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
+                // 翻页后预构建缓存可能过期（指向非活动天），清除后重新 prebuildText
+                if (_isPrebuiltCacheStale()) {
+                  _prebuiltFullText = null;
+                  _prebuiltSegmentMap = null;
+                }
+                var prebuiltText = prebuildText();
+                if (prebuiltText.length > 0) {
+                  preNativeTTS.preSynthesize({
+                    text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
+                    title: title, artist: artist
+                  }).catch(function(e) {
+                    console.log('[CXSpeech] preSynthesize 失败: ' + e);
+                  });
+                }
+              }
+            });
+          }
+          // 安全兜底：5s 后若 ttsStopped 仍未到达，强制发送 preSynthesize
+          setTimeout(function() {
+            if (_stopGen !== _waitStopGen || !_waitStopDone) return;
+            console.log('[CXSpeech] ttsStopped 超时 (5s)，强制发送 preSynthesize');
+            _waitStopDone = false;
+            if (_ttsStoppedHandle) { try { _ttsStoppedHandle.remove(); } catch(e) {} _ttsStoppedHandle = null; }
+            _preSynthTime = Date.now();
+            var preNativeTTS = getNativeTTS();
+            if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
+              // 翻页后预构建缓存可能过期（指向非活动天），清除后重新 prebuildText
+              if (_isPrebuiltCacheStale()) {
+                _prebuiltFullText = null;
+                _prebuiltSegmentMap = null;
+              }
+              var prebuiltText = prebuildText();
+              if (prebuiltText.length > 0) {
+                preNativeTTS.preSynthesize({
+                  text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
+                  title: title, artist: artist
+                }).catch(function(e) {
+                  console.log('[CXSpeech] preSynthesize 兜底失败: ' + e);
+                });
+              }
+            }
+          }, 5000);
+        } else {
+          // 首次加载或 Router 双重 dispatch：直接发送 preSynthesize
+          if (Date.now() - _preSynthTime > 500) {
+            _preSynthTime = Date.now();
+            var preNativeTTS = getNativeTTS();
+            if (preNativeTTS && typeof preNativeTTS.preSynthesize === 'function') {
+              // 翻页后预构建缓存可能过期（指向非活动天），清除后重新 prebuildText
+              if (_isPrebuiltCacheStale()) {
+                _prebuiltFullText = null;
+                _prebuiltSegmentMap = null;
+              }
+              var prebuiltText = prebuildText();
+              if (prebuiltText.length > 0) {
+                preNativeTTS.preSynthesize({
+                  text: prebuiltText, lang: lang, rate: Number(rateSelect.value) || 0.5,
+                  title: title, artist: artist
+                }).catch(function(e) {
+                  console.log('[CXSpeech] preSynthesize 失败: ' + e);
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    startInit();
+  }
+
+  window.CXSpeech = window.CXSpeech || {};
+  window.CXSpeech.init = init;
+
+  // 供单元测试（node --test）访问内部纯函数；生产代码请勿依赖
+  window.CXSpeech._internals = {
+    processText: processText,
+    expandDataRefs: expandDataRefs,
+    expandDataRefsEN: expandDataRefsEN,
+    appendSeparator: appendSeparator,
+    splitBySentenceEN: splitBySentenceEN,
+    shouldSkipEnRef: shouldSkipEnRef,
+    stripCnRefPrefix: stripCnRefPrefix
+  };
+
+  // ======================================================================
+  // 朗读诊断（CX.getDiagnostics）
+  // ======================================================================
+  // 供设置面板「朗读诊断」弹窗使用：汇总
+  //   - 环境：是否 Capacitor / Web Speech 可用性
+  //   - Java 端 checkEngine() 的设备与引擎信息（含中文语音包可用性）
+  //   - 当前运行时引擎选择（NativeTTS vs Web Speech）与降级状态
+  // 返回 Promise<诊断对象>。任何环节失败都不抛错，回填降级字段。
+  // ======================================================================
+
+  // 运行时诊断状态（由 init 内部闭包写入）
+  var _diag = {
+    engine:            null,  // 'native' | 'web'
+    webSpeechUsable:   null,  // 实际试读是否成功
+    nativeFailCount:   0,      // NativeTTS 连续失败计数
+    nativeFailTotal:   0,      // 累计失败次数（诊断用）
+    lastNativeError:   '',     // 最近一次 NativeTTS 错误消息
+    lastTimeout:       false,  // 最近一次是否超时降级
+    degraded:          false,  // 是否已从 Native 降级到 Web
+    lastSpeakMs:       0,      // 最近一次 speak 的耗时（Native，首音延迟）
+    lastSpeakAt:       0       // 最近一次 speak 时间戳
+  };
+
+  // 供 init 闭包写入诊断状态（失败计数 / 降级 / 首音延迟）
+  window.CXSpeech._diag = _diag;
+  window.CXSpeech._setDiag = function(patch) {
+    try {
+      if (patch && typeof patch === 'object') {
+        for (var k in patch) {
+          if (Object.prototype.hasOwnProperty.call(patch, k)) _diag[k] = patch[k];
+        }
+      }
+    } catch (e) {}
+  };
+
+  window.CXSpeech.getDiagnostics = function() {
+    // 内联引擎检测（detectEngine 在 init 闭包内，此处无法访问）
+    var isNative = !!(window.Capacitor &&
+                      typeof window.Capacitor.isNativePlatform === 'function' &&
+                      window.Capacitor.isNativePlatform());
+    var nativeTTS = safeGetNativeTTS();
+    var hasWebSpeech = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+    var env = {
+      isNative:     isNative,
+      useNativeTTS: !!nativeTTS,
+      useWebSpeech: !nativeTTS && hasWebSpeech,
+      hasWebSpeech: hasWebSpeech,
+      supported:    !!nativeTTS || hasWebSpeech
+    };
+
+    var diag = {
+      env: {
+        isNative:     env.isNative,
+        useNativeTTS: env.useNativeTTS,
+        useWebSpeech: env.useWebSpeech,
+        hasWebSpeech: env.hasWebSpeech,
+        supported:    env.supported
+      },
+      runtime: {
+        engine:            _diag.engine,
+        degraded:          _diag.degraded,
+        nativeFailCount:   _diag.nativeFailCount,
+        nativeFailTotal:   _diag.nativeFailTotal,
+        lastError:         _diag.lastNativeError,
+        lastTimeout:       _diag.lastTimeout,
+        lastSpeakMs:       _diag.lastSpeakMs,
+        webSpeechUsable:   _diag.webSpeechUsable
+      },
+      webSpeech: null,
+      native: null
+    };
+
+    // Web Speech 运行时信息（voices 数量、当前语言、状态）
+    try {
+      var ws = window.speechSynthesis;
+      if (ws) {
+        var voices = [];
+        try { voices = ws.getVoices ? ws.getVoices() : []; } catch (e) {}
+        var zhVoices = [];
+        for (var i = 0; i < voices.length; i++) {
+          if (voices[i] && voices[i].lang && voices[i].lang.toLowerCase().indexOf('zh') === 0) zhVoices.push(voices[i].lang + '/' + (voices[i].name || ''));
+        }
+        diag.webSpeech = {
+          speaking:   ws.speaking,
+          paused:     ws.paused,
+          pending:    ws.pending,
+          voiceCount: voices.length,
+          zhVoices:   zhVoices
+        };
+      }
+    } catch (e) { diag.webSpeech = { error: String((e && e.message) || e) }; }
+
+    // NativeTTS 可用时调用 checkEngine 补充设备/引擎详情（超时 4s 兜底）
+    var nativeTTS = safeGetNativeTTS();
+    if (nativeTTS && typeof nativeTTS.checkEngine === 'function') {
+      return Promise.race([
+        nativeTTS.checkEngine().then(function(r) {
+          diag.native = r || {};
+          return diag;
+        }).catch(function(e) {
+          diag.native = { error: String((e && e.message) || e) };
+          return diag;
+        }),
+        new Promise(function(resolve) { setTimeout(function() { resolve(diag); }, 4000); })
+      ]);
+    }
+    return Promise.resolve(diag);
+  };
+})();

@@ -1,0 +1,79 @@
+{
+  "path": "local-1999-01",
+  "title": "国际华语特会",
+  "subtitle": "神经纶中的新约",
+  "year": 1999,
+  "season": "01 国际华语特会",
+  "mottos": [],
+  "motto_song_text": "",
+  "motto_song_image": "",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "神的经纶与神的约",
+      "hymn_number": "",
+      "hymn_image": "",
+      "scripture": "",
+      "outline_sections": [],
+      "detail_sections": [],
+      "message_content": [],
+      "has_listen_block": false,
+      "ministry_excerpt": "",
+      "morning_revivals": []
+    },
+    {
+      "number": 2,
+      "title": "新约的救赎",
+      "hymn_number": "",
+      "hymn_image": "",
+      "scripture": "",
+      "outline_sections": [],
+      "detail_sections": [],
+      "message_content": [],
+      "has_listen_block": false,
+      "ministry_excerpt": "",
+      "morning_revivals": []
+    },
+    {
+      "number": 3,
+      "title": "新约的生命之律",
+      "hymn_number": "",
+      "hymn_image": "",
+      "scripture": "",
+      "outline_sections": [],
+      "detail_sections": [],
+      "message_content": [],
+      "has_listen_block": false,
+      "ministry_excerpt": "",
+      "morning_revivals": []
+    },
+    {
+      "number": 4,
+      "title": "新约的享受与生活",
+      "hymn_number": "",
+      "hymn_image": "",
+      "scripture": "",
+      "outline_sections": [],
+      "detail_sections": [],
+      "message_content": [],
+      "has_listen_block": false,
+      "ministry_excerpt": "",
+      "morning_revivals": []
+    },
+    {
+      "number": 5,
+      "title": "新约的终极结果",
+      "hymn_number": "",
+      "hymn_image": "",
+      "scripture": "",
+      "outline_sections": [],
+      "detail_sections": [],
+      "message_content": [],
+      "has_listen_block": false,
+      "ministry_excerpt": "",
+      "morning_revivals": []
+    }
+  ],
+  "version": "20260905111109",
+  "is_collection": true
+}
