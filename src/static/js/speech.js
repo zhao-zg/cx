@@ -16,11 +16,17 @@
 
   // 统一文本处理管道：全局字符过滤 + 括号移除。
   // 所有文本（fullText、segmentMap、speakText）必须经过此函数，确保坐标系一致。
-  function processText(raw) {
+  // isEn=true 时走英文白名单（保留英文标点终止符/描号/引号；全角标点仍删除）；
+  // CN 路径字符类逐字节不变，行为与旧版完全一致。
+  // 历史行为（两模式一致）：全角括号（…）内容整体删除；半角括号 (…) 仅剥字符、内容保留
+  //（半角括号不在任一白名单内，先于括号内容删除规则被字符层剥离）。
+  function processText(raw, isEn) {
     return (raw || '')
       .replace(/\s+/g, ' ')
       .replace(/[\r\n\t]/g, '')
-      .replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！\u201c\u201d\u2018\u2019（）《》\s]/g, '')
+      .replace(isEn
+        ? /[^\u4e00-\u9fa5a-zA-Z0-9\s.,!?;:'"\u201c\u201d\u2018\u2019\u2014\u2013-]/g
+        : /[^\u4e00-\u9fa5a-zA-Z0-9，。、；：？！\u201c\u201d\u2018\u2019（）《》\s]/g, '')
       .trim()
       .replace(/（[^）]*）/g, '')
       .replace(/\([^)]*\)/g, '')
@@ -144,6 +150,149 @@
     return result.join('，');
   }
 
+  // 剥除 CN 静态经文块正文开头的显示前缀（如「加二20　」「十一29　」「约一12～13　」）。
+  // 该前缀与 withExpanded 前置的展开引用（如「加拉太书二章二十节」）语义重复，
+  // 不剥会双读。形态来自真实数据全量（124 块）：
+  //   可选[书缩写+中文数字章] + 阿拉伯节号 + 可选范围尾(～/~) + 可选上/下 + 全角/半角空格
+  // 必须含阿拉伯数字节号且后跟空白，普通中文正文不会命中（防误伤）。
+  var _CN_REF_PREFIX_RE = /^[一-龥]{0,6}\d+(?:[～~]\d+)?[上下]?[\u3000 ]/;
+  function stripCnRefPrefix(text) {
+    return (text || '').replace(_CN_REF_PREFIX_RE, '');
+  }
+
+  // 中文缩写 → 英文全名（EN 展开用；键与 _BN 一致）
+  var _BN_EN = {
+    '创': 'Genesis', '出': 'Exodus', '利': 'Leviticus', '民': 'Numbers',
+    '申': 'Deuteronomy', '书': 'Joshua', '士': 'Judges', '得': 'Ruth',
+    '撒上': '1 Samuel', '撒下': '2 Samuel',
+    '王上': '1 Kings', '王下': '2 Kings',
+    '代上': '1 Chronicles', '代下': '2 Chronicles',
+    '拉': 'Ezra', '尼': 'Nehemiah', '斯': 'Esther',
+    '伯': 'Job', '诗': 'Psalms', '箴': 'Proverbs', '传': 'Ecclesiastes',
+    '歌': 'Song of Songs', '赛': 'Isaiah', '耶': 'Jeremiah',
+    '哀': 'Lamentations', '结': 'Ezekiel', '但': 'Daniel',
+    '何': 'Hosea', '珥': 'Joel', '摩': 'Amos',
+    '俄': 'Obadiah', '拿': 'Jonah', '弥': 'Micah',
+    '鸿': 'Nahum', '哈': 'Habakkuk', '番': 'Zephaniah',
+    '该': 'Haggai', '亚': 'Zechariah', '玛': 'Malachi',
+    '太': 'Matthew', '可': 'Mark', '路': 'Luke',
+    '约': 'John', '徒': 'Acts', '罗': 'Romans',
+    '林前': '1 Corinthians', '林后': '2 Corinthians',
+    '加': 'Galatians', '弗': 'Ephesians', '腓': 'Philippians',
+    '西': 'Colossians',
+    '帖前': '1 Thessalonians', '帖后': '2 Thessalonians',
+    '提前': '1 Timothy', '提后': '2 Timothy',
+    '门': 'Philemon', '来': 'Hebrews', '雅': 'James',
+    '彼前': '1 Peter', '彼后': '2 Peter',
+    '约壹': '1 John', '约贰': '2 John', '约叁': '3 John',
+    '犹': 'Jude', '启': 'Revelation', '多': 'Titus'
+  };
+
+  // EN 展开单条引用（方案 A「全名+数字」）：Ephesians 4:20 / Ephesians 4（整章）；后缀上/下丢弃
+  function _expandRefEN(p) {
+    var full = _BN_EN[p.book] || p.book;
+    if (p.verse === 0) return full + ' ' + p.chapter;
+    return full + ' ' + p.chapter + ':' + p.verse;
+  }
+
+  // EN 展开跨章引用：Revelation 1:9 to 2:1（同章也保留两章号，便于聆听理解）
+  function _expandCrossRefEN(p) {
+    var full = _BN_EN[p.book] || p.book;
+    return full + ' ' + p.ch1 + ':' + p.v1 + ' to ' + p.ch2 + ':' + p.v2;
+  }
+
+  // EN 版 expandDataRefs：输入仍为中文缩写 refs（与 CN 同格式），仅输出为英文。
+  // 合并规则与 CN 完全同构：同书同章连续节 → to 压缩；跨章/整章单条；多条逗号连接。
+  function expandDataRefsEN(refs) {
+    if (!refs) return '';
+    var parts = (refs + '').split(',').map(function (r) { return r.trim(); }).filter(Boolean);
+    if (!parts.length) return '';
+    // wrapEnRefs 产出的同章范围（如 弗4:20-24，来自 "Eph. 4:20-24"）拆为首末两个端点，
+    // 交由下方同书同章合并逻辑压缩为「X to Y」；跨章格式（启1:9-2:1，含冒号）不匹配、不受影响。
+    var flat = [];
+    for (var k = 0; k < parts.length; k++) {
+      var rm = /^([^\d:]{1,3})(\d+):(\d+)[-–](\d+)$/.exec(parts[k]);
+      if (rm) {
+        flat.push(rm[1] + rm[2] + ':' + rm[3]);
+        flat.push(rm[1] + rm[2] + ':' + rm[4]);
+      } else {
+        flat.push(parts[k]);
+      }
+    }
+    parts = flat;
+    var result = [], i = 0;
+    while (i < parts.length) {
+      var cr = _parseCrossRef(parts[i]);
+      if (cr) { result.push(_expandCrossRefEN(cr)); i++; continue; }
+      var p = _parseRef(parts[i]);
+      if (!p) { result.push(parts[i]); i++; continue; }
+      if (p.verse === 0) { result.push(_expandRefEN(p)); i++; continue; }
+      var j = i + 1;
+      while (j < parts.length) {
+        if (_parseCrossRef(parts[j])) break;
+        var q = _parseRef(parts[j]);
+        if (!q || q.book !== p.book || q.chapter !== p.chapter) break;
+        j++;
+      }
+      if (j === i + 1) {
+        result.push(_expandRefEN(p));
+      } else {
+        var last = _parseRef(parts[j - 1]);
+        result.push(_expandRefEN(p) + ' to ' + last.verse);
+      }
+      i = j;
+    }
+    return result.join(', ');
+  }
+
+  // -- 段落分隔符（段末无终止符时补什么） ---------------------------------------
+  // CN 行为逐字节不变：补「。」；EN：补「. 」
+  function appendSeparator(lastChar, isEn) {
+    if (isEn) {
+      return /[.!?;]/.test(lastChar) ? '' : '. ';
+    }
+    return /[。！？；]/.test(lastChar) ? '' : '。';
+  }
+
+  // -- EN 不读规则纯谓词（span 自带文本 + 相邻文本节点上下文） -------------------
+  // EN 现实：span 文本形如 "Acts 11:26; 26:28"，不以破折号开头（CN 对照 span 才以 — 开头）；
+  // 破折号在前一文本节点尾部（" daily life—"），且 span 后还有文本节点以 ":" 或 "." 开头。
+  // 纲目破折号前缀引用不读；括号前缀引用不读；其余正文引用要读。
+  // inOutline: 纲目容器判定结果（true/false/unknown=null）。
+  function shouldSkipEnRef(spanText, prevText, inOutline) {
+    var txt = (spanText || '').trim();
+    if (!txt) return true;
+    if (/[（(]/.test(txt.charAt(0))) return true;          // span 自带前括号
+    // span 自带前导破折号（CN 格式 span 混入 EN 页面）：镜像 CN 规则，仅纲目内不读
+    if (/^[\u2014\u2500\-]/.test(txt)) return inOutline === true;
+    var prev = (prevText == null) ? '' : String(prevText);
+    var prevDash = /[\u2014\u2500\-]\s*$/.test(prev);        // prev 尾部破折号（可跨空白）
+    var prevParen = /[（(]\s*$/.test(prev);                  // prev 尾部前括号
+    if (prevParen) return true;                              // 括号前缀：无条件不读
+    if (prevDash) {
+      if (inOutline === null) return true;                   // 纲目未知 → 保守不读
+      return !!inOutline;                                    // 仅纲目内不读
+    }
+    return false;
+  }
+
+  // -- EN 切句（模块层纯函数）：按英文终止符（.!?;）切分，每句作为独立 utterance ----------
+  function splitBySentenceEN(text) {
+    var result = [];
+    var re = /[^.!?;]*[.!?;]/g;
+    var m, last = 0;
+    while ((m = re.exec(text)) !== null) {
+      var s = m[0];
+      if (s.trim()) result.push(s);
+      last = re.lastIndex;
+    }
+    if (last < text.length) {
+      var tail = text.slice(last).trim();
+      if (tail) result.push(text.slice(last));
+    }
+    return result.length > 0 ? result : [text];
+  }
+
   function formatTime(seconds) {
     var s = Math.max(0, Math.floor(seconds || 0));
     return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
@@ -250,9 +399,29 @@
       var spans = Array.prototype.slice.call(document.querySelectorAll('.scripture-ref[data-refs]'));
       var tnMap = [];
       var removedSpans = []; // 不应朗读的 span（纲目破折号/括号前缀），临时从 DOM 移除
+      var trimmedTextNodes = []; // EN：被修剪尾部破折号的 prev 文本节点，还原时恢复原值
       spans.forEach(function (span) {
         var txt = (span.textContent || '').trim();
-        if (!span.parentNode ||
+        if (_isEn) {
+          // EN：span 文本不以破折号开头，需结合相邻文本节点判定（见 shouldSkipEnRef）
+          var prevNode = span.previousSibling;
+          var prevTxt = (prevNode && prevNode.nodeType === 3) ? prevNode.nodeValue : null;
+          var inOutline = (typeof span.closest === 'function')
+            ? !!(span.closest('.outline-section') || span.closest('.outline-item') || span.closest('[class*="section-level"]'))
+            : null;
+          if (!span.parentNode || shouldSkipEnRef(txt, prevTxt, inOutline)) {
+            if (span.parentNode) {
+              // 同步修剪 prev 尾部残留破折号，避免读出孤立符号
+              if (prevNode && prevNode.nodeType === 3 && /[\u2014\u2500\-]\s*$/.test(prevNode.nodeValue)) {
+                trimmedTextNodes.push({ tn: prevNode, orig: prevNode.nodeValue });
+                prevNode.nodeValue = prevNode.nodeValue.replace(/[\u2014\u2500\-]\s*$/, '');
+              }
+              removedSpans.push({ span: span, parent: span.parentNode, next: span.nextSibling });
+              span.parentNode.removeChild(span);
+            }
+            tnMap.push(null); return;
+          }
+        } else if (!span.parentNode ||
             (/^[\u2014\u2500\-]/.test(txt) && typeof span.closest === 'function' && (span.closest('.outline-section') || span.closest('.outline-item') || span.closest('[class*="section-level"]'))) ||
             /^[（(]/.test(txt)) {
           // 纲目/听抄中破折号/括号前缀的经文引用不应朗读，从 DOM 临时移除
@@ -263,7 +432,8 @@
           }
           tnMap.push(null); return;
         }
-        var expanded = expandDataRefs(span.getAttribute('data-refs'));
+        var expanded = _isEn ? expandDataRefsEN(span.getAttribute('data-refs'))
+                             : expandDataRefs(span.getAttribute('data-refs'));
         if (!expanded) { tnMap.push(null); return; }
         // 用临时 wrapper span 而非裸文本节点：injectSentenceMarks 会把内联元素整体移入 <mark>，
         // clearSentenceMarks 后 wrapper 仍是完整元素（parentNode 不为 null），可被正确移除。
@@ -281,7 +451,7 @@
       var sbMap = [];
       staticBlocks.forEach(function (block) {
         var refs = block.getAttribute('data-refs');
-        var expanded = expandDataRefs(refs);
+        var expanded = _isEn ? expandDataRefsEN(refs) : expandDataRefs(refs);
         if (!expanded) { sbMap.push(null); return; }
         var origHTML = block.innerHTML;
         var clone = block.cloneNode(true);
@@ -289,7 +459,18 @@
         var cleanText = clone.textContent;
         var tabIdx = cleanText.indexOf('\t');
         var body = tabIdx !== -1 ? cleanText.slice(tabIdx + 1) : cleanText;
-        block.textContent = expanded + '\t' + body;
+        if (_isEn) {
+          // EN：块文本自带可读英文前缀（如 "Gal. 2:20"，为纯文本，块内无内嵌 span，
+          // spans 循环覆盖不到）；若像 CN 一样前置展开会双重朗读，且与 scripture-popup
+          // 拍平竞态冲突。故只保留块正文：前缀作为英文原文直接朗读（兜底，TTS 可读），
+          // 仅在纲目内联引用等处做英文全名展开。
+          block.textContent = '\t' + body;
+        } else {
+          // CN：前置展开引用 + '\t' + 正文（读「展开引用 + 正文」）。
+          // 剥除正文开头的显示前缀（如「加二20　」）——它与展开引用语义重复，
+          // 不剥会双读「加拉太书二章二十节 加二20 我已经…」。
+          block.textContent = expanded + '\t' + stripCnRefPrefix(body);
+        }
         sbMap.push({ block: block, origHTML: origHTML });
       });
 
@@ -298,6 +479,7 @@
       // 不调用 clearSentenceMarks()，保留 <mark> 在 DOM 中供朗读高亮使用。
       // wrapper span 被 injectSentenceMarks 整体移入某个 <mark>，
       // 用 replaceChild 将 wrapper 原位替换为原始 .scripture-ref span，marks 保持完整。
+      // （EN：英文块不前置展开，还原 innerHTML 同时会丢弃块内就展开 wrapper，无残留问题。）
 
       var _insideStatic = function (node) {
         for (var k = 0; k < staticBlocks.length; k++) {
@@ -323,6 +505,12 @@
         } else if (item.tn && item.tn.parentNode) {
           item.tn.parentNode.removeChild(item.tn);
         }
+      });
+      // 还原 EN 修剪过的 prev 文本节点（破折号尾缀）。
+      // 注意：fn() 内 injectSentenceMarks 可能已将该文本节点切碎/移入 mark，
+      // 仅当节点仍挂在 DOM 上时才恢复原值；node 仍可寻址（闭包引用），nodeValue 可直接写回。
+      trimmedTextNodes.forEach(function (t) {
+        try { t.tn.nodeValue = t.orig; } catch (e) {}
       });
       // 还原临时移除的 span（按移除逆序，保证嵌套关系正确）
       // injectSentenceMarks 后 item.parent 直接子节点均为 <mark>，
@@ -357,6 +545,9 @@
     }
 
     var lang  = (options && options.lang)  || 'zh-CN';
+    // 语言模式标记（init 闭包级，供 buildAll/prebuildText/withExpanded 共用）：
+    // en-US / en* → true；zh-CN → false（CN 行为路径逐字节不变）
+    var _isEn = !!(lang && lang.indexOf('en') === 0);
     // 锁屏/通知栏：title = 篇章标题（大字），artist = 训练名（副标题小字）
     // document.title 只含 "第X篇 - 类型"，训练名从 base.html 里的 meta[name=training-title] 读取
     var _pageTitleRaw = document.title || '';
@@ -622,14 +813,14 @@
             }
 
             // Step 2: 统一管道过滤
-            var filteredText = processText(rawText);
+            var filteredText = processText(rawText, _isEn);
             if (!filteredText) return;
 
             // Step 3: 记录在 fullText 中的精确位置（智能分隔符：已有终止符则不重复追加）
             var separator = '';
             if (fullText) {
               var lastChar = fullText[fullText.length - 1];
-              separator = /[。！？；]/.test(lastChar) ? '' : '。';
+              separator = appendSeparator(lastChar, _isEn);
             }
             var start = fullText.length + separator.length;
             fullText += separator + filteredText;
@@ -660,20 +851,34 @@
 
           if (el.classList.contains('scripture-block-static')) {
             var clone = el.cloneNode(true);
-            // 在副本中展开经文引用
+            // 在副本中展开经文引用（EN：展开为英文）
             clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(ref) {
-              var expanded = expandDataRefs(ref.getAttribute('data-refs'));
+              var expanded = _isEn ? expandDataRefsEN(ref.getAttribute('data-refs'))
+                                   : expandDataRefs(ref.getAttribute('data-refs'));
               if (expanded) ref.textContent = expanded;
             });
             clone.querySelectorAll('sup').forEach(function(s) { s.remove(); });
-            rawText = clone.textContent;
+            // 与 withExpanded 的 staticBlocks 分支保持一致（契约：两路径产出完全一致）：
+            // '\t' 分界仅旧数据存在，其后为正文；'\t' 本身由 processText 剥除
+            var tabIdx = clone.textContent.indexOf('\t');
+            var body = tabIdx !== -1 ? clone.textContent.slice(tabIdx + 1) : clone.textContent;
+            if (_isEn) {
+              // EN：只保留正文，前缀作为英文原文直接朗读
+              rawText = body;
+            } else {
+              // CN：前置展开引用 + 剥除正文显示前缀（修复「展开引用 + 缩写前缀」双读）
+              var blockExpanded = expandDataRefs(el.getAttribute('data-refs'));
+              rawText = blockExpanded ? blockExpanded + '\t' + stripCnRefPrefix(body)
+                                      : clone.textContent;
+            }
           } else if (el.classList.contains('chapter-title')) {
             rawText = el.textContent;
           } else if (el.classList.contains('scripture')) {
             // 读经横幅：在副本中展开经文引用（与 buildAll 的 withExpanded 等效）
             var clone = el.cloneNode(true);
             clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(ref) {
-              var expanded = expandDataRefs(ref.getAttribute('data-refs'));
+              var expanded = _isEn ? expandDataRefsEN(ref.getAttribute('data-refs'))
+                                   : expandDataRefs(ref.getAttribute('data-refs'));
               if (expanded) ref.textContent = expanded;
             });
             rawText = clone.textContent;
@@ -682,6 +887,21 @@
             // 在副本中展开可读的经文引用
             clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(ref) {
               var txt = (ref.textContent || '').trim();
+              if (_isEn) {
+                // EN：结合相邻文本节点判定（span 文本不以破折号开头）
+                var prevNode = ref.previousSibling;
+                var prevTxt = (prevNode && prevNode.nodeType === 3) ? prevNode.nodeValue : null;
+                var inOutline = (typeof ref.closest === 'function')
+                  ? !!(ref.closest('.outline-section') || ref.closest('.outline-item') || ref.closest('[class*="section-level"]'))
+                  : null;
+                if (shouldSkipEnRef(txt, prevTxt, inOutline)) {
+                  ref.parentNode.removeChild(ref);
+                  return;
+                }
+                var expanded = expandDataRefsEN(ref.getAttribute('data-refs'));
+                if (expanded) ref.textContent = expanded;
+                return;
+              }
               // 与 withExpanded() 保持一致：
               // 破折号前缀仅在纲目/听抄容器内移除，括号前缀无条件移除
               if ((/^[\u2014\u2500\-]/.test(txt) && typeof ref.closest === 'function' &&
@@ -697,13 +917,13 @@
             rawText = clone.textContent;
           }
 
-          var filteredText = processText(rawText);
+          var filteredText = processText(rawText, _isEn);
           if (!filteredText) return;
 
           var separator = '';
           if (result) {
             var lastChar = result[result.length - 1];
-            separator = /[\u3002\uff01\uff1f\uff1b]/.test(lastChar) ? '' : '\u3002';
+            separator = appendSeparator(lastChar, _isEn);
           }
           var start = result.length + separator.length;
           result += separator + filteredText;
@@ -1279,7 +1499,7 @@
               return seg.speakText;
             });
           } else {
-            textChunks = splitBySentence(segText);
+            textChunks = _isEn ? splitBySentenceEN(segText) : splitBySentence(segText);
           }
           currentChunk = 0;
           elapsedOffset = targetSecs; startTime = Date.now();
@@ -1817,6 +2037,17 @@
 
   window.CXSpeech = window.CXSpeech || {};
   window.CXSpeech.init = init;
+
+  // 供单元测试（node --test）访问内部纯函数；生产代码请勿依赖
+  window.CXSpeech._internals = {
+    processText: processText,
+    expandDataRefs: expandDataRefs,
+    expandDataRefsEN: expandDataRefsEN,
+    appendSeparator: appendSeparator,
+    splitBySentenceEN: splitBySentenceEN,
+    shouldSkipEnRef: shouldSkipEnRef,
+    stripCnRefPrefix: stripCnRefPrefix
+  };
 
   // ======================================================================
   // 朗读诊断（CX.getDiagnostics）
