@@ -390,7 +390,8 @@ def outline_flat_nodes(lines, is_en=False):
                     nodes.append({'level': f'{l5_seq})', 'title': s, 'is_bold': bold,
                                   'content': [], 'children': []})
                 elif nodes:
-                    nodes[-1]['title'] += (' ' + s if bold else s)
+                    nodes[-1]['title'] = _join_title(nodes[-1]['title'], s, bold,
+                                                     bregion=True)
                 continue
             is_head = x0 < EN_HEAD_X0
         else:
@@ -416,9 +417,9 @@ def outline_flat_nodes(lines, is_en=False):
                     while idx >= 0 and nodes[idx].get('is_bold'):
                         idx -= 1
                     if idx >= 0:
-                        nodes[idx]['title'] += ' ' + s
+                        nodes[idx]['title'] = _join_title(nodes[idx]['title'], s)
                 else:
-                    nodes[-1]['title'] += (' ' + s if bold else s)
+                    nodes[-1]['title'] = _join_title(nodes[-1]['title'], s, bold)
             continue
         level, rest = parse_outline_level(s, is_en, x0)
         if level is not None:
@@ -426,6 +427,13 @@ def outline_flat_nodes(lines, is_en=False):
             if is_en and re.match(r'^[a-z]\)$', level) and nodes \
                     and re.match(r'^\d{1,2}\)$', nodes[-1]['level']):
                 nodes[-1]['title'] += ' ' + rest
+                continue
+            # E 类缺陷1（probe_p0_ctx p8）：前 title 以 r'\d-$' 结尾（引用范围撕开）
+            # 时，N) 形式头匹配 EN_L5_RE 是续行闭括号（'56) to bear…'），
+            # 不是真 L5 段首——不建节点，降级为续行归属。
+            if is_en and re.match(r'^\d{1,2}\)$', level) and nodes \
+                    and re.search(r'\d-$', nodes[-1]['title']) and not bold:
+                nodes[-1]['title'] = _join_title(nodes[-1]['title'], s)
                 continue
             node = {'level': level, 'title': rest, 'is_bold': bold,
                     'content': [], 'children': []}
@@ -445,7 +453,26 @@ def outline_flat_nodes(lines, is_en=False):
             l4_active = is_en and re.match(r'^[a-z]\.$', level)
             continue
         if nodes:
-            nodes[-1]['title'] += ' ' + s if is_en else s
+            # E 类缺陷3（probe_p0_ctx p7/p29 定案）：top 交错使非 bold 续行
+            # 落在 bold 节点之后，is_head 且 level=None 的兜底分支需与续行分支
+            # 同构且按行首语义分流：小写开头 = 最近节点标题自身的词组续行
+            # （p29 'strong—2:1.' 属 II.）；其余（引用尾巴等）跳过 bold 节点归
+            # 最近非 bold 节点（p7 '19:10; cf. Gen. 1:26.' 属 B.），
+            # 全 bold 时回退最近节点（不丢行）。
+            if is_en and not bold:
+                if re.match(r'^[a-z]', s):
+                    nodes[-1]['title'] = _join_title(nodes[-1]['title'], s)
+                else:
+                    idx = len(nodes) - 1
+                    while idx >= 0 and nodes[idx].get('is_bold'):
+                        idx -= 1
+                    if idx >= 0:
+                        nodes[idx]['title'] = _join_title(nodes[idx]['title'], s)
+                    else:
+                        nodes[-1]['title'] = _join_title(nodes[-1]['title'], s)
+            else:
+                nodes[-1]['title'] = _join_title(nodes[-1]['title'], s, bold,
+                                                 is_en=is_en)
             continue
         nodes.append({'level': '', 'title': s, 'is_bold': bold,
                       'content': [], 'children': []})
@@ -455,6 +482,33 @@ def outline_flat_nodes(lines, is_en=False):
 
 
 EN_L1_RE_N = re.compile(r'^([IVXLCDM]+)$')
+
+
+def _join_title(title, s, bold=False, is_en=True, bregion=False):
+    """续行拼接（E 类修复，probe_p0_ctx 定案）：撕裂点无缝，普通拼接空格。
+
+    PDF 行尾 em-dash/范围连字符是同一词/引用被跨行撕开的位置，
+    换行处插空格会撕裂引用（'25:31- 40'）或词组（'shepherding— saving'），
+    CN 底座印证无缝。撕裂指纹（前 title 尾 × 当前行头）：
+    - 前 title 以 r'\\d-$' 结尾（引用范围撕开）且当前行以数字开头 → 无缝
+    - 前 title 以 em-dash/连字符结尾（含闭引号后接破折号 'ever"—'）→ 无缝
+    普通拼接：EN 加空格；CN 无空格；bregion（B 类纯缩进区）非 bold 无空格
+    （probe94/95/99 既有行为）。闭引号指纹（r'"$'+小写开头→无缝）已删：
+    无真实撕裂案例支撑（p29 'ever"—' 由 em-dash 规则覆盖），且会把正常
+    '"clothed with a cloud" is' 误无缝成 'cloud"is'（2025-07 ch5 实测误伤）。
+    """
+    if not title:
+        return s
+    if is_en:
+        if re.search(r'\d-$', title) and re.match(r'^\d', s):
+            return title + s
+        if re.search(r'[—\u2014-]$', title):
+            return title + s
+        if bregion:
+            return title + (' ' + s if bold else s)
+        return title + ' ' + s
+    return title + s
+
 
 
 def nest(flat, add_ctx=False, is_en=False):
