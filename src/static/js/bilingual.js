@@ -274,9 +274,11 @@
   var CV_PART = '\\d{1,3}:' + V_PART;          // 章:节(-节)
   var BV_PART = BOOK_TOKEN + '\\s*' + CV_PART; // 书 章:节(-节)
 
-  // 完整引用序列：书 章:节 开头，后接「, 节」「; 章:节」「; 书 章:节」等延续
+  // 完整引用序列：书 章:节 开头，后接「, 节」「; 章:节」「; 书 章:节」等延续；
+  // 或 v./vv. 开头（书卷+章继承自上文最近一次完整引用，见 _parseEnSeq）。
+  // \b 排除词中 v.（conniv. 5:3）；尾随 (?!\.?\d) 排除「v. 2.0」版本号类非引用
   var REF_SEQ_RE = new RegExp(
-    BV_PART
+    '(?:' + BV_PART + '|\\bv{1,2}\\.\\s*' + V_PART + '(?!\\.?\\d))'
     + '(?:\\s*[,;]\\s*(?:' + BV_PART + '|' + CV_PART + '|' + V_PART + '))*',
     'g'
   );
@@ -293,20 +295,46 @@
     return BOOK_MAP[key] || '';
   }
 
-  /** 解析一个引用序列字符串 → 中文引用数组（按 [,;] 切段，书卷/章续接继承） */
+  /** v./vv. 模块级继承状态：最近一次「书卷+章」完整引用（跨块持久，resetEnRefContext 清空） */
+  var _ctxBook = '', _ctxCh = '';
+
+  /** 解析一个引用序列字符串 → 中文引用数组（按 [,;] 切段，书卷/章续接继承）
+   *  v./vv. 段用模块级继承状态（最近一次完整引用的书卷+章，跨块持久）；
+   *  解析失败（状态不全）时返回空数组，调用方不动原文。 */
   function _parseEnSeq(seq) {
     var refs = [];
     var book = '', ch = '';
     var parts = seq.split(/[,;]/);
     for (var i = 0; i < parts.length; i++) {
-      var m = PART_RE.exec(parts[i]);
-      if (!m) continue;
+      var seg = parts[i];
+      var vm = /^\s*v{1,2}\.\s*(\d{1,3})(?:[ab])?(?:\s*[-–]\s*(\d{1,3})(?:[ab])?)?\s*$/.exec(seg);
+      if (vm) {
+        // v./vv. 段：书卷+章取自模块级继承状态（「最近」的完整引用）；状态不全则放弃
+        if (!_ctxBook || !_ctxCh) return [];
+        book = _ctxBook; ch = _ctxCh; // 同步局部变量，供序列内后续延续段（纯节号/章:节）继承
+        refs.push(_ctxBook + _ctxCh + ':' + vm[1] + (vm[2] ? '-' + vm[2] : ''));
+        continue;
+      }
+      var m = PART_RE.exec(seg);
+      if (!m) {
+        // 裸节号范围（PART_RE 仅在 章:节-节 内支持范围）：书卷+章继承
+        var vr = /^\s*(\d{1,3})(?:[ab])?(?:\s*[-–]\s*(\d{1,3})(?:[ab])?)?\s*$/.exec(seg);
+        if (vr && book && ch) {
+          refs.push(book + ch + ':' + vr[1] + (vr[2] ? '-' + vr[2] : ''));
+        }
+        continue;
+      }
+      var haveBook = false;
       if (m[1]) {
         var nb = _normBook(m[1]);
-        if (nb) book = nb;
+        if (nb) { book = nb; haveBook = true; }
+      } else if (book) {
+        haveBook = true; // 延续段继承序列内书卷
       }
       if (m[3] !== undefined) {
-        // 章:节 形式（含范围）
+        if (!haveBook) return []; // 无书卷的章:节（异常数据）→ 整段放弃，不污染状态
+        // 章:节 形式（含范围）：刷新模块级继承状态（v./vv. 继承「最近」引用）
+        _ctxBook = book; _ctxCh = m[2];
         ch = m[2];
         refs.push(book + ch + ':' + m[3] + (m[4] ? '-' + m[4] : ''));
       } else if (book && ch) {
@@ -323,6 +351,12 @@
 
   function _escAttr(s) {
     return _escHtml(s).replace(/"/g, '&quot;');
+  }
+
+  /** 清空 v./vv. 继承状态（页面切换/数据重载时调用，防跨数据污染） */
+  function resetEnRefContext() {
+    _ctxBook = '';
+    _ctxCh = '';
   }
 
   /**
@@ -358,5 +392,6 @@
     pairEn: pairEn,
     pairEnTree: pairEnTree,
     wrapEnRefs: wrapEnRefs,
+    resetEnRefContext: resetEnRefContext,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
