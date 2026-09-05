@@ -704,9 +704,9 @@
     // 获取主题颜色（从全局 THEME 或使用默认值）
     function getTheme() {
         return window.THEME || {
-            brand: '#667eea',
-            brandDark: '#5b7ce6',
-            bg: 'linear-gradient(135deg, #667eea 0%, #5b7ce6 100%)',
+            brand: '#5468D9',
+            brandDark: '#4453C4',
+            bg: 'linear-gradient(135deg, #5468D9 0%, #4453C4 100%)',
             success: '#48bb78',
             successDark: '#38a169'
         };

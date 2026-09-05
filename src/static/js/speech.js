@@ -504,7 +504,18 @@
         playPauseBtn.classList.toggle('cx-paused', paused);
         playPauseBtn.setAttribute('aria-label', playing ? '暂停' : (paused ? '继续' : '播放'));
         updateMediaSessionState(playing);
+        // 播放结束时同步收起 nav-stack 浮动朗读条（若正显示），防止结束后残留
+        if (s === 'idle') {
+          try {
+            var _ftb = document.querySelector('.cx-float-tts-bar.show');
+            if (_ftb) _ftb.classList.remove('show');
+          } catch (e) {}
+        }
       }
+
+      // 暴露朗读状态查询（供 nav-stack 浮动朗读栏等外部判断是否正在播放/暂停）
+      window.CXSpeech.getState = function() { return state; };
+      window.CXSpeech.isSpeaking = function() { return state !== 'idle'; };
 
       function updateLoopButton() {
         if (!loopBtn) return;

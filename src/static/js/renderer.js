@@ -1200,6 +1200,11 @@
 
     app.innerHTML = html;
 
+    // 语言模式标记：纯英文模式 CSS 左对齐钩子（P3：西文禁用 justify）
+    try {
+      document.documentElement.setAttribute('data-lang', _isEn() ? 'en' : 'cn');
+    } catch(e){}
+
     try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e) {}
     setMeta(training);
     document.title = '第' + (chapter ? chapter.number : '') + '篇 - ' + ({
