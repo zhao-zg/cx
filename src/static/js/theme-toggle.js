@@ -689,9 +689,6 @@
                     <button class="action-btn" id="checkUpdateBtn" style="display:none">
                         <span class="cache-icon">🔄</span><span class="cache-text">检查更新</span>
                     </button>
-                    <button class="action-btn" id="ttsDiagBtn" style="display:none">
-                        <span class="cache-icon">🔍</span><span class="cache-text">朗读诊断</span>
-                    </button>
                     <button class="action-btn" id="guideBtn">
                         <span class="cache-icon">📖</span><span class="cache-text">使用说明</span>
                     </button>
@@ -795,16 +792,7 @@
             }
         })();
 
-        // ── 朗读诊断（仅 Capacitor APK，原生 TTS 场景）──────────────────
-        (function() {
-            var ttsDiagBtn = document.getElementById('ttsDiagBtn');
-            if (!ttsDiagBtn) return;
-            var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
-                                 window.Capacitor.isNativePlatform());
-            if (!isCapacitor) return; // 非 APK 环境不显示
-            ttsDiagBtn.style.display = 'inline-flex';
-            ttsDiagBtn.addEventListener('click', showTtsDiagnosticsDialog);
-        })();
+        // ── 朗读诊断：入口已移入「问题反馈」弹窗（见 showFeedbackDialog），APK 环境动态注入 ──
 
         // ── 反馈问题（服务器可达时显示）────────────────────────────
         (function() {
@@ -1385,7 +1373,7 @@
             } else if (env.useNativeTTS && rt.lastSpeakMs == null) {
                 tips.push('尚未进行朗读。请先点击正文中的播放按钮朗读一次，再打开本诊断查看首音延迟。');
             } else {
-                tips.push('当前未发现明显异常。若仍无声，请复制诊断信息，通过「问题反馈」发送给我们。');
+                tips.push('当前未发现明显异常。若仍无声，请复制诊断信息，重新打开「问题反馈」粘贴发送给我们。');
             }
             h.push(sec('💡 建议'));
             tips.forEach(function(t) {
@@ -1589,9 +1577,13 @@
     }
 
     // 反馈问题对话框
+    // APK 环境时在正文底部注入「朗读诊断」入口，点击关闭本弹窗并打开诊断弹窗
+    // （朗读无声音场景的排查链路：反馈 → 诊断 → 建议/复制 → 回到反馈发送）
     function showFeedbackDialog() {
         var PUSH_URLS = (window.CX_SERVERS && window.CX_SERVERS.push) || [];
         var MAX_LEN = 500;
+        var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
+                             window.Capacitor.isNativePlatform());
 
         var dlg = window.CX.openDialog({
             id: 'cxFeedbackMask',
@@ -1605,6 +1597,7 @@
                 '    <textarea class="cx-feedback-textarea" id="cxFeedbackText" maxlength="' + MAX_LEN + '" placeholder="请描述您遇到的问题或建议…"></textarea>',
                 '    <div class="cx-feedback-count" id="cxFeedbackCount">0/' + MAX_LEN + '</div>',
                 '    <div class="cx-feedback-tip">⚠️ 请先确认已是最新版本，部分问题在新版中已修复。</div>',
+                isCapacitor ? '    <div class="cx-feedback-ttsdiag" id="cxFeedbackTtsDiag">🔍 <span>朗读没声音？试试</span><button type="button" id="cxFeedbackTtsDiagBtn">朗读诊断</button></div>' : '',
                 '    <div class="cx-feedback-status" id="cxFeedbackStatus"></div>',
                 '  </div>',
                 '  <div class="cx-feedback-actions">',
@@ -1623,6 +1616,17 @@
 
         var closeBtn = document.getElementById('cxFeedbackClose');
         if (closeBtn) closeBtn.addEventListener('click', dlg.close);
+
+        // ── 朗读诊断入口（仅 APK 渲染）：关闭本弹窗并打开诊断弹窗 ─────────
+        // 用 dlg.close()（pop 回调）而非直接关反馈弹层，保证返回栈只消耗一层，
+        // 随后打开诊断弹窗新 push 一层，返回键依次回到反馈 → 设置面板。
+        var ttsDiagEntry = document.getElementById('cxFeedbackTtsDiagBtn');
+        if (ttsDiagEntry) {
+            ttsDiagEntry.addEventListener('click', function() {
+                dlg.close();
+                showTtsDiagnosticsDialog();
+            });
+        }
 
         var cancelBtn = document.getElementById('cxFeedbackCancelBtn');
         if (cancelBtn) cancelBtn.addEventListener('click', dlg.close);
