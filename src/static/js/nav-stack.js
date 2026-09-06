@@ -260,20 +260,9 @@
     }
 
     // ——— 浮动朗读栏：克隆原始 bottomControlBar 为固定覆盖层 ———
-
-    // 朗读是否激活（playing/paused）——idle 时不显示浮动朗读条
-    function isSpeechActive() {
-        try {
-            var sp = window.CXSpeech;
-            return !!(sp && typeof sp.isSpeaking === 'function' && sp.isSpeaking());
-        } catch (e) { return false; }
-    }
-
     function getTtsBar() {
         var bar = document.getElementById('bottomControlBar');
         if (!bar || bar.style.display === 'none') return null;
-        // 朗读未激活（idle）时浮动栏不携带朗读条，减少固定 UI 堆叠遮挡
-        if (!isSpeechActive()) return null;
         return bar;
     }
 
@@ -408,12 +397,11 @@
         if (first && first.focus) {
             try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); }
         }
-        // 仅朗读激活（playing/paused）时显示浮动朗读条；idle 时只弹顶部导航栏
-        if (isSpeechActive()) {
-            syncTtsContent();
-            if (_ttsEl) {
-                _ttsEl.classList.add('show');
-            }
+        // 朗读控制条始终与浮动导航栏成对出现：
+        // idle 时点克隆的播放键同样可开始/继续朗读，避免想朗读时必须滚回顶部找原始控制条
+        syncTtsContent();
+        if (_ttsEl) {
+            _ttsEl.classList.add('show');
         }
     }
 
