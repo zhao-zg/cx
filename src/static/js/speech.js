@@ -160,6 +160,15 @@
     return (text || '').replace(_CN_REF_PREFIX_RE, '');
   }
 
+  // 清除朗读进度持久化 key（自然播完时调用）。
+  // Web Speech 的 totalDuration 恒为估算值（250字/分钟），实际语速偏慢时
+  // 播完那一刻 pct < 100，resetState 内 _saveSpeechProgress 只会写入快照而非清 key，
+  // 导致「已听完全文，再次进入却恢复到 ~95%」。自然结束路径须显式清 key。
+  function clearStoredProgress(key) {
+    if (!key) return;
+    try { localStorage.removeItem(key); } catch (e) {}
+  }
+
   // 中文缩写 → 英文全名（EN 展开用；键与 _BN 一致）
   var _BN_EN = {
     '创': 'Genesis', '出': 'Exodus', '利': 'Leviticus', '民': 'Numbers',
@@ -990,7 +999,12 @@
             startSpeakingFromPercent(0);
           }, 50);
         } else {
+          // ★ 自然播完：显式清除进度 key。resetState 内 _saveSpeechProgress 依赖
+          //   pct>=100 才清 key，但 Web Speech 的 totalDuration 是估算值（实际语速
+          //   偏慢时 elapsed < totalDuration），不清 key 会残留旧进度导致误恢复。
+          //   resetState 先保存后置 idle，state 守卫保证清 key 后不会被重写。
           resetState();
+          clearStoredProgress(storageKey);
         }
       }
 
@@ -1256,6 +1270,7 @@
             _nativeTTSFailCount = 0;
             // Java 已处理循环（loop=true 时永不触发 onFinished），到达此处说明非循环播放自然结束
             resetState();
+            clearStoredProgress(storageKey);
           })
           .catch(function (err) {
             console.log('[CXSpeech] speak rejected: ' + (err && (err.message || err)) + ' gen=' + gen + ' curGen=' + _speakGeneration);
@@ -2046,7 +2061,8 @@
     appendSeparator: appendSeparator,
     splitBySentenceEN: splitBySentenceEN,
     shouldSkipEnRef: shouldSkipEnRef,
-    stripCnRefPrefix: stripCnRefPrefix
+    stripCnRefPrefix: stripCnRefPrefix,
+    clearStoredProgress: clearStoredProgress
   };
 
   // ======================================================================

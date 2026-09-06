@@ -208,3 +208,28 @@ test('CN stripCnRefPrefix: 非前缀文本原样返回（防误伤）', () => {
 test('CN stripCnRefPrefix: 前缀与正文之间用半角空格也剥（全量数据中的变体）', () => {
   assert.strictEqual(I.stripCnRefPrefix('弗四23 而在你们心思的灵里得以'), '而在你们心思的灵里得以');
 });
+
+// -- 进度持久化清理（Web Speech 自然播完防 key 残留） ----------------------------
+// Web Speech 的 totalDuration 恒为 250字/分钟估算值，实际语速偏慢时播完那一刻
+// pct < 100，resetState 内 _saveSpeechProgress 不会清 key（反而写入快照），
+// 导致「已听完全文，再次进入却恢复到 ~95%」。自然播完须显式清 key。
+
+test('clearStoredProgress: 删除指定 key', () => {
+  global.localStorage.setItem('cx_speech:t1', JSON.stringify({ pct: 95, day: 0, ts: 1 }));
+  I.clearStoredProgress('cx_speech:t1');
+  assert.strictEqual(global.localStorage.getItem('cx_speech:t1'), null);
+});
+
+test('clearStoredProgress: 不误删其他 key', () => {
+  global.localStorage.setItem('cx_speech:keep', 'x');
+  global.localStorage.setItem('cx_speech:del', 'y');
+  I.clearStoredProgress('cx_speech:del');
+  assert.strictEqual(global.localStorage.getItem('cx_speech:keep'), 'x');
+  assert.strictEqual(global.localStorage.getItem('cx_speech:del'), null);
+});
+
+test('clearStoredProgress: 空 key / null / undefined 不抛异常', () => {
+  I.clearStoredProgress('');
+  I.clearStoredProgress(null);
+  I.clearStoredProgress(undefined);
+});
