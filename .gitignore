@@ -54,8 +54,10 @@ output/
 /images/
 /css/
 
-# Cloudflare Pages Functions（由 main.py 自动生成）
-functions/
+# Cloudflare Pages Functions（_middleware.js 由 main.py 自动生成，不入库）
+# 注意：[[path]].js 含 glob 方括号字符，须转义
+functions/*
+!functions/\[\[path\]\].js
 
 # Temporary downloads
 tmp_downloads/

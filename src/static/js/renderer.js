@@ -1205,7 +1205,7 @@
       document.documentElement.setAttribute('data-lang', _isEn() ? 'en' : 'cn');
     } catch(e){}
 
-    try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e) {}
+    try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');try{document.cookie='cx_access=ok;path=/;max-age=31536000;samesite=lax';}catch(e){};} } catch(e) {}
     setMeta(training);
     document.title = '第' + (chapter ? chapter.number : '') + '篇 - ' + ({
       cv:'纲目', cx:'晨读', h:'听抄', ts:'详情', sg:'诗歌', zs:'职事信息'
@@ -1472,7 +1472,7 @@
 
     loadTraining(batchPath)
       .then(function(training) {
-        try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e){}
+        try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');try{document.cookie='cx_access=ok;path=/;max-age=31536000;samesite=lax';}catch(e){};} } catch(e){}
         setMeta(training);
 
         var subtitleLine ='<div class="subtitle">' + escText(training.year + '-' + training.season) + '</div>';
@@ -1592,7 +1592,7 @@
         '</div>';
       rescueThemeBtn();
       getApp().innerHTML = html;
-      try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e){}
+      try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');try{document.cookie='cx_access=ok;path=/;max-age=31536000;samesite=lax';}catch(e){};} } catch(e){}
       document.title = '标语 - ' + (training.title || '');
       setMeta(training);
       initSearchBtn();
@@ -1675,7 +1675,7 @@
         '</div>';
       rescueThemeBtn();
       getApp().innerHTML = html;
-      try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e){}
+      try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');try{document.cookie='cx_access=ok;path=/;max-age=31536000;samesite=lax';}catch(e){};} } catch(e){}
       document.title = '标语诗歌 - ' + (training.title || '');
       setMeta(training);
       initSearchBtn();
@@ -1713,7 +1713,7 @@
     if (_scrollSaveHandler) { win.removeEventListener('scroll', _scrollSaveHandler); _scrollSaveHandler = null; }
     _scrollPageKey = 'cx_scroll:home';
     showHome();
-    try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');} } catch(e) {}
+    try { if(window.Capacitor||window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){sessionStorage.setItem('cx_access','ok');try{document.cookie='cx_access=ok;path=/;max-age=31536000;samesite=lax';}catch(e){};} } catch(e) {}
     try { localStorage.setItem('cx_last_page', win.location.href); } catch(e) {}
     // 设置主页滚动保存监听
     _scrollSaveHandler = function() {

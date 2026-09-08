@@ -21,7 +21,7 @@ from src.generator import export_training_json, generate_search_index_from_json
 from src.bible_dict import BibleDict
 
 
-def generate_pages_middleware(config, project_root='.'):
+def generate_pages_middleware(config, project_root='.', output_dir=None):
     """根据 access_time 配置生成 Cloudflare Pages Functions _middleware.js
     
     生成的 functions/_middleware.js 会在 wrangler pages deploy 时自动被
@@ -38,6 +38,10 @@ def generate_pages_middleware(config, project_root='.'):
         if os.path.exists(mw_path):
             os.remove(mw_path)
             print('✓ functions/_middleware.js 已删除（access_time 已关闭）')
+        # output 侧同样清理，防止残留旧 middleware 随部署上线
+        out_mw_path = os.path.join(output_dir, 'functions', '_middleware.js')
+        if os.path.exists(out_mw_path):
+            os.remove(out_mw_path)
         return
 
     start_hour = int(access_time.get('allow_start', 6))
@@ -205,6 +209,11 @@ def generate_pages_middleware(config, project_root='.'):
     with open(mw_path, 'w', encoding='utf-8') as f:
         f.write(middleware_js)
 
+    # 同步到 output/functions/（wrangler pages deploy output 只识别部署目录内的 functions）
+    out_functions_dir = os.path.join(output_dir, 'functions')
+    os.makedirs(out_functions_dir, exist_ok=True)
+    shutil.copy2(mw_path, os.path.join(out_functions_dir, '_middleware.js'))
+
     # ── 打印总结信息 ────────────────────────────────────
     if has_daily_schedule:
         sched_desc = '，按天配置: ' + ', '.join(
@@ -215,6 +224,27 @@ def generate_pages_middleware(config, project_root='.'):
     else:
         print(f'✓ functions/_middleware.js 已生成（允许访问: {start_hour}:00 - {end_hour}:00 UTC+{tz_offset}{day_desc}）')
     return mw_path
+
+
+def copy_functions(output_dir):
+    """复制项目根 functions/ 的手写 Pages Functions（[[path]].js 服务端伪装拦截）到 output/functions/
+
+    注意：只拷贝 [[path]].js，不拷贝 _middleware.js（由 generate_pages_middleware 单独生成/清理）。
+    """
+    functions_src = os.path.join('.', 'functions')
+    if not os.path.exists(functions_src):
+        print('⚠ functions/ 目录不存在，跳过伪装拦截 Functions 拷贝')
+        return
+    out_functions_dir = os.path.join(output_dir, 'functions')
+    os.makedirs(out_functions_dir, exist_ok=True)
+    copied = 0
+    for name in os.listdir(functions_src):
+        src = os.path.join(functions_src, name)
+        if os.path.isfile(src) and name != '_middleware.js':
+            shutil.copy2(src, os.path.join(out_functions_dir, name))
+            copied += 1
+    if copied:
+        print(f'✓ 伪装拦截 Functions 已复制到 output/functions/（{copied} 个文件）')
 
 
 def generate_remote_config_js(remote_servers, output_dir, sponsor_enabled=True, sponsor_show_minutes=5, sponsor_links=None, sponsor_images=None, use_outline_fallback=False):
@@ -1510,7 +1540,10 @@ def generate_main_index(config, batch_results):
                                   config.get('use_outline_fallback', False))
 
     # ── Cloudflare Pages Functions middleware（时间段访问控制）──────────────
-    generate_pages_middleware(config, project_root='.')
+    generate_pages_middleware(config, project_root='.', output_dir=output_dir)
+
+    # ── Cloudflare Pages Functions：服务端伪装拦截 ─────────────────────────
+    copy_functions(output_dir)
 
     # ── 可选混淆 ──────────────────────────────────────────────────────────
     # 默认仅在 CI 环境（GitHub Actions）混淆；本地开发跳过以方便调试。
