@@ -921,6 +921,13 @@ def download_motto_image(session: requests.Session, motto_page: Dict[str, str], 
     for idx, img in enumerate(images):
         suffix = '' if idx == 0 else str(idx + 1)
         image_path = folder_path / f"标语诗歌{suffix}{img['ext']}"
+        new_md5 = hashlib.md5(img['data']).hexdigest()
+        if image_path.exists() and image_path.is_file() and image_path.stat().st_size > 0:
+            existing_md5 = calculate_file_md5(image_path)
+            if existing_md5 == new_md5:
+                print(f"  [SKIP] 图片已存在且内容相同: {image_path}")
+                continue
+            print(f"  [UPDATE] 图片内容变化，更新: {image_path}")
         image_path.write_bytes(img['data'])
         size_kb = img['size'] / 1024
         print(f"  [OK] {folder_name}/标语诗歌{suffix}{img['ext']}: {size_kb:.2f} KB")
