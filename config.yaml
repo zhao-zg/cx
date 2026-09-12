@@ -22,9 +22,16 @@ sponsor_enabled: true
 sponsor_show_minutes: 30
 # 顾念微工弹框中的外部链接（多个链接竞速择优跳转，全部不可达时按顺序兜底打开第一个）
 # 每项格式：{ text: "链接文字", url: "https://..." }
+# 软件维护合辑：复用 Cloudflare 镜像域名，前缀 cx 改为 apk（实测 apk.xzdjx.dynv6.net 不可达，故不列入）
 sponsor_links:
   - text: "软件维护合辑"
-    url: "https://apk.xzdjx.dynv6.net"
+    url: "https://apk.xzdjx.dpdns.org/"
+  - text: "软件维护合辑"
+    url: "https://apk.1189.dpdns.org/"
+  - text: "软件维护合辑"
+    url: "https://apk.zzgxxx.eu.org/"
+  - text: "软件维护合辑"
+    url: "https://apk.bxg.dpdns.org/"
 # 赞助二维码图片路径（下发到 remote-config.js，前端运行时读取）
 # 修改文件名后老版本因硬编码旧路径无法加载，可防止直接获取
 # 对应 src/static/image/ 下的实际文件名

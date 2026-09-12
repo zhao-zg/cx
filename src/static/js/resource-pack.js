@@ -856,7 +856,13 @@
         var rowsHtml = '';
         packs.forEach(function (pack, i) { rowsHtml += makePackRow(pack, i); });
 
+        var noticeHtml =
+          '<div style="font-size:12px;line-height:1.7;color:var(--text-secondary);padding:8px 10px;margin-bottom:6px;background:var(--surface-alt);border-radius:6px">' +
+            '历史合辑早年记录不全（只有纲目）' +
+          '</div>';
+
         content.innerHTML =
+          noticeHtml +
           rowsHtml +
           '<div id="cxRpDlAllRow" class="pref-row" style="display:none;border-top:1px solid var(--border);padding-top:10px;margin-top:4px">' +
             '<div class="pref-label-wrap">' +
