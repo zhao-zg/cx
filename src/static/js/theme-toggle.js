@@ -1470,14 +1470,12 @@
         // 兜底：remote-config 未下发图片路径时用旧路径（兼容老版本配置）
         var imgFiles = { wx: SPONSOR_IMAGES.wx || 'images/zanzhu-wx.png', zfb: SPONSOR_IMAGES.zfb || 'images/zanzhu-zfb.jpg' };
 
-        // 构建外部链接 HTML（每个 link 生成一个按钮）
+        // 构建外部链接 HTML（只渲染一个按钮；点击时对全部配置链接竞速探测，自动打开首个可达者）
         var linksHtml = '';
         if (SPONSOR_LINKS.length) {
             linksHtml = '<div class="cx-sponsor-links">' +
-                SPONSOR_LINKS.map(function(link, i) {
-                    return '<button class="cx-sponsor-link" data-link-idx="' + i + '">' +
-                        '<span>🔗</span><span>' + (link.text || '外部链接') + '</span></button>';
-                }).join('') +
+                '<button class="cx-sponsor-link" data-link-idx="0">' +
+                '<span>🔗</span><span>' + (SPONSOR_LINKS[0].text || '外部链接') + '</span></button>' +
                 '</div>';
         }
 
