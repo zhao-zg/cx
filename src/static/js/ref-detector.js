@@ -85,6 +85,24 @@
   // 将文本中完整书名替换为缩写（从长到短）
   var _sortedFullNames = Object.keys(FULL_BOOK_MAP).sort(function(a,b){return b.length-a.length;});
 
+  // 裸书名上下文更新（ctx-book）的白名单：
+  // 仅当书卷名以「书/记/篇/福音」结尾（如「约拿书」「马太福音」「诗篇」），
+  // 或是几乎专指书卷的无后缀名词（箴言/雅歌/行传）时，才允许触发
+  // 「后不接章节号的书卷名 → 更新上下文」。
+  // 否则（人名如「约拿」「约翰」「马太」，地名如「罗马」、事件如「出埃及」）
+  // 不得触发——否则「基督是更大的约拿—十二39～41」会把上下文污染为「拿」，
+  // 导致后续相对引用全部解析成拿 12/15/28 章这类不存在的经节。
+  var _ctxBookAllowed = (function () {
+    var set = {};
+    for (var i = 0; i < _sortedFullNames.length; i++) {
+      var k = _sortedFullNames[i];
+      if (/[书记篇福音]$/.test(k) || k === '箴言' || k === '雅歌' || k === '行传') {
+        set[k] = 1;
+      }
+    }
+    return set;
+  }());
+
   // 行内章节式引用匹配（嵌在句子中、不在括号/破折号内）
   // 例：马可十一章二十三至二十四节、诗篇一百一十九篇、二十五章十四至三十节、三十七节
   var _INLINE_F5_RE = (function () {
@@ -443,8 +461,11 @@
       }
       // 收集正文/书名中裸露书卷全名上下文更新点（后不接章节号，用于括号相对引用的上下文推断）
       // 例：「以赛亚书（七14，八8）」→ book=赛；「《雅歌结晶读经》」→ 找到「雅歌」→ book=歌
+      // 仅限 _ctxBookAllowed 白名单（书名后缀完备或箴言/雅歌/行传）；
+      // 人名「约拿」等裸词不更新上下文（防「更大的约拿—十二39」污染 ctx 为「拿」）
       for (var ki2 = 0; ki2 < _sortedFullNames.length; ki2++) {
         var _fn = _sortedFullNames[ki2];
+        if (!_ctxBookAllowed[_fn]) continue;
         var _fi = seg.indexOf(_fn);
         while (_fi >= 0) {
           var _fe = _fi + _fn.length;
@@ -618,16 +639,21 @@
         // 括号处理后的上下文更新：
         // 1) 允许在外层 ch 缺失时从括号内补齐章号（如「…（一26）…（28）」中的 28）
         // 2) 避免无条件覆盖外层 ch，防止连续括号把纯节续接到错误章
+        // 3) 括号内容显式带章号（如「约拿（十二41）」→ 太12:41）时，
+        //    同书也须推进 ch，使后续纯节括号「（42）」续接正确章（太12:42 而非 太1:42）
         var lastRef = refs[refs.length - 1];
         var lm = lastRef.match(/^([^\d:]+)(\d+):(\d+)/);
         if (lm && !_lockBook) {
           var _newBook = lm[1];
           var _newCh = parseInt(lm[2], 10);
-          // 书卷变化时同步章号；同书卷仅在外层无章号时补齐
+          // 括号原文含中文章号（非纯节号续接）时视为显式章切换
+          var _parenHasCh = /^第?[一二三四五六七八九十百〇○]+\d/.test((m[1] || '').trim())
+            || /^\d+\s*[~～\-]?\s*[一二三四五六七八九十百〇○]+\d/.test((m[1] || '').trim())
+            || /^[一二三四五六七八九十百〇○]+\d+[~～\-]/.test((m[1] || '').trim());
           if (_newBook !== book) {
             book = _newBook;
             ch = _newCh;
-          } else if (!ch) {
+          } else if (!ch || _parenHasCh) {
             ch = _newCh;
           }
         }
