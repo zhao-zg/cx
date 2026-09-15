@@ -3,7 +3,7 @@
 # 是否用该篇的纲目（outline_sections）填充听抄内容。
 # true  = 允许纲目侵入听抄（历史行为，听抄页会显示纲目内容）
 # false = 不侵入（默认），听抄保持原有内容，无正文则不做回退
-use_outline_fallback: false
+use_outline_fallback: true
 
 # 通用批量处理配置
 batch_processing:
