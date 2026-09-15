@@ -466,6 +466,42 @@ def calculate_file_md5(file_path: Path) -> Optional[str]:
         return None
 
 
+# ── 标语诗歌图片感知哈希（dHash）────────────────────────────────────────────
+# 背景：Notion 图片 CDN 对同一 attachment 在不同请求/节点返回两个字节级不同
+# 但像素内容相同的编码版本，导致 MD5 每日振荡、误判「内容变化」而重写文件，
+# 引发无意义的 git 提交与全量部署。dHash 只比较亮度梯度，对编码字节差异
+# 免疫，同时仍能识别真实的内容替换（换图 → Hamming 距离显著增大）。
+DHASH_SIMILAR_THRESHOLD = 10  # Hamming 距离 ≤ 10 视为同一张图（64 bit 中 15%）
+
+
+def calculate_image_dhash(data: bytes) -> Optional[int]:
+    """计算图片的 dHash 感知哈希（64-bit）。
+
+    灰度化 → 缩放 9x8 → 逐行比较相邻像素亮度 → 64 bit 指纹。
+    解码失败（损坏/非图片）返回 None，由调用方降级 MD5 逻辑。
+    """
+    try:
+        from io import BytesIO
+        from PIL import Image
+        img = Image.open(BytesIO(data))
+        img = img.convert('L').resize((9, 8), Image.LANCZOS)
+        pixels = list(img.getdata())
+        bits = 0
+        for row in range(8):
+            base = row * 9
+            for col in range(8):
+                bits = (bits << 1) | (1 if pixels[base + col + 1] > pixels[base + col] else 0)
+        return bits
+    except Exception as e:
+        print(f"  计算dHash失败: {e}")
+        return None
+
+
+def dhash_distance(h1: int, h2: int) -> int:
+    """两个 64-bit dHash 的 Hamming 距离"""
+    return bin(h1 ^ h2).count('1')
+
+
 def decode_zip_filename(info) -> str:
     """解码 zip 成员文件名：UTF-8 优先 → GBK → 保留原始 CP437。
     
@@ -921,13 +957,27 @@ def download_motto_image(session: requests.Session, motto_page: Dict[str, str], 
     for idx, img in enumerate(images):
         suffix = '' if idx == 0 else str(idx + 1)
         image_path = folder_path / f"标语诗歌{suffix}{img['ext']}"
-        new_md5 = hashlib.md5(img['data']).hexdigest()
         if image_path.exists() and image_path.is_file() and image_path.stat().st_size > 0:
-            existing_md5 = calculate_file_md5(image_path)
-            if existing_md5 == new_md5:
-                print(f"  [SKIP] 图片已存在且内容相同: {image_path}")
-                continue
-            print(f"  [UPDATE] 图片内容变化，更新: {image_path}")
+            # 优先 dHash 感知比较：Notion CDN 对同一图片返回两个字节级不同但
+            # 像素相同的版本，MD5 会每日振荡；dHash 忽略编码差异只看内容
+            new_hash = calculate_image_dhash(img['data'])
+            existing_hash = None
+            if new_hash is not None:
+                with open(image_path, 'rb') as f:
+                    existing_hash = calculate_image_dhash(f.read())
+            if new_hash is not None and existing_hash is not None:
+                if dhash_distance(new_hash, existing_hash) <= DHASH_SIMILAR_THRESHOLD:
+                    print(f"  [SKIP] 图片已存在且内容相同(dHash): {image_path}")
+                    continue
+                print(f"  [UPDATE] 图片内容变化(dHash距离 {dhash_distance(new_hash, existing_hash)})，更新: {image_path}")
+            else:
+                # dHash 不可用（解码失败）→ 降级 MD5 字节比较
+                new_md5 = hashlib.md5(img['data']).hexdigest()
+                existing_md5 = calculate_file_md5(image_path)
+                if existing_md5 == new_md5:
+                    print(f"  [SKIP] 图片已存在且内容相同: {image_path}")
+                    continue
+                print(f"  [UPDATE] 图片内容变化，更新: {image_path}")
         image_path.write_bytes(img['data'])
         size_kb = img['size'] / 1024
         print(f"  [OK] {folder_name}/标语诗歌{suffix}{img['ext']}: {size_kb:.2f} KB")
