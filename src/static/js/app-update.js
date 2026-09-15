@@ -299,6 +299,11 @@
                 }
 
                 blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+
+                // 完整性校验：下载大小与 Content-Length 比对
+                if (contentLength > 0 && blob.size !== contentLength) {
+                    throw new Error('下载不完整: 已下载 ' + blob.size + ' 字节, 期望 ' + contentLength + ' 字节');
+                }
             } else {
                 // body 不可读，降级为整体读取
                 blob = await response.blob();
@@ -470,7 +475,7 @@
             return 0;
         },
 
-        downloadApk: async function(url, onProgress, onComplete, onError) {
+        downloadApk: async function(url, onProgress, onComplete, onError, expectedSize) {
             if (!window.Capacitor || !window.Capacitor.Plugins) {
                 if (onError) onError(new Error('非 Capacitor 环境'));
                 return;
@@ -591,7 +596,12 @@
                 console.log('[APK下载] 开始下载:', downloadUrl);
                 if (onProgress) onProgress('正在下载...', 10, 0, 0);
                 blob = await downloadFile(downloadUrl, onProgress);
-                
+
+                // 完整性校验：比对 version.json 中的 apk_size（如有）
+                if (expectedSize && expectedSize > 0 && blob.size !== expectedSize) {
+                    throw new Error('APK 大小不匹配: 已下载 ' + blob.size + ' 字节, 期望 ' + expectedSize + ' 字节（可能下载不完整）');
+                }
+
                 var downloadTime = ((Date.now() - startDownloadTime) / 1000).toFixed(1);
                 console.log('[APK下载] 下载完成:', (blob.size / 1024 / 1024).toFixed(2), 'MB, 耗时:', downloadTime, 's');
                 
@@ -654,6 +664,10 @@
                         try {
                             if (onProgress) onProgress('镜像失败，切换线路重试...', 10, 0, 0);
                             blob = await downloadFile(downloadUrl, onProgress);
+                            // 重试后完整性校验
+                            if (expectedSize && expectedSize > 0 && blob.size !== expectedSize) {
+                                throw new Error('APK 大小不匹配（重试）: 已下载 ' + blob.size + ' 字节, 期望 ' + expectedSize + ' 字节');
+                            }
                             // 重试成功 → 继续后续保存安装流程
                             var downloadTime = ((Date.now() - startDownloadTime) / 1000).toFixed(1);
                             console.log('[APK下载] 重试下载完成:', (blob.size / 1024 / 1024).toFixed(2), 'MB, 耗时:', downloadTime, 's');
@@ -848,11 +862,12 @@
         var sizeText = apk ? ' (' + (apk.size / 1024 / 1024).toFixed(1) + ' MB)' : '';
         if (isVersionUnknown || comparison > 0) {
             var btnText = isVersionUnknown ? '💾 立即下载' : '💾 立即更新';
-            html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, ' + THEME.success + ' 0%, ' + THEME.successDark + ' 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.AppUpdate.downloadApkWithUI(\'' + apk.browser_download_url + '\')">';
+            var apkSizeAttr = apk ? apk.size : '';
+            html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: linear-gradient(135deg, ' + THEME.success + ' 0%, ' + THEME.successDark + ' 100%); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.AppUpdate.downloadApkWithUI(\'' + apk.browser_download_url + '\'' + (apkSizeAttr ? ', ' + apkSizeAttr : '') + ')">';
             html += btnText + sizeText;
             html += '</button>';
         } else {
-            html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: ' + THEME.bg + '; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.AppUpdate.downloadApkWithUI(\'' + apk.browser_download_url + '\')">';
+            html += '<button style="width: 100%; padding: 12px; margin-bottom: 10px; background: ' + THEME.bg + '; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;" onclick="window.AppUpdate.downloadApkWithUI(\'' + apk.browser_download_url + '\'' + (apkSizeAttr ? ', ' + apkSizeAttr : '') + ')">';
             html += '💾 重新下载' + sizeText;
             html += '</button>';
         }
@@ -871,7 +886,7 @@
     AppUpdate.getCurrentVersion = getCurrentApkVersion;
     
     // 带 UI 的下载 APK 函数
-    AppUpdate.downloadApkWithUI = function(url) {
+    AppUpdate.downloadApkWithUI = function(url, expectedSize) {
         console.log('[APK下载] 开始下载:', url);
         
         if (!window.Capacitor || !window.Capacitor.Plugins) {
@@ -910,7 +925,8 @@
                 if (confirm('APK 下载失败\n\n' + error.message + '\n\n是否在浏览器中打开下载链接？')) {
                     window.open(url, '_blank');
                 }
-            }
+            },
+            expectedSize
         );
     };
     
@@ -1125,7 +1141,7 @@
     }
     
     // 处理版本比较结果并更新 UI
-    function handleVersionComparison(statusEl, btnEl, comparison, currentVersion, latestVersion, sizeText, downloadUrl) {
+    function handleVersionComparison(statusEl, btnEl, comparison, currentVersion, latestVersion, sizeText, downloadUrl, expectedSize) {
         var currentClean = currentVersion.replace('v', '');
         var latestClean = latestVersion.replace('v', '');
         
@@ -1135,7 +1151,7 @@
             btnEl.textContent = '立即更新' + sizeText;
             btnEl.onclick = function() {
                 console.log('[APK更新] 开始下载:', downloadUrl);
-                AppUpdate.downloadApkWithUI(downloadUrl);
+                AppUpdate.downloadApkWithUI(downloadUrl, expectedSize);
             };
         } else if (comparison === 0) {
             statusEl.innerHTML = '✅ 已是最新版本<br>版本: v' + currentClean;
@@ -1143,7 +1159,7 @@
             btnEl.textContent = '重新下载' + sizeText;
             btnEl.onclick = function() {
                 console.log('[APK更新] 重新下载:', downloadUrl);
-                AppUpdate.downloadApkWithUI(downloadUrl);
+                AppUpdate.downloadApkWithUI(downloadUrl, expectedSize);
             };
         } else if (comparison === null) {
             statusEl.innerHTML = '⚠️ 无法比较版本<br>当前: ' + currentVersion + '<br>最新: v' + latestClean;
@@ -1151,7 +1167,7 @@
             btnEl.textContent = '下载最新版' + sizeText;
             btnEl.onclick = function() {
                 console.log('[APK更新] 下载最新版:', downloadUrl);
-                AppUpdate.downloadApkWithUI(downloadUrl);
+                AppUpdate.downloadApkWithUI(downloadUrl, expectedSize);
             };
         } else {
             statusEl.innerHTML = '当前: v' + currentClean + '<br>远程: v' + latestClean;
@@ -1208,7 +1224,7 @@
                 var comparison = AppUpdate.compareVersion(latestVersionClean, currentVersionClean);
                 var sizeText = apkSize ? ' (' + (apkSize / 1024 / 1024).toFixed(1) + ' MB)' : '';
 
-                handleVersionComparison(statusEl, btnEl, comparison, currentVersion, latestVersion, sizeText, downloadUrl);
+                handleVersionComparison(statusEl, btnEl, comparison, currentVersion, latestVersion, sizeText, downloadUrl, apkSize);
 
                 // 发现新版本时预显示 changelog 加载占位
                 if (comparison > 0) {
@@ -1274,7 +1290,7 @@
                     var comparison = AppUpdate.compareVersion(latestVersion.replace('v', ''), currentVersion.replace('v', ''));
                     var sizeText = ' (' + (apk.size / 1024 / 1024).toFixed(1) + ' MB)';
 
-                    handleVersionComparison(statusEl, btnEl, comparison, currentVersion, latestVersion, sizeText, apk.browser_download_url);
+                    handleVersionComparison(statusEl, btnEl, comparison, currentVersion, latestVersion, sizeText, apk.browser_download_url, apk.size);
 
                     // 发现新版本时预显示 changelog 加载占位
                     if (comparison > 0) {
