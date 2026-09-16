@@ -502,6 +502,31 @@ def dhash_distance(h1: int, h2: int) -> int:
     return bin(h1 ^ h2).count('1')
 
 
+def is_white_background(data: bytes, sample_ratio: float = 0.1) -> bool:
+    """检测图片是否为白底素版（四角采样，RGB 三通道均 > 200 视为白）。
+
+    标语诗歌页面可能同时提供白底素版与蓝底标注版两种配色；为保持应用内
+    只保留一种配色（白底素版），蓝底版一律不落盘。
+    解码失败返回 True（保守：不因检测失败而丢弃可能是白版的图）。
+    """
+    try:
+        from io import BytesIO
+        from PIL import Image
+        im = Image.open(BytesIO(data)).convert('RGB')
+        w, h = im.size
+        if w < 4 or h < 4:
+            return True
+        corners = [(1, 1), (w - 2, 1), (1, h - 2), (w - 2, h - 2)]
+        # 四角都接近白色才判白底；标注版（深蓝/彩色边）任一角落不白即非白底
+        for x, y in corners:
+            r, g, b = im.getpixel((x, y))
+            if r < 200 or g < 200 or b < 200:
+                return False
+        return True
+    except Exception:
+        return True
+
+
 def decode_zip_filename(info) -> str:
     """解码 zip 成员文件名：UTF-8 优先 → GBK → 保留原始 CP437。
     
@@ -953,31 +978,56 @@ def download_motto_image(session: requests.Session, motto_page: Dict[str, str], 
     folder_path = Path('resource') / folder_name
     folder_path.mkdir(parents=True, exist_ok=True)
 
+    # 收集目录内已有的所有标语图片（任意扩展名），用于跨扩展名内容判重：
+    # Notion 页面可能同一内容同时挂多种编码/格式（png/jpg），且 CDN 字节振荡
+    # 也会产生内容相同的新文件；只与同路径同扩展名比较会漏判并重复落盘。
+    existing_motto: List[Path] = []
+    for p in folder_path.iterdir():
+        if p.is_file() and p.stat().st_size > 0 and p.name.startswith('标语诗歌'):
+            existing_motto.append(p)
+
+    def find_similar_existing(data: bytes) -> Optional[Path]:
+        """在目录内所有已有标语图中找内容相同的那张，找不到返回 None。
+
+        优先 dHash（跨扩展名内容级匹配）；dHash 不可用（解码失败，如损坏/
+        非图片字节）时降级为 MD5 字节比较，保证幂等与向后兼容。
+        """
+        new_hash = calculate_image_dhash(data)
+        for p in existing_motto:
+            try:
+                with open(p, 'rb') as f:
+                    old_data = f.read()
+            except OSError:
+                continue
+            if new_hash is not None:
+                old_hash = calculate_image_dhash(old_data)
+                if old_hash is not None and dhash_distance(new_hash, old_hash) <= DHASH_SIMILAR_THRESHOLD:
+                    return p
+            else:
+                # dHash 不可用 → MD5 字节兜底
+                if hashlib.md5(data).hexdigest() == hashlib.md5(old_data).hexdigest():
+                    return p
+        return None
+
     # 保存所有图片：第1张命名为"标语诗歌.ext"，后续命名为"标语诗歌2.ext"、"标语诗歌3.ext"...
     for idx, img in enumerate(images):
         suffix = '' if idx == 0 else str(idx + 1)
         image_path = folder_path / f"标语诗歌{suffix}{img['ext']}"
-        if image_path.exists() and image_path.is_file() and image_path.stat().st_size > 0:
-            # 优先 dHash 感知比较：Notion CDN 对同一图片返回两个字节级不同但
-            # 像素相同的版本，MD5 会每日振荡；dHash 忽略编码差异只看内容
-            new_hash = calculate_image_dhash(img['data'])
-            existing_hash = None
-            if new_hash is not None:
-                with open(image_path, 'rb') as f:
-                    existing_hash = calculate_image_dhash(f.read())
-            if new_hash is not None and existing_hash is not None:
-                if dhash_distance(new_hash, existing_hash) <= DHASH_SIMILAR_THRESHOLD:
-                    print(f"  [SKIP] 图片已存在且内容相同(dHash): {image_path}")
-                    continue
-                print(f"  [UPDATE] 图片内容变化(dHash距离 {dhash_distance(new_hash, existing_hash)})，更新: {image_path}")
+
+        # 1) 与目录内所有已有标语图做跨扩展名 dHash 判重
+        similar = find_similar_existing(img['data'])
+        if similar is not None:
+            if similar.name == image_path.name and similar.stat().st_size == img['size']:
+                print(f"  [SKIP] 图片已存在且内容相同(dHash): {image_path}")
             else:
-                # dHash 不可用（解码失败）→ 降级 MD5 字节比较
-                new_md5 = hashlib.md5(img['data']).hexdigest()
-                existing_md5 = calculate_file_md5(image_path)
-                if existing_md5 == new_md5:
-                    print(f"  [SKIP] 图片已存在且内容相同: {image_path}")
-                    continue
-                print(f"  [UPDATE] 图片内容变化，更新: {image_path}")
+                print(f"  [SKIP] 与已有 {similar.name} 内容相同(dHash)，跳过: {image_path}")
+            continue
+
+        # 2) 白底素版优先：蓝底标注版内容不同但属另一配色，不落盘
+        if not is_white_background(img['data']):
+            print(f"  [SKIP] 非白底（标注版配色），保留白底素版: {image_path}")
+            continue
+
         image_path.write_bytes(img['data'])
         size_kb = img['size'] / 1024
         print(f"  [OK] {folder_name}/标语诗歌{suffix}{img['ext']}: {size_kb:.2f} KB")
