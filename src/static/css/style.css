@@ -845,9 +845,9 @@ div.pair-bilingual .pair-en,div.pair-bilingual .pair-en *{text-align:left}
 .scripture-popup-fn-body{font-size:1em;color:var(--text);line-height:1.9;text-align:justify}
 .scripture-popup-back{width:28px;height:28px;border:none;background:none;cursor:pointer;font-size:16px;color:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:4px;-webkit-tap-highlight-color:transparent;padding:0}
 .scripture-popup-back:active{background:var(--surface-alt);border-radius:50%}
-.fn-ref{font-size:.68em;vertical-align:super;line-height:0;color:var(--footnote-ref);font-weight:700;cursor:pointer;padding:0 1px;-webkit-tap-highlight-color:transparent;user-select:none}
+.fn-ref{font-size:.68em;vertical-align:super;line-height:0;color:var(--footnote-ref);font-weight:700;cursor:pointer;padding:0 2px;-webkit-tap-highlight-color:transparent;user-select:none}
 .fn-ref:hover,.fn-ref:active{color:var(--footnote-ref-hover)}
-.xref-ref{font-size:.65em;vertical-align:super;line-height:0;color:var(--brand);font-weight:700;cursor:pointer;padding:0 1px;-webkit-tap-highlight-color:transparent;user-select:none}
+.xref-ref{font-size:.65em;vertical-align:super;line-height:0;color:var(--brand);font-weight:700;cursor:pointer;padding:0 2px;-webkit-tap-highlight-color:transparent;user-select:none}
 /* ── 平板（≥600px）底部扩展框覆盖 ─────────────────────────── */
 @media(min-width:600px){
 /* overlay 平板上仅做 z-index 占位，不参与动画，背景透明且不拦截点击 */
