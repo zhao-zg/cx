@@ -104,6 +104,13 @@ def load_book_acronym_map(conn: sqlite3.Connection) -> Dict[int, str]:
             chosen = candidates[0][0]
         result[book_index] = chosen
 
+    # 兼容性修正：DB 中约翰三书（book_index=64）简称为「约参」，
+    # 而前端 ref-detector.js 识别键名为「约叁」（SINGLE_BOOK 正则），
+    # 旧版 bible-text.json 也统一用「约叁」。若不修正，scripture-popup.js
+    # 查询「约叁1:9」会落空并回退显示「（未收录）」。
+    if result.get(64) == "约参":
+        result[64] = "约叁"
+
     return result
 
 

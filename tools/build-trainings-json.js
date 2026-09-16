@@ -86,13 +86,82 @@ function getBibleKeys() {
   return _bibleKeys;
 }
 
+/** 懒加载 bible-text.json 全量数据（含 {N}/[a] 标记，用于半节标记补全）。 */
+var _bibleData = null;
+function getBibleData() {
+  if (_bibleData !== null) return _bibleData;
+  var p = path.join(OUTPUT_DIR, 'data', 'bible-text.json');
+  if (!fs.existsSync(p)) { _bibleData = {}; return _bibleData; }
+  _bibleData = JSON.parse(fs.readFileSync(p, 'utf8'));
+  return _bibleData;
+}
+
+/** 半节标记补全（与 Python src/generator.py _enrich_half_verse 一致）。 */
+var _HALF_MARKER = /\{\d+\}|\[[a-z]+\]/g;
+function enrichHalfVerse(halfText, fullMarked, halfType) {
+  // 构建 plainToMarked[i] = 第 i 个纯文本字符在 fullMarked 中的位置
+  var plainToMarked = [];
+  var i = 0;
+  while (i < fullMarked.length) {
+    _HALF_MARKER.lastIndex = i;
+    var m = _HALF_MARKER.exec(fullMarked);
+    if (m && m.index === i) {
+      i = _HALF_MARKER.lastIndex;
+    } else {
+      plainToMarked.push(i);
+      i += 1;
+    }
+  }
+  var fullPlain = plainToMarked.map(function(j) { return fullMarked[j]; }).join('');
+
+  // 剥离 …… 截断标记，得到需要在整节中匹配的纯文字
+  var content;
+  if (halfType === '上') {
+    content = halfText.replace(/[…\.]+\s*$/, '').trim();
+  } else if (halfType === '下') {
+    content = halfText.replace(/^\s*[…\.]+/, '').trim();
+  } else { // 中
+    content = halfText.replace(/^\s*[…\.]+/, '').replace(/[…\.]+\s*$/, '').trim();
+  }
+  if (!content) return null;
+
+  var pos = fullPlain.indexOf(content);
+  if (pos === -1) return null;
+  var endPos = pos + content.length;
+
+  if (halfType === '上') {
+    var markedEnd = plainToMarked[endPos - 1] + 1;
+    return fullMarked.slice(0, markedEnd);
+  } else if (halfType === '下') {
+    var markedStart = pos > 0 ? plainToMarked[pos - 1] + 1 : 0;
+    return fullMarked.slice(markedStart);
+  } else { // 中
+    var ms = pos > 0 ? plainToMarked[pos - 1] + 1 : 0;
+    var me = plainToMarked[endPos - 1] + 1;
+    return fullMarked.slice(ms, me);
+  }
+}
+
 /** 写出 scriptures-data.json（仅写出 bible-text.json 中不存在的补充经文）。 */
 function writeScriptures(verseDict, year, seq) {
   var keys = Object.keys(verseDict);
   if (!keys.length) return;
   var bk = getBibleKeys();
+  var bibleData = getBibleData();
   var filtered = {};
   keys.forEach(function(k) { if (!bk.has(k)) filtered[k] = verseDict[k]; });
+  // 对半节（上/中/下）用整节带标记文本补全 {N}/[a]，否则前端无法渲染串珠上标
+  if (bibleData) {
+    Object.keys(filtered).forEach(function(k) {
+      if (k && /[上中下]$/.test(k)) {
+        var fullMarked = bibleData[k.slice(0, -1)];
+        if (fullMarked) {
+          var enriched = enrichHalfVerse(filtered[k], fullMarked, k.slice(-1));
+          if (enriched) filtered[k] = enriched;
+        }
+      }
+    });
+  }
   var fkeys = Object.keys(filtered);
   if (!fkeys.length) return;
   var seqStr = seq < 10 ? '0' + seq : '' + seq;

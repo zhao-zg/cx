@@ -165,6 +165,68 @@ function getBibleKeys() {
   return _bibleKeys;
 }
 
+// ── 懒加载 bible-text.json 全量数据（含 {N}/[a] 标记，用于半节标记补全）────
+var _bibleData = null;
+function getBibleData() {
+  if (_bibleData !== null) return _bibleData;
+  var outputRoot = path.resolve(outputDir, '..');
+  var p = path.join(outputRoot, 'data', 'bible-text.json');
+  if (!fs.existsSync(p)) { _bibleData = {}; return _bibleData; }
+  _bibleData = JSON.parse(fs.readFileSync(p, 'utf8'));
+  return _bibleData;
+}
+
+// ── 半节标记补全（与 Python src/generator.py _enrich_half_verse 一致）────────
+// 从整节带标记文本中截取半节对应的带标记片段，返回带 {N}/[a] 标记的文本；
+// 无法匹配时返回 null。
+var _HALF_MARKER = /\{\d+\}|\[[a-z]+\]/g;
+function enrichHalfVerse(halfText, fullMarked, halfType) {
+  // 构建 plainToMarked[i] = 第 i 个纯文本字符在 fullMarked 中的位置
+  var plainToMarked = [];
+  var i = 0;
+  while (i < fullMarked.length) {
+    _HALF_MARKER.lastIndex = i;
+    var m = _HALF_MARKER.exec(fullMarked);
+    if (m && m.index === i) {
+      i = _HALF_MARKER.lastIndex;
+    } else {
+      plainToMarked.push(i);
+      i += 1;
+    }
+  }
+  var fullPlain = plainToMarked.map(function(j) { return fullMarked[j]; }).join('');
+
+  // 剥离 …… 截断标记，得到需要在整节中匹配的纯文字
+  var content;
+  if (halfType === '上') {
+    content = halfText.replace(/[…\.]+\s*$/, '').trim();
+  } else if (halfType === '下') {
+    content = halfText.replace(/^\s*[…\.]+/, '').trim();
+  } else { // 中
+    content = halfText.replace(/^\s*[…\.]+/, '').replace(/[…\.]+\s*$/, '').trim();
+  }
+  if (!content) return null;
+
+  var pos = fullPlain.indexOf(content);
+  if (pos === -1) return null;
+  var endPos = pos + content.length;
+
+  if (halfType === '上') {
+    // 从 fullMarked 起始（含首部标记）到最后一个内容字符
+    var markedEnd = plainToMarked[endPos - 1] + 1;
+    return fullMarked.slice(0, markedEnd);
+  } else if (halfType === '下') {
+    // 从上一字符结束位置起（含为本字符服务的前导标记）到末尾
+    var markedStart = pos > 0 ? plainToMarked[pos - 1] + 1 : 0;
+    return fullMarked.slice(markedStart);
+  } else { // 中
+    // 截取对应区间（含两端可能紧邻的标记）
+    var ms = pos > 0 ? plainToMarked[pos - 1] + 1 : 0;
+    var me = plainToMarked[endPos - 1] + 1;
+    return fullMarked.slice(ms, me);
+  }
+}
+
 // ── 主逻辑 ────────────────────────────────────────────────────────────────────
 function main() {
   // 确定 TXT 文件：--txt 指定 > 批次文件夹内查找
@@ -249,8 +311,21 @@ function main() {
   var verseKeys = Object.keys(verseDict);
   if (verseKeys.length) {
     var bk = getBibleKeys();
+    var bibleData = getBibleData();
     var filtered = {};
     verseKeys.forEach(function(k) { if (!bk.has(k)) filtered[k] = verseDict[k]; });
+    // 对半节（上/中/下）用整节带标记文本补全 {N}/[a]，否则前端无法渲染串珠上标
+    if (bibleData) {
+      Object.keys(filtered).forEach(function(k) {
+        if (k && /[上中下]$/.test(k)) {
+          var fullMarked = bibleData[k.slice(0, -1)];
+          if (fullMarked) {
+            var enriched = enrichHalfVerse(filtered[k], fullMarked, k.slice(-1));
+            if (enriched) filtered[k] = enriched;
+          }
+        }
+      });
+    }
     var fkeys = Object.keys(filtered);
     if (fkeys.length) {
       var jsDir = path.join(outputDir, 'js');
