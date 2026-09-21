@@ -879,17 +879,43 @@
           } else if (el.classList.contains('chapter-title')) {
             rawText = el.textContent;
           } else if (el.classList.contains('scripture')) {
-            // 读经横幅：在副本中展开经文引用（与 buildAll 的 withExpanded 等效）
+            // 读经横幅：在副本中处理经文引用，行为与 buildAll 的 withExpanded 全局循环对齐：
+            // 破折号/括号前缀（CN）、EN 应跳过的引用移除；可展开的替换为展开文本；
+            // 展开失败的保留原文本（buildAll 横幅分支直接取 textContent，不删剩余 ref）
             var clone = el.cloneNode(true);
             clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(ref) {
-              var expanded = _isEn ? expandDataRefsEN(ref.getAttribute('data-refs'))
-                                   : expandDataRefs(ref.getAttribute('data-refs'));
+              var txt = (ref.textContent || '').trim();
+              if (_isEn) {
+                var prevNode = ref.previousSibling;
+                var prevTxt = (prevNode && prevNode.nodeType === 3) ? prevNode.nodeValue : null;
+                var inOutline = (typeof ref.closest === 'function')
+                  ? !!(ref.closest('.outline-section') || ref.closest('.outline-item') || ref.closest('[class*="section-level"]'))
+                  : null;
+                if (shouldSkipEnRef(txt, prevTxt, inOutline)) { ref.parentNode.removeChild(ref); return; }
+                var expandedEn = expandDataRefsEN(ref.getAttribute('data-refs'));
+                if (expandedEn) ref.textContent = expandedEn;
+                return;
+              }
+              if ((/^[\u2014\u2500\-]/.test(txt) && typeof ref.closest === 'function' &&
+                   (ref.closest('.outline-section') || ref.closest('.outline-item') || ref.closest('[class*="section-level"]'))) ||
+                  /^[\uff08(]/.test(txt)) {
+                ref.parentNode.removeChild(ref);
+                return;
+              }
+              var expanded = expandDataRefs(ref.getAttribute('data-refs'));
               if (expanded) ref.textContent = expanded;
             });
             rawText = clone.textContent;
           } else {
             var clone = el.cloneNode(true);
-            // 在副本中展开可读的经文引用
+            // 在副本中展开可读的经文引用。
+            // 展开成功后摘除 .scripture-ref 类名（对齐 buildAll：withExpanded 将展开文本放入
+            // 普通 wrapper span，不再属于 .scripture-ref）；跳过/展开失败的保留原类名，
+            // 由下方与 buildAll 相同的选择器统一移除。
+            // 【修复】原先不删除剩余 ref，导致本路径 fullText 比 buildAll 偏长（脚注/无
+            // data-refs 引用/展开失败的引用文本残留），恢复进度按 pct 换算时系统性偏后、
+            // 出现跳读；现在两路径产出严格一致（宁可重读半句，不可跳过内容的前提不适用：
+            // 本处对齐后两侧坐标同源，恢复定位精确）。
             clone.querySelectorAll('.scripture-ref[data-refs]').forEach(function(ref) {
               var txt = (ref.textContent || '').trim();
               if (_isEn) {
@@ -900,11 +926,15 @@
                   ? !!(ref.closest('.outline-section') || ref.closest('.outline-item') || ref.closest('[class*="section-level"]'))
                   : null;
                 if (shouldSkipEnRef(txt, prevTxt, inOutline)) {
+                  // 与 withExpanded 保持一致：同步修剪 prev 尾部残留破折号
+                  if (prevNode && prevNode.nodeType === 3 && /[\u2014\u2500\-]\s*$/.test(prevNode.nodeValue)) {
+                    prevNode.nodeValue = prevNode.nodeValue.replace(/[\u2014\u2500\-]\s*$/, '');
+                  }
                   ref.parentNode.removeChild(ref);
                   return;
                 }
                 var expanded = expandDataRefsEN(ref.getAttribute('data-refs'));
-                if (expanded) ref.textContent = expanded;
+                if (expanded) { ref.textContent = expanded; ref.className = ''; }
                 return;
               }
               // 与 withExpanded() 保持一致：
@@ -916,9 +946,11 @@
                 return;
               }
               var expanded = expandDataRefs(ref.getAttribute('data-refs'));
-              if (expanded) ref.textContent = expanded;
+              if (expanded) { ref.textContent = expanded; ref.className = ''; }
             });
-            clone.querySelectorAll('button, .scripture-content, .verse-line').forEach(function(s) { s.remove(); });
+            // 对齐 buildAll：移除 UI 控件、嵌入经文块，以及所有剩余 .scripture-ref
+            // （剩余的是脚注 fn-ref、无 data-refs 引用、展开失败的引用，均不应朗读）
+            clone.querySelectorAll('button, .scripture-content, .verse-line, .scripture-ref').forEach(function(s) { s.remove(); });
             rawText = clone.textContent;
           }
 
@@ -1014,6 +1046,25 @@
         return clamp(elapsedOffset + (Date.now() - startTime) / 1000, 0, totalDuration);
       }
 
+      // ★ Web Speech 进度百分比：返回「字符占比」而非「时间占比」。
+      //   时间占比的病灶：totalDuration 由 estimateTotalSeconds 估算（250字/分基准），
+      //   引擎实际语速偏慢时 elapsed 线性虚高，恢复时 charIndex = len × pct/100 被
+      //   放大为字符前跳，跳过大段未读内容。字符占比以「当前句起点在全文的相对
+      //   位置」为准，天然与朗读进度同步。
+      //   NativeTTS 不走此分支：其 totalDuration 由 ttsPosition 覆写为真实音频时长，
+      //   时间占比即精确值；无 _segmentMap（预加载失败）时也回退时间占比。
+      //   恢复端 startSpeakingFromPercent/findSegmentIndex 天然吸附句首，
+      //   恢复时从暂停句开头重读——宁可重读半句，不可跳过内容。
+      function _speechProgressPct() {
+        if (!useNativeTTS && fullText && _segmentMap.length) {
+          var idx = _ttsMarkOffset + currentChunk;
+          if (idx >= 0 && idx < _segmentMap.length && fullText.length > 0) {
+            return clamp((_segmentMap[idx].start / fullText.length) * 100, 0, 100);
+          }
+        }
+        return totalDuration > 0 ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100) : 0;
+      }
+
       function updateProgressUI() {
         if (!totalDuration) { progressBar.value = '0'; speechTime.textContent = '00:00 / 00:00'; return; }
         var elapsed = currentElapsedSeconds();
@@ -1062,7 +1113,7 @@
       function _saveSpeechProgress() {
         if (!storageKey || !fullText) return;
         if (state !== 'playing' && state !== 'paused') return;
-        var pct = totalDuration > 0 ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100) : 0;
+        var pct = _speechProgressPct();
         try {
           if (pct >= 100) { localStorage.removeItem(storageKey); return; }
           var day = null, activeDay = document.querySelector('.day-page.is-active');
@@ -1070,7 +1121,9 @@
             var d = parseInt(activeDay.getAttribute('data-page'), 10);
             if (!isNaN(d)) day = d;
           }
-          localStorage.setItem(storageKey, JSON.stringify({ pct: Math.round(pct), day: day, ts: Date.now() }));
+          // ★ 保存精度 4 位小数（0.0001% ≈ 0.015 字）：整数取整时 1% ≈ 154 字，
+          //   远大于单段长度，reload 恢复会整段偏前。旧整数 pct key 天然兼容。
+          localStorage.setItem(storageKey, JSON.stringify({ pct: Math.round(pct * 10000) / 10000, day: day, ts: Date.now() }));
         } catch (e) {}
       }
 
@@ -1482,7 +1535,8 @@
         _scrollFollowEnabled = true;
         var p          = clamp(Number(percent) || 0, 0, 100);
         var targetSecs = totalDuration ? (p / 100) * totalDuration : 0;
-        var charIndex  = clamp(Math.floor(fullText.length * (p / 100)), 0, Math.max(0, fullText.length - 1));
+        // 四舍五入而非向下取整：避免恢复落点向段首偏移（宁可重读半句，不可跳过内容）
+        var charIndex  = clamp(Math.round(fullText.length * (p / 100)), 0, Math.max(0, fullText.length - 1));
         // NativeTTS: 始终传完整文本（fullText 已由 buildAll 经 processText 处理），
         // 由 Java 通过 startSecs/totalSecs 定位起始 chunk。
         var segText    = useNativeTTS ? fullText : fullText.slice(charIndex);
@@ -1665,9 +1719,10 @@
         }
 
         // Pause from playing
-        var pct = totalDuration > 0
-          ? clamp((currentElapsedSeconds() / totalDuration) * 100, 0, 100)
-          : 0;
+        // ★ pct 用字符占比（_speechProgressPct）：Web Speech 下时间占比虚高会
+        //   导致恢复跳段；NativeTTS 下与原时间占比一致。
+        //   elapsedOffset 仍取 currentElapsedSeconds()，供暂停态时间显示。
+        var pct = _speechProgressPct();
         stopProgressUpdate();
         elapsedOffset = currentElapsedSeconds(); startTime = 0;
         _resumePercent = pct;
@@ -1728,7 +1783,10 @@
           // 后者每次都从 rateSelect.value 读取倍速，自动使用新倍速继续朗读。
           try { window.speechSynthesis.cancel(); } catch (e) {}
         } else if (state === 'paused') {
-          _resumePercent = newPct;
+          // ★ 暂停态切倍速：_resumePercent 同样必须用字符占比，否则恢复时按
+          //   时间占比换算字符位置同样会跳段。newPct（时间占比）仅用于上面的
+          //   进度条/elapsedOffset 显示，不作为恢复点。
+          _resumePercent = _speechProgressPct();
         }
       });
 
@@ -1895,7 +1953,8 @@
           totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
           _originalTotalDuration = totalDuration;
           _restoredPct = _saved.pct;  // 此刻才真正持有恢复进度
-          setTTSHighlight(findSegmentAt(Math.floor(fullText.length * _restoredPct / 100)));
+          // 与 startSpeakingFromPercent 一致用四舍五入，保证初始高亮与实际朗读起点同段
+          setTTSHighlight(findSegmentAt(Math.round(fullText.length * _restoredPct / 100)));
           progressBar.value = String(_restoredPct);
           speechTime.textContent = formatTime((_restoredPct / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
         }
@@ -2041,6 +2100,46 @@
           }
         }
       }
+      // -- 调试导出（仅供诊断脚本/单元测试使用，生产代码勿依赖）-----------------
+      // 导出两侧坐标系的 fullText 与 segMap（{start,end,speakText}，不含 el：
+      // DOM 引用不可序列化）。用于 diff 播放侧（buildAll）与恢复侧（prebuildText）
+      // 的段边界分布，定位恢复定位偏移问题。
+      //   mode='restore' → 调 prebuildText() 重建并返回恢复侧坐标（只操作
+      //                    cloneNode 副本，不改真实 DOM）
+      //   mode='build'   → 强制 buildAll() 重建并返回播放侧坐标。Web Speech 下
+      //                    init 不 prebuild，此路径平时不执行。buildAll 会在
+      //                    withExpanded 内临时展开经文引用并在完成后还原 DOM，
+      //                    诊断脚本应在 idle 状态调用（避免清除播放中的高亮）。
+      // 段快照：不含 el（DOM 引用不可序列化），附 className 便于 diff 时定位元素
+      function segSnapshot(segMap) {
+        return segMap.map(function (s) {
+          var el = s.el;
+          var cls = '';
+          try { cls = (el && el.className && typeof el.className === 'string') ? el.className : (el ? el.tagName : ''); } catch (e) {}
+          return { start: s.start, end: s.end, speakText: s.speakText, cls: cls.slice(0, 60) };
+        });
+      }
+
+      function debugDump(mode) {
+        if (mode === 'restore') {
+          prebuildText();
+          return {
+            fullText: _prebuiltFullText || '',
+            segMap: segSnapshot(_prebuiltSegmentMap || [])
+          };
+        }
+        var savedSegMap = _segmentMap;
+        var savedFullText = fullText;
+        buildAll();
+        var out = { fullText: fullText, segMap: segSnapshot(_segmentMap) };
+        // 恢复调用前的闭包值，最小化对播放状态的副作用
+        _segmentMap = savedSegMap;
+        fullText = savedFullText;
+        return out;
+      }
+
+      window.CXSpeech._internals = window.CXSpeech._internals || {};
+      window.CXSpeech._internals.debugDump = debugDump;
     }
 
     startInit();
