@@ -1443,7 +1443,9 @@
 
         var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
         var isStandalone = (window.navigator.standalone === true) ||
-                           (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+                           (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
+                                                  window.matchMedia('(display-mode: fullscreen)').matches ||
+                                                  window.matchMedia('(display-mode: minimal-ui)').matches));
 
         if (isCapacitor) {
             // Capacitor：等待版本探测结果
@@ -1529,7 +1531,9 @@
         var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
         if (isCapacitor) return; // Capacitor 由 init() 处理
         var isStandalone = (window.navigator.standalone === true) ||
-                           (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+                           (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
+                                                  window.matchMedia('(display-mode: fullscreen)').matches ||
+                                                  window.matchMedia('(display-mode: minimal-ui)').matches));
         if (!isStandalone) return;
         try {
             if (localStorage.getItem('cx_auto_check_update') === '1') {

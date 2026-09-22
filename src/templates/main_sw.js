@@ -83,7 +83,9 @@ self.addEventListener('fetch', event => {
 
   // 安装/更新时 cacheAllTrainings 使用 cache:'no-cache' 发起请求，
   // 由页面侧显式调用 cache.put 管理，SW 不再介入，避免双重写缓存竞争。
-  if (request.cache === 'no-cache') return;
+  // 注意：Chrome 刷新页面时导航请求的 cache 属性也是 'no-cache'，
+  // 必须排除导航请求，否则离线刷新会跳过拦截导致 ERR_INTERNET_DISCONNECTED。
+  if (request.cache === 'no-cache' && request.mode !== 'navigate') return;
 
   const responsePromise = (async () => {
     // 1. 缓存优先 (尝试原始 URL 和规范化 URL)

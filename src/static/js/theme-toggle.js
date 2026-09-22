@@ -471,7 +471,9 @@
                 var _isCap = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
                                  window.Capacitor.isNativePlatform());
                 var _isSA  = (window.navigator.standalone === true) ||
-                             window.matchMedia('(display-mode: standalone)').matches;
+                             (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
+                                                    window.matchMedia('(display-mode: fullscreen)').matches ||
+                                                    window.matchMedia('(display-mode: minimal-ui)').matches));
                 if (_isCap || (_isSA && ('caches' in window))) {
                     updateBtn.style.display = 'inline-flex';
                 }
@@ -483,7 +485,9 @@
                 var _isCap2 = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
                                   window.Capacitor.isNativePlatform());
                 var _isSA2  = (window.navigator.standalone === true) ||
-                              window.matchMedia('(display-mode: standalone)').matches;
+                              (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
+                                                     window.matchMedia('(display-mode: fullscreen)').matches ||
+                                                     window.matchMedia('(display-mode: minimal-ui)').matches));
                 if (_isCap2 || (_isSA2 && ('caches' in window))) {
                     autoCheckSection.style.display = '';
                 }
@@ -552,7 +556,9 @@
             var root = window.CX_ROOT || './';
             if (root === './') return; // 主页自己处理
             var isStandalone = window.navigator.standalone === true ||
-                               window.matchMedia('(display-mode: standalone)').matches;
+                               (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
+                                                      window.matchMedia('(display-mode: fullscreen)').matches ||
+                                                      window.matchMedia('(display-mode: minimal-ui)').matches));
             var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
                                  window.Capacitor.isNativePlatform());
             if (!isStandalone || isCapacitor || !('caches' in window)) return;
@@ -844,7 +850,9 @@
         var isAndroid = /Android/i.test(ua);
         var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
         var isStandalone = (window.navigator.standalone === true) ||
-                           window.matchMedia('(display-mode: standalone)').matches;
+                           (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
+                                                  window.matchMedia('(display-mode: fullscreen)').matches ||
+                                                  window.matchMedia('(display-mode: minimal-ui)').matches));
 
         // ── 清理数据（所有页面）──────────────────────────
         var clearBtn = document.getElementById('clearDataBtn');
@@ -1671,7 +1679,9 @@
                     if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                         runEnv = 'APK';
                     } else if (window.navigator.standalone === true ||
-                               (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)) {
+                               (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches ||
+                                                      window.matchMedia('(display-mode: fullscreen)').matches ||
+                                                      window.matchMedia('(display-mode: minimal-ui)').matches))) {
                         runEnv = 'PWA';
                     }
                 } catch(e) {}
