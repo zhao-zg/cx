@@ -82,6 +82,26 @@
     return UNITS[s] || 0;
   }
 
+  // 66 卷书各章数上限：识别结果与收录数据核对——超限即未收录，判定识别错误（如人名「拿八」→ 拿8:0）
+  var MAX_CHAPTERS = {
+    '创':50,'出':40,'利':27,'民':36,'申':34,'书':24,'士':21,'得':4,
+    '撒上':31,'撒下':24,'王上':22,'王下':25,'代上':29,'代下':36,'拉':10,'尼':13,'斯':10,
+    '伯':42,'诗':150,'箴':31,'传':12,'歌':8,
+    '赛':66,'耶':52,'哀':5,'结':48,'但':12,
+    '何':14,'珥':3,'摩':9,'俄':1,'拿':4,'弥':7,'鸿':3,'哈':3,'番':3,'该':2,'亚':14,'玛':4,
+    '太':28,'可':16,'路':24,'约':21,'徒':28,
+    '罗':16,'林前':16,'林后':13,'加':6,'弗':6,'腓':4,'西':4,'帖前':5,'帖后':3,'提前':6,'提后':4,'多':3,'门':1,'来':13,'雅':5,'彼前':5,'彼后':3,'约壹':5,'约贰':1,'约叁':1,'犹':1,
+    '启':22
+  };
+
+  // 章号有效性：b 为空 → false；b 不在 66 卷表内（未知书卷）→ 回退旧的 ≤150 兼容行为
+  function chapterValid(b, c) {
+    if (!b || !c) return false;
+    var max = MAX_CHAPTERS[b];
+    if (max === undefined) return c >= 1 && c <= 150;
+    return c >= 1 && c <= max;
+  }
+
   // 将文本中完整书名替换为缩写（从长到短）
   var _sortedFullNames = Object.keys(FULL_BOOK_MAP).sort(function(a,b){return b.length-a.length;});
 
@@ -264,7 +284,9 @@
       // F4: arabic chapter:verse
       if ((m = F4.exec(p))) {
         var b4 = m[1] || book; if (!b4) continue;
-        book = b4; ch = parseInt(m[2],10);
+        var ch4 = parseInt(m[2],10);
+        if (!chapterValid(b4, ch4)) continue;   // 章超限 → 未收录 → 不识别
+        book = b4; ch = ch4;
         emitRange(book, ch, parseInt(m[3],10), m[4]||'', m[5]?parseInt(m[5],10):0, m[6]||'');
         continue;
       }
@@ -287,9 +309,11 @@
         var b5 = m[1] ? normalizeBookNames(m[1]) : book; if (!b5) continue;
         // 「篇」仅适用于诗篇
         if (m[4] === '篇' && b5 !== '诗') continue;
-        var c5 = cnToInt(m[2]); if (!c5 || c5 > 150) continue;
+        var c5 = cnToInt(m[2]); if (!c5 || !chapterValid(b5, c5)) continue;
         var c5end = m[3] ? cnToInt(m[3]) : c5;
-        if (!c5end || c5end < c5 || c5end > 150) c5end = c5;
+        // 范围端点超限 → 整组拒绝；端点无效（无值/小于起点）→ 回退单章
+        if (!c5end || c5end < c5) c5end = c5;
+        if (!chapterValid(b5, c5end)) continue;
         book = b5; ch = c5end;
         if (m[5]) {
           var v1_5 = cnToInt(m[5]), v2_5 = m[6] ? cnToInt(m[6]) : v1_5;
@@ -305,20 +329,22 @@
       if ((m = F1x.exec(p))) {
         var bx = m[1] || book; var c1x = cnToInt(m[2]); var v1x = parseInt(m[3], 10);
         var c2x = cnToInt(m[4]); var v2x = parseInt(m[5], 10);
-        if (!bx || !c1x || !c2x || c1x > 150 || c2x > 150) continue;
+        if (!bx || !c1x || !c2x || !chapterValid(bx, c1x) || !chapterValid(bx, c2x)) continue;
         book = bx; ch = c2x;
         refs.push(book + c1x + ':' + v1x + '-' + c2x + ':' + v2x);
         continue;
       }
       // F1: book + cn_chapter + arabic_verse
       if ((m = F1.exec(p))) {
-        book = m[1]; ch = cnToInt(m[2]); if (!ch || ch > 150) continue;
+        var b1f = m[1]; var ch1f = cnToInt(m[2]);
+        if (!ch1f || !chapterValid(b1f, ch1f)) continue;
+        book = b1f; ch = ch1f;
         emitRange(book, ch, parseInt(m[3],10), m[4]||'', m[5]?parseInt(m[5],10):0, m[6]||'');
         continue;
       }
       // F2: cn_chapter + arabic_verse (relative)
       if (book && (m = F2.exec(p))) {
-        var c2 = cnToInt(m[1]); if (!c2 || c2 > 150) continue;
+        var c2 = cnToInt(m[1]); if (!c2 || !chapterValid(book, c2)) continue;
         ch = c2;
         emitRange(book, ch, parseInt(m[2],10), m[3]||'', m[4]?parseInt(m[4],10):0, m[5]||'');
         continue;
@@ -337,7 +363,7 @@
       var F_vc = book && ch ? new RegExp('^(\\d+)[~～\\-](' + CN_N + ')(\\d+)$') : null;
       if (F_vc && (m = F_vc.exec(p))) {
         var v1vc = parseInt(m[1], 10); var c2vc = cnToInt(m[2]); var v2vc = parseInt(m[3], 10);
-        if (v1vc && c2vc && c2vc <= 150) {
+        if (v1vc && c2vc && chapterValid(book, c2vc)) {
           refs.push(book + ch + ':' + v1vc + '-' + c2vc + ':' + v2vc);
           ch = c2vc;
           continue;
@@ -356,7 +382,7 @@
       if ((m = F9.exec(p))) {
         var b9 = normalizeBookNames(m[1]);
         var c9 = m[2] ? cnToInt(m[2]) : parseInt(m[3], 10);
-        if (!b9 || !c9 || c9 > 150) continue;
+        if (!b9 || !c9 || !chapterValid(b9, c9)) continue;
         book = b9; ch = c9;
         refs.push(book + ch + ':0T');
         continue;
@@ -365,14 +391,17 @@
       // 书卷可省略，省略时回退到上下文 book（如「十二~十六」在罗马书上下文中）
       if ((m = F8.exec(p))) {
         var b8 = normalizeBookNames(m[1] || '') || book; var c8 = cnToInt(m[2]);
-        if (!b8 || !c8 || c8 > 150) continue;
+        if (!b8 || !c8 || !chapterValid(b8, c8)) continue;
         book = b8; ch = c8;
         if (m[3]) {
           var c8end = cnToInt(m[3]);
-          if (c8end && c8end >= c8 && c8end <= 150) {
+          // 范围端点超限 → 整组拒绝（不回退单章）；端点无效（无值/小于起点）→ 保持旧回退单章行为
+          if (!c8end || c8end < c8) { refs.push(book + ch + ':0'); }
+          else if (!chapterValid(b8, c8end)) { continue; }
+          else {
             for (var ci8 = c8; ci8 <= c8end; ci8++) refs.push(book + ci8 + ':0');
             ch = c8end;
-          } else { refs.push(book + ch + ':0'); }
+          }
         } else {
           refs.push(book + ch + ':0');
         }
@@ -382,7 +411,7 @@
       // e.g. 「1～十一13」在启10上下文 → [启10:1, 启11:13]
       if (book && ch && (m = F12.exec(p))) {
         var v1_12 = parseInt(m[1], 10), c2_12 = cnToInt(m[3]), v2_12 = parseInt(m[4], 10);
-        if (v1_12 >= 1 && c2_12 >= 1 && c2_12 <= 150 && v2_12 >= 1 && v2_12 <= 176) {
+        if (v1_12 >= 1 && c2_12 >= 1 && chapterValid(book, c2_12) && v2_12 >= 1 && v2_12 <= 176) {
           refs.push(book + ch + ':' + v1_12 + '-' + c2_12 + ':' + v2_12);
           ch = c2_12;
         }

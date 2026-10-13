@@ -321,6 +321,8 @@ class ImprovedParser:
     _BOOK_MOD_PAT = r'[后前上下壹贰叁]'
     _CN_CHAP_PAT = (
         r'(?:一百五十'
+        # 省略式“百五十”（=150，诗篇专用）；JS 基准字符类含“百”，对齐支持
+        r'|百五十'
         r'|一百[一二三四][十][一二三四五六七八九]'
         r'|一百[一二三四][十]'
         r'|一百零[一二三四五六七八九]'
@@ -407,6 +409,33 @@ class ImprovedParser:
     _FULL_BOOK_MAP = {**_CANONICAL_BOOK_MAP, **_ALIAS_BOOK_MAP}
     # 预排序（从长到短），避免前缀误替换，仅计算一次
     _FULL_BOOK_MAP_SORTED = sorted(_FULL_BOOK_MAP.items(), key=lambda x: -len(x[0]))
+
+    # ── 每书卷章数上限表（66 卷，与 src/static/js/ref-detector.js MAX_CHAPTERS 对齐）──
+    # 识别结果与收录数据核对：章号超限（如人名「拿八」→ 拿8:0）一律判定为识别错误，不识别。
+    _MAX_CHAPTERS = {
+        '创': 50, '出': 40, '利': 27, '民': 36, '申': 34, '书': 24, '士': 21, '得': 4,
+        '撒上': 31, '撒下': 24, '王上': 22, '王下': 25, '代上': 29, '代下': 36,
+        '拉': 10, '尼': 13, '斯': 10,
+        '伯': 42, '诗': 150, '箴': 31, '传': 12, '歌': 8,
+        '赛': 66, '耶': 52, '哀': 5, '结': 48, '但': 12,
+        '何': 14, '珥': 3, '摩': 9, '俄': 1, '拿': 4, '弥': 7, '鸿': 3,
+        '哈': 3, '番': 3, '该': 2, '亚': 14, '玛': 4,
+        '太': 28, '可': 16, '路': 24, '约': 21, '徒': 28,
+        '罗': 16, '林前': 16, '林后': 13, '加': 6, '弗': 6, '腓': 4, '西': 4,
+        '帖前': 5, '帖后': 3, '提前': 6, '提后': 4, '多': 3, '门': 1, '来': 13,
+        '雅': 5, '彼前': 5, '彼后': 3, '约壹': 5, '约贰': 1, '约叁': 1, '犹': 1,
+        '启': 22,
+    }
+
+    @classmethod
+    def _chapter_valid(cls, book: str, chapter) -> bool:
+        """章号有效性校验：书卷或章号为空 → False；未知书卷回退 1..150 兼容；已知书卷按上限表。"""
+        if not book or not chapter:
+            return False
+        max_ch = cls._MAX_CHAPTERS.get(book)
+        if max_ch is None:
+            return 1 <= chapter <= 150
+        return 1 <= chapter <= max_ch
 
     # 章/节 引用（书卷 + 中文章 + 章 + 中文节 + 节）
     _CN_NUM = r'[一二三四五六七八九十百]+'
@@ -2501,8 +2530,12 @@ class ImprovedParser:
             # 0. 阿拉伯章:节格式（归一化后，如 约壹1:1，彼前3:19~20）
             m = cls._ARABIC_REF_RE.match(part)
             if m:
-                current_book = m.group(1)
-                current_chapter = int(m.group(2))
+                _book = m.group(1)
+                _chap = int(m.group(2))
+                if not cls._chapter_valid(_book, _chap):
+                    continue
+                current_book = _book
+                current_chapter = _chap
                 v1 = int(m.group(3)); mod1 = m.group(4) or ''
                 v2_s = m.group(5);    mod2 = m.group(6) or ''
                 cls._emit_verse_range(current_book, current_chapter,
@@ -2513,10 +2546,12 @@ class ImprovedParser:
             # 1. 全称：书卷 + 中文章 + 阿拉伯节（腓四5~9）
             m = cls._FULL_REF_RE.match(part)
             if m:
-                current_book = m.group(1)
-                current_chapter = cls._cn_to_int(m.group(2))
-                if not current_chapter:
+                _book = m.group(1)
+                _chap = cls._cn_to_int(m.group(2))
+                if not cls._chapter_valid(_book, _chap):
                     continue
+                current_book = _book
+                current_chapter = _chap
                 v1 = int(m.group(3)); mod1 = m.group(4) or ''
                 v2_s = m.group(5);    mod2 = m.group(6) or ''
                 cls._emit_verse_range(current_book, current_chapter,
@@ -2527,10 +2562,12 @@ class ImprovedParser:
             # 1b. 整章引用：书卷 + 中文章（无节号，如诗一三三）
             m = cls._WHOLE_CHAP_RE.match(part)
             if m:
-                current_book = m.group(1)
-                current_chapter = cls._cn_to_int(m.group(2))
-                if current_chapter:
-                    refs.append(f'{current_book}{current_chapter}:0')
+                _book = m.group(1)
+                _chap = cls._cn_to_int(m.group(2))
+                if cls._chapter_valid(_book, _chap):
+                    current_book = _book
+                    current_chapter = _chap
+                    refs.append(f'{_book}{_chap}:0')
                 continue
 
             # 2. 全称章节式：书卷 + 章(中文)章 + 节范围（节部分可选，无节则整章）
@@ -2541,8 +2578,12 @@ class ImprovedParser:
                 if _full_chap_marker == '篇' and m.group(1) != '诗':
                     m = None
             if m:
-                current_book = m.group(1)
-                current_chapter = cls._cn_to_int(m.group(2))
+                _book = m.group(1)
+                _chap = cls._cn_to_int(m.group(2))
+                if not cls._chapter_valid(_book, _chap):
+                    continue
+                current_book = _book
+                current_chapter = _chap
                 if m.group(3) is not None or m.group(5) is not None:
                     # 格式A: group(3)=v1节, group(4)=v2节(可选); 格式B: group(5)=v1, group(6)=v2节
                     if m.group(3):
@@ -2551,9 +2592,9 @@ class ImprovedParser:
                     else:
                         v1 = cls._cn_to_int(m.group(5))
                         v2 = cls._cn_to_int(m.group(6))
-                    if current_chapter and v1:
+                    if v1:
                         cls._emit_verse_range(current_book, current_chapter, v1, '', v2, '', refs)
-                elif current_chapter:
+                else:
                     refs.append(f'{current_book}{current_chapter}:0')
                 continue
 
@@ -2563,7 +2604,9 @@ class ImprovedParser:
                 if m:
                     ch1 = cls._cn_to_int(m.group(1)); v1 = int(m.group(2)); mod1 = m.group(3) or ''
                     ch2 = cls._cn_to_int(m.group(4)); v2 = int(m.group(5)); mod2 = m.group(6) or ''
-                    if ch1 and ch2 and ch1 <= 150 and ch2 <= 150:
+                    if (ch1 and ch2
+                            and cls._chapter_valid(current_book, ch1)
+                            and cls._chapter_valid(current_book, ch2)):
                         refs.append(f'{current_book}{ch1}:{v1}{mod1}')
                         for c in range(ch1 + 1, ch2):
                             refs.append(f'{current_book}{c}:0')
@@ -2575,9 +2618,10 @@ class ImprovedParser:
             if current_book:
                 m = cls._REL_CHAP_RE.match(part)
                 if m:
-                    current_chapter = cls._cn_to_int(m.group(1))
-                    if not current_chapter or current_chapter > 150:
+                    _chap = cls._cn_to_int(m.group(1))
+                    if not cls._chapter_valid(current_book, _chap):
                         continue
+                    current_chapter = _chap
                     v1 = int(m.group(2)); mod1 = m.group(3) or ''
                     v2_s = m.group(4);    mod2 = m.group(5) or ''
                     cls._emit_verse_range(current_book, current_chapter,
@@ -2594,9 +2638,10 @@ class ImprovedParser:
                     if _rel_chap_marker == '篇' and current_book != '诗':
                         m = None
                 if m:
-                    current_chapter = cls._cn_to_int(m.group(1))
-                    if not current_chapter or current_chapter > 150:
+                    _chap = cls._cn_to_int(m.group(1))
+                    if not cls._chapter_valid(current_book, _chap):
                         continue
+                    current_chapter = _chap
                     if m.group(2) is not None or m.group(4) is not None:
                         if m.group(2):
                             v1 = cls._cn_to_int(m.group(2))
@@ -2615,7 +2660,9 @@ class ImprovedParser:
                 m = cls._REL_CHAP_RANGE_RE.match(part)
                 if m:
                     ch1 = cls._cn_to_int(m.group(1)); ch2 = cls._cn_to_int(m.group(2))
-                    if ch1 and ch2 and ch1 <= 150 and ch2 <= 150:
+                    if (ch1 and ch2
+                            and cls._chapter_valid(current_book, ch1)
+                            and cls._chapter_valid(current_book, ch2)):
                         refs.extend(f'{current_book}{c}:0' for c in range(ch1, ch2 + 1))
                         current_chapter = ch2
                     continue
@@ -2637,7 +2684,7 @@ class ImprovedParser:
                 if m:
                     v1 = int(m.group(1)); mod1 = m.group(2) or ''
                     ch2 = cls._cn_to_int(m.group(3)); v2 = int(m.group(4)); mod2 = m.group(5) or ''
-                    if ch2 and ch2 <= 150:
+                    if ch2 and cls._chapter_valid(current_book, ch2):
                         refs.append(f'{current_book}{current_chapter}:{v1}{mod1}')
                         for c in range(current_chapter + 1, ch2):
                             refs.append(f'{current_book}{c}:0')

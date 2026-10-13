@@ -1225,6 +1225,29 @@ public class TTSForegroundService extends Service {
             return;
         }
         if (!ttsReady || isStopped || isPaused) return;
+        // ★ 语音包缺失探测（华为鸿蒙「假成功」修复）：
+        //   部分引擎 onInit 回调 SUCCESS 但缺少中文语音数据：synthesizeToFile 产出空 WAV
+        //   （触发 useSpeakDirect 降级），随后 speak() 返回 SUCCESS 却既不出声也不回调，
+        //   导致 JS 侧 Promise 永久挂起（界面正常但无声）。
+        //   在播放入口做权威探测：仅当引擎明确报告缺数据/不支持 zh-CN 时才拦截报错，
+        //   探测异常或其他返回值一律放行（fail-open，避免误伤正常设备）。
+        //   注意：预合成路径（doSynthesizeChunk）不经过此处，页面加载时不会误触发报错。
+        TextToSpeech t = tts;
+        if (t != null) {
+            int av;
+            try {
+                av = t.isLanguageAvailable(Locale.SIMPLIFIED_CHINESE);
+            } catch (Exception e) {
+                av = 0; // 探测失败放行
+            }
+            if (av == TextToSpeech.LANG_MISSING_DATA || av == TextToSpeech.LANG_NOT_SUPPORTED) {
+                android.util.Log.w("TTSFgSvc", "playChunkOnly: zh-CN voice data unavailable (av=" + av + "), aborting");
+                emitLog("zh voice pack missing → error (av=" + av + ")");
+                mainHandler.post(() -> notifyError(
+                        "TTS 引擎缺少中文语音包，请在系统设置的「文字转语音」中安装中文语音数据后再试"));
+                return;
+            }
+        }
         if (chunkIndex >= chunks.size()) {
             notifyFinished();
             return;
