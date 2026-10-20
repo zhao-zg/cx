@@ -346,11 +346,22 @@
                 var apkUpgraded=(newApkVer&&oldPwaVer&&newApkVer!==oldPwaVer)
                     ||(newApkVer&&!oldPwaVer&&oldApkVer&&newApkVer!==oldApkVer);
                 if(apkUpgraded){
-                    // APK 升级：清除所有 cx-* 缓存（trainings.json + 各训练命名缓存 cx-YYYY-NN），
-                    // 否则 refreshHomeGrid 会用旧命名缓存覆盖新 trainings.json，导致春季/夏季不显示
-                    console.log('[缓存] APK 升级检测：'+(oldPwaVer||oldApkVer||'(无)')+' → '+newApkVer+'，清除所有 cx-* 缓存');
+                    // APK 升级：只精确清理 cx-main 中的 trainings.json/version.json 索引条目，
+                    // 保留资源包正文数据（/YYYY-NN/*）与各训练命名缓存 cx-YYYY-NN，
+                    // 避免资源包下载的历史训练内容因升级丢失。
+                    // 旧命名缓存不再会覆盖新 trainings.json：refreshHomeGrid 的 mergeDisplayWithCached
+                    // 以 displayTrainings 优先合并，孤儿命名缓存会作为历史训练正常显示。
+                    console.log('[缓存] APK 升级检测：'+(oldPwaVer||oldApkVer||'(无)')+' → '+newApkVer+'，精确清理索引缓存');
                     caches.keys().then(function(keys){
-                        return Promise.all(keys.filter(function(k){return k.indexOf('cx-')===0||k==='cx-main';}).map(function(k){return caches.delete(k);}));
+                        if(keys.indexOf('cx-main')===-1)return;
+                        return caches.open('cx-main').then(function(cache){
+                            return Promise.all([
+                                cache.delete('./trainings.json'),
+                                cache.delete(location.origin+'/trainings.json'),
+                                cache.delete('./version.json'),
+                                cache.delete(location.origin+'/version.json')
+                            ]);
+                        });
                     }).then(function(){
                         loadTrainingsFromNetwork();
                     }).catch(function(){
@@ -947,11 +958,26 @@
                         var _ver=v.version||v.apk_version||'';
                         // 版本未变则跳过，避免每次启动都重复填充
                         if(_capVer&&_capVer===_ver)return;
-                        // APK 版本变化：清除所有旧缓存，确保后续重新填充
-                        caches.keys().then(function(keys){
-                            return Promise.all(keys.filter(function(k){return k.startsWith('cx-');}).map(function(k){return caches.delete(k);}));
-                        }).catch(function(){});
-                        waitForTrainings(15000).then(function(){
+                        // APK 版本变化：链式执行，先等训练列表加载，再精确清理待刷新的
+                        // 命名缓存（cx-YYYY-NN）与 cx-main 索引条目，随后重新填充。
+                        // 资源包写入 cx-main 的 /YYYY-NN/* 正文数据被保留，历史训练不丢失。
+                        waitForTrainings(15000).then(function(trainings){
+                            var toCache=trainings.filter(function(t){return!t.is_collection;}).slice(0,window.CX_MAX_LATEST_TRAININGS||trainings.length);
+                            var refreshKeys=toCache.map(function(t){return'cx-'+t.path;});
+                            if(!('caches' in window))return;
+                            return caches.keys().then(function(keys){
+                                var delNamed=Promise.all(keys.filter(function(k){return refreshKeys.indexOf(k)!==-1;}).map(function(k){return caches.delete(k);}));
+                                var delStale=caches.open('cx-main').then(function(cache){
+                                    return Promise.all([
+                                        cache.delete('./trainings.json'),
+                                        cache.delete(location.origin+'/trainings.json'),
+                                        cache.delete('./version.json'),
+                                        cache.delete(location.origin+'/version.json')
+                                    ]);
+                                }).catch(function(){});
+                                return Promise.all([delNamed,delStale]);
+                            });
+                        }).then(function(){
                             return cacheAllTrainings(null,null);
                         }).then(function(){
                             if(_ver)try{localStorage.setItem('cx_pwa_version',_ver);}catch(e){}

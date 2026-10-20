@@ -1358,9 +1358,21 @@
                         closeDialog();
                         var steps = [];
                         if ('caches' in window) {
+                            // 安全模式：只删训练命名缓存（cx-YYYY-NN）与 cx-main 中的索引条目，
+                            // 保留资源包写入 cx-main 的 /YYYY-NN/* 正文数据，历史训练不丢失。
+                            // 本页可能无 __cxTrainings（如设置等无训练列表页），故用正则匹配而非训练列表推导。
                             steps.push(caches.keys().then(function(keys) {
-                                return Promise.all(keys.filter(function(k) { return k.indexOf('cx-') === 0; }).map(function(k) { return caches.delete(k); }));
-                            }));
+                                var delNamed = Promise.all(keys.filter(function(k) { return /^cx-\d{4}-\d{2}$/.test(k); }).map(function(k) { return caches.delete(k); }));
+                                var delStale = caches.open('cx-main').then(function(cache) {
+                                    return Promise.all([
+                                        cache.delete('./trainings.json'),
+                                        cache.delete(location.origin + '/trainings.json'),
+                                        cache.delete('./version.json'),
+                                        cache.delete(location.origin + '/version.json')
+                                    ]);
+                                }).catch(function() {});
+                                return Promise.all([delNamed, delStale]);
+                            }).catch(function() {}));
                         }
                         try { localStorage.removeItem('cx_pwa_version'); } catch(ex) {}
                         try { localStorage.removeItem('cx_all_cached'); } catch(ex) {}
