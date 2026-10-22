@@ -118,7 +118,7 @@ class FilterDocsByTypeTests(unittest.TestCase):
         self.assertEqual(filtered[0]['doc_type'], '晨兴pdf')
 
     def test_unknown_type_ignored(self):
-        self.assertEqual(down_resource.filter_docs_by_type(self._docs(), ['pdf', '晨兴pdf']),
+        self.assertEqual(down_resource.filter_docs_by_type(self._docs(), ['ppt', '晨兴pdf']),
                          down_resource.filter_docs_by_type(self._docs(), ['晨兴pdf']))
 
 

@@ -12,12 +12,13 @@ import zipfile
 from argparse import ArgumentParser
 from json import dumps
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 from urllib.parse import quote, urlparse
 
 import requests
 
 NOTION_CHUNK_URL = "https://www.notion.so/api/v3/loadPageChunk"
+NOTION_QUERY_URL = "https://www.notion.so/api/v3/queryCollection"
 NOTION_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     'Content-Type': 'application/json',
@@ -38,6 +39,11 @@ ZIP_TARGET_EXTENSIONS = TARGET_EXTENSIONS + PDB_EXTENSIONS + EPUB_EXTENSIONS + (
 ALL_EXTENSIONS = TARGET_EXTENSIONS + PDB_EXTENSIONS + ZIP_EXTENSIONS + EPUB_EXTENSIONS
 MIN_TRAINING_YEAR = 2025
 MIN_TRAINING_MONTH = 4
+# 新增媒体类型（2026-05 起部分训练把资源挂在 collection_view 数据库行里）
+# 下载后直接落在批次目录（resource/{folder}/）保持 Notion 原文件名
+MEDIA_EXTENSIONS = ('.pptx', '.ppt', '.mp4', '.mp3', '.png', '.jpg', '.jpeg', '.webp', '.pdf', '.docx', '.doc')
+# 新增 doc_type 集合（与 documents/aggregated 初始化、type_labels、--only 帮助文本保持同步）
+MEDIA_DOC_TYPES = ('ppt', 'pdf', 'video', 'audio', 'image', 'doc')
 NOTION_TOKEN = os.getenv('NOTION_TOKEN', 'v03%3AeyJhbGciOiJkaXIiLCJraWQiOiJwcm9kdWN0aW9uOnRva2VuLXYzOjIwMjQtMTEtMDciLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIn0..ST-Isd0_hRgIVz7FFliobA.gJdJhpEgvTHQWQlAsMENC6E1LAB46Y94LlziqE6Z6II-KTUv8X2ywrq_7hioHPSXzDFLGje9Uggd3jl5MfOUho8C8O8IiscKqogJJZQICwypZXQs3Yuev7J_5ta95u43Plfqsnp6NNaNKh2UeFNsO32ep3mCSOglmnSMb94yRaI6xhTnyRZq9V7RTPGrVaPNbpaIr3fRJtH3NQ5eFTyDgrg7hTBX6Lpcn5hv3R7ECan8SSn1ZSHRFoXNpxYNXKx56RWF-BxdpwAz0bITzdCBJJXn54AmbaQqP_YJh1i7sPFJIcGX_9Hq_cRDR74fbjKh3GKHO14ZpOQVE41WpwMMVhMt-HDvwJUwRadBYRTHdTE.4GPzA8xpek2Et5k0lTbQyFJdszLayX0L5pVKDlsRzVw')
 SIGNED_URL_CACHE: Dict[str, str] = {}
 
@@ -74,10 +80,16 @@ def extract_page_id(url: str) -> Optional[str]:
 
 
 def load_page_blocks(session: requests.Session, page_id: str) -> Dict[str, Any]:
-    """加载页面的所有 blocks（支持分页，不限数量）。"""
+    """加载页面的所有 blocks（支持分页，不限数量）。
+
+    429 限流退避：Notion loadPageChunk 在密集请求（如逐行子页下钻）时
+    容易触发 429。优先遵循 Retry-After 响应头；无该头时按 2/4/8/16/32 秒
+    指数退避，最多重试 5 次，仍失败则抛出原异常。
+    """
     result: Dict[str, Any] = {}
     cursor: Dict[str, Any] = {"stack": []}
     chunk_num = 0
+    backoff = 0
     while True:
         payload = {
             "pageId": page_id,
@@ -86,8 +98,24 @@ def load_page_blocks(session: requests.Session, page_id: str) -> Dict[str, Any]:
             "cursor": cursor,
             "verticalColumns": False
         }
-        response = session.post(NOTION_CHUNK_URL, json=payload, timeout=30)
-        response.raise_for_status()
+        while True:
+            try:
+                response = session.post(NOTION_CHUNK_URL, json=payload, timeout=30)
+                response.raise_for_status()
+                break
+            except requests.HTTPError as err:
+                status = err.response.status_code if err.response is not None else 0
+                if status != 429 or backoff >= 5:
+                    raise
+                retry_after = (err.response.headers.get('Retry-After') or '').strip()
+                if retry_after.replace('.', '', 1).isdigit():
+                    wait = min(float(retry_after) + 1.0, 120.0)
+                else:
+                    wait = float(2 ** (backoff + 1))
+                print(f"      [限流] 429，等待 {wait:.0f}s 后重试 (第 {backoff + 1}/5 次)")
+                time.sleep(wait)
+                backoff += 1
+        backoff = 0
         data = response.json()
         raw_blocks = data.get('recordMap', {}).get('block', {})
         # API wraps block data as {spaceId: ..., value: {value: {actual_data}}}
@@ -166,6 +194,75 @@ def find_resource_pages(session: requests.Session, training: Dict[str, str]) -> 
     return resource_pages
 
 
+def query_collection_rows(session: requests.Session, collection_id: str, cv_block_id: str,
+                          space_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+    """查询 collection_view 数据库的所有行。
+
+    载荷与 recordMap 双层解包参照 load_page_blocks（95-100 行）——
+    queryCollection 的 recordMap 同样是 {spaceId: ..., value: {value: {...}}} 套壳。
+    """
+    payload = {
+        "source": {"type": "collection", "id": collection_id, "spaceId": space_id},
+        "collectionView": {"id": cv_block_id, "spaceId": space_id},
+        "loader": {"type": "reducer",
+                   "reducers": {"collection_group_results": {"type": "results", "limit": limit}},
+                   "searchQuery": "", "userTimeZone": "Asia/Shanghai"},
+    }
+    try:
+        response = session.post(NOTION_QUERY_URL, json=payload, timeout=30)
+        response.raise_for_status()
+    except Exception as e:
+        print(f"      queryCollection 请求失败: {e}")
+        return []
+    data = response.json()
+    raw_blocks = data.get('recordMap', {}).get('block', {})
+    rows: Dict[str, Any] = {}
+    for rid, rb in raw_blocks.items():
+        inner = rb.get('value', {})
+        if isinstance(inner, dict) and 'value' in inner:
+            rows[rid] = {'value': inner['value']}
+        else:
+            rows[rid] = rb
+    row_ids = (data.get('result', {}).get('reducerResults', {})
+               .get('collection_group_results', {}).get('blockIds') or [])
+    return [rows[rid] for rid in row_ids if rid in rows]
+
+
+def find_collection_view(session: requests.Session, page_id: str) -> Optional[Dict[str, str]]:
+    """在页面直接子块中查找 collection_view 块，返回其 collection_id / 块 id / space_id。
+
+    space_id 从页面块本身取（probe10b 验证可行）。
+    """
+    blocks = load_page_blocks(session, page_id)
+    page_block = blocks.get(page_id, {}).get('value', {})
+    space_id = page_block.get('space_id') or ''
+    for child_id in get_children(blocks, page_id):
+        block = blocks.get(child_id)
+        if not block or block.get('value', {}).get('type') != 'collection_view':
+            continue
+        collection_id = block.get('value', {}).get('collection_id')
+        if collection_id:
+            return {'id': child_id, 'collection_id': collection_id, 'space_id': space_id}
+    return None
+
+
+def filter_rows_by_title(rows: List[Dict[str, Any]], keyword: Optional[str]) -> List[Dict[str, Any]]:
+    """按标题子串过滤 collection 行（--only-row 参数用）。
+
+    keyword 为空（None/''）时不过滤，原样返回全部行。
+    """
+    if not keyword:
+        return rows
+    return [row for row in rows if keyword in get_row_title(row)]
+
+
+def get_row_title(block: Dict[str, Any]) -> str:
+    """collection 行标题在 name 属性（非 title），取不到再回退 title。"""
+    props = block.get('value', {}).get('properties', {}) or {}
+    name = props.get('name') or props.get('title') or []
+    return ''.join(part[0] for part in name if part and part[0])
+
+
 def find_all_child_pages(session: requests.Session, parent_id: str) -> List[Dict[str, str]]:
     """查找父页面下的所有子页面（不限标题）。"""
     blocks = load_page_blocks(session, parent_id)
@@ -229,7 +326,8 @@ def find_motto_pages(session: requests.Session, training: Dict[str, str]) -> Opt
     return None
 
 
-def process_resource_page(session: requests.Session, resource: Dict[str, str]) -> Dict[str, List[Dict[str, Any]]]:
+def process_resource_page(session: requests.Session, resource: Dict[str, str],
+                          *, row_context: bool = False) -> Dict[str, List[Dict[str, Any]]]:
     blocks = load_page_blocks(session, resource['id'])
     documents = {'经文': [], '听抄': [], '晨兴': [], 'pdb': [], 'zip': [], 'epub': []}
     current_section = '经文'
@@ -255,7 +353,7 @@ def process_resource_page(session: requests.Session, resource: Dict[str, str]) -
         val = block.get('value', {})
         btype = val.get('type')
         if btype == 'file':
-            collect_file(block, documents, section)
+            collect_file(block, documents, section, row_context=row_context)
         elif btype in CONTAINER_TYPES:
             container_title = get_block_title(block)
             container_section = classify_document_type(container_title) if container_title else section
@@ -291,7 +389,7 @@ def process_resource_page(session: requests.Session, resource: Dict[str, str]) -
             continue
 
         if block_type == 'file':
-            collect_file(block, documents, current_section)
+            collect_file(block, documents, current_section, row_context=row_context)
 
     # 听抄：多文件时优先保留含 "transcript" 的文件，找不到则保留全部
     tingchao = documents['听抄']
@@ -310,7 +408,118 @@ def process_resource_page(session: requests.Session, resource: Dict[str, str]) -
     return documents
 
 
-def collect_file(block: Dict[str, Any], documents: Dict[str, List[Dict[str, Any]]], section_type: str) -> None:
+def process_collection_row(session: requests.Session, row: Dict[str, Any],
+                           seen_audio_ids: Set[str]) -> Dict[str, List[Dict[str, Any]]]:
+    """处理 collection_view 数据库的一行。
+
+    资源行（标题含「资源」）：标题含「资源」时直接走 process_resource_page 的
+    行上下文模式，其直接子块包含 pdb/zip/epub/PDF/pptx 等打包文件。
+    其他行（鸟瞰交通、第一~九篇）：递归收集 audio/video/image/file/embed 块。
+
+    seen_audio_ids：audio 按 file_id 全局去重（纲目/听抄共享同一文件时只保留
+    首次出现）。
+    """
+    title = get_row_title(row)
+    row_id = row.get('value', {}).get('id', '')
+    documents: Dict[str, List[Dict[str, Any]]] = {}
+
+    if '资源' in title:
+        print(f"      [行] {title} -> 资源行，扫描打包文件")
+        documents = process_resource_page(session, {'id': row_id, 'title': title},
+                                          row_context=True)
+        return documents
+
+    print(f"      [行] {title} -> 递归收集媒体资源")
+    blocks = load_page_blocks(session, row_id)
+    media_types = ('audio', 'video', 'image', 'embed')
+
+    def _walk_media(block, blocks_map, depth=0):
+        if not block or depth > 12:
+            return
+        val = block.get('value', {})
+        btype = val.get('type')
+        block_id = val.get('id')
+        if btype == 'file':
+            collect_file(block, documents, '', row_context=True)
+            return
+        if btype in media_types:
+            props = val.get('properties', {}) or {}
+            source = (props.get('source') or [['']])[0][0] if props.get('source') else ''
+            # 只收 attachment 源（本地文件），外链（http 开头）跳过
+            if not (isinstance(source, str) and source.startswith('attachment:')):
+                return
+            parts = source.split(':', 2)
+            if len(parts) < 3:
+                return
+            file_id, filename = parts[1], parts[2]
+            if not filename:
+                return
+            if btype == 'audio':
+                # audio 按 file_id 全局去重（纲目/听抄共享同一文件）
+                if file_id in seen_audio_ids:
+                    print(f"        [跳过] 重复 audio: {filename} (file_id={file_id})")
+                    return
+                seen_audio_ids.add(file_id)
+                doc_type = 'audio'
+            elif btype == 'video':
+                doc_type = 'video'
+            elif btype == 'image':
+                doc_type = 'image'
+            else:  # embed
+                doc_type = 'pdf'
+            if doc_type not in documents:
+                documents[doc_type] = []
+            documents[doc_type].append({
+                'filename': filename,
+                'title': filename,
+                'file_id': file_id,
+                'block_id': block_id,
+                'url': build_attachment_url(file_id, block_id, filename)
+            })
+            return
+        # 子页（page 块）：行级 loadPageChunk 只返回行块+直接子块，不含孙辈，
+        # 故 blocks_map 里取不到 page 子页内部的媒体块，必须 load_page_blocks 下钻
+        # （晨兴喂养等分区下音频挂在周天子页 page 块内；分类页内部还有分类子页）
+        if btype == 'page' and val.get('content'):
+            time.sleep(1.0)  # 子页下钻限速，降低 429 概率（每行约 18 次下钻）
+            sub_blocks = load_page_blocks(session, block_id)
+            for sub_child_id in get_children(sub_blocks, block_id):
+                _walk_media(sub_blocks.get(sub_child_id), sub_blocks, depth + 1)
+            return
+        # 容器（toggle/列表）/列布局等：在当前 blocks_map 里递归遍历含 content 的块
+        for child_id in val.get('content', []) or []:
+            _walk_media(blocks_map.get(child_id), blocks_map, depth + 1)
+
+    for child_id in get_children(blocks, row_id):
+        _walk_media(blocks.get(child_id), blocks)
+
+    # 打印本行汇总
+    for doc_type, doc_list in documents.items():
+        if doc_list:
+            print(f"      [{doc_type}] {len(doc_list)} 个: {[d['filename'] for d in doc_list]}")
+    return documents
+
+
+def process_collection_rows(session: requests.Session, rows: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    """处理 collection_view 的全部行，聚合文档。audio 按 file_id 全局去重。"""
+    seen_audio_ids: Set[str] = set()
+    aggregated: Dict[str, List[Dict[str, Any]]] = {}
+    for row in rows:
+        docs = process_collection_row(session, row, seen_audio_ids)
+        for key, value in docs.items():
+            if value:
+                aggregated.setdefault(key, [])
+                aggregated[key].extend(value)
+    return aggregated
+
+
+def collect_file(block: Dict[str, Any], documents: Dict[str, List[Dict[str, Any]]], section_type: str,
+                 *, row_context: bool = False) -> None:
+    """收集 file 块。
+
+    row_context=True 表示来自 collection_view 数据库行（无 heading 分区上下文），
+    新媒体类型判定先于 section 门控处理（新类型不依赖分区）。
+    """
     value = block.get('value', {})
     filename = extract_filename(value)
     if not filename:
@@ -321,7 +530,51 @@ def collect_file(block: Dict[str, Any], documents: Dict[str, List[Dict[str, Any]
     is_epub = lower_name.endswith('.epub')
     is_word = lower_name.endswith(TARGET_EXTENSIONS)
     is_pdf = is_hwmr_enchs_pdf(filename)  # 仅中英对照晨兴 PDF
-    if not is_pdb and not is_word and not is_zip and not is_epub and not is_pdf:
+    # 新媒体类型（2026-05 collection 行）：pptx/pdf/mp4/mp3/图片/消息行 Word
+    is_media = lower_name.endswith(MEDIA_EXTENSIONS)
+    # HWMR 中英对照 PDF 属于现有晨兴pdf 通道；其余 PDF 在行上下文中作为新类型 pdf 收集
+    is_row_pdf = row_context and lower_name.endswith('.pdf') and not is_pdf
+    if not (is_pdb or is_word or is_zip or is_epub or is_pdf or is_row_pdf
+            or (row_context and is_media)):
+        return
+    # 行上下文：collection_view 数据库行，无 heading 分区。
+    # 新媒体类型（ppt/pdf/video/audio/image/doc）保持 Notion 原名；
+    # pdb/zip/epub/HWMR PDF 沿用原有类型通道（绕过分区门控），简体中文检查保持一致。
+    if row_context:
+        if is_pdf:
+            doc_type = '晨兴pdf'
+        elif is_pdb:
+            doc_type = 'pdb'
+        elif is_epub:
+            doc_type = 'epub'
+        elif is_zip:
+            doc_type = 'zip'
+        elif lower_name.endswith(('.pptx', '.ppt')):
+            doc_type = 'ppt'
+        elif lower_name.endswith('.pdf'):
+            doc_type = 'pdf'
+        elif lower_name.endswith('.mp4'):
+            doc_type = 'video'
+        elif lower_name.endswith('.mp3'):
+            doc_type = 'audio'
+        elif lower_name.endswith(('.png', '.jpg', '.jpeg', '.webp')):
+            doc_type = 'image'
+        else:
+            doc_type = 'doc'
+        if doc_type in ('pdb', 'zip', 'epub') and not is_simplified_chinese(filename):
+            return
+        file_id = get_file_id(value)
+        if not file_id:
+            return
+        if doc_type not in documents:
+            documents[doc_type] = []
+        documents[doc_type].append({
+            'filename': filename,
+            'title': filename,
+            'file_id': file_id,
+            'block_id': value.get('id'),
+            'url': build_attachment_url(file_id, value.get('id'), filename)
+        })
         return
     # PDB 文件: 只检查简体中文，不检查 with verses
     if is_pdb:
@@ -874,7 +1127,19 @@ def download_documents(session: requests.Session, documents: Dict[str, List[Dict
             continue
         for idx, doc in enumerate(doc_list, 1):
             lower_filename = doc['filename'].lower()
-            if doc_type == 'pdb':
+            if doc_type in MEDIA_DOC_TYPES:
+                # 2026-05 collection 行新类型：保持 Notion 原文件名；
+                # image 同名时按序号消歧（image.png / image2.png / image3.png）
+                new_name = doc['filename']
+                if doc_type == 'image':
+                    same_prefix = [d for d in doc_list
+                                   if d['filename'].lower() == lower_filename]
+                    if len(same_prefix) > 1:
+                        pos = same_prefix.index(doc) + 1
+                        if pos > 1:
+                            stem, _, ext = doc['filename'].rpartition('.')
+                            new_name = f"{stem}{pos}.{ext}" if ext else f"{doc['filename']}{pos}"
+            elif doc_type == 'pdb':
                 # PDB 文件保持原始文件名，存放到 pdb/ 子目录
                 new_name = doc['filename']
             elif doc_type == '晨兴pdf':
@@ -913,6 +1178,8 @@ def download_documents(session: requests.Session, documents: Dict[str, List[Dict
         '经文': '个经文文档', '听抄': '个听抄文档', '晨兴': '个晨兴文档',
         'pdb': '个PDB文件', 'epub': '个EPUB文件', 'zip': '个ZIP压缩包',
         '晨兴pdf': '个中英对照晨兴PDF',
+        'ppt': '个PPT文件', 'pdf': '个PDF文件', 'video': '个视频文件',
+        'audio': '个音频文件', 'image': '个图片文件', 'doc': '个Word文件',
     }
     for t, count in type_counts.items():
         label = type_labels.get(t, f'个{t}')
@@ -1042,10 +1309,11 @@ def filter_docs_by_type(all_docs: List[Dict[str, Any]], only_types: Sequence[str
     if not only_types:
         return all_docs
     wanted = {t.strip() for t in only_types if t.strip()}
-    unknown = wanted - {'经文', '听抄', '晨兴', '晨兴pdf', 'pdb', 'zip', 'epub'}
+    known_types = {'经文', '听抄', '晨兴', '晨兴pdf', 'pdb', 'zip', 'epub'} | set(MEDIA_DOC_TYPES)
+    unknown = wanted - known_types
     if unknown:
         print(f"[WARN] 未知的 --only 类型将被忽略: {', '.join(sorted(unknown))}"
-              f"（可选值：经文/听抄/晨兴/晨兴pdf/pdb/zip/epub）")
+              f"（可选值：经文/听抄/晨兴/晨兴pdf/pdb/zip/epub/ppt/pdf/video/audio/image/doc）")
         wanted -= unknown
     if not wanted:
         return []
@@ -1053,7 +1321,8 @@ def filter_docs_by_type(all_docs: List[Dict[str, Any]], only_types: Sequence[str
 
 
 def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode: bool = False,
-                              only_types: Optional[Sequence[str]] = None) -> List[Dict[str, Any]]:
+                              only_types: Optional[Sequence[str]] = None,
+                              only_row: Optional[str] = None) -> List[Dict[str, Any]]:
     page_id = extract_page_id(base_url)
     if not page_id:
         print("无法解析页面 ID")
@@ -1083,10 +1352,13 @@ def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode
     all_docs: List[Dict[str, Any]] = []
     for training in all_trainings:
         folder_name = re.sub(r'[<>:\\"/|?*]', '_', training['title'])
+        # 目录名映射：避免与历史产出目录名不一致（2026-05 秋季长老训练 -> 2026-05 秋季训练）
+        folder_name = folder_name.replace('秋季长老训练', '秋季训练')
         print(f"\n处理训练: {training['title']}")
         
-        # 下载标语诗歌图片 (PDB 模式跳过；--only 指定类型时也跳过，保持语义纯粹)
-        if not pdb_mode and not only_types:
+        # 下载标语诗歌图片 (PDB 模式跳过；--only 指定类型时也跳过，保持语义纯粹；
+        # --only-row 行级过滤时同样跳过)
+        if not pdb_mode and not only_types and not only_row:
             motto_page = find_motto_pages(session, training)
             if motto_page:
                 print(f"  找到标语页面: {motto_page['title']}")
@@ -1099,6 +1371,43 @@ def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode
             time.sleep(1)
             continue
         
+        if only_row and not pdb_mode:
+            # --only-row 行级过滤：只处理 collection_view 数据库中标题匹配的行
+            # （如 2026-05 的「资源」行打包文件）。老结构（普通「资源」子页面）
+            # 的训练整体跳过，避免已存在文件走 MD5 对比慢路径。
+            resource_pages = find_resource_pages(session, training)
+            if resource_pages:
+                print(f"  [ONLY-ROW] 跳过老结构训练（资源挂普通子页面，无 collection 行过滤意义）")
+                time.sleep(0.5)
+                continue
+            cv = find_collection_view(session, training['id'])
+            if not cv:
+                print(f"  [ONLY-ROW] 未找到 collection_view，跳过")
+                continue
+            rows = query_collection_rows(session, cv['collection_id'], cv['id'], cv['space_id'])
+            if not rows:
+                print(f"  [ONLY-ROW] collection 行为空，跳过")
+                continue
+            selected = filter_rows_by_title(rows, only_row)
+            if not selected:
+                print(f"  [ONLY-ROW] 无标题含「{only_row}」的行，跳过（共 {len(rows)} 行）")
+                time.sleep(1)
+                continue
+            print(f"  [ONLY-ROW] {len(rows)} 行中选中 {len(selected)} 行: "
+                  f"{[get_row_title(r) for r in selected]}")
+            # 逐行处理：download_documents 的 resource_id 必须是「行 id」而非训练页 id。
+            # Playwright 用 resource_id 打开页面找文件卡片——传训练页 id 会打开训练页，
+            # 页面上没有资源行文件 → 点击/附件 URL 全部 404。
+            seen_audio_ids: Set[str] = set()
+            for row in selected:
+                row_id = row.get('value', {}).get('id', '')
+                aggregated = process_collection_row(session, row, seen_audio_ids)
+                if any(aggregated.values()):
+                    all_docs.extend(download_documents(session, aggregated, folder_name,
+                                                       training['id'], row_id))
+            time.sleep(1)
+            continue
+
         if pdb_mode:
             # PDB 模式: 只补充扫描正常模式未覆盖的老训练（< 2025-04）
             if training_in_range(training['title']):
@@ -1124,12 +1433,30 @@ def download_notion_documents(base_url: str, only_images: bool = False, pdb_mode
             # 正常模式: 只处理资源页面
             resource_pages = find_resource_pages(session, training)
             if not resource_pages:
-                print(f"  未找到资源页面")
+                # 兜底：资源不挂在普通子页面时（如 2026-05 秋季训练），扫描训练页下
+                # collection_view 数据库行。
+                cv = find_collection_view(session, training['id'])
+                if not cv:
+                    print(f"  未找到资源页面")
+                    continue
+                rows = query_collection_rows(session, cv['collection_id'], cv['id'], cv['space_id'])
+                if not rows:
+                    print(f"  未找到资源页面（collection 行为空）")
+                    continue
+                print(f"  未找到资源页面，改用 collection_view 模式: {len(rows)} 行")
+                aggregated = process_collection_rows(session, rows)
+                if any(aggregated.values()):
+                    all_docs.extend(download_documents(session, aggregated, folder_name, training['id'], training['id']))
+                time.sleep(1)
                 continue
             print(f"  找到 {len(resource_pages)} 个资源页面")
             
             for resource in resource_pages:
-                aggregated: Dict[str, List[Dict[str, Any]]] = {'经文': [], '听抄': [], '晨兴': [], 'pdb': [], 'zip': [], 'epub': [], '晨兴pdf': []}
+                aggregated: Dict[str, List[Dict[str, Any]]] = {
+                    '经文': [], '听抄': [], '晨兴': [], 'pdb': [], 'zip': [], 'epub': [], '晨兴pdf': [],
+                    # 2026-05 collection 行新类型（缺 key 会在下方合并时被静默丢弃）
+                    'ppt': [], 'pdf': [], 'video': [], 'audio': [], 'image': [], 'doc': [],
+                }
                 docs = process_resource_page(session, resource)
                 for key, value in docs.items():
                     if key in aggregated:
@@ -1282,6 +1609,18 @@ def playwright_downloads(all_docs: List[Dict[str, Any]]) -> None:
                 # 额外等待确保所有内容渲染
                 time.sleep(5)
                 print("页面加载完成，开始下载...")
+                # 主动步进滚动一轮：Notion 虚拟列表懒渲染，未滚动到的文件块
+                # 不在 DOM 中，策略 1 点击下载会 count()==0（如 pdb & epub 分区
+                # 靠后的文件），滚动到底再回顶触发全量渲染
+                try:
+                    page_height = page.evaluate("document.body.scrollHeight")
+                    for y in range(0, page_height + 2000, 2000):
+                        page.evaluate(f"window.scrollTo(0, {y})")
+                        time.sleep(0.3)
+                    page.evaluate("window.scrollTo(0, 0)")
+                    time.sleep(1)
+                except Exception:
+                    pass
             except Exception as e:
                 print(f"访问页面失败: {e}")
                 total_failed += len(docs)
@@ -1516,7 +1855,9 @@ def main() -> None:
     parser.add_argument('--url', default=BASE_URL, help='Notion 页面 URL')
     parser.add_argument('--only-images', action='store_true', help='只下载标语诗歌图片，跳过Word文档')
     parser.add_argument('--only', action='append', default=[], metavar='TYPE',
-                        help='只下载指定类型文档，可多次传入（可选值：经文/听抄/晨兴/晨兴pdf/pdb/zip/epub）')
+                        help='只下载指定类型文档，可多次传入（可选值：经文/听抄/晨兴/晨兴pdf/pdb/zip/epub/ppt/pdf/video/audio/image/doc）')
+    parser.add_argument('--only-row', default=None, metavar='KEYWORD',
+                        help='只处理 collection_view 数据库中标题含指定关键词的行（如「资源」，下载打包文件不下载媒体）')
     parser.add_argument('--pdb', action='store_true', help='补充下载PDB文件（仅 < 2025-04 的老训练，正常模式已覆盖新训练）')
     parser.add_argument('--dry-run', action='store_true', help='只扫描 Notion 页面，不实际下载（用于调试）')
     args = parser.parse_args()
@@ -1528,16 +1869,19 @@ def main() -> None:
         print('保存位置: resource/pdb/{training}/')
     elif args.only_images:
         print('目标: 下载标语诗歌图片')
+    elif args.only_row:
+        print(f'目标: 只下载 collection 数据库中标题含「{args.only_row}」的行（打包文件，不含媒体）')
     else:
-        print('目标: 下载训练资源（Word文档 + PDB + 标语诗歌图片）')
-        print('类型: 经文、听抄、晨兴、PDB、标语诗歌')
+        print('目标: 下载训练资源（Word文档 + PDB + 标语诗歌图片 + 媒体资源）')
+        print('类型: 经文、听抄、晨兴、PDB、标语诗歌、ppt/pdf/video/audio/image/doc（collection 行）')
     if args.dry_run:
         print('模式: DRY-RUN（只扫描，不下载）')
     print('=' * 80)
     start_time = time.time()
     all_docs: List[Dict[str, Any]] = []
     try:
-        all_docs = download_notion_documents(args.url, args.only_images, args.pdb, args.only)
+        all_docs = download_notion_documents(args.url, args.only_images, args.pdb,
+                                              args.only, only_row=args.only_row)
     except KeyboardInterrupt:
         print('\n\n用户中断下载')
     except Exception as error:
