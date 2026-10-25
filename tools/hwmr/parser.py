@@ -101,7 +101,12 @@ def extract_page(page):
     en_all = cluster_x0(en_words, sep=' ')
     cn_font = {k: cluster_x0(groups.get(k, []), sep='')
                for k in ('kai', 'fang', 'pming', 'hei')}
-    en_font = {k: cluster_x0(groups.get(k, []), sep=' ')
+    # F 类：en_font 只取右栏（x0 >= COL_SPLIT_X）。CN 栏正文的半角 Latin 字形
+    # （L3 序号数字、经节引用数字、em-dash）会被 font_kind 归入 en/enB/tnr，
+    # 不分栏时与同 top 的 EN 栏行聚成一行，段首 x0 低于 EN_HEAD_X0 导致
+    # EN 段首被误判为续行并粘连左栏噪声（probe 2026-05 p5 证据）。
+    en_font = {k: cluster_x0([w for w in groups.get(k, [])
+                              if w['x0'] >= COL_SPLIT_X], sep=' ')
                for k in ('en', 'enB', 'tnr')}
     return {
         'all_lines': all_lines,
@@ -453,23 +458,22 @@ def outline_flat_nodes(lines, is_en=False):
             l4_active = is_en and re.match(r'^[a-z]\.$', level)
             continue
         if nodes:
-            # E 类缺陷3（probe_p0_ctx p7/p29 定案）：top 交错使非 bold 续行
-            # 落在 bold 节点之后，is_head 且 level=None 的兜底分支需与续行分支
-            # 同构且按行首语义分流：小写开头 = 最近节点标题自身的词组续行
-            # （p29 'strong—2:1.' 属 II.）；其余（引用尾巴等）跳过 bold 节点归
-            # 最近非 bold 节点（p7 '19:10; cf. Gen. 1:26.' 属 B.），
-            # 全 bold 时回退最近节点（不丢行）。
+            # E 类缺陷3（全书普查 + CN 底座 26/26 确证定案）：top 交错使非 bold
+            # 续行落在 bold 节点之后，应跳过尾部连续 bold 节点、归最近非 bold
+            # 节点；全 bold 时回退最近节点（不丢行）。证据：全书 8 批触发本
+            # 分支且行为变化的行共 26 行（53 实例），物理签名统一（x0=380.0、
+            # +7.1pt 交错在下一 bold 首行后），CN 底座逐一核验全部确证跳 bold
+            # 归属（2025-07 p7/p29、2026-04 w4/w8、2026-05 p87-173 等）。
+            # 旧「小写开头归 nodes[-1]」分流为纯污染源（26/26 全部错归 bold
+            # 节点），已删。
             if is_en and not bold:
-                if re.match(r'^[a-z]', s):
-                    nodes[-1]['title'] = _join_title(nodes[-1]['title'], s)
+                idx = len(nodes) - 1
+                while idx >= 0 and nodes[idx].get('is_bold'):
+                    idx -= 1
+                if idx >= 0:
+                    nodes[idx]['title'] = _join_title(nodes[idx]['title'], s)
                 else:
-                    idx = len(nodes) - 1
-                    while idx >= 0 and nodes[idx].get('is_bold'):
-                        idx -= 1
-                    if idx >= 0:
-                        nodes[idx]['title'] = _join_title(nodes[idx]['title'], s)
-                    else:
-                        nodes[-1]['title'] = _join_title(nodes[-1]['title'], s)
+                    nodes[-1]['title'] = _join_title(nodes[-1]['title'], s)
             else:
                 nodes[-1]['title'] = _join_title(nodes[-1]['title'], s, bold,
                                                  is_en=is_en)

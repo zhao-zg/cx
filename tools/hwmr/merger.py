@@ -185,6 +185,17 @@ def align_tree(cn_tree, en_tree, where):
         # 前缀豁免：CN 少、EN 多且 CN 是 EN 前缀 → 裁剪 EN 对齐 OLD（保留 trim 语义）
         return trim_to_prefix(en_tree, len(ds_cn)), {'aligned': 0, 'cn_only': 0,
                                                       'en_only': len(ds_en) - len(ds_cn)}
+    if len(ds_en) < len(ds_cn) and ds_en == ds_cn[:len(ds_en)]:
+        # 镜像前缀豁免：EN 少、CN 多且 EN 是 CN 前缀 → 按先序位置 1:1 对位，
+        # 尾部 CN 独有节点挂 EN 空占位。避免 LCS 尾部 tie-break 把尾部同深度
+        # 的「CN 标签节点 ↔ EN 末节点」错配（last-with-last）——2026-05 ch2 实证：
+        # CN 32 节点（…十八、贰、摘录标签）前 31 深度与 EN 完全相等，LCS 回溯
+        # 把 II. "As a whole…" 错挂到 CN 尾部「职事信息摘录：」标签节点，贰落空占位。
+        aligned = [(d, cn_pre[i][1], en_pre[i][1]) for i, (d, _) in enumerate(en_pre)]
+        aligned += [(d, cn, None) for d, cn in cn_pre[len(ds_en):]]
+        en_tree_al, en_only = _rebuild_en(aligned, ds_cn)
+        return en_tree_al, {'aligned': 1, 'cn_only': len(ds_cn) - len(ds_en),
+                            'en_only': en_only}
     aligned = _align_depth_seq(cn_pre, en_pre)
     cn_only = sum(1 for _, cn, en in aligned if cn is not None and en is None)
     en_tree_al, en_only = _rebuild_en(aligned, ds_cn)

@@ -1,0 +1,29 @@
+{
+  "_comment": "2026-05 秋季训练（亚伯拉罕、以撒、雅各的神）。页脚已核验（第3/11/31/61/101/141页：纲要页与晨兴页双模式，PMingLiU 页脚无字体分割）；seg_rules 暂无（待 merge 预检结果）。",
+  "batch_name": "2026-05 秋季训练",
+  "pdf": "resource/2026-05 秋季训练/晨兴中英对照.pdf",
+  "short_name": "2026-05",
+  "meta": {
+    "path": "local-2026-05",
+    "title": "九月国际长老及负责弟兄训练",
+    "subtitle": "亚伯拉罕、以撒、雅各的神",
+    "year": "2026",
+    "season": "05 秋季训练",
+    "has_listen_block": false
+  },
+  "meta_en": {
+    "title": "SEPTEMBER INTERNATIONAL TRAINING FOR ELDERS AND RESPONSIBLE ONES",
+    "subtitle": "The God of Abraham, of Isaac, and of Jacob"
+  },
+  "top_en": {
+    "title": "September Int’l Training for Elders and Responsible Ones, 2026",
+    "subtitle": "The God of Abraham, of Isaac, and of Jacob"
+  },
+  "title_fixes": [],
+  "footer_filter": "二○二六年九月国际长老及负责弟兄训练(第\\d+周纲要—第\\d+页|-第\\d+周晨兴圣言-第\\d+页)",
+  "seg_rules": {},
+  "ch9d2_special": null,
+  "verify": {
+    "exclude_version": true
+  }
+}
