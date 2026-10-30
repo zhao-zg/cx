@@ -451,13 +451,17 @@
       // 进入职事摘录区域后：
       // - calibre_text_abs_dadian：小标题（可能为空，跳过空值）
       // - calibre_text_abs：正文段落
+      // - calibre_text_abs_zhongdian：重点小标题（如「壹」「贰」大点、经文恢复注标题，
+      //   2026-05 秋季训练 ch1/ch7 出现，混排于摘录正文间）
       // - 其他类名（如 calibre_text_dadian 新大点）：结束收集
       if (cls === 'calibre_text_abs_dadian') {
         if (text) lines.push(text);
       } else if (cls === 'calibre_text_abs') {
         if (text) lines.push(text);
+      } else if (cls === 'calibre_text_abs_zhongdian') {
+        if (text) lines.push(text);
       } else {
-        // 遇到非 abs_dadian / abs 的段落，结束收集
+        // 遇到非 abs_dadian / abs / abs_zhongdian 的段落，结束收集
         break;
       }
     }
