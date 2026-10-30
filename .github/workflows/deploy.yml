@@ -87,7 +87,8 @@ jobs:
       - name: 设置 Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          # 3.11：ubuntu-26.04 runner 镜像已移除 EOL 的 Python 3.9（2026-10 起触发）
+          python-version: '3.11'
           cache: 'pip'
 
       - name: 设置 Node.js
