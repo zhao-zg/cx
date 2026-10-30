@@ -8,6 +8,7 @@ import android.os.PowerManager;
 import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import java.util.Locale;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -336,6 +337,22 @@ public class NativeTTSPlugin extends Plugin {
 
         result.put("engineName",  engineName);
         result.put("zhAvailable", zhAvailable);
+        // 已安装的 TTS 引擎列表（getEngines 枚举）。
+        // 用途：区分「容器内无任何引擎」（engines 为空，需引导下载引擎 APK）
+        // 与「有引擎但缺中文语音包」（engines 非空 + zhAvailable=false，引导下语音包）。
+        // 鸿蒙 NEXT 卓易通容器常见 engines=[]，此时系统 TTS 设置页也是空的。
+        JSArray engines = new JSArray();
+        try {
+            if (tts != null && tts.getEngines() != null) {
+                for (TextToSpeech.EngineInfo info : tts.getEngines()) {
+                    JSObject e = new JSObject();
+                    e.put("name", info.name != null ? info.name : "");
+                    e.put("label", info.label != null ? info.label : "");
+                    engines.put(e);
+                }
+            }
+        } catch (Exception ignored) {}
+        result.put("engines", engines);
         // TTS 引擎内部标签（zh-CN → 华为/Honor 常见 com.huawei... / com.iflytek...）
         try {
             String langTag = (tts != null) ? tts.getVoice() != null ? tts.getVoice().getLocale().toLanguageTag() : "" : "";
@@ -387,6 +404,29 @@ public class NativeTTSPlugin extends Plugin {
             call.resolve();
         } catch (Exception e) {
             call.reject("无法打开 TTS 设置: " + e.getMessage());
+        }
+    }
+
+    // ── openEngineDownload ───────────────────────────────────────────────
+    // 引导用户下载 TTS 引擎（默认讯飞语记官方下载页）。
+    // 用途：纯血鸿蒙（HarmonyOS NEXT）卓易通/出境易安卓容器内 engines=[] 场景——
+    // 容器无任何 Android TTS 引擎时，系统 TTS 设置页为空、朗读完全无声，
+    // 需引导用户安装引擎 APK 后回到系统 TTS 设置切换首选引擎。
+    // 不代发 APK（避免重新分发授权问题），只跳官方下载页。
+    // JS 侧（theme-toggle.js）已有 catch 回退到 window.open，此处 reject 时走兜底。
+
+    @PluginMethod
+    public void openEngineDownload(PluginCall call) {
+        String url = call.getString("url", "https://www.iflyrec.com/html/yujifluency.html");
+        if (url == null || url.isEmpty()) url = "https://www.iflyrec.com/html/yujifluency.html";
+        try {
+            Intent view = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            view.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getActivity().startActivity(view);
+            call.resolve();
+        } catch (Exception e) {
+            // 容器/ROM 无浏览器可响应该 Intent 时 reject，JS 端 window.open 兜底
+            call.reject("无法打开下载页: " + e.getMessage());
         }
     }
 

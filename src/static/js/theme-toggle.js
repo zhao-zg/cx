@@ -1274,6 +1274,9 @@
         if (closeBtn) closeBtn.addEventListener('click', dlg.close);
     }
 
+    // 讯飞语记官方下载页（引擎引导跳转目标；不代发 APK，避免重新分发授权问题）
+    var IFLYTEK_URL = 'https://www.iflyrec.com/html/yujifluency.html';
+
     // 朗读诊断对话框（仅 Capacitor APK 显示，位于「应用」区）
     // 用途：排查荣耀/华为等设备「朗读完全没声音」问题。
     // 数据来源：speech.js 的 CXSpeech.getDiagnostics()（环境/运行时/引擎/中文语音包）。
@@ -1337,6 +1340,14 @@
             h.push(sec('🗣️ 引擎状态'));
             h.push(row('引擎', n.engineName ? esc(n.engineName) : '<span style="color:var(--danger-text)">未初始化</span>'));
             h.push(row('引擎标签', esc(n.engineInfo || '')));
+            // 已装引擎数（Java 侧 getEngines 枚举；旧 APK 无此字段时显示 — 不误报）
+            var engines = (n.engines && n.engines.length != null) ? n.engines : null;
+            var engineCount = engines ? engines.length : null;
+            h.push(row('已装 TTS 引擎', engineCount != null
+                ? (engineCount > 0
+                    ? '<span style="color:var(--success-text)">' + engineCount + ' 个</span>'
+                    : '<span style="color:var(--danger-text)">0 个（无可用引擎）</span>')
+                : '—（需升级 APK）'));
             h.push(row('TTS 就绪', n.ttsReady === true ? badge(true, '是') : badge(false, '否')));
             h.push(row('中文语音包', n.zhAvailable === true ? badge(true, '可用') : badge(false, '缺失/不可用')));
             h.push(row('鸿蒙快速降级', n.isHarmony ? (esc(n.harmonyInfo || '') + '（失败1次即降级）') : '非鸿蒙设备'));
@@ -1372,9 +1383,13 @@
                 h.push(row('合成状态', ws.speaking ? '朗读中' : (ws.paused ? '已暂停' : '空闲')));
             }
 
-            // 结论/建议（针对荣耀无声音问题）
+            // 结论/建议（区分三种场景：无引擎 / 有引擎缺语音包 / 其他）
+            // 无引擎判定：engines 字段存在且为空（旧 APK 无该字段时退回原逻辑）
+            var noEngine = (n.engines && n.engines.length === 0);
             var tips = [];
-            if (!n.ttsReady || n.zhAvailable === false) {
+            if (noEngine) {
+                tips.push('未检测到任何 TTS 语音引擎（纯血鸿蒙安卓容器常见）。请点下方「获取讯飞语记」安装引擎，安装后回到本页点「打开系统TTS设置」将首选引擎切换为讯飞语记并下载中文语音包，再重试朗读。若安装后仍无声，请复制诊断信息反馈给我们。');
+            } else if (!n.ttsReady || n.zhAvailable === false) {
                 tips.push('TTS 引擎未就绪或缺少中文语音包。请点下方「打开系统TTS设置」，确认已下载中文语音包后重试朗读。');
             } else if (rt.degraded) {
                 tips.push('当前已切换为浏览器朗读。若仍无声，请确认系统已下载中文语音包并允许本应用在后台运行。');
@@ -1388,7 +1403,33 @@
                 h.push('<div style="padding:6px 8px;background:var(--bg-secondary,rgba(0,0,0,.04));border-radius:6px;margin-top:6px;font-size:12px;color:var(--text-secondary);line-height:1.5">' + esc(t) + '</div>');
             });
 
+            // 无引擎时：引擎下载引导按钮（跳官方下载页，不代发 APK）
+            if (noEngine) {
+                h.push('<button id="cxTtsDiagGetEngine" style="display:block;width:100%;margin-top:8px;padding:10px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">获取讯飞语记（TTS 引擎）</button>');
+            }
+
             bodyEl.innerHTML = h.join('');
+
+            // 引擎下载引导：打开讯飞语记官方页面
+            var getEngineBtn = document.getElementById('cxTtsDiagGetEngine');
+            if (getEngineBtn) {
+                getEngineBtn.addEventListener('click', function() {
+                    var nativeTTS = null;
+                    try {
+                        if (window.Capacitor && window.Capacitor.Plugins) {
+                            nativeTTS = window.Capacitor.Plugins.NativeTTS || window.Capacitor.Plugins.TTSPlugin || null;
+                        }
+                    } catch(e) {}
+                    if (nativeTTS && typeof nativeTTS.openEngineDownload === 'function') {
+                        // Java 侧打开（可选实现，兼容旧 APK 走浏览器分支）
+                        nativeTTS.openEngineDownload().catch(function() {
+                            window.open(IFLYTEK_URL, '_blank');
+                        });
+                    } else {
+                        window.open(IFLYTEK_URL, '_blank');
+                    }
+                });
+            }
 
             // 复制用纯文本
             var lines = [];
@@ -1399,6 +1440,7 @@
             L('系统', (n.isHarmony ? '鸿蒙' : 'Android API') + (n.sdkVersion ? ' ' + n.sdkVersion : ''));
             L('TTS引擎', n.engineName || '');
             L('引擎标签', n.engineInfo || '');
+            L('已装TTS引擎', n.engines ? n.engines.length + '个' : '');
             L('TTS就绪', n.ttsReady);
             L('中文语音包', n.zhAvailable);
             L('鸿蒙快速降级', n.isHarmony);
