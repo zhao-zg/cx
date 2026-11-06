@@ -351,115 +351,6 @@
             return count;
         },
 
-        // ─── 晨读页纲目跨天复制 ──────────────────────────────────────
-        // cx 页面中多天可能共享相同纲目内容。applyHighlight 只在最佳匹配位置
-        // 创建一个 mark，导致其他天的相同纲目文本没有划线。此方法在 restoreHighlights
-        // 末尾运行，将纲目区域内的 mark 复制到所有 .day-page 中相同文本的位置。
-        _duplicateOutlineHighlights: function () {
-            var dayPages = document.querySelectorAll('.day-page');
-            if (dayPages.length <= 1) return;
-            var self = this;
-
-            // 收集纲目区域内已渲染的 mark（去重：同 highlightId 只处理一次）
-            var processed = {};
-            var outlineMarks = document.querySelectorAll(
-                '.day-page .outline-section .cx-highlight, ' +
-                '.day-page .outline-item .cx-highlight, ' +
-                '.day-page .outline-content .cx-highlight, ' +
-                '.day-page .outline-node-content .cx-highlight'
-            );
-
-            for (var mi = 0; mi < outlineMarks.length; mi++) {
-                var origMark = outlineMarks[mi];
-                var hlId = origMark.dataset.highlightId;
-                if (processed[hlId]) continue;
-                processed[hlId] = true;
-
-                var hlText = origMark.textContent;
-                if (!hlText) continue;
-
-                var origDayPage = origMark.closest('.day-page');
-                if (!origDayPage) continue;
-
-                // 查找原始 mark 对应的高亮数据（用于复制样式）
-                var hlData = null;
-                for (var hi = 0; hi < self.highlights.length; hi++) {
-                    if (self.highlights[hi].id === hlId) { hlData = self.highlights[hi]; break; }
-                }
-
-                // 遍历其他 day-page，在纲目区域中查找相同文本并创建 mark
-                for (var di = 0; di < dayPages.length; di++) {
-                    var dp = dayPages[di];
-                    if (dp === origDayPage) continue;
-
-                    var outlineSec = dp.querySelector('.outline-section');
-                    if (!outlineSec) continue;
-
-                    // 该天是否已有此 highlightId 的 mark
-                    if (outlineSec.querySelector('[data-highlight-id="' + hlId + '"]')) continue;
-
-                    // 在纲目区域的文本节点中查找匹配
-                    var walker = document.createTreeWalker(
-                        outlineSec, NodeFilter.SHOW_TEXT, null
-                    );
-                    var node;
-                    while ((node = walker.nextNode())) {
-                        var idx = node.textContent.indexOf(hlText);
-                        if (idx < 0) continue;
-                        // 确保不在已有的 mark 内
-                        if (node.parentNode.closest('.cx-highlight')) continue;
-
-                        try {
-                            var range = document.createRange();
-                            range.setStart(node, idx);
-                            range.setEnd(node, idx + hlText.length);
-
-                            var mark = document.createElement('mark');
-                            mark.className = 'cx-highlight';
-                            mark.dataset.highlightId = hlId;
-
-                            if (hlData) {
-                                if (hlData.color && hlData.color !== 'note' && self.config.colors[hlData.color]) {
-                                    mark.style.backgroundColor = self.config.colors[hlData.color];
-                                } else {
-                                    mark.style.backgroundColor = 'transparent';
-                                }
-                                if (hlData.underline) {
-                                    mark.style.borderBottom = '2px solid #e53935';
-                                    mark.style.paddingBottom = '1px';
-                                }
-                                if (hlData.note) {
-                                    mark.style.textDecoration = 'underline wavy #eb6c05 1px';
-                                    mark.style.textUnderlineOffset = '2px';
-                                }
-                            } else {
-                                // hlData 不可用时，直接从原始 mark 复制全部内联样式
-                                mark.style.cssText = origMark.style.cssText;
-                            }
-
-                            range.surroundContents(mark);
-
-                            // 直接创建笔记图标（不走 _insertNoteIcon 的全局去重，
-                            // 因为原始 mark 已有图标，全局 querySelector 会误判跳过）
-                            if (hlData && hlData.note) {
-                                var nextSib = mark.nextSibling;
-                                if (!nextSib || !nextSib.classList || !nextSib.classList.contains('cx-note-icon')) {
-                                    var icon = document.createElement('span');
-                                    icon.className = 'cx-note-icon';
-                                    icon.textContent = '\uD83D\uDCDD';
-                                    icon.dataset.highlightId = hlId;
-                                    mark.parentNode.insertBefore(icon, mark.nextSibling);
-                                }
-                            }
-                        } catch (e) {
-                            // surroundContents 失败时跳过（跨节点选区等复杂情况）
-                        }
-                        break; // 每天同一 highlightId 只复制一次
-                    }
-                }
-            }
-        },
-
         // ─── 从 IndexedDB 加载当前页划线（异步，返回 Promise）────────────
         loadHighlights: function () {
             var self = this;
@@ -743,7 +634,6 @@
                     return true;
                 });
                 self.highlights.forEach(function (h) { self.applyHighlight(h); });
-                self._duplicateOutlineHighlights();
             });
         },
 

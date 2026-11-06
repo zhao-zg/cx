@@ -650,17 +650,25 @@
   }
 
   /* 渲染注解文字（内嵌经文引用变为可点击，verseKey 提供书卷上下文） */
+  /* ˍ（U+02CD）为注解源数据的分段标记；切分为 <p class="fn-para"> 段落而非 <br>，
+     便于 CSS 控制段间距（wrapRefs 不跨 ˍ 包裹 span，split 安全） */
   function renderNoteText(text, verseKey) {
+    var html;
     if (window.CXRef && window.CXRef.wrapRefs) {
-      return window.CXRef.wrapRefs(text, verseKey || '', { lockBook: true })
+      html = window.CXRef.wrapRefs(text, verseKey || '', { lockBook: true })
+        .replace(/\n/g, '<br>');
+    } else {
+      html = esc(text)
+        .replace(
+          INLINE_REF_RE,
+          '<span class="verse-ref" data-refs="$1">$1</span>'
+        )
         .replace(/\n/g, '<br>');
     }
-    return esc(text)
-      .replace(
-        INLINE_REF_RE,
-        '<span class="verse-ref" data-refs="$1">$1</span>'
-      )
-      .replace(/\n/g, '<br>');
+    if (html.indexOf('ˍ') < 0) return html;
+    return html.split('ˍ').map(function (p) {
+      return '<p class="fn-para">' + p + '</p>';
+    }).join('');
   }
 
   /* 确保弹框已打开（fn-ref/xref-ref 可能在弹框外点击）*/

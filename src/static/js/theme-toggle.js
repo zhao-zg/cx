@@ -1383,12 +1383,16 @@
                 h.push(row('合成状态', ws.speaking ? '朗读中' : (ws.paused ? '已暂停' : '空闲')));
             }
 
-            // 结论/建议（区分三种场景：无引擎 / 有引擎缺语音包 / 其他）
+            // 结论/建议（区分四种场景：无引擎 / 有引擎但未就绪 / 有引擎缺语音包 / 其他）
             // 无引擎判定：engines 字段存在且为空（旧 APK 无该字段时退回原逻辑）
             var noEngine = (n.engines && n.engines.length === 0);
+            // 有引擎但 TTS 从未就绪：引擎是空壳/绑定初始化失败（鸿蒙安卓容器常见，如 engines=1 但 ttsReady=false）
+            var engineBroken = !!(n.engines && n.engines.length > 0 && n.ttsReady === false);
             var tips = [];
             if (noEngine) {
                 tips.push('未检测到任何 TTS 语音引擎（纯血鸿蒙安卓容器常见）。请点下方「获取讯飞语记」安装引擎，安装后回到本页点「打开系统TTS设置」将首选引擎切换为讯飞语记并下载中文语音包，再重试朗读。若安装后仍无声，请复制诊断信息反馈给我们。');
+            } else if (engineBroken) {
+                tips.push('检测到 TTS 引擎但引擎始终未就绪（安卓容器的空壳引擎常见）。请先完全退出应用后重新打开，排除初始化竞态；若仍无声，点下方「获取讯飞语记」安装引擎，安装后点「打开系统TTS设置」将首选引擎切换为讯飞语记并下载中文语音包，再重试朗读。若仍无效，请复制诊断信息反馈给我们。');
             } else if (!n.ttsReady || n.zhAvailable === false) {
                 tips.push('TTS 引擎未就绪或缺少中文语音包。请点下方「打开系统TTS设置」，确认已下载中文语音包后重试朗读。');
             } else if (rt.degraded) {
@@ -1403,8 +1407,8 @@
                 h.push('<div style="padding:6px 8px;background:var(--bg-secondary,rgba(0,0,0,.04));border-radius:6px;margin-top:6px;font-size:12px;color:var(--text-secondary);line-height:1.5">' + esc(t) + '</div>');
             });
 
-            // 无引擎时：引擎下载引导按钮（跳官方下载页，不代发 APK）
-            if (noEngine) {
+            // 无引擎或引擎空壳时：引擎下载引导按钮（跳官方下载页，不代发 APK）
+            if (noEngine || engineBroken) {
                 h.push('<button id="cxTtsDiagGetEngine" style="display:block;width:100%;margin-top:8px;padding:10px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">获取讯飞语记（TTS 引擎）</button>');
             }
 
