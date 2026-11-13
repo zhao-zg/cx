@@ -346,11 +346,14 @@
                 var p = ((clientX - rect.left - CLONE_THUMB / 2) / usable) * 100;
                 return Math.max(0, Math.min(100, p));
             }
-            function cloneBegin() {
+            function cloneBegin(clientX) {
                 isSeekingClone = true;
                 resetTimer();  // 拖动期间顺延自动收起
-                // 通知 speech.js 进入拖动状态（等同原始条的 mousedown）
-                origProgress.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+                // 通知 speech.js 进入拖动状态（等同原始条的 mousedown）。
+                // 必须带坐标：无坐标的 clientX=0 会让原条先被算成 0%
+                var init = { bubbles: true };
+                if (typeof clientX === 'number') init.clientX = clientX;
+                origProgress.dispatchEvent(new MouseEvent('mousedown', init));
             }
             function cloneApply(pct) {
                 cloneProgress.value = String(pct);
@@ -364,7 +367,7 @@
             }
             cloneProgress.addEventListener('touchstart', function(e) {
                 if (!e.touches || !e.touches.length) return;
-                cloneBegin();
+                cloneBegin(e.touches[0].clientX);
                 cloneApply(clonePctAt(e.touches[0].clientX));
             }, { passive: true });
             cloneProgress.addEventListener('touchmove', function(e) {
@@ -374,8 +377,8 @@
             }, { passive: false });
             cloneProgress.addEventListener('touchend', cloneCommit);
             cloneProgress.addEventListener('touchcancel', cloneCommit);
-            cloneProgress.addEventListener('mousedown', function() {
-                cloneBegin();
+            cloneProgress.addEventListener('mousedown', function(e) {
+                cloneBegin(typeof e.clientX === 'number' ? e.clientX : undefined);
             });
             cloneProgress.addEventListener('input', function() {
                 origProgress.value = cloneProgress.value;
