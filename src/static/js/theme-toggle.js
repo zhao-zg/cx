@@ -660,6 +660,30 @@
             </div>
             
             <div class="theme-section">
+                <div class="theme-section-title">正文字体</div>
+                <div class="theme-options">
+                    <div class="theme-option font-option" data-font="system" onclick="setReadingFont('system')">
+                        <div class="theme-option-content">
+                            <div class="theme-radio"></div>
+                            <div class="theme-label">跟随系统</div>
+                        </div>
+                    </div>
+                    <div class="theme-option font-option" data-font="songti" onclick="setReadingFont('songti')">
+                        <div class="theme-option-content">
+                            <div class="theme-radio"></div>
+                            <div class="theme-label">宋体</div>
+                        </div>
+                    </div>
+                    <div class="theme-option font-option" data-font="kaiti" onclick="setReadingFont('kaiti')">
+                        <div class="theme-option-content">
+                            <div class="theme-radio"></div>
+                            <div class="theme-label">楷体</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="theme-section">
                 <div class="theme-section-title">字体大小</div>
                 <div class="font-size-slider-container">
                     <span class="font-label-small">A</span>
@@ -745,6 +769,10 @@
             }
         }
         updateFontSizeUI();
+        // 加载正文字体设置（未设置 = 跟随系统，保持 style.css 默认字体栈）
+        var savedFont = getInitialReadingFont();
+        applyReadingFont(savedFont);
+        updateFontUI(savedFont);
         
         // 点击外部关闭面板（对话框弹层内的点击不触发）
         document.addEventListener('click', function(e) {
@@ -1154,6 +1182,7 @@
                 try {
                     var theme = localStorage.getItem('readingTheme');
                     var fontSize = localStorage.getItem('globalFontSize');
+                    var fontFamily = localStorage.getItem('globalFontFamily');  // 保留正文字体设置
                     var highlights = localStorage.getItem('cx_highlights');
                     var activeMs = localStorage.getItem('cx_active_ms');  // 保留累计使用时长（顾念微工显示进度）
                     for (var i = localStorage.length - 1; i >= 0; i--) {
@@ -1161,6 +1190,7 @@
                     }
                     if (theme)      localStorage.setItem('readingTheme', theme);
                     if (fontSize)   localStorage.setItem('globalFontSize', fontSize);
+                    if (fontFamily) localStorage.setItem('globalFontFamily', fontFamily);
                     if (highlights) localStorage.setItem('cx_highlights', highlights);
                     if (activeMs)   localStorage.setItem('cx_active_ms', activeMs);
                 } catch(ex) {}
@@ -1992,6 +2022,55 @@
         });
     }
     
+    // ── 正文字体（跟随系统 / 宋体 / 楷体）──────────────────────────────
+    // 'system' 不写入 localStorage 且清空 body 内联字体，回退到 style.css 系统字体栈；
+    // 宋体/楷体走 body.style.fontFamily 内联覆盖（同 applyFontSize 的 body 内联模式）
+    var READING_FONTS = {
+        songti: '"Songti SC","STSong",SimSun,serif',
+        kaiti:  '"Kaiti SC",STKaiti,KaiTi,serif'
+    };
+
+    // 当前正文字体模式（无存储或非法值 = 跟随系统）
+    function getInitialReadingFont() {
+        try {
+            var v = localStorage.getItem('globalFontFamily');
+            return READING_FONTS[v] ? v : 'system';
+        } catch (e) { return 'system'; }
+    }
+
+    // 应用正文字体：设置/清除 body 内联 font-family，并派发 resize 触发翻页容器高度重算
+    function applyReadingFont(mode) {
+        try {
+            var stack = READING_FONTS[mode];
+            if (stack) {
+                document.body.style.fontFamily = stack;
+                localStorage.setItem('globalFontFamily', mode);
+            } else {
+                document.body.style.removeProperty('font-family');
+                localStorage.removeItem('globalFontFamily');
+            }
+        } catch (e) {}
+        try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+    }
+
+    // 设置正文字体（面板卡片点击入口）：无效模式忽略
+    window.setReadingFont = function(mode) {
+        if (mode !== 'system' && !READING_FONTS[mode]) return;
+        applyReadingFont(mode);
+        updateFontUI(mode);
+    };
+
+    // 更新正文字体卡片选中态
+    function updateFontUI(mode) {
+        document.querySelectorAll('.font-option').forEach(function(option) {
+            if (option.getAttribute('data-font') === mode) {
+                option.classList.add('active');
+            } else {
+                option.classList.remove('active');
+            }
+        });
+    }
+
     // 应用字体大小
     function applyFontSize(size) {
         document.body.style.fontSize = size + 'px';

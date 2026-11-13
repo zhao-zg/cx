@@ -284,6 +284,7 @@
 
         // 克隆朗读栏，清除 id 防止重复
         var cloned = orig.cloneNode(true);
+        cloned.removeAttribute('id');  // 根节点自身也带 id，必须一并清除
         var withId = cloned.querySelectorAll('[id]');
         for (var i = 0; i < withId.length; i++) withId[i].removeAttribute('id');
 
@@ -301,12 +302,18 @@
         var isSeekingClone = false;
 
         // ── 原始 → 克隆：镜像朗读状态变化 ──
+        // 原生 range 的 value 是 IDL 属性，JS 赋值不会同步到 value 特性，
+        // MutationObserver(attributes) 收不到 → 克隆条进度永远停在 0。
+        // 改为定时轮询同步（仅在浮动栏显示期间运行，开销可忽略）。
         var observers = [];
         if (origProgress && cloneProgress) {
-            observers.push(new MutationObserver(function() {
+            var syncTimer = setInterval(function() {
+                if (!cloneProgress.isConnected || !origProgress.isConnected) return;
                 if (!isSeekingClone) cloneProgress.value = origProgress.value;
-            }));
-            observers[observers.length - 1].observe(origProgress, { attributes: true, attributeFilter: ['value'] });
+                if (origTime && cloneTime) cloneTime.textContent = origTime.textContent;
+                if (origRate && cloneRate) cloneRate.value = origRate.value;
+            }, 250);
+            observers.push({ disconnect: function() { clearInterval(syncTimer); } });
         }
         if (origTime && cloneTime) {
             var timeIdx = observers.length;
@@ -314,13 +321,6 @@
                 cloneTime.textContent = origTime.textContent;
             }));
             observers[timeIdx].observe(origTime, { childList: true, characterData: true, subtree: true });
-        }
-        if (origRate && cloneRate) {
-            var rateIdx = observers.length;
-            observers.push(new MutationObserver(function() {
-                cloneRate.value = origRate.value;
-            }));
-            observers[rateIdx].observe(origRate, { attributes: true, attributeFilter: ['value'] });
         }
         if (origPlayPause) {
             var ppIdx = observers.length;
@@ -335,30 +335,57 @@
         };
 
         // ── 克隆 → 原始：转发交互事件 ──
+        // 进度条拖动由本层按坐标换算百分比后写入原始进度条（浮层与原条位置/宽度不同，
+        // 直接转发触摸坐标会算错）；松手用 change 事件通知 speech.js 提交跳转。
         if (cloneProgress && origProgress) {
-            cloneProgress.addEventListener('touchstart', function() {
+            var CLONE_THUMB = 16;
+            function clonePctAt(clientX) {
+                var rect = cloneProgress.getBoundingClientRect();
+                if (!rect.width) return 0;
+                var usable = Math.max(1, rect.width - CLONE_THUMB);
+                var p = ((clientX - rect.left - CLONE_THUMB / 2) / usable) * 100;
+                return Math.max(0, Math.min(100, p));
+            }
+            function cloneBegin() {
                 isSeekingClone = true;
-                origProgress.dispatchEvent(new Event('touchstart'));
-            });
-            cloneProgress.addEventListener('mousedown', function() {
-                isSeekingClone = true;
+                resetTimer();  // 拖动期间顺延自动收起
+                // 通知 speech.js 进入拖动状态（等同原始条的 mousedown）
                 origProgress.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            }
+            function cloneApply(pct) {
+                cloneProgress.value = String(pct);
+                origProgress.value = String(pct);
+                origProgress.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            function cloneCommit() {
+                if (!isSeekingClone) return;
+                isSeekingClone = false;
+                origProgress.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            cloneProgress.addEventListener('touchstart', function(e) {
+                if (!e.touches || !e.touches.length) return;
+                cloneBegin();
+                cloneApply(clonePctAt(e.touches[0].clientX));
+            }, { passive: true });
+            cloneProgress.addEventListener('touchmove', function(e) {
+                if (!isSeekingClone || !e.touches || !e.touches.length) return;
+                if (e.cancelable) e.preventDefault();
+                cloneApply(clonePctAt(e.touches[0].clientX));
+            }, { passive: false });
+            cloneProgress.addEventListener('touchend', cloneCommit);
+            cloneProgress.addEventListener('touchcancel', cloneCommit);
+            cloneProgress.addEventListener('mousedown', function() {
+                cloneBegin();
             });
             cloneProgress.addEventListener('input', function() {
                 origProgress.value = cloneProgress.value;
                 origProgress.dispatchEvent(new Event('input', { bubbles: true }));
             });
             cloneProgress.addEventListener('change', function() {
-                origProgress.value = cloneProgress.value;
-                origProgress.dispatchEvent(new Event('change', { bubbles: true }));
-            });
-            cloneProgress.addEventListener('touchend', function() {
-                origProgress.dispatchEvent(new Event('touchend'));
-                isSeekingClone = false;
+                cloneCommit();
             });
             cloneProgress.addEventListener('mouseup', function() {
-                origProgress.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-                isSeekingClone = false;
+                cloneCommit();
             });
         }
         if (cloneRate && origRate) {

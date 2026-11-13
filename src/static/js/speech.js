@@ -351,6 +351,9 @@
   //    防止 document/window 级监听器随页面导航无限累积
   var _scrollFollowUnbinds = null;
 
+  // -- 进度条拖动的 document mouseup 句柄（模块级）：同上，防止 SPA 重渲染后累积
+  var _docMouseupSeek = null;
+
   // -- Init -----------------------------------------------------------------
 
   function init(options) {
@@ -1145,6 +1148,8 @@
         _nativeCharsDone = -1; _nativeCharsDoneTime = 0; _lastPosMs = -1;
         _resumeNextSegPercent = -1;
         _restoredPct = 0;
+        _userSeeked = false;   // 新页面：允许自动恢复点覆盖进度条
+        _seekPending = false; _seekDragging = false;
         _scrollFollowEnabled = true; _progScrollUntil = 0; // 重置高亮滚动跟随
         textChunks = []; currentChunk = 0;
         progressBar.value = '0';
@@ -1613,14 +1618,80 @@
       }
 
       // -- Seekbar events -----------------------------------------------------
-      var _seekPending = false;
+      // 拖动定位：自己按触点横坐标换算百分比（不依赖原生 range 的默认拖拽行为）。
+      // Android WebView 上原生滑块对触摸响应不可靠（尤其细轨道），表现为「拖不动」；
+      // 统一用 touch/mouse 事件驱动，按下即跟手，松手才真正跳转。
+      var _seekPending  = false;
+      var _seekDragging = false;  // 指针是否仍按在进度条上
+      var _userSeeked   = false;  // 空闲态用户手动定位过 → 不再套用自动恢复点
+      var SEEKBAR_THUMB = 16;     // 与 CSS 中滑块直径一致
+
+      // 空闲态（尚未点播放）也要能算出总时长，否则无法拖动定位
+      function _ensureDuration() {
+        if (totalDuration > 0) return true;
+        // 翻页后缓存可能指向非活动天 → 重建（prebuildText 只克隆 DOM，无副作用）
+        if (_isPrebuiltCacheStale()) {
+          _prebuiltFullText = null;
+          _prebuiltSegmentMap = null;
+        }
+        var text = fullText;
+        if (!text) {
+          if (_prebuiltFullText == null) { try { prebuildText(); } catch (e) {} }
+          if (_prebuiltFullText) text = _prebuiltFullText;
+        }
+        if (!text) return false;
+        totalDuration = estimateTotalSeconds(text, Number(rateSelect.value) || 0.5);
+        _originalTotalDuration = totalDuration;
+        return true;
+      }
+
+      // 触点横坐标 → 百分比（扣除滑块半径，让滑块中心与手指对齐）
+      function _pctAtClientX(clientX) {
+        var rect = progressBar.getBoundingClientRect();
+        if (!rect.width) return 0;
+        var usable = Math.max(1, rect.width - SEEKBAR_THUMB);
+        return clamp(((clientX - rect.left - SEEKBAR_THUMB / 2) / usable) * 100, 0, 100);
+      }
+
+      function _beginSeek() {
+        _seekDragging = true; isSeeking = true; _seekPending = true;
+        stopProgressUpdate();
+      }
+
+      // 拖动过程中的时间预览（不改变播放位置）
+      function _previewSeek(pct) {
+        if (!_ensureDuration()) { speechTime.textContent = '00:00 / 00:00'; return; }
+        speechTime.textContent = formatTime((pct / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
+      }
+
+      function _applySeekPct(pct) {
+        progressBar.value = String(pct);
+        _previewSeek(pct);
+      }
+
+      function _endSeek() {
+        if (!_seekDragging && !_seekPending) return;
+        _seekDragging = false;
+        commitSeek();
+      }
+
       function commitSeek() {
         if (!_seekPending) return;
         _seekPending = false; isSeeking = false;
-        if (!fullText) { startProgressUpdate(); return; }
         var pct = clamp(Number(progressBar.value) || 0, 0, 100);
-        // 恢复态（idle 但已有 _restoredPct）拖动进度条：仅更新恢复点，不启动播放
-        if (state === 'idle') { if (_restoredPct > 0) _restoredPct = pct; return; }
+        _ensureDuration();
+        // 空闲态（未播放/已播完）：只记录起始位置，点播放时从这里开始
+        if (state === 'idle') {
+          _restoredPct = pct;
+          _userSeeked = true;
+          _previewSeek(pct);
+          if (fullText && _segmentMap.length) {
+            _ttsMarkOffset = findSegmentIndex(Math.round(fullText.length * (pct / 100)));
+            setTTSHighlight(_segmentMap[_ttsMarkOffset] ? _segmentMap[_ttsMarkOffset].el : null);
+          }
+          return;
+        }
+        if (!fullText) return;
         // NativeTTS 正在播放时需先 stop，否则新 speak 指令会被忽略导致无声
         if (useNativeTTS && state === 'playing') {
           ++_speakGeneration;   // 使旧 promise 失效，防止触发 onPlaybackNaturalEnd
@@ -1630,19 +1701,42 @@
           startSpeakingFromPercent(pct);
         }
       }
-      progressBar.addEventListener('touchstart', function () {
-        isSeeking = true; _seekPending = true; stopProgressUpdate();
+
+      progressBar.addEventListener('touchstart', function (e) {
+        if (!e.touches || !e.touches.length) return;
+        _beginSeek();
+        _applySeekPct(_pctAtClientX(e.touches[0].clientX));
       }, { passive: true });
-      progressBar.addEventListener('mousedown', function () {
-        isSeeking = true; _seekPending = true; stopProgressUpdate();
+      progressBar.addEventListener('touchmove', function (e) {
+        if (!_seekDragging || !e.touches || !e.touches.length) return;
+        if (e.cancelable) e.preventDefault();  // 拖进度条时不滚动页面
+        _applySeekPct(_pctAtClientX(e.touches[0].clientX));
+      }, { passive: false });
+      progressBar.addEventListener('touchend', _endSeek);
+      progressBar.addEventListener('touchcancel', _endSeek);
+
+      progressBar.addEventListener('mousedown', function (e) {
+        if (e.button != null && e.button !== 0) return;
+        _beginSeek();
+        _applySeekPct(_pctAtClientX(e.clientX));
       });
+      progressBar.addEventListener('mousemove', function (e) {
+        if (!_seekDragging || !(e.buttons & 1)) return;
+        _applySeekPct(_pctAtClientX(e.clientX));
+      });
+      progressBar.addEventListener('mouseup', _endSeek);
       progressBar.addEventListener('input', function () {
-        if (!totalDuration) { progressBar.value = '0'; speechTime.textContent = '00:00 / 00:00'; return; }
-        var p = clamp(Number(progressBar.value) || 0, 0, 100);
-        speechTime.textContent = formatTime((p / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
+        // 键盘方向键等没有 touchstart/mousedown 的场景也视为拖动
+        if (!_seekPending) _beginSeek();
+        _applySeekPct(clamp(Number(progressBar.value) || 0, 0, 100));
       });
-      progressBar.addEventListener('touchend', function () { commitSeek(); });
-      progressBar.addEventListener('mouseup',  function () { commitSeek(); });
+      // change 兜底：原生滑块/键盘在松手（弹起）时提交
+      progressBar.addEventListener('change', _endSeek);
+      // 鼠标在进度条外松手也要结束拖动态，否则进度条会一直停在预览值
+      // （模块级单例：init 重执行时先移除旧监听，防止累积）
+      if (_docMouseupSeek) { document.removeEventListener('mouseup', _docMouseupSeek); }
+      _docMouseupSeek = function () { if (_seekDragging) _endSeek(); };
+      document.addEventListener('mouseup', _docMouseupSeek);
 
       // -- Play / Pause button ------------------------------------------------
       playPauseBtn.addEventListener('click', function () {
@@ -1746,15 +1840,19 @@
       // -- Rate change --------------------------------------------------------
       rateSelect.addEventListener('change', function () {
         localStorage.setItem('speechRate', rateSelect.value);
-        if (!fullText) return;
-        // 恢复态（idle 但已有 _restoredPct）：仅重算恢复点的显示时长，不启动播放。
+        // 空闲态可能只有预构建缓存（用户已拖动进度条但还没点播放），也要能重算时长
+        var textForRate = fullText;
+        if (!textForRate && _prebuiltFullText && !_isPrebuiltCacheStale()) textForRate = _prebuiltFullText;
+        if (!textForRate) return;
+        // 空闲态：只重算时长与时间显示（保留用户拖动/恢复的位置），不启动播放。
         // 注意 newRateR 等换名，避免与下方 var newRate 同作用域变量名冲突。
-        if (state === 'idle' && _restoredPct > 0) {
+        if (state === 'idle') {
           var newRateR = Number(rateSelect.value) || 0.5;
-          totalDuration = estimateTotalSeconds(fullText, newRateR);
+          var keepPct = clamp(Number(progressBar.value) || 0, 0, 100);
+          totalDuration = estimateTotalSeconds(textForRate, newRateR);
           _originalTotalDuration = totalDuration;
-          progressBar.value = String(_restoredPct);
-          speechTime.textContent = formatTime((_restoredPct / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
+          progressBar.value = String(keepPct);
+          speechTime.textContent = formatTime((keepPct / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
           if (useNativeTTS) {
             var NRate = getNativeTTS();
             if (NRate && typeof NRate.setRate === 'function') {
@@ -1763,6 +1861,7 @@
           }
           return;
         }
+        if (!fullText) return;
         var newRate   = Number(rateSelect.value) || 0.5;
         var current   = currentElapsedSeconds();
         var oldTotal  = totalDuration;
@@ -1933,6 +2032,7 @@
           // 永远失效，故不检查 gen。
           if (!progressBar || !progressBar.isConnected) return;
           if (state !== 'idle') return;                 // 用户已抢先播放/暂停
+          if (_userSeeked) return;                      // 用户已手动拖动定位，尊重用户选择
           // 等待 day pager 标记 is-active（每 100ms 重试，最多 50 次 = 5s）
           if (document.querySelector('.pages-container') && !document.querySelector('.day-page.is-active')) {
             var n = typeof attempt === 'number' ? attempt : 0;
@@ -2100,6 +2200,25 @@
           }
         }
       }
+
+      // -- 空闲态预填总时长（两种引擎通用）-------------------------------------
+      // 让用户在点播放前就能看到时长并直接拖动进度条定位起点。
+      // 需等 day pager 标记 is-active 后再解析文本（否则会取到第一天的缓存）；
+      // Web Speech 下首次会补做一次 prebuildText（只克隆 DOM，不修改页面）。
+      (function idleDurationPrefill(attempt) {
+        setTimeout(function () {
+          if (!progressBar.isConnected) return;
+          if (state !== 'idle' || _userSeeked || _restoredPct) return;
+          if (document.querySelector('.pages-container') && !document.querySelector('.day-page.is-active')) {
+            if ((typeof attempt === 'number' ? attempt : 0) < 20) idleDurationPrefill((typeof attempt === 'number' ? attempt : 0) + 1);
+            return;
+          }
+          if (!_ensureDuration() || totalDuration <= 0) return;
+          var p0 = clamp(Number(progressBar.value) || 0, 0, 100);
+          speechTime.textContent = formatTime((p0 / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
+        }, 100);
+      })();
+
       // -- 调试导出（仅供诊断脚本/单元测试使用，生产代码勿依赖）-----------------
       // 导出两侧坐标系的 fullText 与 segMap（{start,end,speakText}，不含 el：
       // DOM 引用不可序列化）。用于 diff 播放侧（buildAll）与恢复侧（prebuildText）

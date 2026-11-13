@@ -1051,6 +1051,11 @@
     });
 
     document.addEventListener('keydown', function(e){
+      // 焦点在表单控件（进度条/倍速/搜索框等）时，方向键留给控件本身，
+      // 不再劫持为翻页（否则拖动/微调进度条会误触翻页并取消朗读）
+      var t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' ||
+                t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
       if (e.key === 'ArrowLeft' && prevBtn) prevBtn.click();
       else if (e.key === 'ArrowRight' && nextBtn) nextBtn.click();
     });

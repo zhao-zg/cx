@@ -615,6 +615,158 @@
             markEl.parentNode.insertBefore(icon, markEl.nextSibling);
         },
 
+        // ─── 纲目跨天副本（整份纲目相同的天视为同一份纲目的副本）───
+        // 多天 .outline-section 净文本完全一致时，源天纲目区的划线 mark
+        // 会复制到组内其他天，保证高亮/笔记在副本天之间一致。
+        // 仅展示层派生：存储仍按原记录单条保存，restore 每次重建副本。
+        _outlineCleanTextNodes: function (outlineEl) {
+            // 收集纲目区"净文本"节点列表（跳过笔记图标内部文本）
+            // 返回 { nodes: [{node, start, end}], text: 拼接文本 }
+            var nodes = [];
+            var text = '';
+            var charCount = 0;
+            var walker = document.createTreeWalker(
+                outlineEl,
+                NodeFilter.SHOW_TEXT,
+                { acceptNode: function (n) {
+                    var p = n.parentNode;
+                    return (p && p.closest && p.closest('.cx-note-icon'))
+                        ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+                } }
+            );
+            var node = walker.nextNode();
+            while (node) {
+                var len = node.textContent.length;
+                nodes.push({ node: node, start: charCount, end: charCount + len });
+                text += node.textContent;
+                charCount += len;
+                node = walker.nextNode();
+            }
+            return { nodes: nodes, text: text };
+        },
+
+        _replicateOutlineHighlights: function () {
+            var self = this;
+            var dayPages = document.querySelectorAll('.day-page');
+            if (!dayPages || dayPages.length < 2) return; // 单天页 / cv 视图（无 .day-page）早退
+
+            // 1. 计算每天纲目的净文本签名
+            var days = [];
+            for (var pi = 0; pi < dayPages.length; pi++) {
+                var outline = dayPages[pi].querySelector('.outline-section');
+                if (!outline) { days.push(null); continue; }
+                days.push({ page: dayPages[pi], outline: outline, text: self._outlineCleanTextNodes(outline).text });
+            }
+
+            // 2. 按签名分组（组内 ≥2 天才互为副本）
+            // 键加 sig_ 前缀，避免纲目全文意外命中 Object.prototype 保留键
+            var groups = {};
+            for (var di = 0; di < days.length; di++) {
+                var d = days[di];
+                if (!d || !d.text) continue;
+                var sigKey = 'sig_' + d.text;
+                if (!groups[sigKey]) groups[sigKey] = [];
+                groups[sigKey].push(d);
+            }
+
+            for (var sig in groups) {
+                var group = groups[sig];
+                if (group.length < 2) continue;
+
+                // 3. 收集组内出现的全部划线 ID（源 = 组内第一个拥有该划线的天）
+                var order = [];
+                var owner = {};
+                for (var gi = 0; gi < group.length; gi++) {
+                    var marks = group[gi].outline.querySelectorAll('mark.cx-highlight');
+                    for (var mi = 0; mi < marks.length; mi++) {
+                        var mid = marks[mi].dataset.highlightId;
+                        if (!mid || owner[mid]) continue;
+                        owner[mid] = group[gi];
+                        order.push(mid);
+                    }
+                }
+
+                // 4. 逐条划线：在源天定位净文本区间，向组内缺失的天复制
+                for (var oi = 0; oi < order.length; oi++) {
+                    var hlId = order[oi];
+                    var srcDay = owner[hlId];
+
+                    // 4a. 源天净文本节点 + 各 mark 段的净文本区间
+                    //     （每次重新收集：前序划线对目标天的修改不会影响源天，
+                    //      但源天可能同时是其他划线的目标天，预收集偏移会失效）
+                    var srcClean = self._outlineCleanTextNodes(srcDay.outline);
+                    var srcMarks = srcDay.outline.querySelectorAll(
+                        'mark.cx-highlight[data-highlight-id="' + hlId + '"]');
+                    var ranges = [];
+                    for (var si = 0; si < srcMarks.length; si++) {
+                        var seg = self._locateMarkRange(srcMarks[si], srcClean.nodes);
+                        if (seg) ranges.push(seg);
+                    }
+                    if (!ranges.length) continue;
+
+                    // 4b. 目标天已有该划线则跳过，否则按区间重建 mark
+                    for (var ti = 0; ti < group.length; ti++) {
+                        var dst = group[ti];
+                        if (dst === srcDay) continue;
+                        if (dst.outline.querySelector('mark.cx-highlight[data-highlight-id="' + hlId + '"]')) continue;
+                        var lastMark = self._replicateMarksToDay(ranges, dst.outline, srcMarks[0].style.cssText, hlId);
+
+                        // 4c. 笔记图标副本（内联创建，绕过 _insertNoteIcon 的文档级守卫）
+                        if (lastMark && srcDay.outline.querySelector('.cx-note-icon[data-highlight-id="' + hlId + '"]')) {
+                            var icon = document.createElement('span');
+                            icon.className = 'cx-note-icon';
+                            icon.textContent = '📝';
+                            icon.dataset.highlightId = hlId;
+                            lastMark.parentNode.insertBefore(icon, lastMark.nextSibling);
+                        }
+                    }
+                }
+            }
+        },
+
+        _locateMarkRange: function (markEl, cleanNodes) {
+            // 在净文本节点列表中定位某 mark 段的 [start, end) 区间
+            var start = -1, end = -1;
+            for (var i = 0; i < cleanNodes.length; i++) {
+                if (!markEl.contains(cleanNodes[i].node)) continue;
+                if (start < 0) start = cleanNodes[i].start;
+                end = cleanNodes[i].end;
+            }
+            return start >= 0 ? { start: start, end: end } : null;
+        },
+
+        _replicateMarksToDay: function (ranges, dstOutline, cssText, hlId) {
+            // 将源天净文本区间按偏移重建到目标天纲目区，返回最后一个成功的 mark
+            // 注意：每个区间处理前重新收集目标天净文本节点——
+            // 前序区间的 surroundContents 会拆分文本节点，预收集偏移会失效
+            var lastMark = null;
+            for (var ri = 0; ri < ranges.length; ri++) {
+                var seg = ranges[ri];
+                var nodes = this._outlineCleanTextNodes(dstOutline).nodes;
+                for (var ni = 0; ni < nodes.length; ni++) {
+                    var item = nodes[ni];
+                    if (item.end <= seg.start || item.start >= seg.end) continue;
+                    var startOffset = Math.max(0, seg.start - item.start);
+                    var endOffset = Math.min(item.end, seg.end) - item.start;
+                    if (endOffset <= startOffset) continue;
+                    try {
+                        var range = document.createRange();
+                        range.setStart(item.node, startOffset);
+                        range.setEnd(item.node, endOffset);
+                        var mark = document.createElement('mark');
+                        mark.className = 'cx-highlight';
+                        mark.style.cssText = cssText;
+                        mark.dataset.highlightId = hlId;
+                        range.surroundContents(mark);
+                        lastMark = mark;
+                    } catch (e) {
+                        console.warn('[划线] 跨天副本应用失败:', e);
+                    }
+                }
+            }
+            return lastMark;
+        },
+
         // ─── 恢复全部划线（异步，先从 IndexedDB 加载再渲染）─────────
         // 使用 _restoreGen 代数计数器防止竞争：多次快速调用时，
         // 只有最新一代的异步回调会执行渲染，旧代回调直接丢弃。
@@ -634,6 +786,8 @@
                     return true;
                 });
                 self.highlights.forEach(function (h) { self.applyHighlight(h); });
+                // 纲目跨天副本：整份纲目相同的天之间同步划线/笔记
+                self._replicateOutlineHighlights();
             });
         },
 

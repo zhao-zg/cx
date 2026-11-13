@@ -15,6 +15,20 @@
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
+  // 宽松子序列匹配：needle 字符按序全部出现在 hay 中即命中（允许中间插入额外字符）。
+  // 用于搜索定位的 txt 指纹校验：DOM 渲染后经文块会被插入 sup 上标等元素，
+  // textContent 与索引端的纯净 JSON 文本不一致，普通 indexOf 必然失败；
+  // 子序列匹配可跳过插入字符。仅作 60 字长指纹的校验，误报概率可忽略。
+  function looseContains(hay, needle) {
+    if (!hay || !needle) return false;
+    if (hay.indexOf(needle) !== -1) return true;
+    var i = 0;
+    for (var j = 0; j < hay.length && i < needle.length; j++) {
+      if (hay.charAt(j) === needle.charAt(i)) i++;
+    }
+    return i === needle.length;
+  }
+
   // ── 核心对象 ──────────────────────────────────────────────────────────────
 
   var CXSearch = {
@@ -25,6 +39,8 @@
     _debounceTimer: null,
     _inBackStack: false,
     _lockCleanup: null,
+    // 分类多选过滤：空数组 = 不过滤（全部）；仅存 'h'/'cv'/'cx'/'zs'/'sc'
+    _typeFilter: [],
 
     // ── 搜索缓存与状态 ────────────────────────────────────────────────────────
 
@@ -42,6 +58,8 @@
     _currentQuery: '',
     // 每批加载的训练数量
     SEARCH_BATCH_SIZE: 5,
+    // 搜索索引条目结构版本（结构变更时递增，旧 localforage 缓存自动失效重建）
+    SEARCH_FMT_VER: 3,
 
     // ── 从 training.json 数据提取搜索 entries（纯JS，不写文件）────────────
 
@@ -132,7 +150,7 @@
                 training: trainingTitle, season_label: seasonLabel,
                 chapter: num, type: 'cx', type_label: '晨兴喂养',
                 chapter_title: chTitle, pi: mfi, day_index: dayIdx,
-                selector: 'content-text', text: mfp });
+                selector: 'content-text', text: mfp, txt: mfp.slice(0, 60) });
             }
           }
           var mfLen = mf.length;
@@ -144,7 +162,28 @@
                 training: trainingTitle, season_label: seasonLabel,
                 chapter: num, type: 'cx', type_label: '信息选读',
                 chapter_title: chTitle, pi: mfLen + mri, day_index: dayIdx,
-                selector: 'content-text', text: mrp });
+                selector: 'content-text', text: mrp, txt: mrp.slice(0, 60) });
+            }
+          }
+          // sc: 经文（晨兴喂养经文块，feeding_scriptures 逐块索引；此前正文索引完全遗漏该块）
+          // pi 按同类 class 在天内独立计数，与渲染层一致：有 feeding_refs[fi] →
+          // scripture-block-static，否则 feeding-scripture；双语模式下 en/cn 两块同类交错，
+          // 定位依赖 day_index 限定 + txt 文本指纹兜底（见 handleSearchTargetSPA）
+          var scList = revival.feeding_scriptures || [];
+          var scRefs = revival.feeding_refs || [];
+          var scStaticPi = 0;
+          var scPlainPi = 0;
+          for (var sci = 0; sci < scList.length; sci++) {
+            var scText = (scList[sci] || '').trim();
+            if (scText.length >= 10) {
+              var scHasRef = !!scRefs[sci];
+              var scPi = scHasRef ? scStaticPi++ : scPlainPi++;
+              entries.push({ url: path + '/' + num + '/cx',
+                training: trainingTitle, season_label: seasonLabel,
+                chapter: num, type: 'sc', type_label: '经文',
+                chapter_title: chTitle, pi: scPi, day_index: dayIdx,
+                selector: scHasRef ? 'scripture-block-static' : 'feeding-scripture',
+                text: scText, txt: scText.slice(0, 60) });
             }
           }
         }
@@ -182,7 +221,7 @@
       this._searchCache[path] = entries;
       if (!win.localforage) return;
       var version = this._trainingVersions[path] || (data && data.version) || '';
-      win.localforage.setItem('cx_search_' + path, { version: version, entries: entries });
+      win.localforage.setItem('cx_search_' + path, { version: version, fmt: this.SEARCH_FMT_VER, entries: entries });
     },
 
     // ── 驱逐训练的搜索缓存（删除训练时调用）────────────────
@@ -328,7 +367,7 @@
           ? win.localforage.getItem('cx_search_' + path)
           : Promise.resolve(null);
         return fromForage.then(function (cached) {
-          if (cached && cached.version === expectedVer && cached.entries) {
+          if (cached && cached.version === expectedVer && cached.fmt === self.SEARCH_FMT_VER && cached.entries) {
             self._searchCache[path] = cached.entries;
             return;
           }
@@ -356,7 +395,7 @@
               self._searchCache[path] = entries;
               if (win.localforage) {
                 var ver = self._trainingVersions[path] || data.version || '';
-                win.localforage.setItem('cx_search_' + path, { version: ver, entries: entries });
+                win.localforage.setItem('cx_search_' + path, { version: ver, fmt: self.SEARCH_FMT_VER, entries: entries });
               }
             })
             .catch(function () {});
@@ -398,6 +437,9 @@
 
       for (var i = 0; i < entries.length; i++) {
         var e = entries[i];
+        // 分类多选过滤：_typeFilter 为空数组 = 不过滤（全部）；非空 = 仅保留所选类型
+        var tf = this._typeFilter;
+        if (tf && tf.length && tf.indexOf(e.type) === -1) continue;
         var hay = e.chapter_title + e.text;
         var ok = true;
         for (var j = 0; j < terms.length; j++) {
@@ -495,10 +537,12 @@
     navigateTo: function (entry, query) {
       try {
         sessionStorage.setItem('cx_search_target', JSON.stringify({
-          url:      entry.url,
-          pi:       entry.pi,
-          selector: entry.selector,
-          query:    query
+          url:       entry.url,
+          pi:        entry.pi,
+          selector:  entry.selector,
+          day_index: entry.day_index,   // cx 条目：天索引（0 基），h/cv/zs 条目无此字段（undefined 自动省略）
+          txt:       entry.txt,         // sc 条目：经文文本指纹（前 60 字），h/cv/zs 条目无此字段
+          query:     query
         }));
       } catch (e) { /* storage 不可用时忽略 */ }
 
@@ -656,15 +700,41 @@
       var currentPath = win.CXRouter ? win.CXRouter.currentPath() : win.location.hash.replace(/^#\/?/, '');
       if (!target.url || target.url !== currentPath) return;
 
-      // cx 视图：用 day_index 限定查询范围到具体 day-page，避免全局 pi 错位
-      var el;
+      // cx 视图：用 day_index 限定查询范围到具体 day-page，避免全局 pi 错位。
+      // 双语模式下 en/cn 同类块交错，JSON 计数与 DOM 索引可能错位，故找到 el
+      // 后仍须 txt 指纹校验（宽松子序列匹配，跳过 sup 上标等插入字符），
+      // 不符则在 day-page 内按文本匹配兜底。
+      var el = null;
+      var wantTxt = (target.txt || '').trim();
+      var scopedDayPage = null;
       if (typeof target.day_index === 'number') {
-        var scopeEl = document.querySelector('.day-page[data-page="' + target.day_index + '"]');
-        if (scopeEl) el = scopeEl.querySelectorAll('.' + target.selector)[target.pi];
+        scopedDayPage = document.querySelector('.day-page[data-page="' + target.day_index + '"]');
+        if (scopedDayPage) {
+          var scopeBlocks = scopedDayPage.querySelectorAll('.' + target.selector);
+          var cand = scopeBlocks[target.pi];
+          if (cand && (!wantTxt || looseContains(cand.textContent || '', wantTxt))) {
+            el = cand;
+          } else if (wantTxt) {
+            for (var bi = 0; bi < scopeBlocks.length; bi++) {
+              if (looseContains(scopeBlocks[bi].textContent || '', wantTxt)) {
+                el = scopeBlocks[bi];
+                break;
+              }
+            }
+          }
+        }
       } else {
         el = document.querySelectorAll('.' + target.selector)[target.pi];
       }
-      if (!el) return;
+      if (!el) {
+        // 至少切到目标天（点对应 day-link），不直接放弃
+        if (scopedDayPage) {
+          var fallbackIdx = parseInt(scopedDayPage.getAttribute('data-page'), 10);
+          var fallbackLinks = document.querySelectorAll('.day-link');
+          if (!isNaN(fallbackIdx) && fallbackLinks[fallbackIdx]) fallbackLinks[fallbackIdx].click();
+        }
+        return;
+      }
 
       // 显示隐藏祖先；晨读横滑 day-page 需点击对应 day-link
       var dayPage = null;
@@ -817,8 +887,8 @@
 
     // 构建单条结果 DOM
     _buildItem: function (entry, terms, query) {
+      var TYPE_ICON = { h: '📖', cx: '🌅', cv: '📋', zs: '📝', sc: '📜' };
       var self = this;
-      var TYPE_ICON = { h: '📖', cx: '🌅', cv: '📋', zs: '📝' };
       var item = document.createElement('div');
       item.className = 'cx-search-item';
       var icon = TYPE_ICON[entry.type] || '📄';
@@ -987,6 +1057,11 @@
         '.cx-search-more--btn:active{background:var(--nav-hover,rgba(0,0,0,.05))}',
         // 跳转高亮关键词
         'mark.cx-search-hl{background:#fff176;color:inherit;border-radius:2px;padding:0 1px}',
+        // 分类多选 chips
+        '.cx-search-types{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border,#e0e0e0)}',
+        '.cx-search-chip{font:inherit;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--border,#d0d0d0);background:var(--surface-alt,#f5f5f5);color:var(--text-muted,#666);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .12s,border-color .12s,color .12s}',
+        '.cx-search-chip:active{background:var(--nav-hover,rgba(0,0,0,.06))}',
+        '.cx-search-chip.active{background:var(--brand,#4a90d9);border-color:var(--brand,#4a90d9);color:#fff}',
       ].join('\n');
       document.head.appendChild(style);
 
@@ -1000,6 +1075,7 @@
             '<input id="cx-search-input" type="text" enterkeyhint="search" placeholder="搜索特会信息…" autocomplete="off" autocorrect="off" spellcheck="false">' +
             '<button class="cx-search-close" aria-label="关闭">✕</button>' +
           '</div>' +
+          '<div class="cx-search-types" id="cx-search-types"></div>' +
           '<div id="cx-search-count"></div>' +
           '<div id="cx-search-results"></div>' +
         '</div>';
@@ -1009,9 +1085,69 @@
       this._input    = modal.querySelector('#cx-search-input');
       this._resultsEl = modal.querySelector('#cx-search-results');
       this._countEl  = modal.querySelector('#cx-search-count');
+      this._typesEl  = modal.querySelector('#cx-search-types');
 
       // 事件绑定
       var self = this;
+
+      // 分类多选 chips：渲染 + 点击切换
+      var TYPE_DEFS = [
+        { key: 'h',  label: '🎧 听抄' },
+        { key: 'cv', label: '📋 纲目' },
+        { key: 'cx', label: '🌅 晨兴' },
+        { key: 'zs', label: '📝 职事摘录' },
+        { key: 'sc', label: '📜 经文' }
+      ];
+      function renderTypeChips() {
+        if (!self._typesEl) return;
+        var html = '<button class="cx-search-chip" data-type="">全部</button>';
+        for (var i = 0; i < TYPE_DEFS.length; i++) {
+          html += '<button class="cx-search-chip" data-type="' + TYPE_DEFS[i].key + '">' + TYPE_DEFS[i].label + '</button>';
+        }
+        self._typesEl.innerHTML = html;
+        updateChipStates();
+      }
+      function updateChipStates() {
+        var chips = self._typesEl.querySelectorAll('.cx-search-chip');
+        var tf = self._typeFilter || [];
+        for (var i = 0; i < chips.length; i++) {
+          var k = chips[i].getAttribute('data-type');
+          var on = k === '' ? tf.length === 0 : tf.indexOf(k) !== -1;
+          if (on) chips[i].classList.add('active'); else chips[i].classList.remove('active');
+        }
+      }
+      this._typesEl.addEventListener('click', function (ev) {
+        var chip = ev.target.closest ? ev.target.closest('.cx-search-chip') : null;
+        if (!chip || !self._typesEl.contains(chip)) return;
+        var k = chip.getAttribute('data-type') || '';
+        if (k === '') {
+          // 全部：清空过滤
+          self._typeFilter = [];
+        } else {
+          var idx = self._typeFilter.indexOf(k);
+          if (idx === -1) self._typeFilter.push(k); else self._typeFilter.splice(idx, 1);
+        }
+        try { localStorage.setItem('cx_search_types', JSON.stringify(self._typeFilter)); } catch (e2) { /* 忽略 */ }
+        updateChipStates();
+        // 输入框有关键词时重新搜索
+        if (self._input && self._input.value) _triggerSearch();
+      });
+      // 恢复上次的分类选择
+      try {
+        var saved = localStorage.getItem('cx_search_types');
+        if (saved) {
+          var arr = JSON.parse(saved);
+          var VALID = ['h', 'cv', 'cx', 'zs', 'sc'];
+          if (arr && arr.length && typeof arr.length === 'number') {
+            var validArr = [];
+            for (var vi = 0; vi < arr.length; vi++) {
+              if (VALID.indexOf(arr[vi]) !== -1 && validArr.indexOf(arr[vi]) === -1) validArr.push(arr[vi]);
+            }
+            self._typeFilter = validArr;
+          }
+        }
+      } catch (e3) { /* 损坏数据：忽略 */ }
+      renderTypeChips();
 
       modal.querySelector('.cx-search-overlay').addEventListener('click', function (e) {
         e._cxConsumed = true;
