@@ -298,6 +298,9 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
 .theme-option-content{display:flex;align-items:center;gap:6px;position:relative}
 .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s;position:relative}
 .theme-label{font-size:13px;font-weight:500}
+/* ── 正文字体选项禁用态（theme-toggle.js 探测本机缺字体后添加） ── */
+.theme-option.font-option-disabled{opacity:.45;cursor:default;pointer-events:none}
+.font-unavailable-badge{font-size:11px;color:var(--text-muted);font-weight:400;margin-left:4px}
 
 /* ── 三、字体大小滑块 ───────────────────────────────────────── */
 .font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}

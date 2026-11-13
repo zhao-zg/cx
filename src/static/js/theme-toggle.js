@@ -769,8 +769,11 @@
             }
         }
         updateFontSizeUI();
-        // 加载正文字体设置（未设置 = 跟随系统，保持 style.css 默认字体栈）
+        // 加载正文字体设置（未设置 = 跟随系统）；已存模式若本机缺字体则回退跟随系统
         var savedFont = getInitialReadingFont();
+        if (savedFont !== 'system' && !getReadingFontAvailability(savedFont)) {
+            savedFont = 'system'; // applyReadingFont('system') 会同步清掉存储键
+        }
         applyReadingFont(savedFont);
         updateFontUI(savedFont);
         
@@ -2024,11 +2027,79 @@
     
     // ── 正文字体（跟随系统 / 宋体 / 楷体）──────────────────────────────
     // 'system' 不写入 localStorage 且清空 body 内联字体，回退到 style.css 系统字体栈；
-    // 宋体/楷体走 body.style.fontFamily 内联覆盖（同 applyFontSize 的 body 内联模式）
+    // 宋体/楷体走 body.style.fontFamily 内联覆盖（同 applyFontSize 的 body 内联模式）。
+    // 安卓/鸿蒙 WebView 通常没有桌面端宋体/楷体字体，切换会全部落回同一默认字体——
+    // 因此启动时探测本机可用性，缺失的选项置灰标注"本机不可用"并禁止选中。
     var READING_FONTS = {
-        songti: '"Songti SC","STSong",SimSun,serif',
+        songti: '"Songti SC","STSong",SimSun,"Noto Serif CJK SC","Source Han Serif SC",serif',
         kaiti:  '"Kaiti SC",STKaiti,KaiTi,serif'
     };
+
+    // 各模式候选命名字体（不含 serif/sans-serif 通用族），任一存在即视为可用
+    var READING_FONT_CANDIDATES = {
+        songti: ['Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', 'Source Han Serif SC'],
+        kaiti:  ['Kaiti SC', 'STKaiti', 'KaiTi']
+    };
+
+    // 可用性探测结果缓存（true=可用 false=本机缺失，null=未探测）
+    var readingFontAvailability = { system: true, songti: null, kaiti: null };
+
+    // canvas 墨迹度量：CJK 汉字宽度在不同字体下常相同（全角等宽），
+    // 必须结合上下墨迹边界（actualBoundingBox*）才能区分字体。
+    // 注意：实测 document.fonts.check 不可靠（Chromium 对本机不存在的字体名也返回 true），
+    // 故统一以 canvas 墨迹比对为准，不做 fonts.check 快捷路径。
+    function measureFontInk(fontSpec) {
+        var ctx = document.createElement('canvas').getContext('2d');
+        ctx.font = '48px ' + fontSpec;
+        var m = ctx.measureText('永国楷鸣信');
+        return { w: m.width, a: m.actualBoundingBoxAscent, d: m.actualBoundingBoxDescent };
+    }
+
+    function inkMetricsEqual(a, b) {
+        return Math.abs(a.w - b.w) <= 0.5 &&
+               Math.abs(a.a - b.a) <= 0.5 &&
+               Math.abs(a.d - b.d) <= 0.5;
+    }
+
+    // 探测单个命名字体是否真实存在：候选字体渲染结果须与 sans-serif、serif
+    // 双参照均不同才视为存在（字体缺失时浏览器会 fallback 到与参照相同的渲染）。
+    // 墨迹 API 缺失（旧内核 actualBoundingBox 未定义）时保守放行，保持旧行为。
+    function detectNamedFont(name) {
+        try {
+            var probe = measureFontInk('"' + name + '"');
+            if (probe.a === undefined || probe.d === undefined) return true;
+            return !inkMetricsEqual(probe, measureFontInk('sans-serif')) &&
+                   !inkMetricsEqual(probe, measureFontInk('serif'));
+        } catch (e) {
+            return true; // canvas 不可用时保守放行
+        }
+    }
+
+    // 设备是否存在与黑体不同的衬线中文字体（部分安卓 ROM 内置 Noto Serif）：
+    // 宋体选项的兜底救援判定——没有命名字体但 serif 渲染与黑体不同也算可用
+    function detectSerifDistinct() {
+        try {
+            var probe = measureFontInk('serif');
+            if (probe.a === undefined || probe.d === undefined) return true;
+            return !inkMetricsEqual(probe, measureFontInk('sans-serif'));
+        } catch (e) { return true; }
+    }
+
+    function getReadingFontAvailability(mode) {
+        if (readingFontAvailability[mode] !== null) return readingFontAvailability[mode];
+        var result = false;
+        if (mode === 'system') {
+            result = true;
+        } else {
+            var names = READING_FONT_CANDIDATES[mode] || [];
+            for (var i = 0; i < names.length; i++) {
+                if (detectNamedFont(names[i])) { result = true; break; }
+            }
+            if (!result && mode === 'songti' && detectSerifDistinct()) result = true;
+        }
+        readingFontAvailability[mode] = result;
+        return result;
+    }
 
     // 当前正文字体模式（无存储或非法值 = 跟随系统）
     function getInitialReadingFont() {
@@ -2053,20 +2124,37 @@
         try { window.dispatchEvent(new Event('resize')); } catch (e) {}
     }
 
-    // 设置正文字体（面板卡片点击入口）：无效模式忽略
+    // 设置正文字体（面板卡片点击入口）：无效模式与本机缺字体的模式忽略
     window.setReadingFont = function(mode) {
         if (mode !== 'system' && !READING_FONTS[mode]) return;
+        if (mode !== 'system' && !getReadingFontAvailability(mode)) return;
         applyReadingFont(mode);
         updateFontUI(mode);
     };
 
-    // 更新正文字体卡片选中态
+    // 更新正文字体卡片选中态；本机缺字体的卡片置灰并标注"本机不可用"
     function updateFontUI(mode) {
         document.querySelectorAll('.font-option').forEach(function(option) {
-            if (option.getAttribute('data-font') === mode) {
+            var fontMode = option.getAttribute('data-font');
+            if (fontMode === mode) {
                 option.classList.add('active');
             } else {
                 option.classList.remove('active');
+            }
+            var unavailable = fontMode !== 'system' && !getReadingFontAvailability(fontMode);
+            var label = option.querySelector('.theme-label');
+            var badge = label ? label.querySelector('.font-unavailable-badge') : null;
+            if (unavailable) {
+                option.classList.add('font-option-disabled');
+                if (label && !badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'font-unavailable-badge';
+                    badge.textContent = '本机不可用';
+                    label.appendChild(badge);
+                }
+            } else {
+                option.classList.remove('font-option-disabled');
+                if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
             }
         });
     }
