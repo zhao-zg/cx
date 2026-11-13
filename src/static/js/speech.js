@@ -1712,7 +1712,14 @@
         if (e.cancelable) e.preventDefault();  // 拖进度条时不滚动页面
         _applySeekPct(_pctAtClientX(e.touches[0].clientX));
       }, { passive: false });
-      progressBar.addEventListener('touchend', _endSeek);
+      // 纯点按（无 touchmove）时，真机浏览器会按 Touch Events 规范在 touchend 后
+      // 补发兼容鼠标事件（mousedown→mouseup→click），它们会二次进入本层 seek 流程：
+      // 播放中双重重启（句子开头读两遍）、idle 重复写恢复点。touchend 上 preventDefault
+      // 可从规范层面抑制补发（元素级监听默认非 passive，允许 preventDefault）。
+      progressBar.addEventListener('touchend', function (e) {
+        if (e.cancelable) e.preventDefault();
+        _endSeek();
+      });
       progressBar.addEventListener('touchcancel', _endSeek);
 
       progressBar.addEventListener('mousedown', function (e) {

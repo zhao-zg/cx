@@ -375,7 +375,13 @@
                 if (e.cancelable) e.preventDefault();
                 cloneApply(clonePctAt(e.touches[0].clientX));
             }, { passive: false });
-            cloneProgress.addEventListener('touchend', cloneCommit);
+            // 同 speech.js：touchend preventDefault 抑制真机补发的兼容鼠标事件，
+            // 否则合成 mousedown 会经 cloneBegin 以克隆坐标系 clientX 派发给原条，
+            // 原条按自身 rect 算出错误 pct 并提交（点按跳错位置）。
+            cloneProgress.addEventListener('touchend', function(e) {
+                if (e.cancelable) e.preventDefault();
+                cloneCommit();
+            });
             cloneProgress.addEventListener('touchcancel', cloneCommit);
             cloneProgress.addEventListener('mousedown', function(e) {
                 cloneBegin(typeof e.clientX === 'number' ? e.clientX : undefined);
