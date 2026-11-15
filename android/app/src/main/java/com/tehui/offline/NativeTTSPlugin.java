@@ -359,6 +359,16 @@ public class NativeTTSPlugin extends Plugin {
             result.put("engineInfo", langTag);
         } catch (Exception ignored) { result.put("engineInfo", ""); }
 
+        // 媒体音量（STREAM_MUSIC）：音量为 0 时 MediaPlayer/TTS 输出无声，用户侧最常见误区。
+        // 供诊断页展示，帮助区分「引擎无声」与「设备媒体音量为 0」。
+        try {
+            android.media.AudioManager am = (android.media.AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) {
+                result.put("mediaVolume", am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+                        + "/" + am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC));
+            }
+        } catch (Exception ignored) {}
+
         // 当前降级状态（Java 侧）：是否已切到 speak() 直读模式
         result.put("isSpeakDirect", TTSForegroundService.isSpeakDirectMode());
         // 鸿蒙设备合成失败上限（1=鸿蒙更快降级）

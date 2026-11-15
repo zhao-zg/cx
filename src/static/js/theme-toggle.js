@@ -704,6 +704,9 @@
                     <button class="action-btn" id="bookmarkListBtn">
                         <span class="cache-icon">📑</span><span class="cache-text">我的书签</span>
                     </button>
+                    <button class="action-btn" id="fontDiagBtn" style="display:none">
+                        <span class="cache-icon">🔤</span><span class="cache-text">字体诊断</span>
+                    </button>
                     <button class="action-btn danger" id="clearDataBtn" style="display:none">
                         <span class="cache-icon">🧹</span><span class="cache-text">清理数据</span>
                     </button>
@@ -872,6 +875,22 @@
                     }, 300);
                 });
             }
+        })();
+
+        // ── 字体诊断（APK 专用，实验：原生桥接查系统字体为何不进 WebView）──
+        (function() {
+            var btn = document.getElementById('fontDiagBtn');
+            if (!btn) return;
+            var isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
+                             window.Capacitor.isNativePlatform());
+            var plugin = window.Capacitor && window.Capacitor.Plugins &&
+                         window.Capacitor.Plugins.SystemFont;
+            if (!isNative || !plugin || typeof plugin.getDiagnostics !== 'function') return;
+            btn.style.display = 'inline-flex';
+            btn.addEventListener('click', function() {
+                if (typeof window.toggleThemePanel === 'function') window.toggleThemePanel();
+                setTimeout(showFontDiagnostics, 300);
+            });
         })();
 
         // 环境检测
@@ -1384,6 +1403,7 @@
             h.push(row('TTS 就绪', n.ttsReady === true ? badge(true, '是') : badge(false, '否')));
             h.push(row('中文语音包', n.zhAvailable === true ? badge(true, '可用') : badge(false, '缺失/不可用')));
             h.push(row('鸿蒙快速降级', n.isHarmony ? (esc(n.harmonyInfo || '') + '（失败1次即降级）') : '非鸿蒙设备'));
+            h.push(row('媒体音量', n.mediaVolume ? esc(n.mediaVolume) : '—（需升级 APK）'));
 
             h.push(sec('🛠️ 运行时'));
             h.push(row('当前引擎', esc(rt.engine === 'native' ? '原生 TTS' : (rt.engine === 'web' ? '浏览器朗读' : '未启动'))));
@@ -1391,6 +1411,7 @@
             h.push(row('原生失败次数', esc(rt.nativeFailCount) + ' / ' + esc(rt.nativeFailTotal)));
             h.push(row('最近错误', rt.lastError ? esc(rt.lastError) : '—'));
             h.push(row('首音延迟', rt.lastSpeakMs ? rt.lastSpeakMs + ' ms' : '—'));
+            h.push(row('朗读请求', rt.nativeSpeakCalls != null ? esc(rt.nativeSpeakCalls) + ' 次（本次会话）' : '—'));
 
             // ── Web Speech API 详情（独立分区）──────────────────────────
             var ws = d.webSpeech || {};
@@ -1430,8 +1451,10 @@
                 tips.push('TTS 引擎未就绪或缺少中文语音包。请点下方「打开系统TTS设置」，确认已下载中文语音包后重试朗读。');
             } else if (rt.degraded) {
                 tips.push('当前已切换为浏览器朗读。若仍无声，请确认系统已下载中文语音包并允许本应用在后台运行。');
-            } else if (env.useNativeTTS && rt.lastSpeakMs == null) {
+            } else if (env.useNativeTTS && !rt.nativeSpeakCalls && rt.lastSpeakMs == null) {
                 tips.push('尚未进行朗读。请先点击正文中的播放按钮朗读一次，再打开本诊断查看首音延迟。');
+            } else if (env.useNativeTTS && rt.nativeSpeakCalls > 0 && !rt.lastSpeakAt && !rt.degraded && !rt.nativeFailTotal) {
+                tips.push('本次会话已发起 ' + rt.nativeSpeakCalls + ' 次朗读请求，但引擎始终未出声。请先调高媒体音量（边播放边按音量上键），再打开系统「文字转语音」设置试听引擎；若试听有声而本应用无声，请复制诊断信息反馈给我们。');
             } else {
                 tips.push('当前未发现明显异常。若仍无声，请复制诊断信息，重新打开「问题反馈」粘贴发送给我们。');
             }
@@ -1486,6 +1509,8 @@
             L('失败次数', rt.nativeFailCount + '/' + rt.nativeFailTotal);
             L('最近错误', rt.lastError || '');
             L('首音延迟', rt.lastSpeakMs ? rt.lastSpeakMs + 'ms' : '');
+            L('朗读请求', rt.nativeSpeakCalls != null ? rt.nativeSpeakCalls + '次' : '');
+            L('媒体音量', n.mediaVolume || '');
             var ws = d.webSpeech || {};
             L('Web语音可用性', rt.webSpeechUsable === true ? '可用' : (rt.webSpeechUsable === false ? '不可用' : '未测'));
             L('Web语音API', env.hasWebSpeech ? '支持' : '不支持');
@@ -2155,6 +2180,90 @@
             } else {
                 option.classList.remove('font-option-disabled');
                 if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
+            }
+        });
+    }
+
+    // ── 字体诊断（实验：查「跟随系统」拿不到用户自定义系统字体的根因）──────
+    // 原生 SystemFontPlugin 吐出系统字体注册表与主题字体目录扫描；
+    // Web 侧附加 canvas 墨迹探针（各泛型/已知字体在本机 WebView 的实际渲染指纹，
+    // 交叉比对可知 sans-serif 泛型实际解析到了哪个字体）。
+    var FONT_PROBE_FAMILIES = [
+        'sans-serif', 'serif', 'monospace', 'sans-serif-medium',
+        'Roboto', 'HarmonyOS Sans', 'HarmonyOS Sans SC', 'HarmonyOS Sans Compact',
+        'EMUI Sans', 'HwSans', 'MiSans', 'PingFang SC',
+        'Noto Sans CJK SC', 'Noto Serif CJK SC'
+    ];
+
+    function collectWebFontProbe() {
+        var probe = {};
+        try { probe.bodyComputed = getComputedStyle(document.body).fontFamily; } catch (e) {}
+        try { probe.storedMode = localStorage.getItem('globalFontFamily') || 'system'; } catch (e) {}
+        probe.ink = {};
+        for (var i = 0; i < FONT_PROBE_FAMILIES.length; i++) {
+            var name = FONT_PROBE_FAMILIES[i];
+            try {
+                var ctx = document.createElement('canvas').getContext('2d');
+                ctx.font = '48px "' + name + '"';
+                var m = ctx.measureText('永国楷鸣信');
+                probe.ink[name] = [Math.round(m.width),
+                                   Math.round(m.actualBoundingBoxAscent || 0),
+                                   Math.round(m.actualBoundingBoxDescent || 0)];
+            } catch (e) { probe.ink[name] = 'ERR'; }
+        }
+        return probe;
+    }
+
+    function showFontDiagnostics() {
+        var plugin = window.Capacitor && window.Capacitor.Plugins &&
+                     window.Capacitor.Plugins.SystemFont;
+        if (!plugin || typeof plugin.getDiagnostics !== 'function') return;
+        plugin.getDiagnostics().then(function(native) {
+            openFontDiagDialog({ native: native, web: collectWebFontProbe() });
+        }).catch(function(err) {
+            openFontDiagDialog({
+                nativeError: String(err && err.message || err),
+                web: collectWebFontProbe()
+            });
+        });
+    }
+
+    // 诊断结果弹框：完整 JSON 放只读 textarea，一键复制后发给开发者
+    function openFontDiagDialog(report) {
+        var text;
+        try { text = JSON.stringify(report, null, 1); } catch (e) { text = String(report); }
+        var dlg = window.CX.openDialog({
+            id: 'cxFontDiagMask',
+            html: [
+                '<div class="cx-dialog" style="width:min(360px,calc(100vw - 40px))">',
+                '  <div class="cx-dialog-title">🔤 字体诊断</div>',
+                '  <div class="cx-dialog-desc">点「复制全部」后粘贴发给开发者，用于分析系统字体注入方案</div>',
+                '  <div style="padding:0 16px 12px">',
+                '    <textarea class="cx-feedback-textarea" id="cxFontDiagText" readonly ',
+                '      style="height:300px;font-size:11px;line-height:1.45;font-family:monospace"></textarea>',
+                '    <div class="cx-feedback-tip" id="cxFontDiagTip">长按文本也可手动全选复制</div>',
+                '  </div>',
+                '  <div class="cx-dialog-actions">',
+                '    <button class="cx-dialog-cancel" id="cxFontDiagClose">关闭</button>',
+                '    <button class="cx-dialog-confirm" id="cxFontDiagCopy" style="color:var(--brand)">复制全部</button>',
+                '  </div>',
+                '</div>'
+            ].join('')
+        });
+        if (!dlg) return;
+        var ta = document.getElementById('cxFontDiagText');
+        if (ta) ta.value = text;
+        dlg.mask.addEventListener('click', function(e) {
+            if (e.target.id === 'cxFontDiagClose') { dlg.close(); return; }
+            if (e.target.id === 'cxFontDiagCopy') {
+                var tip = document.getElementById('cxFontDiagTip');
+                var ok = false;
+                try {
+                    if (ta) { ta.focus(); ta.select(); }
+                    ok = document.execCommand('copy');
+                } catch (e2) {}
+                if (tip) tip.textContent = ok ? '已复制到剪贴板 ✓' : '复制失败，请长按文本手动复制';
+                e.stopPropagation();
             }
         });
     }

@@ -1311,6 +1311,12 @@
           }
         }
 
+        if (window.CXSpeech && window.CXSpeech._setDiag) {
+          window.CXSpeech._setDiag({
+            nativeSpeakCalls: ((window.CXSpeech._diag && window.CXSpeech._diag.nativeSpeakCalls) || 0) + 1,
+            lastSpeakCallAt: Date.now()
+          });
+        }
         console.log('[CXSpeech] speak() \u53d1\u9001\u7ed9 Java: text=' + segmentText.length + 'chars gen=' + gen);
         NativeTTS.speak({ text: segmentText, lang: lang, rate: rate, title: title, artist: artist,
                           startSecs: targetSeconds || 0, totalSecs: totalDuration || 0,
@@ -1695,8 +1701,31 @@
         // NativeTTS 正在播放时需先 stop，否则新 speak 指令会被忽略导致无声
         if (useNativeTTS && state === 'playing') {
           ++_speakGeneration;   // 使旧 promise 失效，防止触发 onPlaybackNaturalEnd
+          // ★ 事件驱动 seek：先发 STOP，等 Java handleStop 完成（ttsStopped 事件）后再 speak。
+          //   盲等固定 80ms 不可靠：STOP 未处理完时新 speak 会被 Java 忽略（无声），
+          //   只能靠 5s watchdog 重试，真机表现为「拖了进度条好几秒没声音」。
+          //   ttsStopped 800ms 未到则兜底直发（与 resetState 的 _waitStopDone 同思路）。
+          var _seekGen = _speakGeneration;
+          if (_ttsStoppedHandle) { try { _ttsStoppedHandle.remove(); } catch (e) {} _ttsStoppedHandle = null; }
           nativeStopService();
-          setTimeout(function () { startSpeakingFromPercent(pct); }, 80);
+          var _seekSpoken = false;
+          var seekSpeakNow = function () {
+            if (_seekSpoken || _seekGen !== _speakGeneration) return;
+            _seekSpoken = true;
+            startSpeakingFromPercent(pct);
+          };
+          var SeekNative = getNativeTTS();
+          if (SeekNative && typeof SeekNative.addListener === 'function') {
+            _ttsStoppedHandle = SeekNative.addListener('ttsStopped', function () {
+              if (_seekGen !== _speakGeneration) return;
+              if (_ttsStoppedHandle) { try { _ttsStoppedHandle.remove(); } catch (e) {} _ttsStoppedHandle = null; }
+              seekSpeakNow();
+            });
+          }
+          setTimeout(function () {
+            if (_ttsStoppedHandle) { try { _ttsStoppedHandle.remove(); } catch (e) {} _ttsStoppedHandle = null; }
+            seekSpeakNow();
+          }, 800);
         } else {
           startSpeakingFromPercent(pct);
         }
@@ -2060,8 +2089,12 @@
           totalDuration = estimateTotalSeconds(fullText, Number(rateSelect.value) || 0.5);
           _originalTotalDuration = totalDuration;
           _restoredPct = _saved.pct;  // 此刻才真正持有恢复进度
-          // 与 startSpeakingFromPercent 一致用四舍五入，保证初始高亮与实际朗读起点同段
+          // 恢复仅标记进度条+高亮，不滚动定位：页面停在用户当前浏览位置，
+          // 不按朗读位置拉动页面。点播放后跟随滚动照常生效（_scrollFollowEnabled 复原为 true）。
+          var _sfSaved = _scrollFollowEnabled;
+          _scrollFollowEnabled = false;
           setTTSHighlight(findSegmentAt(Math.round(fullText.length * _restoredPct / 100)));
+          _scrollFollowEnabled = _sfSaved;
           progressBar.value = String(_restoredPct);
           speechTime.textContent = formatTime((_restoredPct / 100) * totalDuration) + ' / ' + formatTime(totalDuration);
         }
@@ -2306,7 +2339,9 @@
     lastTimeout:       false,  // 最近一次是否超时降级
     degraded:          false,  // 是否已从 Native 降级到 Web
     lastSpeakMs:       0,      // 最近一次 speak 的耗时（Native，首音延迟）
-    lastSpeakAt:       0       // 最近一次 speak 时间戳
+    lastSpeakAt:       0,      // 最近一次收到首个 ttsPosition（音频真正开始）的时间戳
+    nativeSpeakCalls:  0,      // 本次会话 Native speak 调用次数（诊断用：区分「未点播放」与「已请求但无声」）
+    lastSpeakCallAt:   0       // 最近一次 Native speak 调用时刻
   };
 
   // 供 init 闭包写入诊断状态（失败计数 / 降级 / 首音延迟）
@@ -2352,6 +2387,9 @@
         lastError:         _diag.lastNativeError,
         lastTimeout:       _diag.lastTimeout,
         lastSpeakMs:       _diag.lastSpeakMs,
+        lastSpeakAt:       _diag.lastSpeakAt || 0,
+        nativeSpeakCalls:  _diag.nativeSpeakCalls || 0,
+        lastSpeakCallAt:   _diag.lastSpeakCallAt || 0,
         webSpeechUsable:   _diag.webSpeechUsable
       },
       webSpeech: null,

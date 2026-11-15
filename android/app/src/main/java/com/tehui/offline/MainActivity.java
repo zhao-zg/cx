@@ -26,6 +26,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ImageSaverPlugin.class);
         registerPlugin(NativeTTSPlugin.class);
         registerPlugin(CrashLogPlugin.class);
+        registerPlugin(SystemFontPlugin.class);
 
         // ★ 在 super.onCreate 之前预热 TTS 引擎，尽早绑定系统 TTS 服务。
         //   Service 启动时 initTts() 会复用此实例，不再重复绑定。
