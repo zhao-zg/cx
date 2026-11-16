@@ -225,7 +225,28 @@
         var cloned = pageNav.cloneNode(true);
         var withId = cloned.querySelectorAll('[id]');
         for (var i = 0; i < withId.length; i++) {
+            // 搜索按钮的点击是按 id 绑定的（renderer.js initSearchBtn / search.js init），
+            // 克隆体清除 id 后监听会丢失 → 先打 data 标记，下方补绑打开搜索
+            if (withId[i].getAttribute('id') === 'cx-search-btn') {
+                withId[i].setAttribute('data-cx-search-clone', '1');
+            }
             withId[i].removeAttribute('id');
+        }
+
+        // 克隆的搜索按钮补绑：打开全文搜索并收起浮动栏
+        var cloneSearchBtn = cloned.querySelector('[data-cx-search-clone]');
+        if (cloneSearchBtn) {
+            cloneSearchBtn.addEventListener('click', function(e) {
+                if (e && e.preventDefault) e.preventDefault();
+                hide();
+                if (window.CXSearch && window.CXSearch.open) {
+                    window.CXSearch.open();
+                } else {
+                    // 兜底：转发点击给页内原始搜索按钮
+                    var orig = document.getElementById('cx-search-btn');
+                    if (orig) orig.click();
+                }
+            });
         }
 
         // 章节标题上下文（取当前页章节标题，提供定位信息）
