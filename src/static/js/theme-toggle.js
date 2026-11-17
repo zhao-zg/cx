@@ -551,6 +551,13 @@
     function destroyDevConsole() { window.CXDevConsole && window.CXDevConsole.destroy(); }
 
     function initThemeToggle() {
+        // 启动即应用已保存的正文字体（此前要打开设置面板才生效），并执行系统字体注入
+        (function() {
+            var f = getInitialReadingFont();
+            if (f !== 'system' && !getReadingFontAvailability(f)) f = 'system';
+            applyReadingFont(f);
+            applySystemFontInjection();
+        })();
         // 内页启动缓存检测：非主页 + PWA standalone + 缓存缺失 → 跳回主页触发安装
         (function() {
             var root = window.CX_ROOT || './';
@@ -674,10 +681,10 @@
                             <div class="theme-label">宋体</div>
                         </div>
                     </div>
-                    <div class="theme-option font-option" data-font="kaiti" onclick="setReadingFont('kaiti')">
+                    <div class="theme-option font-option" data-font="heiti" onclick="setReadingFont('heiti')">
                         <div class="theme-option-content">
                             <div class="theme-radio"></div>
-                            <div class="theme-label">楷体</div>
+                            <div class="theme-label">黑体</div>
                         </div>
                     </div>
                 </div>
@@ -779,6 +786,10 @@
         }
         applyReadingFont(savedFont);
         updateFontUI(savedFont);
+        // 跟随系统字体：把原生解析出的系统主题字体族名注入 WebView 默认族
+        // （安卓/鸿蒙 WebView 用自己的字体配置解析 CSS 泛型，系统主题字体通常不
+        //  注册进去；注入后 CSS 落到 sans-serif 的正文与控件即可渲染为系统字体）
+        applySystemFontInjection();
         
         // 点击外部关闭面板（对话框弹层内的点击不触发）
         document.addEventListener('click', function(e) {
@@ -2050,24 +2061,25 @@
         });
     }
     
-    // ── 正文字体（跟随系统 / 宋体 / 楷体）──────────────────────────────
+    // ── 正文字体（跟随系统 / 宋体 / 黑体）──────────────────────────────
     // 'system' 不写入 localStorage 且清空 body 内联字体，回退到 style.css 系统字体栈；
-    // 宋体/楷体走 body.style.fontFamily 内联覆盖（同 applyFontSize 的 body 内联模式）。
-    // 安卓/鸿蒙 WebView 通常没有桌面端宋体/楷体字体，切换会全部落回同一默认字体——
+    // 宋体/黑体走 body.style.fontFamily 内联覆盖（同 applyFontSize 的 body 内联模式）。
+    // 安卓/鸿蒙 WebView 通常没有桌面端宋体字体，切换会落回同一默认字体——
     // 因此启动时探测本机可用性，缺失的选项置灰标注"本机不可用"并禁止选中。
+    // 黑体即系统无衬线风格（栈尾 sans-serif 兜底），任何设备均可用。
     var READING_FONTS = {
         songti: '"Songti SC","STSong",SimSun,"Noto Serif CJK SC","Source Han Serif SC",serif',
-        kaiti:  '"Kaiti SC",STKaiti,KaiTi,serif'
+        heiti:  '"Heiti SC","Heiti TC",STHeiti,"Source Han Sans SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif'
     };
 
     // 各模式候选命名字体（不含 serif/sans-serif 通用族），任一存在即视为可用
     var READING_FONT_CANDIDATES = {
         songti: ['Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', 'Source Han Serif SC'],
-        kaiti:  ['Kaiti SC', 'STKaiti', 'KaiTi']
+        heiti:  ['Heiti SC', 'Heiti TC', 'STHeiti', 'Source Han Sans SC', 'Noto Sans CJK SC', 'Microsoft YaHei']
     };
 
     // 可用性探测结果缓存（true=可用 false=本机缺失，null=未探测）
-    var readingFontAvailability = { system: true, songti: null, kaiti: null };
+    var readingFontAvailability = { system: true, songti: null, heiti: null };
 
     // canvas 墨迹度量：CJK 汉字宽度在不同字体下常相同（全角等宽），
     // 必须结合上下墨迹边界（actualBoundingBox*）才能区分字体。
@@ -2113,7 +2125,8 @@
     function getReadingFontAvailability(mode) {
         if (readingFontAvailability[mode] !== null) return readingFontAvailability[mode];
         var result = false;
-        if (mode === 'system') {
+        if (mode === 'system' || mode === 'heiti') {
+            // 黑体栈以 sans-serif 兜底，缺失命名字体时即系统默认无衬线，始终可用
             result = true;
         } else {
             var names = READING_FONT_CANDIDATES[mode] || [];
@@ -2130,6 +2143,7 @@
     function getInitialReadingFont() {
         try {
             var v = localStorage.getItem('globalFontFamily');
+            if (v === 'kaiti') v = 'heiti'; // 旧版「楷体」选项已换为「黑体」，同位置迁移已存选择
             return READING_FONTS[v] ? v : 'system';
         } catch (e) { return 'system'; }
     }
@@ -2156,6 +2170,41 @@
         applyReadingFont(mode);
         updateFontUI(mode);
     };
+
+    // ── 跟随系统字体：原生族名注入（把系统主题字体带进 WebView）────────────
+    // 安卓/鸿蒙 WebView(Chromium) 用自己的字体配置解析 CSS 泛型（sans-serif 等），
+    // 用户在系统设置里换的主题字体通常不注册进去，「跟随系统」拿不到该字体。
+    // 原生 SystemFontPlugin.getDiagnostics() 会解析出 android.R.attr.fontFamily
+    // （原生控件实际使用的主题字体族名）；若它不是 stock 标准族，就把它注入
+    // WebView 的 standard/sans-serif 默认族，CSS 落到 sans-serif 的内容即渲染为
+    // 该字体。注入失败或族名为 stock 值时静默跳过，保持系统默认行为。
+    // 注意：WebView 设置变更需重新启动应用才会整体生效（与改系统字体同理）。
+    function applySystemFontInjection() {
+        var plugin = window.Capacitor && window.Capacitor.Plugins &&
+                     window.Capacitor.Plugins.SystemFont;
+        if (!plugin || typeof plugin.getDiagnostics !== 'function' ||
+            typeof plugin.setWebFontFamilies !== 'function') return;
+        // 幂等：启动与设置面板初始化可能各触发一次，只探测一次
+        if (window.__cxFontInjection || window.__cxFontInjectionPending) return;
+        window.__cxFontInjectionPending = true;
+        var STANDARD_FAMILIES = ['sans-serif', 'serif', 'monospace', 'system-ui', 'cursive', 'fantasy'];
+        // 延后少量时间，等 Capacitor 桥完全就绪；仍赶在首屏内容渲染前完成
+        setTimeout(function() {
+            plugin.getDiagnostics().then(function(info) {
+                var fam = info && info.resolvedFontFamily;
+                if (!fam) return;
+                fam = String(fam).trim();
+                if (!fam || fam === '(unresolved)' || fam.indexOf('ERR:') === 0) return;
+                if (STANDARD_FAMILIES.indexOf(fam.toLowerCase()) >= 0) return; // stock 族名，无需注入
+                plugin.setWebFontFamilies({ family: fam }).then(function() {
+                    window.__cxFontInjection = { family: fam, ok: true };
+                    try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+                }).catch(function(err) {
+                    window.__cxFontInjection = { family: fam, ok: false, err: String(err && err.message || err) };
+                });
+            }).catch(function() {});
+        }, 300);
+    }
 
     // 更新正文字体卡片选中态；本机缺字体的卡片置灰并标注"本机不可用"
     function updateFontUI(mode) {
@@ -2199,6 +2248,7 @@
         var probe = {};
         try { probe.bodyComputed = getComputedStyle(document.body).fontFamily; } catch (e) {}
         try { probe.storedMode = localStorage.getItem('globalFontFamily') || 'system'; } catch (e) {}
+        try { probe.injection = window.__cxFontInjection || null; } catch (e) {}
         probe.ink = {};
         for (var i = 0; i < FONT_PROBE_FAMILIES.length; i++) {
             var name = FONT_PROBE_FAMILIES[i];
