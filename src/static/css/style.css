@@ -321,12 +321,13 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
    晨读页「周几」目录按钮与正文各走各的字体路径：应用内字体设置只影响正文，
    系统字体却只影响按钮。显式继承后两者同源，行为完全一致。 */
 button,input,select,textarea{font-family:inherit}
-/* 字体栈保持以 sans-serif 泛型结尾：「跟随系统」由原生注入实现——启动时把系统主题
-   字体族名注入 WebView 的 standard/sans-serif 默认族（见 theme-toggle.js
-   applySystemFontInjection），正文落到 sans-serif 即渲染为用户系统字体；
-   无原生环境时回落到 ROM 默认无衬线，与旧版行为一致。
-   iOS/macOS 命中 -apple-system，Windows 命中微软雅黑，不受影响。 */
-body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:calc(12px + env(safe-area-inset-top, 0px)) 12px env(safe-area-inset-bottom, 0px);font-size:18px;-webkit-font-smoothing:antialiased;scrollbar-width:none;-ms-overflow-style:none}
+/* 字体栈以 system-ui 打头：system-ui 是现代浏览器 UA 的「系统字体」入口，在
+   MIUI/HyperOS 上解析到 WebView 标准族——用户主题字体就挂在这条路径上（这正
+   是原生控件与不写字体名的页面能跟随系统字体的原因），显式引用它正文即可跟随
+   系统字体；iOS/macOS 命中 -apple-system 等价的系统字体，不受影响。
+   栈首 'CXSysFont' 为 theme-toggle.js 主题字体文件注入的兜底族名，未注入时
+   自动跳过；宋体/黑体手动选择走 body 内联覆盖，不受此处影响。 */
+body{font-family:'CXSysFont',system-ui,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65;color:var(--text);background:var(--page-bg);min-height:100vh;padding:calc(12px + env(safe-area-inset-top, 0px)) 12px env(safe-area-inset-bottom, 0px);font-size:18px;-webkit-font-smoothing:antialiased;scrollbar-width:none;-ms-overflow-style:none}
 body::-webkit-scrollbar{display:none}
 html{scrollbar-width:none;-ms-overflow-style:none}
 html::-webkit-scrollbar{display:none}

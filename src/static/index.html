@@ -222,7 +222,7 @@
     // ── 核心资源 URL 列表（用于 PWA 缓存校验）────────────────────────────
     window.__cxCoreUrls = [
         './','./manifest.json','./sw.js',
-        './version.json','./trainings.json','./app_config.json',
+        './version.json','./trainings.json',
         './css/style.css',
         './js/ref-detector.js','./js/training-enricher.js','./js/router.js','./js/bilingual.js','./js/renderer.js',
         './js/dev-console.js','./js/theme-toggle.js','./js/search.js','./js/speech.js',
@@ -828,7 +828,9 @@
         var statusEl=document.getElementById('cxInstallStatus');
         var progressBar=document.getElementById('cxInstallProgressBar');
         var retryBtn=document.getElementById('cxInstallRetry');
+        var aborted=false; // 用户点「稍后再说」后，完成后不再自动重载
         function doInstall(){
+            aborted=false;
             if(retryBtn)retryBtn.style.display='none';
             if(progressBar)progressBar.style.width='0%';
             if(statusEl)statusEl.textContent='正在等待训练列表...';
@@ -862,7 +864,7 @@
                         if(result.ok){try{localStorage.setItem('cx_pwa_version',targetVersion);}catch(e){}
                             if(statusEl)statusEl.textContent='✅ 缓存完整，即将重载...';
                             if(progressBar)progressBar.style.width='100%';
-                            setTimeout(function(){window.location.reload();},1200);
+                            setTimeout(function(){if(!aborted)window.location.reload();},1200);
                         }else{
                             var msg='⚠ 部分资源未完整（'+Math.round((result.coverage||0)*100)+'%）';
                             if(result.missingCore&&result.missingCore>0){
@@ -880,9 +882,9 @@
         }
         if(retryBtn)retryBtn.addEventListener('click',doInstall);
         var laterBtn=document.getElementById('cxInstallLater');
-        if(laterBtn)laterBtn.addEventListener('click',function(){if(mask.parentNode)mask.parentNode.removeChild(mask);});
-        // install 模式（首次安装，无已有缓存）立即执行；update 模式等用户选择
-        if(mode==='install')doInstall();
+        if(laterBtn)laterBtn.addEventListener('click',function(){aborted=true;if(mask.parentNode)mask.parentNode.removeChild(mask);});
+        // install（首次安装）与 update（缓存修复）均立即开始，避免弹框出现后进度条一直停在 0%
+        doInstall();
     }
 
     function checkPwaStartupCache(){

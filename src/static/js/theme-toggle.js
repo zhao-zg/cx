@@ -2175,9 +2175,12 @@
     // ── 跟随系统字体：系统字体注入（族名注入 + 主题字体文件注入）──────────
     // 安卓 WebView(Chromium) 用自己的字体配置解析 CSS 泛型（sans-serif 等），
     // 用户在系统设置里换的主题字体通常不注册进去，「跟随系统」拿不到该字体。
-    // 注入路径（按优先级）：
-    //   1) resolvedFontFamily（android:attr/fontFamily）解析出主题字体族名 →
-    //      setWebFontFamilies 注入族名（部分 ROM 可解析，注入后 reload 一次）；
+    // 三级策略（每级先墨迹验证再采用）：
+    //   0) system-ui：CSS 栈首已引用（style.css）——它正是浏览器「系统字体」
+    //      入口，MIUI/HyperOS 的主题字体挂载在 WebView 标准族这条路径上，
+    //      渲染与 sans-serif 不同即已生效，无需任何原生调用；
+    //   1) 族名注入：resolvedFontFamily 可解析时直接用；否则探测 fonts.xml 的
+    //      miui 族（主题字体槽位），墨迹不同即注入 WebView 标准族；
     //   2) 字体文件注入（小米等 ROM 的可靠路径）：小米把主题字体放在
     //      /data/system/theme/fonts（可读）且 /data/system/fonts/theme_webview/
     //      专为 WebView 准备，但这些字体不注册进 WebView 字体配置、族名也解析
@@ -2194,22 +2197,31 @@
         return a.w !== b.w || a.a !== b.a || a.d !== b.d;
     }
 
-    // 分块读取字体文件 → ArrayBuffer（base64 经 Capacitor 桥传输，256KB/块）
+    // 分块读取字体文件 → ArrayBuffer。每块独立 atob 解码后拼接字节——
+    // 不能先 join 再整体 atob：每块 base64 自带 '=' 填充符，拼接后中间出现
+    // 填充符会报 "The string to be decoded is not correctly encoded"（本轮
+    // 真机诊断实测的失败点）。块大小取 3 的倍数（304128≈297KB），每段 base64
+    // 无填充，双保险；单块仍低于原生 512KB 上限。
     function _readFontFile(plugin, path) {
-        var CHUNK = 262144;
+        var CHUNK = 304128; // 3 × 101376
         var parts = [];
         function readAt(offset) {
             return plugin.readFontChunk({ path: path, offset: offset, length: CHUNK }).then(function (r) {
-                parts.push(r.chunk);
+                var bin = atob(r.chunk);
+                var arr = new Uint8Array(bin.length);
+                for (var j = 0; j < bin.length; j++) arr[j] = bin.charCodeAt(j);
+                parts.push(arr);
                 var next = r.offset + r.read;
                 if (r.read > 0 && next < r.total) return readAt(next);
                 return null;
             });
         }
         return readAt(0).then(function () {
-            var bin = atob(parts.join(''));
-            var buf = new Uint8Array(bin.length);
-            for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+            var total = 0, i;
+            for (i = 0; i < parts.length; i++) total += parts[i].length;
+            var buf = new Uint8Array(total);
+            var p = 0;
+            for (i = 0; i < parts.length; i++) { buf.set(parts[i], p); p += parts[i].length; }
             return buf.buffer;
         });
     }
@@ -2230,7 +2242,7 @@
             // head 末尾追加：晚于 style.css 的 body 规则，同特异性后者胜
             document.head.appendChild(st);
         }
-        st.textContent = "body{font-family:'CXSysFont',-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif}";
+        st.textContent = "body{font-family:'CXSysFont',system-ui,-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif}";
     }
 
     // 候选构建：theme_webview（MIUI 专为 WebView 放的主题字体）优先，
@@ -2356,13 +2368,28 @@
     }
 
     function applySystemFontInjection() {
+        // 幂等：启动与设置面板初始化可能各触发一次，只探测一次
+        if (window.__cxFontInjection || window.__cxFontInjectionPending) return;
+        window.__cxFontInjectionPending = true;
+        // 级 0：system-ui（CSS 栈首已引用）——它就是浏览器「系统字体」入口，
+        // MIUI/HyperOS 上解析到 WebView 标准族（主题字体挂载路径）。与
+        // sans-serif 墨迹不同说明正文已实际跟随系统字体，无需任何原生调用。
+        try {
+            var sansInk0 = _inkOf('sans-serif');
+            var sysInk0 = _inkOf('system-ui');
+            if (_inkDiffers(sysInk0, sansInk0)) {
+                window.__cxFontInjection = {
+                    mode: 'css-system-ui', ok: true,
+                    inkSans: sansInk0 && [sansInk0.w, sansInk0.a, sansInk0.d],
+                    inkSystem: sysInk0 && [sysInk0.w, sysInk0.a, sysInk0.d]
+                };
+                return;
+            }
+        } catch (e) {}
         var plugin = window.Capacitor && window.Capacitor.Plugins &&
                      window.Capacitor.Plugins.SystemFont;
         if (!plugin || typeof plugin.getDiagnostics !== 'function' ||
             typeof plugin.setWebFontFamilies !== 'function') return;
-        // 幂等：启动与设置面板初始化可能各触发一次，只探测一次
-        if (window.__cxFontInjection || window.__cxFontInjectionPending) return;
-        window.__cxFontInjectionPending = true;
         var STANDARD_FAMILIES = ['sans-serif', 'serif', 'monospace', 'system-ui', 'cursive', 'fantasy'];
         // 延后少量时间，等 Capacitor 桥完全就绪；仍赶在首屏内容渲染前完成
         setTimeout(function() {
@@ -2371,8 +2398,16 @@
                 fam = fam ? String(fam).trim() : '';
                 var valid = !!fam && fam !== '(unresolved)' && fam.indexOf('ERR:') !== 0 &&
                             STANDARD_FAMILIES.indexOf(fam.toLowerCase()) < 0;
+                if (!valid) {
+                    // 级 1b：MIUI 主题字体槽位族（fonts.xml name="miui" 指向
+                    // /data/system/theme/fonts 槽位文件）；墨迹与 sans-serif 不同才采用
+                    var sansInk = _inkOf('sans-serif');
+                    var miuiInk = _inkOf('miui');
+                    if (_inkDiffers(miuiInk, sansInk)) { fam = 'miui'; valid = true; }
+                }
                 if (valid) {
-                    // 路径一：原生解析出的族名直接注入（reload 一次生效，sessionStorage 防循环）
+                    // 级 1：WebView standard/sans-serif 默认族指向主题字体族名
+                    // （reload 一次生效，sessionStorage 防循环）
                     var wantReload = true;
                     try {
                         wantReload = sessionStorage.getItem('cx_font_inj_reload') !== '1';
@@ -2388,7 +2423,7 @@
                     });
                     return;
                 }
-                // 路径二：主题字体文件注入（读文件 → WebFont → 墨迹验证 → body 字体栈）
+                // 级 2：主题字体文件注入（读文件 → WebFont → 墨迹验证 → CSS 栈首）
                 if (typeof plugin.getThemeFontInfo !== 'function' ||
                     typeof plugin.readFontChunk !== 'function') {
                     window.__cxFontInjection = { ok: false, stage: 'no-plugin-api' };
@@ -2435,7 +2470,7 @@
     // Web 侧附加 canvas 墨迹探针（各泛型/已知字体在本机 WebView 的实际渲染指纹，
     // 交叉比对可知 sans-serif 泛型实际解析到了哪个字体）。
     var FONT_PROBE_FAMILIES = [
-        'sans-serif', 'serif', 'monospace', 'sans-serif-medium',
+        'system-ui', 'sans-serif', 'serif', 'monospace', 'sans-serif-medium',
         'Roboto', 'HarmonyOS Sans', 'HarmonyOS Sans SC', 'HarmonyOS Sans Compact',
         'EMUI Sans', 'HwSans', 'MiSans', 'PingFang SC',
         'Noto Sans CJK SC', 'Noto Serif CJK SC',
