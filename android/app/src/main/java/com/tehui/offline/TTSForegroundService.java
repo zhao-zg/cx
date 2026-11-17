@@ -251,6 +251,40 @@ public class TTSForegroundService extends Service {
         } catch (Exception ignored) { return null; }
     }
 
+    /**
+     * 插件直调入口：不经 startService 分发控制指令（STOP/PAUSE/RESUME/SET_RATE）。
+     *
+     * 背景：app 退后台后 Android 12+ 禁止 startService/startForegroundService
+     * （BackgroundServiceStartNotAllowedException），而 JS 在 visibilitychange
+     * /页面清理时仍会调 NativeTTS.stop()，旧路径直接崩溃。
+     *
+     * 语义：这些指令只对运行中的服务有意义——
+     *   - 实例活着：post 到主线程执行对应 handle 方法（与通知栏 MediaSession
+     *     回调完全同一线程模型，onStartCommand 也在主线程分发）；
+     *   - 实例不存在（服务已销毁）：指令本身是空操作，返回 false 由调用方
+     *     决定补偿行为（如直接触发 onServiceStopped 通知）。
+     *
+     * @return true=已分发给运行中的实例；false=服务未运行，未执行任何操作
+     */
+    public static boolean dispatchFromPlugin(String action) {
+        final TTSForegroundService inst = getInstance();
+        if (inst == null || inst.mainHandler == null) return false;
+        final String a = action == null ? "" : action;
+        inst.mainHandler.post(() -> {
+            try {
+                switch (a) {
+                    case ACTION_STOP:   inst.handleStop();   break;
+                    case ACTION_PAUSE:  inst.handlePause();  break;
+                    case ACTION_RESUME: inst.handleResume(); break;
+                    default: break; // SET_RATE/SPEAK 等带数据指令仍走 Intent（需 extras）
+                }
+            } catch (Throwable t) {
+                android.util.Log.w("TTSFgSvc", "dispatchFromPlugin " + a + " error: " + t);
+            }
+        });
+        return true;
+    }
+
     // ── System Resources ──────────────────────────────────────────────────
     private AudioManager                          audioManager;
     private AudioFocusRequest                     audioFocusRequest; // API 26+

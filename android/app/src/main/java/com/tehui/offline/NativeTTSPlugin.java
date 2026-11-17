@@ -136,10 +136,20 @@ public class NativeTTSPlugin extends Plugin {
         intent.putExtra("totalSecs",  totalSecs);
         intent.putExtra("loop",       loop);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            getContext().startForegroundService(intent);
-        } else {
-            getContext().startService(intent);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                getContext().startForegroundService(intent);
+            } else {
+                getContext().startService(intent);
+            }
+        } catch (Throwable t) {
+            // ★ 后台竞态兑底：服务已销毁且进程退后台时，Android 12+ 的
+            //   startForegroundService 抛 ForegroundServiceStartNotAllowedException，
+            //   不能让异常冒到 Capacitor 反射层（崩溃）；reject 活跃 call，
+            //   JS 侧超时/失败逻辑会自动降级 Web Speech。
+            //   服务运行中（前台通知活着）不受此限，正常后台朗读不受影响。
+            android.util.Log.w("NativeTTS", "speak start service error: " + t);
+            rejectActiveCall("后台无法启动朗读服务: " + t.getClass().getSimpleName());
         }
     }
 
@@ -158,7 +168,15 @@ public class NativeTTSPlugin extends Plugin {
             JSObject data = new JSObject();
             notifyListeners("ttsStopped", data);
         };
-        sendServiceAction(TTSForegroundService.ACTION_STOP);
+        if (!sendServiceAction(TTSForegroundService.ACTION_STOP)) {
+            // 服务未运行（含朗读已自然结束、进程退后台无法 startService 的场景）：
+            // 无东西可停，同步补发 ttsStopped，解除 JS 的 _waitStopDone 等待。
+            try {
+                if (TTSForegroundService.onServiceStopped != null) {
+                    TTSForegroundService.onServiceStopped.run();
+                }
+            } catch (Throwable ignored) {}
+        }
         call.resolve();
     }
 
@@ -186,10 +204,17 @@ public class NativeTTSPlugin extends Plugin {
         call.resolve(); // fire-and-forget
         Intent intent = new Intent(getContext(), TTSForegroundService.class);
         intent.setAction(TTSForegroundService.ACTION_WARMUP);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            getContext().startForegroundService(intent);
-        } else {
-            getContext().startService(intent);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                getContext().startForegroundService(intent);
+            } else {
+                getContext().startService(intent);
+            }
+        } catch (Throwable t) {
+            // app 在后台时 Android 12+ 禁止启动 service（ForegroundServiceStartNotAllowed
+            // Exception），不能让它冒到 Capacitor 反射层（崩溃）；warmup 失败无害，
+            // 首次播放时走正常初始化路径。
+            android.util.Log.w("NativeTTS", "warmup start service error: " + t);
         }
     }
 
@@ -232,10 +257,17 @@ public class NativeTTSPlugin extends Plugin {
         intent.putExtra("title",  title);
         intent.putExtra("artist", artist);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            getContext().startForegroundService(intent);
-        } else {
-            getContext().startService(intent);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                getContext().startForegroundService(intent);
+            } else {
+                getContext().startService(intent);
+            }
+        } catch (Throwable t) {
+            // app 在后台时 startForegroundService 抛 ForegroundServiceStartNotAllowedException
+            // （Android 12+），不能让它冒到 Capacitor 反射层（崩溃）；预合成失败无害，
+            // 用户点击播放时走正常合成路径。
+            android.util.Log.w("NativeTTS", "preSynthesize start service error: " + t);
         }
     }
 
@@ -248,7 +280,14 @@ public class NativeTTSPlugin extends Plugin {
         Intent intent = new Intent(getContext(), TTSForegroundService.class);
         intent.setAction(TTSForegroundService.ACTION_SET_RATE);
         intent.putExtra("rate", rate);
-        getContext().startService(intent);
+        try {
+            getContext().startService(intent);
+        } catch (Throwable t) {
+            // app 在后台时 startService 抛 BackgroundServiceStartNotAllowedException
+            // （Android 12+），不能让它冒到 Capacitor 反射层（崩溃）；切后台后
+            // 调语速的场景罕见，失败无害。
+            android.util.Log.w("NativeTTS", "setRate start service error: " + t);
+        }
         call.resolve();
     }
     // ── 电池优化 ────────────────────────────────────────────────────────────────────────
@@ -442,10 +481,29 @@ public class NativeTTSPlugin extends Plugin {
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
-    private void sendServiceAction(String action) {
-        Intent intent = new Intent(getContext(), TTSForegroundService.class);
-        intent.setAction(action);
-        getContext().startService(intent);
+    /**
+     * 发送无数据控制指令（STOP/PAUSE/RESUME）到 TTS 服务。
+     *
+     * 旧实现 startService()：app 退后台后 Android 12+ 直接抛
+     * BackgroundServiceStartNotAllowedException 且未被捕获，从 Capacitor
+     * 反射调用层冒出导致整个应用崩溃（崩溃栈：Bridge.callPluginMethod →
+     * InvocationTargetException → BackgroundServiceStartNotAllowedException）。
+     *
+     * 新实现：优先直调运行中的 Service 实例（post 到主线程，与通知栏
+     * MediaSession 回调同一线程模型）；服务未运行时指令本身是空操作，直接跳过，
+     * 不再尝试 startService（旧代码服务未运行时会白白启动一个空服务，
+     * 后台时更是崩溃源）。
+     *
+     * @return true=已分发给运行中的实例；false=服务未运行，未执行任何操作
+     */
+    private boolean sendServiceAction(String action) {
+        try {
+            return TTSForegroundService.dispatchFromPlugin(action);
+        } catch (Throwable t) {
+            // 兜底：任何异常都不能从 @PluginMethod 冒出到 Capacitor 反射层（会崩 app）
+            android.util.Log.w("NativeTTS", "sendServiceAction(" + action + ") error: " + t);
+            return false;
+        }
     }
 
     private void cancelActiveCall(String status) {

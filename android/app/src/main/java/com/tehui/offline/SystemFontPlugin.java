@@ -6,6 +6,7 @@ import android.graphics.fonts.SystemFonts;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Base64;
 import android.util.TypedValue;
 import android.webkit.WebSettings;
 
@@ -18,6 +19,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.RandomAccessFile;
 import java.util.LinkedHashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -235,6 +237,130 @@ public class SystemFontPlugin extends Plugin {
                 }
             }
         });
+    }
+
+    /**
+     * 主题字体目录信息：各目录下字体文件（名称/大小/可读性）+ 已知系统字体文件，
+     * 供 JS 构建「跟随系统」文件注入的候选列表。
+     * 目录顺序与 JS 候选优先级对应：
+     *   [0] /data/system/fonts/theme_webview —— MIUI/HyperOS 专为 WebView 准备的主题字体
+     *   [1] /data/system/theme/fonts        —— MIUI 主题字体槽位（Miui/MiuiEx/Roboto 等）
+     */
+    @PluginMethod
+    public void getThemeFontInfo(PluginCall call) {
+        JSObject ret = new JSObject();
+        JSArray dirs = new JSArray();
+        dirs.put(listFontDir("/data/system/fonts/theme_webview"));
+        dirs.put(listFontDir("/data/system/theme/fonts"));
+        ret.put("dirs", dirs);
+
+        // 已知系统默认字体文件（fonts.xml sans-serif 实际指向），作为末位候选
+        JSArray known = new JSArray();
+        String[] knownFiles = {
+                "/system/fonts/MiSansVF_Overlay.ttf",
+                "/system/fonts/MiSansVF.ttf"
+        };
+        for (String kf : knownFiles) {
+            JSObject o = new JSObject();
+            File f = new File(kf);
+            o.put("path", kf);
+            o.put("exists", f.exists());
+            o.put("kb", f.exists() ? f.length() / 1024 : 0);
+            o.put("rd", f.canRead());
+            known.put(o);
+        }
+        ret.put("knownFiles", known);
+        call.resolve(ret);
+    }
+
+    /** 列出单个目录内的字体文件（名称/大小/可读性） */
+    private JSObject listFontDir(String path) {
+        JSObject o = new JSObject();
+        o.put("path", path);
+        File dir = new File(path);
+        o.put("exists", dir.exists());
+        o.put("readable", dir.canRead());
+        JSArray files = new JSArray();
+        if (dir.isDirectory() && dir.canRead()) {
+            File[] list = dir.listFiles();
+            if (list != null) {
+                for (File f : list) {
+                    if (!f.isFile()) continue;
+                    JSObject fo = new JSObject();
+                    fo.put("name", f.getName());
+                    fo.put("kb", f.length() / 1024);
+                    fo.put("rd", f.canRead());
+                    files.put(fo);
+                }
+            }
+        }
+        o.put("files", files);
+        return o;
+    }
+
+    /**
+     * 分块读取字体文件（base64）。路径白名单限制在主题/系统字体目录内且扩展名
+     * 必须是字体文件，避免被当作任意文件读取通道。单块上限 512KB。
+     */
+    @PluginMethod
+    public void readFontChunk(PluginCall call) {
+        String path = call.getString("path", "");
+        int offset = call.getInt("offset", 0);
+        int length = call.getInt("length", 262144);
+        if (length > 524288) length = 524288;
+        boolean allowed = false;
+        String[] prefixes = {
+                "/data/system/theme/fonts/",
+                "/data/system/fonts/theme_webview/",
+                "/system/fonts/",
+                "/product/fonts/"
+        };
+        for (String pf : prefixes) {
+            if (path.startsWith(pf)) { allowed = true; break; }
+        }
+        if (allowed) {
+            String lp = path.toLowerCase();
+            allowed = lp.endsWith(".ttf") || lp.endsWith(".otf") || lp.endsWith(".ttc");
+        }
+        if (!allowed) {
+            call.reject("path not allowed");
+            return;
+        }
+        try {
+            File f = new File(path);
+            if (!f.exists() || !f.canRead()) {
+                call.reject("file unreadable");
+                return;
+            }
+            long total = f.length();
+            if (offset < 0 || offset >= total) {
+                call.reject("offset out of range");
+                return;
+            }
+            int toRead = (int) Math.min((long) length, total - offset);
+            RandomAccessFile raf = new RandomAccessFile(f, "r");
+            try {
+                raf.seek(offset);
+                byte[] buf = new byte[toRead];
+                int read = 0;
+                while (read < toRead) {
+                    int n = raf.read(buf, read, toRead - read);
+                    if (n < 0) break;
+                    read += n;
+                }
+                String b64 = Base64.encodeToString(buf, 0, read, Base64.NO_WRAP);
+                JSObject ret = new JSObject();
+                ret.put("chunk", b64);
+                ret.put("offset", offset);
+                ret.put("read", read);
+                ret.put("total", total);
+                call.resolve(ret);
+            } finally {
+                raf.close();
+            }
+        } catch (Throwable t) {
+            call.reject("ERR:" + t.getClass().getSimpleName() + ":" + t.getMessage());
+        }
     }
 
     /** 解析单个字体配置 XML：返回存在性、族名列表、关键族的字体文件映射 */
