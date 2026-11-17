@@ -711,9 +711,6 @@
                     <button class="action-btn" id="bookmarkListBtn">
                         <span class="cache-icon">📑</span><span class="cache-text">我的书签</span>
                     </button>
-                    <button class="action-btn" id="fontDiagBtn" style="display:none">
-                        <span class="cache-icon">🔤</span><span class="cache-text">字体诊断</span>
-                    </button>
                     <button class="action-btn danger" id="clearDataBtn" style="display:none">
                         <span class="cache-icon">🧹</span><span class="cache-text">清理数据</span>
                     </button>
@@ -888,21 +885,7 @@
             }
         })();
 
-        // ── 字体诊断（APK 专用，实验：原生桥接查系统字体为何不进 WebView）──
-        (function() {
-            var btn = document.getElementById('fontDiagBtn');
-            if (!btn) return;
-            var isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform &&
-                             window.Capacitor.isNativePlatform());
-            var plugin = window.Capacitor && window.Capacitor.Plugins &&
-                         window.Capacitor.Plugins.SystemFont;
-            if (!isNative || !plugin || typeof plugin.getDiagnostics !== 'function') return;
-            btn.style.display = 'inline-flex';
-            btn.addEventListener('click', function() {
-                if (typeof window.toggleThemePanel === 'function') window.toggleThemePanel();
-                setTimeout(showFontDiagnostics, 300);
-            });
-        })();
+        // 字体诊断入口已移入「问题反馈」弹窗（见 showFeedbackDialog，APK 环境动态注入）
 
         // 环境检测
         var ua = navigator.userAgent;
@@ -1719,6 +1702,7 @@
                 '    <div class="cx-feedback-count" id="cxFeedbackCount">0/' + MAX_LEN + '</div>',
                 '    <div class="cx-feedback-tip">⚠️ 请先确认已是最新版本，部分问题在新版中已修复。</div>',
                 isCapacitor ? '    <div class="cx-feedback-ttsdiag" id="cxFeedbackTtsDiag">🔍 <span>朗读没声音？试试</span><button type="button" id="cxFeedbackTtsDiagBtn">朗读诊断</button></div>' : '',
+                isCapacitor ? '    <div class="cx-feedback-ttsdiag" id="cxFeedbackFontDiag">🔤 <span>字体显示不对？试试</span><button type="button" id="cxFeedbackFontDiagBtn">字体诊断</button></div>' : '',
                 '    <div class="cx-feedback-status" id="cxFeedbackStatus"></div>',
                 '  </div>',
                 '  <div class="cx-feedback-actions">',
@@ -1747,6 +1731,23 @@
                 dlg.close();
                 showTtsDiagnosticsDialog();
             });
+        }
+
+        // ── 字体诊断入口（仅 APK + SystemFont 插件可用时显示）：同上跳转逻辑 ──
+        // 打开字体诊断弹窗（原生系统字体注册表 + 注入状态），返回键回到反馈。
+        var fontDiagEntry = document.getElementById('cxFeedbackFontDiagBtn');
+        if (fontDiagEntry) {
+            var sysFontPlugin = window.Capacitor && window.Capacitor.Plugins &&
+                                window.Capacitor.Plugins.SystemFont;
+            if (!sysFontPlugin || typeof sysFontPlugin.getDiagnostics !== 'function') {
+                var fontDiagRow = document.getElementById('cxFeedbackFontDiag');
+                if (fontDiagRow) fontDiagRow.style.display = 'none';
+            } else {
+                fontDiagEntry.addEventListener('click', function() {
+                    dlg.close();
+                    showFontDiagnostics();
+                });
+            }
         }
 
         var cancelBtn = document.getElementById('cxFeedbackCancelBtn');
@@ -2172,13 +2173,30 @@
     };
 
     // ── 跟随系统字体：原生族名注入（把系统主题字体带进 WebView）────────────
-    // 安卓/鸿蒙 WebView(Chromium) 用自己的字体配置解析 CSS 泛型（sans-serif 等），
+    // 安卓 WebView(Chromium) 用自己的字体配置解析 CSS 泛型（sans-serif 等），
     // 用户在系统设置里换的主题字体通常不注册进去，「跟随系统」拿不到该字体。
-    // 原生 SystemFontPlugin.getDiagnostics() 会解析出 android.R.attr.fontFamily
-    // （原生控件实际使用的主题字体族名）；若它不是 stock 标准族，就把它注入
-    // WebView 的 standard/sans-serif 默认族，CSS 落到 sans-serif 的内容即渲染为
-    // 该字体。注入失败或族名为 stock 值时静默跳过，保持系统默认行为。
-    // 注意：WebView 设置变更需重新启动应用才会整体生效（与改系统字体同理）。
+    // 原生注入路径（必须主线程执行）：
+    //   1) resolvedFontFamily（android.R.attr.fontFamily）解析出主题字体族名 → 直接注入；
+    //   2) 解析不出（如小米 HyperOS 返回 "(unresolved)"）→ 从系统字体配置 XML
+    //      （fonts.xml / fonts_customization.xml）的族名表里挑「非标准族」：
+    //      恰好唯一时注入；多个/零个候选则不动，全部记录进字体诊断供人工分析。
+    // 注入后请求原生 reload 一次确保设置对新渲染生效（sessionStorage 防循环）。
+    function extractCustomFamilyCandidates(info) {
+        // Android/各 ROM 内置族名前缀白名单，命中即视为标准族，不是候选
+        var STANDARD_RE = /^(sans-serif|serif|monospace|system-ui|cursive|fantasy|emoji|droid|roboto|noto|miuiex|misans|mitype|miclock|commuters|harmonyos|emui|hwsans|source han|samsung|oneui|oppo|vivo|coloros|flyme)/i;
+        var out = [];
+        var configs = (info && info.fontConfig) || [];
+        for (var ci = 0; ci < configs.length; ci++) {
+            var names = (configs[ci] && configs[ci].familyNames) || [];
+            for (var i = 0; i < names.length; i++) {
+                var n = String(names[i] || '').trim();
+                if (!n || STANDARD_RE.test(n)) continue;
+                if (out.indexOf(n) < 0) out.push(n);
+            }
+        }
+        return out;
+    }
+
     function applySystemFontInjection() {
         var plugin = window.Capacitor && window.Capacitor.Plugins &&
                      window.Capacitor.Plugins.SystemFont;
@@ -2190,19 +2208,46 @@
         var STANDARD_FAMILIES = ['sans-serif', 'serif', 'monospace', 'system-ui', 'cursive', 'fantasy'];
         // 延后少量时间，等 Capacitor 桥完全就绪；仍赶在首屏内容渲染前完成
         setTimeout(function() {
+            // 本会话尚未 reload 过时请求原生 reload 一次，确保注入设置生效
+            var wantReload = true;
+            try {
+                wantReload = sessionStorage.getItem('cx_font_inj_reload') !== '1';
+                if (wantReload) sessionStorage.setItem('cx_font_inj_reload', '1');
+            } catch (e) {}
             plugin.getDiagnostics().then(function(info) {
                 var fam = info && info.resolvedFontFamily;
-                if (!fam) return;
-                fam = String(fam).trim();
-                if (!fam || fam === '(unresolved)' || fam.indexOf('ERR:') === 0) return;
-                if (STANDARD_FAMILIES.indexOf(fam.toLowerCase()) >= 0) return; // stock 族名，无需注入
-                plugin.setWebFontFamilies({ family: fam }).then(function() {
-                    window.__cxFontInjection = { family: fam, ok: true };
+                fam = fam ? String(fam).trim() : '';
+                var valid = !!fam && fam !== '(unresolved)' && fam.indexOf('ERR:') !== 0 &&
+                            STANDARD_FAMILIES.indexOf(fam.toLowerCase()) < 0;
+                var cands = [];
+                if (!valid) {
+                    cands = extractCustomFamilyCandidates(info);
+                    if (cands.length === 1) {
+                        fam = cands[0];
+                        valid = true;
+                    }
+                }
+                if (!valid) {
+                    // 没有可用族名（0 或多个候选）：不动 WebView，留给字体诊断分析
+                    window.__cxFontInjection = {
+                        family: fam || null, ok: false, stage: 'no-family', candidates: cands
+                    };
+                    return;
+                }
+                var opts = { family: fam };
+                if (wantReload) opts.reload = true;
+                plugin.setWebFontFamilies(opts).then(function() {
+                    window.__cxFontInjection = { family: fam, ok: true, reloaded: !!opts.reload };
                     try { window.dispatchEvent(new Event('resize')); } catch (e) {}
                 }).catch(function(err) {
-                    window.__cxFontInjection = { family: fam, ok: false, err: String(err && err.message || err) };
+                    window.__cxFontInjection = {
+                        family: fam, ok: false,
+                        err: String(err && err.message || err), candidates: cands
+                    };
                 });
-            }).catch(function() {});
+            }).catch(function(e) {
+                window.__cxFontInjection = { ok: false, err: String(e && e.message || e) };
+            });
         }, 300);
     }
 
