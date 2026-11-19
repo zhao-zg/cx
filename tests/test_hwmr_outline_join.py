@@ -153,5 +153,40 @@ class TestRegression(unittest.TestCase):
         self.assertNotIn(' \uff1b', nodes[0]['title'])
 
 
+class TestCnMultiCharLevel(unittest.TestCase):
+    """CN 11~19 多字符编号整体识别（禁止拆成「拾/十 + 壹/一」）"""
+
+    def test_l1_shi_yi_is_single_marker(self):
+        nodes = flat([
+            (113.9, 45.0, '拾壹　基督是赐安息者—太十一28～30：', 'kai'),
+            (132.0, 47.0, '一　负主的轭就是接受父的旨意—29节。', 'kai'),
+            (151.0, 45.0, '拾贰　基督是更大的约拿—十二39～41，十六4：', 'kai'),
+            (169.0, 47.0, '一　约拿预表基督的死、埋葬与复活—十二39～41。', 'kai'),
+        ], is_en=False)
+        roots = hwmr_parser.nest(nodes)
+        self.assertEqual([r['level'] for r in roots], ['拾壹', '拾贰'])
+        self.assertEqual(roots[0]['title'].split(' ')[0], '基督是赐安息者—太十一28～30：')
+        self.assertEqual([c['level'] for c in roots[0]['children']], ['一'])
+        self.assertEqual([c['level'] for c in roots[1]['children']], ['一'])
+
+    def test_l2_shi_yi_stays_child(self):
+        nodes = flat([
+            (113.9, 45.0, '叁　包罗万有的灵—林后三17～18：', 'kai'),
+            (132.0, 47.0, '十　主灵乃是经过过程之三一神的终极完成。', 'kai'),
+            (151.0, 47.0, '十一　我们需要喝那灵，被那灵充满。', 'kai'),
+            (169.0, 47.0, '十二　那灵是我们里面的膏油涂抹。', 'kai'),
+        ], is_en=False)
+        roots = hwmr_parser.nest(nodes)
+        self.assertEqual(len(roots), 1)
+        self.assertEqual([c['level'] for c in roots[0]['children']], ['十', '十一', '十二'])
+
+    def test_single_char_unchanged(self):
+        nodes = flat([
+            (113.9, 45.0, '拾　基督是罪人的朋友—十一19：', 'kai'),
+        ], is_en=False)
+        self.assertEqual(nodes[0]['level'], '拾')
+        self.assertTrue(nodes[0]['title'].startswith('基督是罪人的朋友'))
+
+
 if __name__ == '__main__':
     unittest.main()

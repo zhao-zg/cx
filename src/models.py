@@ -229,7 +229,7 @@ class Chapter:
                 after = idx + len(name)
                 next_char = title[after] if after < len(title) else ''
                 # 后不接章节号相关字符（否则是标准引用，不应走此回退路径）
-                if not re.match(r'[一二三四五六七八九十百\d章篇]', next_char):
+                if not re.match(r'[一二三四五六七八九十百零〇○\d章篇]', next_char):
                     return Chapter._FULL_BOOK_MAP[name]
         return ''
 

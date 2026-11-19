@@ -302,8 +302,25 @@ EN_L5_RE = re.compile(r'^(\d{1,2})\)\s')   # EN L5：'1) …'（x0=377）
 EN_L6_RE = re.compile(r'^([a-z])\)\s')     # EN L6：'a) …'（x0=377，probe74 ch6 day3）
 L1_SET = {'壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖', '拾'}
 CN_L2_SET = {'一', '二', '三', '四', '五', '六', '七', '八', '九', '十'}
-PICK_FOLD = {'拾壹': '壹', '拾贰': '贰', '拾叁': '叁', '拾肆': '肆', '拾伍': '伍'}
-PICK_FOLD_11 = {'十一': '一', '十二': '二', '十三': '三', '十四': '四', '十五': '五'}
+# 多字符编号（11~19）：大点用「拾壹~拾玖」，中纲用「十一~十九」。
+# 必须整体识别，禁止拆成「拾/十 + 壹/一」两个字符（旧 PICK_FOLD 拆分 bug：
+# 「拾壹　基督是赐安息者」被渲染成「拾　壹　基督是赐安息者」）。
+CN_L1_MULTI_RE = re.compile(r'^拾[壹贰叁肆伍陆柒捌玖]')
+CN_L2_MULTI_RE = re.compile(r'^十[一二三四五六七八九]')
+
+
+def is_cn_l1_level(lv):
+    """判断层级标识是否中文大点（含 拾壹~拾玖）。"""
+    if not lv:
+        return False
+    return lv in L1_SET or bool(CN_L1_MULTI_RE.fullmatch(lv))
+
+
+def is_cn_l2_level(lv):
+    """判断层级标识是否中文中纲（含 十一~十九）。"""
+    if not lv:
+        return False
+    return lv in CN_L2_SET or bool(CN_L2_MULTI_RE.fullmatch(lv))
 
 
 def day_list_from_mark(s):
@@ -331,15 +348,13 @@ def parse_outline_level(s, is_en=False, x0=None):
             if m:
                 return m.group(1) + suf, s2[m.end():].strip()
     else:
-        # 折叠：十一~十五 → 十 + 「一　~ 五　」；拾壹~拾伍 → 拾 + 「壹　~ 伍　」
-        m = re.match(r'^(十一|十二|十三|十四|十五)', s2)
+        # 多字符编号整体识别：十一~十九（中纲）、拾壹~拾玖（大点）
+        m = CN_L1_MULTI_RE.match(s2)
         if m:
-            ordinal = m.group(1)
-            return '十', PICK_FOLD_11[ordinal] + '　' + s2[m.end():].strip()
-        m = re.match(r'^(拾壹|拾贰|拾叁|拾肆|拾伍)', s2)
+            return m.group(0), s2[m.end():].strip()
+        m = CN_L2_MULTI_RE.match(s2)
         if m:
-            ordinal = m.group(1)
-            return '拾', PICK_FOLD[ordinal] + '　' + s2[m.end():].strip()
+            return m.group(0), s2[m.end():].strip()
         for r in (L1_RE, L2_RE, L3_RE, L4_RE):
             m = r.match(s2)
             if m:
@@ -542,10 +557,10 @@ def nest(flat, add_ctx=False, is_en=False):
             else:
                 (l5 or l4 or l3 or l2 or l1 or roots).append(n)
             continue
-        if lv in L1_SET or lv == '拾':
+        if is_cn_l1_level(lv):
             roots.append(n)
             l1, l2, l3, l4 = n, None, None, None
-        elif lv in CN_L2_SET:
+        elif is_cn_l2_level(lv):
             (l1['children'] if l1 else roots).append(n)
             l2, l3, l4 = n, None, None
         elif re.match(r'^\d{1,2}$', lv):

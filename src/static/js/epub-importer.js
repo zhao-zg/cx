@@ -290,7 +290,7 @@
         var after = idx + name.length;
         var nextChar = after < text.length ? text[after] : '';
         // 后不接章节号相关字符（否则是标准引用，不应走此回退路径）
-        if (!/[一二三四五六七八九十百\d章篇]/.test(nextChar)) {
+        if (!/[一二三四五六七八九十百零〇○\d章篇]/.test(nextChar)) {
           return _FULL_BOOK_MAP[name] + '0:0';
         }
       }
