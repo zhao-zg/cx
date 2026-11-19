@@ -299,14 +299,39 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
 .theme-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;transition:all .2s;position:relative}
 .theme-label{font-size:13px;font-weight:500}
 /* ── 正文字体选项禁用态（theme-toggle.js 探测本机缺字体后添加） ── */
-.theme-option.font-option-disabled{opacity:.45;cursor:default;pointer-events:none}
+.theme-option.font-option-disabled,
+.font-seg-btn.font-option-disabled{opacity:.45;cursor:default;pointer-events:none}
 .font-unavailable-badge{font-size:11px;color:var(--text-muted);font-weight:400;margin-left:4px}
 
-/* ── 三、字体大小滑块 ───────────────────────────────────────── */
-.font-size-slider-container{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.font-label-small{font-size:12px;color:var(--text-secondary);font-weight:600}
-.font-label-large{font-size:18px;color:var(--text-secondary);font-weight:600}
-.font-size-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
+/* ── 三、阅读字体合并控件（字体选择 + 字号 + 实时预览）────────── */
+/* 收起时仅一行摘要（当前字体 · 当前字号），点开在卡片内展开全套设置 */
+.theme-panel .theme-section.font-combo-section{padding:0;border-bottom:1px solid var(--border)}
+.font-combo-head{width:100%;display:flex;align-items:center;gap:6px;padding:13px 16px;background:none;border:none;cursor:pointer;color:var(--text);text-align:left;font:inherit;-webkit-tap-highlight-color:transparent}
+.font-combo-title{font-size:12px;color:var(--text-secondary);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.font-combo-summary{margin-left:auto;font-size:12px;font-weight:600;color:var(--brand);white-space:nowrap}
+.font-combo-chevron{flex:0 0 auto;font-size:15px;line-height:1;color:var(--text-muted);transform:rotate(90deg);transition:transform .2s ease}
+.font-combo-head.collapsed .font-combo-chevron{transform:rotate(0)}
+.font-combo-body{padding:0 16px 14px}
+/* 分段选择器：每段用自身字体渲染，直观对比 */
+.font-seg{display:flex;gap:4px;padding:3px;border:1px solid var(--border);border-radius:9px;background:var(--surface-alt)}
+.font-seg-btn{position:relative;flex:1;min-width:0;padding:7px 4px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--text);font-size:13px;line-height:1.4;cursor:pointer;transition:background .18s,border-color .18s,color .18s;-webkit-tap-highlight-color:transparent}
+.font-seg-btn:hover{border-color:var(--border)}
+.font-seg-btn.active{background:var(--surface);border-color:var(--brand);color:var(--brand);font-weight:600;box-shadow:var(--shadow-sm)}
+.font-seg-btn .theme-label{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 缺字体提示改为角标圆点（窄按钮里放不下文字） */
+.font-seg-btn .font-unavailable-badge{position:absolute;top:4px;right:4px;width:5px;height:5px;margin:0;border-radius:50%;background:var(--text-muted);font-size:0;line-height:0;overflow:hidden;white-space:nowrap}
+/* 实时预览：一句话样张，随所选字体/字号变化 */
+.font-preview{margin-top:10px;padding:8px 10px;border:1px dashed var(--border);border-radius:8px;background:var(--page-bg);color:var(--text);font-size:16px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 字号行：A− 滑块 A+ 当前值 */
+.font-size-row{display:flex;align-items:center;gap:8px;margin-top:10px}
+.font-step-btn{flex:0 0 auto;min-width:32px;height:30px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:background .18s,border-color .18s,color .18s}
+.font-step-btn:hover{border-color:var(--brand);color:var(--brand)}
+.font-step-btn:active{background:var(--interactive-soft-bg)}
+.font-step-btn:disabled{opacity:.35;cursor:default;border-color:var(--border);color:var(--text)}
+.font-step-large{font-size:15px}
+.font-size-row .font-size-slider{flex:1;min-width:0}
+.font-size-row .font-size-value{flex:0 0 auto;min-width:40px;text-align:right;cursor:pointer}
+.font-size-slider{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,var(--border) 0%,var(--brand) 100%);outline:none}
 .font-size-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--brand);cursor:pointer;transition:all .2s;box-shadow:var(--control-thumb-shadow)}
 .font-size-slider::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:var(--control-thumb-shadow-hover)}
 .font-size-slider::-webkit-slider-thumb:active{transform:scale(1.05)}

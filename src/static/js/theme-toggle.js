@@ -666,39 +666,27 @@
                 </div>
             </div>
             
-            <div class="theme-section">
-                <div class="theme-section-title">正文字体</div>
-                <div class="theme-options">
-                    <div class="theme-option font-option" data-font="system" onclick="setReadingFont('system')">
-                        <div class="theme-option-content">
-                            <div class="theme-radio"></div>
-                            <div class="theme-label">跟随系统</div>
-                        </div>
+            <div class="theme-section font-combo-section">
+                <button type="button" class="font-combo-head" id="fontComboToggle" aria-expanded="false" aria-controls="fontComboBody">
+                    <span class="font-combo-title">阅读字体</span>
+                    <span class="font-combo-summary" id="fontComboSummary">跟随系统 · 18px</span>
+                    <span class="font-combo-chevron" aria-hidden="true">›</span>
+                </button>
+                <div class="font-combo-body" id="fontComboBody" style="display:none">
+                    <div class="font-seg" id="fontSeg">
+                        <button type="button" class="font-seg-btn font-option" data-font="system" onclick="setReadingFont('system')"><span class="theme-label">跟随系统</span></button>
+                        <button type="button" class="font-seg-btn font-option" data-font="songti" onclick="setReadingFont('songti')"><span class="theme-label">宋体</span></button>
+                        <button type="button" class="font-seg-btn font-option" data-font="heiti" onclick="setReadingFont('heiti')"><span class="theme-label">黑体</span></button>
                     </div>
-                    <div class="theme-option font-option" data-font="songti" onclick="setReadingFont('songti')">
-                        <div class="theme-option-content">
-                            <div class="theme-radio"></div>
-                            <div class="theme-label">宋体</div>
-                        </div>
+                    <div class="font-preview" id="fontPreview">耶和华是我的牧者，我必不至缺乏。</div>
+                    <div class="font-size-row">
+                        <button type="button" class="font-step-btn" id="fontSizeMinus" title="减小字号" aria-label="减小字号">A−</button>
+                        <input type="range" class="font-size-slider" id="fontSizeSlider"
+                               min="0" max="7" step="1" value="2" aria-label="字体大小"
+                               oninput="handleFontSliderChange(this.value)">
+                        <button type="button" class="font-step-btn font-step-large" id="fontSizePlus" title="增大字号" aria-label="增大字号">A+</button>
+                        <span class="font-size-value" id="fontSizeDisplay" title="点按恢复默认 18px">18px</span>
                     </div>
-                    <div class="theme-option font-option" data-font="heiti" onclick="setReadingFont('heiti')">
-                        <div class="theme-option-content">
-                            <div class="theme-radio"></div>
-                            <div class="theme-label">黑体</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="theme-section">
-                <div class="theme-section-title">字体大小</div>
-                <div class="font-size-slider-container">
-                    <span class="font-label-small">A</span>
-                    <input type="range" class="font-size-slider" id="fontSizeSlider" 
-                           min="0" max="7" step="1" value="2" 
-                           oninput="handleFontSliderChange(this.value)">
-                    <span class="font-label-large">A</span>
-                    <span class="font-size-value" id="fontSizeDisplay">18px</span>
                 </div>
             </div>
 
@@ -787,7 +775,9 @@
         // （安卓/鸿蒙 WebView 用自己的字体配置解析 CSS 泛型，系统主题字体通常不
         //  注册进去；注入后 CSS 落到 sans-serif 的正文与控件即可渲染为系统字体）
         applySystemFontInjection();
-        
+        // 字体合并控件：字体分段与字号滑块同处一个折叠区（设置面板更紧凑）
+        initFontCombo();
+
         // 点击外部关闭面板（对话框弹层内的点击不触发）
         document.addEventListener('click', function(e) {
             const panel = document.getElementById('themePanel');
@@ -2082,6 +2072,9 @@
     // 可用性探测结果缓存（true=可用 false=本机缺失，null=未探测）
     var readingFontAvailability = { system: true, songti: null, heiti: null };
 
+    // 当前生效的正文字体模式（供设置面板摘要/预览使用）
+    var currentReadingFont = 'system';
+
     // canvas 墨迹度量：CJK 汉字宽度在不同字体下常相同（全角等宽），
     // 必须结合上下墨迹边界（actualBoundingBox*）才能区分字体。
     // 注意：实测 document.fonts.check 不可靠（Chromium 对本机不存在的字体名也返回 true），
@@ -2150,9 +2143,12 @@
     }
 
     // 应用正文字体：设置/清除 body 内联 font-family，并派发 resize 触发翻页容器高度重算
+    // 注意 currentReadingFont 在存储读写之前赋值：即使 localStorage 抛异常
+    // （隐私模式等），摘要/预览也与 body 实际字体保持一致
     function applyReadingFont(mode) {
+        var stack = READING_FONTS[mode];
+        currentReadingFont = stack ? mode : 'system';
         try {
-            var stack = READING_FONTS[mode];
             if (stack) {
                 document.body.style.fontFamily = stack;
                 localStorage.setItem('globalFontFamily', mode);
@@ -2463,6 +2459,71 @@
                 if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
             }
         });
+        updateFontComboSummary();
+    }
+
+    // ── 字体合并控件：字体选择 + 字号调节同处一个折叠区 ───────────────
+    // 原先「正文字体」「字体大小」两个独立分区，合并为一张摘要卡：
+    // 收起时只占一行（当前字体 · 当前字号），点开即可换字体、拖字号并实时预览。
+    var FONT_COMBO_OPEN_KEY = 'cx_font_combo_open';
+    var FONT_MODE_LABELS = { system: '跟随系统', songti: '宋体', heiti: '黑体' };
+
+    function isFontComboOpen() {
+        try { return localStorage.getItem(FONT_COMBO_OPEN_KEY) === '1'; } catch (e) { return false; }
+    }
+
+    function setFontComboOpen(open) {
+        var head = document.getElementById('fontComboToggle');
+        var body = document.getElementById('fontComboBody');
+        if (!head || !body) return;
+        body.style.display = open ? '' : 'none';
+        head.setAttribute('aria-expanded', open ? 'true' : 'false');
+        head.classList.toggle('collapsed', !open);
+        try { localStorage.setItem(FONT_COMBO_OPEN_KEY, open ? '1' : '0'); } catch (e) {}
+    }
+
+    window.toggleFontCombo = function() {
+        var body = document.getElementById('fontComboBody');
+        setFontComboOpen(!!body && body.style.display === 'none');
+    };
+
+    // 合并卡内的实时预览：跟随当前字体与字号（预览字号上限 22px，避免面板内换行）
+    function updateFontPreview() {
+        var el = document.getElementById('fontPreview');
+        if (!el) return;
+        var size = fontSizes[currentSizeIndex] || 18;
+        el.style.fontSize = Math.min(size, 22) + 'px';
+        var stack = READING_FONTS[currentReadingFont];
+        if (stack) el.style.fontFamily = stack;
+        else el.style.removeProperty('font-family');
+    }
+
+    // 折叠头摘要：当前字体 · 当前字号
+    function updateFontComboSummary() {
+        var el = document.getElementById('fontComboSummary');
+        if (el) {
+            el.textContent = (FONT_MODE_LABELS[currentReadingFont] || '跟随系统') +
+                             ' · ' + (fontSizes[currentSizeIndex] || 18) + 'px';
+        }
+        updateFontPreview();
+    }
+
+    function initFontCombo() {
+        var head = document.getElementById('fontComboToggle');
+        if (head) head.addEventListener('click', window.toggleFontCombo);
+        var minus = document.getElementById('fontSizeMinus');
+        var plus = document.getElementById('fontSizePlus');
+        if (minus) minus.addEventListener('click', window.decreaseFontSize);
+        if (plus) plus.addEventListener('click', window.increaseFontSize);
+        var display = document.getElementById('fontSizeDisplay');
+        if (display) display.addEventListener('click', window.resetFontSize);
+        // 各分段按钮用自身字体渲染标签，直观对比宋体/黑体差异
+        document.querySelectorAll('.font-seg-btn[data-font]').forEach(function(btn) {
+            var stack = READING_FONTS[btn.getAttribute('data-font')];
+            if (stack) btn.style.fontFamily = stack;
+        });
+        setFontComboOpen(isFontComboOpen());
+        updateFontComboSummary();
     }
 
     // ── 字体诊断（实验：查「跟随系统」拿不到用户自定义系统字体的根因）──────
@@ -2579,6 +2640,13 @@
         if (slider) {
             slider.value = currentSizeIndex;
         }
+        // 步进按钮到达两端时置灰
+        const minus = document.getElementById('fontSizeMinus');
+        const plus = document.getElementById('fontSizePlus');
+        if (minus) minus.disabled = currentSizeIndex <= 0;
+        if (plus) plus.disabled = currentSizeIndex >= fontSizes.length - 1;
+        // 摘要与预览同步当前字号
+        updateFontComboSummary();
     }
     
     // 滑块变化处理
