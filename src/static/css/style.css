@@ -320,8 +320,6 @@ html.cx-scroll-locked,body.cx-scroll-locked{overflow:hidden;overscroll-behavior:
 .font-seg-btn .theme-label{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 缺字体提示改为角标圆点（窄按钮里放不下文字） */
 .font-seg-btn .font-unavailable-badge{position:absolute;top:4px;right:4px;width:5px;height:5px;margin:0;border-radius:50%;background:var(--text-muted);font-size:0;line-height:0;overflow:hidden;white-space:nowrap}
-/* 实时预览：一句话样张，随所选字体/字号变化 */
-.font-preview{margin-top:10px;padding:8px 10px;border:1px dashed var(--border);border-radius:8px;background:var(--page-bg);color:var(--text);font-size:16px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 字号行：A− 滑块 A+ 当前值 */
 .font-size-row{display:flex;align-items:center;gap:8px;margin-top:10px}
 .font-step-btn{flex:0 0 auto;min-width:32px;height:30px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:background .18s,border-color .18s,color .18s}

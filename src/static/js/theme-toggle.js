@@ -678,7 +678,6 @@
                         <button type="button" class="font-seg-btn font-option" data-font="songti" onclick="setReadingFont('songti')"><span class="theme-label">宋体</span></button>
                         <button type="button" class="font-seg-btn font-option" data-font="heiti" onclick="setReadingFont('heiti')"><span class="theme-label">黑体</span></button>
                     </div>
-                    <div class="font-preview" id="fontPreview">耶和华是我的牧者，我必不至缺乏。</div>
                     <div class="font-size-row">
                         <button type="button" class="font-step-btn" id="fontSizeMinus" title="减小字号" aria-label="减小字号">A−</button>
                         <input type="range" class="font-size-slider" id="fontSizeSlider"
@@ -2487,17 +2486,6 @@
         setFontComboOpen(!!body && body.style.display === 'none');
     };
 
-    // 合并卡内的实时预览：跟随当前字体与字号（预览字号上限 22px，避免面板内换行）
-    function updateFontPreview() {
-        var el = document.getElementById('fontPreview');
-        if (!el) return;
-        var size = fontSizes[currentSizeIndex] || 18;
-        el.style.fontSize = Math.min(size, 22) + 'px';
-        var stack = READING_FONTS[currentReadingFont];
-        if (stack) el.style.fontFamily = stack;
-        else el.style.removeProperty('font-family');
-    }
-
     // 折叠头摘要：当前字体 · 当前字号
     function updateFontComboSummary() {
         var el = document.getElementById('fontComboSummary');
@@ -2505,7 +2493,6 @@
             el.textContent = (FONT_MODE_LABELS[currentReadingFont] || '跟随系统') +
                              ' · ' + (fontSizes[currentSizeIndex] || 18) + 'px';
         }
-        updateFontPreview();
     }
 
     function initFontCombo() {
