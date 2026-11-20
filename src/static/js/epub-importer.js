@@ -210,6 +210,23 @@
   var LEVEL5_CHARS = '㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩';
   var LEVEL6_CHARS = '⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽';
 
+  // 多字符编号前缀提取（拾壹~拾玖 / 十一~十九 须整体识别，防止拆成「拾+壹」「十+一」）
+  var _L1_MULTI_RE = /^(拾[壹贰叁肆伍陆柒捌玖])[\s\u3000]/;
+  var _L2_MULTI_RE = /^([一二三四五六七八九十百](?:[\s\u3000]*[一二三四五六七八九十百])*)[\s\u3000]+(.*)/;
+  function _extractCnLevelPrefix(text, rank) {
+    if (rank === 1) {
+      var m1 = _L1_MULTI_RE.exec(text);
+      if (m1) return { level: m1[1], title: text.slice(m1[0].length).replace(/^[\s\u3000]+/, '') };
+      return null;
+    }
+    if (rank === 2) {
+      var m2 = _L2_MULTI_RE.exec(text);
+      if (m2 && m2[1].length > 1) return { level: m2[1], title: m2[2] };
+      return null;
+    }
+    return null;
+  }
+
   function cnOrdToInt(cn) {
     var map = {
       '一':1,'二':2,'三':3,'四':4,'五':5,
@@ -338,10 +355,16 @@
 
       if (cls === 'calibre_text_dadian') {
         rank = 1;
-        // 提取层级字符和标题
+        // 提取层级字符和标题（拾壹~拾玖 多字符编号整体识别）
         if (text.length > 1 && LEVEL1_CHARS.indexOf(text[0]) >= 0) {
-          level = text[0];
-          title = text.slice(1).replace(/^[\s\u3000]+/, '');
+          var p1 = _extractCnLevelPrefix(text, 1);
+          if (p1) {
+            level = p1.level;
+            title = p1.title;
+          } else {
+            level = text[0];
+            title = text.slice(1).replace(/^[\s\u3000]+/, '');
+          }
         } else {
           level = '';
           title = text;
@@ -349,8 +372,14 @@
       } else if (cls === 'calibre_text_zhongdian') {
         rank = 2;
         if (text.length > 1 && LEVEL2_CHARS.indexOf(text[0]) >= 0) {
-          level = text[0];
-          title = text.slice(1).replace(/^[\s\u3000]+/, '');
+          var p2 = _extractCnLevelPrefix(text, 2);
+          if (p2) {
+            level = p2.level;
+            title = p2.title;
+          } else {
+            level = text[0];
+            title = text.slice(1).replace(/^[\s\u3000]+/, '');
+          }
         } else {
           level = '';
           title = text;
@@ -664,8 +693,14 @@
         if (text.length > 1 && rank <= 2) {
           var chars = rank === 1 ? LEVEL1_CHARS : LEVEL2_CHARS;
           if (chars.indexOf(text[0]) >= 0) {
-            levelPrefix = text[0];
-            cleanTitle = text.slice(1).replace(/^[\s\u3000]+/, '');
+            var mp = _extractCnLevelPrefix(text, rank);
+            if (mp) {
+              levelPrefix = mp.level;
+              cleanTitle = mp.title;
+            } else {
+              levelPrefix = text[0];
+              cleanTitle = text.slice(1).replace(/^[\s\u3000]+/, '');
+            }
           }
         }
         if (!levelPrefix && rank === 3) {
@@ -871,12 +906,16 @@
         if (cls === 'calibre_text_dadian') {
           rank = 1;
           if (text.length > 1 && LEVEL1_CHARS.indexOf(text[0]) >= 0) {
-            level = text[0]; title = text.slice(1).replace(/^[\s\u3000]+/, '');
+            var p1b = _extractCnLevelPrefix(text, 1);
+            if (p1b) { level = p1b.level; title = p1b.title; }
+            else { level = text[0]; title = text.slice(1).replace(/^[\s\u3000]+/, ''); }
           } else { level = ''; title = text; }
         } else if (cls === 'calibre_text_zhongdian') {
           rank = 2;
           if (text.length > 1 && LEVEL2_CHARS.indexOf(text[0]) >= 0) {
-            level = text[0]; title = text.slice(1).replace(/^[\s\u3000]+/, '');
+            var p2b = _extractCnLevelPrefix(text, 2);
+            if (p2b) { level = p2b.level; title = p2b.title; }
+            else { level = text[0]; title = text.slice(1).replace(/^[\s\u3000]+/, ''); }
           } else { level = ''; title = text; }
         } else if (cls === 'calibre_text_xiaodian') {
           rank = 3;

@@ -117,8 +117,10 @@
     var c0 = s[0];
     var sep = s.length > 1 ? s[1] : '';
 
-    // Level 1: 壹贰叁...
+    // Level 1: 壹贰叁...（含多字符编号 拾壹~拾玖，须整体识别，防止拆成「拾+壹」）
     if (LEVEL1_CHARS.indexOf(c0) >= 0) {
+      var m1 = s.match(/^(拾[壹贰叁肆伍陆柒捌玖])[\u3000 \t]+(.*)/);
+      if (m1) return { level: m1[1], title: m1[2] };
       return { level: c0, title: s.slice(1).replace(/^[\u3000 \t]+/, '') };
     }
     // Level 2: 一二三...（排除年份行），支持多字符如 "十一"、"十 一"
@@ -160,12 +162,15 @@
     if (!levelStr) return 4;
     if (LEVEL1_CHARS.indexOf(levelStr) >= 0) return 1;
     if (LEVEL2_CHARS.indexOf(levelStr) >= 0) return 2;
-    // 多字符中点（如 "十一"、"十二"）
+    // 多字符编号（如 "拾壹"→1、"十一"→2）：逐字符同属一级则按该级计
     if (levelStr.length > 1) {
-      var allLv2 = true;
+      var allLv1 = true, allLv2 = true;
       for (var k = 0; k < levelStr.length; k++) {
-        if (LEVEL2_CHARS.indexOf(levelStr.charAt(k)) < 0) { allLv2 = false; break; }
+        var ch = levelStr.charAt(k);
+        if (LEVEL1_CHARS.indexOf(ch) < 0) allLv1 = false;
+        if (LEVEL2_CHARS.indexOf(ch) < 0) allLv2 = false;
       }
+      if (allLv1) return 1;
       if (allLv2) return 2;
     }
     if (LEVEL3_FW.indexOf(levelStr) >= 0) return 3;
@@ -848,11 +853,17 @@
     var sep = s.length > 1 ? s[1] : '';
 
     if (LEVEL1_CHARS.indexOf(c0) >= 0) {
+      // 多字符大点（拾壹~拾玖）：整体识别，防止拆成「拾+壹」
+      var m1s = s.match(/^(拾[壹贰叁肆伍陆柒捌玖])[\u3000 \t]/);
+      if (m1s) return { level: m1s[1], title: s.slice(m1s[0].length).trim() };
       if (sep === '\u3000' || sep === ' ' || sep === '\t') return { level: c0, title: s.slice(2).trim() };
       return null;
     }
     if (LEVEL2_CHARS.indexOf(c0) >= 0) {
       if (/^[一二三四五六七八九○〇零]{4}年/.test(s)) return null;
+      // 多字符中点（十一~十九）：整体识别
+      var m2s = s.match(/^([一二三四五六七八九十百](?:[\u3000 \t]*[一二三四五六七八九十百])*)[\u3000 \t]+(.*)/);
+      if (m2s) return { level: m2s[1].replace(/[\u3000 \t]/g, ''), title: m2s[2].trim() };
       if (sep === '\u3000' || sep === ' ' || sep === '\t') return { level: c0, title: s.slice(2).trim() };
       return null;
     }
@@ -1870,6 +1881,9 @@
     detectTrainingBoundaries: detectTrainingBoundaries,
     cnYearToInt: cnYearToInt,
     filterRangeTrainings: filterRangeTrainings,
+    // 纲目解析工具（构建脚本与回归测试复用）
+    parseCnOutline: parseCnOutline,
+    levelRank: levelRank,
     // 经文提取工具（构建脚本复用）
     collectInlineVerses: collectInlineVerses
   };
