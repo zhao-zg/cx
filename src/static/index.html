@@ -284,7 +284,7 @@
         try { _autoCheck = localStorage.getItem('cx_auto_check_update') === '1'; } catch(e) { _autoCheck = false; }
         var _isCapacitor=!!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App);
         function loadTrainingsFromNetwork(){
-            fetch('trainings.json?t='+Date.now())
+            fetch('trainings.json?t='+Date.now(),CX_ENV.isCapacitorApp?undefined:{cache:'no-cache'})
                 .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
                 .then(function(data){
                     window.__cxTrainings=data.trainings||[];
@@ -786,32 +786,48 @@
         }).catch(function(){return{ok:false,coverage:0,missingCore:0,missingTrainings:[]};});
     }
 
-    function cacheAllTrainings(statusEl,onProgress){
+    function cacheAllTrainings(statusEl,onProgress,latest){
         if(!('caches' in window)){if(statusEl)statusEl.textContent='当前环境不支持缓存';return Promise.resolve();}
-        var trainings=(window.__cxTrainings||[]).filter(function(t){return!t.is_collection;});
+        var trainings=(latest?latest.trainings:(window.__cxTrainings||[])).filter(function(t){return!t.is_collection;});
+        if(latest&&!trainings.length)return Promise.reject(new Error('训练列表为空'));
         if(!trainings.length){if(statusEl)statusEl.textContent='训练列表尚未加载';return Promise.resolve();}
         var maxN=window.CX_MAX_LATEST_TRAININGS||trainings.length;trainings=trainings.slice(0,maxN);
         var coreUrls=window.__cxCoreUrls||[];
+        if(latest)coreUrls=coreUrls.filter(function(url){return url!=='./trainings.json';}).concat('./js/app-update.js');
         var totalResources=coreUrls.length;var cachedResources=0;
         trainings.forEach(function(t){totalResources+=getTrainingResources(t.path,t.images||[]).length;});
         function rep(){var p=totalResources>0?Math.round(cachedResources/totalResources*100):0;if(onProgress)onProgress(p);return p;}
+        function download(cache,url){
+            return fetch(url,{cache:'no-cache'}).then(function(r){
+                var unexpected=latest&&(url==='./'
+                    ? /\bno-store\b/i.test(r.headers.get('Cache-Control')||'')
+                    : /^text\/html\b/i.test(r.headers.get('Content-Type')||''));
+                if(!r.ok||unexpected){
+                    throw new Error('无法下载 '+url+' (HTTP '+r.status+')');
+                }
+                return cache.put(url,r);
+            }).then(function(){cachedResources++;rep();});
+        }
+        function downloadAll(cache,urls){
+            return Promise.allSettled(urls.map(function(url){return download(cache,url);})).then(function(results){
+                var failed=results.find(function(r){return r.status==='rejected';});
+                if(latest&&failed)throw failed.reason;
+            });
+        }
         var cacheShared=caches.open('cx-main').then(function(cache){
-            return Promise.allSettled(coreUrls.map(function(url){
-                return fetch(url,{cache:'no-cache'}).then(function(r){cachedResources++;if(statusEl)statusEl.textContent='核心资源：'+cachedResources+'/'+coreUrls.length;if(r.ok)return cache.put(url,r.clone());}).catch(function(){cachedResources++;rep();});
-            }));
-        }).catch(function(){});
+            return downloadAll(cache,coreUrls);
+        });
         return cacheShared.then(function(){
             return trainings.reduce(function(p,t){return p.then(function(){
                 var resources=getTrainingResources(t.path,t.images||[]);
                 if(statusEl)statusEl.textContent='缓存：'+t.title;
                 return caches.open('cx-'+t.path).then(function(cache){
-                    return Promise.all(resources.map(function(url){
-                        return fetch(url,{redirect:'follow',cache:'no-cache'}).then(function(r){
-                            if(r.ok){cachedResources++;rep();return cache.put(r.url,r.clone());}
-                        }).catch(function(){cachedResources++;rep();});
-                    }));
+                    return downloadAll(cache,resources);
                 });
             });},Promise.resolve());
+        }).then(function(){
+            if(!latest)return;
+            return caches.open('cx-main').then(function(cache){return cache.put('./trainings.json',latest.response);});
         }).then(function(){if(statusEl){statusEl.textContent='✓ 全部缓存完成';statusEl.className='cache-status success';}try{localStorage.setItem('cx_all_cached',Date.now().toString());}catch(e){}});
     }
 
@@ -833,30 +849,15 @@
             aborted=false;
             if(retryBtn)retryBtn.style.display='none';
             if(progressBar)progressBar.style.width='0%';
-            if(statusEl)statusEl.textContent='正在等待训练列表...';
-            // 先获取训练列表，再按需清理——只清除本次将要重新下载的命名缓存
-            // 保留其他已安装的默认训练（命名缓存）和历史包数据（cx-main）
-            waitForTrainings(15000).then(function(trainings){
-                var toCache=trainings.filter(function(t){return!t.is_collection;}).slice(0,window.CX_MAX_LATEST_TRAININGS||trainings.length);
-                var refreshKeys=toCache.map(function(t){return'cx-'+t.path;});
-                if(statusEl)statusEl.textContent='正在清理旧缓存...';
-                var clearStep=('caches' in window)?caches.keys().then(function(keys){
-                    // 清理命名缓存（cx-YYYY-NN）
-                    var delNamed=Promise.all(keys.filter(function(k){return refreshKeys.indexOf(k)!==-1;}).map(function(k){return caches.delete(k);}));
-                    // 同时清理 cx-main 中可能过期的目录文件，确保后续 fetch 走网络拿最新
-                    var delStale=caches.open('cx-main').then(function(cache){
-                        return Promise.all([
-                            cache.delete('./trainings.json'),
-                            cache.delete(location.origin+'/trainings.json'),
-                            cache.delete('./version.json'),
-                            cache.delete(location.origin+'/version.json')
-                        ]);
-                    }).catch(function(){});
-                    return Promise.all([delNamed, delStale]);
-                }).catch(function(){}):Promise.resolve();
-                return clearStep.then(function(){
-                    if(statusEl)statusEl.textContent='开始缓存资源...';
-                    return cacheAllTrainings(statusEl,function(percent){if(progressBar)progressBar.style.width=Math.min(percent,100)+'%';}).then(function(){
+            if(statusEl)statusEl.textContent='正在获取最新训练列表...';
+            fetch('./trainings.json',{cache:'no-cache'}).then(function(r){
+                if(!r.ok)throw new Error('训练列表 HTTP '+r.status);
+                return r.clone().json().then(function(data){return {trainings:data.trainings,response:r};});
+            }).then(function(latest){
+                if(!Array.isArray(latest.trainings))throw new Error('训练列表格式错误');
+                var toCache=latest.trainings.filter(function(t){return!t.is_collection;}).slice(0,window.CX_MAX_LATEST_TRAININGS||latest.trainings.length);
+                if(statusEl)statusEl.textContent='开始缓存资源...';
+                return cacheAllTrainings(statusEl,function(percent){if(progressBar)progressBar.style.width=Math.min(percent,100)+'%';},latest).then(function(){
                         if(progressBar)progressBar.style.width='100%';
                         if(statusEl)statusEl.textContent='✓ 下载完成，正在验证...';
                         return verifyCacheIntegrity(toCache);
@@ -877,7 +878,6 @@
                             if(retryBtn)retryBtn.style.display='block';
                         }
                     });
-                });
             }).catch(function(err){if(statusEl)statusEl.textContent='⚠ 出错：'+(err&&err.message||'未知')+'，请重试';if(retryBtn)retryBtn.style.display='block';});
         }
         if(retryBtn)retryBtn.addEventListener('click',doInstall);
@@ -886,6 +886,7 @@
         // install（首次安装）与 update（缓存修复）均立即开始，避免弹框出现后进度条一直停在 0%
         doInstall();
     }
+    window.CX.refreshPwaCache=function(version){showMandatoryInstallDialog('update',version);};
 
     function checkPwaStartupCache(){
         if(!CX_ENV.isStandalone||CX_ENV.isCapacitorApp||!('caches' in window))return;
@@ -989,7 +990,7 @@
                 } // end else (auto check on or no local version)
             }
         } else {
-        navigator.serviceWorker.register('./sw.js').then(function(reg){
+        navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(function(reg){
             // 关闭自动检查更新时跳过主动 SW 更新检查，避免启动时网络请求
             try { if(localStorage.getItem('cx_auto_check_update')==='1') reg.update().catch(function(){}); } catch(e){}
             reg.addEventListener('updatefound',function(){

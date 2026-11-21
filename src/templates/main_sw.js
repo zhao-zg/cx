@@ -4,6 +4,8 @@
  */
 
 const CACHE_NAME = 'cx-main';
+const SCOPE = self.registration.scope;
+const SCOPE_PATH = new URL(SCOPE).pathname;
 
 const CONFIG = {
   TIMEOUT: 5000,
@@ -51,33 +53,16 @@ function normalizeUrl(urlStr) {
 // 3. 请求拦截
 // --------------------------------------------------------------------------
 
-// 始终走网络、不缓存的文件（版本检测用）
-const NETWORK_ONLY = ['version.json'];
-
-function isNetworkOnly(url) {
-  try {
-    const path = new URL(url).pathname;
-    return NETWORK_ONLY.some(f => path.endsWith('/' + f) || path === '/' + f || path.endsWith(f));
-  } catch (e) { return false; }
-}
-
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   const request = event.request;
   const normalizedUrl = normalizeUrl(request.url);
+  const path = request.url.startsWith(SCOPE) ? new URL(request.url).pathname.slice(SCOPE_PATH.length) : null;
 
-  // 版本/目录文件：网络优先，离线时才降级缓存
-  if (isNetworkOnly(request.url)) {
-    event.respondWith((async () => {
-      try {
-        return await fetch(request, { cache: 'no-store' });
-      } catch (e) {
-        const cached = await caches.match(request) || await caches.match(normalizedUrl);
-        if (cached) return cached;
-        throw e;
-      }
-    })());
+  // 版本检查不能用离线旧版本冒充当前部署。
+  if (path === 'version.json') {
+    event.respondWith(fetch(request, { cache: 'no-store' }));
     return;
   }
 
@@ -87,39 +72,62 @@ self.addEventListener('fetch', event => {
   // 必须排除导航请求，否则离线刷新会跳过拦截导致 ERR_INTERNET_DISCONNECTED。
   if (request.cache === 'no-cache' && request.mode !== 'navigate') return;
 
-  const responsePromise = (async () => {
-    // 1. 缓存优先 (尝试原始 URL 和规范化 URL)
-    const cached = await caches.match(request) || await caches.match(normalizedUrl);
-    if (cached) return cached;
+  const shell = path !== null && (path === '' || path === 'index.html' || path === 'manifest.json'
+    || /^(js|css|vendor)\//.test(path));
+  const batch = path && /^(\d{4}-\d{2})\//.exec(path);
+  async function findCached() {
+    // 显式缓存的最新训练优先于历史资源包或旧 SW 写入 cx-main 的同名文件。
+    if (batch) {
+      const options = { cacheName: 'cx-' + batch[1] };
+      const cached = await caches.match(request, options) || await caches.match(normalizedUrl, options);
+      if (cached) return cached;
+    }
+    return await caches.match(normalizedUrl) || await caches.match(request);
+  }
 
-    // 2. 缓存未命中 → 从网络取并写缓存
+  async function fetchAndCache() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT);
-    const response = await fetch(request, { signal: controller.signal });
-    clearTimeout(timeoutId);
+    try {
+      const options = { signal: controller.signal };
+      if (shell) options.cache = 'no-cache';
+      const response = await fetch(request, options);
+      const type = response.headers.get('Content-Type') || '';
+      if (shell && (/^text\/html\b/i.test(type) && path !== '' && path !== 'index.html')) {
+        throw new Error('Invalid shell response: ' + path);
+      }
 
-    if (response && response.status === 200 && CONFIG.CACHEABLE_TYPES.includes(response.type)) {
-      const responseClone = response.clone();
-      const cache = await caches.open(CACHE_NAME);
-      // 用 event.waitUntil 延长 SW 生命周期，确保大文件写完再休眠
-      const writePromise = cache.put(request, responseClone)
-        .then(() => {
-          if (request.url !== normalizedUrl) {
-            return cache.put(normalizedUrl, response.clone());
-          }
-        })
-        .catch(() => {/* 写缓存失败不影响正常响应 */});
-      event.waitUntil(writePromise);
+      // 登录/提示页标记为 no-store，不能覆盖离线首页。
+      if (response.status === 200 && CONFIG.CACHEABLE_TYPES.includes(response.type)
+          && !/\bno-store\b/i.test(response.headers.get('Cache-Control') || '')) {
+        const copy = response.clone();
+        event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put(normalizedUrl, copy))
+          .catch(err => console.warn('[SW] 缓存写入失败:', err)));
+      }
+      return response;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return response;
+  }
+
+  const responsePromise = (async () => {
+    if (!shell) return await findCached() || await fetchAndCache();
+    // 核心页面及脚本重新验证 HTTP 缓存；离线才使用 Cache Storage。
+    try {
+      const response = await fetchAndCache();
+      if (response.status < 500) return response;
+      return await findCached() || response;
+    } catch (err) {
+      const cached = await findCached();
+      if (cached) return cached;
+      throw err;
+    }
   })();
 
-  event.respondWith(responsePromise.catch(err => {
+  event.respondWith(responsePromise.catch(async err => {
     if (request.mode === 'navigate') {
       // 先尝试缓存的 index.html（SPA fallback），避免直接返回离线空壳
-      return caches.match('./')
-        || caches.match(normalizedUrl)
-        || caches.match(request.url)
+      return await caches.match(SCOPE)
         || new Response(getOfflineHTML(), {
           headers: { 'Content-Type': 'text/html; charset=utf-8' }
         });

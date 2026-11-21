@@ -19,8 +19,9 @@
         var servers = (window.CX_SERVERS && window.CX_SERVERS.cloudflare) || [];
         var root = window.CX_ROOT || './';
         var ts = Date.now();
+        var isPwa = window.CX_ENV && window.CX_ENV.isStandalone && !window.CX_ENV.isCapacitorApp;
 
-        if (servers.length) {
+        if (servers.length && !isPwa) {
             // 走 smartFetch：直取最快镜像 → 竞速重探 → 降级本地
             window.CX._versionPromise = window.CX.smartFetch(servers, 'version.json?t=' + ts, {
                 timeout: 10000,
@@ -60,8 +61,8 @@
                 return v;
             });
         } else {
-            // 无镜像配置，直接本地
-            var localPromise = fetch(root + 'version.json', { cache: 'no-cache' })
+            // PWA 的版本必须与实际下载资源的站点一致，不能取到其它镜像的版本。
+            var localPromise = fetch(root + 'version.json' + (isPwa ? '?t=' + ts : ''), { cache: 'no-cache' })
                 .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
                 .catch(function() { return null; });
             // null 时清 _versionPromise，允许下次重试
@@ -1313,7 +1314,7 @@
         });
     };
     
-    // PWA 更新检查对话框（清缓存 + 刷新）
+    // PWA 更新检查对话框
     AppUpdate.showPwaUpdateDialog = function(options) {
         var root = (options && options.root) || './';
         var extStatusEl = (options && options.statusEl) || null;
@@ -1343,7 +1344,8 @@
         versionPromise
             .then(function(v) {
                 if (!v) { statusEl.innerHTML = '❌ 版本信息获取失败'; return; }
-                var remoteVersion = v.version || v.apk_version || '';
+                var remoteVersion = v.version || v.apk_version;
+                if (!remoteVersion) throw new Error('版本信息缺少版本号');
                 var comparison = currentVersion
                     ? AppUpdate.compareVersion(remoteVersion, currentVersion)
                     : 1; // 无本地版本 = 视为有更新
@@ -1354,30 +1356,6 @@
                     if (extStatusEl) { extStatusEl.textContent = '✓ 已是最新版本 v' + remoteVersion; extStatusEl.className = 'cache-status success'; }
                     btnEl.style.display = 'block';
                     btnEl.textContent = '强制重新加载';
-                    btnEl.onclick = function() {
-                        closeDialog();
-                        var steps = [];
-                        if ('caches' in window) {
-                            // 安全模式：只删训练命名缓存（cx-YYYY-NN）与 cx-main 中的索引条目，
-                            // 保留资源包写入 cx-main 的 /YYYY-NN/* 正文数据，历史训练不丢失。
-                            // 本页可能无 __cxTrainings（如设置等无训练列表页），故用正则匹配而非训练列表推导。
-                            steps.push(caches.keys().then(function(keys) {
-                                var delNamed = Promise.all(keys.filter(function(k) { return /^cx-\d{4}-\d{2}$/.test(k); }).map(function(k) { return caches.delete(k); }));
-                                var delStale = caches.open('cx-main').then(function(cache) {
-                                    return Promise.all([
-                                        cache.delete('./trainings.json'),
-                                        cache.delete(location.origin + '/trainings.json'),
-                                        cache.delete('./version.json'),
-                                        cache.delete(location.origin + '/version.json')
-                                    ]);
-                                }).catch(function() {});
-                                return Promise.all([delNamed, delStale]);
-                            }).catch(function() {}));
-                        }
-                        try { localStorage.removeItem('cx_pwa_version'); } catch(ex) {}
-                        try { localStorage.removeItem('cx_all_cached'); } catch(ex) {}
-                        Promise.all(steps).then(function() { window.location.replace(root + 'index.html'); });
-                    };
                 } else {
                     // 有新版本
                     var currentClean = (currentVersion || '').replace('v', '');
@@ -1396,32 +1374,15 @@
 
                     btnEl.style.display = 'block';
                     btnEl.textContent = '立即更新';
-                    btnEl.onclick = function() {
-                        closeDialog();
-                        window.__cxUpdateInProgress = true;
-                        // 激活等待中的新版 SW（若有），使其在重载后接管页面
-                        if (window.__cxSwWaiting) {
-                            try { window.__cxSwWaiting.postMessage({type:'SKIP_WAITING'}); } catch(ex){}
-                            window.__cxSwWaiting = null;
-                        }
-                        if (extStatusEl) { extStatusEl.textContent = '正在准备更新...'; extStatusEl.className = 'cache-status'; }
-                        var steps = [];
-                        if ('caches' in window) {
-                            // 只刷新 cx-main 中的 trainings.json，不清除命名训练缓存
-                            // 保留已缓存的训练（包括被新版本淘汰的老训练），重载后由 showMandatoryInstallDialog 精确清理
-                            steps.push(caches.open('cx-main').then(function(cache) {
-                                return cache.delete('./trainings.json').then(function() {
-                                    return cache.delete(location.origin + '/trainings.json');
-                                });
-                            }).catch(function() {}));
-                        }
-                        // 保存新版本号，使重载后 checkPwaStartupCache 进行完整性检查并触发增量缓存
-                        try { localStorage.setItem('cx_pwa_version', remoteVersion); } catch(ex) {}
-                        try { localStorage.removeItem('cx_all_cached'); } catch(ex) {}
-                        if (window.CX && window.CX.errorLog) window.CX.errorLog.clear();
-                        Promise.all(steps).then(function() { window.location.replace(root + 'index.html'); });
-                    };
                 }
+                btnEl.onclick = function() {
+                    if (!window.CX || !window.CX.refreshPwaCache) {
+                        statusEl.textContent = '无法启动更新，请重新打开应用后重试';
+                        return;
+                    }
+                    closeDialog();
+                    window.CX.refreshPwaCache(remoteVersion);
+                };
 
                 // 异步填充 changelog，不阻塞主流程
                 fetchChangelog(root).then(function(changelog) {
